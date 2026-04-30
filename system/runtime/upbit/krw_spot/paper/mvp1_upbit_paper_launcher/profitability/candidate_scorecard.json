@@ -1,12 +1,12 @@
 {
   "schema_id": "trader1.candidate_scorecard.v1",
-  "generated_at_utc": "2026-04-30T14:18:58Z",
+  "generated_at_utc": "2026-04-30T14:37:26Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
   },
-  "scorecard_id": "mvp4_upbit_paper_runtime_latest_candidate_scorecard",
+  "scorecard_id": "scorecard:mvp4_upbit_scorecard_bridge_current_refresh-cycle-2:KRW-BTC-pullback-trend-long",
   "candidate_id": "KRW-BTC-pullback-trend-long",
   "strategy_id": "trend_pullback",
   "strategy_build_id": "upbit_paper_runtime_cycle_v1",

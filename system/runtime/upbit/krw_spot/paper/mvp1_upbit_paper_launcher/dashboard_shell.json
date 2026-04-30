@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-04-30T14:19:43Z",
+  "generated_at_utc": "2026-04-30T14:46:38Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -36,12 +36,20 @@
       "freshness_status": "PASS"
     },
     {
+      "artifact_id": "CANDIDATE_SCORECARD",
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
+      "filename": "candidate_scorecard.json",
+      "truth_role": "dashboard_serving_truth",
+      "loaded": true,
+      "freshness_status": "STALE"
+    },
+    {
       "artifact_id": "PAPER_RUNTIME_RECOVERY_GUARD",
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
       "filename": "upbit_paper_runtime_recovery_guard_report.json",
       "truth_role": "dashboard_serving_truth",
       "loaded": true,
-      "freshness_status": "PASS"
+      "freshness_status": "STALE"
     },
     {
       "artifact_id": "MARKET_DATA_CONTINUITY_HISTORY",
@@ -57,7 +65,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-04-30T14:19:43Z",
+    "generated_at_utc": "2026-04-30T14:46:38Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -122,7 +130,7 @@
     "history_window": "CURRENT_SNAPSHOT_ONLY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 1434,
+    "observed_span_seconds": 2393,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "INSUFFICIENT_SPAN",
     "degraded_sample_count": 60,
@@ -142,8 +150,8 @@
         "metric_id": "source_freshness",
         "label": "Source freshness",
         "status": "STALE",
-        "value_display": "4/5 PASS",
-        "detail": "Refresh required: MARKET_DATA_CONTINUITY_HISTORY",
+        "value_display": "3/6 PASS",
+        "detail": "Refresh required: CANDIDATE_SCORECARD, PAPER_RUNTIME_RECOVERY_GUARD, MARKET_DATA_CONTINUITY_HISTORY",
         "source": "summary.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -161,7 +169,7 @@
         "label": "Runtime artifact pressure",
         "status": "PASS",
         "value_display": "PASS",
-        "detail": "Runtime artifact pressure PASS: files=167, bytes=1313951, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
+        "detail": "Runtime artifact pressure PASS: files=167, bytes=1312170, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -209,7 +217,7 @@
     "source": "heartbeat.json",
     "history_window": "CURRENT_SNAPSHOT_ONLY",
     "history_sample_count": 60,
-    "observed_span_seconds": 1434,
+    "observed_span_seconds": 2393,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "INSUFFICIENT_SPAN",
     "stable_sample_count": 0,
@@ -323,9 +331,9 @@
   },
   "paper_runtime_recovery_guard_status": {
     "title": "PAPER Runtime Recovery Guard",
-    "status": "PASS",
-    "severity": "NORMAL",
-    "color_token": "green",
+    "status": "STALE",
+    "severity": "WARNING",
+    "color_token": "yellow",
     "truth_role": "dashboard_serving_truth",
     "source": "upbit_paper_runtime_recovery_guard_report.json",
     "guard_id": "mvp4_upbit_scorecard_bridge_current_refresh-recovery-guard",
@@ -338,13 +346,13 @@
     "corrupted_ledger_jsonl_quarantined_count": 0,
     "ledger_jsonl_invalid_count": 0,
     "orphan_tmp_file_count": 0,
-    "resume_action": "RESUME_PAPER_ONLY",
-    "paper_runtime_resume_allowed": true,
+    "resume_action": "SAFE_MODE_RECONCILE",
+    "paper_runtime_resume_allowed": false,
     "actual_long_run_evidence_created": false,
     "promotion_eligible": false,
-    "primary_blocker_code": "LIVE_READY_MISSING",
-    "one_line_summary": "PAPER runtime recovery guard is clean: latest cycle is recoverable, canonical JSONL is checked, and no orphan temp files are present.",
-    "next_operator_action": "Continue PAPER monitoring. This recovery check is not LIVE_READY, not promotion evidence, and not long-run evidence.",
+    "primary_blocker_code": "LATENCY_TTL_EXPIRED",
+    "one_line_summary": "Recovery guard is stale. It cannot prove current PAPER runtime resume status.",
+    "next_operator_action": "Rerun the bounded PAPER recovery guard before trusting runtime resume status.",
     "display_only": true,
     "dashboard_truth_only": true,
     "live_order_ready": false,
@@ -921,6 +929,20 @@
     "scorecard_scope": "PAPER_EVIDENCE_COLLECTION_ONLY",
     "live_readiness_status": "NOT_LIVE_READY",
     "operator_warning": "Rollup evidence is not LIVE_READY and cannot place or allow live orders.",
+    "candidate_scorecard_source": "candidate_scorecard.json",
+    "candidate_scorecard_status": "STALE",
+    "candidate_scorecard_id": "scorecard:mvp4_upbit_scorecard_bridge_current_refresh-cycle-2:KRW-BTC-pullback-trend-long",
+    "candidate_scorecard_candidate_id": "KRW-BTC-pullback-trend-long",
+    "candidate_scorecard_strategy_id": "trend_pullback",
+    "candidate_scorecard_symbol": "KRW-BTC",
+    "candidate_scorecard_objective_basis": "NET_EV_AFTER_COST",
+    "candidate_scorecard_net_ev_after_cost_bps": 31.0,
+    "candidate_scorecard_net_ev_after_cost_display": "31.00 bps",
+    "candidate_scorecard_ranking_eligible": false,
+    "candidate_scorecard_scope": "STALE_DISPLAY_ONLY",
+    "candidate_scorecard_primary_blocker_code": "LATENCY_TTL_EXPIRED",
+    "candidate_scorecard_blocker_summary": "Candidate scorecard is stale and cannot be trusted for review.",
+    "candidate_scorecard_next_action": "Rerun the PAPER scorecard bridge before reviewing candidate quality.",
     "scorecard_input_eligible": false,
     "optimizer_ranking_action": "BLOCK_RANKING",
     "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
@@ -1158,16 +1180,16 @@
     "truth_role": "dashboard_serving_truth",
     "source": "summary.json",
     "freshness_status": "PASS",
-    "equity_display": "999,975 KRW",
-    "exposure_notional_display": "49,500 KRW",
-    "exposure_pct_display": "4.95%",
-    "drawdown_pct_display": "0.00%",
+    "equity_display": "UNVERIFIED",
+    "exposure_notional_display": "UNVERIFIED",
+    "exposure_pct_display": "UNVERIFIED",
+    "drawdown_pct_display": "UNVERIFIED",
     "exposure_review_cap_pct_display": "20.00% attention / 50.00% block",
     "drawdown_review_cap_pct_display": "2.00% attention / 5.00% block",
-    "open_position_count": 1,
+    "open_position_count": 0,
     "risk_review_scope": "PAPER_DISPLAY_ONLY",
-    "exposure_data_status": "COMPLETE",
-    "drawdown_data_status": "VERIFIED",
+    "exposure_data_status": "UNVERIFIED",
+    "drawdown_data_status": "UNVERIFIED",
     "paper_exposure_quality_status": "UNAVAILABLE",
     "paper_exposure_quality_source": "NOT_LOADED",
     "paper_exposure_quality_message": "No paper exposure quality report is loaded; scale-up remains blocked.",
@@ -1184,11 +1206,11 @@
     "live_order_allowed": false,
     "can_live_trade": false,
     "scale_up_allowed": false,
-    "status": "ATTENTION",
+    "status": "UNVERIFIED",
     "severity": "WARNING",
     "color_token": "yellow",
-    "primary_blocker_message": "No paper exposure quality report is loaded; scale-up remains blocked.",
-    "next_action": "Generate a scoped paper exposure quality report before treating risk as low."
+    "primary_blocker_message": "No verified PAPER portfolio source is loaded for exposure review.",
+    "next_action": "Run PAPER with a verified paper portfolio ledger before reviewing risk exposure."
   },
   "execution_feedback_snapshot": {
     "title": "Execution Feedback",
@@ -1231,9 +1253,9 @@
     "final_action": "NO_TRADE",
     "no_trade_reason": "HARD_TRUTH_MISSING",
     "entry_status": "BLOCKED",
-    "entry_reason": "PAPER-only runtime candidate passed net EV after cost",
-    "exit_status": "MONITORING",
-    "exit_reason": "Open PAPER position requires ledger-backed exit review",
+    "entry_reason": "No entry accepted; live orders are blocked and PAPER review must resolve blockers first",
+    "exit_status": "NO_POSITION",
+    "exit_reason": "No open PAPER position requires exit review",
     "next_action": "resolve blocking reason before trading",
     "recent_no_trade": "HARD_TRUTH_MISSING",
     "display_only": true,
@@ -1260,21 +1282,14 @@
         "event_type": "ENTRY_REVIEW",
         "severity": "INFO",
         "label": "Entry",
-        "message": "BLOCKED: PAPER-only runtime candidate passed net EV after cost",
+        "message": "BLOCKED: No entry accepted; live orders are blocked and PAPER review must resolve blockers first",
         "source": "summary.json"
       },
       {
         "event_type": "EXIT_REVIEW",
         "severity": "INFO",
         "label": "Exit",
-        "message": "MONITORING: Open PAPER position requires ledger-backed exit review",
-        "source": "summary.json"
-      },
-      {
-        "event_type": "STATUS",
-        "severity": "INFO",
-        "label": "Position",
-        "message": "1 open PAPER position(s) displayed from summary",
+        "message": "NO_POSITION: No open PAPER position requires exit review",
         "source": "summary.json"
       }
     ],
@@ -1289,74 +1304,74 @@
   },
   "portfolio_snapshot": {
     "title": "Portfolio Snapshot",
-    "status": "VERIFIED",
+    "status": "UNVERIFIED",
     "truth_role": "dashboard_serving_truth",
     "source": "summary.json",
     "cash": {
       "card_id": "cash",
       "label": "Cash",
-      "value_display": "950,475 KRW",
-      "detail": "Simulated PAPER ledger, not exchange balance",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified cash source loaded",
+      "freshness_status": "UNTESTED"
     },
     "equity": {
       "card_id": "equity",
       "label": "Equity",
-      "value_display": "999,975 KRW",
-      "detail": "Simulated PAPER ledger, not exchange balance",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified equity source loaded",
+      "freshness_status": "UNTESTED"
     },
     "locked_cash": {
       "card_id": "locked_cash",
       "label": "Locked Cash",
-      "value_display": "0 KRW",
-      "detail": "Simulated PAPER funds reserved by open orders",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified locked-cash source loaded",
+      "freshness_status": "UNTESTED"
     },
     "realized_pnl": {
       "card_id": "realized_pnl",
       "label": "Realized PnL",
-      "value_display": "+0 KRW",
-      "detail": "Closed PAPER trade result from ledger summary",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified realized PnL source loaded",
+      "freshness_status": "UNTESTED"
     },
     "unrealized_pnl": {
       "card_id": "unrealized_pnl",
       "label": "Unrealized PnL",
-      "value_display": "-25 KRW",
-      "detail": "Open PAPER position mark-to-market estimate",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified unrealized PnL source loaded",
+      "freshness_status": "UNTESTED"
     },
     "total_pnl": {
       "card_id": "total_pnl",
       "label": "Total PnL",
-      "value_display": "-25 KRW",
-      "detail": "Realized plus unrealized PAPER PnL",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified total PnL source loaded",
+      "freshness_status": "UNTESTED"
     },
     "positions": {
       "card_id": "positions",
       "label": "Open Positions",
-      "value_display": "1",
-      "detail": "Open PAPER positions from summary",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified position source loaded",
+      "freshness_status": "UNTESTED"
     },
     "entry_candidates": {
       "card_id": "entry_candidates",
       "label": "Entry Candidates",
-      "value_display": "1",
-      "detail": "Candidates: KRW-BTC",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified candidate source loaded",
+      "freshness_status": "UNTESTED"
     },
     "return_pct": {
       "card_id": "return_pct",
       "label": "Return",
-      "value_display": "-0.00%",
-      "detail": "PAPER return from realized and unrealized PnL",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified return source loaded",
+      "freshness_status": "UNTESTED"
     },
     "blocking_reason": "HARD_TRUTH_MISSING",
-    "next_action": "PAPER portfolio is simulated; inspect orders and blockers before any live review",
+    "next_action": "Run PAPER with a verified paper portfolio ledger",
     "display_only": true,
     "dashboard_truth_only": true,
     "live_order_ready": false,
@@ -1366,19 +1381,11 @@
   },
   "position_snapshot": {
     "title": "Open PAPER Positions",
-    "status": "OPEN",
+    "status": "NONE",
     "truth_role": "dashboard_serving_truth",
     "source": "summary.json",
-    "open_position_count": 1,
-    "rows": [
-      {
-        "symbol": "KRW-BTC",
-        "side": "LONG",
-        "quantity": "0.04947278872937912324773566417",
-        "avg_price": "UNKNOWN",
-        "unrealized_pnl": "-24.75000000000000000000002"
-      }
-    ],
+    "open_position_count": 0,
+    "rows": [],
     "empty_message": "No open PAPER positions",
     "display_only": true,
     "dashboard_truth_only": true,
@@ -1429,5 +1436,5 @@
   "blocking_reason": "HARD_TRUTH_MISSING",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "3DF5ED19E2AA193AFD7729B986A032E3B9B4B31118C7829246AA7418EA29CFA7"
+  "dashboard_hash": "8E106CF717D474009478E48AD5C5886EC0725CCC1167CFB3CD06D30E2A8ED32B"
 }

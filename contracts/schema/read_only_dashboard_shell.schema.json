@@ -83,7 +83,8 @@
             "SHADOW_PERSISTENT_RUNTIME",
             "SHADOW_RUNTIME_ORCHESTRATION",
             "PAPER_RUNTIME_RECOVERY_GUARD",
-            "MARKET_DATA_CONTINUITY_HISTORY"
+            "MARKET_DATA_CONTINUITY_HISTORY",
+            "CANDIDATE_SCORECARD"
           ]
         },
         "path": {
@@ -100,7 +101,8 @@
             "shadow_observation_persistent_runtime_report.json",
             "runtime_orchestration_report.json",
             "upbit_paper_runtime_recovery_guard_report.json",
-            "rest_continuity_history.json"
+            "rest_continuity_history.json",
+            "candidate_scorecard.json"
           ]
         },
         "truth_role": {
@@ -1851,6 +1853,20 @@
         "candidate_id",
         "strategy_id",
         "parameter_hash",
+        "candidate_scorecard_source",
+        "candidate_scorecard_status",
+        "candidate_scorecard_id",
+        "candidate_scorecard_candidate_id",
+        "candidate_scorecard_strategy_id",
+        "candidate_scorecard_symbol",
+        "candidate_scorecard_objective_basis",
+        "candidate_scorecard_net_ev_after_cost_bps",
+        "candidate_scorecard_net_ev_after_cost_display",
+        "candidate_scorecard_ranking_eligible",
+        "candidate_scorecard_scope",
+        "candidate_scorecard_primary_blocker_code",
+        "candidate_scorecard_blocker_summary",
+        "candidate_scorecard_next_action",
         "paper_sample_count",
         "shadow_sample_count",
         "min_required_samples",
@@ -1928,7 +1944,8 @@
           "enum": [
             "NOT_LOADED",
             "paper_operation_gate_report",
-            "profitability_evidence_maturity_rollup.json"
+            "profitability_evidence_maturity_rollup.json",
+            "candidate_scorecard.json"
           ]
         },
         "rollup_source": {
@@ -1985,6 +2002,81 @@
             "string",
             "null"
           ]
+        },
+        "candidate_scorecard_source": {
+          "enum": [
+            "NOT_LOADED",
+            "candidate_scorecard.json"
+          ]
+        },
+        "candidate_scorecard_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PAPER_RANKING_BLOCKED",
+            "PAPER_RANKING_REVIEW_ONLY",
+            "BLOCKED",
+            "STALE"
+          ]
+        },
+        "candidate_scorecard_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate_scorecard_candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate_scorecard_strategy_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate_scorecard_symbol": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate_scorecard_objective_basis": {
+          "const": "NET_EV_AFTER_COST"
+        },
+        "candidate_scorecard_net_ev_after_cost_bps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "candidate_scorecard_net_ev_after_cost_display": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_scorecard_ranking_eligible": {
+          "type": "boolean"
+        },
+        "candidate_scorecard_scope": {
+          "enum": [
+            "PAPER_EVIDENCE_COLLECTION_ONLY",
+            "PAPER_SCORECARD_INPUT_ONLY",
+            "BLOCKED_DISPLAY_ONLY",
+            "STALE_DISPLAY_ONLY"
+          ]
+        },
+        "candidate_scorecard_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_scorecard_blocker_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_scorecard_next_action": {
+          "type": "string",
+          "minLength": 1
         },
         "paper_sample_count": {
           "type": "integer",
@@ -4441,7 +4533,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 9,
+      "maxItems": 10,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }

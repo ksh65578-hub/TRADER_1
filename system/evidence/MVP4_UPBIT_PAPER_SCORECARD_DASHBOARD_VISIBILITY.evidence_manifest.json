@@ -1,0 +1,64 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T14:44:41Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY_20260430_001",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "scope": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER"
+  },
+  "artifacts": [
+    {
+      "artifact_id": "PATCH_RESULT",
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.patch_result.json",
+      "sha256": "807D82A239F0C6DC57EC26677F2D034A56FA6A70291D33BE59E941681B69BA1A",
+      "truth_role": "evidence_truth"
+    },
+    {
+      "artifact_id": "VALIDATOR_RUN_LOG",
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.validator_run_log.json",
+      "sha256": "67386F43AB82A4C7AE3A775AEAC0B0C33724D450DBE98CC8C2AFFD1717004905",
+      "truth_role": "validator_truth"
+    },
+    {
+      "artifact_id": "STAGE_GATE_RESULT",
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.stage_gate_result.json",
+      "sha256": "7F24F36BD0E9219927DB3FA541A7492777A98D0C54F12BF9FDDCBB9728707F4E",
+      "truth_role": "stage_gate_truth"
+    },
+    {
+      "artifact_id": "AUDIT_REPORT",
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.audit.json",
+      "sha256": "B0A066DD78866068E9DBE4CF515EADEA62F97A7BEED6ED2ABF7C74B13B457831",
+      "truth_role": "audit_truth"
+    },
+    {
+      "artifact_id": "CONTEXT_PACK",
+      "path": "contracts/generated/context_pack/UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.md",
+      "sha256": "A5EF6DE03BDD9694B9A9A9E48E9748112766C0B20C7EBDF66A4534A35C235258",
+      "truth_role": "read_cache_not_authority"
+    },
+    {
+      "artifact_id": "DASHBOARD_SHELL",
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+      "sha256": "4314821BF9860BB1DA87DABD05265462D67F898C894C98BDF733F88805A8D926",
+      "truth_role": "dashboard_serving_truth"
+    },
+    {
+      "artifact_id": "CANDIDATE_SCORECARD",
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
+      "sha256": "BE3C6EC93526AEF07B7BC46A3559FC57DA79BA13A74917C9C24C95B5597EEBAE",
+      "truth_role": "paper_research_truth"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "updated_at_utc": "2026-04-30T14:48:25Z"
+}

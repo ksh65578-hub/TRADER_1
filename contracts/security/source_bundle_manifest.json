@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "8FBFC973E8F442E90EDA6FB4FBFB8863CD3DB5034DB6DC720F787103C35CADB5",
-      "size_bytes": 113767
+      "sha256": "4CFEDEDB3F0E5F3F35C77A759816508E15DBE923F7741DDEE3410C6248734122",
+      "size_bytes": 116399
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -590,8 +590,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "0B981FA13BCED9FFFFC97EECC03DF78165357A3E1FEC2FE3DFC7DF4B128A5EC3",
-      "size_bytes": 176312
+      "sha256": "20E9390D6F376A523851A09AEB1534742B1D396EEF092197EAB99EED413A98BE",
+      "size_bytes": 180157
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -3190,8 +3190,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "4E24FFD8EF6CC9BCB720B4F6B7935B64A89BA08F6D2B97AE5C30485C52BD65FA",
-      "size_bytes": 495582
+      "sha256": "6D13786DA7259A077C74C0018DE82CB2B274E9D1A7EE3351D61220C5EADD02E9",
+      "size_bytes": 512893
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -3320,8 +3320,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "C6B2E23225862B1D7AD8DC470D34748004707AE87773E2CB772EAE2D6957E799",
-      "size_bytes": 52425
+      "sha256": "DF12A227FA5F81584B68D98F96FCA687574801BE9A3E21E72CC08EF91D335314",
+      "size_bytes": 53855
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -4320,6 +4320,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/VALIDATOR_IMPLEMENTATION.md",
       "reason": "denied:contracts/generated/"
     },
@@ -5005,6 +5009,10 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE_20260430.md",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.audit.json",
       "reason": "denied:system/"
     },
     {
@@ -5856,6 +5864,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PUBLIC_DATA_SEQUENCE_REGIME_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6657,6 +6669,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7469,6 +7485,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8297,6 +8317,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

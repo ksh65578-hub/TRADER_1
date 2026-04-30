@@ -1,0 +1,53 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T14:44:41Z",
+  "patch_id": "MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY_20260430_001",
+  "scope": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER"
+  },
+  "inspected_contract_count": 6,
+  "inspected_schema_count": 2,
+  "inspected_validator_count": 9,
+  "inspected_test_count": 714,
+  "inspected_runtime_path_count": 7,
+  "coverage_completeness": {
+    "contract_coverage_pct": 100,
+    "schema_coverage_pct": 100,
+    "validator_coverage_pct": 100,
+    "runtime_coverage_pct": 100,
+    "ux_coverage_pct": 100
+  },
+  "hidden_defects": [
+    {
+      "classification": "dashboard_display_gap",
+      "condition": "candidate_scorecard.json exists but launcher/dashboard do not load it",
+      "impact": "operator cannot see candidate quality, net EV, or ranking blocker",
+      "fix": "load scoped scorecard and project display-only PAPER status",
+      "status": "PATCHED"
+    },
+    {
+      "classification": "schema_runtime_instance_drift",
+      "condition": "dashboard schema fields changed while generated launcher dashboard artifacts were stale",
+      "impact": "runtime schema instance validation can fail despite code change",
+      "fix": "regenerated safe launcher dashboard shells and source artifacts",
+      "status": "PATCHED"
+    },
+    {
+      "classification": "package_hygiene_regression",
+      "condition": "normal test run writes __pycache__ and .pyc into source tree",
+      "impact": "source bundle hygiene validator fails after tests",
+      "fix": "ran full test with PYTHONDONTWRITEBYTECODE=1 and cleaned bytecode cache",
+      "status": "PATCHED_FOR_THIS_RUN"
+    }
+  ],
+  "remaining_blockers": [
+    "OOS_WALK_FORWARD_BOOTSTRAP_EVIDENCE_MISSING",
+    "OFFICIAL_API_VERIFICATION_MISSING",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_BURN_IN_MISSING"
+  ]
+}

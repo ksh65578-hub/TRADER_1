@@ -470,6 +470,7 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         / "market_data"
         / "public"
         / "rest_continuity_history.json",
+        "candidate_scorecard": base / "profitability" / "candidate_scorecard.json",
         "paper_operation_gate_report": base / "paper_operation_gate_report.json",
         "paper_exposure_quality_report": base / "paper_exposure_quality_report.json",
         "reconciliation_report": base / "reconciliation_report.json",
@@ -683,6 +684,36 @@ def load_scoped_paper_exposure_quality_report(report: dict[str, Any], root: Path
     if any(exposure_report.get(field) is True for field in forbidden_fields):
         return None
     return exposure_report
+
+
+def load_scoped_candidate_scorecard(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    path = launcher_dashboard_paths(report, root)["candidate_scorecard"]
+    if not path.exists():
+        return None
+    scorecard = _load_dashboard_json_artifact(path)
+    if not isinstance(scorecard, dict):
+        return None
+    if (
+        scorecard.get("exchange") != report.get("exchange")
+        or scorecard.get("market_type") != report.get("market_type")
+        or scorecard.get("mode") != report.get("mode")
+        or scorecard.get("session_id") != report.get("session_id")
+    ):
+        return scorecard
+    forbidden_fields = (
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "can_submit_order",
+        "live_config_mutation_allowed",
+        "writes_live_ready_snapshot",
+    )
+    if any(scorecard.get(field) is True for field in forbidden_fields):
+        return scorecard
+    return scorecard
 
 
 def _load_dashboard_json_artifact(path: Path) -> dict[str, Any] | None:
@@ -923,12 +954,14 @@ def build_launcher_dashboard_artifacts(
         "paper_ledger_rollup_report": _runtime_display_path(paths["paper_ledger_rollup_report"], root),
         "upbit_paper_runtime_recovery_guard": _runtime_display_path(paths["upbit_paper_runtime_recovery_guard_report"], root),
         "upbit_public_rest_continuity_history": _runtime_display_path(paths["upbit_public_rest_continuity_history"], root),
+        "candidate_scorecard": _runtime_display_path(paths["candidate_scorecard"], root),
         "shadow_runtime_harness": _runtime_display_path(paths["shadow_runtime_harness_report"], root),
         "shadow_persistent_runtime": _runtime_display_path(paths["shadow_persistent_runtime_report"], root),
         "shadow_runtime_orchestration": _runtime_display_path(paths["shadow_runtime_orchestration_report"], root),
     }
     paper_operation_gate_report = load_scoped_paper_operation_gate_report(report, root)
     paper_exposure_quality_report = load_scoped_paper_exposure_quality_report(report, root)
+    candidate_scorecard = load_scoped_candidate_scorecard(report, root)
     profitability_maturity_rollup_report = load_profitability_maturity_rollup_report(report, root)
     reconciliation_report = load_dashboard_reconciliation_report(report, root)
     restart_recovery_report = load_dashboard_restart_recovery_report(
@@ -952,6 +985,7 @@ def build_launcher_dashboard_artifacts(
         paper_operation_gate_report=paper_operation_gate_report,
         paper_exposure_quality_report=paper_exposure_quality_report,
         profitability_maturity_rollup_report=profitability_maturity_rollup_report,
+        candidate_scorecard=candidate_scorecard,
         reconciliation_report=reconciliation_report,
         restart_recovery_report=restart_recovery_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,

@@ -28,6 +28,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "runtime_orchestration_report.json",
     "upbit_paper_runtime_recovery_guard_report.json",
     "rest_continuity_history.json",
+    "candidate_scorecard.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RECONCILIATION_RECOVERY_SOURCES = {"summary.json", "reconciliation_report.json", "restart_recovery_report.json"}
@@ -150,6 +151,7 @@ PROFITABILITY_MATURITY_EVIDENCE_SOURCES = {
     "NOT_LOADED",
     "paper_operation_gate_report",
     "profitability_evidence_maturity_rollup.json",
+    "candidate_scorecard.json",
 }
 PROFITABILITY_ACTUAL_RUNTIME_SOURCE_STATUSES = {"MISSING", "STUB_ONLY", "VALIDATED_NON_LIVE_RUNTIME"}
 PROFITABILITY_RANKING_ACTIONS = {"ALLOW_RANKING", "BLOCK_RANKING"}
@@ -210,6 +212,8 @@ PROFITABILITY_MATURITY_GAP_STATUSES = {
     "STALE",
 }
 PROFITABILITY_MATURITY_PRIORITIES = {"HIGH", "MEDIUM"}
+CANDIDATE_SCORECARD_SOURCE_FILENAMES = {"NOT_LOADED", "candidate_scorecard.json"}
+CANDIDATE_SCORECARD_STATUSES = {"NOT_LOADED", "PAPER_RANKING_BLOCKED", "PAPER_RANKING_REVIEW_ONLY", "BLOCKED", "STALE"}
 RISK_EXPOSURE_STATUSES = {"LOW_RISK", "ATTENTION", "BLOCKED", "STALE", "UNVERIFIED"}
 RISK_EXPOSURE_SOURCES = {"summary.json"}
 RISK_EXPOSURE_NOTIONAL_DATA_STATUSES = {"COMPLETE", "PARTIAL", "UNVERIFIED"}
@@ -3169,6 +3173,154 @@ def _profitability_maturity_from_rollup(
     }
 
 
+def _candidate_scorecard_projection(
+    *,
+    exchange: str,
+    market_type: str,
+    mode: str,
+    session_id: str,
+    candidate_scorecard: dict[str, Any] | None,
+    summary_freshness: str,
+) -> dict[str, Any]:
+    base = {
+        "candidate_scorecard_source": "NOT_LOADED",
+        "candidate_scorecard_status": "NOT_LOADED",
+        "candidate_scorecard_id": None,
+        "candidate_scorecard_candidate_id": None,
+        "candidate_scorecard_strategy_id": None,
+        "candidate_scorecard_symbol": None,
+        "candidate_scorecard_objective_basis": "NET_EV_AFTER_COST",
+        "candidate_scorecard_net_ev_after_cost_bps": None,
+        "candidate_scorecard_net_ev_after_cost_display": "UNVERIFIED",
+        "candidate_scorecard_ranking_eligible": False,
+        "candidate_scorecard_scope": "PAPER_EVIDENCE_COLLECTION_ONLY",
+        "candidate_scorecard_primary_blocker_code": "SCORECARD_NOT_LOADED",
+        "candidate_scorecard_blocker_summary": "No PAPER candidate scorecard is loaded for this dashboard.",
+        "candidate_scorecard_next_action": "Run the Upbit PAPER runtime scorecard bridge, then refresh this dashboard.",
+    }
+    if summary_freshness != "PASS":
+        return {
+            **base,
+            "candidate_scorecard_status": "STALE",
+            "candidate_scorecard_scope": "STALE_DISPLAY_ONLY",
+            "candidate_scorecard_primary_blocker_code": "LATENCY_TTL_EXPIRED",
+            "candidate_scorecard_blocker_summary": "Dashboard summary is stale; candidate scorecard display is not trusted.",
+            "candidate_scorecard_next_action": "Rerun PAPER to refresh dashboard sources before reviewing scorecard values.",
+        }
+    if not isinstance(candidate_scorecard, dict):
+        return base
+
+    blockers = candidate_scorecard.get("blockers", [])
+    if not isinstance(blockers, list):
+        blockers = []
+    blocker_codes = [
+        str(blocker.get("code"))
+        for blocker in blockers
+        if isinstance(blocker, dict) and blocker.get("code")
+    ]
+    first_blocker = blocker_codes[0] if blocker_codes else "LIVE_READY_MISSING"
+    net_ev = candidate_scorecard.get("net_ev_after_cost_bps")
+    try:
+        net_ev_value = float(net_ev)
+        net_ev_display = f"{net_ev_value:.2f} bps"
+    except (TypeError, ValueError):
+        net_ev_value = None
+        net_ev_display = "UNVERIFIED"
+    scorecard_scope = str(candidate_scorecard.get("scorecard_scope") or "PAPER_EVIDENCE_COLLECTION_ONLY")
+    ranking_eligible = candidate_scorecard.get("ranking_eligible") is True
+    live_flag_drift = any(
+        candidate_scorecard.get(flag) is True
+        for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed", "can_submit_order")
+    )
+    scope_matches = (
+        candidate_scorecard.get("exchange") == exchange
+        and candidate_scorecard.get("market_type") == market_type
+        and candidate_scorecard.get("mode") == mode
+        and candidate_scorecard.get("session_id") == session_id
+    )
+    freshness = _freshness_from_generated_at(candidate_scorecard)
+    source_evidence_ids = candidate_scorecard.get("source_evidence_ids", [])
+    source_evidence_ids = source_evidence_ids if isinstance(source_evidence_ids, list) else []
+    projection = {
+        **base,
+        "candidate_scorecard_source": "candidate_scorecard.json",
+        "candidate_scorecard_id": candidate_scorecard.get("scorecard_id"),
+        "candidate_scorecard_candidate_id": candidate_scorecard.get("candidate_id"),
+        "candidate_scorecard_strategy_id": candidate_scorecard.get("strategy_id"),
+        "candidate_scorecard_symbol": candidate_scorecard.get("symbol"),
+        "candidate_scorecard_objective_basis": str(candidate_scorecard.get("objective_basis") or "NET_EV_AFTER_COST"),
+        "candidate_scorecard_net_ev_after_cost_bps": net_ev_value,
+        "candidate_scorecard_net_ev_after_cost_display": net_ev_display,
+        "candidate_scorecard_ranking_eligible": ranking_eligible,
+        "candidate_scorecard_scope": scorecard_scope if scorecard_scope in PROFITABILITY_SCORECARD_SCOPES else "BLOCKED_DISPLAY_ONLY",
+        "candidate_scorecard_primary_blocker_code": first_blocker,
+        "candidate_scorecard_blocker_summary": ", ".join(blocker_codes[:4]) if blocker_codes else "PAPER ranking input only; live remains blocked.",
+    }
+    if live_flag_drift:
+        return {
+            **projection,
+            "candidate_scorecard_status": "BLOCKED",
+            "candidate_scorecard_scope": "BLOCKED_DISPLAY_ONLY",
+            "candidate_scorecard_ranking_eligible": False,
+            "candidate_scorecard_primary_blocker_code": "LIVE_FINAL_GUARD_FAILED",
+            "candidate_scorecard_blocker_summary": "Candidate scorecard attempted to carry live, order, or scale-up permission.",
+            "candidate_scorecard_next_action": "Block this artifact, inspect the scorecard writer, and keep live orders disabled.",
+        }
+    if not scope_matches:
+        return {
+            **projection,
+            "candidate_scorecard_status": "BLOCKED",
+            "candidate_scorecard_scope": "BLOCKED_DISPLAY_ONLY",
+            "candidate_scorecard_ranking_eligible": False,
+            "candidate_scorecard_primary_blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+            "candidate_scorecard_blocker_summary": "Candidate scorecard scope does not match this dashboard session.",
+            "candidate_scorecard_next_action": "Regenerate the scorecard for the exact exchange, market, mode, and session shown here.",
+        }
+    if freshness != "PASS":
+        return {
+            **projection,
+            "candidate_scorecard_status": "STALE",
+            "candidate_scorecard_scope": "STALE_DISPLAY_ONLY",
+            "candidate_scorecard_ranking_eligible": False,
+            "candidate_scorecard_primary_blocker_code": "LATENCY_TTL_EXPIRED",
+            "candidate_scorecard_blocker_summary": "Candidate scorecard is stale and cannot be trusted for review.",
+            "candidate_scorecard_next_action": "Rerun the PAPER scorecard bridge before reviewing candidate quality.",
+        }
+    if candidate_scorecard.get("live_readiness_status") != "NOT_LIVE_READY":
+        return {
+            **projection,
+            "candidate_scorecard_status": "BLOCKED",
+            "candidate_scorecard_scope": "BLOCKED_DISPLAY_ONLY",
+            "candidate_scorecard_ranking_eligible": False,
+            "candidate_scorecard_primary_blocker_code": "LIVE_FINAL_GUARD_FAILED",
+            "candidate_scorecard_blocker_summary": "Candidate scorecard tried to look live-ready.",
+            "candidate_scorecard_next_action": "Reject this artifact and keep live review blocked.",
+        }
+    if candidate_scorecard.get("objective_basis") != "NET_EV_AFTER_COST" or net_ev_value is None or not source_evidence_ids:
+        return {
+            **projection,
+            "candidate_scorecard_status": "BLOCKED",
+            "candidate_scorecard_scope": "BLOCKED_DISPLAY_ONLY",
+            "candidate_scorecard_ranking_eligible": False,
+            "candidate_scorecard_primary_blocker_code": "SCORECARD_EVIDENCE_INCOMPLETE",
+            "candidate_scorecard_blocker_summary": "Candidate scorecard lacks net EV after cost or source evidence ids.",
+            "candidate_scorecard_next_action": "Regenerate scorecard from a validated PAPER runtime cycle.",
+        }
+    if ranking_eligible and not blocker_codes and scorecard_scope == "PAPER_SCORECARD_INPUT_ONLY":
+        return {
+            **projection,
+            "candidate_scorecard_status": "PAPER_RANKING_REVIEW_ONLY",
+            "candidate_scorecard_primary_blocker_code": "LIVE_READY_MISSING",
+            "candidate_scorecard_next_action": "Review this candidate as PAPER ranking input only; live and scale-up remain blocked.",
+        }
+    return {
+        **projection,
+        "candidate_scorecard_status": "PAPER_RANKING_BLOCKED",
+        "candidate_scorecard_ranking_eligible": False,
+        "candidate_scorecard_next_action": "Resolve scorecard blockers before PAPER ranking review; do not treat this as LIVE_READY.",
+    }
+
+
 def _profitability_maturity(
     *,
     exchange: str,
@@ -3177,8 +3329,17 @@ def _profitability_maturity(
     session_id: str,
     paper_operation_gate_report: dict[str, Any] | None,
     profitability_maturity_rollup_report: dict[str, Any] | None,
+    candidate_scorecard: dict[str, Any] | None,
     summary_freshness: str,
 ) -> dict[str, Any]:
+    scorecard_projection = _candidate_scorecard_projection(
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+        candidate_scorecard=candidate_scorecard,
+        summary_freshness=summary_freshness,
+    )
     base_checklist, base_progress_pct, base_progress_status, base_progress_summary = _profitability_evidence_progress(
         paper_samples=0,
         shadow_samples=0,
@@ -3234,6 +3395,7 @@ def _profitability_maturity(
         "scorecard_scope": "PAPER_EVIDENCE_COLLECTION_ONLY",
         "live_readiness_status": "NOT_LIVE_READY",
         "operator_warning": "PAPER evidence is not LIVE_READY and cannot place or allow live orders.",
+        **scorecard_projection,
         "scorecard_input_eligible": False,
         "optimizer_ranking_action": "BLOCK_RANKING",
         "primary_blocker_code": "HARD_TRUTH_MISSING",
@@ -3295,6 +3457,27 @@ def _profitability_maturity(
                 base=base,
                 rollup_report=profitability_maturity_rollup_report,
             )
+        if scorecard_projection["candidate_scorecard_source"] == "candidate_scorecard.json":
+            evidence_status = "PASS" if scorecard_projection["candidate_scorecard_status"] in {"PAPER_RANKING_BLOCKED", "PAPER_RANKING_REVIEW_ONLY"} else "FAIL"
+            return {
+                **base,
+                "status": "BLOCKED" if scorecard_projection["candidate_scorecard_status"] == "BLOCKED" else "COLLECTING",
+                "severity": "ERROR" if scorecard_projection["candidate_scorecard_status"] == "BLOCKED" else "WARNING",
+                "color_token": "red" if scorecard_projection["candidate_scorecard_status"] == "BLOCKED" else "yellow",
+                "evidence_source": "candidate_scorecard.json",
+                "evidence_status": evidence_status,
+                "candidate_id": scorecard_projection["candidate_scorecard_candidate_id"],
+                "strategy_id": scorecard_projection["candidate_scorecard_strategy_id"],
+                "sample_summary": (
+                    f"{scorecard_projection['candidate_scorecard_symbol'] or 'UNKNOWN'} candidate; "
+                    f"net EV after cost {scorecard_projection['candidate_scorecard_net_ev_after_cost_display']}; "
+                    f"{scorecard_projection['candidate_scorecard_status']}"
+                ),
+                "scorecard_scope": scorecard_projection["candidate_scorecard_scope"],
+                "primary_blocker_code": scorecard_projection["candidate_scorecard_primary_blocker_code"],
+                "primary_blocker_message": scorecard_projection["candidate_scorecard_blocker_summary"],
+                "next_action": scorecard_projection["candidate_scorecard_next_action"],
+            }
         return {
             **base,
             "status": "COLLECTING",
@@ -4793,6 +4976,7 @@ def build_read_only_dashboard_shell(
     exploration_exploitation_policy: dict[str, Any] | None = None,
     parameter_narrowing_report: dict[str, Any] | None = None,
     profitability_maturity_rollup_report: dict[str, Any] | None = None,
+    candidate_scorecard: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -4810,6 +4994,7 @@ def build_read_only_dashboard_shell(
         "shadow_runtime_orchestration": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/runtime_orchestration_report.json",
         "upbit_paper_runtime_recovery_guard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
+        "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -4837,6 +5022,18 @@ def build_read_only_dashboard_shell(
         ),
         _source_artifact("STARTUP_PROBE", paths["startup_probe"], startup_probe is not None, startup_freshness),
     ]
+    if isinstance(candidate_scorecard, dict):
+        source_artifacts.append(
+            _source_artifact(
+                "CANDIDATE_SCORECARD",
+                paths.get(
+                    "candidate_scorecard",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
+                ),
+                True,
+                _freshness_from_generated_at(candidate_scorecard),
+            )
+        )
     if isinstance(shadow_runtime_writer_report, dict):
         writer_freshness = (
             _freshness_from_generated_at(shadow_runtime_writer_report)
@@ -4990,6 +5187,7 @@ def build_read_only_dashboard_shell(
         session_id=session_id,
         paper_operation_gate_report=paper_operation_gate_report,
         profitability_maturity_rollup_report=profitability_maturity_rollup_report,
+        candidate_scorecard=candidate_scorecard,
         summary_freshness=summary_freshness,
     )
     convergence_assessment_status = _convergence_assessment_status(
@@ -5306,6 +5504,17 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "maturity_gap_status",
                 "maturity_gap_summary",
                 "optimizer_ranking_action",
+                "candidate_scorecard_source",
+                "candidate_scorecard_status",
+                "candidate_scorecard_candidate_id",
+                "candidate_scorecard_strategy_id",
+                "candidate_scorecard_symbol",
+                "candidate_scorecard_objective_basis",
+                "candidate_scorecard_net_ev_after_cost_display",
+                "candidate_scorecard_scope",
+                "candidate_scorecard_primary_blocker_code",
+                "candidate_scorecard_blocker_summary",
+                "candidate_scorecard_next_action",
                 "primary_blocker_code",
                 "primary_blocker_message",
                 "next_action",
@@ -6353,6 +6562,43 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("BLOCKED", "profitability maturity cannot claim execution truth", "LIVE_FINAL_GUARD_FAILED")
     if maturity.get("evidence_source") not in PROFITABILITY_MATURITY_EVIDENCE_SOURCES:
         return DashboardValidationResult("FAIL", "profitability maturity evidence source is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    scorecard_source = maturity.get("candidate_scorecard_source")
+    scorecard_status = maturity.get("candidate_scorecard_status")
+    if scorecard_source not in CANDIDATE_SCORECARD_SOURCE_FILENAMES:
+        return DashboardValidationResult("FAIL", "candidate scorecard source is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if scorecard_status not in CANDIDATE_SCORECARD_STATUSES:
+        return DashboardValidationResult("FAIL", "candidate scorecard display status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    scorecard_source_loaded = scorecard_source == "candidate_scorecard.json"
+    scorecard_source_listed = "candidate_scorecard.json" in source_filenames
+    if scorecard_source_loaded and not scorecard_source_listed:
+        return DashboardValidationResult("BLOCKED", "candidate scorecard display must be backed by a listed source artifact", "HARD_TRUTH_MISSING")
+    if not scorecard_source_loaded and scorecard_source_listed:
+        return DashboardValidationResult("BLOCKED", "candidate scorecard source artifact is listed while display is not loaded", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("candidate_scorecard_scope") not in PROFITABILITY_SCORECARD_SCOPES:
+        return DashboardValidationResult("FAIL", "candidate scorecard scope is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(maturity.get("candidate_scorecard_ranking_eligible"), bool):
+        return DashboardValidationResult("FAIL", "candidate scorecard ranking flag must be boolean", "SCHEMA_IDENTITY_MISMATCH")
+    scorecard_net_ev = maturity.get("candidate_scorecard_net_ev_after_cost_bps")
+    if scorecard_net_ev is not None and not isinstance(scorecard_net_ev, (int, float)):
+        return DashboardValidationResult("FAIL", "candidate scorecard net EV must be numeric or null", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(maturity.get("candidate_scorecard_net_ev_after_cost_display"), str) or not maturity.get("candidate_scorecard_net_ev_after_cost_display", "").strip():
+        return DashboardValidationResult("FAIL", "candidate scorecard must expose net EV display", "SCHEMA_IDENTITY_MISMATCH")
+    for text_field in ("candidate_scorecard_primary_blocker_code", "candidate_scorecard_blocker_summary", "candidate_scorecard_next_action"):
+        if not isinstance(maturity.get(text_field), str) or not maturity.get(text_field, "").strip():
+            return DashboardValidationResult("FAIL", f"candidate scorecard missing {text_field}", "SCHEMA_IDENTITY_MISMATCH")
+    if scorecard_status == "PAPER_RANKING_REVIEW_ONLY":
+        if (
+            maturity.get("candidate_scorecard_ranking_eligible") is not True
+            or maturity.get("candidate_scorecard_scope") != "PAPER_SCORECARD_INPUT_ONLY"
+            or maturity.get("candidate_scorecard_primary_blocker_code") != "LIVE_READY_MISSING"
+        ):
+            return DashboardValidationResult("BLOCKED", "PAPER ranking scorecard must stay review-only and live-blocked", "LIVE_FINAL_GUARD_FAILED")
+    if scorecard_status in {"PAPER_RANKING_BLOCKED", "BLOCKED", "STALE"} and maturity.get("candidate_scorecard_ranking_eligible") is True:
+        return DashboardValidationResult("BLOCKED", "blocked or stale candidate scorecard cannot show ranking eligibility", "HARD_TRUTH_MISSING")
+    if scorecard_status == "BLOCKED" and maturity.get("candidate_scorecard_scope") != "BLOCKED_DISPLAY_ONLY":
+        return DashboardValidationResult("FAIL", "blocked candidate scorecard must render as blocked display only", "SCHEMA_IDENTITY_MISMATCH")
+    if scorecard_status == "STALE" and maturity.get("candidate_scorecard_scope") != "STALE_DISPLAY_ONLY":
+        return DashboardValidationResult("FAIL", "stale candidate scorecard must render as stale display only", "SCHEMA_IDENTITY_MISMATCH")
     if maturity.get("rollup_source") not in {"NOT_LOADED", "profitability_evidence_maturity_rollup.json"}:
         return DashboardValidationResult("FAIL", "profitability maturity rollup source is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if maturity.get("rollup_source_status") not in {"NOT_LOADED", "LOADED", "BLOCKED"}:
@@ -7630,6 +7876,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p>{safe_text(maturity.get('sample_summary', 'No paper/shadow evidence loaded'))}</p></div>"
         "<div><strong>Optimizer Input</strong>"
         f"<p><span class=\"pill {status_class(maturity.get('severity'))}\">{safe_text(maturity.get('optimizer_ranking_action', 'BLOCK_RANKING'))}</span></p></div>"
+        "<div><strong>PAPER Scorecard</strong>"
+        f"<p>{safe_text(maturity.get('candidate_scorecard_candidate_id') or 'none')} | {safe_text(maturity.get('candidate_scorecard_symbol') or 'UNKNOWN')}<br>"
+        f"net EV={safe_text(maturity.get('candidate_scorecard_net_ev_after_cost_display', 'UNVERIFIED'))}<br>"
+        f"<span class=\"pill {status_class(maturity.get('candidate_scorecard_status'))}\">{safe_text(maturity.get('candidate_scorecard_status', 'NOT_LOADED'))}</span></p>"
+        f"<small>{safe_text(maturity.get('candidate_scorecard_blocker_summary', 'No PAPER candidate scorecard is loaded.'))}</small></div>"
         "<div><strong>Evidence Quality</strong>"
         f"<p>cost={safe_text(maturity.get('cost_evidence_status', 'UNTESTED'))}, entry={safe_text(maturity.get('entry_reason_status', 'UNTESTED'))}, no-trade={safe_text(maturity.get('no_trade_reason_status', 'UNTESTED'))}</p></div>"
         "<div><strong>Long-Run Evidence</strong>"
@@ -7896,9 +8147,21 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     exploitation_candidate = exploration.get("exploitation_candidate_id")
     if exploitation_candidate and str(exploitation_candidate) not in candidate_items:
         candidate_items.append(f"Review candidate: {exploitation_candidate}")
+    if maturity.get("candidate_scorecard_source") == "candidate_scorecard.json":
+        scorecard_candidate = maturity.get("candidate_scorecard_candidate_id") or "candidate loaded"
+        scorecard_symbol = maturity.get("candidate_scorecard_symbol") or "UNKNOWN"
+        scorecard_ev = maturity.get("candidate_scorecard_net_ev_after_cost_display", "UNVERIFIED")
+        candidate_items.insert(0, f"{scorecard_symbol}: {scorecard_candidate} | net EV {scorecard_ev}")
     if not candidate_items:
         candidate_items = [candidate_detail]
     candidate_preview_html = "\n".join(f"<li>{safe_text(item)}</li>" for item in candidate_items[:5])
+    scorecard_status_display = str(maturity.get("candidate_scorecard_status", "NOT_LOADED")).replace("_", " ").title()
+    scorecard_quicklook_items = [
+        f"Status: {scorecard_status_display}",
+        f"Net EV after cost: {maturity.get('candidate_scorecard_net_ev_after_cost_display', 'UNVERIFIED')}",
+        f"Blocker: {maturity.get('candidate_scorecard_primary_blocker_code', 'SCORECARD_NOT_LOADED')}",
+    ]
+    scorecard_quicklook_html = "\n".join(f"<li>{safe_text(item)}</li>" for item in scorecard_quicklook_items)
     if position_rows:
         rows_html = "\n".join(
             "<tr>"
@@ -8310,6 +8573,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             <h3>Entry Candidates</h3>
             <ul>""" + candidate_preview_html + """</ul>
           </section>
+          <section>
+            <h3>PAPER Scorecard</h3>
+            <ul>""" + scorecard_quicklook_html + """</ul>
+          </section>
         </section>
         <p class="summary-note">""" + safe_text(portfolio.get("next_action", "Provide verified portfolio evidence before values can be trusted")) + """</p>
       </section>
@@ -8410,6 +8677,7 @@ def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationR
         "detail_main_key": 'data-detail-key="main-detail-drawer"',
         "detail_status_key": 'data-detail-key="status-panels"',
         "detail_source_key": 'data-detail-key="source-artifacts"',
+        "paper_scorecard_quicklook": "PAPER Scorecard",
         "market_data_continuity": "Market Data Continuity",
         "market_data_color_class": ".market-data-blue",
         "detail_state_storage": "trader1.dashboard.detailsOpen.",

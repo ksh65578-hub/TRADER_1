@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.root_launcher_report.v1",
-  "generated_at_utc": "2026-04-30T14:18:59Z",
+  "generated_at_utc": "2026-04-30T14:36:47Z",
   "project_id": "TRADER_1",
   "launcher_name": "BINANCE_LIVE",
   "exchange": "BINANCE",
@@ -10,8 +10,8 @@
   "market_type_source": "LAUNCHER_INTERNAL_UI",
   "config_hash": "0209DFB1C8C8290EC5829865124710B0EAE8BCF0FEDAFC15CD301E8302A553DB",
   "registry_hash": "7993C3A01571BAC352A398262E3DBDEE3E9A3BB312AEE28AD8F3EC257AD8C9CD",
-  "schema_bundle_hash": "915CA66FC8B53408933214B6716D5F355FE1107DBFA6C3FB358710E23E3DCAB5",
-  "source_tree_hash": "780DFECD7B1CF616B94822BC697F89D36D09DDB0696DBEAD93E7B45B5686AF2D",
+  "schema_bundle_hash": "83E7249BBBAF752F2676850561586E4B2CBCF87C7A668B0F3C02EBC03C3E8DB0",
+  "source_tree_hash": "1B0341447FCED740F6485B798534095674CA8C85748B94D55C358C052C78141B",
   "config_status": "PASS",
   "startup_probe_status": "BLOCKED",
   "heartbeat_status": "PASS",
@@ -31,5 +31,5 @@
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
-  "report_hash": "E5D68EBF1DAC2D8C8B424F6A66903B6B145F412209EDBCA8081BC32DDE9E1DAE"
+  "report_hash": "A58B6B97105480DA61ADBA355BA20F41F833AF85C461AC427C14DC8CD6231DA2"
 }
