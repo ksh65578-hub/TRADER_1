@@ -704,7 +704,6 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         "live_order_allowed": False,
         "can_live_trade": False,
         "scale_up_allowed": False,
-        "scale_up_allowed": False,
     }
     for card_id in PORTFOLIO_CARD_IDS:
         snapshot[card_id]["freshness_status"] = "PASS"
@@ -4757,10 +4756,13 @@ def _operation_status(
     heartbeat_status = heartbeat.get("heartbeat_status") if isinstance(heartbeat, dict) else "STALE"
     engine_state = heartbeat.get("engine_state") if isinstance(heartbeat, dict) else "UNKNOWN"
     live_orders_blocked = True
+    portfolio_status = portfolio_snapshot.get("status") if isinstance(portfolio_snapshot, dict) else "UNVERIFIED"
+    portfolio_blocker = portfolio_snapshot.get("blocking_reason") if isinstance(portfolio_snapshot, dict) else None
+    portfolio_next_action = portfolio_snapshot.get("next_action") if isinstance(portfolio_snapshot, dict) else None
+    portfolio_next_action_text = str(
+        portfolio_next_action or "Run PAPER with a verified paper portfolio ledger before trusting portfolio values."
+    )
     if heartbeat_status == "PASS" and heartbeat_freshness == "PASS":
-        portfolio_status = portfolio_snapshot.get("status") if isinstance(portfolio_snapshot, dict) else "UNVERIFIED"
-        portfolio_blocker = portfolio_snapshot.get("blocking_reason") if isinstance(portfolio_snapshot, dict) else None
-        portfolio_next_action = portfolio_snapshot.get("next_action") if isinstance(portfolio_snapshot, dict) else None
         if portfolio_status == "STALE":
             return {
                 "status": "CHECKING_SAFE_MODE",
@@ -4768,12 +4770,15 @@ def _operation_status(
                 "color_token": "yellow",
                 "label": "Running with stale portfolio",
                 "message": "Program heartbeat is fresh, but portfolio cash, equity, positions, or PnL are stale.",
-                "recovery_hint": str(portfolio_next_action or "Rerun PAPER to refresh portfolio values before review."),
+                "recovery_hint": portfolio_next_action_text,
                 "source": "summary.json",
                 "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
                 "heartbeat_status": "PASS",
                 "summary_freshness_status": summary_freshness,
                 "startup_freshness_status": startup_freshness,
+                "portfolio_status": portfolio_status,
+                "portfolio_blocking_reason": portfolio_blocker,
+                "portfolio_next_action": portfolio_next_action_text,
                 "primary_blocker": portfolio_blocker or primary_blocker or "LATENCY_TTL_EXPIRED",
                 "live_orders_blocked": live_orders_blocked,
             }
@@ -4784,12 +4789,15 @@ def _operation_status(
                 "color_token": "yellow",
                 "label": "Running without verified portfolio",
                 "message": "Program heartbeat is fresh, but portfolio cash, equity, positions, and PnL are not verified yet.",
-                "recovery_hint": str(portfolio_next_action or "Run PAPER with a verified paper portfolio ledger before trusting portfolio values."),
+                "recovery_hint": portfolio_next_action_text,
                 "source": "summary.json",
                 "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
                 "heartbeat_status": "PASS",
                 "summary_freshness_status": summary_freshness,
                 "startup_freshness_status": startup_freshness,
+                "portfolio_status": portfolio_status,
+                "portfolio_blocking_reason": portfolio_blocker,
+                "portfolio_next_action": portfolio_next_action_text,
                 "primary_blocker": portfolio_blocker or primary_blocker or "HARD_TRUTH_MISSING",
                 "live_orders_blocked": live_orders_blocked,
             }
@@ -4805,6 +4813,9 @@ def _operation_status(
             "heartbeat_status": "PASS",
             "summary_freshness_status": summary_freshness,
             "startup_freshness_status": startup_freshness,
+            "portfolio_status": portfolio_status,
+            "portfolio_blocking_reason": portfolio_blocker,
+            "portfolio_next_action": portfolio_next_action_text,
             "primary_blocker": primary_blocker,
             "live_orders_blocked": live_orders_blocked,
         }
@@ -4830,6 +4841,9 @@ def _operation_status(
         "heartbeat_status": heartbeat_status or "STALE",
         "summary_freshness_status": summary_freshness,
         "startup_freshness_status": startup_freshness,
+        "portfolio_status": portfolio_status,
+        "portfolio_blocking_reason": portfolio_blocker,
+        "portfolio_next_action": portfolio_next_action_text,
         "primary_blocker": primary_blocker,
         "live_orders_blocked": live_orders_blocked,
     }
@@ -5833,12 +5847,28 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "warning operation must use yellow status color", "SCHEMA_IDENTITY_MISMATCH")
     if operation.get("severity") == "ERROR" and operation.get("color_token") != "red":
         return DashboardValidationResult("FAIL", "error operation must use red status color", "SCHEMA_IDENTITY_MISMATCH")
+    portfolio = shell.get("portfolio_snapshot")
+    if not isinstance(portfolio, dict):
+        return DashboardValidationResult("FAIL", "dashboard portfolio_snapshot missing", "SCHEMA_IDENTITY_MISMATCH")
+    portfolio_status = portfolio.get("status")
+    if operation.get("portfolio_status") != portfolio_status:
+        return DashboardValidationResult(
+            "BLOCKED",
+            "operation portfolio status must mirror portfolio snapshot status",
+            "LATENCY_TTL_EXPIRED" if portfolio_status == "STALE" else "HARD_TRUTH_MISSING",
+        )
+    if operation.get("portfolio_blocking_reason") != portfolio.get("blocking_reason"):
+        return DashboardValidationResult(
+            "BLOCKED",
+            "operation portfolio blocker must mirror portfolio snapshot blocker",
+            "LATENCY_TTL_EXPIRED" if portfolio_status == "STALE" else "HARD_TRUTH_MISSING",
+        )
+    if operation.get("portfolio_next_action") != portfolio.get("next_action"):
+        return DashboardValidationResult("FAIL", "operation portfolio next action must mirror portfolio snapshot next action", "SCHEMA_IDENTITY_MISMATCH")
     heartbeat_source = next((source for source in source_artifacts if source.get("artifact_id") == "HEARTBEAT"), {})
     if operation.get("severity") == "NORMAL":
         if heartbeat_source.get("freshness_status") != "PASS" or operation.get("heartbeat_status") != "PASS":
             return DashboardValidationResult("BLOCKED", "normal operation requires fresh PASS heartbeat", "LATENCY_TTL_EXPIRED")
-        portfolio = shell.get("portfolio_snapshot")
-        portfolio_status = portfolio.get("status") if isinstance(portfolio, dict) else None
         if portfolio_status != "VERIFIED":
             return DashboardValidationResult(
                 "BLOCKED",

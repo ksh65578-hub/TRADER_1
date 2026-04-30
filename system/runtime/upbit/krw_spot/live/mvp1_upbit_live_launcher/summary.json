@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-04-30T18:26:26Z",
+  "generated_at_utc": "2026-04-30T20:43:07Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "LIVE",
@@ -49,6 +49,10 @@
     "freshness_status": "UNTESTED",
     "source_snapshot_hash": null,
     "source_snapshot_status": "UNTESTED",
+    "source_snapshot_generated_at_utc": null,
+    "source_snapshot_age_seconds": null,
+    "source_snapshot_stale_after_seconds": 300,
+    "source_snapshot_freshness_message": "No verified paper portfolio snapshot loaded",
     "source_balance_kind": null,
     "equity": null,
     "cash_available": null,
@@ -58,7 +62,8 @@
     "realized_pnl": null,
     "unrealized_pnl": null,
     "total_pnl": null,
-    "mdd": null
+    "mdd": null,
+    "next_action": "Run PAPER with a fresh verified paper portfolio ledger before trusting portfolio values"
   },
   "orders": {
     "source": "SUMMARY_BUILDER",

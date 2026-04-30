@@ -10318,7 +10318,63 @@
       "source_text_sha256": "F51182EAC8CBAC20F4C9705254CD7C6F3F6F10836D0E3B4AAC6DA3755768B33C",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-DASHBOARD-OPERATION-PORTFOLIO-STATUS-FIELDS",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "dashboard operation portfolio status fields",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-OPERATION-PORTFOLIO-STATUS-FIELDS:operation status must expose portfolio display-truth status",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Operation status must expose portfolio trust status",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_RUNTIME_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "summary_shell_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_bytecode_free_syntax_check.py",
+        "tests/runtime/test_safe_smoke.py",
+        "tools/emit_dashboard_operation_portfolio_status_fields_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATION_PORTFOLIO_STATUS_FIELDS.md",
+        "system/runtime/*/*/*/mvp1_*_launcher/dashboard_shell.json",
+        "system/runtime/*/*/*/mvp1_*_launcher/dashboard/index.html"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "SCHEMA_GENERATION",
+        "VALIDATOR_IMPLEMENTATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-OPERATION-FRESHNESS-BINDING"
+      ],
+      "source_text_sha256": "1333861D8CE9761D1A2064BBD245BBC9C5F27478142A05440BEA71B9113AE350",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T20:15:06Z"
+  "updated_at_utc": "2026-04-30T20:43:06Z"
 }
