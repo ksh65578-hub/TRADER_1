@@ -21,6 +21,10 @@ class SourceBundleSecurityTest(unittest.TestCase):
             "contracts/security/source_bundle_manifest.json",
             "logs/runtime.log",
             "__pycache__/module.pyc",
+            "trader1/__pycache__/CACHEDIR.TAG",
+            "tests/.pytest_cache/CACHEDIR.TAG",
+            "tools/.mypy_cache/meta.json",
+            "trader1/.ruff_cache/state.json",
             ".env",
             "config/private.key",
             "contracts/security/token_dump.txt",
@@ -52,14 +56,19 @@ class SourceBundleSecurityTest(unittest.TestCase):
     def test_shipped_package_forbidden_detection_catches_bytecode_cache(self):
         denylist = load_denylist()
         self.assertIsNotNone(classify_shipped_forbidden_path("trader1/__pycache__/module.cpython-314.pyc", denylist))
+        self.assertIsNotNone(classify_shipped_forbidden_path("trader1/__pycache__/CACHEDIR.TAG", denylist))
+        self.assertIsNotNone(classify_shipped_forbidden_path("tests/.pytest_cache/CACHEDIR.TAG", denylist))
         with TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "trader1" / "__pycache__").mkdir(parents=True)
             (root / "trader1" / "module.py").write_text("VALUE = 1\n", encoding="utf-8")
             (root / "trader1" / "__pycache__" / "module.cpython-314.pyc").write_bytes(b"cache")
+            (root / "trader1" / "__pycache__" / "CACHEDIR.TAG").write_text("cache marker\n", encoding="utf-8")
             manifest = build_source_bundle_manifest(root=root, denylist=denylist)
-            self.assertEqual(manifest["shipped_forbidden_count"], 1)
-            self.assertEqual(manifest["shipped_forbidden_files"][0]["path"], "trader1/__pycache__/module.cpython-314.pyc")
+            forbidden_paths = {item["path"] for item in manifest["shipped_forbidden_files"]}
+            self.assertEqual(manifest["shipped_forbidden_count"], 2)
+            self.assertIn("trader1/__pycache__/module.cpython-314.pyc", forbidden_paths)
+            self.assertIn("trader1/__pycache__/CACHEDIR.TAG", forbidden_paths)
 
     def test_manifest_does_not_include_self_referential_generated_artifacts(self):
         manifest = build_source_bundle_manifest()

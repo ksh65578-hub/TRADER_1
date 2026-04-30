@@ -6333,6 +6333,39 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-SOURCE-PACKAGE-HYGIENE-CACHE-DIR-GUARD",
+      "section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
+      "schema_files": [],
+      "validator_files": [
+        "trader1/security/source_bundle.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/security/test_source_bundle_security.py"
+      ],
+      "fixture_files": [
+        "contracts/security/source_bundle_denylist.json"
+      ],
+      "runtime_modules": [],
+      "evidence_artifacts": [
+        "contracts/security/source_bundle_manifest.json",
+        "system/evidence/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-STABILITY-HISTORY-DISTINCT-SNAPSHOT-GUARD",
       "section_id": "SECTION_LONG_RUN_OPERATION",
       "schema_files": [
@@ -7056,6 +7089,94 @@
       "status": "IMPLEMENTED_LIVE_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY",
+      "section_id": "SECTION_DASHBOARD_SHELL",
+      "schema_files": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "contracts/schema/candidate_scorecard.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/research/test_candidate_scorecard_from_runtime.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "fixture_files": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json"
+      ],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_LIVE_BLOCKED"
+    },
+    {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES",
+      "section_id": "SECTION_PROFIT_CONVERGENCE_REINFORCEMENT",
+      "schema_files": [
+        "contracts/schema/candidate_scorecard.schema.json"
+      ],
+      "validator_files": [
+        "trader1/research/profitability/candidate_scorecard.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/research/test_candidate_scorecard_from_runtime.py",
+        "tests/validators/test_candidate_scorecard_net_ev_validator.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_files": [
+        "tests/validators/fixtures/candidate_scorecard_net_ev_pass.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_robustness_sources_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_oos_fail.json"
+      ],
+      "runtime_modules": [
+        "trader1/research/profitability/candidate_scorecard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PUBLIC-DATA-SEQUENCE-REGIME-GUARD",
       "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "schema_files": [
@@ -7342,97 +7463,9 @@
       "minimum_depth": "DEPTH_1_SCHEMA_AND_ARTIFACT_STRUCTURE",
       "live_affecting": true,
       "status": "SCAFFOLD_IMPLEMENTED"
-    },
-    {
-      "requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY",
-      "section_id": "SECTION_DASHBOARD_SHELL",
-      "schema_files": [
-        "contracts/schema/read_only_dashboard_shell.schema.json",
-        "contracts/schema/candidate_scorecard.schema.json"
-      ],
-      "validator_files": [
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/validation/mvp0_validators.py"
-      ],
-      "test_files": [
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/research/test_candidate_scorecard_from_runtime.py",
-        "tests/runtime/test_safe_launcher.py"
-      ],
-      "fixture_files": [
-        "tests/dashboard/test_read_only_dashboard.py"
-      ],
-      "runtime_modules": [
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/runtime/boot/safe_launcher.py"
-      ],
-      "evidence_artifacts": [
-        "system/evidence/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.evidence_manifest.json",
-        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.validator_run_log.json",
-        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.stage_gate_result.json",
-        "system/evidence/patch_results/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.patch_result.json"
-      ],
-      "dashboard_artifacts": [
-        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
-        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
-        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json"
-      ],
-      "patch_result_fields": [
-        "validators_run",
-        "tests_run",
-        "live_order_ready_after",
-        "live_order_allowed_after",
-        "can_live_trade_after",
-        "scale_up_allowed_after"
-      ],
-      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "live_affecting": true,
-      "status": "IMPLEMENTED_LIVE_BLOCKED"
-    },
-    {
-      "requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES",
-      "section_id": "SECTION_PROFIT_CONVERGENCE_REINFORCEMENT",
-      "schema_files": [
-        "contracts/schema/candidate_scorecard.schema.json"
-      ],
-      "validator_files": [
-        "trader1/research/profitability/candidate_scorecard.py",
-        "trader1/validation/mvp0_validators.py"
-      ],
-      "test_files": [
-        "tests/research/test_candidate_scorecard_from_runtime.py",
-        "tests/validators/test_candidate_scorecard_net_ev_validator.py",
-        "tests/validators/test_mvp0_validators.py"
-      ],
-      "fixture_files": [
-        "tests/validators/fixtures/candidate_scorecard_net_ev_pass.json",
-        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_robustness_sources_fail.json",
-        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_oos_fail.json"
-      ],
-      "runtime_modules": [
-        "trader1/research/profitability/candidate_scorecard.py"
-      ],
-      "evidence_artifacts": [
-        "system/evidence/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.evidence_manifest.json",
-        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.validator_run_log.json",
-        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.stage_gate_result.json",
-        "system/evidence/patch_results/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.patch_result.json"
-      ],
-      "dashboard_artifacts": [],
-      "patch_result_fields": [
-        "validators_run",
-        "tests_run",
-        "live_order_ready_after",
-        "live_order_allowed_after",
-        "can_live_trade_after",
-        "scale_up_allowed_after"
-      ],
-      "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
-      "live_affecting": true,
-      "status": "IMPLEMENTED_LIVE_BLOCKED"
     }
   ],
-  "updated_at_utc": "2026-04-30T15:01:08Z",
+  "updated_at_utc": "2026-04-30T15:24:21Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

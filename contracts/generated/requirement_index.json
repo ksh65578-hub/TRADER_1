@@ -8233,6 +8233,59 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-SOURCE-PACKAGE-HYGIENE-CACHE-DIR-GUARD",
+      "source_section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Source package hygiene cache directory guard",
+      "full_text_marker": "REQ-MVP4-SOURCE-PACKAGE-HYGIENE-CACHE-DIR-GUARD:nested cache dirs must be denied in source and shipped package candidates",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Nested cache directories are denied for shipped package hygiene",
+      "requirement_kind": "BUNDLE_SECURITY_TEST_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.evidence_manifest.v1",
+        "trader1.validator_result.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/security/source_bundle_denylist.json",
+        "contracts/security/source_bundle_manifest.json",
+        "tests/security/test_source_bundle_security.py",
+        "tools/emit_source_package_hygiene_cache_dir_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/security/test_source_bundle_security.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_SOURCE_BUNDLE_HYGIENE",
+        "SECTION_SECRET_HYGIENE",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP0-BUNDLE-SECURITY",
+        "REQ-MVP4-SOURCE-BUNDLE-HYGIENE-RECHECK"
+      ],
+      "source_text_sha256": "6370A5E74C1ECD56E9C2FC2F2CCDCCF3BEFFC3B5F28FFCCFE77264D764003A69",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-STABILITY-HISTORY-DISTINCT-SNAPSHOT-GUARD",
       "source_section_id": "SECTION_LONG_RUN_OPERATION",
       "source_file": "TRADER_1.md",
@@ -9108,6 +9161,105 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY",
+      "source_section_id": "SECTION_DASHBOARD_SHELL",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard must surface strategy/profitability evidence without live permission",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY:SECTION_DASHBOARD_SHELL:scorecard display truth only, live blocked",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER candidate scorecard dashboard visibility remains display-only and live-blocked",
+      "requirement_kind": "DASHBOARD_UX",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.candidate_scorecard.v1"
+      ],
+      "validator_ids": [
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "candidate_scorecard_validator",
+        "candidate_scorecard_net_ev_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/research/test_candidate_scorecard_from_runtime.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "PROFIT_CONVERGENCE_MVP3",
+        "LIVE_BLOCKED_TEST"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-SCORECARD-BRIDGE",
+        "REQ-MVP4-PAPER-RUNTIME-CANDIDATE-NET-EV-AFTER-COST",
+        "REQ-MVP4-SCORECARD-NOT-LIVE-READY-UX-GUARD"
+      ],
+      "source_text_sha256": "66B42A9A4BF3F2E76420784D531150D8B0B11DA29011D58A1E368ACBD78800C4",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES",
+      "source_section_id": "SECTION_PROFIT_CONVERGENCE_REINFORCEMENT",
+      "source_file": "TRADER_1.md",
+      "source_heading": "PAPER scorecard robustness evidence must be typed and validator-gated",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES:SECTION_PROFIT_CONVERGENCE_REINFORCEMENT:typed OOS walk-forward bootstrap source evidence required",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Candidate scorecard ranking requires typed robustness evidence ids",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.candidate_scorecard.v1"
+      ],
+      "validator_ids": [
+        "candidate_scorecard_validator",
+        "candidate_scorecard_net_ev_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "trader1/research/profitability/candidate_scorecard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_robustness_sources_fail.json",
+        "tests/validators/test_candidate_scorecard_net_ev_validator.py",
+        "tests/research/test_candidate_scorecard_from_runtime.py"
+      ],
+      "test_ids": [
+        "tests/research/test_candidate_scorecard_from_runtime.py",
+        "tests/validators/test_candidate_scorecard_net_ev_validator.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "PROFIT_CONVERGENCE_MVP3",
+        "VALIDATOR_IMPLEMENTATION",
+        "LIVE_BLOCKED_TEST"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-SCORECARD-BRIDGE",
+        "REQ-MVP4-PAPER-RUNTIME-CANDIDATE-NET-EV-AFTER-COST"
+      ],
+      "source_text_sha256": "422DE5172937841ABF2B17AA38F44BC21286E2DB61A81A070137DD8109E128A5",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PUBLIC-DATA-SEQUENCE-REGIME-GUARD",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -9465,106 +9617,7 @@
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "SCAFFOLD_IMPLEMENTED",
       "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY",
-      "source_section_id": "SECTION_DASHBOARD_SHELL",
-      "source_file": "TRADER_1.md",
-      "source_heading": "Dashboard must surface strategy/profitability evidence without live permission",
-      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY:SECTION_DASHBOARD_SHELL:scorecard display truth only, live blocked",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Upbit PAPER candidate scorecard dashboard visibility remains display-only and live-blocked",
-      "requirement_kind": "DASHBOARD_UX",
-      "schema_ids": [
-        "trader1.read_only_dashboard_shell.v1",
-        "trader1.candidate_scorecard.v1"
-      ],
-      "validator_ids": [
-        "read_only_dashboard_validator",
-        "dashboard_visual_layout_validator",
-        "candidate_scorecard_validator",
-        "candidate_scorecard_net_ev_validator",
-        "live_final_guard_validator"
-      ],
-      "artifact_ids": [
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/runtime/boot/safe_launcher.py",
-        "contracts/schema/read_only_dashboard_shell.schema.json",
-        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
-        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
-        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html"
-      ],
-      "test_ids": [
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/research/test_candidate_scorecard_from_runtime.py",
-        "tests/runtime/test_safe_launcher.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "DASHBOARD_UX",
-        "PROFIT_CONVERGENCE_MVP3",
-        "LIVE_BLOCKED_TEST"
-      ],
-      "depends_on": [
-        "REQ-MVP4-UPBIT-PAPER-RUNTIME-SCORECARD-BRIDGE",
-        "REQ-MVP4-PAPER-RUNTIME-CANDIDATE-NET-EV-AFTER-COST",
-        "REQ-MVP4-SCORECARD-NOT-LIVE-READY-UX-GUARD"
-      ],
-      "source_text_sha256": "66B42A9A4BF3F2E76420784D531150D8B0B11DA29011D58A1E368ACBD78800C4",
-      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
-      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES",
-      "source_section_id": "SECTION_PROFIT_CONVERGENCE_REINFORCEMENT",
-      "source_file": "TRADER_1.md",
-      "source_heading": "PAPER scorecard robustness evidence must be typed and validator-gated",
-      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES:SECTION_PROFIT_CONVERGENCE_REINFORCEMENT:typed OOS walk-forward bootstrap source evidence required",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Candidate scorecard ranking requires typed robustness evidence ids",
-      "requirement_kind": "VALIDATOR_PATCH",
-      "schema_ids": [
-        "trader1.candidate_scorecard.v1"
-      ],
-      "validator_ids": [
-        "candidate_scorecard_validator",
-        "candidate_scorecard_net_ev_validator",
-        "live_final_guard_validator"
-      ],
-      "artifact_ids": [
-        "trader1/research/profitability/candidate_scorecard.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_robustness_sources_fail.json",
-        "tests/validators/test_candidate_scorecard_net_ev_validator.py",
-        "tests/research/test_candidate_scorecard_from_runtime.py"
-      ],
-      "test_ids": [
-        "tests/research/test_candidate_scorecard_from_runtime.py",
-        "tests/validators/test_candidate_scorecard_net_ev_validator.py",
-        "tests/validators/test_mvp0_validators.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "PROFIT_CONVERGENCE_MVP3",
-        "VALIDATOR_IMPLEMENTATION",
-        "LIVE_BLOCKED_TEST"
-      ],
-      "depends_on": [
-        "REQ-MVP4-UPBIT-PAPER-RUNTIME-SCORECARD-BRIDGE",
-        "REQ-MVP4-PAPER-RUNTIME-CANDIDATE-NET-EV-AFTER-COST"
-      ],
-      "source_text_sha256": "422DE5172937841ABF2B17AA38F44BC21286E2DB61A81A070137DD8109E128A5",
-      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
-      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
-      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T15:01:08Z"
+  "updated_at_utc": "2026-04-30T15:24:21Z"
 }
