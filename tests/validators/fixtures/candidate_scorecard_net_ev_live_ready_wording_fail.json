@@ -37,7 +37,9 @@
   "live_readiness_status": "NOT_LIVE_READY",
   "operator_warning": "PAPER candidate scorecard is LIVE_READY for live review, but live orders remain blocked.",
   "source_evidence_ids": [
-    "paper_scorecard_fixture_live_ready_wording_fail"
+    "oos:paper_scorecard_fixture_live_ready_wording_fail",
+    "walk_forward:paper_scorecard_fixture_live_ready_wording_fail",
+    "bootstrap:paper_scorecard_fixture_live_ready_wording_fail"
   ],
   "blockers": [],
   "live_order_ready": false,

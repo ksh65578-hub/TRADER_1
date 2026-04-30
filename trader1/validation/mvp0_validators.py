@@ -179,7 +179,11 @@ from trader1.research.replay.replay_runner import (
     replay_consistency_hash,
     validate_replay_consistency_report,
 )
-from trader1.research.profitability.candidate_scorecard import candidate_scorecard_from_upbit_paper_runtime_cycle
+from trader1.research.profitability.candidate_scorecard import (
+    ROBUSTNESS_SOURCE_PREFIXES,
+    candidate_scorecard_from_upbit_paper_runtime_cycle,
+    has_required_robustness_source_ids,
+)
 from trader1.research.shadow.shadow_runner import (
     build_paper_shadow_evidence_accumulation_report,
     build_paper_shadow_separation_report,
@@ -9207,6 +9211,10 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
         min_required = float(scorecard["min_required_edge_bps"])
         if actual_net < min_required:
             errors.append("net_ev_after_cost_bps below min_required_edge_bps while ranking_eligible=true")
+        if len(scorecard.get("source_evidence_ids", [])) < len(ROBUSTNESS_SOURCE_PREFIXES):
+            errors.append("ranking_eligible scorecard requires at least 3 robustness source evidence ids")
+        if not has_required_robustness_source_ids(scorecard.get("source_evidence_ids", [])):
+            errors.append("ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids")
         required_statuses = {
             "cost_model_status": "VALIDATED",
             "oos_status": "PASS",
@@ -9230,6 +9238,7 @@ def candidate_scorecard_net_ev_validator() -> ValidatorResult:
     live_flag_fail_path = fixture_dir / "candidate_scorecard_net_ev_live_flag_fail.json"
     oos_missing_fail_path = fixture_dir / "candidate_scorecard_net_ev_missing_oos_fail.json"
     live_ready_wording_fail_path = fixture_dir / "candidate_scorecard_net_ev_live_ready_wording_fail.json"
+    missing_robustness_sources_path = fixture_dir / "candidate_scorecard_net_ev_missing_robustness_sources_fail.json"
     paths = [
         schema_path,
         pass_path,
@@ -9237,6 +9246,7 @@ def candidate_scorecard_net_ev_validator() -> ValidatorResult:
         live_flag_fail_path,
         oos_missing_fail_path,
         live_ready_wording_fail_path,
+        missing_robustness_sources_path,
         state_path,
     ]
 
@@ -9264,6 +9274,7 @@ def candidate_scorecard_net_ev_validator() -> ValidatorResult:
         live_flag_fail_path: "expected const False",
         oos_missing_fail_path: "oos_status must be PASS",
         live_ready_wording_fail_path: "candidate scorecard warning must state not LIVE_READY",
+        missing_robustness_sources_path: "requires OOS, walk-forward, and bootstrap source evidence ids",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _candidate_scorecard_net_ev_errors(load_json(path))
@@ -9291,7 +9302,17 @@ def candidate_scorecard_validator() -> ValidatorResult:
     raw_cost_fail_path = fixture_dir / "candidate_scorecard_net_ev_raw_cost_fail.json"
     live_flag_fail_path = fixture_dir / "candidate_scorecard_net_ev_live_flag_fail.json"
     oos_missing_fail_path = fixture_dir / "candidate_scorecard_net_ev_missing_oos_fail.json"
-    paths = [schema_path, builder_path, builder_test_path, pass_path, raw_cost_fail_path, live_flag_fail_path, oos_missing_fail_path]
+    missing_robustness_sources_path = fixture_dir / "candidate_scorecard_net_ev_missing_robustness_sources_fail.json"
+    paths = [
+        schema_path,
+        builder_path,
+        builder_test_path,
+        pass_path,
+        raw_cost_fail_path,
+        live_flag_fail_path,
+        oos_missing_fail_path,
+        missing_robustness_sources_path,
+    ]
 
     pass_scorecard = load_json(pass_path)
     pass_errors = _candidate_scorecard_net_ev_errors(pass_scorecard)
@@ -9365,6 +9386,7 @@ def candidate_scorecard_validator() -> ValidatorResult:
         raw_cost_fail_path: "net_ev_after_cost_bps below min_required_edge_bps",
         live_flag_fail_path: "expected const False",
         oos_missing_fail_path: "oos_status must be PASS",
+        missing_robustness_sources_path: "requires OOS, walk-forward, and bootstrap source evidence ids",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _candidate_scorecard_net_ev_errors(load_json(path))

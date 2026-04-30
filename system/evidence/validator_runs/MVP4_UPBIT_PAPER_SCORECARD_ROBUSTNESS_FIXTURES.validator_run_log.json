@@ -1,0 +1,80 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T15:01:08Z",
+  "patch_id": "MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES_20260430_001",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "scope": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER"
+  },
+  "validators_run": [
+    {
+      "validator_id": "candidate_scorecard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "candidate_scorecard_net_ev_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python -m unittest tests.research.test_candidate_scorecard_from_runtime -v",
+      "status": "PASS",
+      "test_count": 7
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python -m unittest tests.validators.test_candidate_scorecard_net_ev_validator -v",
+      "status": "PASS",
+      "test_count": 9
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python -m unittest tests.validators.test_mvp0_validators -v",
+      "status": "PASS",
+      "test_count": 7
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python tools/build_source_bundle_manifest.py",
+      "status": "PASS",
+      "included_count": 711,
+      "forbidden_count": 0
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python -m unittest tests.contract.test_patch_result_runtime_schema_validation -v",
+      "status": "PASS",
+      "test_count": 6
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python -m unittest tests.security.test_source_bundle_security -v",
+      "status": "PASS",
+      "test_count": 7
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -q",
+      "status": "PASS",
+      "test_count": 715
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "updated_at_utc": "2026-04-30T15:03:15Z"
+}

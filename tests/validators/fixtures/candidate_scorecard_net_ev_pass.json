@@ -37,8 +37,9 @@
   "live_readiness_status": "NOT_LIVE_READY",
   "operator_warning": "PAPER candidate scorecard is ranking input only, not LIVE_READY and cannot place or allow live orders.",
   "source_evidence_ids": [
-    "paper_scorecard_fixture_001",
-    "shadow_scorecard_fixture_001"
+    "oos:paper_scorecard_fixture_001",
+    "walk_forward:paper_scorecard_fixture_001",
+    "bootstrap:paper_scorecard_fixture_001"
   ],
   "blockers": [],
   "live_order_ready": false,

@@ -61,6 +61,13 @@ class CandidateScorecardNetEvValidatorTest(unittest.TestCase):
 
         self.assertIn("oos_status must be PASS before ranking eligibility", errors)
 
+    def test_robustness_source_types_must_be_present_before_ranking(self):
+        scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_missing_robustness_sources_fail.json")
+
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertIn("ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids", errors)
+
     def test_non_ranking_scorecard_must_explain_blocker(self):
         scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
         tampered = copy.deepcopy(scorecard)

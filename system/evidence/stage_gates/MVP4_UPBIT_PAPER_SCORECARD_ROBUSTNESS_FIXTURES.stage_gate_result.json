@@ -1,0 +1,18 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "generated_at_utc": "2026-04-30T15:01:08Z",
+  "patch_id": "MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "gate_status": "PASS_WITH_LIVE_BLOCKED",
+  "scope": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER"
+  },
+  "mvp5_blocked": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "blocking_reason": "EXTERNAL_LIVE_EVIDENCE_MISSING_AND_TYPED_ROBUSTNESS_EVIDENCE_STILL_REQUIRED_FOR_RUNTIME_SCORECARD_CLAIMS"
+}

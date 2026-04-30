@@ -19,9 +19,15 @@
       "severity": "HIGH",
       "message": "The Upbit PAPER candidate scorecard is now dashboard-visible, but OOS, walk-forward, bootstrap, concentration, and repeated-window evidence are still missing; it remains PAPER review only and cannot create live readiness.",
       "source_requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY"
+    },
+    {
+      "code": "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
+      "severity": "HIGH",
+      "message": "Candidate scorecard ranking now requires OOS, walk-forward, and bootstrap source evidence ids; generic evidence count is insufficient and remains blocked for live review.",
+      "source_requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES"
     }
   ],
-  "notes": "Rechecked in MVP-4. Paper/shadow evidence now separates PAPER scorecard input eligibility from long-run evidence maturity. The dashboard projects candidate_scorecard.json as display-only PAPER evidence and shows the net EV after cost and primary robustness blocker. OOS, walk-forward, bootstrap, concentration, and repeated-window evidence remain required before promotion review; this gap cannot be closed by display visibility.",
+  "notes": "Rechecked in MVP-4. Candidate scorecard ranking validation now requires distinct OOS, walk-forward, and bootstrap source evidence ids. This closes a false-safe PAPER ranking weakness where generic source evidence count could appear sufficient. External robustness and live-review evidence still remain missing.",
   "contract_gap_id": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
   "severity": "HIGH",
   "source_section_id": "SECTION_STRATEGY_PROFITABILITY",
