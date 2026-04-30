@@ -263,6 +263,8 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(rollup["ledger_jsonl_count"], 2)
             self.assertEqual(rollup["filled_order_count"], 2)
             self.assertEqual(rollup["portfolio_snapshot"]["source"], "PAPER_LEDGER_ROLLUP")
+            self.assertEqual(rollup["portfolio_snapshot"]["source_runtime_cycle_id"], "bounded-paper-loop-cycle-2")
+            self.assertEqual(rollup["portfolio_snapshot"]["source_paper_ledger_head_hash"], rollup["latest_ledger_head_hash"])
             self.assertFalse(rollup["live_order_allowed"])
 
     def test_recovery_guard_blocks_orphan_tmp_file_before_resume(self):

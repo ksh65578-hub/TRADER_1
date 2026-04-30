@@ -50,6 +50,8 @@ def build_initial_paper_portfolio_snapshot(
     market_type: str,
     session_id: str,
     starting_cash: str | int | float | Decimal | None = None,
+    source_runtime_cycle_id: str | None = None,
+    source_paper_ledger_head_hash: str | None = None,
 ) -> dict[str, Any]:
     currency, default_cash = PAPER_STARTING_CASH_BY_SCOPE.get((exchange, market_type), ("UNKNOWN", Decimal("0")))
     starting = _decimal(starting_cash if starting_cash is not None else default_cash)
@@ -74,6 +76,8 @@ def build_initial_paper_portfolio_snapshot(
         "market_type": market_type,
         "mode": "PAPER",
         "session_id": session_id,
+        "source_runtime_cycle_id": source_runtime_cycle_id,
+        "source_paper_ledger_head_hash": source_paper_ledger_head_hash,
         "snapshot_status": "PASS" if not blockers else "BLOCKED",
         "source": "PAPER_LEDGER_SCAFFOLD",
         "starting_cash_source": "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT",
@@ -115,6 +119,8 @@ def build_paper_portfolio_snapshot_from_fill(
     mark_price: str | int | float | Decimal,
     fee_amount: str | int | float | Decimal,
     starting_cash: str | int | float | Decimal | None = None,
+    source_runtime_cycle_id: str | None = None,
+    source_paper_ledger_head_hash: str | None = None,
 ) -> dict[str, Any]:
     currency, default_cash = PAPER_STARTING_CASH_BY_SCOPE.get((exchange, market_type), ("UNKNOWN", Decimal("0")))
     starting = _decimal(starting_cash if starting_cash is not None else default_cash)
@@ -163,6 +169,8 @@ def build_paper_portfolio_snapshot_from_fill(
         "market_type": market_type,
         "mode": "PAPER",
         "session_id": session_id,
+        "source_runtime_cycle_id": source_runtime_cycle_id,
+        "source_paper_ledger_head_hash": source_paper_ledger_head_hash,
         "snapshot_status": "PASS" if not blockers else "BLOCKED",
         "source": "PAPER_LEDGER_SCAFFOLD",
         "starting_cash_source": "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT",
@@ -201,6 +209,8 @@ def validate_paper_portfolio_snapshot(snapshot: dict[str, Any]) -> PaperPortfoli
         "market_type",
         "mode",
         "session_id",
+        "source_runtime_cycle_id",
+        "source_paper_ledger_head_hash",
         "snapshot_status",
         "source",
         "starting_cash_source",
@@ -233,6 +243,14 @@ def validate_paper_portfolio_snapshot(snapshot: dict[str, Any]) -> PaperPortfoli
         return PaperPortfolioValidationResult("FAIL", "paper portfolio identity mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if snapshot.get("snapshot_hash") != paper_portfolio_hash(snapshot):
         return PaperPortfolioValidationResult("FAIL", "paper portfolio hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    source_runtime_cycle_id = snapshot.get("source_runtime_cycle_id")
+    if source_runtime_cycle_id is not None and (not isinstance(source_runtime_cycle_id, str) or not source_runtime_cycle_id):
+        return PaperPortfolioValidationResult("FAIL", "paper portfolio source runtime cycle id is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    source_paper_ledger_head_hash = snapshot.get("source_paper_ledger_head_hash")
+    if source_paper_ledger_head_hash is not None and (
+        not isinstance(source_paper_ledger_head_hash, str) or len(source_paper_ledger_head_hash) != 64
+    ):
+        return PaperPortfolioValidationResult("FAIL", "paper portfolio source ledger head hash is invalid", "SCHEMA_IDENTITY_MISMATCH")
     if snapshot.get("mode") != "PAPER" or snapshot.get("paper_only") is not True:
         return PaperPortfolioValidationResult("BLOCKED", "portfolio snapshot must remain PAPER-only", "LIVE_FINAL_GUARD_FAILED")
     if (snapshot.get("exchange"), snapshot.get("market_type")) not in PAPER_STARTING_CASH_BY_SCOPE:

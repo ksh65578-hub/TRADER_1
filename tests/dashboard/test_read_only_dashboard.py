@@ -2496,6 +2496,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["unrealized_pnl"]["value_display"], "-2,500 KRW")
         self.assertEqual(portfolio["total_pnl"]["value_display"], "+10,000 KRW")
         self.assertEqual(portfolio["entry_candidates"]["value_display"], "2")
+        self.assertIsNone(portfolio["source_runtime_cycle_id"])
+        self.assertIsNone(portfolio["source_paper_ledger_head_hash"])
         html = render_dashboard_html(dashboard)
         self.assertIn("portfolio-kpi-grid", html)
         self.assertIn("portfolio-ledger", html)
@@ -2523,6 +2525,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             fill_price="1000500",
             mark_price="1000000",
             fee_amount="5",
+            source_runtime_cycle_id="dashboard-position-fill-cycle",
+            source_paper_ledger_head_hash="D" * 64,
         )
         summary, heartbeat, startup_probe = build_inputs(
             session_id=session_id,
@@ -2540,6 +2544,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "PASS")
         self.assertEqual(dashboard["portfolio_snapshot"]["positions"]["value_display"], "1")
+        self.assertEqual(dashboard["portfolio_snapshot"]["source_runtime_cycle_id"], "dashboard-position-fill-cycle")
+        self.assertEqual(dashboard["portfolio_snapshot"]["source_paper_ledger_head_hash"], "D" * 64)
         rows = dashboard["position_snapshot"]["rows"]
         self.assertEqual(len(rows), 1)
         row = rows[0]
@@ -2553,6 +2559,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(row["unrealized_pnl"], "-10")
         self.assertNotIn("UNKNOWN", row.values())
         html = render_dashboard_html(dashboard)
+        self.assertIn("Runtime cycle: dashboard-position-fill-cycle", html)
+        self.assertIn("Ledger head: DDDDDDDDDDDD...", html)
         self.assertIn("KRW-BTC | LONG | qty 0.01 | avg 1000500 | mark 1000000 | value 10000 | PnL -10", html)
         self.assertIn("<td>1000500</td>", html)
         self.assertIn("<td>1000000</td>", html)

@@ -218,6 +218,14 @@ class SafeLauncherTest(unittest.TestCase):
             portfolio_snapshot = load_json(dashboard_paths["paper_portfolio_snapshot"])
 
             self.assertEqual(portfolio_snapshot["source"], "PAPER_LEDGER_ROLLUP")
+            self.assertEqual(
+                portfolio_snapshot["source_runtime_cycle_id"],
+                "test-launcher-paper-rollup-preferred-cycle-2",
+            )
+            self.assertEqual(
+                portfolio_snapshot["source_paper_ledger_head_hash"],
+                summary["portfolio"]["source_paper_ledger_head_hash"],
+            )
             self.assertEqual(summary["portfolio"]["source"], "LEDGER")
             self.assertEqual(summary["portfolio"]["open_position_count"], 1)
             self.assertEqual(len(summary["positions"]), 1)

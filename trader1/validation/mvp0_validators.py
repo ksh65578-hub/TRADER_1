@@ -1900,6 +1900,8 @@ def summary_shell_validator() -> ValidatorResult:
         fill_price="1000500",
         mark_price="1000000",
         fee_amount="5",
+        source_runtime_cycle_id="validator-dashboard-filled-cycle",
+        source_paper_ledger_head_hash="E" * 64,
     )
     filled_summary = build_summary_shell(
         exchange="UPBIT",
@@ -2192,6 +2194,8 @@ def read_only_dashboard_validator() -> ValidatorResult:
         fill_price="1000500",
         mark_price="1000000",
         fee_amount="5",
+        source_runtime_cycle_id="validator-dashboard-filled-cycle",
+        source_paper_ledger_head_hash="E" * 64,
     )
     filled_summary = build_summary_shell(
         exchange="UPBIT",
@@ -2220,6 +2224,20 @@ def read_only_dashboard_validator() -> ValidatorResult:
             paths,
             filled_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
         )
+    if filled_dashboard.get("portfolio_snapshot", {}).get("source_runtime_cycle_id") != "validator-dashboard-filled-cycle":
+        return fail_result(
+            "read_only_dashboard_validator",
+            "filled paper portfolio dashboard omitted runtime cycle provenance",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if filled_dashboard.get("portfolio_snapshot", {}).get("source_paper_ledger_head_hash") != "E" * 64:
+        return fail_result(
+            "read_only_dashboard_validator",
+            "filled paper portfolio dashboard omitted ledger head provenance",
+            paths,
+            "LEDGER_INTEGRITY_FAIL",
+        )
     filled_rows = filled_dashboard.get("position_snapshot", {}).get("rows", [])
     if not filled_rows:
         return fail_result(
@@ -2247,7 +2265,16 @@ def read_only_dashboard_validator() -> ValidatorResult:
             "SCHEMA_IDENTITY_MISMATCH",
         )
     filled_html = render_dashboard_html(filled_dashboard)
-    for fragment in ("Mark Price", "Market Value", "Cost Basis", "avg 1000500", "mark 1000000", "value 10000"):
+    for fragment in (
+        "Mark Price",
+        "Market Value",
+        "Cost Basis",
+        "avg 1000500",
+        "mark 1000000",
+        "value 10000",
+        "Runtime cycle: validator-dashboard-filled-cycle",
+        "Ledger head: EEEEEEEEEEEE...",
+    ):
         if fragment not in filled_html:
             return fail_result(
                 "read_only_dashboard_validator",

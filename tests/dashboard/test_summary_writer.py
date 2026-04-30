@@ -143,6 +143,8 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertEqual(summary["portfolio"]["freshness_status"], "PASS")
         self.assertEqual(summary["portfolio"]["source_snapshot_status"], "PASS")
         self.assertEqual(len(summary["portfolio"]["source_snapshot_hash"]), 64)
+        self.assertIsNone(summary["portfolio"]["source_runtime_cycle_id"])
+        self.assertIsNone(summary["portfolio"]["source_paper_ledger_head_hash"])
         self.assertEqual(summary["portfolio"]["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
         self.assertIsInstance(summary["portfolio"]["source_snapshot_generated_at_utc"], str)
         self.assertGreaterEqual(summary["portfolio"]["source_snapshot_age_seconds"], 0)
@@ -162,11 +164,15 @@ class SummaryWriterTest(unittest.TestCase):
             fill_price="1000500",
             mark_price="1000000",
             fee_amount="5",
+            source_runtime_cycle_id="summary-runtime-cycle",
+            source_paper_ledger_head_hash="C" * 64,
         )
         summary = build_summary(with_paper_portfolio=True, paper_portfolio_snapshot=paper_portfolio)
         result = validate_summary_shell(summary, set(registry()["enums"]["live_blocker_code"]["values"]))
         self.assertEqual(result.status, "PASS")
         self.assertEqual(summary["portfolio"]["source"], "LEDGER")
+        self.assertEqual(summary["portfolio"]["source_runtime_cycle_id"], "summary-runtime-cycle")
+        self.assertEqual(summary["portfolio"]["source_paper_ledger_head_hash"], "C" * 64)
         self.assertEqual(summary["portfolio"]["open_position_count"], 1)
         self.assertEqual(summary["portfolio"]["position_market_value"], 10000.0)
         self.assertEqual(summary["portfolio"]["unrealized_pnl"], -10.0)

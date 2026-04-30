@@ -32,6 +32,14 @@ class PaperLedgerRollupTest(unittest.TestCase):
             self.assertEqual(rollup["duplicate_event_count"], 0)
             self.assertEqual(rollup["duplicate_order_count"], 0)
             self.assertEqual(rollup["portfolio_snapshot"]["source"], "PAPER_LEDGER_ROLLUP")
+            self.assertEqual(
+                rollup["portfolio_snapshot"]["source_runtime_cycle_id"],
+                "test-paper-ledger-rollup-cycle-2",
+            )
+            self.assertEqual(
+                rollup["portfolio_snapshot"]["source_paper_ledger_head_hash"],
+                rollup["latest_ledger_head_hash"],
+            )
             self.assertEqual(rollup["portfolio_snapshot"]["open_position_count"], 1)
             self.assertFalse(rollup["live_order_ready"])
             self.assertFalse(rollup["live_order_allowed"])
@@ -157,6 +165,25 @@ class PaperLedgerRollupTest(unittest.TestCase):
 
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_rollup_blocks_portfolio_ledger_head_provenance_mismatch(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-paper-ledger-rollup-provenance-mismatch",
+                requested_cycle_count=1,
+            )
+            rollup = json.loads((root / loop["paper_ledger_rollup_path"]).read_text(encoding="utf-8"))
+
+        rollup["portfolio_snapshot"]["source_paper_ledger_head_hash"] = "F" * 64
+        rollup["portfolio_snapshot"]["snapshot_hash"] = paper_portfolio_hash(rollup["portfolio_snapshot"])
+        rollup["rollup_hash"] = paper_ledger_rollup_hash(rollup)
+
+        result = validate_paper_ledger_rollup_report(rollup)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "LEDGER_INTEGRITY_FAIL")
 
     def test_rollup_blocks_artifact_path_escape(self):
         with TemporaryDirectory() as tmp:

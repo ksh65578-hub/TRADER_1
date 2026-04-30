@@ -1,11 +1,13 @@
 {
   "schema_id": "trader1.paper_portfolio_snapshot.v1",
-  "generated_at_utc": "2026-04-30T20:43:07Z",
+  "generated_at_utc": "2026-04-30T21:20:54Z",
   "project_id": "TRADER_1",
   "exchange": "BINANCE",
   "market_type": "SPOT",
   "mode": "PAPER",
   "session_id": "mvp1_binance_paper_launcher",
+  "source_runtime_cycle_id": null,
+  "source_paper_ledger_head_hash": null,
   "snapshot_status": "PASS",
   "source": "PAPER_LEDGER_SCAFFOLD",
   "starting_cash_source": "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT",
@@ -29,5 +31,5 @@
   "can_submit_order": false,
   "primary_blocker_code": null,
   "blockers": [],
-  "snapshot_hash": "15F73EFCCFABCF94D2075CD0C733CB1F55FF02EAE15023DD04231E1A08A3B232"
+  "snapshot_hash": "2B64C8C5BD4962EA3B93C1A380FD538D339D97D16347DB00CF5C26BCC769FA02"
 }

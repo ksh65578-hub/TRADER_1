@@ -73,6 +73,8 @@ def _portfolio_snapshot_from_fills(
     session_id: str,
     fill_events: list[dict[str, Any]],
     blockers: list[dict[str, str]],
+    source_runtime_cycle_id: str | None,
+    source_paper_ledger_head_hash: str | None,
 ) -> dict[str, Any]:
     currency, starting = PAPER_STARTING_CASH_BY_SCOPE[("UPBIT", "KRW_SPOT")]
     positions_by_symbol: dict[str, dict[str, Decimal | str]] = {}
@@ -143,6 +145,8 @@ def _portfolio_snapshot_from_fills(
         "market_type": "KRW_SPOT",
         "mode": "PAPER",
         "session_id": session_id,
+        "source_runtime_cycle_id": source_runtime_cycle_id,
+        "source_paper_ledger_head_hash": source_paper_ledger_head_hash,
         "snapshot_status": "PASS" if not blockers else "BLOCKED",
         "source": "PAPER_LEDGER_ROLLUP",
         "starting_cash_source": "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT",
@@ -196,12 +200,14 @@ def build_paper_ledger_rollup_report(
     seen_semantic_events: set[tuple[str, Any, Any, Any]] = set()
     seen_filled_order_keys: set[tuple[Any, Any]] = set()
     latest_ledger_head_hash: str | None = None
+    latest_source_runtime_cycle_id: str | None = None
 
     if not ledger_paths:
         blockers.append(_blocker("LEDGER_UNAVAILABLE", "no PAPER ledger JSONL files are available for rollup"))
 
     for path in ledger_paths:
         artifact_paths.append(_relative_posix(path, root))
+        source_runtime_cycle_id = path.name[: -len(".paper_ledger_events.jsonl")]
         records, quarantine_path = recover_jsonl_records(path)
         if quarantine_path is not None:
             corrupted_ledger_jsonl_quarantined_count += 1
@@ -214,6 +220,7 @@ def build_paper_ledger_rollup_report(
             invalid_ledger_jsonl_count += 1
             blockers.append(_blocker(ledger_blocker or "LEDGER_INTEGRITY_FAIL", ledger_message))
             continue
+        latest_source_runtime_cycle_id = source_runtime_cycle_id
         for event in records:
             if event.get("exchange") != "UPBIT" or event.get("market_type") != "KRW_SPOT" or event.get("mode") != "PAPER" or event.get("session_id") != session_id:
                 blockers.append(_blocker("SNAPSHOT_SCOPE_MISMATCH", "PAPER ledger rollup detected cross-scope ledger data"))
@@ -243,7 +250,13 @@ def build_paper_ledger_rollup_report(
             all_events.append(event)
             latest_ledger_head_hash = event.get("event_hash")
 
-    portfolio_snapshot = _portfolio_snapshot_from_fills(session_id=session_id, fill_events=fill_events, blockers=blockers)
+    portfolio_snapshot = _portfolio_snapshot_from_fills(
+        session_id=session_id,
+        fill_events=fill_events,
+        blockers=blockers,
+        source_runtime_cycle_id=latest_source_runtime_cycle_id,
+        source_paper_ledger_head_hash=latest_ledger_head_hash,
+    )
     portfolio_result = validate_paper_portfolio_snapshot(portfolio_snapshot)
     if portfolio_result.status != "PASS":
         if not blockers:
@@ -407,6 +420,10 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
     if portfolio.get("source") != "PAPER_LEDGER_ROLLUP":
         return PaperLedgerRollupValidationResult("BLOCKED", "paper ledger rollup portfolio source mismatch", "LIVE_FINAL_GUARD_FAILED")
     if report.get("rollup_status") == "PASS":
+        if not isinstance(portfolio.get("source_runtime_cycle_id"), str) or not portfolio.get("source_runtime_cycle_id"):
+            return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup portfolio missing source runtime cycle id", "SCHEMA_IDENTITY_MISMATCH")
+        if portfolio.get("source_paper_ledger_head_hash") != report.get("latest_ledger_head_hash"):
+            return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup portfolio ledger head provenance mismatch", "LEDGER_INTEGRITY_FAIL")
         position_count = int(portfolio.get("open_position_count", -1))
         filled_count = int(report.get("filled_order_count", -1))
         if filled_count > 0 and position_count < 1:

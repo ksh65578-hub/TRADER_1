@@ -642,6 +642,8 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         "status": "VERIFIED",
         "truth_role": "dashboard_serving_truth",
         "source": "summary.json",
+        "source_runtime_cycle_id": portfolio.get("source_runtime_cycle_id"),
+        "source_paper_ledger_head_hash": portfolio.get("source_paper_ledger_head_hash"),
         "cash": _portfolio_card(
             "cash",
             "Cash",
@@ -716,6 +718,8 @@ def _stale_portfolio_snapshot() -> dict[str, Any]:
         "status": "STALE",
         "truth_role": "dashboard_serving_truth",
         "source": "summary.json",
+        "source_runtime_cycle_id": None,
+        "source_paper_ledger_head_hash": None,
         "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
@@ -751,6 +755,8 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
         "status": "UNVERIFIED",
         "truth_role": "dashboard_serving_truth",
         "source": "summary.json",
+        "source_runtime_cycle_id": None,
+        "source_paper_ledger_head_hash": None,
         "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "No verified cash source loaded"),
         "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "No verified equity source loaded"),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "No verified locked-cash source loaded"),
@@ -7217,6 +7223,13 @@ def validate_read_only_dashboard_shell(
         )
     if portfolio.get("status") == "VERIFIED" and shell.get("mode") != "PAPER":
         return DashboardValidationResult("BLOCKED", "verified portfolio display is PAPER-only without live evidence", "LIVE_FINAL_GUARD_FAILED")
+    if portfolio.get("status") == "VERIFIED":
+        source_cycle_id = portfolio.get("source_runtime_cycle_id")
+        source_ledger_head = portfolio.get("source_paper_ledger_head_hash")
+        if source_cycle_id is not None and (not isinstance(source_cycle_id, str) or not source_cycle_id):
+            return DashboardValidationResult("FAIL", "portfolio runtime cycle provenance is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if source_ledger_head is not None and (not isinstance(source_ledger_head, str) or len(source_ledger_head) != 64):
+            return DashboardValidationResult("FAIL", "portfolio ledger head provenance is invalid", "SCHEMA_IDENTITY_MISMATCH")
     for card_id in PORTFOLIO_CARD_IDS:
         card = portfolio.get(card_id)
         if not isinstance(card, dict):
@@ -8199,6 +8212,12 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
 
     portfolio = shell.get("portfolio_snapshot", {})
     portfolio_status = portfolio.get("status", "UNVERIFIED") if isinstance(portfolio, dict) else "UNVERIFIED"
+    portfolio_cycle_source = portfolio.get("source_runtime_cycle_id") if isinstance(portfolio, dict) else None
+    portfolio_ledger_source = portfolio.get("source_paper_ledger_head_hash") if isinstance(portfolio, dict) else None
+    portfolio_source_line = (
+        f"Runtime cycle: {portfolio_cycle_source or 'not linked'} | Ledger head: "
+        f"{str(portfolio_ledger_source)[:12] + '...' if portfolio_ledger_source else 'not linked'}"
+    )
     if portfolio_status == "VERIFIED" and shell.get("mode") == "PAPER":
         portfolio_status = "PAPER LEDGER VERIFIED (SIMULATED)"
     elif portfolio_status == "STALE":
@@ -8385,6 +8404,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .summary-card .metric { min-height: 78px; padding: 10px; }
     .summary-card .metric h2 { font-size: 13px; margin: 0; color: var(--muted); }
     .summary-card .metric-value { font-size: 18px; }
+    .source-line { margin-top: -4px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; line-height: 1.45; }
     .portfolio-ledger { display: grid; gap: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin: 12px 0 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #ffffff; }
     .portfolio-ledger div { display: grid; gap: 4px; padding: 9px 10px; border-right: 1px solid var(--line); min-width: 0; }
     .portfolio-ledger div:last-child { border-right: 0; }
@@ -8679,6 +8699,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <span class="eyebrow">Real-Time Portfolio</span>
         <h2>Portfolio Snapshot</h2>
         <p>Status: """ + safe_text(portfolio_status) + """ | Source: """ + safe_text(portfolio.get("source", "summary.json")) + """</p>
+        <p class="source-line">""" + safe_text(portfolio_source_line) + """</p>
         <section class="portfolio-kpi-grid">
           """ + portfolio_kpi_html + """
         </section>

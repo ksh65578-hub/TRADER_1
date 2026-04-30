@@ -3456,6 +3456,8 @@
         "status",
         "truth_role",
         "source",
+        "source_runtime_cycle_id",
+        "source_paper_ledger_head_hash",
         "cash",
         "equity",
         "locked_cash",
@@ -3496,6 +3498,21 @@
             "heartbeat.json",
             "startup_probe.json"
           ]
+        },
+        "source_runtime_cycle_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "source_paper_ledger_head_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 64,
+          "maxLength": 64
         },
         "cash": {
           "$ref": "#/$defs/portfolio_card"

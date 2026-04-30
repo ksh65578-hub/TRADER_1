@@ -61,6 +61,8 @@ def _empty_portfolio(message: str = "No verified paper portfolio snapshot loaded
         "source": "SUMMARY_BUILDER",
         "freshness_status": "UNTESTED",
         "source_snapshot_hash": None,
+        "source_runtime_cycle_id": None,
+        "source_paper_ledger_head_hash": None,
         "source_snapshot_status": "UNTESTED",
         "source_snapshot_generated_at_utc": None,
         "source_snapshot_age_seconds": None,
@@ -132,6 +134,8 @@ def _portfolio_from_paper_snapshot(
             "source": "LEDGER",
             "freshness_status": "PASS",
             "source_snapshot_hash": snapshot["snapshot_hash"],
+            "source_runtime_cycle_id": snapshot.get("source_runtime_cycle_id"),
+            "source_paper_ledger_head_hash": snapshot.get("source_paper_ledger_head_hash"),
             "source_snapshot_status": snapshot["snapshot_status"],
             "source_snapshot_generated_at_utc": snapshot["generated_at_utc"],
             "source_snapshot_age_seconds": source_age_seconds,
@@ -381,7 +385,14 @@ def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] |
         return SummaryValidationResult("BLOCKED", "summary builder cannot invent portfolio execution truth", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("source") == "SUMMARY_BUILDER" and any(
         portfolio.get(key) is not None
-        for key in ("source_snapshot_hash", "source_snapshot_generated_at_utc", "source_snapshot_age_seconds", "source_balance_kind")
+        for key in (
+            "source_snapshot_hash",
+            "source_runtime_cycle_id",
+            "source_paper_ledger_head_hash",
+            "source_snapshot_generated_at_utc",
+            "source_snapshot_age_seconds",
+            "source_balance_kind",
+        )
     ):
         return SummaryValidationResult("BLOCKED", "summary builder cannot claim portfolio snapshot provenance", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("source") in {"LEDGER", "RECONCILIATION"} and portfolio.get("freshness_status") == "PASS":
@@ -389,6 +400,12 @@ def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] |
             return SummaryValidationResult("BLOCKED", "verified portfolio source must include cash and equity", "HARD_TRUTH_MISSING")
         if portfolio.get("source_snapshot_status") != "PASS" or not _is_hash64(portfolio.get("source_snapshot_hash")):
             return SummaryValidationResult("BLOCKED", "verified portfolio source must carry PASS source snapshot provenance", "HARD_TRUTH_MISSING")
+        if portfolio.get("source_runtime_cycle_id") is not None and (
+            not isinstance(portfolio.get("source_runtime_cycle_id"), str) or not portfolio.get("source_runtime_cycle_id")
+        ):
+            return SummaryValidationResult("FAIL", "verified portfolio runtime cycle provenance is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if portfolio.get("source_paper_ledger_head_hash") is not None and not _is_hash64(portfolio.get("source_paper_ledger_head_hash")):
+            return SummaryValidationResult("FAIL", "verified portfolio ledger head provenance is invalid", "SCHEMA_IDENTITY_MISMATCH")
         if not isinstance(portfolio.get("source_snapshot_generated_at_utc"), str):
             return SummaryValidationResult("BLOCKED", "verified portfolio source must carry snapshot timestamp provenance", "HARD_TRUTH_MISSING")
         source_age = _decimal(portfolio.get("source_snapshot_age_seconds"))
