@@ -128,6 +128,60 @@ def _nearly_equal(left: Decimal, right: Decimal, tolerance: Decimal = Decimal("0
     return abs(left - right) <= tolerance
 
 
+def _validate_summary_positions(positions: Any) -> tuple[SummaryValidationResult | None, Decimal, Decimal]:
+    if not isinstance(positions, list):
+        return SummaryValidationResult("FAIL", "summary positions must be a list", "SCHEMA_IDENTITY_MISMATCH"), Decimal("0"), Decimal("0")
+    required = {
+        "symbol",
+        "side",
+        "quantity",
+        "average_entry_price",
+        "mark_price",
+        "cost_basis",
+        "market_value",
+        "unrealized_pnl",
+        "source",
+        "paper_only",
+    }
+    market_value_sum = Decimal("0")
+    unrealized_sum = Decimal("0")
+    for position in positions:
+        if not isinstance(position, dict):
+            return SummaryValidationResult("FAIL", "summary position must be an object", "SCHEMA_IDENTITY_MISMATCH"), Decimal("0"), Decimal("0")
+        missing = sorted(required - set(position))
+        if missing:
+            return (
+                SummaryValidationResult("FAIL", f"summary position missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH"),
+                Decimal("0"),
+                Decimal("0"),
+            )
+        if position.get("paper_only") is not True or position.get("source") not in {"PAPER_LEDGER_SCAFFOLD", "PAPER_LEDGER_ROLLUP"}:
+            return SummaryValidationResult("BLOCKED", "summary position cannot claim exchange truth", "LIVE_FINAL_GUARD_FAILED"), Decimal("0"), Decimal("0")
+        if position.get("side") != "LONG":
+            return SummaryValidationResult("BLOCKED", "summary position must remain long spot only", "LIVE_FINAL_GUARD_FAILED"), Decimal("0"), Decimal("0")
+        if not isinstance(position.get("symbol"), str) or not position["symbol"]:
+            return SummaryValidationResult("FAIL", "summary position symbol is missing", "SCHEMA_IDENTITY_MISMATCH"), Decimal("0"), Decimal("0")
+        quantity = _decimal(position.get("quantity"))
+        average_entry = _decimal(position.get("average_entry_price"))
+        mark = _decimal(position.get("mark_price"))
+        cost_basis = _decimal(position.get("cost_basis"))
+        market_value = _decimal(position.get("market_value"))
+        unrealized = _decimal(position.get("unrealized_pnl"))
+        if any(value is None for value in (quantity, average_entry, mark, cost_basis, market_value, unrealized)):
+            return SummaryValidationResult("FAIL", "summary position values must be numeric", "SCHEMA_IDENTITY_MISMATCH"), Decimal("0"), Decimal("0")
+        if min(quantity, average_entry, mark, cost_basis, market_value) < 0 or quantity <= 0 or average_entry <= 0 or mark <= 0:
+            return SummaryValidationResult("BLOCKED", "summary position values are invalid", "MEASUREMENT_MISSING"), Decimal("0"), Decimal("0")
+        if not _nearly_equal(market_value, quantity * mark):
+            return SummaryValidationResult("FAIL", "summary position market value arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH"), Decimal("0"), Decimal("0")
+        if cost_basis < quantity * average_entry:
+            return SummaryValidationResult("FAIL", "summary position cost basis is below gross entry cost", "SCHEMA_IDENTITY_MISMATCH"), Decimal("0"), Decimal("0")
+        if not _nearly_equal(unrealized, market_value - cost_basis):
+            return SummaryValidationResult("FAIL", "summary position unrealized PnL arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH"), Decimal("0"), Decimal("0")
+        market_value_sum += market_value
+        unrealized_sum += unrealized
+    return None, market_value_sum, unrealized_sum
+
+
 def build_summary_shell(
     *,
     exchange: str,
@@ -298,7 +352,8 @@ def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] |
             return SummaryValidationResult("BLOCKED", "verified summary portfolio must remain simulated PAPER ledger truth", "LIVE_FINAL_GUARD_FAILED")
         if summary.get("mode") != "PAPER":
             return SummaryValidationResult("BLOCKED", "verified dashboard portfolio is PAPER-only without live evidence", "LIVE_FINAL_GUARD_FAILED")
-        if portfolio.get("open_position_count") != len(summary.get("positions", [])):
+        positions = summary.get("positions")
+        if not isinstance(positions, list) or portfolio.get("open_position_count") != len(positions):
             return SummaryValidationResult("FAIL", "portfolio open position count must match positions list", "SCHEMA_IDENTITY_MISMATCH")
         cash = _decimal(portfolio.get("cash_available"))
         locked = _decimal(portfolio.get("locked_balance"))
@@ -309,6 +364,13 @@ def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] |
         total_pnl = _decimal(portfolio.get("total_pnl"))
         if any(value is None for value in (cash, locked, position_market_value, equity, realized, unrealized, total_pnl)):
             return SummaryValidationResult("FAIL", "verified portfolio values must be numeric", "SCHEMA_IDENTITY_MISMATCH")
+        positions_result, positions_market_value, positions_unrealized = _validate_summary_positions(positions)
+        if positions_result is not None:
+            return positions_result
+        if not _nearly_equal(position_market_value, positions_market_value):
+            return SummaryValidationResult("FAIL", "summary position market value rollup mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if not _nearly_equal(unrealized, positions_unrealized):
+            return SummaryValidationResult("FAIL", "summary position unrealized PnL rollup mismatch", "SCHEMA_IDENTITY_MISMATCH")
         if not _nearly_equal(equity, cash + locked + position_market_value):
             return SummaryValidationResult("FAIL", "verified portfolio equity arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH")
         if not _nearly_equal(total_pnl, realized + unrealized):

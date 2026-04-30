@@ -1888,6 +1888,51 @@ def summary_shell_validator() -> ValidatorResult:
     if ledger_result.status != "PASS":
         return fail_result("summary_shell_validator", ledger_result.message, paths, ledger_result.blocker_code or "UNKNOWN_BLOCKED")
 
+    filled_portfolio = build_paper_portfolio_snapshot_from_fill(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        session_id="mvp1_summary_shell",
+        symbol="KRW-BTC",
+        side="BUY",
+        quantity="0.01",
+        fill_price="1000500",
+        mark_price="1000000",
+        fee_amount="5",
+    )
+    filled_summary = build_summary_shell(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id="mvp1_summary_shell",
+        startup_probe=startup_probe,
+        heartbeat=heartbeat,
+        readiness_surface=readiness_surface,
+        paper_portfolio_snapshot=filled_portfolio,
+    )
+    filled_result = validate_summary_shell(filled_summary, allowed_blockers)
+    if filled_result.status != "PASS":
+        return fail_result("summary_shell_validator", filled_result.message, paths, filled_result.blocker_code or "UNKNOWN_BLOCKED")
+    if filled_summary["portfolio"]["open_position_count"] != 1 or len(filled_summary["positions"]) != 1:
+        return fail_result("summary_shell_validator", "filled paper position detail did not reach summary", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    position_tamper_summary = json.loads(json.dumps(filled_summary))
+    position_tamper_summary["positions"][0]["market_value"] = "9999"
+    position_tamper_result = validate_summary_shell(position_tamper_summary, allowed_blockers)
+    if position_tamper_result.status != "FAIL" or position_tamper_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result("summary_shell_validator", "summary position detail tamper was not detected", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    position_side_summary = json.loads(json.dumps(filled_summary))
+    position_side_summary["positions"][0]["side"] = "SHORT"
+    position_side_result = validate_summary_shell(position_side_summary, allowed_blockers)
+    if position_side_result.status != "BLOCKED" or position_side_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result("summary_shell_validator", "summary position side drift was not blocked", paths, "LIVE_FINAL_GUARD_FAILED")
+
+    position_rollup_summary = json.loads(json.dumps(filled_summary))
+    position_rollup_summary["portfolio"]["position_market_value"] = position_rollup_summary["portfolio"]["position_market_value"] + 1.0
+    position_rollup_result = validate_summary_shell(position_rollup_summary, allowed_blockers)
+    if position_rollup_result.status != "FAIL" or position_rollup_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result("summary_shell_validator", "summary position rollup mismatch was not detected", paths, "SCHEMA_IDENTITY_MISMATCH")
+
     unbound_summary = dict(ledger_summary)
     unbound_summary["portfolio"] = dict(ledger_summary["portfolio"])
     unbound_summary["portfolio"]["source_snapshot_hash"] = None
