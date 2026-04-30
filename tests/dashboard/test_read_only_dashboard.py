@@ -171,6 +171,7 @@ def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
 def build_dashboard(
     with_paper_portfolio=True,
     heartbeat_component_overrides=None,
+    paper_portfolio_snapshot=None,
     reconciliation_report=None,
     restart_recovery_report=None,
     upbit_paper_runtime_recovery_guard_report=None,
@@ -188,6 +189,7 @@ def build_dashboard(
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
         heartbeat_component_overrides=heartbeat_component_overrides,
+        paper_portfolio_snapshot=paper_portfolio_snapshot,
     )
     return build_read_only_dashboard_shell(
         exchange="UPBIT",
@@ -2425,6 +2427,22 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["portfolio_snapshot"]["status"], "UNVERIFIED")
         self.assertEqual(dashboard["portfolio_snapshot"]["cash"]["value_display"], "UNVERIFIED")
         self.assertEqual(dashboard["portfolio_snapshot"]["realized_pnl"]["value_display"], "UNVERIFIED")
+        self.assertEqual(dashboard["operation_status"]["severity"], "WARNING")
+        self.assertEqual(dashboard["operation_status"]["color_token"], "yellow")
+        self.assertEqual(dashboard["operation_status"]["label"], "Running without verified portfolio")
+        self.assertIn("portfolio", dashboard["operation_status"]["message"])
+        self.assertFalse(dashboard["live_order_allowed"])
+
+    def test_dashboard_blocks_normal_operation_when_portfolio_is_unverified(self):
+        dashboard = build_dashboard(with_paper_portfolio=False)
+        dashboard["operation_status"]["status"] = "RUNNING_SAFE_MODE"
+        dashboard["operation_status"]["severity"] = "NORMAL"
+        dashboard["operation_status"]["color_token"] = "green"
+        dashboard["operation_status"]["label"] = "Running safely"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
 
     def test_dashboard_first_screen_expands_portfolio_positions_and_candidates(self):
         summary, heartbeat, startup_probe = build_inputs()
@@ -2579,6 +2597,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["portfolio_snapshot"]["cash"]["value_display"], "UNVERIFIED")
         self.assertEqual(dashboard["portfolio_snapshot"]["cash"]["freshness_status"], "STALE")
         self.assertEqual(dashboard["portfolio_snapshot"]["blocking_reason"], "LATENCY_TTL_EXPIRED")
+        self.assertEqual(dashboard["operation_status"]["severity"], "WARNING")
+        self.assertEqual(dashboard["operation_status"]["color_token"], "yellow")
+        self.assertEqual(dashboard["operation_status"]["label"], "Running with stale portfolio")
+        self.assertIn("portfolio", dashboard["operation_status"]["message"])
         self.assertEqual(dashboard["risk_exposure_snapshot"]["status"], "STALE")
         self.assertEqual(dashboard["risk_exposure_snapshot"]["color_token"], "yellow")
         self.assertEqual(dashboard["risk_exposure_snapshot"]["exposure_pct_display"], "UNVERIFIED")

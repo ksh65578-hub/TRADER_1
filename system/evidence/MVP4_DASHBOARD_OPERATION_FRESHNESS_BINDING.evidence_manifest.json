@@ -1,0 +1,22 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T20:15:06Z",
+  "patch_id": "MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.patch_result.json",
+    "system/evidence/validator_runs/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.stage_gate_result.json",
+    "system/evidence/audit_reports/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.audit.json",
+    "contracts/security/source_bundle_manifest.json",
+    "trader1/dashboard/read_only_dashboard.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tools/emit_dashboard_operation_freshness_binding_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.md"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

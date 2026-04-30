@@ -1,0 +1,27 @@
+{
+  "audit_schema_id": "trader1.dashboard_operation_freshness_binding_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "operation_status_reads_portfolio_snapshot": true,
+    "operation_status_warns_for_stale_portfolio": true,
+    "operation_status_warns_for_unverified_portfolio": true,
+    "dashboard_validation_blocks_false_normal": true,
+    "validator_covers_false_normal": true,
+    "unit_tests_cover_operation_portfolio_binding": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "dashboard_false_normal_operation_status",
+      "condition": "Heartbeat is fresh while portfolio display truth is STALE or UNVERIFIED.",
+      "impact": "The first screen could show a green normal status even though cash, equity, positions, or PnL are not reviewable.",
+      "fix": "Operation status now stays yellow until portfolio_snapshot.status is VERIFIED.",
+      "live_safety_impact": "prevents operator misreading dashboard display truth as live or execution truth",
+      "ux_impact": "normal, warning, and recovery text now match portfolio trust state"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
