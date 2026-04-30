@@ -1,0 +1,24 @@
+{
+  "audit_schema_id": "trader1.upbit_paper_runtime_source_hash_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "collection_schema_requires_public_market_data_hash": true,
+    "runtime_schema_requires_source_public_market_data_hash": true,
+    "collector_recomputes_public_market_data_hash": true,
+    "latest_pointer_exposes_public_market_data_hash": true,
+    "runtime_recomputes_bound_public_market_data_hash": true,
+    "collection_validator_has_payload_mismatch_fixture": true,
+    "runtime_validator_has_payload_mismatch_fixture": true
+  },
+  "hidden_defect": {
+    "classification": "cross_component_mismatch",
+    "condition": "a PAPER runtime cycle could retain a valid source collection hash while carrying mutated public_market_data payload",
+    "impact": "strategy, PnL, and dashboard evidence could be based on data that no longer matches the collection source",
+    "fix": "collection reports now bind public_market_data_hash and runtime cycles verify source_public_market_data_hash before accepting collection-backed data"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

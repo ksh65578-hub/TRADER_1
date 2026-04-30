@@ -45,8 +45,26 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
         self.assertEqual(report["source_collection_report_hash"], collection["collection_hash"])
+        self.assertEqual(report["source_public_market_data_hash"], collection["public_market_data_hash"])
         self.assertEqual(report["canonical_event_count"], collection["canonical_event_count"])
         self.assertFalse(report["live_order_allowed"])
+
+    def test_cycle_blocks_collection_payload_mutation_after_source_hash_binding(self):
+        collection = build_upbit_public_market_data_collection_report(
+            collector_id="runtime-cycle-collection-payload-mismatch",
+            session_id="mvp4_upbit_paper_runtime",
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-collection-payload-mismatch",
+            source_collection_report=collection,
+        )
+        report["public_market_data"]["candles"][0]["close"] = "1234567"
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_negative_net_ev_cycle_is_no_trade_and_writes_no_fill_ledger(self):
         report = build_upbit_paper_runtime_cycle_report(

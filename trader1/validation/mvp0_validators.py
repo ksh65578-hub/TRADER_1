@@ -3331,6 +3331,9 @@ def upbit_paper_runtime_cycle_validator() -> ValidatorResult:
         return fail_result("upbit_paper_runtime_cycle_validator", "Upbit PAPER runtime cycle schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
     if schema.get("additionalProperties") is not False:
         return fail_result("upbit_paper_runtime_cycle_validator", "Upbit PAPER runtime cycle schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    if "source_public_market_data_hash" not in required:
+        return fail_result("upbit_paper_runtime_cycle_validator", "Upbit PAPER runtime cycle schema missing source market data hash", paths, "SCHEMA_IDENTITY_MISMATCH")
 
     entry = build_upbit_paper_runtime_cycle_report(cycle_id="validator-upbit-runtime-entry")
     entry_result = validate_upbit_paper_runtime_cycle_report(entry)
@@ -3349,6 +3352,41 @@ def upbit_paper_runtime_cycle_validator() -> ValidatorResult:
         return fail_result("upbit_paper_runtime_cycle_validator", "negative net EV PAPER cycle did not remain no-trade", paths, no_trade_result.blocker_code or "MIN_EDGE_FAIL")
     if no_trade.get("paper_fill") is not None or no_trade.get("paper_ledger_events"):
         return fail_result("upbit_paper_runtime_cycle_validator", "no-trade PAPER cycle wrote fill ledger events", paths, "LIVE_FINAL_GUARD_FAILED")
+
+    source_collection = build_upbit_public_market_data_collection_report(
+        collector_id="validator-upbit-runtime-source-collection",
+        session_id="mvp4_upbit_paper_runtime",
+    )
+    collection_bound = build_upbit_paper_runtime_cycle_report(
+        cycle_id="validator-upbit-runtime-source-bound",
+        source_collection_report=source_collection,
+    )
+    collection_bound_result = validate_upbit_paper_runtime_cycle_report(collection_bound)
+    if collection_bound_result.status != "PASS":
+        return fail_result(
+            "upbit_paper_runtime_cycle_validator",
+            f"collection-bound PAPER runtime cycle failed: {collection_bound_result.message}",
+            paths,
+            collection_bound_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if collection_bound.get("source_public_market_data_hash") != source_collection.get("public_market_data_hash"):
+        return fail_result(
+            "upbit_paper_runtime_cycle_validator",
+            "collection-bound PAPER runtime cycle did not preserve source market data hash",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    payload_mismatch = json.loads(json.dumps(collection_bound))
+    payload_mismatch["public_market_data"]["candles"][0]["close"] = "1234567"
+    payload_mismatch["cycle_hash"] = upbit_paper_runtime_cycle_hash(payload_mismatch)
+    payload_mismatch_result = validate_upbit_paper_runtime_cycle_report(payload_mismatch)
+    if payload_mismatch_result.status != "FAIL" or payload_mismatch_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result(
+            "upbit_paper_runtime_cycle_validator",
+            "collection-bound PAPER runtime allowed market data payload mutation",
+            paths,
+            payload_mismatch_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
 
     mutated = build_upbit_paper_runtime_cycle_report(cycle_id="validator-upbit-runtime-live-mutation")
     mutated["live_order_allowed"] = True
@@ -3381,6 +3419,7 @@ def upbit_public_market_data_collection_validator() -> ValidatorResult:
     for field in (
         "collector_mode",
         "public_market_data",
+        "public_market_data_hash",
         "canonical_events",
         "canonical_event_count",
         "credential_load_attempted",
@@ -3402,8 +3441,25 @@ def upbit_public_market_data_collection_validator() -> ValidatorResult:
         return fail_result("upbit_public_market_data_collection_validator", f"valid public collection failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
     if report.get("canonical_event_count", 0) < 5 or report.get("raw_sample_count") != report.get("canonical_event_count"):
         return fail_result("upbit_public_market_data_collection_validator", "public collection did not preserve canonical event count", paths, "MEASUREMENT_MISSING")
+    if not isinstance(report.get("public_market_data_hash"), str) or len(report["public_market_data_hash"]) != 64:
+        return fail_result("upbit_public_market_data_collection_validator", "public collection did not bind market data hash", paths, "SCHEMA_IDENTITY_MISMATCH")
     if report.get("credential_load_attempted") or report.get("private_endpoint_called") or report.get("order_endpoint_called") or report.get("live_order_allowed"):
         return fail_result("upbit_public_market_data_collection_validator", "public collection attempted forbidden private/live behavior", paths, "LIVE_FINAL_GUARD_FAILED")
+
+    payload_mismatch = build_upbit_public_market_data_collection_report(
+        collector_id="validator-upbit-public-payload-mismatch",
+        session_id="mvp1_upbit_paper_launcher",
+    )
+    payload_mismatch["public_market_data"]["candles"][0]["close"] = "1234567"
+    payload_mismatch["collection_hash"] = upbit_public_market_data_collection_hash(payload_mismatch)
+    payload_mismatch_result = validate_upbit_public_market_data_collection_report(payload_mismatch)
+    if payload_mismatch_result.status != "FAIL" or payload_mismatch_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result(
+            "upbit_public_market_data_collection_validator",
+            "public collection allowed market data payload mutation after data hash binding",
+            paths,
+            payload_mismatch_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
 
     rest_payload = [
         {

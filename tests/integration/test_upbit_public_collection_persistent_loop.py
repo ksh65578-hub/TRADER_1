@@ -19,6 +19,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 from trader1.runtime.paper.upbit_public_collector import (
     build_upbit_public_market_data_collection_report,
     recover_jsonl_records,
+    upbit_public_market_data_collection_hash,
     validate_upbit_public_market_data_collection_report,
     write_upbit_public_market_data_collection_artifacts,
 )
@@ -49,10 +50,24 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["canonical_event_count"], report["raw_sample_count"])
         self.assertGreaterEqual(report["canonical_event_count"], 5)
+        self.assertEqual(len(report["public_market_data_hash"]), 64)
         self.assertFalse(report["credential_load_attempted"])
         self.assertFalse(report["private_endpoint_called"])
         self.assertFalse(report["order_endpoint_called"])
         self.assertFalse(report["live_order_allowed"])
+
+    def test_public_collection_blocks_payload_mutation_after_data_hash_binding(self):
+        report = build_upbit_public_market_data_collection_report(
+            collector_id="collection-payload-mismatch",
+            session_id="mvp1_upbit_paper_launcher",
+        )
+        report["public_market_data"]["candles"][0]["close"] = "1234567"
+        report["collection_hash"] = upbit_public_market_data_collection_hash(report)
+
+        result = validate_upbit_public_market_data_collection_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_public_rest_payload_canonicalizes_without_credentials_or_private_endpoint(self):
         data = build_upbit_public_candle_data_from_rest_payload(
@@ -152,6 +167,9 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             root = Path(tmp)
             writer = write_upbit_public_market_data_collection_artifacts(root=root, report=report)
             self.assertEqual(writer["writer_status"], "PASS")
+            self.assertEqual(writer["public_market_data_hash"], report["public_market_data_hash"])
+            latest_pointer = json.loads((root / writer["artifact_paths"][3]).read_text(encoding="utf-8"))
+            self.assertEqual(latest_pointer["public_market_data_hash"], report["public_market_data_hash"])
             canonical_path = root / writer["artifact_paths"][1]
             with canonical_path.open("a", encoding="utf-8", newline="") as handle:
                 handle.write('{"partial":')

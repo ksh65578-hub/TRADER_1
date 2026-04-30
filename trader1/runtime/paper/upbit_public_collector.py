@@ -43,6 +43,10 @@ def upbit_public_market_data_collection_hash(report: dict[str, Any]) -> str:
     return _sha256_json(payload)
 
 
+def public_market_data_hash(market_data: dict[str, Any]) -> str:
+    return _sha256_json(market_data)
+
+
 def _blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
 
@@ -181,6 +185,7 @@ def build_upbit_public_market_data_collection_report(
         "collector_mode": "PUBLIC_MARKET_DATA_ONLY",
         "data_source": market_data.get("source", "UNAVAILABLE"),
         "public_market_data": market_data,
+        "public_market_data_hash": public_market_data_hash(market_data),
         "raw_sample_count": len(market_data.get("candles", [])) if isinstance(market_data.get("candles"), list) else 0,
         "canonical_event_count": len(canonical_events),
         "canonical_events": canonical_events,
@@ -219,6 +224,7 @@ def validate_upbit_public_market_data_collection_report(
         "collector_mode",
         "data_source",
         "public_market_data",
+        "public_market_data_hash",
         "raw_sample_count",
         "canonical_event_count",
         "canonical_events",
@@ -244,6 +250,8 @@ def validate_upbit_public_market_data_collection_report(
         return UpbitPublicMarketDataCollectionValidationResult("FAIL", "collection schema_id mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("collection_hash") != upbit_public_market_data_collection_hash(report):
         return UpbitPublicMarketDataCollectionValidationResult("FAIL", "collection hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("public_market_data_hash") != public_market_data_hash(report["public_market_data"]):
+        return UpbitPublicMarketDataCollectionValidationResult("FAIL", "public market data hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
         return UpbitPublicMarketDataCollectionValidationResult("BLOCKED", "collection scope must remain UPBIT/KRW_SPOT/PAPER", "SNAPSHOT_SCOPE_MISMATCH")
     forbidden_fields = (
@@ -359,6 +367,7 @@ def write_upbit_public_market_data_collection_artifacts(*, root: Path, report: d
         "collector_id": collector_id,
         "report_path": _relative_posix(report_path, root),
         "report_hash": report["collection_hash"],
+        "public_market_data_hash": report["public_market_data_hash"],
         "canonical_event_count": len(recovered_events),
         "quarantine_path": _relative_posix(quarantine_path, root) if quarantine_path else None,
         "live_order_ready": False,
@@ -377,6 +386,7 @@ def write_upbit_public_market_data_collection_artifacts(*, root: Path, report: d
         "market_type": report["market_type"],
         "mode": report["mode"],
         "session_id": report["session_id"],
+        "public_market_data_hash": report["public_market_data_hash"],
         "primary_blocker_code": None if quarantine_path is None else "PARTIAL_WRITE_RECOVERY_REQUIRED",
         "blocker_message": "public market data artifacts written atomically" if quarantine_path is None else "canonical JSONL required recovery",
         "artifact_paths": [

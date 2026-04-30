@@ -9290,6 +9290,71 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-RUNTIME-SOURCE-HASH-GUARD",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER runtime source data identity",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-RUNTIME-SOURCE-HASH-GUARD:collection-bound runtime must verify source market data payload hash",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER runtime must reject collection payload drift",
+      "requirement_kind": "RUNTIME_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.upbit_public_market_data_collection_report.v1",
+        "trader1.upbit_paper_runtime_cycle_report.v1",
+        "trader1.patch_result.v1"
+      ],
+      "validator_ids": [
+        "registry_validator",
+        "schema_validator",
+        "upbit_public_market_data_collection_validator",
+        "upbit_paper_runtime_cycle_validator",
+        "upbit_paper_persistent_loop_validator",
+        "runtime_schema_instance_validator",
+        "path_namespace_validator",
+        "single_writer_order_path_validator",
+        "live_final_guard_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_public_market_data_collection_report.schema.json",
+        "contracts/schema/upbit_paper_runtime_cycle_report.schema.json",
+        "trader1/runtime/paper/upbit_public_collector.py",
+        "trader1/runtime/paper/upbit_paper_runtime.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py",
+        "tools/emit_upbit_paper_runtime_source_hash_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_RUNTIME_SOURCE_HASH_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_DATA_FRESHNESS",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-E2E",
+        "REQ-MVP0-LIVE-DEFAULT-FALSE"
+      ],
+      "source_text_sha256": "BC7019D1CC79BA0C7B96281EC57A166E23A91C20DF2BFB7D0EBD4930216D2BEA",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY",
       "source_section_id": "SECTION_DASHBOARD_SHELL",
       "source_file": "TRADER_1.md",
@@ -9748,5 +9813,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T16:07:08Z"
+  "updated_at_utc": "2026-04-30T16:30:07Z"
 }

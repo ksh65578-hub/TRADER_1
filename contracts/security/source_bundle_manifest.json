@@ -10,17 +10,17 @@
     },
     {
       "path": "BINANCE_LIVE.py",
-      "sha256": "BB8FA181BD5BC42AFCC79C5E8E89B1258C2B42AF4DC2DE4AF3BFE12B82CE5DB2",
-      "size_bytes": 308
+      "sha256": "6791A2246E8DEDDC7C1F451B538A0603972758A7E9F56A7B8CB6A4823C8719D3",
+      "size_bytes": 320
     },
     {
       "path": "BINANCE_PAPER.py",
-      "sha256": "BD91620620841E7463EE11D766F6B1D18549B04AA42CF21299A7B53FA56BA6C9",
-      "size_bytes": 310
+      "sha256": "088C9173EAB52D2E0B7A4CB677F6A5C12F91A1AFA783D390389132CBD043AB82",
+      "size_bytes": 322
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "0E3AAD1D9C818F991041C74E43725DFE8D87B24DA658E66B4C67BDD207E22975",
+      "sha256": "5753235CC050180738DA6569C94DE9EBA5ED5BE3B8135EBA686C1B2E3E68EEFB",
       "size_bytes": 1096
     },
     {
@@ -435,8 +435,8 @@
     },
     {
       "path": "contracts/schema/upbit_paper_runtime_cycle_report.schema.json",
-      "sha256": "3C6170D7BE83911ED3B5D9C6D49BA0B4744F8ED128A1EE83CB5347207CDDE044",
-      "size_bytes": 5558
+      "sha256": "2D17FC47C5ED00FFB13038F0E0C37004EE85AD45238F26DEF11AEB97C9AC7F9F",
+      "size_bytes": 5698
     },
     {
       "path": "contracts/schema/upbit_paper_runtime_recovery_guard_report.schema.json",
@@ -445,8 +445,8 @@
     },
     {
       "path": "contracts/schema/upbit_public_market_data_collection_report.schema.json",
-      "sha256": "08D0BAD39EF5C4D7076CFF8C778B7C4DA23B5C229FC9B2873F1E422ADA4564E8",
-      "size_bytes": 2544
+      "sha256": "1368F7A77C32595C1D2DD51E99105A79BF37146451E4A552BE9A9B390D16B994",
+      "size_bytes": 2660
     },
     {
       "path": "contracts/schema/upbit_public_rest_continuity_history.schema.json",
@@ -515,8 +515,8 @@
     },
     {
       "path": "tests/adapter/test_binance_adapter_surface.py",
-      "sha256": "F40D38F4DD2A18422E750A19DD9125AD73BF1FDE1321FEEC7D639337BFC4DD66",
-      "size_bytes": 4780
+      "sha256": "EFCBE3E78F69AF93A6C207A659362E0EB11FA8416720A34F4E3B9E8D2037F7FE",
+      "size_bytes": 4875
     },
     {
       "path": "tests/adapter/test_upbit_paper_adapter.py",
@@ -570,8 +570,8 @@
     },
     {
       "path": "tests/contract/test_root_launchers.py",
-      "sha256": "6A4FA5810D75D765BC7572E572CE387FD772EE9B4DAC972D2A45730125503A7C",
-      "size_bytes": 5633
+      "sha256": "A0BDD6EEF6534C0B43444A7352698EF50F0F7C1118E46FD4C0A20B3ECA937EB8",
+      "size_bytes": 5744
     },
     {
       "path": "tests/contract/test_schema_instance_validation.py",
@@ -620,13 +620,13 @@
     },
     {
       "path": "tests/integration/test_upbit_paper_runtime_cycle.py",
-      "sha256": "EBE541B8F41CCE64F433ED3623ACC24D6C5441830EFA738A1823A2C3DDA40C6F",
-      "size_bytes": 10929
+      "sha256": "B15832E4609025A9CFAD302B5D97399A20DDC2DD0A5A9BD618FA1F1485F5DA3F",
+      "size_bytes": 11840
     },
     {
       "path": "tests/integration/test_upbit_public_collection_persistent_loop.py",
-      "sha256": "C0D5F0D27C66C210CD88EB8250EEDC719A635AC6263678482FF91983AA2509C0",
-      "size_bytes": 15832
+      "sha256": "3CBE0A1F607DD0B0F2A34BA73460D206EAED9F51011667A18A72BEAB5E5ED46A",
+      "size_bytes": 16889
     },
     {
       "path": "tests/integration/test_upbit_public_rest_continuity.py",
@@ -1985,8 +1985,8 @@
     },
     {
       "path": "tools/emit_binance_surface_status_guard_patch_evidence.py",
-      "sha256": "909C0F5A98B75F6C98D17F9E1C112670FCD779E7B9A72BDB0BB00DD862E1EC37",
-      "size_bytes": 25434
+      "sha256": "5C3EB4B5B878F9F5F5AADFC436F6A789E833D7A2377E46ECB4C7CDD5C0DCE8D8",
+      "size_bytes": 26002
     },
     {
       "path": "tools/emit_bundle_security_patch_evidence.py",
@@ -2699,6 +2699,11 @@
       "size_bytes": 26160
     },
     {
+      "path": "tools/emit_upbit_paper_runtime_source_hash_guard_patch_evidence.py",
+      "sha256": "59F7E33B9ABB7CAC92812D174089721F4631F11F88D1EE280A43DCB8E566016B",
+      "size_bytes": 27296
+    },
+    {
       "path": "tools/emit_upbit_public_data_sequence_regime_guard_patch_evidence.py",
       "sha256": "0EEECCC2ADFAED07337D5D843443B4DB66B183D0F8375CFE9EE68369B46CE696",
       "size_bytes": 25221
@@ -3045,8 +3050,8 @@
     },
     {
       "path": "trader1/adapters/binance/surface.py",
-      "sha256": "FB97CA83DAAC10033854F5F82C9C46847BC1A5F5A6F4DFD8CDB64E3AE3C53483",
-      "size_bytes": 6481
+      "sha256": "5202A685BE6440E433607E504B1A1BF371A061FDCD942F9F1A674DC73E2DE9A9",
+      "size_bytes": 6612
     },
     {
       "path": "trader1/adapters/upbit/__init__.py",
@@ -3335,8 +3340,8 @@
     },
     {
       "path": "trader1/runtime/boot/launcher_guard.py",
-      "sha256": "7959EFD018BFA763B5DF5FBA606B5B6C8537C459B882FC2D9BA15AB5E21E3F8D",
-      "size_bytes": 10098
+      "sha256": "7305DA98503ABBF519AE086BF1E2132DD0EBF393E873D38E73E80DDB9B36B943",
+      "size_bytes": 10365
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
@@ -3410,13 +3415,13 @@
     },
     {
       "path": "trader1/runtime/paper/upbit_paper_runtime.py",
-      "sha256": "0E84A1DAF2ED8020198AE1D9A21585DE0BA81036644D5A97FB158BAD54F1740A",
-      "size_bytes": 31331
+      "sha256": "94284140E761AD9A5A964D855974014C8862C2BB506766D1B9B1357BEECA859D",
+      "size_bytes": 32294
     },
     {
       "path": "trader1/runtime/paper/upbit_public_collector.py",
-      "sha256": "E5EC537AB1F2E1D9C39DCB2F54CD27F1F72812E98E7FCCD20B29E6F3254DB546",
-      "size_bytes": 17667
+      "sha256": "82F2DA2283D7D3AEEF57F42281FED8F074BF57A944BA7BF82C9D4B8FB634AD21",
+      "size_bytes": 18257
     },
     {
       "path": "trader1/runtime/paper/upbit_public_rest_continuity.py",
@@ -3545,8 +3550,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "32CAEFB267CB6DCAA4F4DE467D0753DC1413FF10CA0AB7BF2F56CBC8E78360D9",
-      "size_bytes": 628100
+      "sha256": "90B8154106BCA76A1229D749D82FD5B3B13DC08F93D1B67607E5CEDA30ADD509",
+      "size_bytes": 631409
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4025,6 +4030,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_RUNTIME_SOURCE_HASH_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5072,6 +5081,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_SOURCE_HASH_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_SOURCE_HASH_GUARD_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.audit.json",
       "reason": "denied:system/"
     },
@@ -5940,6 +5957,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_RUNTIME_SOURCE_HASH_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6761,6 +6782,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_SOURCE_HASH_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7593,6 +7618,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_SOURCE_HASH_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8444,6 +8473,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_RUNTIME_SOURCE_HASH_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.validator_run_log.json",
       "reason": "denied:system/"
     },
@@ -8640,6 +8673,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-upbit-runtime-source-hash-guard-cycle-1.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4_dashboard_stale_rollup_truth_guard_current_refresh-cycle-1.paper_ledger_events.jsonl",
       "reason": "denied:system/"
     },
@@ -8669,6 +8706,10 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4-paper-ledger-rollup-ui-refresh-ledger-rollup.paper_ledger_rollup_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4-upbit-runtime-source-hash-guard-ledger-rollup.paper_ledger_rollup_report.json",
       "reason": "denied:system/"
     },
     {
@@ -8737,6 +8778,10 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-upbit-recovery-guard-loop-collector-2.canonical_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-upbit-runtime-source-hash-guard-collector-1.canonical_events.jsonl",
       "reason": "denied:system/"
     },
     {
@@ -8868,6 +8913,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-upbit-runtime-source-hash-guard-collector-1.collection_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-upbit-runtime-source-hash-guard-collector-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4_dashboard_stale_rollup_truth_guard_current_refresh-collector-1.collection_report.json",
       "reason": "denied:system/"
     },
@@ -8969,6 +9022,10 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-upbit-recovery-guard-loop-collector-2.raw_candles.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-upbit-runtime-source-hash-guard-collector-1.raw_candles.json",
       "reason": "denied:system/"
     },
     {
@@ -9120,6 +9177,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-runtime-source-hash-guard-cycle-1.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-runtime-source-hash-guard-cycle-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4_dashboard_stale_rollup_truth_guard_current_refresh-cycle-1.runtime_cycle.json",
       "reason": "denied:system/"
     },
@@ -9217,6 +9282,14 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-recovery-guard-loop.persistent_loop_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-runtime-source-hash-guard-recovery-guard.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-runtime-source-hash-guard.persistent_loop_report.json",
       "reason": "denied:system/"
     },
     {
