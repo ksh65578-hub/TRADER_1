@@ -74,8 +74,17 @@ class BinanceAdapterSurfaceTest(unittest.TestCase):
         self.assertEqual(shell["blocking_reason"], "BINANCE_ADAPTER_SURFACE_ONLY")
         self.assertIn("BINANCE_ADAPTER_SURFACE_ONLY", html)
         self.assertIn("Binance SPOT is visible only as a surface", html)
+        self.assertIn("FUTURES_USDT_M remains blocked", html)
         self.assertIn("mvp1_binance_paper_launcher", str(launcher_dashboard_paths(report)["dashboard_html"]))
         self.assertFalse(shell["live_order_allowed"])
+
+    def test_unsupported_binance_market_type_is_blocked(self):
+        report = build_binance_adapter_surface_report(market_type="COIN_M", mode="PAPER")
+        result = validate_binance_adapter_surface_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+        self.assertFalse(report["live_order_allowed"])
 
     def test_binance_surface_validator_passes(self):
         results = run_validators(["binance_adapter_surface_validator"])

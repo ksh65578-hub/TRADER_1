@@ -1,0 +1,22 @@
+{
+  "audit_schema_id": "trader1.binance_surface_status_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "paper_launcher_discloses_futures_blocked": true,
+    "live_launcher_discloses_futures_blocked": true,
+    "launcher_guard_requires_spot_and_futures_boundary": true,
+    "launcher_guard_requires_futures_blocked_status": true,
+    "dashboard_message_discloses_futures_blocked": true
+  },
+  "hidden_defect": {
+    "classification": "user_misjudgment_risk",
+    "condition": "Binance root launcher visibly defaults to SPOT without explicitly disclosing FUTURES_USDT_M remains blocked",
+    "impact": "operator may assume Binance futures paper/live is selectable or implemented",
+    "fix": "root launchers, launcher guard, dashboard wording, and validator now require explicit SPOT/FUTURES_USDT_M boundary disclosure"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

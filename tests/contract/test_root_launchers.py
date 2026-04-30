@@ -11,6 +11,8 @@ SAFE_LAUNCHER = """
 from trader1.runtime.readiness.readiness_surface import build_readiness_surface
 
 market_type = "SPOT"
+market_type_options = ("SPOT", "FUTURES_USDT_M")
+futures_usdt_m_status = "BLOCKED_NOT_IMPLEMENTED"
 live_order_ready = False
 live_order_allowed = False
 can_live_trade = False
@@ -77,6 +79,18 @@ class RootLauncherGuardTest(unittest.TestCase):
             result = inspect_root_launchers(root)
             self.assertEqual(result.status, "BLOCKED")
             self.assertIn("LIVE_FINAL_GUARD_FAILED", result.blockers)
+
+    def test_binance_spot_only_market_type_disclosure_blocks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for launcher in ["UPBIT_PAPER", "UPBIT_LIVE", "BINANCE_LIVE"]:
+                (root / f"{launcher}.py").write_text(SAFE_LAUNCHER, encoding="utf-8")
+            (root / "BINANCE_PAPER.py").write_text('market_type = "SPOT"\nlive_order_allowed = False\n', encoding="utf-8")
+            result = inspect_root_launchers(root)
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertIn("LIVE_FINAL_GUARD_FAILED", result.blockers)
+            issues = [issue for finding in result.findings for issue in finding.issues]
+            self.assertIn("binance launcher must disclose both SPOT and FUTURES_USDT_M market_type boundary", issues)
 
     def test_root_launcher_guard_validator_passes_current_repo(self):
         results = run_validators(["root_launcher_guard_validator", "root_launcher_surface_validator"])

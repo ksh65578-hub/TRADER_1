@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.startup_probe.v1",
-  "generated_at_utc": "2026-04-30T14:36:47Z",
+  "generated_at_utc": "2026-04-30T16:07:09Z",
   "project_id": "TRADER_1",
   "exchange": "BINANCE",
   "market_type": "SPOT",
@@ -8,8 +8,8 @@
   "session_id": "mvp1_binance_live_launcher",
   "config_hash": "0209DFB1C8C8290EC5829865124710B0EAE8BCF0FEDAFC15CD301E8302A553DB",
   "registry_hash": "7993C3A01571BAC352A398262E3DBDEE3E9A3BB312AEE28AD8F3EC257AD8C9CD",
-  "schema_bundle_hash": "83E7249BBBAF752F2676850561586E4B2CBCF87C7A668B0F3C02EBC03C3E8DB0",
-  "source_tree_hash": "1B0341447FCED740F6485B798534095674CA8C85748B94D55C358C052C78141B",
+  "schema_bundle_hash": "E1210DEC1825BDBDBA0E9F146F974F9DA4FA23383C0C077696AAFC639F8CCA66",
+  "source_tree_hash": "103E834E3570C6306B536D5ACCF75DF3C024BA3B3A408A84759D08428D69CA6B",
   "engine_state_before": "BOOTSTRAP_READ_ONLY",
   "engine_state_after_probe": "SAFE_MODE",
   "startup_probe_phase": "STARTUP_PROBE_GATE_BLOCKED",
@@ -76,5 +76,5 @@
   ],
   "final_action": "NO_TRADE",
   "next_action": "provide missing hard truth and rerun startup probe",
-  "probe_hash": "9FDA04B0B556778067D91668C548CD6B648808C3767F5BD92A3440BE48DC248B"
+  "probe_hash": "B1B783F24BCA99E37E32CEC3BD1DEF7FB4571E6679440E4545A98A7DDDEC36B7"
 }

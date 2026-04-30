@@ -1515,6 +1515,75 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-BINANCE-SURFACE-STATUS-GUARD",
+      "source_section_id": "SECTION_EXCHANGE_ADAPTER",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Binance adapter implementation boundary",
+      "full_text_marker": "REQ-MVP4-BINANCE-SURFACE-STATUS-GUARD:Binance launcher and dashboard must disclose futures remains blocked",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Binance launcher status must not imply futures runtime exists",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.binance_adapter_surface_report.v1",
+        "trader1.root_launcher_report.v1",
+        "trader1.patch_result.v1"
+      ],
+      "validator_ids": [
+        "registry_validator",
+        "schema_validator",
+        "root_launcher_guard_validator",
+        "root_launcher_surface_validator",
+        "binance_adapter_surface_validator",
+        "runtime_config_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "live_final_guard_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "BINANCE_PAPER.py",
+        "BINANCE_LIVE.py",
+        "trader1/runtime/boot/launcher_guard.py",
+        "trader1/adapters/binance/surface.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/contract/test_root_launchers.py",
+        "tests/adapter/test_binance_adapter_surface.py",
+        "tools/emit_binance_surface_status_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_BINANCE_SURFACE_STATUS_GUARD.md",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+        "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard/index.html"
+      ],
+      "test_ids": [
+        "tests/adapter/test_binance_adapter_surface.py",
+        "tests/contract/test_root_launchers.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_EXCHANGE_ADAPTER",
+        "SECTION_NAMESPACE_SEPARATION",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-BINANCE-ADAPTER-SURFACE-ONLY",
+        "REQ-MVP1-ROOT-LAUNCHER-SURFACE",
+        "REQ-MVP0-LIVE-DEFAULT-FALSE"
+      ],
+      "source_text_sha256": "16C363C24C5140BE97D00AA211AA5F0A81A9388D37F73421EA976977B7E3D54B",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY",
       "source_section_id": "SECTION_RUNTIME_RECOVERY_RTO_ACTIVE",
       "source_file": "TRADER_1.md",
@@ -9679,5 +9748,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T15:44:51Z"
+  "updated_at_utc": "2026-04-30T16:07:08Z"
 }

@@ -34,16 +34,16 @@ def binance_surface_blocker(market_type: str, mode: str) -> tuple[str, str]:
     if market_type == "FUTURES_USDT_M":
         return (
             BINANCE_FUTURES_BLOCKER,
-            "Binance futures USD-M is only registered as a future MVP surface; paper and live trading remain blocked.",
+            "Binance FUTURES_USDT_M is registered only as a blocked future MVP surface; paper and live futures runtime remain not implemented.",
         )
     if mode == "LIVE":
         return (
             BINANCE_SURFACE_BLOCKER,
-            "Binance live is visible only as a blocked launcher surface; no Binance live adapter is implemented.",
+            "Binance live is visible only as a blocked launcher surface; no Binance live adapter is implemented. FUTURES_USDT_M remains blocked and is not root-launchable in MVP-4.",
         )
     return (
         BINANCE_SURFACE_BLOCKER,
-        "Binance SPOT is visible only as a surface; no Binance PAPER adapter or broker is implemented yet.",
+        "Binance SPOT is visible only as a surface; no Binance PAPER adapter or broker is implemented yet. FUTURES_USDT_M remains blocked and is not root-launchable in MVP-4.",
     )
 
 
@@ -129,4 +129,3 @@ def validate_binance_adapter_surface_report(report: dict[str, Any]) -> BinanceAd
     if report.get("market_type") == "FUTURES_USDT_M" and report.get("futures_runtime_status") != "NOT_IMPLEMENTED":
         return BinanceAdapterSurfaceValidationResult("BLOCKED", "Binance futures runtime must remain explicitly not implemented before MVP-6/7", "CONTRACT_GAP_HIGH")
     return BinanceAdapterSurfaceValidationResult("PASS", "Binance adapter namespace is fail-closed surface-only", None)
-
