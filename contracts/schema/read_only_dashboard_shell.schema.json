@@ -273,6 +273,9 @@
         "label",
         "message",
         "recovery_hint",
+        "launcher_execution_mode",
+        "runtime_presence",
+        "operator_meaning",
         "source",
         "engine_state",
         "heartbeat_status",
@@ -318,6 +321,19 @@
           "minLength": 1
         },
         "recovery_hint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "launcher_execution_mode": {
+          "const": "SAFE_BOOT_OR_EXPLICIT_MONITOR"
+        },
+        "runtime_presence": {
+          "enum": [
+            "DASHBOARD_HEARTBEAT_ONLY",
+            "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED"
+          ]
+        },
+        "operator_meaning": {
           "type": "string",
           "minLength": 1
         },

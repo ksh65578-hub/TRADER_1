@@ -1132,6 +1132,8 @@ def console_heartbeat_line(report: dict[str, Any], heartbeat: dict[str, Any], ti
         f"session_id={report.get('session_id')} "
         f"heartbeat_at={heartbeat.get('last_heartbeat_at_utc', heartbeat.get('generated_at_utc', 'UNKNOWN'))} "
         f"heartbeat_age={heartbeat_age:.1f}s stale_after={stale_after}s recovery={recovery} "
+        "launcher_mode=SAFE_BOOT_OR_EXPLICIT_MONITOR "
+        f"runtime_presence={'HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED' if heartbeat_is_stale else 'DASHBOARD_HEARTBEAT_ONLY'} "
         f"final_action={report.get('final_action', 'NO_TRADE')} "
         f"blocker={blocker} "
         "live_order_ready=false live_order_allowed=false can_live_trade=false scale_up_allowed=false "

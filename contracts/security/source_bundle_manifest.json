@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "2D06A2F6C293A9E2E56DBD094C4E2C4C2E78E6AFEA67429C743CBE11E4BB47FF",
+      "sha256": "DACB964F56F7CC1C9601442A69D86AB6175AB8F14A22F4963DF02AE0E88AC4EA",
       "size_bytes": 1096
     },
     {
@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "48C211D213C59120DABAD1A184B8243630EF2046245C644659BA518673955129",
-      "size_bytes": 113819
+      "sha256": "6DA65F8D34ABFFD93B0E7759392A9E6D11CE5EC20E6A6696BBD0329F26CED464",
+      "size_bytes": 114275
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -605,8 +605,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "63634EBB8D0E1B110075AF39A0D971D68C70244F798EB18E023C8592D0086A58",
-      "size_bytes": 187344
+      "sha256": "F2101C366C22208299AA86AD2790AB510E39CA9B0B6F5F22A9BF080E9F53FE4C",
+      "size_bytes": 188715
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -885,8 +885,8 @@
     },
     {
       "path": "tests/runtime/test_safe_launcher.py",
-      "sha256": "62FF90C45C0169C5697DCF91D996D3F9198D7BD5BFCAE9AE1E9400C38953D9F3",
-      "size_bytes": 46980
+      "sha256": "E042E7397A415A6CFABFBEA1763F993A9542D1E713C4A23C610EEA3398C2810A",
+      "size_bytes": 47233
     },
     {
       "path": "tests/runtime/test_safe_smoke.py",
@@ -2209,6 +2209,11 @@
       "size_bytes": 24071
     },
     {
+      "path": "tools/emit_dashboard_safe_boot_runtime_presence_patch_evidence.py",
+      "sha256": "0E035C6156E2E05E7FDCB8394037AFDF5E1110103EB321FABBD12CE3167FDDA6",
+      "size_bytes": 22680
+    },
+    {
       "path": "tools/emit_dashboard_stability_scaleup_lock_patch_evidence.py",
       "sha256": "11A80EFBF5168722F944B2D1A0A1D9C942F2D72A99B9B7BA1CE663F07B92218A",
       "size_bytes": 24261
@@ -3305,8 +3310,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "62CDFFC3A289BAE6CA634BA470C9F2D6484C03239679CFCE3D1F6FAADC8396B8",
-      "size_bytes": 523010
+      "sha256": "C6673B6EA68CCA8242F0DE62796480E1E4842146AA4CDC397477FA71E88168B5",
+      "size_bytes": 525732
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -3435,8 +3440,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "44ED9E98808ACCFBAEDCD95F70C6DF1936B263E7E489787646FD896532CC8820",
-      "size_bytes": 53890
+      "sha256": "F0EA9768FEB6C84957975592E0ED52267B62BEEBFD61A7F78726EB301F0AF6D5",
+      "size_bytes": 54077
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -3980,6 +3985,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -4756,6 +4765,10 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY_20260430.md",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE_20260501.md",
       "reason": "denied:system/"
     },
     {
@@ -5715,6 +5728,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_DASHBOARD_SHADOW_HARNESS_SOURCE_TRACEABILITY.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6608,6 +6625,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7512,6 +7533,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8428,6 +8453,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

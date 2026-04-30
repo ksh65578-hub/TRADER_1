@@ -640,6 +640,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         )
         self.assertEqual(dashboard["operation_status"]["portfolio_next_action"], dashboard["portfolio_snapshot"]["next_action"])
         self.assertIn("No recovery needed", dashboard["operation_status"]["recovery_hint"])
+        self.assertEqual(dashboard["operation_status"]["launcher_execution_mode"], "SAFE_BOOT_OR_EXPLICIT_MONITOR")
+        self.assertEqual(dashboard["operation_status"]["runtime_presence"], "DASHBOARD_HEARTBEAT_ONLY")
+        self.assertIn("continuous PAPER engine", dashboard["operation_status"]["operator_meaning"])
         self.assertTrue(dashboard["operation_status"]["live_orders_blocked"])
         reconciliation = dashboard["reconciliation_recovery_summary"]
         self.assertEqual(reconciliation["title"], "Ledger & Reconciliation")
@@ -2448,7 +2451,18 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["operation_status"]["portfolio_status"], "UNVERIFIED")
         self.assertEqual(dashboard["operation_status"]["portfolio_blocking_reason"], "HARD_TRUTH_MISSING")
         self.assertEqual(dashboard["operation_status"]["portfolio_next_action"], dashboard["portfolio_snapshot"]["next_action"])
+        self.assertEqual(dashboard["operation_status"]["launcher_execution_mode"], "SAFE_BOOT_OR_EXPLICIT_MONITOR")
+        self.assertEqual(dashboard["operation_status"]["runtime_presence"], "DASHBOARD_HEARTBEAT_ONLY")
+        self.assertIn("continuous PAPER engine", dashboard["operation_status"]["operator_meaning"])
         self.assertFalse(dashboard["live_order_allowed"])
+
+    def test_dashboard_blocks_operation_status_without_runtime_presence_warning(self):
+        dashboard = build_dashboard()
+        dashboard["operation_status"]["operator_meaning"] = "Everything is running."
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_dashboard_blocks_normal_operation_when_portfolio_is_unverified(self):
         dashboard = build_dashboard(with_paper_portfolio=False)
@@ -3062,6 +3076,11 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("System Status", html)
         self.assertIn("Running safely", html)
         self.assertIn("Program heartbeat is fresh", html)
+        self.assertIn("Launcher mode", html)
+        self.assertIn("SAFE_BOOT_OR_EXPLICIT_MONITOR", html)
+        self.assertIn("Runtime presence", html)
+        self.assertIn("DASHBOARD_HEARTBEAT_ONLY", html)
+        self.assertIn("continuous PAPER engine", html)
         self.assertIn("body { margin: 0; max-width: 100%; overflow-x: hidden; background: #f7f8fa; color: #1d2430; line-height: 1.45; }", html)
         self.assertIn("main { display: grid; gap: 16px; padding: 16px; width: 100%; max-width: 1440px; margin: 0 auto; }", html)
         self.assertIn("h1, h2, h3, p, dl, dd, small, strong, span { overflow-wrap: anywhere; word-break: normal; }", html)
