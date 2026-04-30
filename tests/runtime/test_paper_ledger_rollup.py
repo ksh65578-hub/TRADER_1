@@ -9,6 +9,7 @@ from trader1.runtime.ledger.paper_ledger_rollup import (
     validate_paper_ledger_rollup_report,
 )
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
+from trader1.runtime.portfolio.paper_portfolio import paper_portfolio_hash
 from trader1.validation.mvp0_validators import run_validators
 
 
@@ -118,6 +119,62 @@ class PaperLedgerRollupTest(unittest.TestCase):
         live_result = validate_paper_ledger_rollup_report(live_mutation)
         self.assertEqual(live_result.status, "BLOCKED")
         self.assertEqual(live_result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_rollup_blocks_cross_scope_portfolio_snapshot(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-paper-ledger-rollup-portfolio-scope",
+                requested_cycle_count=1,
+            )
+            rollup = json.loads((root / loop["paper_ledger_rollup_path"]).read_text(encoding="utf-8"))
+
+        rollup["portfolio_snapshot"]["exchange"] = "BINANCE"
+        rollup["portfolio_snapshot"]["market_type"] = "SPOT"
+        rollup["portfolio_snapshot"]["snapshot_hash"] = paper_portfolio_hash(rollup["portfolio_snapshot"])
+        rollup["rollup_hash"] = paper_ledger_rollup_hash(rollup)
+
+        result = validate_paper_ledger_rollup_report(rollup)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_rollup_blocks_filled_count_portfolio_mismatch(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-paper-ledger-rollup-count-mismatch",
+                requested_cycle_count=1,
+            )
+            rollup = json.loads((root / loop["paper_ledger_rollup_path"]).read_text(encoding="utf-8"))
+
+        rollup["filled_order_count"] = 0
+        rollup["rollup_hash"] = paper_ledger_rollup_hash(rollup)
+
+        result = validate_paper_ledger_rollup_report(rollup)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_rollup_blocks_artifact_path_escape(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-paper-ledger-rollup-path-escape",
+                requested_cycle_count=1,
+            )
+            rollup = json.loads((root / loop["paper_ledger_rollup_path"]).read_text(encoding="utf-8"))
+
+        rollup["artifact_paths"].append("system/runtime/upbit/krw_spot/live/mvp1_upbit_paper_launcher/ledger/unsafe.json")
+        rollup["rollup_hash"] = paper_ledger_rollup_hash(rollup)
+
+        result = validate_paper_ledger_rollup_report(rollup)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
 
     def test_paper_ledger_rollup_validator_passes_current_contract(self):
         results = run_validators(["paper_ledger_rollup_validator"])

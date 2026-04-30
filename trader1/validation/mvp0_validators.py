@@ -2780,6 +2780,29 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
     live_result = validate_paper_ledger_rollup_report(live_mutation)
     if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
         return fail_result("paper_ledger_rollup_validator", "paper ledger rollup live mutation was not blocked", paths, "LIVE_FINAL_GUARD_FAILED")
+
+    portfolio_scope = json.loads(json.dumps(rollup))
+    portfolio_scope["portfolio_snapshot"]["exchange"] = "BINANCE"
+    portfolio_scope["portfolio_snapshot"]["market_type"] = "SPOT"
+    portfolio_scope["portfolio_snapshot"]["snapshot_hash"] = paper_portfolio_hash(portfolio_scope["portfolio_snapshot"])
+    portfolio_scope["rollup_hash"] = paper_ledger_rollup_hash(portfolio_scope)
+    portfolio_scope_result = validate_paper_ledger_rollup_report(portfolio_scope)
+    if portfolio_scope_result.status != "BLOCKED" or portfolio_scope_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+        return fail_result("paper_ledger_rollup_validator", "paper ledger rollup cross-scope portfolio snapshot was not blocked", paths, "SNAPSHOT_SCOPE_MISMATCH")
+
+    count_mismatch = json.loads(json.dumps(rollup))
+    count_mismatch["filled_order_count"] = 0
+    count_mismatch["rollup_hash"] = paper_ledger_rollup_hash(count_mismatch)
+    count_mismatch_result = validate_paper_ledger_rollup_report(count_mismatch)
+    if count_mismatch_result.status != "FAIL" or count_mismatch_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result("paper_ledger_rollup_validator", "paper ledger rollup filled count mismatch was not failed closed", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    path_escape = json.loads(json.dumps(rollup))
+    path_escape["artifact_paths"].append("system/runtime/upbit/krw_spot/live/mvp1_upbit_paper_launcher/ledger/unsafe.json")
+    path_escape["rollup_hash"] = paper_ledger_rollup_hash(path_escape)
+    path_escape_result = validate_paper_ledger_rollup_report(path_escape)
+    if path_escape_result.status != "BLOCKED" or path_escape_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+        return fail_result("paper_ledger_rollup_validator", "paper ledger rollup artifact path escape was not blocked", paths, "SNAPSHOT_SCOPE_MISMATCH")
     return pass_result("paper_ledger_rollup_validator", "PAPER ledger rollup aggregates cycle ledgers, blocks duplicates, and stays live-blocked", paths)
 
 
