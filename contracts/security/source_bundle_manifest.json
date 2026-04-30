@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "B94F8E6D72CA43D533DF65B3D8BE0A8D401F824406A2B19C8E01370AF718D4B8",
+      "sha256": "C3F386736CB6322CDA7707635EDC3C71FB9F614623AAB3F2FD12C488FCE026CD",
       "size_bytes": 1096
     },
     {
@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "7AC8869CB4B03C675BA8867780B06741945E3B4E40F743ABC938050E06A45D94",
-      "size_bytes": 116704
+      "sha256": "A0AC7C02E3FF9F5F9B295A835A6C0E94F09B5D9C2F6A8CC07C472A931355FAE7",
+      "size_bytes": 117027
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -410,8 +410,8 @@
     },
     {
       "path": "contracts/schema/summary.schema.json",
-      "sha256": "273E6035C1CBA0CEE740B89E7580D2EF0EC708B9E499FBE2332F8A155944086A",
-      "size_bytes": 9024
+      "sha256": "A3E8FC00CC23303596FB86E70772990BAFCE9512B608E5D95B5B98E142A16A1D",
+      "size_bytes": 9474
     },
     {
       "path": "contracts/schema/survival_layer_report.schema.json",
@@ -600,13 +600,13 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "3D3A0A2BDA65DF3FB39F0F1078BF5EA4F590D3493F5655B0CE4815E8804E33B2",
-      "size_bytes": 183371
+      "sha256": "81B838B94DE80080E6FF3535D9009E23BC4A13D4A2DE5756BEBD0B639161D055",
+      "size_bytes": 185949
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
-      "sha256": "3B089BA7C5154BFD246952A898C2FCD7090DD90515F30B64924C8EE2875FA22C",
-      "size_bytes": 7021
+      "sha256": "9C8E871E3D514CA4CCA156E1A2D4D5D85EF5C1C3A5C4BC7874E57067AFF153B9",
+      "size_bytes": 7186
     },
     {
       "path": "tests/emergency/__init__.py",
@@ -2139,6 +2139,11 @@
       "size_bytes": 16926
     },
     {
+      "path": "tools/emit_dashboard_position_detail_truth_guard_patch_evidence.py",
+      "sha256": "EC2AD9B790C07BCEA796BAF48F8411FE03C01C7EB2F2936A51292C0519355306",
+      "size_bytes": 25712
+    },
+    {
       "path": "tools/emit_dashboard_position_reason_ux_patch_evidence.py",
       "sha256": "644D9FDA71A0E9BD8F46A826554BF62DC826DA0B42AC0DE6A15178C1B75F7431",
       "size_bytes": 16538
@@ -2660,8 +2665,8 @@
     },
     {
       "path": "tools/emit_summary_portfolio_provenance_guard_patch_evidence.py",
-      "sha256": "9C1085D68B25304545E1A5A81502810DD2A7B323FC0783D41784A76B82864C62",
-      "size_bytes": 26576
+      "sha256": "BA1935641CF357FBD6929B7936D725FD9890C5E779B0BF8B7A2EA4D2939FB1E0",
+      "size_bytes": 27159
     },
     {
       "path": "tools/emit_summary_shell_patch_evidence.py",
@@ -3245,13 +3250,13 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "B19CE7BF035E5D6D6782F582A6F341E2C9A2EB74764150EB3E2290A8F2D11C13",
-      "size_bytes": 521602
+      "sha256": "D5E85AB048923A954E9E468AEEB8FB074E272A107228428BFC7362FB6D09BD00",
+      "size_bytes": 523273
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
-      "sha256": "2BFB5152C5012AC75A5086F45B9B24859F02FB76019540E4574E39E876E4DE2F",
-      "size_bytes": 14779
+      "sha256": "EEE36DFDE683796547CFB042B32DA3BC4CB485999CD37C13D84FFBA566379BE5",
+      "size_bytes": 15104
     },
     {
       "path": "trader1/execution/__init__.py",
@@ -3580,8 +3585,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "E56B52BA6F1AE7E4048F6EA587B488B610633C1CFAC475199EA67469CBCEF4D6",
-      "size_bytes": 644735
+      "sha256": "8EB9429B91C8E93DAF4DAD60E612CC341715709656544CD72965ACE4164684E1",
+      "size_bytes": 647630
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -3888,6 +3893,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_DASHBOARD_PERSISTENT_RUNTIME_DURATION_VISIBILITY.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -4584,6 +4593,14 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_DASHBOARD_PORTFOLIO_SNAPSHOT_UX_20260429.md",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD_20260501.md",
       "reason": "denied:system/"
     },
     {
@@ -5471,6 +5488,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_DASHBOARD_POSITION_REASON_UX.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6312,6 +6333,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_DASHBOARD_PORTFOLIO_SNAPSHOT_UX.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7164,6 +7189,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_DASHBOARD_PORTFOLIO_SNAPSHOT_UX.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8028,6 +8057,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_DASHBOARD_PORTFOLIO_SNAPSHOT_UX.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

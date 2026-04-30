@@ -3272,6 +3272,9 @@
         "side",
         "quantity",
         "avg_price",
+        "mark_price",
+        "market_value",
+        "cost_basis",
         "unrealized_pnl"
       ],
       "additionalProperties": false,
@@ -3289,6 +3292,18 @@
           "minLength": 1
         },
         "avg_price": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mark_price": {
+          "type": "string",
+          "minLength": 1
+        },
+        "market_value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cost_basis": {
           "type": "string",
           "minLength": 1
         },

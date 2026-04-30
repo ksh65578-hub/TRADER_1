@@ -1,11 +1,11 @@
 # ACTIVE_WORKING_VIEW
 
-generated_at_utc: 2026-04-30T17:42:27Z
+generated_at_utc: 2026-04-30T18:12:54Z
 source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
 source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
 authority_status: READ_CACHE_NOT_AUTHORITY
 current_mvp: MVP-4
-last_patch_id: MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD_20260501_001
+last_patch_id: MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD_20260501_001
 live_order_ready: false
 live_order_allowed: false
 can_live_trade: false
@@ -13,7 +13,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Dashboard summary portfolio values now require validated PAPER snapshot provenance before being displayed as verified. Missing provenance or arithmetic drift fails closed.
+Dashboard position detail now preserves PAPER fill fields for average entry, mark price, market value, cost basis, and unrealized PnL.
 
 ## Next Safe Task
 

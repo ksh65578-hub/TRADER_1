@@ -1,0 +1,31 @@
+{
+  "audit_schema_id": "trader1.dashboard_position_detail_truth_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "average_entry_price_mapped": true,
+    "zero_values_preserved": true,
+    "position_schema_has_mark_market_cost": true,
+    "dashboard_table_has_operator_columns": true,
+    "unit_tests_cover_fill_fields": true,
+    "validator_covers_fill_fields": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "dashboard_position_false_unknown",
+      "condition": "PAPER portfolio positions used average_entry_price while dashboard only read avg_price or entry_price",
+      "impact": "operator could see UNKNOWN entry price even when verified PAPER ledger data existed",
+      "fix": "dashboard position rows now map average_entry_price, mark_price, market_value, and cost_basis into display-only rows"
+    },
+    {
+      "classification": "zero_value_display_loss",
+      "condition": "position values were selected through truthiness checks",
+      "impact": "valid numeric zero values could be displayed as UNKNOWN",
+      "fix": "position display extraction now preserves zero values and only falls back on missing or empty values"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

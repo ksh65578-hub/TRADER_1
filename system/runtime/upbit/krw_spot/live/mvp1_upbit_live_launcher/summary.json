@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-04-30T16:07:09Z",
+  "generated_at_utc": "2026-04-30T18:12:54Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "LIVE",
@@ -47,6 +47,9 @@
   "portfolio": {
     "source": "SUMMARY_BUILDER",
     "freshness_status": "UNTESTED",
+    "source_snapshot_hash": null,
+    "source_snapshot_status": "UNTESTED",
+    "source_balance_kind": null,
     "equity": null,
     "cash_available": null,
     "locked_balance": null,

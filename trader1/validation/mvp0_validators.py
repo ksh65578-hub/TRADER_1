@@ -133,6 +133,7 @@ from trader1.runtime.operator_control.operator_control import (
 )
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
+    build_paper_portfolio_snapshot_from_fill,
     paper_portfolio_hash,
     validate_paper_portfolio_snapshot,
 )
@@ -2057,6 +2058,80 @@ def read_only_dashboard_validator() -> ValidatorResult:
         return fail_result("read_only_dashboard_validator", "missing dashboard source did not stay fail-closed", paths, "HARD_TRUTH_MISSING")
     if "Rerun the PAPER launcher" not in missing_dashboard["operation_status"].get("recovery_hint", ""):
         return fail_result("read_only_dashboard_validator", "stale heartbeat recovery guidance is not operator-visible", paths, "LATENCY_TTL_EXPIRED")
+
+    filled_portfolio = build_paper_portfolio_snapshot_from_fill(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        session_id="mvp1_read_only_dashboard",
+        symbol="KRW-BTC",
+        side="BUY",
+        quantity="0.01",
+        fill_price="1000500",
+        mark_price="1000000",
+        fee_amount="5",
+    )
+    filled_summary = build_summary_shell(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id="mvp1_read_only_dashboard",
+        startup_probe=startup_probe,
+        heartbeat=heartbeat,
+        readiness_surface=readiness_surface,
+        paper_portfolio_snapshot=filled_portfolio,
+    )
+    filled_dashboard = build_read_only_dashboard_shell(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id="mvp1_read_only_dashboard",
+        summary=filled_summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+    )
+    filled_result = validate_read_only_dashboard_shell(filled_dashboard, allowed_blockers)
+    if filled_result.status != "PASS":
+        return fail_result(
+            "read_only_dashboard_validator",
+            f"filled paper position dashboard did not validate: {filled_result.message}",
+            paths,
+            filled_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
+    filled_rows = filled_dashboard.get("position_snapshot", {}).get("rows", [])
+    if not filled_rows:
+        return fail_result(
+            "read_only_dashboard_validator",
+            "filled paper portfolio position did not reach dashboard position rows",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    filled_row = filled_rows[0]
+    expected_position_fields = {
+        "avg_price": "1000500",
+        "mark_price": "1000000",
+        "market_value": "10000",
+        "cost_basis": "10010",
+        "unrealized_pnl": "-10",
+    }
+    missing_position_fields = [
+        key for key, expected in expected_position_fields.items() if str(filled_row.get(key)) != expected
+    ]
+    if missing_position_fields:
+        return fail_result(
+            "read_only_dashboard_validator",
+            f"filled paper position dashboard lost source position detail fields: {missing_position_fields}",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    filled_html = render_dashboard_html(filled_dashboard)
+    for fragment in ("Mark Price", "Market Value", "Cost Basis", "avg 1000500", "mark 1000000", "value 10000"):
+        if fragment not in filled_html:
+            return fail_result(
+                "read_only_dashboard_validator",
+                f"filled paper position dashboard HTML omitted operator-visible position detail: {fragment}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
 
     with TemporaryDirectory() as tmp:
         stale_root = Path(tmp)

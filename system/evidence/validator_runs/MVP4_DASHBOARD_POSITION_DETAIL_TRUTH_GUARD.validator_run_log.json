@@ -1,0 +1,80 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T18:12:54Z",
+  "patch_id": "MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD_20260501_001",
+  "validators_run": [
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "dashboard_visual_layout_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    }
+  ],
+  "overall_status": "PASS"
+}
