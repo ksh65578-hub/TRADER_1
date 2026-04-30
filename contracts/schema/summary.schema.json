@@ -29,6 +29,10 @@
   ],
   "additionalProperties": false,
   "$defs": {
+    "decimal_string": {
+      "type": "string",
+      "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+    },
     "freshness_status": {
       "enum": [
         "PASS",
@@ -215,6 +219,58 @@
         }
       }
     },
+    "position": {
+      "type": "object",
+      "required": [
+        "symbol",
+        "side",
+        "quantity",
+        "average_entry_price",
+        "mark_price",
+        "cost_basis",
+        "market_value",
+        "unrealized_pnl",
+        "source",
+        "paper_only"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "side": {
+          "const": "LONG"
+        },
+        "quantity": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "average_entry_price": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "mark_price": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "cost_basis": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "market_value": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "unrealized_pnl": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "source": {
+          "enum": [
+            "PAPER_LEDGER_SCAFFOLD",
+            "PAPER_LEDGER_ROLLUP"
+          ]
+        },
+        "paper_only": {
+          "const": true
+        }
+      }
+    },
     "live_ready_object": {
       "type": "object",
       "required": [
@@ -392,7 +448,10 @@
       "type": "array"
     },
     "positions": {
-      "type": "array"
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/position"
+      }
     },
     "strategies": {
       "type": "array"

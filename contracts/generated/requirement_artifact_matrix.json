@@ -7794,9 +7794,46 @@
       "minimum_depth": "DEPTH_4_RUNTIME_INTEGRATION",
       "live_affecting": true,
       "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SUMMARY-POSITION-ROLLUP-GUARD",
+      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "schema_files": [
+        "contracts/schema/summary.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/summary_writer.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_summary_writer.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/dashboard/summary_writer.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "trader1/dashboard/summary_writer.py",
+        "contracts/schema/summary.schema.json"
+      ],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
     }
   ],
-  "updated_at_utc": "2026-04-30T19:22:40Z",
+  "updated_at_utc": "2026-04-30T19:45:36Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

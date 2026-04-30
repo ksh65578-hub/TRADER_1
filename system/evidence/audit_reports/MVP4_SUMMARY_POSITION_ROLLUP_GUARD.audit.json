@@ -1,0 +1,31 @@
+{
+  "audit_schema_id": "trader1.summary_position_rollup_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "summary_schema_stricts_position_items": true,
+    "summary_validator_checks_position_market_value": true,
+    "summary_validator_checks_position_rollups": true,
+    "summary_validator_blocks_position_side_drift": true,
+    "unit_tests_cover_summary_position_tamper": true,
+    "validator_registry_covers_summary_position_tamper": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "dashboard_summary_position_false_consistency",
+      "condition": "PAPER portfolio snapshot validates position detail, but copied dashboard summary positions could be stale or tampered after summary construction",
+      "impact": "dashboard could show incorrect holding market value, side, or unrealized PnL while top-level portfolio looked valid",
+      "fix": "summary schema and validator now bind each position row and aggregate rollups before dashboard display truth can pass"
+    },
+    {
+      "classification": "schema_summary_position_shape_too_loose",
+      "condition": "summary.schema.json allowed arbitrary position item shapes",
+      "impact": "schema/runtime instance validation could pass while UI-critical position detail fields were missing or malformed",
+      "fix": "summary position items now have required fields, PAPER-only source constraints, and additionalProperties=false"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

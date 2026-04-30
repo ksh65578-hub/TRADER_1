@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "891FFBACE4153089E869B2C6FFC2846DBA2AC50230541E1BD5DC2342B079738D",
+      "sha256": "60351A5D50317C34A73D0C4095F83F4826946D404A4911D2950CB42D6D47A0C9",
       "size_bytes": 1096
     },
     {
@@ -410,8 +410,8 @@
     },
     {
       "path": "contracts/schema/summary.schema.json",
-      "sha256": "273E6035C1CBA0CEE740B89E7580D2EF0EC708B9E499FBE2332F8A155944086A",
-      "size_bytes": 9024
+      "sha256": "3EBA95FEE15C8C39E9AA8A99703F674AE88D83B6020EC2F285FDCBBDC68CD49C",
+      "size_bytes": 10357
     },
     {
       "path": "contracts/schema/survival_layer_report.schema.json",
@@ -605,8 +605,8 @@
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
-      "sha256": "3B089BA7C5154BFD246952A898C2FCD7090DD90515F30B64924C8EE2875FA22C",
-      "size_bytes": 7021
+      "sha256": "944E75A651FCB368B99BEFD51ABC478DD3B4FF1ABEC08EA8BFC2CC13C2F2A2E0",
+      "size_bytes": 10800
     },
     {
       "path": "tests/emergency/__init__.py",
@@ -2674,6 +2674,11 @@
       "size_bytes": 26576
     },
     {
+      "path": "tools/emit_summary_position_rollup_guard_patch_evidence.py",
+      "sha256": "873461032C10D71FBE542B1165715E702C8E2061FE6C56DEACFEA066EB84DB4A",
+      "size_bytes": 24607
+    },
+    {
       "path": "tools/emit_summary_shell_patch_evidence.py",
       "sha256": "FC96782CF28FA9659221BC5CC2730B44CD3EB2A5585C9E2C989CEBB9458049E9",
       "size_bytes": 28299
@@ -3260,8 +3265,8 @@
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
-      "sha256": "2BFB5152C5012AC75A5086F45B9B24859F02FB76019540E4574E39E876E4DE2F",
-      "size_bytes": 14779
+      "sha256": "B95AEFAB94F09798AFEE7246775A1D414CFB13942463F3AD7599ABF4BB70B33A",
+      "size_bytes": 18943
     },
     {
       "path": "trader1/execution/__init__.py",
@@ -3590,8 +3595,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "368BFA6E2DF9A4196A998A8BD5BD54D1A844270137421F57561C7F549A349CBC",
-      "size_bytes": 637226
+      "sha256": "A025CABEE6386753119DEB1495F25522827B347A05740005A7B656E0ADB91427",
+      "size_bytes": 639900
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4066,6 +4071,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5157,6 +5166,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_SUMMARY_POSITION_ROLLUP_GUARD_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_SYMBOL_REGIME_FIT_SCHEMA_HARDENING_20260429.md",
       "reason": "denied:system/"
     },
@@ -6073,6 +6090,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_SYMBOL_REGIME_FIT_SCHEMA_HARDENING.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6934,6 +6955,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7806,6 +7831,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8694,6 +8723,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

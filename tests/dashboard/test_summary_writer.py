@@ -6,7 +6,10 @@ from trader1.config.config_schema import build_runtime_config
 from trader1.dashboard.summary_writer import build_summary_shell, validate_summary_shell
 from trader1.runtime.boot.startup_probe import build_startup_probe
 from trader1.runtime.health.heartbeat import build_heartbeat
-from trader1.runtime.portfolio.paper_portfolio import build_initial_paper_portfolio_snapshot
+from trader1.runtime.portfolio.paper_portfolio import (
+    build_initial_paper_portfolio_snapshot,
+    build_paper_portfolio_snapshot_from_fill,
+)
 from trader1.runtime.readiness.readiness_surface import build_readiness_surface
 from trader1.validation.mvp0_validators import current_authority_hashes, run_validators, sha256_file, sha256_json
 
@@ -29,7 +32,7 @@ def hashes():
     return registry_hash, schema_bundle_hash, source_tree_hash
 
 
-def build_summary(with_paper_portfolio=False):
+def build_summary(with_paper_portfolio=False, paper_portfolio_snapshot=None):
     registry_hash, schema_bundle_hash, source_tree_hash = hashes()
     config = build_runtime_config(
         exchange="UPBIT",
@@ -69,7 +72,7 @@ def build_summary(with_paper_portfolio=False):
         schema_bundle_hash=schema_bundle_hash,
         source_tree_hash=source_tree_hash,
     )
-    paper_portfolio = (
+    paper_portfolio = paper_portfolio_snapshot or (
         build_initial_paper_portfolio_snapshot(
             exchange="UPBIT",
             market_type="KRW_SPOT",
@@ -134,6 +137,85 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertEqual(summary["portfolio"]["cash_available"], 1000000.0)
         self.assertEqual(summary["portfolio"]["equity"], 1000000.0)
         self.assertEqual(summary["positions"], [])
+
+    def test_summary_accepts_filled_paper_position_detail(self):
+        paper_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test_summary_shell",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        summary = build_summary(with_paper_portfolio=True, paper_portfolio_snapshot=paper_portfolio)
+        result = validate_summary_shell(summary, set(registry()["enums"]["live_blocker_code"]["values"]))
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(summary["portfolio"]["source"], "LEDGER")
+        self.assertEqual(summary["portfolio"]["open_position_count"], 1)
+        self.assertEqual(summary["portfolio"]["position_market_value"], 10000.0)
+        self.assertEqual(summary["portfolio"]["unrealized_pnl"], -10.0)
+        self.assertEqual(len(summary["positions"]), 1)
+        self.assertEqual(summary["positions"][0]["symbol"], "KRW-BTC")
+        self.assertEqual(summary["positions"][0]["side"], "LONG")
+        self.assertIn(summary["positions"][0]["source"], {"PAPER_LEDGER_SCAFFOLD", "PAPER_LEDGER_ROLLUP"})
+        self.assertTrue(summary["positions"][0]["paper_only"])
+
+    def test_summary_blocks_tampered_position_market_value(self):
+        paper_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test_summary_shell",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        summary = build_summary(with_paper_portfolio=True, paper_portfolio_snapshot=paper_portfolio)
+        summary["positions"][0]["market_value"] = "9999"
+        result = validate_summary_shell(summary)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_summary_blocks_position_side_drift(self):
+        paper_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test_summary_shell",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        summary = build_summary(with_paper_portfolio=True, paper_portfolio_snapshot=paper_portfolio)
+        summary["positions"][0]["side"] = "SHORT"
+        result = validate_summary_shell(summary)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_summary_blocks_position_rollup_mismatch(self):
+        paper_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test_summary_shell",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        summary = build_summary(with_paper_portfolio=True, paper_portfolio_snapshot=paper_portfolio)
+        summary["portfolio"]["position_market_value"] = summary["portfolio"]["position_market_value"] + 1.0
+        result = validate_summary_shell(summary)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_summary_blocks_verified_portfolio_without_snapshot_provenance(self):
         summary = build_summary(with_paper_portfolio=True)
