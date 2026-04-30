@@ -1,0 +1,29 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T17:42:27Z",
+  "patch_id": "MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.patch_result.json",
+    "system/evidence/validator_runs/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.stage_gate_result.json",
+    "system/evidence/audit_reports/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.audit.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-summary-portfolio-provenance-guard-cycle-1.paper_ledger_events.jsonl",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/latest_paper_ledger_head.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4-summary-portfolio-provenance-guard-ledger-rollup.paper_ledger_rollup_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-summary-portfolio-provenance-guard-collector-1.canonical_events.jsonl",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-summary-portfolio-provenance-guard-collector-1.collection_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/latest_collection_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-summary-portfolio-provenance-guard-collector-1.raw_candles.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-summary-portfolio-provenance-guard-cycle-1.runtime_cycle.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-summary-portfolio-provenance-guard-recovery-guard.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-summary-portfolio-provenance-guard.persistent_loop_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

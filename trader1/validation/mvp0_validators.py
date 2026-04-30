@@ -1861,6 +1861,39 @@ def summary_shell_validator() -> ValidatorResult:
     if portfolio_result.status != "BLOCKED" or portfolio_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
         return fail_result("summary_shell_validator", "summary builder portfolio truth invention was not blocked", paths, "LIVE_FINAL_GUARD_FAILED")
 
+    paper_portfolio = build_initial_paper_portfolio_snapshot(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        session_id="mvp1_summary_shell",
+    )
+    ledger_summary = build_summary_shell(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id="mvp1_summary_shell",
+        startup_probe=startup_probe,
+        heartbeat=heartbeat,
+        readiness_surface=readiness_surface,
+        paper_portfolio_snapshot=paper_portfolio,
+    )
+    ledger_result = validate_summary_shell(ledger_summary, allowed_blockers)
+    if ledger_result.status != "PASS":
+        return fail_result("summary_shell_validator", ledger_result.message, paths, ledger_result.blocker_code or "UNKNOWN_BLOCKED")
+
+    unbound_summary = dict(ledger_summary)
+    unbound_summary["portfolio"] = dict(ledger_summary["portfolio"])
+    unbound_summary["portfolio"]["source_snapshot_hash"] = None
+    unbound_result = validate_summary_shell(unbound_summary, allowed_blockers)
+    if unbound_result.status != "BLOCKED" or unbound_result.blocker_code != "HARD_TRUTH_MISSING":
+        return fail_result("summary_shell_validator", "verified portfolio without source snapshot provenance was not blocked", paths, "HARD_TRUTH_MISSING")
+
+    arithmetic_summary = dict(ledger_summary)
+    arithmetic_summary["portfolio"] = dict(ledger_summary["portfolio"])
+    arithmetic_summary["portfolio"]["equity"] = arithmetic_summary["portfolio"]["equity"] + 1.0
+    arithmetic_result = validate_summary_shell(arithmetic_summary, allowed_blockers)
+    if arithmetic_result.status != "FAIL" or arithmetic_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result("summary_shell_validator", "verified portfolio arithmetic drift was not detected", paths, "SCHEMA_IDENTITY_MISMATCH")
+
     return pass_result("summary_shell_validator", "summary shell remains dashboard-only and fail-closed", paths)
 
 

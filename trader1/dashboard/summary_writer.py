@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from trader1.runtime.portfolio.paper_portfolio import validate_paper_portfolio_snapshot
@@ -57,6 +58,9 @@ def _empty_portfolio() -> dict[str, Any]:
     return {
         "source": "SUMMARY_BUILDER",
         "freshness_status": "UNTESTED",
+        "source_snapshot_hash": None,
+        "source_snapshot_status": "UNTESTED",
+        "source_balance_kind": None,
         "equity": None,
         "cash_available": None,
         "locked_balance": None,
@@ -92,6 +96,9 @@ def _portfolio_from_paper_snapshot(
         {
             "source": "LEDGER",
             "freshness_status": "PASS",
+            "source_snapshot_hash": snapshot["snapshot_hash"],
+            "source_snapshot_status": snapshot["snapshot_status"],
+            "source_balance_kind": snapshot["display_balance_kind"],
             "equity": float(snapshot["equity"]),
             "cash_available": float(snapshot["cash_available"]),
             "locked_balance": float(snapshot["locked_balance"]),
@@ -104,6 +111,21 @@ def _portfolio_from_paper_snapshot(
         },
         list(snapshot.get("positions", [])),
     )
+
+
+def _decimal(value: Any) -> Decimal | None:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+
+
+def _is_hash64(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789ABCDEFabcdef" for char in value)
+
+
+def _nearly_equal(left: Decimal, right: Decimal, tolerance: Decimal = Decimal("0.000001")) -> bool:
+    return abs(left - right) <= tolerance
 
 
 def build_summary_shell(
@@ -263,13 +285,34 @@ def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] |
         return SummaryValidationResult("FAIL", "summary portfolio must be an object", "SCHEMA_IDENTITY_MISMATCH")
     if portfolio.get("source") == "SUMMARY_BUILDER" and any(portfolio.get(key) is not None for key in ("equity", "cash_available", "locked_balance")):
         return SummaryValidationResult("BLOCKED", "summary builder cannot invent portfolio execution truth", "LIVE_FINAL_GUARD_FAILED")
+    if portfolio.get("source") == "SUMMARY_BUILDER" and any(
+        portfolio.get(key) is not None for key in ("source_snapshot_hash", "source_balance_kind")
+    ):
+        return SummaryValidationResult("BLOCKED", "summary builder cannot claim portfolio snapshot provenance", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("source") in {"LEDGER", "RECONCILIATION"} and portfolio.get("freshness_status") == "PASS":
         if any(portfolio.get(key) is None for key in ("equity", "cash_available", "locked_balance")):
             return SummaryValidationResult("BLOCKED", "verified portfolio source must include cash and equity", "HARD_TRUTH_MISSING")
+        if portfolio.get("source_snapshot_status") != "PASS" or not _is_hash64(portfolio.get("source_snapshot_hash")):
+            return SummaryValidationResult("BLOCKED", "verified portfolio source must carry PASS source snapshot provenance", "HARD_TRUTH_MISSING")
+        if portfolio.get("source_balance_kind") != "SIMULATED_PAPER_LEDGER":
+            return SummaryValidationResult("BLOCKED", "verified summary portfolio must remain simulated PAPER ledger truth", "LIVE_FINAL_GUARD_FAILED")
         if summary.get("mode") != "PAPER":
             return SummaryValidationResult("BLOCKED", "verified dashboard portfolio is PAPER-only without live evidence", "LIVE_FINAL_GUARD_FAILED")
         if portfolio.get("open_position_count") != len(summary.get("positions", [])):
             return SummaryValidationResult("FAIL", "portfolio open position count must match positions list", "SCHEMA_IDENTITY_MISMATCH")
+        cash = _decimal(portfolio.get("cash_available"))
+        locked = _decimal(portfolio.get("locked_balance"))
+        position_market_value = _decimal(portfolio.get("position_market_value"))
+        equity = _decimal(portfolio.get("equity"))
+        realized = _decimal(portfolio.get("realized_pnl"))
+        unrealized = _decimal(portfolio.get("unrealized_pnl"))
+        total_pnl = _decimal(portfolio.get("total_pnl"))
+        if any(value is None for value in (cash, locked, position_market_value, equity, realized, unrealized, total_pnl)):
+            return SummaryValidationResult("FAIL", "verified portfolio values must be numeric", "SCHEMA_IDENTITY_MISMATCH")
+        if not _nearly_equal(equity, cash + locked + position_market_value):
+            return SummaryValidationResult("FAIL", "verified portfolio equity arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if not _nearly_equal(total_pnl, realized + unrealized):
+            return SummaryValidationResult("FAIL", "verified portfolio total PnL arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH")
 
     orders = summary.get("orders")
     if not isinstance(orders, dict):

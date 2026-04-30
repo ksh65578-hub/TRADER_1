@@ -9994,7 +9994,64 @@
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "SCAFFOLD_IMPLEMENTED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SUMMARY-PORTFOLIO-PROVENANCE-GUARD",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "summary portfolio provenance guard",
+      "full_text_marker": "REQ-MVP4-SUMMARY-PORTFOLIO-PROVENANCE-GUARD:dashboard summary portfolio verified truth must be bound to PAPER snapshot provenance",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Summary portfolio verified truth must carry PAPER snapshot provenance",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
+      "schema_ids": [
+        "trader1.summary.v1",
+        "trader1.paper_portfolio_snapshot.v1"
+      ],
+      "validator_ids": [
+        "registry_validator",
+        "schema_validator",
+        "summary_shell_validator",
+        "read_only_dashboard_validator",
+        "runtime_schema_instance_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/summary.schema.json",
+        "trader1/dashboard/summary_writer.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_summary_writer.py",
+        "tools/emit_summary_portfolio_provenance_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_summary_writer.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-PAPER-RUNTIME-PORTFOLIO-BINDING",
+        "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP-CONSISTENCY-GUARD"
+      ],
+      "source_text_sha256": "AE6FB28E8902FD15892E5650F5291BB26BED0C58A24FEDF51C788ED329272A8E",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T17:17:14Z"
+  "updated_at_utc": "2026-04-30T17:42:27Z"
 }

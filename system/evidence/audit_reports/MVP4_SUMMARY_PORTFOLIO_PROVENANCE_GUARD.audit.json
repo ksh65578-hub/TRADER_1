@@ -1,0 +1,33 @@
+{
+  "audit_schema_id": "trader1.summary_portfolio_provenance_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "schema_requires_snapshot_provenance": true,
+    "builder_emits_snapshot_provenance": true,
+    "validator_blocks_missing_provenance": true,
+    "validator_blocks_arithmetic_drift": true,
+    "unit_negative_missing_provenance": true,
+    "unit_negative_arithmetic_drift": true,
+    "validator_fixture_missing_provenance": true,
+    "validator_fixture_arithmetic_drift": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "dashboard_portfolio_false_safe",
+      "condition": "summary portfolio source could be changed to LEDGER/PASS without binding to a validated PAPER portfolio snapshot",
+      "impact": "dashboard could display cash/equity/PnL as verified even when provenance was missing",
+      "fix": "summary schema and validator now require snapshot hash, PASS snapshot status, and simulated PAPER ledger balance kind"
+    },
+    {
+      "classification": "portfolio_arithmetic_drift",
+      "condition": "verified summary cash/equity/PnL values could be mutated independently after summary construction",
+      "impact": "operator could see inconsistent total asset and PnL values on the first dashboard screen",
+      "fix": "summary validator now checks equity and total PnL arithmetic for verified portfolio summaries"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

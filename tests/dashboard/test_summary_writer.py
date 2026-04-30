@@ -128,9 +128,26 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(summary["portfolio"]["source"], "LEDGER")
         self.assertEqual(summary["portfolio"]["freshness_status"], "PASS")
+        self.assertEqual(summary["portfolio"]["source_snapshot_status"], "PASS")
+        self.assertEqual(len(summary["portfolio"]["source_snapshot_hash"]), 64)
+        self.assertEqual(summary["portfolio"]["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
         self.assertEqual(summary["portfolio"]["cash_available"], 1000000.0)
         self.assertEqual(summary["portfolio"]["equity"], 1000000.0)
         self.assertEqual(summary["positions"], [])
+
+    def test_summary_blocks_verified_portfolio_without_snapshot_provenance(self):
+        summary = build_summary(with_paper_portfolio=True)
+        summary["portfolio"]["source_snapshot_hash"] = None
+        result = validate_summary_shell(summary)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_summary_blocks_verified_portfolio_arithmetic_drift(self):
+        summary = build_summary(with_paper_portfolio=True)
+        summary["portfolio"]["equity"] = summary["portfolio"]["equity"] + 1.0
+        result = validate_summary_shell(summary)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_summary_blocks_verified_portfolio_outside_paper(self):
         summary = build_summary(with_paper_portfolio=True)
