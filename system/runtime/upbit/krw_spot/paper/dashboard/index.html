@@ -46,6 +46,7 @@
     .summary-card .metric { min-height: 78px; padding: 10px; }
     .summary-card .metric h2 { font-size: 13px; margin: 0; color: var(--muted); }
     .summary-card .metric-value { font-size: 18px; }
+    .source-line { margin-top: -4px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; line-height: 1.45; }
     .portfolio-ledger { display: grid; gap: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin: 12px 0 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #ffffff; }
     .portfolio-ledger div { display: grid; gap: 4px; padding: 9px 10px; border-right: 1px solid var(--line); min-width: 0; }
     .portfolio-ledger div:last-child { border-right: 0; }
@@ -334,12 +335,13 @@
     <p>RUNNING SAFE MODE - READ ONLY, LIVE ORDERS BLOCKED</p>
   </header>
   <main>
-    <section class="freshness-strip" data-dashboard-freshness data-generated-at="2026-04-30T20:43:07Z" data-stale-after="300" data-refresh-seconds="10" aria-label="dashboard data freshness"><div><span class="eyebrow">Dashboard Data Freshness</span><h2><span class="pill ok" data-client-freshness-pill>Fresh snapshot</span></h2></div><dl><div><dt>Updated</dt><dd>2026-04-30T20:43:07Z</dd></div><div><dt>Age</dt><dd data-dashboard-age>0s</dd></div><div><dt>Auto Refresh</dt><dd>10s</dd></div><div><dt>Sources</dt><dd>SUMMARY=STALE, HEARTBEAT=STALE, STARTUP_PROBE=STALE</dd></div></dl><p data-stale-warning>Keep the PAPER safe monitor running. If this page turns stale, rerun PAPER before trusting dashboard values.</p></section>
+    <section class="freshness-strip" data-dashboard-freshness data-generated-at="2026-04-30T21:20:54Z" data-stale-after="300" data-refresh-seconds="10" aria-label="dashboard data freshness"><div><span class="eyebrow">Dashboard Data Freshness</span><h2><span class="pill ok" data-client-freshness-pill>Fresh snapshot</span></h2></div><dl><div><dt>Updated</dt><dd>2026-04-30T21:20:54Z</dd></div><div><dt>Age</dt><dd data-dashboard-age>0s</dd></div><div><dt>Auto Refresh</dt><dd>10s</dd></div><div><dt>Sources</dt><dd>SUMMARY=STALE, HEARTBEAT=STALE, STARTUP_PROBE=STALE</dd></div></dl><p data-stale-warning>Keep the PAPER safe monitor running. If this page turns stale, rerun PAPER before trusting dashboard values.</p></section>
     <section class="summary-grid" aria-label="first screen summary">
       <section class="summary-card portfolio-summary" aria-label="real-time portfolio snapshot">
         <span class="eyebrow">Real-Time Portfolio</span>
         <h2>Portfolio Snapshot</h2>
         <p>Status: STALE - RERUN PAPER | Source: summary.json</p>
+        <p class="source-line">Runtime cycle: not linked | Ledger head: not linked</p>
         <section class="portfolio-kpi-grid">
           <section class="metric"><h2>Cash</h2><p class="metric-value">UNVERIFIED</p><small>Stale summary; rerun PAPER launcher</small></section>
       <section class="metric"><h2>Equity</h2><p class="metric-value">UNVERIFIED</p><small>Stale summary; rerun PAPER launcher</small></section>

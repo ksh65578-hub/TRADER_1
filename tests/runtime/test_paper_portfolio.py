@@ -24,6 +24,8 @@ class PaperPortfolioTest(unittest.TestCase):
         self.assertEqual(snapshot["total_pnl"], "0")
         self.assertEqual(snapshot["return_pct"], "0")
         self.assertEqual(snapshot["open_position_count"], 0)
+        self.assertIsNone(snapshot["source_runtime_cycle_id"])
+        self.assertIsNone(snapshot["source_paper_ledger_head_hash"])
         self.assertEqual(snapshot["display_balance_kind"], "SIMULATED_PAPER_LEDGER")
         self.assertFalse(snapshot["live_order_ready"])
         self.assertFalse(snapshot["live_order_allowed"])
@@ -53,9 +55,13 @@ class PaperPortfolioTest(unittest.TestCase):
             fill_price="1000500",
             mark_price="1000000",
             fee_amount="5",
+            source_runtime_cycle_id="portfolio-fill-cycle",
+            source_paper_ledger_head_hash="A" * 64,
         )
         result = validate_paper_portfolio_snapshot(snapshot)
         self.assertEqual(result.status, "PASS")
+        self.assertEqual(snapshot["source_runtime_cycle_id"], "portfolio-fill-cycle")
+        self.assertEqual(snapshot["source_paper_ledger_head_hash"], "A" * 64)
         self.assertEqual(snapshot["open_position_count"], 1)
         self.assertEqual(snapshot["positions"][0]["symbol"], "KRW-BTC")
         self.assertEqual(snapshot["position_market_value"], "10000")
@@ -178,6 +184,36 @@ class PaperPortfolioTest(unittest.TestCase):
         result = validate_paper_portfolio_snapshot(snapshot)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_paper_portfolio_detects_invalid_runtime_cycle_source(self):
+        snapshot = build_initial_paper_portfolio_snapshot(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-portfolio-source-cycle",
+            source_runtime_cycle_id="",
+        )
+        snapshot["snapshot_hash"] = paper_portfolio_hash(snapshot)
+        result = validate_paper_portfolio_snapshot(snapshot)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_paper_portfolio_detects_invalid_source_ledger_head_hash(self):
+        snapshot = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-portfolio-source-ledger",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+            source_runtime_cycle_id="portfolio-source-ledger-cycle",
+            source_paper_ledger_head_hash="not-a-ledger-head-hash",
+        )
+        result = validate_paper_portfolio_snapshot(snapshot)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_paper_portfolio_blocks_unsupported_scope(self):
         snapshot = build_initial_paper_portfolio_snapshot(

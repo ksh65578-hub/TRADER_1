@@ -391,6 +391,8 @@ def build_upbit_paper_runtime_cycle_report(
             mark_price=mark_price,
             fee_amount=fee_amount,
             starting_cash=starting_cash,
+            source_runtime_cycle_id=cycle_id,
+            source_paper_ledger_head_hash=ledger_head_hash,
         )
     else:
         portfolio = build_initial_paper_portfolio_snapshot(
@@ -398,6 +400,8 @@ def build_upbit_paper_runtime_cycle_report(
             market_type="KRW_SPOT",
             session_id=session_id,
             starting_cash=starting_cash,
+            source_runtime_cycle_id=cycle_id,
+            source_paper_ledger_head_hash=None,
         )
 
     summary = build_summary_shell(
@@ -563,6 +567,18 @@ def validate_upbit_paper_runtime_cycle_report(report: dict[str, Any]) -> UpbitPa
     portfolio_result = validate_paper_portfolio_snapshot(report["paper_portfolio_snapshot"])
     if portfolio_result.status != "PASS":
         return UpbitPaperRuntimeCycleValidationResult(portfolio_result.status, portfolio_result.message, portfolio_result.blocker_code)
+    if report["paper_portfolio_snapshot"].get("source_runtime_cycle_id") != report["cycle_id"]:
+        return UpbitPaperRuntimeCycleValidationResult(
+            "FAIL",
+            "paper portfolio snapshot source runtime cycle id mismatch",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if report["paper_portfolio_snapshot"].get("source_paper_ledger_head_hash") != report.get("paper_ledger_head_hash"):
+        return UpbitPaperRuntimeCycleValidationResult(
+            "FAIL",
+            "paper portfolio snapshot source ledger head hash mismatch",
+            "LEDGER_INTEGRITY_FAIL",
+        )
     summary_result = validate_summary_shell(report["summary"])
     if summary_result.status != "PASS":
         return UpbitPaperRuntimeCycleValidationResult(summary_result.status, summary_result.message, summary_result.blocker_code)

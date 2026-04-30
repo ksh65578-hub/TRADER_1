@@ -22,6 +22,8 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["paper_ledger_events"][-1]["event_type"], "ORDER_FILLED")
         self.assertEqual(report["paper_ledger_head_hash"], report["paper_ledger_events"][-1]["event_hash"])
         self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 1)
+        self.assertEqual(report["paper_portfolio_snapshot"]["source_runtime_cycle_id"], report["cycle_id"])
+        self.assertEqual(report["paper_portfolio_snapshot"]["source_paper_ledger_head_hash"], report["paper_ledger_head_hash"])
         self.assertEqual(report["paper_portfolio_snapshot"]["positions"][0]["symbol"], "KRW-BTC")
         self.assertEqual(report["summary"]["portfolio"]["source"], "LEDGER")
         self.assertEqual(report["summary"]["portfolio"]["freshness_status"], "PASS")
@@ -89,6 +91,8 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertIn("MIN_EDGE_FAIL", report["no_trade_reasons"])
         self.assertIsNone(report["paper_fill"])
         self.assertEqual(report["paper_ledger_events"], [])
+        self.assertEqual(report["paper_portfolio_snapshot"]["source_runtime_cycle_id"], report["cycle_id"])
+        self.assertIsNone(report["paper_portfolio_snapshot"]["source_paper_ledger_head_hash"])
         self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 0)
 
     def test_risk_off_regime_is_no_trade_and_writes_no_fill_ledger(self):
@@ -224,6 +228,28 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         result = validate_upbit_paper_runtime_cycle_report(report)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_runtime_blocks_portfolio_cycle_source_mismatch(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-portfolio-source-mismatch")
+        report["paper_portfolio_snapshot"]["source_runtime_cycle_id"] = "different-cycle"
+        report["paper_portfolio_snapshot"]["snapshot_hash"] = paper_portfolio_hash(report["paper_portfolio_snapshot"])
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_runtime_blocks_portfolio_ledger_source_mismatch(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-portfolio-ledger-source-mismatch")
+        report["paper_portfolio_snapshot"]["source_paper_ledger_head_hash"] = "B" * 64
+        report["paper_portfolio_snapshot"]["snapshot_hash"] = paper_portfolio_hash(report["paper_portfolio_snapshot"])
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "LEDGER_INTEGRITY_FAIL")
 
     def test_upbit_paper_runtime_cycle_validator_passes_current_contract(self):
         results = run_validators(["upbit_paper_runtime_cycle_validator"])

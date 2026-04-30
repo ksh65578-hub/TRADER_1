@@ -11,6 +11,8 @@
     "market_type",
     "mode",
     "session_id",
+    "source_runtime_cycle_id",
+    "source_paper_ledger_head_hash",
     "snapshot_status",
     "source",
     "starting_cash_source",
@@ -143,6 +145,21 @@
     "session_id": {
       "type": "string",
       "minLength": 1
+    },
+    "source_runtime_cycle_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "source_paper_ledger_head_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 64,
+      "maxLength": 64
     },
     "snapshot_status": {
       "enum": [

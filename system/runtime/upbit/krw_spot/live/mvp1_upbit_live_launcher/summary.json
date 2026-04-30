@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-04-30T20:43:07Z",
+  "generated_at_utc": "2026-04-30T21:20:53Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "LIVE",
@@ -48,6 +48,8 @@
     "source": "SUMMARY_BUILDER",
     "freshness_status": "UNTESTED",
     "source_snapshot_hash": null,
+    "source_runtime_cycle_id": null,
+    "source_paper_ledger_head_hash": null,
     "source_snapshot_status": "UNTESTED",
     "source_snapshot_generated_at_utc": null,
     "source_snapshot_age_seconds": null,

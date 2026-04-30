@@ -1,0 +1,253 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH_20260501_001",
+  "created_at_utc": "2026-04-30T21:20:53Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "MATCH",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH",
+    "REQ-MVP4-UPBIT-PAPER-RUNTIME-E2E-CONSISTENCY-GUARD"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [],
+  "new_or_changed_schema_ids": [
+    "trader1.paper_portfolio_snapshot.v1",
+    "trader1.paper_ledger_rollup_report.v1",
+    "trader1.summary.v1",
+    "trader1.read_only_dashboard_shell.v1"
+  ],
+  "validators_required": [
+    "schema_validator",
+    "runtime_schema_instance_validator",
+    "summary_shell_validator",
+    "paper_portfolio_snapshot_validator",
+    "paper_ledger_rollup_validator",
+    "upbit_paper_runtime_cycle_validator",
+    "upbit_paper_persistent_loop_validator",
+    "read_only_dashboard_validator",
+    "dashboard_visual_layout_validator",
+    "source_bundle_hygiene_validator",
+    "shipped_package_hygiene_validator",
+    "secret_scan_validator",
+    "live_final_guard_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "summary_shell_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "paper_portfolio_snapshot_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "paper_ledger_rollup_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "upbit_paper_runtime_cycle_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "upbit_paper_persistent_loop_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "dashboard_visual_layout_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m unittest tests.runtime.test_paper_portfolio tests.runtime.test_paper_ledger_rollup tests.integration.test_upbit_paper_runtime_cycle tests.integration.test_upbit_public_collection_persistent_loop tests.runtime.test_safe_launcher tests.dashboard.test_summary_writer tests.dashboard.test_read_only_dashboard -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m unittest tests.contract.test_schema_instance_validation tests.contract.test_patch_result_runtime_schema_validation -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m unittest discover -s tests -q",
+      "status": "PASS",
+      "returncode": 0
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "PASS",
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "PRESERVED_NOT_READ",
+  "read_cache_update_required": false,
+  "context_pack_update_required": false,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_UPBIT_PAPER_RUNTIME_E2E_CONTINUE",
+  "next_required_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_DASHBOARD_OPERATOR_UX"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_PROFIT_CONVERGENCE"
+  ],
+  "next_forbidden_default_sections": [
+    "RETAINED_ARCHIVE",
+    "LIVE_ENABLING_PATCH"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "task_class": "MVP4_UPBIT_PAPER_RUNTIME_E2E_CONTINUE",
+  "required_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "AGENTS_0G",
+    "TRADER_1_ACTIVE_UPBIT_PAPER_RUNTIME_SURFACE"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "PASS",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "UPDATED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "NO_OPTIMIZER_RUNTIME_CHANGE_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "NO_CONVERGENCE_RUNTIME_CHANGE",
+  "convergence_layer_changed": false,
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_APPLICABLE",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "result_hash": "3E931F41B61436753E37BF5030149522888BFD8F2D6A4BA12C119C9D8CCF4E61"
+}
