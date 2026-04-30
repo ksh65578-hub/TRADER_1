@@ -20,8 +20,8 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "18062151BD607672C626C5785A9D23224BD30259EC35DF25D93150CCDDDCC435",
-      "size_bytes": 1096
+      "sha256": "B0C0633B91102E06137671B9AFBBB63981A5B5AF00908E090BFD39A8B20E39F2",
+      "size_bytes": 1113
     },
     {
       "path": "contracts/registry.yaml",
@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "A0AC7C02E3FF9F5F9B295A835A6C0E94F09B5D9C2F6A8CC07C472A931355FAE7",
-      "size_bytes": 117027
+      "sha256": "0E873C8A98A3DAA10510EC348381055175788B20689C93E5758AD2BCBBC037ED",
+      "size_bytes": 117053
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -600,8 +600,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "81B838B94DE80080E6FF3535D9009E23BC4A13D4A2DE5756BEBD0B639161D055",
-      "size_bytes": 185949
+      "sha256": "128DA455DD25BFEDDD1E1D4A7B3BD3C10E4B8F39B8C362404B8E534E7520C8E5",
+      "size_bytes": 186040
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -880,8 +880,8 @@
     },
     {
       "path": "tests/runtime/test_safe_launcher.py",
-      "sha256": "9997D0E2943BBCFEA047D395CB47D92716D774E168C5083E822BAF2A149A798B",
-      "size_bytes": 46625
+      "sha256": "CA171FB5D1C4C00B1590AA02D39C7E9B4DE503300D3DE39A59BF5234A9890684",
+      "size_bytes": 47473
     },
     {
       "path": "tests/runtime/test_safe_smoke.py",
@@ -2140,8 +2140,8 @@
     },
     {
       "path": "tools/emit_dashboard_position_detail_truth_guard_patch_evidence.py",
-      "sha256": "5E9ACCEA52C8E81E28BEC4D71AC8834AF0E59B8D91D5B6356786C723FBF683E5",
-      "size_bytes": 27571
+      "sha256": "6CC975C182182260C8A684FDAD55EBBD06D2D7CB7EED26D5461056F70FDEDB8C",
+      "size_bytes": 28160
     },
     {
       "path": "tools/emit_dashboard_position_reason_ux_patch_evidence.py",
@@ -3250,8 +3250,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "D5E85AB048923A954E9E468AEEB8FB074E272A107228428BFC7362FB6D09BD00",
-      "size_bytes": 523273
+      "sha256": "F40FB5138BBF79907A3129E68BB478084C5442BBB0B77D5F28E09D4B8838365B",
+      "size_bytes": 523372
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -3380,8 +3380,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "A09797AD8D78E20807117F8D47D66B7801B459EB13D9294B5EB860399D0792EA",
-      "size_bytes": 55137
+      "sha256": "2F6781017C0D7CFC44E177BA7BE966A0610BF54AB451F89DF23C93F4FC9A62C6",
+      "size_bytes": 55156
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -3585,8 +3585,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "8EB9429B91C8E93DAF4DAD60E612CC341715709656544CD72965ACE4164684E1",
-      "size_bytes": 647630
+      "sha256": "5661BCE7A99C3C864A035A446FF9EE07A0D0E153957F5F3D1116272D35BDF28A",
+      "size_bytes": 647716
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -5068,6 +5068,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.audit.json",
       "reason": "denied:system/"
     },
@@ -5968,6 +5976,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6813,6 +6825,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_SOURCE_BUNDLE_HYGIENE_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7669,6 +7685,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_SOURCE_BUNDLE_HYGIENE_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8541,6 +8561,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_SOURCE_BUNDLE_HYGIENE_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
