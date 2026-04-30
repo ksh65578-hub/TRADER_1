@@ -100,6 +100,31 @@
         "freshness_status": {
           "$ref": "#/$defs/freshness_status"
         },
+        "source_snapshot_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "source_snapshot_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "source_balance_kind": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "SIMULATED_PAPER_LEDGER",
+            null
+          ]
+        },
         "equity": {
           "type": [
             "number",

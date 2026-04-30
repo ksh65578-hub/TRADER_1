@@ -1,0 +1,97 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T17:42:27Z",
+  "patch_id": "MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD_20260501_001",
+  "validators_run": [
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "summary_shell_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m unittest tests.dashboard.test_summary_writer -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m unittest tests.dashboard.test_read_only_dashboard -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m unittest tests.contract.test_patch_result_runtime_schema_validation -q",
+      "status": "PASS",
+      "returncode": 0
+    }
+  ],
+  "status": "PASS"
+}
