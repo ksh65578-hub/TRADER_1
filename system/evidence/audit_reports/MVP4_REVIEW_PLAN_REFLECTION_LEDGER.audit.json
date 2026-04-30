@@ -1,0 +1,54 @@
+{
+  "audit_schema_id": "trader1.review_plan_reflection_ledger_audit.v1",
+  "generated_at_utc": "2026-04-30T21:59:31Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "PASS",
+  "review_files_checked": 43,
+  "theme_ids_detected": [
+    "authority_manifest_identity",
+    "binance_spot_futures_scope",
+    "dashboard_operator_ux",
+    "ledger_reconciliation_idempotency",
+    "live_safety_external_blocker",
+    "operations_recovery_24x7",
+    "optimizer_convergence_guardrail",
+    "placeholder_readiness_block",
+    "portfolio_pnl_truth",
+    "runtime_termination_reproducibility",
+    "source_package_hygiene",
+    "strategy_profitability_loop",
+    "upbit_paper_runtime"
+  ],
+  "delete_ready_count": 0,
+  "pending_reflection_count": 43,
+  "hidden_defects": [
+    {
+      "classification": "review_addendum_deletion_without_reflection_evidence",
+      "condition": "review plan files could be removed before all items are reflected into authority-preserving contracts, code, tests, or artifacts.",
+      "impact": "unimplemented review findings could disappear from the working set and create false completion confidence.",
+      "fix": "added a hash-based reflection ledger, deletion policy, validator, and tests; no review files are delete-ready yet.",
+      "reproducibility": "deterministic by running tools/review_plan_reflection_status.py --write",
+      "live_safety_impact": "prevents review-plan cleanup from weakening live blockers or evidence requirements",
+      "ux_impact": "keeps operator-facing cleanup status explicit instead of silently removing backlog items"
+    }
+  ],
+  "validation": {
+    "schema_id": "trader1.review_plan_reflection_validation_result.v1",
+    "status": "PASS",
+    "blockers": [],
+    "review_files_count": 43,
+    "delete_ready_count": 0,
+    "pending_reflection_count": 43,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

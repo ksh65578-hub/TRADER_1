@@ -1300,7 +1300,8 @@
       "truth_hierarchy_validator",
       "source_bundle_hygiene_validator",
       "shipped_package_hygiene_validator",
-      "secret_scan_validator"
+      "secret_scan_validator",
+      "review_plan_reflection_ledger_validator"
     ],
     "VALIDATOR_GROUP:LIVE_SAFETY_CORE": [
       "readiness_surface_validator",
@@ -1525,5 +1526,5 @@
     "can_live_trade": false,
     "scale_up_allowed": false
   },
-  "updated_at_utc": "2026-04-30T12:15:00Z"
+  "updated_at_utc": "2026-04-30T21:59:31Z"
 }

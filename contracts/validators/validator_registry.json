@@ -10,9 +10,9 @@
     "VALIDATOR_GROUP:CONVERGENCE_CORE",
     "VALIDATOR_GROUP:CONVERGENCE_RISK_SCALE"
   ],
-  "implemented_logic_status": "MVP4_UPBIT_PUBLIC_REST_CONTINUITY_HISTORY_VALIDATOR_ADDED",
+  "implemented_logic_status": "MVP4_REVIEW_PLAN_REFLECTION_LEDGER_ADDED",
   "live_affecting_untested_blocks_live": true,
-  "updated_at_utc": "2026-04-30T12:18:58Z",
+  "updated_at_utc": "2026-04-30T21:59:31Z",
   "implemented_validators": [
     {
       "validator_id": "active_schema_extraction_validator",
@@ -610,6 +610,12 @@
     },
     {
       "validator_id": "upbit_public_rest_sample_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "review_plan_reflection_ledger_validator",
       "module_path": "trader1.validation.mvp0_validators",
       "status": "IMPLEMENTED_FAIL_CLOSED",
       "live_enabling": false
