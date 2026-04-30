@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-04-30T16:49:53Z",
+  "generated_at_utc": "2026-04-30T17:06:03Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -65,7 +65,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-04-30T16:49:53Z",
+    "generated_at_utc": "2026-04-30T17:06:03Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -130,7 +130,7 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 7397,
+    "observed_span_seconds": 3786,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 60,
@@ -158,8 +158,8 @@
       {
         "metric_id": "resource_health",
         "label": "Resource health",
-        "status": "PASS",
-        "value_display": "PASS",
+        "status": "WARN",
+        "value_display": "WARN",
         "detail": "CPU, memory, and disk health from heartbeat components",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
@@ -167,9 +167,9 @@
       {
         "metric_id": "runtime_artifact_pressure",
         "label": "Runtime artifact pressure",
-        "status": "PASS",
-        "value_display": "PASS",
-        "detail": "Runtime artifact pressure PASS: files=187, bytes=1440450, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
+        "status": "WARN",
+        "value_display": "WARN",
+        "detail": "Runtime artifact pressure WARN: files=204, bytes=1553361, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -185,9 +185,9 @@
       {
         "metric_id": "queue_backlog",
         "label": "Queue backlog",
-        "status": "PASS",
-        "value_display": "PASS",
-        "detail": "Runtime writer lock is clear; no partial write pressure detected",
+        "status": "WARN",
+        "value_display": "WARN",
+        "detail": "Runtime artifact pressure requires review before operator trading review",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -217,7 +217,7 @@
     "source": "heartbeat.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 7397,
+    "observed_span_seconds": 3786,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 0,
@@ -230,7 +230,7 @@
     "error_frequency_status": "FAIL",
     "retry_trend_status": "PASS",
     "dashboard_refresh_delay_status": "STALE",
-    "resource_pressure_status": "PASS",
+    "resource_pressure_status": "WARN",
     "summary": "Dashboard sources are stale. The program cannot claim current normal operation until refreshed.",
     "primary_blocker_code": "LATENCY_TTL_EXPIRED",
     "primary_blocker_message": "Live remains disabled; this panel is operator visibility only.",
@@ -336,13 +336,13 @@
     "color_token": "green",
     "truth_role": "dashboard_serving_truth",
     "source": "upbit_paper_runtime_recovery_guard_report.json",
-    "guard_id": "mvp4-upbit-market-data-pointer-schema-guard-recovery-guard",
-    "loop_id": "mvp4-upbit-market-data-pointer-schema-guard",
+    "guard_id": "mvp4-upbit-paper-runtime-e2e-consistency-guard-recovery-guard",
+    "loop_id": "mvp4-upbit-paper-runtime-e2e-consistency-guard",
     "latest_cycle_status": "PASS",
     "latest_cycle_recoverable": true,
-    "canonical_jsonl_checked_count": 21,
+    "canonical_jsonl_checked_count": 23,
     "corrupted_jsonl_quarantined_count": 0,
-    "ledger_jsonl_checked_count": 11,
+    "ledger_jsonl_checked_count": 13,
     "corrupted_ledger_jsonl_quarantined_count": 0,
     "ledger_jsonl_invalid_count": 0,
     "orphan_tmp_file_count": 0,
@@ -1180,9 +1180,9 @@
     "truth_role": "dashboard_serving_truth",
     "source": "summary.json",
     "freshness_status": "PASS",
-    "equity_display": "999,970 KRW",
-    "exposure_notional_display": "60,500 KRW",
-    "exposure_pct_display": "6.05%",
+    "equity_display": "999,964 KRW",
+    "exposure_notional_display": "71,500 KRW",
+    "exposure_pct_display": "7.15%",
     "drawdown_pct_display": "0.00%",
     "exposure_review_cap_pct_display": "20.00% attention / 50.00% block",
     "drawdown_review_cap_pct_display": "2.00% attention / 5.00% block",
@@ -1317,14 +1317,14 @@
     "cash": {
       "card_id": "cash",
       "label": "Cash",
-      "value_display": "939,470 KRW",
+      "value_display": "928,464 KRW",
       "detail": "Simulated PAPER ledger, not exchange balance",
       "freshness_status": "PASS"
     },
     "equity": {
       "card_id": "equity",
       "label": "Equity",
-      "value_display": "999,970 KRW",
+      "value_display": "999,964 KRW",
       "detail": "Simulated PAPER ledger, not exchange balance",
       "freshness_status": "PASS"
     },
@@ -1345,14 +1345,14 @@
     "unrealized_pnl": {
       "card_id": "unrealized_pnl",
       "label": "Unrealized PnL",
-      "value_display": "-30 KRW",
+      "value_display": "-36 KRW",
       "detail": "Open PAPER position mark-to-market estimate",
       "freshness_status": "PASS"
     },
     "total_pnl": {
       "card_id": "total_pnl",
       "label": "Total PnL",
-      "value_display": "-30 KRW",
+      "value_display": "-36 KRW",
       "detail": "Realized plus unrealized PAPER PnL",
       "freshness_status": "PASS"
     },
@@ -1396,9 +1396,9 @@
       {
         "symbol": "KRW-BTC",
         "side": "LONG",
-        "quantity": "0.06046674178035226174723247843",
+        "quantity": "0.07146069483132540024672929269",
         "avg_price": "UNKNOWN",
-        "unrealized_pnl": "-30.25000000000000000000003"
+        "unrealized_pnl": "-35.75000000000000000000003"
       }
     ],
     "empty_message": "No open PAPER positions",
@@ -1451,5 +1451,5 @@
   "blocking_reason": "HARD_TRUTH_MISSING",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "A7999AB9AC01C67AF0CE4A4B0A4F3E5453DE77A06412221B695FF0C8D7649C76"
+  "dashboard_hash": "E718CD744D62984AAB49E7CE0A2AD908CBBBAD9858B77F837BC4B8A89D758DE2"
 }

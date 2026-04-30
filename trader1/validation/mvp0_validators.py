@@ -3990,6 +3990,28 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
     ):
         if field not in required:
             return fail_result("upbit_paper_persistent_loop_validator", f"persistent loop schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+    cycle_item_schema = schema.get("properties", {}).get("cycle_results", {}).get("items", {})
+    if cycle_item_schema.get("additionalProperties") is not False:
+        return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cycle result schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    cycle_item_required = set(cycle_item_schema.get("required", []))
+    for field in (
+        "cycle_index",
+        "collector_id",
+        "cycle_id",
+        "collection_status",
+        "collection_hash",
+        "collection_writer_status",
+        "runtime_status",
+        "runtime_cycle_hash",
+        "runtime_writer_status",
+        "final_decision",
+        "artifact_paths",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in cycle_item_required:
+            return fail_result("upbit_paper_persistent_loop_validator", f"persistent loop cycle item schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
     recovery_required = set(recovery_schema.get("required", []))
     for field in (
         "latest_cycle_recoverable",
@@ -4059,6 +4081,46 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
     mutated_result = validate_upbit_paper_persistent_loop_report(mutated)
     if mutated_result.status != "BLOCKED" or mutated_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
         return fail_result("upbit_paper_persistent_loop_validator", "persistent loop live mutation was not blocked", paths, mutated_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    with TemporaryDirectory() as tmp:
+        false_runtime = run_upbit_paper_persistent_loop(
+            root=Path(tmp),
+            loop_id="validator-upbit-paper-loop-false-runtime-flag",
+            session_id="mvp1_upbit_paper_launcher",
+            requested_cycle_count=1,
+        )
+    false_runtime["actual_paper_runtime_executed"] = False
+    false_runtime["loop_hash"] = upbit_paper_persistent_loop_hash(false_runtime)
+    false_runtime_result = validate_upbit_paper_persistent_loop_report(false_runtime)
+    if false_runtime_result.status != "BLOCKED" or false_runtime_result.blocker_code != "MEASUREMENT_MISSING":
+        return fail_result("upbit_paper_persistent_loop_validator", "persistent loop false runtime execution flag was not blocked", paths, false_runtime_result.blocker_code or "MEASUREMENT_MISSING")
+
+    with TemporaryDirectory() as tmp:
+        duplicate_cycle = run_upbit_paper_persistent_loop(
+            root=Path(tmp),
+            loop_id="validator-upbit-paper-loop-duplicate-cycle",
+            session_id="mvp1_upbit_paper_launcher",
+            requested_cycle_count=2,
+        )
+    duplicate_cycle["cycle_results"][1] = dict(duplicate_cycle["cycle_results"][0])
+    duplicate_cycle["cycle_results"][1]["cycle_index"] = 2
+    duplicate_cycle["loop_hash"] = upbit_paper_persistent_loop_hash(duplicate_cycle)
+    duplicate_cycle_result = validate_upbit_paper_persistent_loop_report(duplicate_cycle)
+    if duplicate_cycle_result.status != "BLOCKED" or duplicate_cycle_result.blocker_code != "RECONCILIATION_REQUIRED":
+        return fail_result("upbit_paper_persistent_loop_validator", "persistent loop duplicate cycle identity was not blocked", paths, duplicate_cycle_result.blocker_code or "RECONCILIATION_REQUIRED")
+
+    with TemporaryDirectory() as tmp:
+        path_escape = run_upbit_paper_persistent_loop(
+            root=Path(tmp),
+            loop_id="validator-upbit-paper-loop-path-escape",
+            session_id="mvp1_upbit_paper_launcher",
+            requested_cycle_count=1,
+        )
+    path_escape["cycle_results"][0]["artifact_paths"].append("system/runtime/upbit/krw_spot/live/mvp1_upbit_paper_launcher/unsafe.json")
+    path_escape["loop_hash"] = upbit_paper_persistent_loop_hash(path_escape)
+    path_escape_result = validate_upbit_paper_persistent_loop_report(path_escape)
+    if path_escape_result.status != "BLOCKED" or path_escape_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+        return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cross-namespace artifact path was not blocked", paths, path_escape_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH")
 
     with TemporaryDirectory() as tmp:
         over_budget = run_upbit_paper_persistent_loop(

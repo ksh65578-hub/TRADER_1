@@ -61,7 +61,47 @@
     "requested_cycle_count": {"type": "integer", "minimum": 1, "maximum": 20},
     "completed_cycle_count": {"type": "integer", "minimum": 0, "maximum": 20},
     "max_cycle_count": {"type": "integer", "minimum": 1, "maximum": 20},
-    "cycle_results": {"type": "array", "items": {"type": "object"}},
+    "cycle_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "cycle_index",
+          "collector_id",
+          "cycle_id",
+          "collection_status",
+          "collection_hash",
+          "collection_writer_status",
+          "runtime_status",
+          "runtime_cycle_hash",
+          "runtime_writer_status",
+          "final_decision",
+          "artifact_paths",
+          "live_order_ready",
+          "live_order_allowed",
+          "can_live_trade",
+          "scale_up_allowed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "cycle_index": {"type": "integer", "minimum": 1, "maximum": 20},
+          "collector_id": {"type": "string", "minLength": 1},
+          "cycle_id": {"type": "string", "minLength": 1},
+          "collection_status": {"enum": ["PASS", "BLOCKED", "FAIL"]},
+          "collection_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+          "collection_writer_status": {"enum": ["PASS", "BLOCKED", "FAIL", "NOT_WRITTEN"]},
+          "runtime_status": {"enum": ["PASS", "BLOCKED", "FAIL"]},
+          "runtime_cycle_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+          "runtime_writer_status": {"enum": ["PASS", "BLOCKED", "FAIL", "NOT_WRITTEN"]},
+          "final_decision": {"enum": ["ENTER_LONG", "NO_TRADE", "BLOCKED", "SAFE_MODE", "RECONCILE_REQUIRED"]},
+          "artifact_paths": {"type": "array", "items": {"type": "string"}},
+          "live_order_ready": {"const": false},
+          "live_order_allowed": {"const": false},
+          "can_live_trade": {"const": false},
+          "scale_up_allowed": {"const": false}
+        }
+      }
+    },
     "loop_status": {"enum": ["PASS", "BLOCKED", "FAIL"]},
     "primary_blocker_code": {"type": ["string", "null"]},
     "blockers": {"type": "array", "items": {"$ref": "common.defs.schema.json#/$defs/blocker_object"}},
