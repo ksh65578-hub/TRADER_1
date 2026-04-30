@@ -30,6 +30,8 @@
     "min_required_evidence_window_count",
     "evidence_span_hours",
     "min_required_evidence_span_hours",
+    "evidence_span_source",
+    "evidence_span_source_status",
     "long_run_evidence_eligible",
     "long_run_blocker_code",
     "paper_artifact_age_seconds",
@@ -44,6 +46,7 @@
     "actual_runtime_source_status",
     "actual_runtime_requirement_statuses",
     "supporting_source_evidence_ids",
+    "supporting_source_window_count",
     "source_evidence_bindings",
     "raw_join_attempted",
     "session_hashes_distinct",
@@ -118,6 +121,10 @@
     "min_required_evidence_window_count": {"type": "integer", "minimum": 1},
     "evidence_span_hours": {"type": "integer", "minimum": 0},
     "min_required_evidence_span_hours": {"type": "integer", "minimum": 1},
+    "evidence_span_source": {
+      "enum": ["EXPLICIT_OPERATOR_SUPPLIED", "DERIVED_FROM_SUPPORTING_WINDOWS", "NOT_PROVIDED"]
+    },
+    "evidence_span_source_status": {"enum": ["PASS", "MISSING", "BLOCKED"]},
     "long_run_evidence_eligible": {"type": "boolean"},
     "long_run_blocker_code": {"type": ["string", "null"]},
     "paper_artifact_age_seconds": {"type": "integer", "minimum": 0},
@@ -164,6 +171,7 @@
       "uniqueItems": true,
       "items": {"type": "string", "minLength": 1}
     },
+    "supporting_source_window_count": {"type": "integer", "minimum": 0},
     "source_evidence_bindings": {
       "type": "array",
       "minItems": 2,

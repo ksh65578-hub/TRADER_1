@@ -41,6 +41,9 @@ class PaperShadowEvidenceAccumulatorTest(unittest.TestCase):
             set(report["source_evidence_ids"]),
             {binding["source_evidence_id"] for binding in report["source_evidence_bindings"]},
         )
+        self.assertEqual(report["evidence_span_hours"], 0)
+        self.assertEqual(report["evidence_span_source"], "NOT_PROVIDED")
+        self.assertEqual(report["evidence_span_source_status"], "MISSING")
         self.assertTrue(any(source_id.startswith("paper-operation:") for source_id in report["supporting_source_evidence_ids"]))
         self.assertFalse(report["scorecard_input_eligible"])
         self.assertEqual(report["optimizer_ranking_action"], "BLOCK_RANKING")
@@ -133,6 +136,8 @@ class PaperShadowEvidenceAccumulatorTest(unittest.TestCase):
         )
         self.assertTrue(any(source_id.startswith("paper-operation:") for source_id in report["supporting_source_evidence_ids"]))
         self.assertTrue(any(source_id.startswith("shadow-evidence:") for source_id in report["supporting_source_evidence_ids"]))
+        self.assertEqual(report["evidence_span_source"], "EXPLICIT_OPERATOR_SUPPLIED")
+        self.assertEqual(report["evidence_span_source_status"], "PASS")
         self.assertFalse(report["long_run_evidence_eligible"])
         self.assertEqual(
             report["long_run_blocker_code"],
