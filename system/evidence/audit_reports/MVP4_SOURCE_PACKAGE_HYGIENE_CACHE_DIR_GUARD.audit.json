@@ -1,0 +1,35 @@
+{
+  "audit_schema_id": "trader1.source_package_hygiene_cache_dir_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "nested_cache_negative_cases": [
+    "trader1/__pycache__/CACHEDIR.TAG",
+    "tests/.pytest_cache/CACHEDIR.TAG",
+    "tools/.mypy_cache/meta.json",
+    "trader1/.ruff_cache/state.json"
+  ],
+  "source_classification": {
+    "trader1/__pycache__/CACHEDIR.TAG": "denied:*/__pycache__/*",
+    "tests/.pytest_cache/CACHEDIR.TAG": "denied:*/.pytest_cache/*",
+    "tools/.mypy_cache/meta.json": "denied:*/.mypy_cache/*",
+    "trader1/.ruff_cache/state.json": "denied:*/.ruff_cache/*"
+  },
+  "shipped_classification": {
+    "trader1/__pycache__/CACHEDIR.TAG": "shipped_forbidden:*/__pycache__/*",
+    "tests/.pytest_cache/CACHEDIR.TAG": "shipped_forbidden:*/.pytest_cache/*",
+    "tools/.mypy_cache/meta.json": "shipped_forbidden:*/.mypy_cache/*",
+    "trader1/.ruff_cache/state.json": "shipped_forbidden:*/.ruff_cache/*"
+  },
+  "included_count": 712,
+  "excluded_count": 1466,
+  "shipped_forbidden_count": 0,
+  "current_pycache_dir_count": 0,
+  "current_pyc_file_count": 0,
+  "current_pycache_examples": [],
+  "current_pyc_examples": [],
+  "contains_secret": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

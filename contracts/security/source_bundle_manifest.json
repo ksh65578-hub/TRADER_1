@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "BC5D286EE4B3CF48DACCA29254DFB7FB2FCCBB71127F499938E419DC7DE55768",
+      "sha256": "6FCD65CC97C497E5DCAE58B3AC46DA273F3A65BA4FD51352666735D1E2200157",
       "size_bytes": 1096
     },
     {
@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "4CFEDEDB3F0E5F3F35C77A759816508E15DBE923F7741DDEE3410C6248734122",
-      "size_bytes": 116399
+      "sha256": "7AC8869CB4B03C675BA8867780B06741945E3B4E40F743ABC938050E06A45D94",
+      "size_bytes": 116704
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -480,8 +480,8 @@
     },
     {
       "path": "contracts/security/source_bundle_denylist.json",
-      "sha256": "41B558B7E228141C8E0C0BC9A1E4D95252704EE0D80ABE2648670CEE024DAC71",
-      "size_bytes": 1218
+      "sha256": "28EEF7717F1A5272031527CB47B984163693E62C12CCCE72A90C35765D9315EB",
+      "size_bytes": 1406
     },
     {
       "path": "contracts/validators/fixture_catalog.json",
@@ -590,8 +590,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "20E9390D6F376A523851A09AEB1534742B1D396EEF092197EAB99EED413A98BE",
-      "size_bytes": 180157
+      "sha256": "3D3A0A2BDA65DF3FB39F0F1078BF5EA4F590D3493F5655B0CE4815E8804E33B2",
+      "size_bytes": 183371
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -750,8 +750,8 @@
     },
     {
       "path": "tests/research/test_candidate_scorecard_from_runtime.py",
-      "sha256": "02199777569BEC71FA241F3F1E2DA8DD92B5829DEF272F527814384389B02422",
-      "size_bytes": 5992
+      "sha256": "CE172A0317C186A001FF97C0229CBFF7B9128BF2B7D9199D46111340720B8048",
+      "size_bytes": 6115
     },
     {
       "path": "tests/research/test_paper_shadow_evidence_accumulator.py",
@@ -900,8 +900,8 @@
     },
     {
       "path": "tests/security/test_source_bundle_security.py",
-      "sha256": "E876EFF93A3F0E1A13AEA44F2D33091858884A379E163F345A9D903C4FFD988C",
-      "size_bytes": 4784
+      "sha256": "2C047446C4731CAAF5B93ADB2C60C1D85E8315647981A7001BE5D9E1BBFB1559",
+      "size_bytes": 5434
     },
     {
       "path": "tests/validators/__init__.py",
@@ -935,33 +935,33 @@
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_live_flag_fail.json",
-      "sha256": "FA8A15696B31003227E966F59F3BBA1AC6AA824EC999BF5DC55FBB63005EE4B6",
-      "size_bytes": 1920
+      "sha256": "0D33DD9ACF22562C705F20368DC762A59EE48A589C63BDE309E2C6BC061C0798",
+      "size_bytes": 1970
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_live_ready_wording_fail.json",
-      "sha256": "32728E0E8B0F580E14C8E80BD1E2FB7C44E2682896F2AE265C36441902F74E0F",
-      "size_bytes": 1973
+      "sha256": "28BCC94AD030CB0A9F3C8114D7A2DBCAF45D46670F7FDB9FB1F6B428025AFB5D",
+      "size_bytes": 2023
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_missing_oos_fail.json",
-      "sha256": "9DA687338D728303B865915E72D62D2CA1D28CBB3C7FA8FC1185C05A869DB46B",
-      "size_bytes": 1940
+      "sha256": "A25CFA5EAAD4B5E8D7F62E26BB5A55DFF7251B3E2F8CFFB6EF8CACC62D012C97",
+      "size_bytes": 1990
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_missing_robustness_sources_fail.json",
-      "sha256": "4696A1477BE0509B2D0987DF02D3C0C80DA95B64B8B7B777978613E77CA9D646",
-      "size_bytes": 1985
+      "sha256": "EB8534639D4E7D5AB242BF60E8E54F9A8A8D6493EB77260BA08EC3B2C299A869",
+      "size_bytes": 2035
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_pass.json",
-      "sha256": "5D656EAD8B5FB85B6B81912A923CB02EF301372D468E8035DDE7F2F9143352BE",
-      "size_bytes": 1912
+      "sha256": "36D0D3ABFE0B8DA4906D8C9C1093D6F3BE6045053587C82426FF1FF0AE8617B1",
+      "size_bytes": 1962
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_raw_cost_fail.json",
-      "sha256": "F4548F635D50DB2F287E051EA1EFDA358CBD7A5BB58882883E905A118288C209",
-      "size_bytes": 1948
+      "sha256": "68D36F8E4FD14E91F1C200292EFF0F7AA4C8549ABB681A396E9EDACC8CAFE113",
+      "size_bytes": 1998
     },
     {
       "path": "tests/validators/fixtures/convergence_assessment_dependencies_blocked.json",
@@ -1790,8 +1790,8 @@
     },
     {
       "path": "tests/validators/test_candidate_scorecard_net_ev_validator.py",
-      "sha256": "D47C8C8E5838D435C51A9E1CC272E6FBCA4C24F5A3C54C44429B604286778DA9",
-      "size_bytes": 3434
+      "sha256": "92E699A4721F13F8670A9DEAE3EDA489B68F7F8B00E5276E821B1DF56536B371",
+      "size_bytes": 3522
     },
     {
       "path": "tests/validators/test_convergence_assessment_dependency_validators.py",
@@ -2604,6 +2604,11 @@
       "size_bytes": 23288
     },
     {
+      "path": "tools/emit_source_package_hygiene_cache_dir_guard_patch_evidence.py",
+      "sha256": "F6BB40EED6C62E325EBF7526FD4CB3A4D725FDCF534B710BEFFCE879AAE7C89B",
+      "size_bytes": 23741
+    },
+    {
       "path": "tools/emit_stale_heartbeat_recovery_guidance_patch_evidence.py",
       "sha256": "AFF69D6A5F0157F6A52D1AE6EE5FB80ECE1AF6DF450677923D8E802F62FD3D64",
       "size_bytes": 20847
@@ -3195,8 +3200,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "6D13786DA7259A077C74C0018DE82CB2B274E9D1A7EE3351D61220C5EADD02E9",
-      "size_bytes": 512893
+      "sha256": "B19CE7BF035E5D6D6782F582A6F341E2C9A2EB74764150EB3E2290A8F2D11C13",
+      "size_bytes": 521602
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -3235,8 +3240,8 @@
     },
     {
       "path": "trader1/research/profitability/candidate_scorecard.py",
-      "sha256": "284CD22A7CD80E4ABC3ADB983E9486C9C810E0BB3A7BCE32E2466A707116FE26",
-      "size_bytes": 8346
+      "sha256": "D663B5F8C1097554D96FA4DB6F3B000D74B6F6C4431378AC8279DD829BF79FC9",
+      "size_bytes": 8538
     },
     {
       "path": "trader1/research/replay/__init__.py",
@@ -3325,8 +3330,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "DF12A227FA5F81584B68D98F96FCA687574801BE9A3E21E72CC08EF91D335314",
-      "size_bytes": 53855
+      "sha256": "276C3E2A510C47589780A6A26844DB75E00418F338B120DD05B272939C3A59DF",
+      "size_bytes": 55120
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -3530,8 +3535,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "7A99C516AB0EEDA2483402AF916B26CABF16DF3A76221471879F0E584BC17DA0",
-      "size_bytes": 614821
+      "sha256": "B45B89083B4C185D8EB77399FA2201CF7199AA37356E6AA91FCB4D424CC4BEE2",
+      "size_bytes": 626447
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -3974,6 +3979,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_SHADOW_STREAM_SCHEDULER_SEMANTIC_RECHECK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -4953,6 +4962,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD.audit_report.json",
       "reason": "denied:system/"
     },
@@ -5793,6 +5810,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_SOURCE_PACKAGE_HYGIENE_RUNTIME_TERMINATION_RECONCILIATION_FIX.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6602,6 +6623,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_SOURCE_BUNDLE_HYGIENE_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7422,6 +7447,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_SOURCE_BUNDLE_HYGIENE_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8258,6 +8287,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_SOURCE_BUNDLE_HYGIENE_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
