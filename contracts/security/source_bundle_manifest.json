@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "B404B476A47530F3A4A02504086881AA24979C085C31B81E8CB5704307F1B7B4",
+      "sha256": "BC5D286EE4B3CF48DACCA29254DFB7FB2FCCBB71127F499938E419DC7DE55768",
       "size_bytes": 1096
     },
     {
@@ -747,6 +747,11 @@
       "path": "tests/replay/test_replay_determinism.py",
       "sha256": "BA69C98E2F2470105DF091F1B52F48FC603AC1714A250E2B020C110CDD13F758",
       "size_bytes": 1979
+    },
+    {
+      "path": "tests/research/test_candidate_scorecard_from_runtime.py",
+      "sha256": "1550510F80950FADA47EA7469B26D6A52D8032F00C3A7F9170DEA2CC39C29858",
+      "size_bytes": 4931
     },
     {
       "path": "tests/research/test_paper_shadow_evidence_accumulator.py",
@@ -2669,6 +2674,11 @@
       "size_bytes": 25922
     },
     {
+      "path": "tools/emit_upbit_paper_runtime_scorecard_bridge_patch_evidence.py",
+      "sha256": "1BCA828A0D2F4520C0F7B86DCDA09C1CDB16A1CD12905A1AF4775120599F3299",
+      "size_bytes": 26160
+    },
+    {
       "path": "tools/emit_upbit_public_data_sequence_regime_guard_patch_evidence.py",
       "sha256": "0EEECCC2ADFAED07337D5D843443B4DB66B183D0F8375CFE9EE68369B46CE696",
       "size_bytes": 25221
@@ -3214,6 +3224,16 @@
       "size_bytes": 49
     },
     {
+      "path": "trader1/research/profitability/__init__.py",
+      "sha256": "A6759E1C359E7C3A30218FD0D0CB2EAB69382C26E038437AADBA7BBD7A45A806",
+      "size_bytes": 50
+    },
+    {
+      "path": "trader1/research/profitability/candidate_scorecard.py",
+      "sha256": "525B8533F0A2FE184627B57523613954D818339EA7969364B6EC378A9B8DD629",
+      "size_bytes": 7929
+    },
+    {
       "path": "trader1/research/replay/__init__.py",
       "sha256": "AAA80DBAFB082DB6C17B730A31AEE42CC6E71548096C0E889766724465773311",
       "size_bytes": 33
@@ -3505,8 +3525,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "00D459097ACCB0C314745C06842B3C0995BC3AE0189E0BF5993EC4F868032719",
-      "size_bytes": 611539
+      "sha256": "25DF9EAEF8DECA58ABB9C49712998D3D37882A54B44A1064FDC576BE749348F7",
+      "size_bytes": 613737
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4296,6 +4316,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/VALIDATOR_IMPLEMENTATION.md",
       "reason": "denied:contracts/generated/"
     },
@@ -4977,6 +5001,10 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.audit_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE_20260430.md",
       "reason": "denied:system/"
     },
     {
@@ -5824,6 +5852,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PUBLIC_DATA_SEQUENCE_REGIME_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6621,6 +6653,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7429,6 +7465,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8256,6 +8296,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PUBLIC_DATA_SEQUENCE_REGIME_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
@@ -8460,6 +8504,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4_upbit_scorecard_bridge_current_refresh-cycle-1.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4_upbit_scorecard_bridge_current_refresh-cycle-2.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/latest_paper_ledger_head.json",
       "reason": "denied:system/"
     },
@@ -8473,6 +8525,10 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4_upbit_candidate_decision_guard_current_refresh-ledger-rollup.paper_ledger_rollup_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4_upbit_scorecard_bridge_current_refresh-ledger-rollup.paper_ledger_rollup_report.json",
       "reason": "denied:system/"
     },
     {
@@ -8545,6 +8601,14 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4_upbit_candidate_decision_guard_current_refresh-collector-2.canonical_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4_upbit_scorecard_bridge_current_refresh-collector-1.canonical_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4_upbit_scorecard_bridge_current_refresh-collector-2.canonical_events.jsonl",
       "reason": "denied:system/"
     },
     {
@@ -8684,6 +8748,22 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4_upbit_scorecard_bridge_current_refresh-collector-1.collection_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4_upbit_scorecard_bridge_current_refresh-collector-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4_upbit_scorecard_bridge_current_refresh-collector-2.collection_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4_upbit_scorecard_bridge_current_refresh-collector-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/latest_collection_report.json",
       "reason": "denied:system/"
     },
@@ -8753,6 +8833,14 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4_upbit_candidate_decision_guard_current_refresh-collector-2.raw_candles.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4_upbit_scorecard_bridge_current_refresh-collector-1.raw_candles.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4_upbit_scorecard_bridge_current_refresh-collector-2.raw_candles.json",
       "reason": "denied:system/"
     },
     {
@@ -8912,6 +9000,22 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4_upbit_scorecard_bridge_current_refresh-cycle-1.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4_upbit_scorecard_bridge_current_refresh-cycle-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4_upbit_scorecard_bridge_current_refresh-cycle-2.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4_upbit_scorecard_bridge_current_refresh-cycle-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-linkage-cost-model-recovery-guard.json",
       "reason": "denied:system/"
     },
@@ -8980,7 +9084,19 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4_upbit_scorecard_bridge_current_refresh-recovery-guard.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4_upbit_scorecard_bridge_current_refresh.persistent_loop_report.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
       "reason": "denied:system/"
     },
     {

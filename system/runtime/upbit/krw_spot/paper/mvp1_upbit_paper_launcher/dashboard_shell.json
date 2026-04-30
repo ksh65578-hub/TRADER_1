@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-04-30T14:07:28Z",
+  "generated_at_utc": "2026-04-30T14:19:43Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -57,7 +57,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-04-30T14:07:28Z",
+    "generated_at_utc": "2026-04-30T14:19:43Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -122,7 +122,7 @@
     "history_window": "CURRENT_SNAPSHOT_ONLY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 1130,
+    "observed_span_seconds": 1434,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "INSUFFICIENT_SPAN",
     "degraded_sample_count": 60,
@@ -161,7 +161,7 @@
         "label": "Runtime artifact pressure",
         "status": "PASS",
         "value_display": "PASS",
-        "detail": "Runtime artifact pressure PASS: files=149, bytes=1202838, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
+        "detail": "Runtime artifact pressure PASS: files=167, bytes=1313951, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -209,7 +209,7 @@
     "source": "heartbeat.json",
     "history_window": "CURRENT_SNAPSHOT_ONLY",
     "history_sample_count": 60,
-    "observed_span_seconds": 1130,
+    "observed_span_seconds": 1434,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "INSUFFICIENT_SPAN",
     "stable_sample_count": 0,
@@ -328,13 +328,13 @@
     "color_token": "green",
     "truth_role": "dashboard_serving_truth",
     "source": "upbit_paper_runtime_recovery_guard_report.json",
-    "guard_id": "mvp4_upbit_candidate_decision_guard_current_refresh-recovery-guard",
-    "loop_id": "mvp4_upbit_candidate_decision_guard_current_refresh",
+    "guard_id": "mvp4_upbit_scorecard_bridge_current_refresh-recovery-guard",
+    "loop_id": "mvp4_upbit_scorecard_bridge_current_refresh",
     "latest_cycle_status": "PASS",
     "latest_cycle_recoverable": true,
-    "canonical_jsonl_checked_count": 17,
+    "canonical_jsonl_checked_count": 19,
     "corrupted_jsonl_quarantined_count": 0,
-    "ledger_jsonl_checked_count": 7,
+    "ledger_jsonl_checked_count": 9,
     "corrupted_ledger_jsonl_quarantined_count": 0,
     "ledger_jsonl_invalid_count": 0,
     "orphan_tmp_file_count": 0,
@@ -1158,9 +1158,9 @@
     "truth_role": "dashboard_serving_truth",
     "source": "summary.json",
     "freshness_status": "PASS",
-    "equity_display": "999,981 KRW",
-    "exposure_notional_display": "38,500 KRW",
-    "exposure_pct_display": "3.85%",
+    "equity_display": "999,975 KRW",
+    "exposure_notional_display": "49,500 KRW",
+    "exposure_pct_display": "4.95%",
     "drawdown_pct_display": "0.00%",
     "exposure_review_cap_pct_display": "20.00% attention / 50.00% block",
     "drawdown_review_cap_pct_display": "2.00% attention / 5.00% block",
@@ -1295,14 +1295,14 @@
     "cash": {
       "card_id": "cash",
       "label": "Cash",
-      "value_display": "961,481 KRW",
+      "value_display": "950,475 KRW",
       "detail": "Simulated PAPER ledger, not exchange balance",
       "freshness_status": "PASS"
     },
     "equity": {
       "card_id": "equity",
       "label": "Equity",
-      "value_display": "999,981 KRW",
+      "value_display": "999,975 KRW",
       "detail": "Simulated PAPER ledger, not exchange balance",
       "freshness_status": "PASS"
     },
@@ -1323,14 +1323,14 @@
     "unrealized_pnl": {
       "card_id": "unrealized_pnl",
       "label": "Unrealized PnL",
-      "value_display": "-19 KRW",
+      "value_display": "-25 KRW",
       "detail": "Open PAPER position mark-to-market estimate",
       "freshness_status": "PASS"
     },
     "total_pnl": {
       "card_id": "total_pnl",
       "label": "Total PnL",
-      "value_display": "-19 KRW",
+      "value_display": "-25 KRW",
       "detail": "Realized plus unrealized PAPER PnL",
       "freshness_status": "PASS"
     },
@@ -1374,9 +1374,9 @@
       {
         "symbol": "KRW-BTC",
         "side": "LONG",
-        "quantity": "0.03847883567840598474823884991",
+        "quantity": "0.04947278872937912324773566417",
         "avg_price": "UNKNOWN",
-        "unrealized_pnl": "-19.25000000000000000000002"
+        "unrealized_pnl": "-24.75000000000000000000002"
       }
     ],
     "empty_message": "No open PAPER positions",
@@ -1429,5 +1429,5 @@
   "blocking_reason": "HARD_TRUTH_MISSING",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "4937828307FFABA6A6723A6D3A3ED12E4054A20140DF9CBCB33CDD524DCE6883"
+  "dashboard_hash": "3DF5ED19E2AA193AFD7729B986A032E3B9B4B31118C7829246AA7418EA29CFA7"
 }

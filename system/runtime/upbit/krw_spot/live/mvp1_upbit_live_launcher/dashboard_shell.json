@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-04-30T14:06:45Z",
+  "generated_at_utc": "2026-04-30T14:18:59Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "LIVE",
@@ -41,7 +41,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-04-30T14:06:45Z",
+    "generated_at_utc": "2026-04-30T14:18:59Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -106,12 +106,12 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 101836,
+    "observed_span_seconds": 102428,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 0,
     "stale_sample_count": 0,
-    "summary": "Validated stability history has 60 sample(s) over 101836s; live orders remain blocked.",
+    "summary": "Validated stability history has 60 sample(s) over 102428s; live orders remain blocked.",
     "metrics": [
       {
         "metric_id": "heartbeat_age",
@@ -145,7 +145,7 @@
         "label": "Runtime artifact pressure",
         "status": "PASS",
         "value_display": "PASS",
-        "detail": "Runtime artifact pressure PASS: files=8, bytes=255876, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
+        "detail": "Runtime artifact pressure PASS: files=8, bytes=255877, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -193,7 +193,7 @@
     "source": "stability_history.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 101836,
+    "observed_span_seconds": 102428,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 60,
@@ -348,7 +348,7 @@
     "color_token": "blue",
     "truth_role": "dashboard_serving_truth",
     "source": "stability_history.json",
-    "one_line_summary": "Program stability history is clean, but actual long-run evidence still needs 86400s duration and 2880 stable samples before review. Current display history: 101836s and 60 stable samples. Use dedicated persistent PAPER/SHADOW runtime evidence for the full proof; display history alone is not enough.",
+    "one_line_summary": "Program stability history is clean, but actual long-run evidence still needs 86400s duration and 2880 stable samples before review. Current display history: 102428s and 60 stable samples. Use dedicated persistent PAPER/SHADOW runtime evidence for the full proof; display history alone is not enough.",
     "stub_boundary_message": "No validated persistent runtime source is loaded for long-run evidence.",
     "evidence_requirement_summary": "1/8 long-run evidence requirements currently pass for display-only review; LIVE review remains blocked.",
     "evidence_requirements_blocking_count": 7,
@@ -1398,5 +1398,5 @@
   "blocking_reason": "HARD_TRUTH_MISSING",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "0D94BE1B6EF2758A46E5C8C9F5FA4413FECDFBCD1AA5D42C35BDE83F95A837BE"
+  "dashboard_hash": "B80A0DCD2E5303D4F1BC53839E864BAD9F918A755D078C1BAB182281E89A50F1"
 }

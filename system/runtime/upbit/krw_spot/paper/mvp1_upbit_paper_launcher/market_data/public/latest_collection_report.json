@@ -1,14 +1,14 @@
 {
   "can_live_trade": false,
   "canonical_event_count": 6,
-  "collector_id": "mvp4_upbit_candidate_decision_guard_current_refresh-collector-2",
-  "generated_at_utc": "2026-04-30T14:06:45Z",
+  "collector_id": "mvp4_upbit_scorecard_bridge_current_refresh-collector-2",
+  "generated_at_utc": "2026-04-30T14:18:58Z",
   "live_order_allowed": false,
   "live_order_ready": false,
   "project_id": "TRADER_1",
   "quarantine_path": null,
-  "report_hash": "B5175C25AB7E8A8A164171B7DAEE558D936481FF786EA1905A4FFC2D46A97653",
-  "report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4_upbit_candidate_decision_guard_current_refresh-collector-2.collection_report.json",
+  "report_hash": "BC79EA38E12E09232BF8C0FE79A28BE138CD327D88B3FCF8E5B6D5960DA88FC7",
+  "report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4_upbit_scorecard_bridge_current_refresh-collector-2.collection_report.json",
   "scale_up_allowed": false,
   "schema_id": "trader1.upbit_public_market_data_latest_pointer.v1"
 }
