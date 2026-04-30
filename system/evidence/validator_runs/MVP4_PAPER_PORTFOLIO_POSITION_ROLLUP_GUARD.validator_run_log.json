@@ -1,0 +1,68 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T19:22:40Z",
+  "patch_id": "MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD_20260501_001",
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "paper_portfolio_snapshot_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "upbit_paper_runtime_cycle_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS",
+      "blocker_code": null,
+      "message": null
+    }
+  ],
+  "overall_status": "PASS"
+}

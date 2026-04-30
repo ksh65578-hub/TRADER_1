@@ -2650,6 +2650,20 @@ def paper_portfolio_snapshot_validator() -> ValidatorResult:
     binance_result = validate_paper_portfolio_snapshot(binance)
     if binance_result.status != "PASS":
         return fail_result("paper_portfolio_snapshot_validator", binance_result.message, paths, binance_result.blocker_code or "UNKNOWN_BLOCKED")
+    filled = build_paper_portfolio_snapshot_from_fill(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        session_id="validator-upbit-paper-filled",
+        symbol="KRW-BTC",
+        side="BUY",
+        quantity="0.01",
+        fill_price="1000500",
+        mark_price="1000000",
+        fee_amount="5",
+    )
+    filled_result = validate_paper_portfolio_snapshot(filled)
+    if filled_result.status != "PASS":
+        return fail_result("paper_portfolio_snapshot_validator", filled_result.message, paths, filled_result.blocker_code or "UNKNOWN_BLOCKED")
     live_mutation = dict(upbit)
     live_mutation["live_order_allowed"] = True
     live_mutation["snapshot_hash"] = paper_portfolio_hash(live_mutation)
@@ -2662,6 +2676,12 @@ def paper_portfolio_snapshot_validator() -> ValidatorResult:
     tampered_result = validate_paper_portfolio_snapshot(tampered)
     if tampered_result.status != "FAIL" or tampered_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
         return fail_result("paper_portfolio_snapshot_validator", "paper portfolio arithmetic tamper was not detected", paths, "SCHEMA_IDENTITY_MISMATCH")
+    position_tampered = json.loads(json.dumps(filled))
+    position_tampered["positions"][0]["market_value"] = "9999"
+    position_tampered["snapshot_hash"] = paper_portfolio_hash(position_tampered)
+    position_tampered_result = validate_paper_portfolio_snapshot(position_tampered)
+    if position_tampered_result.status != "FAIL" or position_tampered_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result("paper_portfolio_snapshot_validator", "paper portfolio position detail tamper was not detected", paths, "SCHEMA_IDENTITY_MISMATCH")
     bad_scope = build_initial_paper_portfolio_snapshot(exchange="BINANCE", market_type="FUTURES_USDT_M", session_id="validator-bad-scope")
     bad_scope_result = validate_paper_portfolio_snapshot(bad_scope)
     if bad_scope_result.status != "BLOCKED" or bad_scope_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":

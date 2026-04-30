@@ -125,6 +125,60 @@ class PaperPortfolioTest(unittest.TestCase):
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
+    def test_paper_portfolio_detects_position_market_value_tamper(self):
+        snapshot = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-position-market-value-tamper",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        snapshot["positions"][0]["market_value"] = "9999"
+        snapshot["snapshot_hash"] = paper_portfolio_hash(snapshot)
+        result = validate_paper_portfolio_snapshot(snapshot)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_paper_portfolio_detects_position_unrealized_pnl_tamper(self):
+        snapshot = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-position-unrealized-tamper",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        snapshot["positions"][0]["unrealized_pnl"] = "0"
+        snapshot["snapshot_hash"] = paper_portfolio_hash(snapshot)
+        result = validate_paper_portfolio_snapshot(snapshot)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_paper_portfolio_blocks_position_side_drift(self):
+        snapshot = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-position-side-drift",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        snapshot["positions"][0]["side"] = "SHORT"
+        snapshot["snapshot_hash"] = paper_portfolio_hash(snapshot)
+        result = validate_paper_portfolio_snapshot(snapshot)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
     def test_paper_portfolio_blocks_unsupported_scope(self):
         snapshot = build_initial_paper_portfolio_snapshot(
             exchange="BINANCE",
