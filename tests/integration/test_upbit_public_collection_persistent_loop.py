@@ -21,6 +21,8 @@ from trader1.runtime.paper.upbit_public_collector import (
     recover_jsonl_records,
     upbit_public_market_data_collection_hash,
     validate_upbit_public_market_data_collection_report,
+    validate_upbit_public_market_data_collection_writer_report,
+    validate_upbit_public_market_data_latest_pointer,
     write_upbit_public_market_data_collection_artifacts,
 )
 from trader1.validation.mvp0_validators import run_validators
@@ -167,8 +169,14 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             root = Path(tmp)
             writer = write_upbit_public_market_data_collection_artifacts(root=root, report=report)
             self.assertEqual(writer["writer_status"], "PASS")
+            self.assertEqual(validate_upbit_public_market_data_collection_writer_report(writer, source_report=report).status, "PASS")
             self.assertEqual(writer["public_market_data_hash"], report["public_market_data_hash"])
             latest_pointer = json.loads((root / writer["artifact_paths"][3]).read_text(encoding="utf-8"))
+            self.assertEqual(validate_upbit_public_market_data_latest_pointer(latest_pointer, source_report=report).status, "PASS")
+            self.assertEqual(latest_pointer["exchange"], "UPBIT")
+            self.assertEqual(latest_pointer["market_type"], "KRW_SPOT")
+            self.assertEqual(latest_pointer["mode"], "PAPER")
+            self.assertEqual(latest_pointer["session_id"], report["session_id"])
             self.assertEqual(latest_pointer["public_market_data_hash"], report["public_market_data_hash"])
             canonical_path = root / writer["artifact_paths"][1]
             with canonical_path.open("a", encoding="utf-8", newline="") as handle:
@@ -177,6 +185,37 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(len(records), report["canonical_event_count"])
             self.assertIsNotNone(quarantine_path)
             self.assertFalse(writer["live_order_allowed"])
+
+    def test_latest_pointer_hash_mismatch_fails_closed(self):
+        report = build_upbit_public_market_data_collection_report(
+            collector_id="collection-pointer-hash-mismatch",
+            session_id="mvp1_upbit_paper_launcher",
+        )
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            writer = write_upbit_public_market_data_collection_artifacts(root=root, report=report)
+            latest_pointer = json.loads((root / writer["artifact_paths"][3]).read_text(encoding="utf-8"))
+            latest_pointer["public_market_data_hash"] = "0" * 64
+
+            result = validate_upbit_public_market_data_latest_pointer(latest_pointer, source_report=report)
+
+            self.assertEqual(result.status, "FAIL")
+            self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_collection_writer_live_flag_mutation_is_blocked(self):
+        report = build_upbit_public_market_data_collection_report(
+            collector_id="collection-writer-live-flag-mutation",
+            session_id="mvp1_upbit_paper_launcher",
+        )
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            writer = write_upbit_public_market_data_collection_artifacts(root=root, report=report)
+            writer["live_order_allowed"] = True
+
+            result = validate_upbit_public_market_data_collection_writer_report(writer, source_report=report)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_bounded_paper_loop_writes_latest_cycle_and_remains_live_blocked(self):
         with TemporaryDirectory() as tmp:

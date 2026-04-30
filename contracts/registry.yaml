@@ -1194,6 +1194,22 @@
       "schema_id": "trader1.upbit_public_rest_continuity_history.v1",
       "path": "contracts/schema/upbit_public_rest_continuity_history.schema.json"
     },
+    "upbit_public_market_data_collection_report": {
+      "schema_id": "trader1.upbit_public_market_data_collection_report.v1",
+      "path": "contracts/schema/upbit_public_market_data_collection_report.schema.json"
+    },
+    "upbit_public_market_data_latest_pointer": {
+      "schema_id": "trader1.upbit_public_market_data_latest_pointer.v1",
+      "path": "contracts/schema/upbit_public_market_data_latest_pointer.schema.json"
+    },
+    "upbit_public_market_data_collection_writer_report": {
+      "schema_id": "trader1.upbit_public_market_data_collection_writer_report.v1",
+      "path": "contracts/schema/upbit_public_market_data_collection_writer_report.schema.json"
+    },
+    "upbit_paper_runtime_cycle_report": {
+      "schema_id": "trader1.upbit_paper_runtime_cycle_report.v1",
+      "path": "contracts/schema/upbit_paper_runtime_cycle_report.schema.json"
+    },
     "binance_adapter_surface_report": {
       "schema_id": "trader1.binance_adapter_surface_report.v1",
       "path": "contracts/schema/binance_adapter_surface_report.schema.json"

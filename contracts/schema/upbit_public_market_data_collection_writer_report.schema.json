@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.upbit_public_market_data_collection_writer_report.v1",
+  "title": "upbit_public_market_data_collection_writer_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "writer_status",
+    "collector_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "symbol",
+    "public_market_data_hash",
+    "primary_blocker_code",
+    "blocker_message",
+    "artifact_paths",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {"const": "trader1.upbit_public_market_data_collection_writer_report.v1"},
+    "generated_at_utc": {"type": "string"},
+    "project_id": {"const": "TRADER_1"},
+    "writer_status": {"enum": ["PASS", "BLOCKED"]},
+    "collector_id": {"type": "string", "minLength": 1},
+    "exchange": {"const": "UPBIT"},
+    "market_type": {"const": "KRW_SPOT"},
+    "mode": {"const": "PAPER"},
+    "session_id": {"type": "string", "minLength": 1},
+    "symbol": {"type": "string", "minLength": 1},
+    "public_market_data_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+    "primary_blocker_code": {
+      "oneOf": [
+        {"$ref": "common.defs.schema.json#/$defs/no_trade_reason"},
+        {"type": "null"}
+      ]
+    },
+    "blocker_message": {"type": "string"},
+    "artifact_paths": {"type": "array", "items": {"type": "string"}},
+    "live_order_ready": {"const": false},
+    "live_order_allowed": {"const": false},
+    "can_live_trade": {"const": false},
+    "scale_up_allowed": {"const": false}
+  }
+}

@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-04-30T16:31:08Z",
+  "generated_at_utc": "2026-04-30T16:49:53Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -47,14 +47,14 @@
   "portfolio": {
     "source": "LEDGER",
     "freshness_status": "PASS",
-    "equity": 999972.5,
-    "cash_available": 944972.5,
+    "equity": 999969.75,
+    "cash_available": 939469.75,
     "locked_balance": 0.0,
-    "position_market_value": 55000.0,
+    "position_market_value": 60500.0,
     "open_position_count": 1,
     "realized_pnl": 0.0,
-    "unrealized_pnl": -27.5,
-    "total_pnl": -27.5,
+    "unrealized_pnl": -30.25,
+    "total_pnl": -30.25,
     "mdd": 0.0
   },
   "orders": {
@@ -145,15 +145,15 @@
   "positions": [
     {
       "average_entry_price": "1000550.025",
-      "cost_basis": "55027.5",
+      "cost_basis": "60530.25",
       "mark_price": "1000550.025",
-      "market_value": "54999.99999999999999999999998",
+      "market_value": "60499.99999999999999999999997",
       "paper_only": true,
-      "quantity": "0.0549697652548656924974840713",
+      "quantity": "0.06046674178035226174723247843",
       "side": "LONG",
       "source": "PAPER_LEDGER_ROLLUP",
       "symbol": "KRW-BTC",
-      "unrealized_pnl": "-27.50000000000000000000002"
+      "unrealized_pnl": "-30.25000000000000000000003"
     }
   ],
   "strategies": [],
