@@ -1737,6 +1737,61 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-CANDIDATE-SCORECARD-RUNTIME-LINKAGE-BINDING",
+      "source_section_id": "SECTION_OPTIMIZER_OBJECTIVE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "PAPER scorecard source evidence binding",
+      "full_text_marker": "REQ-MVP4-CANDIDATE-SCORECARD-RUNTIME-LINKAGE-BINDING: ranking evidence must bind to the exact PAPER runtime cycle id and hash",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Candidate scorecard runtime linkage binding",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.candidate_scorecard.v1"
+      ],
+      "validator_ids": [
+        "candidate_scorecard_validator",
+        "candidate_scorecard_net_ev_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/candidate_scorecard.schema.json",
+        "trader1/research/profitability/candidate_scorecard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/research/test_candidate_scorecard_from_runtime.py",
+        "tests/validators/test_candidate_scorecard_net_ev_validator.py",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_pass.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_raw_cost_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_live_flag_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_oos_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_live_ready_wording_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_robustness_sources_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_mismatched_robustness_sources_fail.json",
+        "tools/emit_candidate_scorecard_runtime_linkage_binding_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.md"
+      ],
+      "test_ids": [
+        "tests/research/test_candidate_scorecard_from_runtime.py",
+        "tests/validators/test_candidate_scorecard_net_ev_validator.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "OPTIMIZER_MVP3",
+        "PROFIT_CONVERGENCE_MVP3",
+        "VALIDATOR_IMPLEMENTATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-SCORECARD-BRIDGE",
+        "REQ-MVP4-STRATEGY-NET-EV-SCORECARD-SCHEMA-HARDENING",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "75B82F700B83208F480E69BAF41BE0EB953CF4CDE632E52E2AF4BB1803B0747D",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-CONVERGENCE-ASSESSMENT-SCHEMA-HARDENING",
       "source_section_id": "SECTION_CONVERGENCE_ASSESSMENT",
       "source_file": "TRADER_1.md",
@@ -10653,5 +10708,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T22:29:24Z"
+  "updated_at_utc": "2026-04-30T22:55:53Z"
 }

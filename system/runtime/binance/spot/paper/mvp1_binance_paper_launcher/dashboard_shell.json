@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-04-30T22:29:24Z",
+  "generated_at_utc": "2026-04-30T22:55:54Z",
   "exchange": "BINANCE",
   "market_type": "SPOT",
   "mode": "PAPER",
@@ -41,7 +41,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-04-30T22:29:24Z",
+    "generated_at_utc": "2026-04-30T22:55:54Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -112,12 +112,12 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 57083,
+    "observed_span_seconds": 58177,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 0,
     "stale_sample_count": 0,
-    "summary": "Validated stability history has 60 sample(s) over 57083s; live orders remain blocked.",
+    "summary": "Validated stability history has 60 sample(s) over 58177s; live orders remain blocked.",
     "metrics": [
       {
         "metric_id": "heartbeat_age",
@@ -199,7 +199,7 @@
     "source": "stability_history.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 57083,
+    "observed_span_seconds": 58177,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 60,
@@ -354,7 +354,7 @@
     "color_token": "blue",
     "truth_role": "dashboard_serving_truth",
     "source": "stability_history.json",
-    "one_line_summary": "Program stability history is clean, but actual long-run evidence still needs 86400s duration and 2880 stable samples before review. Current display history: 57083s and 60 stable samples. Use dedicated persistent PAPER/SHADOW runtime evidence for the full proof; display history alone is not enough.",
+    "one_line_summary": "Program stability history is clean, but actual long-run evidence still needs 86400s duration and 2880 stable samples before review. Current display history: 58177s and 60 stable samples. Use dedicated persistent PAPER/SHADOW runtime evidence for the full proof; display history alone is not enough.",
     "stub_boundary_message": "No validated persistent runtime source is loaded for long-run evidence.",
     "evidence_requirement_summary": "1/8 long-run evidence requirements currently pass for display-only review; LIVE review remains blocked.",
     "evidence_requirements_blocking_count": 7,
@@ -1423,5 +1423,5 @@
   "blocking_reason": "BINANCE_ADAPTER_SURFACE_ONLY",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "4B879615A11E42A1B42E6FF63DDE3AA1FD9BA5A87E10788523ACB2C9D0FE207D"
+  "dashboard_hash": "BC3CB2B8001CD6BCB1FBF8CB12AD60284CEDF360171093716397DB07B2E5DD24"
 }

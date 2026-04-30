@@ -1363,6 +1363,46 @@
       "status": "IMPLEMENTED"
     },
     {
+      "requirement_id": "REQ-MVP4-CANDIDATE-SCORECARD-RUNTIME-LINKAGE-BINDING",
+      "section_id": "SECTION_OPTIMIZER_OBJECTIVE",
+      "schema_files": [
+        "contracts/schema/candidate_scorecard.schema.json"
+      ],
+      "validator_files": [
+        "trader1/research/profitability/candidate_scorecard.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/research/test_candidate_scorecard_from_runtime.py",
+        "tests/validators/test_candidate_scorecard_net_ev_validator.py"
+      ],
+      "fixture_files": [
+        "tests/validators/fixtures/candidate_scorecard_net_ev_pass.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_mismatched_robustness_sources_fail.json"
+      ],
+      "runtime_modules": [
+        "trader1/research/profitability/candidate_scorecard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json"
+      ],
+      "patch_result_fields": [
+        "new_or_changed_schema_ids",
+        "validators_required",
+        "validators_run",
+        "tests_run"
+      ],
+      "minimum_depth": "DEPTH_4_RUNTIME_INTEGRATION",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-CONVERGENCE-ASSESSMENT-SCHEMA-HARDENING",
       "section_id": "SECTION_CONVERGENCE_ASSESSMENT",
       "schema_files": [
@@ -8137,7 +8177,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-04-30T22:29:24Z",
+  "updated_at_utc": "2026-04-30T22:55:53Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

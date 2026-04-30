@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-04-30T22:29:24Z",
+  "generated_at_utc": "2026-04-30T22:55:54Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -45,27 +45,27 @@
     "message": "continue read-only monitoring"
   },
   "portfolio": {
-    "source": "SUMMARY_BUILDER",
-    "freshness_status": "UNTESTED",
-    "source_snapshot_hash": null,
-    "source_runtime_cycle_id": null,
-    "source_paper_ledger_head_hash": null,
-    "source_snapshot_status": "UNTESTED",
-    "source_snapshot_generated_at_utc": null,
-    "source_snapshot_age_seconds": null,
+    "source": "LEDGER",
+    "freshness_status": "PASS",
+    "source_snapshot_hash": "10F556C109110E436FCC284E3C25410C16312D026DC35A740D52BE5BE31BB86F",
+    "source_runtime_cycle_id": "mvp4_upbit_scorecard_bridge_current_refresh-cycle-2",
+    "source_paper_ledger_head_hash": "076D51E966611A2D6AD550CCCEA166969DAC1F9141B1DC5B3B386E3EC32977C4",
+    "source_snapshot_status": "PASS",
+    "source_snapshot_generated_at_utc": "2026-04-30T22:55:54Z",
+    "source_snapshot_age_seconds": 0,
     "source_snapshot_stale_after_seconds": 300,
-    "source_snapshot_freshness_message": "No verified paper portfolio snapshot loaded",
-    "source_balance_kind": null,
-    "equity": null,
-    "cash_available": null,
-    "locked_balance": null,
-    "position_market_value": null,
-    "open_position_count": 0,
-    "realized_pnl": null,
-    "unrealized_pnl": null,
-    "total_pnl": null,
-    "mdd": null,
-    "next_action": "Run PAPER with a fresh verified paper portfolio ledger before trusting portfolio values"
+    "source_snapshot_freshness_message": "PAPER portfolio snapshot is fresh and display-only",
+    "source_balance_kind": "SIMULATED_PAPER_LEDGER",
+    "equity": 999950.5,
+    "cash_available": 900950.5,
+    "locked_balance": 0.0,
+    "position_market_value": 99000.0,
+    "open_position_count": 1,
+    "realized_pnl": 0.0,
+    "unrealized_pnl": -49.5,
+    "total_pnl": -49.5,
+    "mdd": 0.0,
+    "next_action": "Continue PAPER monitoring; portfolio values are display truth only"
   },
   "orders": {
     "source": "SUMMARY_BUILDER",
@@ -75,20 +75,122 @@
     "reconciliation_age_sec": null
   },
   "watch_universe": [],
-  "entry_candidates": [],
-  "positions": [],
+  "entry_candidates": [
+    {
+      "can_live_trade": false,
+      "candidate_id": "KRW-BTC-pullback-trend-long",
+      "cost_breakdown_bps": {
+        "fee_bps": "5",
+        "latency_bps": "0",
+        "market_impact_bps": "0",
+        "slippage_bps": "5",
+        "spread_bps": "1"
+      },
+      "cost_model_source": "PAPER_RUNTIME_STATIC_COST_MODEL",
+      "decision": "PAPER_ENTRY_REVIEW",
+      "expected_cost_bps": "11",
+      "expected_edge_bps": "42",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "net_ev_after_cost_bps": "31",
+      "no_trade_reason": null,
+      "regime": "UPTREND",
+      "scale_up_allowed": false,
+      "signal_grade": "A",
+      "signal_strength": "0.72",
+      "strategy_family": "PULLBACK_TREND_LONG",
+      "symbol": "KRW-BTC"
+    },
+    {
+      "can_live_trade": false,
+      "candidate_id": "KRW-BTC-breakout-retest-long",
+      "cost_breakdown_bps": {
+        "fee_bps": "5",
+        "latency_bps": "0",
+        "market_impact_bps": "0",
+        "slippage_bps": "5",
+        "spread_bps": "1"
+      },
+      "cost_model_source": "PAPER_RUNTIME_STATIC_COST_MODEL",
+      "decision": "PAPER_ENTRY_REVIEW",
+      "expected_cost_bps": "11",
+      "expected_edge_bps": "24",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "net_ev_after_cost_bps": "13",
+      "no_trade_reason": null,
+      "regime": "UPTREND",
+      "scale_up_allowed": false,
+      "signal_grade": "B",
+      "signal_strength": "0.61",
+      "strategy_family": "BREAKOUT_RETEST_LONG",
+      "symbol": "KRW-BTC"
+    },
+    {
+      "can_live_trade": false,
+      "candidate_id": "KRW-BTC-vwap-mean-reversion",
+      "cost_breakdown_bps": {
+        "fee_bps": "5",
+        "latency_bps": "0",
+        "market_impact_bps": "0",
+        "slippage_bps": "5",
+        "spread_bps": "1"
+      },
+      "cost_model_source": "PAPER_RUNTIME_STATIC_COST_MODEL",
+      "decision": "NO_TRADE",
+      "expected_cost_bps": "11",
+      "expected_edge_bps": "9",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "net_ev_after_cost_bps": "-2",
+      "no_trade_reason": "MIN_EDGE_FAIL",
+      "regime": "UPTREND",
+      "scale_up_allowed": false,
+      "signal_grade": "C",
+      "signal_strength": "0.49",
+      "strategy_family": "VWAP_MEAN_REVERSION",
+      "symbol": "KRW-BTC"
+    }
+  ],
+  "positions": [
+    {
+      "average_entry_price": "1000550.025",
+      "cost_basis": "99049.5",
+      "mark_price": "1000550.025",
+      "market_value": "98999.99999999999999999999996",
+      "paper_only": true,
+      "quantity": "0.09894557745875824649547132834",
+      "side": "LONG",
+      "source": "PAPER_LEDGER_ROLLUP",
+      "symbol": "KRW-BTC",
+      "unrealized_pnl": "-49.50000000000000000000004"
+    }
+  ],
   "strategies": [],
   "market_context": {
-    "source": "SUMMARY_BUILDER",
-    "freshness_status": "UNTESTED",
-    "regime": null,
-    "liquidity_status": null,
-    "volatility_status": null
+    "source": "MARKET_DATA",
+    "freshness_status": "PASS",
+    "regime": "UPTREND",
+    "liquidity_status": "PASS",
+    "volatility_status": "PASS"
   },
   "action_queue": [],
   "recent_errors": [],
   "recent_no_trade_context": [],
-  "recent_entry_context": [],
+  "recent_entry_context": [
+    {
+      "message": "PAPER-only runtime candidate passed net EV after cost",
+      "reason_code": "PAPER_RUNTIME_ENTRY"
+    },
+    {
+      "message": "regime=UPTREND allows long paper review",
+      "reason_code": "REGIME_FILTER_PASS"
+    },
+    {
+      "message": "net_ev_after_cost_bps=31",
+      "reason_code": "NET_EV_AFTER_COST_PASS"
+    }
+  ],
   "fee_snapshot": null,
   "live_ready": {
     "source": "READINESS_SURFACE",

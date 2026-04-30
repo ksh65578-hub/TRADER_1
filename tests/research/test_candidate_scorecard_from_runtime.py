@@ -5,6 +5,7 @@ from trader1.research.profitability.candidate_scorecard import (
     ROBUSTNESS_PASS,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     has_required_robustness_source_ids,
+    robustness_source_evidence_id,
 )
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report, upbit_paper_runtime_cycle_hash
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors
@@ -20,6 +21,12 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(scorecard["schema_id"], "trader1.candidate_scorecard.v1")
         self.assertEqual(scorecard["candidate_id"], runtime["selected_candidate"]["candidate_id"])
+        self.assertEqual(scorecard["source_runtime_cycle_id"], runtime["cycle_id"])
+        self.assertEqual(scorecard["source_runtime_cycle_hash"], runtime["cycle_hash"])
+        self.assertIn(
+            f"upbit_paper_runtime_cycle:{runtime['cycle_id']}:{runtime['cycle_hash']}",
+            scorecard["source_evidence_ids"],
+        )
         self.assertEqual(scorecard["objective_basis"], "NET_EV_AFTER_COST")
         self.assertEqual(scorecard["mode"], "PAPER")
         self.assertEqual(scorecard["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
@@ -66,8 +73,8 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
             runtime,
             robustness_statuses=ROBUSTNESS_PASS,
             robustness_source_evidence_ids=[
-                "oos:scorecard-runtime-robust-partial-source",
-                "walk_forward:scorecard-runtime-robust-partial-source",
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
                 "paper:missing-bootstrap-source",
             ],
         )
@@ -79,6 +86,24 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(scorecard["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
         self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
 
+    def test_robustness_evidence_must_match_runtime_cycle_hash(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-mismatch")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], "B" * 64),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
+
     def test_robust_paper_scorecard_can_be_paper_ranking_input_only(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust")
 
@@ -86,9 +111,9 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
             runtime,
             robustness_statuses=ROBUSTNESS_PASS,
             robustness_source_evidence_ids=[
-                "oos:scorecard-runtime-robust",
-                "walk_forward:scorecard-runtime-robust",
-                "bootstrap:scorecard-runtime-robust",
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
             ],
         )
         errors = _candidate_scorecard_net_ev_errors(scorecard)

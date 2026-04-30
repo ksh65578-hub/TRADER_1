@@ -8,6 +8,8 @@
   },
   "scorecard_id": "scorecard_net_ev_pass",
   "candidate_id": "candidate_trend_pullback_krw_btc_001",
+  "source_runtime_cycle_id": "paper_scorecard_fixture_001",
+  "source_runtime_cycle_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
   "strategy_id": "trend_pullback",
   "strategy_build_id": "strategy_build_mvp4_net_ev_fixture",
   "parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -37,9 +39,10 @@
   "live_readiness_status": "NOT_LIVE_READY",
   "operator_warning": "PAPER candidate scorecard is ranking input only, not LIVE_READY and cannot place or allow live orders.",
   "source_evidence_ids": [
-    "oos:paper_scorecard_fixture_001",
-    "walk_forward:paper_scorecard_fixture_001",
-    "bootstrap:paper_scorecard_fixture_001"
+    "upbit_paper_runtime_cycle:paper_scorecard_fixture_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "oos:paper_scorecard_fixture_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "walk_forward:paper_scorecard_fixture_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "bootstrap:paper_scorecard_fixture_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
   ],
   "blockers": [],
   "live_order_ready": false,

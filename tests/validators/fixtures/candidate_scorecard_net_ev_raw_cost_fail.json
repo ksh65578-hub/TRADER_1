@@ -8,6 +8,8 @@
   },
   "scorecard_id": "scorecard_net_ev_raw_cost_fail",
   "candidate_id": "candidate_raw_edge_fail_001",
+  "source_runtime_cycle_id": "paper_scorecard_fixture_raw_cost_fail",
+  "source_runtime_cycle_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
   "strategy_id": "breakout_retest",
   "strategy_build_id": "strategy_build_mvp4_net_ev_fixture",
   "parameter_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
@@ -37,9 +39,10 @@
   "live_readiness_status": "NOT_LIVE_READY",
   "operator_warning": "PAPER candidate scorecard is ranking input only, not LIVE_READY and cannot place or allow live orders.",
   "source_evidence_ids": [
-    "oos:paper_scorecard_fixture_raw_cost_fail",
-    "walk_forward:paper_scorecard_fixture_raw_cost_fail",
-    "bootstrap:paper_scorecard_fixture_raw_cost_fail"
+    "upbit_paper_runtime_cycle:paper_scorecard_fixture_raw_cost_fail:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "oos:paper_scorecard_fixture_raw_cost_fail:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "walk_forward:paper_scorecard_fixture_raw_cost_fail:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "bootstrap:paper_scorecard_fixture_raw_cost_fail:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
   ],
   "blockers": [],
   "live_order_ready": false,

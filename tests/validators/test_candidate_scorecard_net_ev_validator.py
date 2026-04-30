@@ -66,7 +66,20 @@ class CandidateScorecardNetEvValidatorTest(unittest.TestCase):
 
         errors = _candidate_scorecard_net_ev_errors(scorecard)
 
-        self.assertIn("ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids", errors)
+        self.assertTrue(
+            any("ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids" in error for error in errors),
+            errors,
+        )
+
+    def test_robustness_sources_must_match_runtime_cycle_binding(self):
+        scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_mismatched_robustness_sources_fail.json")
+
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertIn(
+            "ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids linked to the same runtime cycle hash",
+            errors,
+        )
 
     def test_non_ranking_scorecard_must_explain_blocker(self):
         scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
