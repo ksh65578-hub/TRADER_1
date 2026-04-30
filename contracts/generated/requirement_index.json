@@ -10452,7 +10452,60 @@
       "source_text_sha256": "427AFAB50D675CF765244B09E4EC7DEDA5EFB56946080E94DB94D5E2F21C567E",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-DASHBOARD-PORTFOLIO-SOURCE-FRESHNESS",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard operator UX portfolio source freshness",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-PORTFOLIO-SOURCE-FRESHNESS:portfolio source age and stale threshold visible",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard portfolio values must expose source freshness",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_DASHBOARD_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_dashboard_portfolio_source_freshness_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_PORTFOLIO_SOURCE_FRESHNESS.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_schema_instance_validation.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "UPBIT_PAPER_RUNTIME",
+        "LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH"
+      ],
+      "source_text_sha256": "D0957E3BA60BA8885572F3B3C9DDD6CD9B5C406C5582D69FAF46126B3463FE35",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T21:20:53Z"
+  "updated_at_utc": "2026-04-30T21:39:40Z"
 }

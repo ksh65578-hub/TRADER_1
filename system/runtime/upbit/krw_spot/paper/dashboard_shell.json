@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-04-30T21:20:54Z",
+  "generated_at_utc": "2026-04-30T21:39:41Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -41,7 +41,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-04-30T21:20:54Z",
+    "generated_at_utc": "2026-04-30T21:39:41Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -1295,6 +1295,9 @@
     "source": "summary.json",
     "source_runtime_cycle_id": null,
     "source_paper_ledger_head_hash": null,
+    "source_snapshot_age_seconds": null,
+    "source_snapshot_stale_after_seconds": null,
+    "source_snapshot_freshness_message": "Stale summary; rerun PAPER launcher",
     "cash": {
       "card_id": "cash",
       "label": "Cash",
@@ -1424,5 +1427,5 @@
   "blocking_reason": "HARD_TRUTH_MISSING",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "8C33354D991A22B22E3384F50EB57E6B0D36FF3DB67767F6A93EBE1F123EBF93"
+  "dashboard_hash": "6B15E6CCEDC965A5647BACF18387FE76349DBDD1AD58D3BA1128E385AD0E6513"
 }

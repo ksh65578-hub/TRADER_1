@@ -2238,6 +2238,31 @@ def read_only_dashboard_validator() -> ValidatorResult:
             paths,
             "LEDGER_INTEGRITY_FAIL",
         )
+    if not isinstance(filled_dashboard.get("portfolio_snapshot", {}).get("source_snapshot_age_seconds"), int):
+        return fail_result(
+            "read_only_dashboard_validator",
+            "filled paper portfolio dashboard omitted source snapshot age",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if filled_dashboard.get("portfolio_snapshot", {}).get("source_snapshot_stale_after_seconds") != 300:
+        return fail_result(
+            "read_only_dashboard_validator",
+            "filled paper portfolio dashboard omitted source snapshot stale threshold",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    stale_source_dashboard = json.loads(json.dumps(filled_dashboard))
+    stale_source_dashboard["portfolio_snapshot"]["source_snapshot_age_seconds"] = 301
+    stale_source_dashboard["dashboard_hash"] = dashboard_shell_hash(stale_source_dashboard)
+    stale_source_result = validate_read_only_dashboard_shell(stale_source_dashboard, allowed_blockers)
+    if stale_source_result.status != "BLOCKED" or stale_source_result.blocker_code != "LATENCY_TTL_EXPIRED":
+        return fail_result(
+            "read_only_dashboard_validator",
+            "stale paper portfolio source age was not blocked",
+            paths,
+            stale_source_result.blocker_code or "LATENCY_TTL_EXPIRED",
+        )
     filled_rows = filled_dashboard.get("position_snapshot", {}).get("rows", [])
     if not filled_rows:
         return fail_result(
@@ -2274,6 +2299,7 @@ def read_only_dashboard_validator() -> ValidatorResult:
         "value 10000",
         "Runtime cycle: validator-dashboard-filled-cycle",
         "Ledger head: EEEEEEEEEEEE...",
+        "Age:",
     ):
         if fragment not in filled_html:
             return fail_result(

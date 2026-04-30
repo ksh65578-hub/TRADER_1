@@ -2498,6 +2498,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["entry_candidates"]["value_display"], "2")
         self.assertIsNone(portfolio["source_runtime_cycle_id"])
         self.assertIsNone(portfolio["source_paper_ledger_head_hash"])
+        self.assertIsInstance(portfolio["source_snapshot_age_seconds"], int)
+        self.assertEqual(portfolio["source_snapshot_stale_after_seconds"], 300)
+        self.assertIn("display-only", portfolio["source_snapshot_freshness_message"])
         html = render_dashboard_html(dashboard)
         self.assertIn("portfolio-kpi-grid", html)
         self.assertIn("portfolio-ledger", html)
@@ -2546,6 +2549,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["portfolio_snapshot"]["positions"]["value_display"], "1")
         self.assertEqual(dashboard["portfolio_snapshot"]["source_runtime_cycle_id"], "dashboard-position-fill-cycle")
         self.assertEqual(dashboard["portfolio_snapshot"]["source_paper_ledger_head_hash"], "D" * 64)
+        self.assertIsInstance(dashboard["portfolio_snapshot"]["source_snapshot_age_seconds"], int)
+        self.assertEqual(dashboard["portfolio_snapshot"]["source_snapshot_stale_after_seconds"], 300)
         rows = dashboard["position_snapshot"]["rows"]
         self.assertEqual(len(rows), 1)
         row = rows[0]
@@ -2561,11 +2566,20 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         html = render_dashboard_html(dashboard)
         self.assertIn("Runtime cycle: dashboard-position-fill-cycle", html)
         self.assertIn("Ledger head: DDDDDDDDDDDD...", html)
+        self.assertIn("Age:", html)
         self.assertIn("KRW-BTC | LONG | qty 0.01 | avg 1000500 | mark 1000000 | value 10000 | PnL -10", html)
         self.assertIn("<td>1000500</td>", html)
         self.assertIn("<td>1000000</td>", html)
         self.assertIn("<td>10000</td>", html)
         self.assertIn("<td>10010</td>", html)
+
+        stale_dashboard = dict(dashboard)
+        stale_dashboard["portfolio_snapshot"] = dict(dashboard["portfolio_snapshot"])
+        stale_dashboard["portfolio_snapshot"]["source_snapshot_age_seconds"] = 301
+        stale_dashboard["dashboard_hash"] = dashboard_shell_hash(stale_dashboard)
+        stale_result = validate_read_only_dashboard_shell(stale_dashboard)
+        self.assertEqual(stale_result.status, "BLOCKED")
+        self.assertEqual(stale_result.blocker_code, "LATENCY_TTL_EXPIRED")
 
     def test_dashboard_projects_paper_exposure_quality_report(self):
         dashboard = build_dashboard_with_paper_exposure_quality()

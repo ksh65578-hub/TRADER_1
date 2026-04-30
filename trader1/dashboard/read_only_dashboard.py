@@ -644,6 +644,9 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         "source": "summary.json",
         "source_runtime_cycle_id": portfolio.get("source_runtime_cycle_id"),
         "source_paper_ledger_head_hash": portfolio.get("source_paper_ledger_head_hash"),
+        "source_snapshot_age_seconds": portfolio.get("source_snapshot_age_seconds"),
+        "source_snapshot_stale_after_seconds": portfolio.get("source_snapshot_stale_after_seconds"),
+        "source_snapshot_freshness_message": portfolio.get("source_snapshot_freshness_message"),
         "cash": _portfolio_card(
             "cash",
             "Cash",
@@ -720,6 +723,9 @@ def _stale_portfolio_snapshot() -> dict[str, Any]:
         "source": "summary.json",
         "source_runtime_cycle_id": None,
         "source_paper_ledger_head_hash": None,
+        "source_snapshot_age_seconds": None,
+        "source_snapshot_stale_after_seconds": None,
+        "source_snapshot_freshness_message": "Stale summary; rerun PAPER launcher",
         "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
@@ -757,6 +763,9 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
         "source": "summary.json",
         "source_runtime_cycle_id": None,
         "source_paper_ledger_head_hash": None,
+        "source_snapshot_age_seconds": None,
+        "source_snapshot_stale_after_seconds": None,
+        "source_snapshot_freshness_message": "No verified paper portfolio snapshot loaded",
         "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "No verified cash source loaded"),
         "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "No verified equity source loaded"),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "No verified locked-cash source loaded"),
@@ -7226,10 +7235,21 @@ def validate_read_only_dashboard_shell(
     if portfolio.get("status") == "VERIFIED":
         source_cycle_id = portfolio.get("source_runtime_cycle_id")
         source_ledger_head = portfolio.get("source_paper_ledger_head_hash")
+        source_age_seconds = portfolio.get("source_snapshot_age_seconds")
+        source_stale_after_seconds = portfolio.get("source_snapshot_stale_after_seconds")
+        source_freshness_message = portfolio.get("source_snapshot_freshness_message")
         if source_cycle_id is not None and (not isinstance(source_cycle_id, str) or not source_cycle_id):
             return DashboardValidationResult("FAIL", "portfolio runtime cycle provenance is invalid", "SCHEMA_IDENTITY_MISMATCH")
         if source_ledger_head is not None and (not isinstance(source_ledger_head, str) or len(source_ledger_head) != 64):
             return DashboardValidationResult("FAIL", "portfolio ledger head provenance is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(source_age_seconds, int) or source_age_seconds < 0:
+            return DashboardValidationResult("FAIL", "portfolio source age is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(source_stale_after_seconds, int) or source_stale_after_seconds <= 0:
+            return DashboardValidationResult("FAIL", "portfolio source stale threshold is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if source_age_seconds > source_stale_after_seconds:
+            return DashboardValidationResult("BLOCKED", "verified portfolio source is stale", "LATENCY_TTL_EXPIRED")
+        if not isinstance(source_freshness_message, str) or not source_freshness_message:
+            return DashboardValidationResult("FAIL", "portfolio source freshness message is missing", "SCHEMA_IDENTITY_MISMATCH")
     for card_id in PORTFOLIO_CARD_IDS:
         card = portfolio.get(card_id)
         if not isinstance(card, dict):
@@ -8214,9 +8234,16 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     portfolio_status = portfolio.get("status", "UNVERIFIED") if isinstance(portfolio, dict) else "UNVERIFIED"
     portfolio_cycle_source = portfolio.get("source_runtime_cycle_id") if isinstance(portfolio, dict) else None
     portfolio_ledger_source = portfolio.get("source_paper_ledger_head_hash") if isinstance(portfolio, dict) else None
+    portfolio_age_seconds = portfolio.get("source_snapshot_age_seconds") if isinstance(portfolio, dict) else None
+    portfolio_stale_after_seconds = portfolio.get("source_snapshot_stale_after_seconds") if isinstance(portfolio, dict) else None
+    portfolio_age_line = (
+        f"Age: {portfolio_age_seconds}s / stale after {portfolio_stale_after_seconds}s"
+        if isinstance(portfolio_age_seconds, int) and isinstance(portfolio_stale_after_seconds, int)
+        else "Age: not verified"
+    )
     portfolio_source_line = (
         f"Runtime cycle: {portfolio_cycle_source or 'not linked'} | Ledger head: "
-        f"{str(portfolio_ledger_source)[:12] + '...' if portfolio_ledger_source else 'not linked'}"
+        f"{str(portfolio_ledger_source)[:12] + '...' if portfolio_ledger_source else 'not linked'} | {portfolio_age_line}"
     )
     if portfolio_status == "VERIFIED" and shell.get("mode") == "PAPER":
         portfolio_status = "PAPER LEDGER VERIFIED (SIMULATED)"
