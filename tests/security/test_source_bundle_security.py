@@ -8,6 +8,7 @@ from trader1.security.source_bundle import (
     classify_shipped_forbidden_path,
     detect_credential_material,
     load_denylist,
+    source_bundle_file_fingerprint,
 )
 from trader1.validation.mvp0_validators import run_validators
 
@@ -76,6 +77,16 @@ class SourceBundleSecurityTest(unittest.TestCase):
         self.assertNotIn("contracts/security/source_bundle_manifest.json", included_paths)
         self.assertNotIn("contracts/generated/current_implementation_state.json", included_paths)
         self.assertNotIn("contracts/generated/read_cache_manifest.json", included_paths)
+
+    def test_text_file_fingerprint_is_stable_across_line_endings(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            lf_path = root / "lf.py"
+            crlf_path = root / "crlf.py"
+            lf_path.write_text("VALUE = 1\nprint(VALUE)\n", encoding="utf-8", newline="\n")
+            crlf_path.write_text("VALUE = 1\r\nprint(VALUE)\r\n", encoding="utf-8", newline="")
+
+            self.assertEqual(source_bundle_file_fingerprint(lf_path), source_bundle_file_fingerprint(crlf_path))
 
     def test_secret_scan_detects_common_runtime_credential_shapes(self):
         cases = [

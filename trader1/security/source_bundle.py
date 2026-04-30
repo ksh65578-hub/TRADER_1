@@ -35,6 +35,16 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest().upper()
 
 
+def source_bundle_file_fingerprint(path: Path) -> dict[str, Any]:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        payload = path.read_bytes()
+    else:
+        payload = text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+    return {"sha256": hashlib.sha256(payload).hexdigest().upper(), "size_bytes": len(payload)}
+
+
 def load_denylist() -> dict[str, Any]:
     return json.loads(DENYLIST_PATH.read_text(encoding="utf-8"))
 
@@ -133,7 +143,7 @@ def build_source_bundle_manifest(root: Path = ROOT, denylist: dict[str, Any] | N
             findings = detect_credential_material(path)
             if findings:
                 secret_findings.append({"path": relative, "patterns": findings})
-            included.append({"path": relative, "sha256": sha256_file(path), "size_bytes": path.stat().st_size})
+            included.append({"path": relative, **source_bundle_file_fingerprint(path)})
         else:
             excluded.append({"path": relative, "reason": decision.reason})
     return {
