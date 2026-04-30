@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.root_launcher_report.v1",
-  "generated_at_utc": "2026-04-30T16:10:46Z",
+  "generated_at_utc": "2026-04-30T16:13:42Z",
   "project_id": "TRADER_1",
   "launcher_name": "UPBIT_PAPER",
   "exchange": "UPBIT",
@@ -31,5 +31,5 @@
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
-  "report_hash": "AC0645DD0B24DA9DA6286519EFAF5C70BF648A73E44179752B0075B4131E63AF"
+  "report_hash": "937927884AA08B06CB31D645352985D41D089450E381E441EDFE9EDBE98FD262"
 }
