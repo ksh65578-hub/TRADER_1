@@ -52,6 +52,8 @@ LIVE_ORDER_MARKERS = (
 )
 PAPER_BROKER_MARKERS = ("paper_broker", "paperbroker", "paper execution", "paper_execution")
 EXPLICIT_BINANCE_MARKERS = ("market_type", "--market-type", "spot", "futures_usdt_m")
+BINANCE_REQUIRED_MARKET_TYPE_MARKERS = ("spot", "futures_usdt_m")
+BINANCE_FUTURES_BLOCKED_MARKERS = ("blocked", "not_implemented", "surface_only")
 
 
 @dataclass(frozen=True)
@@ -138,6 +140,10 @@ def _content_issues(logical_name: str, text: str) -> list[str]:
         issues.append("live launcher references paper broker")
     if "BINANCE" in logical_name and not any(marker in text for marker in EXPLICIT_BINANCE_MARKERS):
         issues.append("binance launcher lacks explicit market_type selection")
+    if "BINANCE" in logical_name and not all(marker in text for marker in BINANCE_REQUIRED_MARKET_TYPE_MARKERS):
+        issues.append("binance launcher must disclose both SPOT and FUTURES_USDT_M market_type boundary")
+    if "BINANCE" in logical_name and "futures_usdt_m" in text and not any(marker in text for marker in BINANCE_FUTURES_BLOCKED_MARKERS):
+        issues.append("binance futures market_type lacks blocked/not implemented status")
     if logical_name == "BINANCE_LIVE" and "futures_usdt_m" in text and "default" in text:
         issues.append("binance futures live appears to be an implicit default")
     return issues

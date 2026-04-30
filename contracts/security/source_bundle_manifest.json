@@ -10,17 +10,17 @@
     },
     {
       "path": "BINANCE_LIVE.py",
-      "sha256": "FEF44A87FDEE92514AB6F2D4BC7797D3E62B1EFC1BEB81E1B16653E885036552",
-      "size_bytes": 210
+      "sha256": "BB8FA181BD5BC42AFCC79C5E8E89B1258C2B42AF4DC2DE4AF3BFE12B82CE5DB2",
+      "size_bytes": 308
     },
     {
       "path": "BINANCE_PAPER.py",
-      "sha256": "67DD789073E5AEABCD674DEFD9C25B22D06782145AFDC6CDC0749EA8109708FD",
-      "size_bytes": 212
+      "sha256": "BD91620620841E7463EE11D766F6B1D18549B04AA42CF21299A7B53FA56BA6C9",
+      "size_bytes": 310
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "1175A86B239BF62EE8D31B94CC1B49830D1694F36B4FE73AD17676C4239ACE1D",
+      "sha256": "0E3AAD1D9C818F991041C74E43725DFE8D87B24DA658E66B4C67BDD207E22975",
       "size_bytes": 1096
     },
     {
@@ -515,8 +515,8 @@
     },
     {
       "path": "tests/adapter/test_binance_adapter_surface.py",
-      "sha256": "B857DB0B18EA53EC1E040574A137C6203BF7CA2E569EF12B3E17234753B0F8BF",
-      "size_bytes": 4319
+      "sha256": "F40D38F4DD2A18422E750A19DD9125AD73BF1FDE1321FEEC7D639337BFC4DD66",
+      "size_bytes": 4780
     },
     {
       "path": "tests/adapter/test_upbit_paper_adapter.py",
@@ -570,8 +570,8 @@
     },
     {
       "path": "tests/contract/test_root_launchers.py",
-      "sha256": "9DF9FD6965302FBF6F0A5CC397ABBED92A647A73865A6C47BD407838D506580E",
-      "size_bytes": 4720
+      "sha256": "6A4FA5810D75D765BC7572E572CE387FD772EE9B4DAC972D2A45730125503A7C",
+      "size_bytes": 5633
     },
     {
       "path": "tests/contract/test_schema_instance_validation.py",
@@ -725,8 +725,8 @@
     },
     {
       "path": "tests/readiness/test_live_ready_snapshot_writer.py",
-      "sha256": "E45B6E6A3C2DED902711ECEE638F4C1CC8BDAA1FE6263E33B81F328D387F8940",
-      "size_bytes": 7677
+      "sha256": "99AAD0628044B56C2A44816E81163F1F8D37E9F8DD0B265C7053AECBB3F5F4C8",
+      "size_bytes": 7845
     },
     {
       "path": "tests/readiness/test_readiness_surface.py",
@@ -1860,8 +1860,8 @@
     },
     {
       "path": "tests/validators/test_optimizer_backlog_validators.py",
-      "sha256": "A32F6E8A8BF9FFFC74A67D0D601A32C4AE34AC1D56621F692BB3D163F15B9074",
-      "size_bytes": 4046
+      "sha256": "8B71E84840454073B78BC12BFED64800DE5D74A8DBE14FE99D6662A002883A40",
+      "size_bytes": 4147
     },
     {
       "path": "tests/validators/test_optimizer_convergence_guardrails.py",
@@ -1982,6 +1982,11 @@
       "path": "tools/emit_binance_adapter_surface_only_patch_evidence.py",
       "sha256": "6464698E8C4F64BCCC2B349ECACC3FD2A61F0236740AFC542B2C377D6DA195FF",
       "size_bytes": 23378
+    },
+    {
+      "path": "tools/emit_binance_surface_status_guard_patch_evidence.py",
+      "sha256": "909C0F5A98B75F6C98D17F9E1C112670FCD779E7B9A72BDB0BB00DD862E1EC37",
+      "size_bytes": 25434
     },
     {
       "path": "tools/emit_bundle_security_patch_evidence.py",
@@ -2465,8 +2470,8 @@
     },
     {
       "path": "tools/emit_placeholder_readiness_surface_guard_patch_evidence.py",
-      "sha256": "1A64C02041F7AF643BDB1266F08FBC9D12F5FB663A5363B9E5CC560AAB0C8794",
-      "size_bytes": 24547
+      "sha256": "A7280D4D6F9F7B68C58FC2517F27FE4DA9398FA46D768E3F0E372B56D2B7CAED",
+      "size_bytes": 25090
     },
     {
       "path": "tools/emit_profitability_maturity_component_next_actions_patch_evidence.py",
@@ -3040,8 +3045,8 @@
     },
     {
       "path": "trader1/adapters/binance/surface.py",
-      "sha256": "E7A3B46CFA3A3800E6F402BFB14B659D2CE083E989C9BC1C781377904659D1DD",
-      "size_bytes": 6321
+      "sha256": "FB97CA83DAAC10033854F5F82C9C46847BC1A5F5A6F4DFD8CDB64E3AE3C53483",
+      "size_bytes": 6481
     },
     {
       "path": "trader1/adapters/upbit/__init__.py",
@@ -3330,8 +3335,8 @@
     },
     {
       "path": "trader1/runtime/boot/launcher_guard.py",
-      "sha256": "22960F933AA2D2963751725B7D223387542EFDC2A1CEDBB50625D0E77102589D",
-      "size_bytes": 9505
+      "sha256": "7959EFD018BFA763B5DF5FBA606B5B6C8537C459B882FC2D9BA15AB5E21E3F8D",
+      "size_bytes": 10098
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
@@ -3460,8 +3465,8 @@
     },
     {
       "path": "trader1/runtime/readiness/live_ready_snapshot.py",
-      "sha256": "C6044A3EDEE0C77C5710C14828D4B454BABA0119C04CCECAAAFBA540B16E8E7B",
-      "size_bytes": 15603
+      "sha256": "48A91A636D3B36BAE1B1533A4DEB72A0A27B7E7D46F152F3B00A561553A85A87",
+      "size_bytes": 15970
     },
     {
       "path": "trader1/runtime/readiness/manual_order_test_evidence.py",
@@ -3540,8 +3545,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "EF55183EF66D200B17AB67B3538429743DAEC65277144FF8B9594A86A041BB91",
-      "size_bytes": 627806
+      "sha256": "32CAEFB267CB6DCAA4F4DE467D0753DC1413FF10CA0AB7BF2F56CBC8E78360D9",
+      "size_bytes": 628100
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -3804,6 +3809,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_ACTUAL_RUNTIME_SOURCE_VALIDATION_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_BINANCE_SURFACE_STATUS_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -4392,6 +4401,14 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_BINANCE_ADAPTER_SURFACE_ONLY_20260430.md",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_BINANCE_SURFACE_STATUS_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_BINANCE_SURFACE_STATUS_GUARD_20260501.md",
       "reason": "denied:system/"
     },
     {
@@ -5235,6 +5252,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_BINANCE_SURFACE_STATUS_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6052,6 +6073,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_BINANCE_ADAPTER_SURFACE_ONLY.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_BINANCE_SURFACE_STATUS_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -6880,6 +6905,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_BINANCE_ADAPTER_SURFACE_ONLY.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_BINANCE_SURFACE_STATUS_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7720,6 +7749,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_BINANCE_ADAPTER_SURFACE_ONLY.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_BINANCE_SURFACE_STATUS_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

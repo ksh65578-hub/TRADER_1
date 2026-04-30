@@ -1365,6 +1365,8 @@ def binance_adapter_surface_validator() -> ValidatorResult:
             return fail_result("binance_adapter_surface_validator", f"{launcher_name} launcher did not validate", paths, launcher_result.blocker_code or "CONTRACT_GAP_HIGH")
         if launcher_report.get("blocking_reason") != "BINANCE_ADAPTER_SURFACE_ONLY":
             return fail_result("binance_adapter_surface_validator", f"{launcher_name} does not surface Binance adapter blocker", paths, "CONTRACT_GAP_HIGH")
+        if "FUTURES_USDT_M remains blocked" not in launcher_report.get("next_action", ""):
+            return fail_result("binance_adapter_surface_validator", f"{launcher_name} does not disclose blocked futures market_type boundary", paths, "CONTRACT_GAP_HIGH")
         if launcher_report.get("live_order_allowed") or launcher_report.get("can_live_trade"):
             return fail_result("binance_adapter_surface_validator", f"{launcher_name} created live capability", paths, "LIVE_FINAL_GUARD_FAILED")
 

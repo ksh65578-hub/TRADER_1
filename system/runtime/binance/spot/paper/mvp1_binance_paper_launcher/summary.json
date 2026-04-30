@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-04-30T14:36:47Z",
+  "generated_at_utc": "2026-04-30T16:07:09Z",
   "exchange": "BINANCE",
   "market_type": "SPOT",
   "mode": "PAPER",
@@ -85,7 +85,7 @@
     "live_order_ready": false,
     "live_order_allowed": false,
     "primary_blocker_code": "BINANCE_ADAPTER_SURFACE_ONLY",
-    "primary_blocker_message": "Binance SPOT is visible only as a surface; no Binance PAPER adapter or broker is implemented yet.",
+    "primary_blocker_message": "Binance SPOT is visible only as a surface; no Binance PAPER adapter or broker is implemented yet. FUTURES_USDT_M remains blocked and is not root-launchable in MVP-4.",
     "blocks_live_order": true,
     "evidence_id": null
   },
@@ -97,5 +97,5 @@
   },
   "final_action": "NO_TRADE",
   "blocking_reason": "BINANCE_ADAPTER_SURFACE_ONLY",
-  "next_action": "Binance SPOT is visible only as a surface; no Binance PAPER adapter or broker is implemented yet."
+  "next_action": "Binance SPOT is visible only as a surface; no Binance PAPER adapter or broker is implemented yet. FUTURES_USDT_M remains blocked and is not root-launchable in MVP-4."
 }
