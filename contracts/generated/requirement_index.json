@@ -10505,7 +10505,52 @@
       "source_text_sha256": "D0957E3BA60BA8885572F3B3C9DDD6CD9B5C406C5582D69FAF46126B3463FE35",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER",
+      "source_section_id": "AGENTS_0G.16",
+      "source_file": "AGENTS.md",
+      "source_heading": "Exact expansion trigger and review addendum preservation",
+      "full_text_marker": "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER: review plan addendum files must remain tracked until reflected and individually deleted",
+      "authority_level": "ACTIVE_IMPLEMENTATION_GUIDE_AND_REVIEW_ADDENDUM",
+      "requirement_title": "Review plan reflection ledger before one-by-one cleanup",
+      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.review_plan_reflection_ledger.v1"
+      ],
+      "validator_ids": [
+        "review_plan_reflection_ledger_validator"
+      ],
+      "artifact_ids": [
+        "tools/review_plan_reflection_status.py",
+        "tools/emit_review_plan_reflection_ledger_patch_evidence.py",
+        "tests/contract/test_review_plan_reflection_status.py",
+        "trader1/validation/mvp0_validators.py",
+        "contracts/registry.yaml",
+        "contracts/validators/validator_registry.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/context_pack/MVP4_REVIEW_PLAN_REFLECTION_LEDGER.md"
+      ],
+      "test_ids": [
+        "tests/contract/test_review_plan_reflection_status.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "RETAINED_ARCHIVE_COVERAGE",
+        "DOCUMENT_NORMALIZATION",
+        "BUNDLE_SECURITY"
+      ],
+      "depends_on": [
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "1CB428E35374984CBEE57E0A759551B992EA876A499AC5250F5F4724A85D33B3",
+      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T21:39:40Z"
+  "updated_at_utc": "2026-04-30T21:59:31Z"
 }

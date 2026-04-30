@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-04-30T21:39:40Z",
+  "updated_at_utc": "2026-04-30T21:59:31Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -223,7 +223,8 @@
     "REQ-MVP4-DASHBOARD-OPERATION-FRESHNESS-BINDING",
     "REQ-MVP4-DASHBOARD-OPERATION-PORTFOLIO-STATUS-FIELDS",
     "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH",
-    "REQ-MVP4-DASHBOARD-PORTFOLIO-SOURCE-FRESHNESS"
+    "REQ-MVP4-DASHBOARD-PORTFOLIO-SOURCE-FRESHNESS",
+    "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER"
   ],
   "implemented_schema_ids": [
     "trader1.api_key_permission_check_report.v1",
@@ -430,7 +431,8 @@
     "upbit_public_market_data_collection_validator",
     "upbit_public_rest_continuity_history_validator",
     "upbit_public_rest_continuity_validator",
-    "upbit_public_rest_sample_validator"
+    "upbit_public_rest_sample_validator",
+    "review_plan_reflection_ledger_validator"
   ],
   "untested_validator_ids": [],
   "blocked_requirement_ids": [
@@ -445,12 +447,12 @@
     "PATCH_RESULT_VALIDATOR_RUN_GAP",
     "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY"
   ],
-  "last_patch_id": "MVP4_DASHBOARD_PORTFOLIO_SOURCE_FRESHNESS_20260501_001",
-  "last_patch_result_hash": "FCC1CB05563C7A7233A7FCF0C7285BF54933BC022945D6ECEABFC893C7BC6242",
+  "last_patch_id": "MVP4_REVIEW_PLAN_REFLECTION_LEDGER_20260501_001",
+  "last_patch_result_hash": "A05185A235CA12E442EE0C909154D699116E52CF2A6F66C9BB0AA071C9C4CB3B",
   "next_allowed_task_class": "MVP4_UPBIT_PAPER_RUNTIME_E2E_CONTINUE",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "E79DB9C1C1507F5B029A4D9611F5DB27FC90C0539F3C81FF1834C768AB6A3073"
+  "state_hash": "5BF2F9D3BC8904D8038B3561858E9FF974B00AEBB8D811EDBA2C1F1AB5B95955"
 }

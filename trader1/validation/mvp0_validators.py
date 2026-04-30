@@ -11977,6 +11977,44 @@ def scale_up_eligibility_validator() -> ValidatorResult:
     return pass_result("scale_up_eligibility_validator", "scale-up dependencies passed for exact scope", paths)
 
 
+def review_plan_reflection_ledger_validator() -> ValidatorResult:
+    validator_id = "review_plan_reflection_ledger_validator"
+    paths = [
+        ROOT / "검토안",
+        ROOT / "system" / "evidence" / "audit_reports" / "REVIEW_PLAN_REFLECTION_LEDGER.json",
+    ]
+    from tools.review_plan_reflection_status import build_reflection_ledger, validate_reflection_ledger
+
+    ledger = build_reflection_ledger()
+    result = validate_reflection_ledger(ledger)
+    if result["status"] != "PASS":
+        return fail_result(
+            validator_id,
+            "review plan reflection ledger is unsafe or incomplete: " + ", ".join(result.get("blockers", [])),
+            paths,
+            "REVIEW_PLAN_REFLECTION_UNSAFE",
+        )
+    if ledger.get("review_files_count") != 43:
+        return blocked_result(
+            validator_id,
+            f"review plan file count changed unexpectedly: {ledger.get('review_files_count')}",
+            paths,
+            "REVIEW_PLAN_REFLECTION_UNSAFE",
+        )
+    if ledger.get("delete_ready_count", 0) > 0:
+        return blocked_result(
+            validator_id,
+            "review plan files are marked reflected and must be deleted one by one in a tracked patch",
+            paths,
+            "REVIEW_PLAN_DELETION_PENDING",
+        )
+    return pass_result(
+        validator_id,
+        "review plan files are cataloged and retained until reflection evidence permits one-by-one deletion",
+        paths,
+    )
+
+
 VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "authority_integrity_validator": authority_integrity_validator,
     "external_authority_manifest_validator": external_authority_manifest_validator,
@@ -12089,6 +12127,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "convergence_assessment_validator": convergence_assessment_validator,
     "convergence_claim_validator": convergence_claim_validator,
     "scale_up_eligibility_validator": scale_up_eligibility_validator,
+    "review_plan_reflection_ledger_validator": review_plan_reflection_ledger_validator,
 }
 
 
