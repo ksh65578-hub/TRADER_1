@@ -1,0 +1,17 @@
+{
+  "audit_schema_id": "trader1.source_bundle_line_ending_stable_hash_audit.v1",
+  "generated_at_utc": "2026-04-30T19:00:07Z",
+  "status": "PASS",
+  "hidden_defects": [
+    {
+      "classification": "source_bundle_manifest_text_line_ending_drift",
+      "condition": "source_bundle_manifest stored byte hashes and byte sizes for text files that can change after checkout newline conversion",
+      "impact": "full tests could pass but rewrite source_bundle_manifest on clean main",
+      "fix": "source bundle text fingerprints now normalize line endings before sha256 and size calculation"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
