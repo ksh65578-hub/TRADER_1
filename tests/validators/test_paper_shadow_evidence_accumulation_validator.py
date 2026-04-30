@@ -35,6 +35,9 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
             {binding["source_role"] for binding in report["source_evidence_bindings"]},
             {"PAPER_OPERATION", "SHADOW_OBSERVATION"},
         )
+        self.assertEqual(report["evidence_span_source"], "EXPLICIT_OPERATOR_SUPPLIED")
+        self.assertEqual(report["evidence_span_source_status"], "PASS")
+        self.assertEqual(report["supporting_source_window_count"], 0)
 
     def test_insufficient_samples_block_scorecard_input(self):
         report = build_paper_shadow_evidence_accumulation_report(
@@ -361,6 +364,9 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
             "actual_runtime_source_status",
             "actual_runtime_requirement_statuses",
             "supporting_source_evidence_ids",
+            "supporting_source_window_count",
+            "evidence_span_source",
+            "evidence_span_source_status",
         ):
             legacy = dict(report)
             legacy.pop(field, None)
@@ -372,6 +378,48 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
             self.assertEqual(result.status, "FAIL", field)
             self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH", field)
             self.assertTrue(any(field in error for error in errors), errors)
+
+    def test_span_source_and_supporting_window_count_drift_blocks(self):
+        report = build_paper_shadow_evidence_accumulation_report(
+            evidence_report_id="paper-shadow-span-source-drift",
+            evidence_window_count=20,
+            min_required_evidence_window_count=20,
+            evidence_span_hours=120,
+            min_required_evidence_span_hours=120,
+            source_evidence_ids=_supporting_window_ids(20),
+            actual_runtime_source_status="VALIDATED_NON_LIVE_RUNTIME",
+            actual_runtime_requirement_statuses=_runtime_requirement_pass_statuses(),
+            actual_runtime_source_evidence_ids=[
+                "actual-runtime-source:upbit:krw_spot:paper:mvp4_paper_evidence:" + "D" * 64,
+                "actual-runtime-source:upbit:krw_spot:shadow:mvp4_shadow_evidence:" + "E" * 64,
+            ],
+        )
+        self.assertTrue(report["long_run_evidence_eligible"])
+
+        report["evidence_span_source"] = "NOT_PROVIDED"
+        report["evidence_span_source_status"] = "MISSING"
+        report["evidence_hash"] = paper_shadow_evidence_hash(report)
+        result = validate_paper_shadow_evidence_accumulation_report(report)
+        errors = _paper_shadow_evidence_accumulation_errors(report)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "MEASUREMENT_MISSING")
+        self.assertTrue(any("evidence_span_hours must be zero" in error for error in errors), errors)
+
+        report = build_paper_shadow_evidence_accumulation_report(
+            evidence_report_id="paper-shadow-supporting-window-count-drift",
+            evidence_window_count=20,
+            min_required_evidence_window_count=20,
+            evidence_span_hours=120,
+            min_required_evidence_span_hours=120,
+            source_evidence_ids=_supporting_window_ids(20),
+        )
+        report["supporting_source_window_count"] = 19
+        report["evidence_hash"] = paper_shadow_evidence_hash(report)
+        result = validate_paper_shadow_evidence_accumulation_report(report)
+        errors = _paper_shadow_evidence_accumulation_errors(report)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "MEASUREMENT_MISSING")
+        self.assertTrue(any("supporting_source_window_count must match" in error for error in errors), errors)
 
     def test_live_flag_drift_blocks(self):
         report = build_paper_shadow_evidence_accumulation_report(evidence_report_id="paper-shadow-live")

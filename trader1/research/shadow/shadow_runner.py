@@ -239,6 +239,7 @@ def build_paper_shadow_evidence_accumulation_report(
     min_required_evidence_window_count: int = 20,
     evidence_span_hours: int = 4,
     min_required_evidence_span_hours: int = 120,
+    evidence_span_source: str = "EXPLICIT_OPERATOR_SUPPLIED",
     paper_artifact_age_seconds: int = 120,
     shadow_artifact_age_seconds: int = 120,
     max_artifact_age_seconds: int = 900,
@@ -273,6 +274,7 @@ def build_paper_shadow_evidence_accumulation_report(
     if actual_runtime_requirement_statuses:
         runtime_requirement_statuses.update(actual_runtime_requirement_statuses)
     supporting_window_count = _paired_supporting_window_count(supporting_source_ids)
+    evidence_span_source_status = "PASS" if evidence_span_source != "NOT_PROVIDED" and evidence_span_hours > 0 else "MISSING"
     actual_runtime_source_errors = _actual_runtime_source_scope_errors(
         actual_runtime_source_ids=actual_runtime_source_ids,
         exchange=exchange,
@@ -437,6 +439,8 @@ def build_paper_shadow_evidence_accumulation_report(
         "min_required_evidence_window_count": min_required_evidence_window_count,
         "evidence_span_hours": evidence_span_hours,
         "min_required_evidence_span_hours": min_required_evidence_span_hours,
+        "evidence_span_source": evidence_span_source,
+        "evidence_span_source_status": evidence_span_source_status,
         "long_run_evidence_eligible": long_run_evidence_eligible,
         "long_run_blocker_code": long_run_blocker_code,
         "paper_artifact_age_seconds": paper_artifact_age_seconds,
@@ -451,6 +455,7 @@ def build_paper_shadow_evidence_accumulation_report(
         "actual_runtime_source_status": actual_runtime_source_status,
         "actual_runtime_requirement_statuses": runtime_requirement_statuses,
         "supporting_source_evidence_ids": supporting_source_ids,
+        "supporting_source_window_count": supporting_window_count,
         "source_evidence_bindings": source_bindings,
         "raw_join_attempted": raw_join_attempted,
         "session_hashes_distinct": paper_session_id != shadow_session_id and paper_artifact_hash != shadow_artifact_hash,
@@ -547,6 +552,8 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
         "min_required_evidence_window_count",
         "evidence_span_hours",
         "min_required_evidence_span_hours",
+        "evidence_span_source",
+        "evidence_span_source_status",
         "long_run_evidence_eligible",
         "long_run_blocker_code",
         "paper_artifact_age_seconds",
@@ -561,6 +568,7 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
         "actual_runtime_source_status",
         "actual_runtime_requirement_statuses",
         "supporting_source_evidence_ids",
+        "supporting_source_window_count",
         "source_evidence_bindings",
         "raw_join_attempted",
         "session_hashes_distinct",
@@ -611,6 +619,32 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
     )
     supporting_source_ids = report.get("supporting_source_evidence_ids") or []
     supporting_window_count = _paired_supporting_window_count(supporting_source_ids)
+    reported_supporting_window_count = int(report.get("supporting_source_window_count", -1))
+    if reported_supporting_window_count != supporting_window_count:
+        return PaperShadowEvidenceValidationResult(
+            "BLOCKED",
+            "paper/shadow supporting source window count must match paired source ids",
+            "MEASUREMENT_MISSING",
+        )
+    if report.get("evidence_span_source") == "NOT_PROVIDED" and int(report.get("evidence_span_hours", 0)) != 0:
+        return PaperShadowEvidenceValidationResult(
+            "BLOCKED",
+            "paper/shadow evidence span cannot be nonzero when span source is not provided",
+            "MEASUREMENT_MISSING",
+        )
+    if report.get("evidence_span_source") != "NOT_PROVIDED" and int(report.get("evidence_span_hours", 0)) > 0:
+        if report.get("evidence_span_source_status") != "PASS":
+            return PaperShadowEvidenceValidationResult(
+                "BLOCKED",
+                "paper/shadow evidence span source status must PASS when span hours are supplied",
+                "MEASUREMENT_MISSING",
+            )
+    if report.get("long_run_evidence_eligible") and report.get("evidence_span_source_status") != "PASS":
+        return PaperShadowEvidenceValidationResult(
+            "BLOCKED",
+            "long-run paper/shadow evidence requires PASS evidence span source status",
+            "MEASUREMENT_MISSING",
+        )
     actual_runtime_source_ids = report.get("actual_runtime_source_evidence_ids") or []
     actual_runtime_source_status = report.get("actual_runtime_source_status") or "MISSING"
     actual_runtime_source_errors = paper_shadow_actual_runtime_source_id_errors(report)

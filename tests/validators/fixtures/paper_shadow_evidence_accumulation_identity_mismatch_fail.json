@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.paper_shadow_evidence_accumulation_report.v1",
-  "generated_at_utc": "2026-04-29T15:50:48Z",
+  "generated_at_utc": "2026-04-30T23:38:47Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -28,6 +28,8 @@
   "min_required_evidence_window_count": 20,
   "evidence_span_hours": 4,
   "min_required_evidence_span_hours": 120,
+  "evidence_span_source": "EXPLICIT_OPERATOR_SUPPLIED",
+  "evidence_span_source_status": "PASS",
   "long_run_evidence_eligible": false,
   "long_run_blocker_code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
   "paper_artifact_age_seconds": 120,
@@ -41,6 +43,17 @@
     "paper:mvp4_paper_evidence:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
     "shadow:mvp4_shadow_evidence:CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
   ],
+  "actual_runtime_source_evidence_ids": [],
+  "actual_runtime_source_status": "MISSING",
+  "actual_runtime_requirement_statuses": {
+    "runtime_span": "MISSING",
+    "cycle_count": "MISSING",
+    "heartbeat_freshness": "MISSING",
+    "recovery_clean": "MISSING",
+    "partial_write_clean": "MISSING"
+  },
+  "supporting_source_evidence_ids": [],
+  "supporting_source_window_count": 0,
   "source_evidence_bindings": [
     {
       "source_evidence_id": "paper:mvp4_paper_evidence:BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
@@ -91,15 +104,5 @@
   "order_adapter_called": false,
   "primary_blocker_code": null,
   "blockers": [],
-  "evidence_hash": "0CD1B9BBF704FD3C9B1D6C633F26CDB56BE04FFEA9347A9053CB5051ED449FFB",
-  "actual_runtime_source_evidence_ids": [],
-  "actual_runtime_source_status": "MISSING",
-  "supporting_source_evidence_ids": [],
-  "actual_runtime_requirement_statuses": {
-    "runtime_span": "MISSING",
-    "cycle_count": "MISSING",
-    "heartbeat_freshness": "MISSING",
-    "recovery_clean": "MISSING",
-    "partial_write_clean": "MISSING"
-  }
+  "evidence_hash": "77F75FCB5D6357B30412518E75BE8DB1FE3944B90DB1BFD5FAB40FB6CB6A19F6"
 }

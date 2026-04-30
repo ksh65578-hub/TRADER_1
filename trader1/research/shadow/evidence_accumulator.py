@@ -60,6 +60,7 @@ def build_paper_shadow_evidence_accumulation_from_operation_reports(
     source_evidence_ids = [source["source_evidence_id"] for source in paper_sources + shadow_sources]
     if not source_evidence_ids:
         source_evidence_ids = ["paper-shadow-evidence-source-missing"]
+    span_hours = int(evidence_span_hours if evidence_span_hours is not None else 0)
 
     report = build_paper_shadow_evidence_accumulation_report(
         evidence_report_id=evidence_report_id,
@@ -78,8 +79,9 @@ def build_paper_shadow_evidence_accumulation_from_operation_reports(
         min_required_sample_count=min_required_sample_count,
         evidence_window_count=evidence_window_count,
         min_required_evidence_window_count=min_required_evidence_window_count,
-        evidence_span_hours=int(evidence_span_hours if evidence_span_hours is not None else 0),
+        evidence_span_hours=span_hours,
         min_required_evidence_span_hours=min_required_evidence_span_hours,
+        evidence_span_source="EXPLICIT_OPERATOR_SUPPLIED" if evidence_span_hours is not None else "NOT_PROVIDED",
         paper_artifact_age_seconds=max(source["artifact_age_seconds"] for source in paper_sources),
         shadow_artifact_age_seconds=max([source["artifact_age_seconds"] for source in shadow_sources] or [0]),
         max_artifact_age_seconds=max_artifact_age_seconds,

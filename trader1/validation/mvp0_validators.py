@@ -9306,6 +9306,22 @@ def _paper_shadow_evidence_accumulation_errors(report: dict[str, Any]) -> list[s
     )
     supporting_source_ids = report.get("supporting_source_evidence_ids") or []
     supporting_window_count = paper_shadow_paired_supporting_window_count(supporting_source_ids)
+    try:
+        reported_supporting_window_count = int(report.get("supporting_source_window_count", -1))
+    except (TypeError, ValueError):
+        reported_supporting_window_count = -1
+    if reported_supporting_window_count != supporting_window_count:
+        errors.append("supporting_source_window_count must match paired supporting source ids")
+    if report.get("evidence_span_source") == "NOT_PROVIDED" and int(report.get("evidence_span_hours", 0)) != 0:
+        errors.append("evidence_span_hours must be zero when evidence_span_source is NOT_PROVIDED")
+    if (
+        report.get("evidence_span_source") != "NOT_PROVIDED"
+        and int(report.get("evidence_span_hours", 0)) > 0
+        and report.get("evidence_span_source_status") != "PASS"
+    ):
+        errors.append("evidence_span_source_status must be PASS when evidence_span_hours are supplied")
+    if report.get("long_run_evidence_eligible") and report.get("evidence_span_source_status") != "PASS":
+        errors.append("long-run evidence eligibility requires PASS evidence span source status")
     actual_runtime_source_ids = report.get("actual_runtime_source_evidence_ids") or []
     actual_runtime_source_status = report.get("actual_runtime_source_status") or "MISSING"
     actual_runtime_source_scope_errors = paper_shadow_actual_runtime_source_id_errors(report)
