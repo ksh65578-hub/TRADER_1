@@ -6,10 +6,12 @@ from pathlib import Path
 
 from tools.review_plan_reflection_status import (
     EXPECTED_REVIEW_NUMBERS,
+    ORIGINAL_REVIEW_FILE_PRESERVATION_REQUIRED_AFTER_REFLECTION,
     REVIEW_STATUS_PENDING,
     REVIEW_STATUS_READY,
     build_reflection_ledger,
     catalog_review_files,
+    delete_reflected_files,
     validate_reflection_ledger,
 )
 
@@ -32,6 +34,8 @@ class ReviewPlanReflectionStatusTests(unittest.TestCase):
         self.assertFalse(ledger["live_order_allowed"])
         self.assertFalse(ledger["can_live_trade"])
         self.assertFalse(ledger["scale_up_allowed"])
+        self.assertFalse(ledger["deletion_policy"]["original_review_file_preservation_required_after_reflection"])
+        self.assertFalse(ORIGINAL_REVIEW_FILE_PRESERVATION_REQUIRED_AFTER_REFLECTION)
         self.assertTrue(all(entry["reflection_status"] == REVIEW_STATUS_PENDING for entry in ledger["review_files"]))
         self.assertTrue(all(not entry["deletion_allowed"] for entry in ledger["review_files"]))
 
@@ -57,6 +61,37 @@ class ReviewPlanReflectionStatusTests(unittest.TestCase):
             result = validate_reflection_ledger(ledger, root=root)
             self.assertEqual(result["status"], "BLOCKED")
             self.assertIn("review_file_missing:검토안/1.md", result["blockers"])
+
+    def test_reflected_review_file_can_be_deleted_without_preserving_original(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            review_dir = root / "검토안"
+            evidence_dir = root / "system" / "evidence" / "patch_results"
+            review_dir.mkdir()
+            evidence_dir.mkdir(parents=True)
+            for number in EXPECTED_REVIEW_NUMBERS:
+                (review_dir / f"{number}.md").write_text(
+                    f"{number}차 검토 결과입니다.\nBinance dashboard paper live strategy runtime\n",
+                    encoding="utf-8",
+                )
+            evidence_path = evidence_dir / "REFLECTED.patch_result.json"
+            evidence_path.write_text('{"live_order_ready": false}\n', encoding="utf-8")
+
+            ledger = build_reflection_ledger(root=root, review_dir=review_dir)
+            first = ledger["review_files"][0]
+            first["reflection_status"] = REVIEW_STATUS_READY
+            first["reflected_by_patch_ids"] = ["REFLECTED"]
+            first["reflection_evidence_paths"] = ["system/evidence/patch_results/REFLECTED.patch_result.json"]
+            first["authority_priority_preserved"] = True
+            first["original_review_file_preservation_required_after_reflection"] = False
+            first["deletion_allowed"] = True
+
+            result = validate_reflection_ledger(ledger, root=root)
+            self.assertEqual(result["status"], "PASS")
+            deleted = delete_reflected_files(ledger, root=root, max_delete_count=1)
+            self.assertEqual(deleted, ["검토안/1.md"])
+            self.assertFalse((review_dir / "1.md").exists())
+            self.assertTrue((review_dir / "2.md").exists())
 
 
 if __name__ == "__main__":

@@ -16,6 +16,8 @@ EXPECTED_REVIEW_NUMBERS = [number for number in range(1, 45) if number != 29]
 REVIEW_STATUS_PENDING = "PENDING_REFLECTION"
 REVIEW_STATUS_READY = "REFLECTED_DELETE_READY"
 REVIEW_STATUS_DELETED = "DELETED_AFTER_REFLECTION"
+ORIGINAL_REVIEW_FILE_PRESERVATION_REQUIRED_AFTER_REFLECTION = False
+DEFAULT_MAX_DELETE_COUNT = 1
 
 THEME_PATTERNS: dict[str, tuple[str, ...]] = {
     "source_package_hygiene": ("pycache", ".pyc", "bundle", "hygiene", "source"),
@@ -153,6 +155,7 @@ def build_reflection_ledger(
             "reflection_evidence_paths": previous_entry.get("reflection_evidence_paths", []) if sha_matches else [],
             "deletion_allowed": False,
             "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+            "original_review_file_preservation_required_after_reflection": ORIGINAL_REVIEW_FILE_PRESERVATION_REQUIRED_AFTER_REFLECTION,
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
@@ -188,6 +191,7 @@ def build_reflection_ledger(
             "requires_reflection_evidence_paths": True,
             "requires_authority_priority_preserved": True,
             "requires_all_live_flags_false": True,
+            "original_review_file_preservation_required_after_reflection": ORIGINAL_REVIEW_FILE_PRESERVATION_REQUIRED_AFTER_REFLECTION,
             "delete_one_file_at_a_time": True,
         },
         "live_order_ready": False,
@@ -238,8 +242,14 @@ def validate_reflection_ledger(ledger: dict[str, Any], *, root: Path = ROOT) -> 
     }
 
 
-def delete_reflected_files(ledger: dict[str, Any], *, root: Path = ROOT) -> list[str]:
+def delete_reflected_files(
+    ledger: dict[str, Any],
+    *,
+    root: Path = ROOT,
+    max_delete_count: int = DEFAULT_MAX_DELETE_COUNT,
+) -> list[str]:
     deleted: list[str] = []
+    max_delete_count = max(0, int(max_delete_count))
     validation = validate_reflection_ledger(ledger, root=root)
     if validation["status"] != "PASS":
         return deleted
@@ -255,8 +265,10 @@ def delete_reflected_files(ledger: dict[str, Any], *, root: Path = ROOT) -> list
             path.unlink()
             entry["reflection_status"] = REVIEW_STATUS_DELETED
             entry["deletion_allowed"] = False
-            entry["delete_reason"] = "deleted after reflection evidence"
+            entry["delete_reason"] = "deleted after reflection evidence; original source preservation was not required"
             deleted.append(entry["review_file"])
+            if len(deleted) >= max_delete_count:
+                break
     return deleted
 
 
@@ -265,12 +277,13 @@ def main() -> int:
     parser.add_argument("--write", action="store_true", help="write reflection ledger")
     parser.add_argument("--validate", action="store_true", help="validate current or generated ledger")
     parser.add_argument("--delete-reflected", action="store_true", help="delete files marked safe in the ledger")
+    parser.add_argument("--max-delete-count", type=int, default=DEFAULT_MAX_DELETE_COUNT, help="maximum reflected files to delete in one run")
     args = parser.parse_args()
 
     previous = load_json(LEDGER_PATH) if LEDGER_PATH.exists() else None
     ledger = build_reflection_ledger(previous=previous)
     if args.delete_reflected:
-        deleted = delete_reflected_files(ledger)
+        deleted = delete_reflected_files(ledger, max_delete_count=args.max_delete_count)
         ledger["deleted_files_this_run"] = deleted
     validation = validate_reflection_ledger(ledger)
     if args.write or args.delete_reflected:

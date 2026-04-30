@@ -1,0 +1,21 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T22:10:29Z",
+  "patch_id": "MVP4_REVIEW_PLAN_DELETE_POLICY_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_REVIEW_PLAN_DELETE_POLICY.patch_result.json",
+    "system/evidence/validator_runs/MVP4_REVIEW_PLAN_DELETE_POLICY.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_REVIEW_PLAN_DELETE_POLICY.stage_gate_result.json",
+    "system/evidence/audit_reports/MVP4_REVIEW_PLAN_DELETE_POLICY.audit.json",
+    "tools/review_plan_reflection_status.py",
+    "tools/emit_review_plan_delete_policy_patch_evidence.py",
+    "tests/contract/test_review_plan_reflection_status.py",
+    "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+    "contracts/generated/context_pack/MVP4_REVIEW_PLAN_DELETE_POLICY.md"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

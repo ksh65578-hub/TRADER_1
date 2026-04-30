@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "8A201BF90BB4E9505DC9B92D5CE82400C9407BC8256B3D1E8A7F737D88440AF9",
+      "sha256": "2D06A2F6C293A9E2E56DBD094C4E2C4C2E78E6AFEA67429C743CBE11E4BB47FF",
       "size_bytes": 1096
     },
     {
@@ -580,8 +580,8 @@
     },
     {
       "path": "tests/contract/test_review_plan_reflection_status.py",
-      "sha256": "B2BC27A65289EE29265BB28FED74E507303D5286B1406C1EC5D6C26C5C212E01",
-      "size_bytes": 2882
+      "sha256": "7E44E78CB04C6457DD628EB693011A6FA46063ACAB3555C09F147F69B2F9AED2",
+      "size_bytes": 4924
     },
     {
       "path": "tests/contract/test_root_launchers.py",
@@ -2554,6 +2554,11 @@
       "size_bytes": 20821
     },
     {
+      "path": "tools/emit_review_plan_delete_policy_patch_evidence.py",
+      "sha256": "1B609926098F8F60771F2A92A91684D71C7371EAF762588465E965D6240D1CB2",
+      "size_bytes": 20822
+    },
+    {
       "path": "tools/emit_review_plan_reflection_ledger_patch_evidence.py",
       "sha256": "CE4EC038CBD64A25FB4F2876EDB3B2A1A9694E97C2DD6DFF4AD9AFCD0151EBE3",
       "size_bytes": 23351
@@ -2830,8 +2835,8 @@
     },
     {
       "path": "tools/review_plan_reflection_status.py",
-      "sha256": "299187244F8D42FBBB11321272320C7B802656E28D22BA1A6914A42EE1300E6F",
-      "size_bytes": 12846
+      "sha256": "B1783EC93B510BEA0676B5FF8E56E3FD6A462E111ABF614D40E9E043C8793D92",
+      "size_bytes": 13638
     },
     {
       "path": "tools/run_bundle_security_validators.py",
@@ -4078,6 +4083,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_REVIEW_PLAN_DELETE_POLICY.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_REVIEW_PLAN_REFLECTION_LEDGER.md",
       "reason": "denied:contracts/generated/"
     },
@@ -5094,6 +5103,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_REVIEW_PLAN_DELETE_POLICY.audit.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTION_LEDGER.audit.json",
       "reason": "denied:system/"
     },
@@ -6026,6 +6039,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_REVIEW_PLAN_DELETE_POLICY.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_REVIEW_PLAN_REFLECTION_LEDGER.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6915,6 +6932,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_RESTART_RECOVERY_WAL_LEDGER_BINDING_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_REVIEW_PLAN_DELETE_POLICY.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7815,6 +7836,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_RESTART_RECOVERY_WAL_LEDGER_BINDING_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_REVIEW_PLAN_DELETE_POLICY.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8727,6 +8752,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_RESTART_RECOVERY_WAL_LEDGER_BINDING_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_REVIEW_PLAN_DELETE_POLICY.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
