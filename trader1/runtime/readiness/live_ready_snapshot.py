@@ -12,6 +12,7 @@ WRITER_INPUT_SCHEMA_ID = "trader1.live_ready_candidate_writer_input.v1"
 VALID_WRITER_INPUT_TYPE = "LIVE_READY_CANDIDATE_WRITER_INPUT"
 WRITER_PASS_STATUS = {"PASS", "SKIPPED_NOT_APPLICABLE"}
 FRESH_BLOCKING_STATUSES = {"FAIL", "BLOCKED", "UNTESTED", "STALE", "TIMEOUT"}
+PLACEHOLDER_MARKERS = ("placeholder", "unverified", "mvp0-blocked", "example.invalid")
 
 WRITER_REQUIRED_FIELDS = frozenset(
     {
@@ -87,6 +88,17 @@ def attach_writer_input_hash(writer_input: dict[str, Any]) -> dict[str, Any]:
     payload = dict(writer_input)
     payload["writer_input_hash"] = writer_input_hash(payload)
     return payload
+
+
+def _is_placeholder_value(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    normalized = value.strip().lower()
+    return any(marker in normalized for marker in PLACEHOLDER_MARKERS)
+
+
+def _placeholder_fields(payload: dict[str, Any], fields: tuple[str, ...]) -> list[str]:
+    return [field for field in fields if _is_placeholder_value(payload.get(field))]
 
 
 def blocked_writer_result(message: str, blocker_code: str, blockers: list[str] | None = None) -> SnapshotWriterResult:
@@ -188,6 +200,15 @@ def evaluate_live_ready_snapshot_writer(
         return blocked_writer_result("execution quality status is not PASS", "EXECUTION_QUALITY_UNTESTED")
     if writer_input.get("cost_after_edge_status") != "PASS":
         return blocked_writer_result("cost-after-edge status is not PASS", "COST_AFTER_EDGE_UNVERIFIED")
+    placeholder_fields = _placeholder_fields(
+        writer_input,
+        ("registry_hash", "schema_bundle_hash", "source_tree_hash", "evidence_manifest_hash"),
+    )
+    if placeholder_fields:
+        return blocked_writer_result(
+            f"writer input contains placeholder or unverified evidence fields: {placeholder_fields}",
+            "LIVE_READY_SNAPSHOT_WRITER_FAILED",
+        )
     if not writer_input.get("evidence_manifest_hash") or not evidence_manifest_present:
         return blocked_writer_result("fresh evidence manifest is required before snapshot write", "LIVE_READY_SNAPSHOT_WRITER_FAILED")
     if writer_input.get("validator_results_fresh") is not True:
@@ -297,23 +318,44 @@ def validate_live_ready_snapshot(snapshot: dict[str, Any]) -> SnapshotValidation
     if missing:
         return SnapshotValidationResult("BLOCKED", f"live_ready_snapshot missing fields: {missing}", "LIVE_READY_SNAPSHOT_WRITER_FAILED")
 
-    if snapshot.get("live_order_allowed") is True:
-        if snapshot.get("live_ready") is not True:
-            return SnapshotValidationResult("BLOCKED", "live_order_allowed requires live_ready=true", "LIVE_FINAL_GUARD_FAILED")
+    if snapshot.get("live_order_allowed") is True and snapshot.get("live_ready") is not True:
+        return SnapshotValidationResult("BLOCKED", "live_order_allowed requires live_ready=true", "LIVE_FINAL_GUARD_FAILED")
+
+    if snapshot.get("live_ready") is True:
         if not snapshot.get("official_api_verification_id"):
-            return SnapshotValidationResult("BLOCKED", "live_order_allowed requires official API verification", "API_UNVERIFIED")
+            return SnapshotValidationResult("BLOCKED", "live_ready requires official API verification", "API_UNVERIFIED")
         if snapshot.get("manual_order_test_required") is True and not snapshot.get("manual_order_test_id"):
-            return SnapshotValidationResult("BLOCKED", "manual order test evidence is required", "MANUAL_ORDER_TEST_MISSING")
+            return SnapshotValidationResult("BLOCKED", "live_ready requires manual order test evidence", "MANUAL_ORDER_TEST_MISSING")
         if snapshot.get("operator_approval_required") is True and not snapshot.get("operator_approval_id"):
-            return SnapshotValidationResult("BLOCKED", "operator approval evidence is required", "OPERATOR_APPROVAL_MISSING")
+            return SnapshotValidationResult("BLOCKED", "live_ready requires operator approval evidence", "OPERATOR_APPROVAL_MISSING")
         if not snapshot.get("read_only_burn_in_id"):
-            return SnapshotValidationResult("BLOCKED", "read-only burn-in evidence is required", "READ_ONLY_BURN_IN_MISSING")
+            return SnapshotValidationResult("BLOCKED", "live_ready requires read-only burn-in evidence", "READ_ONLY_BURN_IN_MISSING")
         if not snapshot.get("emergency_protection_evidence_id"):
-            return SnapshotValidationResult("BLOCKED", "emergency protection evidence is required", "EMERGENCY_FLATTEN_UNAVAILABLE")
+            return SnapshotValidationResult("BLOCKED", "live_ready requires emergency protection evidence", "EMERGENCY_FLATTEN_UNAVAILABLE")
+        placeholder_fields = _placeholder_fields(
+            snapshot,
+            (
+                "official_api_verification_id",
+                "manual_order_test_id",
+                "operator_approval_id",
+                "read_only_burn_in_id",
+                "emergency_protection_evidence_id",
+                "manifest_hash",
+                "registry_hash",
+                "schema_bundle_hash",
+                "source_tree_hash",
+            ),
+        )
+        if placeholder_fields:
+            return SnapshotValidationResult(
+                "BLOCKED",
+                f"live_ready snapshot contains placeholder or unverified evidence fields: {placeholder_fields}",
+                "LIVE_READY_SNAPSHOT_WRITER_FAILED",
+            )
         if snapshot.get("validator_rollup_status") != "PASS":
-            return SnapshotValidationResult("BLOCKED", "validator rollup must be PASS for live_order_allowed", "LIVE_READY_SNAPSHOT_WRITER_FAILED")
+            return SnapshotValidationResult("BLOCKED", "validator rollup must be PASS for live_ready", "LIVE_READY_SNAPSHOT_WRITER_FAILED")
         if snapshot.get("invalidated_by"):
-            return SnapshotValidationResult("BLOCKED", "invalidated snapshot cannot allow live orders", "LIVE_READY_SNAPSHOT_WRITER_FAILED")
+            return SnapshotValidationResult("BLOCKED", "invalidated snapshot cannot claim live_ready", "LIVE_READY_SNAPSHOT_WRITER_FAILED")
 
     return SnapshotValidationResult(
         "PASS",

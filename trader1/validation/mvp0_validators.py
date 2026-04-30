@@ -1451,6 +1451,13 @@ def live_ready_snapshot_validator() -> ValidatorResult:
     if missing_official_api_result.status != "BLOCKED" or missing_official_api_result.blocker_code != "API_UNVERIFIED":
         return fail_result("live_ready_snapshot_validator", "snapshot without official API evidence was not blocked", paths, missing_official_api_result.blocker_code or "API_UNVERIFIED")
 
+    ready_without_order_permission = dict(snapshot)
+    ready_without_order_permission["live_ready"] = True
+    ready_without_order_permission["live_order_allowed"] = False
+    ready_without_order_permission_result = validate_live_ready_snapshot(ready_without_order_permission)
+    if ready_without_order_permission_result.status != "BLOCKED" or ready_without_order_permission_result.blocker_code != "API_UNVERIFIED":
+        return fail_result("live_ready_snapshot_validator", "live_ready=true without live_order_allowed still bypassed evidence checks", paths, ready_without_order_permission_result.blocker_code or "API_UNVERIFIED")
+
     stale_rollup = dict(snapshot)
     stale_rollup.update(
         {
@@ -1538,6 +1545,7 @@ def live_ready_snapshot_writer_validator() -> ValidatorResult:
     scoped = dict(writer_input)
     scoped["live_ready_snapshot_writer_status"] = "PASS"
     scoped["blockers"] = []
+    scoped["evidence_manifest_hash"] = "E" * 64
     scoped = attach_writer_input_hash(scoped)
     scope_result = evaluate_live_ready_snapshot_writer(
         scoped,
@@ -1546,6 +1554,14 @@ def live_ready_snapshot_writer_validator() -> ValidatorResult:
     )
     if scope_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
         return fail_result("live_ready_snapshot_writer_validator", "scope mismatch did not block snapshot generation", paths, "SNAPSHOT_SCOPE_MISMATCH")
+
+    placeholder_writer = dict(writer_input)
+    placeholder_writer["live_ready_snapshot_writer_status"] = "PASS"
+    placeholder_writer["blockers"] = []
+    placeholder_writer = attach_writer_input_hash(placeholder_writer)
+    placeholder_result = evaluate_live_ready_snapshot_writer(placeholder_writer, evidence_manifest_present=True)
+    if placeholder_result.blocker_code != "LIVE_READY_SNAPSHOT_WRITER_FAILED" or placeholder_result.would_write_snapshot:
+        return fail_result("live_ready_snapshot_writer_validator", "placeholder evidence hash did not block snapshot generation", paths, "LIVE_READY_SNAPSHOT_WRITER_FAILED")
 
     snapshot = build_blocked_live_ready_snapshot(
         exchange="UPBIT",
@@ -9669,6 +9685,7 @@ def promotion_threshold_validator() -> ValidatorResult:
     pass_but_not_enabled["promotion_threshold_status"] = "PASS"
     pass_but_not_enabled["live_ready_snapshot_writer_status"] = "PASS"
     pass_but_not_enabled["blockers"] = []
+    pass_but_not_enabled["evidence_manifest_hash"] = "E" * 64
     pass_but_not_enabled = attach_writer_input_hash(pass_but_not_enabled)
     pass_result_eval = evaluate_live_ready_snapshot_writer(pass_but_not_enabled, evidence_manifest_present=True)
     if pass_result_eval.would_write_snapshot or pass_result_eval.live_order_ready or pass_result_eval.live_order_allowed:

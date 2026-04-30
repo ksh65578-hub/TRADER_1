@@ -6468,6 +6468,66 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-PLACEHOLDER-READINESS-SURFACE-GUARD",
+      "source_section_id": "SECTION_LIVE_READY_WRITER_GUARD",
+      "source_file": "TRADER_1.md",
+      "source_heading": "LIVE_READY writer guard and live final guard",
+      "full_text_marker": "REQ-MVP4-PLACEHOLDER-READINESS-SURFACE-GUARD:placeholder evidence cannot satisfy LIVE_READY writer or snapshot validation",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Placeholder evidence cannot satisfy LIVE_READY readiness surfaces",
+      "requirement_kind": "LIVE_BLOCKED_TEST_PATCH",
+      "schema_ids": [
+        "trader1.live_ready_snapshot.v1",
+        "trader1.live_ready_candidate_writer_input.v1",
+        "trader1.validator_result.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "live_ready_snapshot_validator",
+        "live_ready_snapshot_writer_validator",
+        "readiness_surface_validator",
+        "live_final_guard_validator",
+        "promotion_threshold_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator"
+      ],
+      "artifact_ids": [
+        "trader1/runtime/readiness/live_ready_snapshot.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/readiness/test_live_ready_snapshot_writer.py",
+        "tests/validators/test_optimizer_backlog_validators.py",
+        "tools/emit_placeholder_readiness_surface_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/readiness/test_live_ready_snapshot_writer.py",
+        "tests/validators/test_mvp0_validators.py",
+        "tests/validators/test_optimizer_backlog_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_LIVE_READY_WRITER_GUARD",
+        "SECTION_LIVE_FINAL_GUARD",
+        "SECTION_READINESS_SURFACE"
+      ],
+      "depends_on": [
+        "REQ-MVP0-LIVE-READY-SNAPSHOT-WRITER-GUARD",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "DBEBAA22D01CDFDE554AFFC6CF96BD20D0F83BD933C161682795D0EBF6B2C8DF",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PROFIT-CONVERGENCE-CYCLE-VALIDATOR",
       "source_section_id": "SECTION_PROFIT_CONVERGENCE_MVP3",
       "source_file": "TRADER_1.md",
@@ -9619,5 +9679,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T15:24:21Z"
+  "updated_at_utc": "2026-04-30T15:44:51Z"
 }

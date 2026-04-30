@@ -73,6 +73,7 @@ class OptimizerBacklogValidatorsTest(unittest.TestCase):
         writer_input["promotion_threshold_status"] = "PASS"
         writer_input["live_ready_snapshot_writer_status"] = "PASS"
         writer_input["blockers"] = []
+        writer_input["evidence_manifest_hash"] = "E" * 64
         writer_input = attach_writer_input_hash(writer_input)
 
         result = evaluate_live_ready_snapshot_writer(writer_input, evidence_manifest_present=True)

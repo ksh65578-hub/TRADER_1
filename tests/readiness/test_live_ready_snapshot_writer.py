@@ -73,6 +73,7 @@ class LiveReadySnapshotWriterTest(unittest.TestCase):
         candidate = writer_input()
         candidate["live_ready_snapshot_writer_status"] = "PASS"
         candidate["blockers"] = []
+        candidate["evidence_manifest_hash"] = "E" * 64
         candidate = attach_writer_input_hash(candidate)
         result = evaluate_live_ready_snapshot_writer(
             candidate,
@@ -97,6 +98,61 @@ class LiveReadySnapshotWriterTest(unittest.TestCase):
         result = validate_live_ready_snapshot(snapshot)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "API_UNVERIFIED")
+
+    def test_live_ready_true_without_live_order_allowed_still_requires_evidence(self):
+        registry_hash, schema_bundle_hash, source_tree_hash = hashes()
+        snapshot = build_blocked_live_ready_snapshot(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            registry_hash=registry_hash,
+            schema_bundle_hash=schema_bundle_hash,
+            source_tree_hash=source_tree_hash,
+        )
+        snapshot["live_ready"] = True
+        snapshot["live_order_allowed"] = False
+        result = validate_live_ready_snapshot(snapshot)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "API_UNVERIFIED")
+        self.assertFalse(result.live_order_ready)
+        self.assertFalse(result.live_order_allowed)
+
+    def test_placeholder_evidence_ids_block_live_ready_candidate(self):
+        registry_hash, schema_bundle_hash, source_tree_hash = hashes()
+        snapshot = build_blocked_live_ready_snapshot(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            registry_hash=registry_hash,
+            schema_bundle_hash=schema_bundle_hash,
+            source_tree_hash=source_tree_hash,
+        )
+        snapshot.update(
+            {
+                "live_ready": True,
+                "live_order_allowed": False,
+                "manual_order_test_required": False,
+                "operator_approval_required": False,
+                "official_api_verification_id": "official-api-placeholder",
+                "read_only_burn_in_id": "read-only-burn-in-placeholder",
+                "emergency_protection_evidence_id": "emergency-protection-placeholder",
+                "invalidated_by": [],
+                "validator_rollup_status": "PASS",
+                "manifest_hash": "mvp0-blocked-manifest",
+            }
+        )
+        result = validate_live_ready_snapshot(snapshot)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_READY_SNAPSHOT_WRITER_FAILED")
+        self.assertFalse(result.live_order_ready)
+
+    def test_writer_pass_with_placeholder_evidence_hash_is_blocked(self):
+        candidate = writer_input()
+        candidate["live_ready_snapshot_writer_status"] = "PASS"
+        candidate["blockers"] = []
+        candidate = attach_writer_input_hash(candidate)
+        result = evaluate_live_ready_snapshot_writer(candidate, evidence_manifest_present=True)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_READY_SNAPSHOT_WRITER_FAILED")
+        self.assertFalse(result.would_write_snapshot)
 
     def test_live_ready_snapshot_writer_validator_passes_current_contract(self):
         results = run_validators(["live_ready_snapshot_writer_validator"])

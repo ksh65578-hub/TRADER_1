@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "6FCD65CC97C497E5DCAE58B3AC46DA273F3A65BA4FD51352666735D1E2200157",
+      "sha256": "1175A86B239BF62EE8D31B94CC1B49830D1694F36B4FE73AD17676C4239ACE1D",
       "size_bytes": 1096
     },
     {
@@ -480,8 +480,8 @@
     },
     {
       "path": "contracts/security/source_bundle_denylist.json",
-      "sha256": "28EEF7717F1A5272031527CB47B984163693E62C12CCCE72A90C35765D9315EB",
-      "size_bytes": 1406
+      "sha256": "1FE025936566228C246D086FDF350DDE2150333A59C30F98EB931698F584D4E1",
+      "size_bytes": 1475
     },
     {
       "path": "contracts/validators/fixture_catalog.json",
@@ -725,8 +725,8 @@
     },
     {
       "path": "tests/readiness/test_live_ready_snapshot_writer.py",
-      "sha256": "E9BA58482A3CA68E6EC9BF28521017C0DB0F922AFF5672633A81BE6E097A109D",
-      "size_bytes": 5000
+      "sha256": "E45B6E6A3C2DED902711ECEE638F4C1CC8BDAA1FE6263E33B81F328D387F8940",
+      "size_bytes": 7677
     },
     {
       "path": "tests/readiness/test_readiness_surface.py",
@@ -900,8 +900,8 @@
     },
     {
       "path": "tests/security/test_source_bundle_security.py",
-      "sha256": "2C047446C4731CAAF5B93ADB2C60C1D85E8315647981A7001BE5D9E1BBFB1559",
-      "size_bytes": 5434
+      "sha256": "C457F037C667AB9B5527297EE72B0993D10DA928A8E53257176E2BA0049CB9B8",
+      "size_bytes": 5539
     },
     {
       "path": "tests/validators/__init__.py",
@@ -1860,8 +1860,8 @@
     },
     {
       "path": "tests/validators/test_optimizer_backlog_validators.py",
-      "sha256": "8727BCA957EE680DBF1CAE9DED3B95F35B348B8196D944A316A40E4F0B1C4B66",
-      "size_bytes": 3988
+      "sha256": "A32F6E8A8BF9FFFC74A67D0D601A32C4AE34AC1D56621F692BB3D163F15B9074",
+      "size_bytes": 4046
     },
     {
       "path": "tests/validators/test_optimizer_convergence_guardrails.py",
@@ -2464,6 +2464,11 @@
       "size_bytes": 21095
     },
     {
+      "path": "tools/emit_placeholder_readiness_surface_guard_patch_evidence.py",
+      "sha256": "1A64C02041F7AF643BDB1266F08FBC9D12F5FB663A5363B9E5CC560AAB0C8794",
+      "size_bytes": 24547
+    },
+    {
       "path": "tools/emit_profitability_maturity_component_next_actions_patch_evidence.py",
       "sha256": "9C5F2C039263E749AD5A1F1FEB4DEA05E56EADB3399EB522D8E63D58AE4B821D",
       "size_bytes": 25911
@@ -2605,8 +2610,8 @@
     },
     {
       "path": "tools/emit_source_package_hygiene_cache_dir_guard_patch_evidence.py",
-      "sha256": "F6BB40EED6C62E325EBF7526FD4CB3A4D725FDCF534B710BEFFCE879AAE7C89B",
-      "size_bytes": 23741
+      "sha256": "D6C3782FF1BA4E501DDE1680755E897B6796CD802A6497590BEE1DC47AA3C1A7",
+      "size_bytes": 24293
     },
     {
       "path": "tools/emit_stale_heartbeat_recovery_guidance_patch_evidence.py",
@@ -3455,8 +3460,8 @@
     },
     {
       "path": "trader1/runtime/readiness/live_ready_snapshot.py",
-      "sha256": "65CBAE65B15E719CCCF428BC686B7D170AFB935CBEF709784DC00896E294D155",
-      "size_bytes": 13931
+      "sha256": "C6044A3EDEE0C77C5710C14828D4B454BABA0119C04CCECAAAFBA540B16E8E7B",
+      "size_bytes": 15603
     },
     {
       "path": "trader1/runtime/readiness/manual_order_test_evidence.py",
@@ -3535,8 +3540,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "B45B89083B4C185D8EB77399FA2201CF7199AA37356E6AA91FCB4D424CC4BEE2",
-      "size_bytes": 626447
+      "sha256": "EF55183EF66D200B17AB67B3538429743DAEC65277144FF8B9594A86A041BB91",
+      "size_bytes": 627806
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -3935,6 +3940,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_PERSISTENT_RUNTIME_RESOURCE_BOUNDARY.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -4826,6 +4835,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR.audit.json",
       "reason": "denied:system/"
     },
@@ -5658,6 +5675,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6471,6 +6492,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PERSISTENT_RUNTIME_RESOURCE_BOUNDARY.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7295,6 +7320,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_PERSISTENT_RUNTIME_RESOURCE_BOUNDARY.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8131,6 +8160,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_PERSISTENT_RUNTIME_RESOURCE_BOUNDARY.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
