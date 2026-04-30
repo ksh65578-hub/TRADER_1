@@ -33,6 +33,12 @@ def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
+def sha256_text_file_canonical(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    return sha256_bytes(normalized.encode("utf-8"))
+
+
 def sha256_json(value: Any) -> str:
     return sha256_bytes(json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8"))
 
@@ -171,14 +177,14 @@ def update_read_cache(now: str, trader_hash: str, agents_hash: str) -> None:
         "created_at_utc": now,
         "trader1_sha256": trader_hash,
         "agents_sha256": agents_hash,
-        "authority_section_map_sha256": sha256_file(ROOT / "contracts" / "generated" / "authority_section_map.json"),
-        "requirement_index_sha256": sha256_file(ROOT / "contracts" / "generated" / "requirement_index.json"),
-        "requirement_artifact_matrix_sha256": sha256_file(ROOT / "contracts" / "generated" / "requirement_artifact_matrix.json"),
+        "authority_section_map_sha256": sha256_text_file_canonical(ROOT / "contracts" / "generated" / "authority_section_map.json"),
+        "requirement_index_sha256": sha256_text_file_canonical(ROOT / "contracts" / "generated" / "requirement_index.json"),
+        "requirement_artifact_matrix_sha256": sha256_text_file_canonical(ROOT / "contracts" / "generated" / "requirement_artifact_matrix.json"),
         "registry_yaml_sha256_when_generated": sha256_file(ROOT / "contracts" / "registry.yaml"),
         "schema_bundle_sha256_when_generated": schema_bundle_hash(),
-        "context_pack_hashes": {rel(path): sha256_file(path) for path in sorted(context_dir.glob("*.md"))},
-        "active_working_view_sha256": sha256_file(ROOT / "contracts" / "generated" / "ACTIVE_WORKING_VIEW.md"),
-        "current_implementation_state_sha256": sha256_file(ROOT / "contracts" / "generated" / "current_implementation_state.json"),
+        "context_pack_hashes": {rel(path): sha256_text_file_canonical(path) for path in sorted(context_dir.glob("*.md"))},
+        "active_working_view_sha256": sha256_text_file_canonical(ROOT / "contracts" / "generated" / "ACTIVE_WORKING_VIEW.md"),
+        "current_implementation_state_sha256": sha256_text_file_canonical(ROOT / "contracts" / "generated" / "current_implementation_state.json"),
         "valid_until_authority_hash_changes": True,
         "live_order_ready": False,
         "live_order_allowed": False,

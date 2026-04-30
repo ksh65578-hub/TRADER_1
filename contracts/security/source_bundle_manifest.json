@@ -2550,8 +2550,8 @@
     },
     {
       "path": "tools/emit_root_launcher_operator_visibility_patch_evidence.py",
-      "sha256": "6F44DB51753893FC1B61AF224A286F01B71125F1864E5052F15237A7B9EE9B45",
-      "size_bytes": 18788
+      "sha256": "EC1DE2A18970AA098D36792394593FF96F260A09B069EB4E05038D5752385383",
+      "size_bytes": 19091
     },
     {
       "path": "tools/emit_root_launcher_surface_patch_evidence.py",
@@ -3585,8 +3585,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "5661BCE7A99C3C864A035A446FF9EE07A0D0E153957F5F3D1116272D35BDF28A",
-      "size_bytes": 647716
+      "sha256": "BD6DA9E5D90635C239E94F379E419DD4ECBFEFFD679EBD7C93E22725B368FA6B",
+      "size_bytes": 648052
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4972,6 +4972,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_REGISTERED_VALIDATOR_BACKLOG_TRIAGE.audit.json",
       "reason": "denied:system/"
     },
@@ -5848,6 +5856,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_REGISTERED_VALIDATOR_BACKLOG_TRIAGE.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6697,6 +6709,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7557,6 +7573,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8429,6 +8449,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
