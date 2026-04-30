@@ -1981,7 +1981,8 @@ def read_only_dashboard_validator() -> ValidatorResult:
     module_path = ROOT / "trader1" / "dashboard" / "read_only_dashboard.py"
     launcher_module_path = ROOT / "trader1" / "runtime" / "boot" / "safe_launcher.py"
     stale_rollup_test_path = ROOT / "tests" / "runtime" / "test_safe_launcher.py"
-    paths = [registry_path, schema_path, module_path, launcher_module_path, stale_rollup_test_path]
+    dashboard_test_path = ROOT / "tests" / "dashboard" / "test_read_only_dashboard.py"
+    paths = [registry_path, schema_path, module_path, launcher_module_path, stale_rollup_test_path, dashboard_test_path]
     registry = load_json(registry_path)
     registry_hash = sha256_file(registry_path)
     schema_files = sorted((ROOT / "contracts" / "schema").glob("*.schema.json"))
@@ -2053,6 +2054,15 @@ def read_only_dashboard_validator() -> ValidatorResult:
     result = validate_read_only_dashboard_shell(dashboard, allowed_blockers)
     if result.status != "PASS":
         return fail_result("read_only_dashboard_validator", result.message, paths, result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+    if dashboard.get("portfolio_snapshot", {}).get("status") != "VERIFIED":
+        operation = dashboard.get("operation_status", {})
+        if operation.get("severity") == "NORMAL" or operation.get("color_token") != "yellow":
+            return fail_result(
+                "read_only_dashboard_validator",
+                "unverified portfolio display truth was shown as normal operation",
+                paths,
+                "HARD_TRUTH_MISSING",
+            )
     dashboard_schema = load_json(schema_path)
     metric_schema = dashboard_schema["$defs"]["stability_trends"]["properties"]["metrics"]
     runtime_metric_count = len(dashboard["stability_trends"]["metrics"])
@@ -2135,6 +2145,22 @@ def read_only_dashboard_validator() -> ValidatorResult:
         return fail_result("read_only_dashboard_validator", "missing dashboard source did not stay fail-closed", paths, "HARD_TRUTH_MISSING")
     if "Rerun the PAPER launcher" not in missing_dashboard["operation_status"].get("recovery_hint", ""):
         return fail_result("read_only_dashboard_validator", "stale heartbeat recovery guidance is not operator-visible", paths, "LATENCY_TTL_EXPIRED")
+
+    unverified_normal_dashboard = dict(dashboard)
+    unverified_normal_dashboard["operation_status"] = dict(dashboard["operation_status"])
+    unverified_normal_dashboard["operation_status"]["status"] = "RUNNING_SAFE_MODE"
+    unverified_normal_dashboard["operation_status"]["severity"] = "NORMAL"
+    unverified_normal_dashboard["operation_status"]["color_token"] = "green"
+    unverified_normal_dashboard["operation_status"]["label"] = "Running safely"
+    unverified_normal_dashboard["dashboard_hash"] = dashboard_shell_hash(unverified_normal_dashboard)
+    unverified_normal_result = validate_read_only_dashboard_shell(unverified_normal_dashboard, allowed_blockers)
+    if unverified_normal_result.status != "BLOCKED" or unverified_normal_result.blocker_code != "HARD_TRUTH_MISSING":
+        return fail_result(
+            "read_only_dashboard_validator",
+            "normal operation was not blocked when portfolio display truth was unverified",
+            paths,
+            "HARD_TRUTH_MISSING",
+        )
 
     filled_portfolio = build_paper_portfolio_snapshot_from_fill(
         exchange="UPBIT",
