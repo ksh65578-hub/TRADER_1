@@ -17,7 +17,10 @@ from trader1.runtime.portfolio.paper_portfolio import (
     build_paper_portfolio_snapshot_from_fill,
     validate_paper_portfolio_snapshot,
 )
-from trader1.runtime.paper.upbit_public_collector import validate_upbit_public_market_data_collection_report
+from trader1.runtime.paper.upbit_public_collector import (
+    public_market_data_hash,
+    validate_upbit_public_market_data_collection_report,
+)
 
 
 UPBIT_PAPER_RUNTIME_CYCLE_SCHEMA_ID = "trader1.upbit_paper_runtime_cycle_report.v1"
@@ -275,6 +278,7 @@ def build_upbit_paper_runtime_cycle_report(
     starting_cash: str | int | float | Decimal = "1000000",
 ) -> dict[str, Any]:
     source_collection_report_hash = None
+    source_public_market_data_hash = None
     canonical_event_count = 0
     runtime_input_role = "STATIC_FIXTURE"
     if isinstance(source_collection_report, dict):
@@ -282,6 +286,7 @@ def build_upbit_paper_runtime_cycle_report(
         if source_result.status == "PASS":
             market_data = source_collection_report["public_market_data"]
             source_collection_report_hash = source_collection_report["collection_hash"]
+            source_public_market_data_hash = source_collection_report["public_market_data_hash"]
             canonical_event_count = int(source_collection_report.get("canonical_event_count", 0))
             runtime_input_role = "PUBLIC_MARKET_DATA_COLLECTION"
     market_data = market_data or build_upbit_public_candle_fixture(symbol=symbol, session_id=session_id)
@@ -430,6 +435,7 @@ def build_upbit_paper_runtime_cycle_report(
         "symbol": symbol,
         "runtime_input_role": runtime_input_role,
         "source_collection_report_hash": source_collection_report_hash,
+        "source_public_market_data_hash": source_public_market_data_hash,
         "canonical_event_count": canonical_event_count,
         "market_data_source": market_data.get("source", "UNAVAILABLE"),
         "public_market_data": market_data,
@@ -475,6 +481,7 @@ def validate_upbit_paper_runtime_cycle_report(report: dict[str, Any]) -> UpbitPa
         "symbol",
         "runtime_input_role",
         "source_collection_report_hash",
+        "source_public_market_data_hash",
         "canonical_event_count",
         "market_data_source",
         "public_market_data",
@@ -529,10 +536,18 @@ def validate_upbit_paper_runtime_cycle_report(report: dict[str, Any]) -> UpbitPa
     if report.get("runtime_input_role") == "PUBLIC_MARKET_DATA_COLLECTION":
         if not isinstance(report.get("source_collection_report_hash"), str) or len(report["source_collection_report_hash"]) != 64:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "public collection input requires source collection hash", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(report.get("source_public_market_data_hash"), str) or len(report["source_public_market_data_hash"]) != 64:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "public collection input requires source market data hash", "SCHEMA_IDENTITY_MISMATCH")
+        if public_market_data_hash(report["public_market_data"]) != report["source_public_market_data_hash"]:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "runtime public market data does not match source collection payload", "SCHEMA_IDENTITY_MISMATCH")
         if not isinstance(report.get("canonical_event_count"), int) or report["canonical_event_count"] < 5:
             return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "public collection input requires canonical events", "MEASUREMENT_MISSING")
     else:
-        if report.get("source_collection_report_hash") is not None or report.get("canonical_event_count") != 0:
+        if (
+            report.get("source_collection_report_hash") is not None
+            or report.get("source_public_market_data_hash") is not None
+            or report.get("canonical_event_count") != 0
+        ):
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "static fixture runtime cannot carry collection hash", "SCHEMA_IDENTITY_MISMATCH")
 
     data_status, data_blocker, data_message = validate_upbit_public_candle_data(

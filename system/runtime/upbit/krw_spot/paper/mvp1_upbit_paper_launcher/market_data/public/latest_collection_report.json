@@ -1,14 +1,15 @@
 {
   "can_live_trade": false,
   "canonical_event_count": 6,
-  "collector_id": "mvp4_upbit_scorecard_bridge_current_refresh-collector-2",
-  "generated_at_utc": "2026-04-30T14:18:58Z",
+  "collector_id": "mvp4-upbit-runtime-source-hash-guard-collector-1",
+  "generated_at_utc": "2026-04-30T16:30:07Z",
   "live_order_allowed": false,
   "live_order_ready": false,
   "project_id": "TRADER_1",
+  "public_market_data_hash": "16FF4B1703E4F7A7F53D90D090D5C3EFD453B0C8D284FD2F487E38DAA22FA15D",
   "quarantine_path": null,
-  "report_hash": "BC79EA38E12E09232BF8C0FE79A28BE138CD327D88B3FCF8E5B6D5960DA88FC7",
-  "report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4_upbit_scorecard_bridge_current_refresh-collector-2.collection_report.json",
+  "report_hash": "54F11F4D9952B534AC90BD5555E4F3AB11D9D0D4266C0943B2D65E4B8139EA3C",
+  "report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-upbit-runtime-source-hash-guard-collector-1.collection_report.json",
   "scale_up_allowed": false,
   "schema_id": "trader1.upbit_public_market_data_latest_pointer.v1"
 }
