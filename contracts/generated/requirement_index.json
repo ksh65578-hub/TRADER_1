@@ -9838,6 +9838,73 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-LONG-RUN-EVIDENCE-BOUNDARY",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Bounded PAPER runtime evidence boundary",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-LONG-RUN-EVIDENCE-BOUNDARY: bounded PAPER runtime PASS and recovery PASS cannot be treated as long-run evidence",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER long-run evidence boundary",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_persistent_loop_report.v1",
+        "trader1.upbit_paper_runtime_recovery_guard_report.v1",
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.common.defs.v1"
+      ],
+      "validator_ids": [
+        "registry_validator",
+        "schema_validator",
+        "upbit_paper_persistent_loop_validator",
+        "upbit_paper_runtime_recovery_guard_validator",
+        "read_only_dashboard_validator",
+        "runtime_schema_instance_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/registry.yaml",
+        "contracts/schema/common.defs.schema.json",
+        "contracts/schema/upbit_paper_persistent_loop_report.schema.json",
+        "contracts/schema/upbit_paper_runtime_recovery_guard_report.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/runtime/paper/upbit_paper_persistent_loop.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_upbit_paper_long_run_evidence_boundary_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_LONG_RUN_EVIDENCE_BOUNDARY.md"
+      ],
+      "test_ids": [
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "VALIDATOR_IMPLEMENTATION",
+        "LIVE_BLOCKED_TEST"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-PUBLIC-COLLECTOR-PERSISTENT-LOOP",
+        "REQ-MVP4-DASHBOARD-RUNTIME-EVIDENCE-BOUNDARY",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "AEBA16FF8E81ED4585037B600EC1C0465CF94D767CB0C7DAABCB25D2FC398C01",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-PERSISTENT-LOOP-BOUNDED",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -10708,5 +10775,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T22:55:53Z"
+  "updated_at_utc": "2026-04-30T23:25:58Z"
 }

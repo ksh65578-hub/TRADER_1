@@ -4308,7 +4308,10 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         "paper_ledger_rollup_path",
         "paper_runtime_resume_allowed",
         "partial_write_recovery_required",
+        "runtime_evidence_role",
         "long_run_evidence_eligible",
+        "long_run_blocker_code",
+        "long_run_next_action",
         "promotion_eligible",
         "data_source_policy",
         "credential_load_attempted",
@@ -4348,7 +4351,11 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         "corrupted_jsonl_quarantined_count",
         "orphan_tmp_file_count",
         "paper_runtime_resume_allowed",
+        "runtime_evidence_role",
         "actual_long_run_evidence_created",
+        "long_run_evidence_eligible",
+        "long_run_blocker_code",
+        "long_run_next_action",
         "promotion_eligible",
         "live_order_allowed",
         "can_live_trade",
@@ -4371,6 +4378,11 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
             return fail_result("upbit_paper_persistent_loop_validator", "persistent loop did not execute requested PAPER cycles", paths, "MEASUREMENT_MISSING")
         if loop.get("long_run_evidence_eligible") or loop.get("promotion_eligible") or loop.get("live_order_allowed"):
             return fail_result("upbit_paper_persistent_loop_validator", "bounded persistent loop created promotion or live permission", paths, "LIVE_FINAL_GUARD_FAILED")
+        if (
+            loop.get("runtime_evidence_role") != "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"
+            or loop.get("long_run_blocker_code") != "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
+        ):
+            return fail_result("upbit_paper_persistent_loop_validator", "bounded persistent loop did not expose long-run evidence boundary", paths, "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
         if loop.get("recovery_guard_status") != "PASS" or loop.get("partial_write_recovery_required"):
             return fail_result("upbit_paper_persistent_loop_validator", "valid persistent loop did not pass recovery guard", paths, "RECONCILIATION_REQUIRED")
         if loop.get("paper_ledger_rollup_status") != "PASS" or loop.get("paper_ledger_rollup_primary_blocker_code") is not None:
@@ -4385,6 +4397,12 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         guard_result = validate_upbit_paper_runtime_recovery_guard_report(guard)
         if guard_result.status != "PASS":
             return fail_result("upbit_paper_persistent_loop_validator", f"valid recovery guard failed: {guard_result.message}", paths, guard_result.blocker_code or "RECONCILIATION_REQUIRED")
+        if (
+            guard.get("runtime_evidence_role") != "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE"
+            or guard.get("long_run_evidence_eligible")
+            or guard.get("long_run_blocker_code") != "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
+        ):
+            return fail_result("upbit_paper_persistent_loop_validator", "recovery guard did not expose resume-only long-run evidence boundary", paths, "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
         rollup = load_json(rollup_path)
         rollup_result = validate_paper_ledger_rollup_report(rollup)
         if rollup_result.status != "PASS":
@@ -4423,6 +4441,24 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
     false_runtime_result = validate_upbit_paper_persistent_loop_report(false_runtime)
     if false_runtime_result.status != "BLOCKED" or false_runtime_result.blocker_code != "MEASUREMENT_MISSING":
         return fail_result("upbit_paper_persistent_loop_validator", "persistent loop false runtime execution flag was not blocked", paths, false_runtime_result.blocker_code or "MEASUREMENT_MISSING")
+
+    with TemporaryDirectory() as tmp:
+        false_boundary = run_upbit_paper_persistent_loop(
+            root=Path(tmp),
+            loop_id="validator-upbit-paper-loop-false-long-run-boundary",
+            session_id="mvp1_upbit_paper_launcher",
+            requested_cycle_count=1,
+        )
+    false_boundary["runtime_evidence_role"] = "PAPER_RUNTIME_EVIDENCE"
+    false_boundary["loop_hash"] = upbit_paper_persistent_loop_hash(false_boundary)
+    false_boundary_result = validate_upbit_paper_persistent_loop_report(false_boundary)
+    if false_boundary_result.status != "BLOCKED" or false_boundary_result.blocker_code != "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT":
+        return fail_result(
+            "upbit_paper_persistent_loop_validator",
+            "persistent loop long-run evidence boundary mutation was not blocked",
+            paths,
+            false_boundary_result.blocker_code or "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        )
 
     with TemporaryDirectory() as tmp:
         duplicate_cycle = run_upbit_paper_persistent_loop(
@@ -4477,6 +4513,20 @@ def upbit_paper_runtime_recovery_guard_validator() -> ValidatorResult:
         return fail_result("upbit_paper_runtime_recovery_guard_validator", "recovery guard schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
     if schema.get("additionalProperties") is not False:
         return fail_result("upbit_paper_runtime_recovery_guard_validator", "recovery guard schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    recovery_required = set(schema.get("required", []))
+    for field in (
+        "runtime_evidence_role",
+        "actual_long_run_evidence_created",
+        "long_run_evidence_eligible",
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "promotion_eligible",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in recovery_required:
+            return fail_result("upbit_paper_runtime_recovery_guard_validator", f"recovery guard schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
 
     with TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -4485,8 +4535,13 @@ def upbit_paper_runtime_recovery_guard_validator() -> ValidatorResult:
         result = validate_upbit_paper_runtime_recovery_guard_report(guard)
         if result.status != "PASS":
             return fail_result("upbit_paper_runtime_recovery_guard_validator", f"valid recovery guard failed: {result.message}", paths, result.blocker_code or "RECONCILIATION_REQUIRED")
-        if guard.get("actual_long_run_evidence_created") or guard.get("promotion_eligible") or guard.get("live_order_allowed"):
+        if guard.get("actual_long_run_evidence_created") or guard.get("long_run_evidence_eligible") or guard.get("promotion_eligible") or guard.get("live_order_allowed"):
             return fail_result("upbit_paper_runtime_recovery_guard_validator", "recovery guard created long-run, promotion, or live permission", paths, "LIVE_FINAL_GUARD_FAILED")
+        if (
+            guard.get("runtime_evidence_role") != "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE"
+            or guard.get("long_run_blocker_code") != "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
+        ):
+            return fail_result("upbit_paper_runtime_recovery_guard_validator", "recovery guard did not expose resume-only long-run evidence boundary", paths, "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
 
         tmp_path = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "paper_runtime" / ".orphan.tmp"
         tmp_path.write_text("partial", encoding="utf-8")
@@ -4520,6 +4575,18 @@ def upbit_paper_runtime_recovery_guard_validator() -> ValidatorResult:
     mutated_result = validate_upbit_paper_runtime_recovery_guard_report(mutated)
     if mutated_result.status != "BLOCKED" or mutated_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
         return fail_result("upbit_paper_runtime_recovery_guard_validator", "recovery guard live mutation was not blocked", paths, mutated_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_long_run = build_upbit_paper_runtime_recovery_guard_report(root=ROOT, loop_id="validator-upbit-paper-recovery-false-long-run")
+    false_long_run["long_run_evidence_eligible"] = True
+    false_long_run["guard_hash"] = upbit_paper_runtime_recovery_guard_hash(false_long_run)
+    false_long_run_result = validate_upbit_paper_runtime_recovery_guard_report(false_long_run)
+    if false_long_run_result.status != "BLOCKED" or false_long_run_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            "upbit_paper_runtime_recovery_guard_validator",
+            "recovery guard false long-run eligibility mutation was not blocked",
+            paths,
+            false_long_run_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+        )
 
     return pass_result("upbit_paper_runtime_recovery_guard_validator", "Upbit PAPER recovery guard verifies latest cycle recoverability, quarantines partial JSONL, blocks orphan temp files, and stays live-blocked", paths)
 

@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-04-30T22:55:53Z",
+  "updated_at_utc": "2026-04-30T23:25:58Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -210,6 +210,7 @@
     "REQ-MVP4-UPBIT-PAPER-LEDGER-JSONL-RECOVERY",
     "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP",
     "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP-CONSISTENCY-GUARD",
+    "REQ-MVP4-UPBIT-PAPER-LONG-RUN-EVIDENCE-BOUNDARY",
     "REQ-MVP4-UPBIT-PAPER-PERSISTENT-LOOP-BOUNDED",
     "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH",
     "REQ-MVP4-UPBIT-PAPER-RUNTIME-CANDIDATE-LINKAGE-COST-MODEL",
@@ -235,6 +236,7 @@
     "trader1.bytecode_free_syntax_report.v1",
     "trader1.candidate_generation_report.v1",
     "trader1.candidate_scorecard.v1",
+    "trader1.common.defs.v1",
     "trader1.common_defs.v1",
     "trader1.contract_gap.v1",
     "trader1.convergence_assessment_report.v1",
@@ -450,12 +452,12 @@
     "PATCH_RESULT_VALIDATOR_RUN_GAP",
     "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY"
   ],
-  "last_patch_id": "MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING_20260501_001",
-  "last_patch_result_hash": "5D8E945640CAFCD390AC5E71CC3832A71C3239ADF41374B2511E07E5D80D56FE",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_RUNTIME_LONG_RUN_EVIDENCE_HARDENING",
+  "last_patch_id": "MVP4_UPBIT_PAPER_LONG_RUN_EVIDENCE_BOUNDARY_20260501_001",
+  "last_patch_result_hash": "D105872386E7ACC9CA7D10B7053AC5A0E6D021BCCAF799DE102EF9792657DF69",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_LONG_RUN_SAMPLE_ACCUMULATION",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "26830EB052FAF6E24EE9337C5C76A6D7B852AC31A5CFB0B391CDB83BEB354781"
+  "state_hash": "3D5B843B60E123A248F28A6F806DDB4DDC19716F0C84FA817DB3C6806FA6EC3A"
 }

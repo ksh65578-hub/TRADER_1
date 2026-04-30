@@ -1882,7 +1882,11 @@ def _paper_runtime_recovery_guard_status(
         "orphan_tmp_file_count": 0,
         "resume_action": "SAFE_MODE_RECONCILE",
         "paper_runtime_resume_allowed": False,
+        "runtime_evidence_role": "NOT_LOADED",
         "actual_long_run_evidence_created": False,
+        "long_run_evidence_eligible": False,
+        "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        "long_run_next_action": "Collect validated long-run PAPER and SHADOW runtime evidence before live review.",
         "promotion_eligible": False,
         "primary_blocker_code": "RECONCILIATION_REQUIRED",
         "one_line_summary": "PAPER runtime recovery guard is not loaded; resume status is unverified.",
@@ -1909,6 +1913,7 @@ def _paper_runtime_recovery_guard_status(
         report.get(field) is not False
         for field in (
             "actual_long_run_evidence_created",
+            "long_run_evidence_eligible",
             "promotion_eligible",
             "live_order_ready",
             "live_order_allowed",
@@ -1976,7 +1981,11 @@ def _paper_runtime_recovery_guard_status(
             "orphan_tmp_file_count": safe_count(report.get("orphan_tmp_file_count")),
             "resume_action": "RESUME_PAPER_ONLY" if paper_resume_allowed else "SAFE_MODE_RECONCILE",
             "paper_runtime_resume_allowed": paper_resume_allowed,
+            "runtime_evidence_role": str(report.get("runtime_evidence_role") or "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE"),
             "actual_long_run_evidence_created": False,
+            "long_run_evidence_eligible": False,
+            "long_run_blocker_code": str(report.get("long_run_blocker_code") or "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"),
+            "long_run_next_action": str(report.get("long_run_next_action") or "Collect validated long-run PAPER and SHADOW runtime evidence before live review."),
             "promotion_eligible": False,
             "primary_blocker_code": str(primary_blocker or "LIVE_READY_MISSING"),
             "one_line_summary": summary,
@@ -6357,6 +6366,7 @@ def validate_read_only_dashboard_shell(
         or paper_recovery_guard.get("can_live_trade")
         or paper_recovery_guard.get("scale_up_allowed")
         or paper_recovery_guard.get("actual_long_run_evidence_created")
+        or paper_recovery_guard.get("long_run_evidence_eligible")
         or paper_recovery_guard.get("promotion_eligible")
     ):
         return DashboardValidationResult("BLOCKED", "paper runtime recovery guard attempted live, scale, promotion, or long-run permission", "LIVE_FINAL_GUARD_FAILED")
@@ -6386,7 +6396,22 @@ def validate_read_only_dashboard_shell(
     ):
         if not isinstance(paper_recovery_guard.get(count_field), int) or paper_recovery_guard.get(count_field) < 0:
             return DashboardValidationResult("FAIL", f"paper runtime recovery guard count is invalid: {count_field}", "SCHEMA_IDENTITY_MISMATCH")
-    for text_field in ("guard_id", "loop_id", "latest_cycle_status", "resume_action", "primary_blocker_code", "one_line_summary", "next_operator_action"):
+    if paper_recovery_guard.get("runtime_evidence_role") not in {"NOT_LOADED", "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE"}:
+        return DashboardValidationResult("BLOCKED", "paper runtime recovery guard must be marked resume-only and not long-run evidence", "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+    if paper_recovery_guard.get("long_run_blocker_code") != "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT":
+        return DashboardValidationResult("BLOCKED", "paper runtime recovery guard must expose the long-run evidence blocker", "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+    for text_field in (
+        "guard_id",
+        "loop_id",
+        "latest_cycle_status",
+        "resume_action",
+        "runtime_evidence_role",
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "primary_blocker_code",
+        "one_line_summary",
+        "next_operator_action",
+    ):
         if not isinstance(paper_recovery_guard.get(text_field), str) or not paper_recovery_guard.get(text_field, "").strip():
             return DashboardValidationResult("FAIL", f"paper runtime recovery guard missing {text_field}", "SCHEMA_IDENTITY_MISMATCH")
     if paper_recovery_guard.get("paper_runtime_resume_allowed") and paper_recovery_guard.get("status") != "PASS":
@@ -7789,7 +7814,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "<div><strong>Resume Decision</strong>"
         f"<p>{safe_text(paper_recovery_guard.get('resume_action', 'SAFE_MODE_RECONCILE'))}<br>resume_allowed={safe_text(paper_recovery_guard.get('paper_runtime_resume_allowed', False))}</p></div>"
         "<div><strong>Evidence Boundary</strong>"
-        "<p><span class=\"pill safe-lock\">not LIVE_READY</span><br><span class=\"pill safe-lock\">not long-run evidence</span><br><span class=\"pill safe-lock\">scale-up blocked</span></p></div>"
+        f"<p><span class=\"pill safe-lock\">not LIVE_READY</span><br><span class=\"pill safe-lock\">long-run eligible={safe_text(paper_recovery_guard.get('long_run_evidence_eligible', False))}</span><br><span class=\"pill safe-lock\">scale-up blocked</span><br>blocker={safe_text(paper_recovery_guard.get('long_run_blocker_code', 'LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT'))}</p></div>"
         "</section>"
         f"<p class=\"next\">Next: {safe_text(paper_recovery_guard.get('next_operator_action', 'Run PAPER recovery guard before review.'))}</p>"
         f"<small>Source={safe_text(paper_recovery_guard.get('source', 'NOT_LOADED'))} | Guard={safe_text(paper_recovery_guard.get('guard_id', 'NOT_LOADED'))} | Loop={safe_text(paper_recovery_guard.get('loop_id', 'NOT_LOADED'))} | Blocker={safe_text(paper_recovery_guard.get('primary_blocker_code', 'RECONCILIATION_REQUIRED'))}. Display-only recovery status; it cannot approve live orders, promotion, long-run evidence, or risk scale-up.</small>"
