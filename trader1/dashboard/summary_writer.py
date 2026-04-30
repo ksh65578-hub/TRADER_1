@@ -9,6 +9,8 @@ from trader1.runtime.portfolio.paper_portfolio import validate_paper_portfolio_s
 
 
 SUMMARY_SCHEMA_ID = "trader1.summary.v1"
+PAPER_PORTFOLIO_SNAPSHOT_STALE_AFTER_SECONDS = 300
+SOURCE_CLOCK_SKEW_ALLOWANCE_SECONDS = 60
 ORDER_AFFECTING_FINAL_ACTIONS = {
     "ENTER_LONG",
     "ENTER_SHORT",
@@ -54,12 +56,16 @@ def _first_blocker(*codes: str | None) -> str | None:
     return None
 
 
-def _empty_portfolio() -> dict[str, Any]:
+def _empty_portfolio(message: str = "No verified paper portfolio snapshot loaded") -> dict[str, Any]:
     return {
         "source": "SUMMARY_BUILDER",
         "freshness_status": "UNTESTED",
         "source_snapshot_hash": None,
         "source_snapshot_status": "UNTESTED",
+        "source_snapshot_generated_at_utc": None,
+        "source_snapshot_age_seconds": None,
+        "source_snapshot_stale_after_seconds": PAPER_PORTFOLIO_SNAPSHOT_STALE_AFTER_SECONDS,
+        "source_snapshot_freshness_message": message,
         "source_balance_kind": None,
         "equity": None,
         "cash_available": None,
@@ -70,7 +76,31 @@ def _empty_portfolio() -> dict[str, Any]:
         "unrealized_pnl": None,
         "total_pnl": None,
         "mdd": None,
+        "next_action": "Run PAPER with a fresh verified paper portfolio ledger before trusting portfolio values",
     }
+
+
+def _parse_utc(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def _source_age_seconds(generated_at_utc: Any, *, now: datetime | None = None) -> int | None:
+    generated_at = _parse_utc(generated_at_utc)
+    if generated_at is None:
+        return None
+    now_utc = now or datetime.now(timezone.utc)
+    delta = (now_utc - generated_at).total_seconds()
+    if delta < -SOURCE_CLOCK_SKEW_ALLOWANCE_SECONDS:
+        return None
+    return max(0, int(delta))
 
 
 def _portfolio_from_paper_snapshot(
@@ -92,12 +122,21 @@ def _portfolio_from_paper_snapshot(
     )
     if result.status != "PASS" or not scope_matches:
         return _empty_portfolio(), []
+    source_age_seconds = _source_age_seconds(snapshot.get("generated_at_utc"))
+    if source_age_seconds is None:
+        return _empty_portfolio("PAPER portfolio snapshot timestamp is invalid; rerun PAPER before trusting portfolio values"), []
+    if source_age_seconds > PAPER_PORTFOLIO_SNAPSHOT_STALE_AFTER_SECONDS:
+        return _empty_portfolio("PAPER portfolio snapshot is stale; rerun PAPER before trusting portfolio values"), []
     return (
         {
             "source": "LEDGER",
             "freshness_status": "PASS",
             "source_snapshot_hash": snapshot["snapshot_hash"],
             "source_snapshot_status": snapshot["snapshot_status"],
+            "source_snapshot_generated_at_utc": snapshot["generated_at_utc"],
+            "source_snapshot_age_seconds": source_age_seconds,
+            "source_snapshot_stale_after_seconds": PAPER_PORTFOLIO_SNAPSHOT_STALE_AFTER_SECONDS,
+            "source_snapshot_freshness_message": "PAPER portfolio snapshot is fresh and display-only",
             "source_balance_kind": snapshot["display_balance_kind"],
             "equity": float(snapshot["equity"]),
             "cash_available": float(snapshot["cash_available"]),
@@ -108,6 +147,7 @@ def _portfolio_from_paper_snapshot(
             "unrealized_pnl": float(snapshot["unrealized_pnl"]),
             "total_pnl": float(snapshot.get("total_pnl", 0)),
             "mdd": 0.0,
+            "next_action": "Continue PAPER monitoring; portfolio values are display truth only",
         },
         list(snapshot.get("positions", [])),
     )
@@ -340,7 +380,8 @@ def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] |
     if portfolio.get("source") == "SUMMARY_BUILDER" and any(portfolio.get(key) is not None for key in ("equity", "cash_available", "locked_balance")):
         return SummaryValidationResult("BLOCKED", "summary builder cannot invent portfolio execution truth", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("source") == "SUMMARY_BUILDER" and any(
-        portfolio.get(key) is not None for key in ("source_snapshot_hash", "source_balance_kind")
+        portfolio.get(key) is not None
+        for key in ("source_snapshot_hash", "source_snapshot_generated_at_utc", "source_snapshot_age_seconds", "source_balance_kind")
     ):
         return SummaryValidationResult("BLOCKED", "summary builder cannot claim portfolio snapshot provenance", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("source") in {"LEDGER", "RECONCILIATION"} and portfolio.get("freshness_status") == "PASS":
@@ -348,6 +389,14 @@ def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] |
             return SummaryValidationResult("BLOCKED", "verified portfolio source must include cash and equity", "HARD_TRUTH_MISSING")
         if portfolio.get("source_snapshot_status") != "PASS" or not _is_hash64(portfolio.get("source_snapshot_hash")):
             return SummaryValidationResult("BLOCKED", "verified portfolio source must carry PASS source snapshot provenance", "HARD_TRUTH_MISSING")
+        if not isinstance(portfolio.get("source_snapshot_generated_at_utc"), str):
+            return SummaryValidationResult("BLOCKED", "verified portfolio source must carry snapshot timestamp provenance", "HARD_TRUTH_MISSING")
+        source_age = _decimal(portfolio.get("source_snapshot_age_seconds"))
+        stale_after = _decimal(portfolio.get("source_snapshot_stale_after_seconds"))
+        if source_age is None or stale_after is None or source_age < 0 or stale_after <= 0:
+            return SummaryValidationResult("FAIL", "verified portfolio snapshot age fields must be numeric", "SCHEMA_IDENTITY_MISMATCH")
+        if source_age > stale_after:
+            return SummaryValidationResult("BLOCKED", "verified portfolio source snapshot is stale", "LATENCY_TTL_EXPIRED")
         if portfolio.get("source_balance_kind") != "SIMULATED_PAPER_LEDGER":
             return SummaryValidationResult("BLOCKED", "verified summary portfolio must remain simulated PAPER ledger truth", "LIVE_FINAL_GUARD_FAILED")
         if summary.get("mode") != "PAPER":

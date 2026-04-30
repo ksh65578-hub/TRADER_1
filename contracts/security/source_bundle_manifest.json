@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "60351A5D50317C34A73D0C4095F83F4826946D404A4911D2950CB42D6D47A0C9",
+      "sha256": "1A981EDC51431431FDB78B3602AA23E716D44E7076F22119019199DE649504F8",
       "size_bytes": 1096
     },
     {
@@ -410,8 +410,8 @@
     },
     {
       "path": "contracts/schema/summary.schema.json",
-      "sha256": "3EBA95FEE15C8C39E9AA8A99703F674AE88D83B6020EC2F285FDCBBDC68CD49C",
-      "size_bytes": 10357
+      "sha256": "DEF104EB6AEE4D16E1158BFEA23F36054D97AFBC097C90F9A68449B77FF6746D",
+      "size_bytes": 11033
     },
     {
       "path": "contracts/schema/survival_layer_report.schema.json",
@@ -605,8 +605,8 @@
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
-      "sha256": "944E75A651FCB368B99BEFD51ABC478DD3B4FF1ABEC08EA8BFC2CC13C2F2A2E0",
-      "size_bytes": 10800
+      "sha256": "57CA0F334D10827172EAEC661F35F102600AB098FC9DC6B35F98FDF161C32721",
+      "size_bytes": 13379
     },
     {
       "path": "tests/emergency/__init__.py",
@@ -2669,6 +2669,11 @@
       "size_bytes": 24423
     },
     {
+      "path": "tools/emit_summary_portfolio_freshness_guard_patch_evidence.py",
+      "sha256": "CEFF001767B25E8C3AB02B96C30AE4E49304AB5950C2EFFAF8AECDE5B3B5224F",
+      "size_bytes": 24654
+    },
+    {
       "path": "tools/emit_summary_portfolio_provenance_guard_patch_evidence.py",
       "sha256": "9C1085D68B25304545E1A5A81502810DD2A7B323FC0783D41784A76B82864C62",
       "size_bytes": 26576
@@ -3265,8 +3270,8 @@
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
-      "sha256": "B95AEFAB94F09798AFEE7246775A1D414CFB13942463F3AD7599ABF4BB70B33A",
-      "size_bytes": 18943
+      "sha256": "D1DA8475B971626308F0C6EA1C20671DCB88302656B3C3694794204EFF4546EE",
+      "size_bytes": 21911
     },
     {
       "path": "trader1/execution/__init__.py",
@@ -3595,8 +3600,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "A025CABEE6386753119DEB1495F25522827B347A05740005A7B656E0ADB91427",
-      "size_bytes": 639900
+      "sha256": "BF06EF0C8005C019422D635DA6341B6E54C48398A6CAF239F83DE78844740758",
+      "size_bytes": 641522
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4067,6 +4072,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5158,6 +5167,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.audit.json",
       "reason": "denied:system/"
     },
@@ -6086,6 +6103,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6951,6 +6972,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_STRATEGY_REGIME_PROFITABILITY_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7827,6 +7852,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_STRATEGY_REGIME_PROFITABILITY_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8719,6 +8748,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_STRATEGY_REGIME_PROFITABILITY_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
