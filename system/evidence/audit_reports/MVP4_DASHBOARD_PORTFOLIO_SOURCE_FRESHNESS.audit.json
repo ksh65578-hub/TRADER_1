@@ -1,0 +1,122 @@
+{
+  "audit_schema_id": "trader1.dashboard_portfolio_source_freshness_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "verified_dashboard_carries_source_age": true,
+    "verified_dashboard_carries_stale_threshold": true,
+    "verified_dashboard_html_shows_age": true,
+    "stale_source_age_blocks_verified_dashboard": true,
+    "runtime_dashboards_have_source_freshness_fields": true,
+    "runtime_dashboards_keep_live_false": true
+  },
+  "runtime_paths_regenerated": [
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard/index.html",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard_shell.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/heartbeat.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/launcher/root_launcher_report.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/stability_history.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/startup_probe.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/summary.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard/index.html",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/heartbeat.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/launcher/root_launcher_report.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/paper_portfolio_snapshot.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/reconciliation_report.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/stability_history.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/startup_probe.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/heartbeat.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/launcher/root_launcher_report.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/stability_history.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/startup_probe.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/paper/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/heartbeat.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/launcher/root_launcher_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/paper_ledger_rollup_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/rest_continuity_history.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_operation_gate_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_portfolio_snapshot.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/reconciliation_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/restart_recovery_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/stability_history.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/startup_probe.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+  ],
+  "runtime_dashboard_shells_checked": [
+    {
+      "path": "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard_shell.json",
+      "has_source_snapshot_age_seconds": true,
+      "has_source_snapshot_stale_after_seconds": true,
+      "has_source_snapshot_freshness_message": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "path": "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+      "has_source_snapshot_age_seconds": true,
+      "has_source_snapshot_stale_after_seconds": true,
+      "has_source_snapshot_freshness_message": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard_shell.json",
+      "has_source_snapshot_age_seconds": true,
+      "has_source_snapshot_stale_after_seconds": true,
+      "has_source_snapshot_freshness_message": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/dashboard_shell.json",
+      "has_source_snapshot_age_seconds": true,
+      "has_source_snapshot_stale_after_seconds": true,
+      "has_source_snapshot_freshness_message": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+      "has_source_snapshot_age_seconds": true,
+      "has_source_snapshot_stale_after_seconds": true,
+      "has_source_snapshot_freshness_message": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    }
+  ],
+  "hidden_defects": [
+    {
+      "classification": "dashboard_portfolio_freshness_ambiguity",
+      "condition": "portfolio cards could show verified PAPER values while the first screen did not expose source age or stale threshold.",
+      "impact": "operator could mistake old PAPER portfolio values for current values even though dashboard truth remains display-only.",
+      "fix": "dashboard portfolio snapshot now carries source_snapshot_age_seconds, source_snapshot_stale_after_seconds, and freshness message; stale age is blocked.",
+      "live_safety_impact": "prevents stale display evidence from looking review-ready",
+      "ux_impact": "operator sees how fresh the portfolio values are at a glance"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
