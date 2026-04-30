@@ -1,0 +1,31 @@
+{
+  "audit_schema_id": "trader1.placeholder_readiness_surface_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "source_checks": {
+    "placeholder_marker_constant_present": true,
+    "writer_input_placeholder_fields_blocked": true,
+    "live_ready_requires_evidence_even_without_order_permission": true,
+    "live_order_allowed_still_requires_live_ready": true
+  },
+  "test_checks": {
+    "live_ready_true_without_live_order_allowed_negative": true,
+    "placeholder_evidence_ids_negative": true,
+    "placeholder_writer_hash_negative": true
+  },
+  "validator_checks": {
+    "live_ready_without_order_permission_validator_case": true,
+    "writer_placeholder_validator_case": true,
+    "promotion_threshold_uses_non_placeholder_evidence_hash": true
+  },
+  "hidden_defect": {
+    "classification": "false_safe_live_ready_candidate",
+    "condition": "placeholder or unverified evidence fields appear in a writer input or live_ready snapshot candidate",
+    "impact": "dashboard or validator consumers could interpret a candidate as more ready than the evidence supports",
+    "fix": "block placeholder evidence on writer input and on any live_ready=true snapshot, even when live_order_allowed remains false"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
