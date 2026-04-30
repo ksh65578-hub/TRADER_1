@@ -633,6 +633,12 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["operation_status"]["status"], "RUNNING_SAFE_MODE")
         self.assertEqual(dashboard["operation_status"]["severity"], "NORMAL")
         self.assertIn(dashboard["operation_status"]["color_token"], {"green", "blue"})
+        self.assertEqual(dashboard["operation_status"]["portfolio_status"], dashboard["portfolio_snapshot"]["status"])
+        self.assertEqual(
+            dashboard["operation_status"]["portfolio_blocking_reason"],
+            dashboard["portfolio_snapshot"]["blocking_reason"],
+        )
+        self.assertEqual(dashboard["operation_status"]["portfolio_next_action"], dashboard["portfolio_snapshot"]["next_action"])
         self.assertIn("No recovery needed", dashboard["operation_status"]["recovery_hint"])
         self.assertTrue(dashboard["operation_status"]["live_orders_blocked"])
         reconciliation = dashboard["reconciliation_recovery_summary"]
@@ -1316,6 +1322,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_dashboard_blocks_operation_portfolio_status_mismatch(self):
+        dashboard = build_dashboard()
+        dashboard["operation_status"]["portfolio_status"] = "UNVERIFIED"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
 
     def test_dashboard_blocks_decision_trace_live_permission(self):
         dashboard = build_dashboard()
@@ -2431,6 +2445,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["operation_status"]["color_token"], "yellow")
         self.assertEqual(dashboard["operation_status"]["label"], "Running without verified portfolio")
         self.assertIn("portfolio", dashboard["operation_status"]["message"])
+        self.assertEqual(dashboard["operation_status"]["portfolio_status"], "UNVERIFIED")
+        self.assertEqual(dashboard["operation_status"]["portfolio_blocking_reason"], "HARD_TRUTH_MISSING")
+        self.assertEqual(dashboard["operation_status"]["portfolio_next_action"], dashboard["portfolio_snapshot"]["next_action"])
         self.assertFalse(dashboard["live_order_allowed"])
 
     def test_dashboard_blocks_normal_operation_when_portfolio_is_unverified(self):
@@ -2601,6 +2618,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["operation_status"]["color_token"], "yellow")
         self.assertEqual(dashboard["operation_status"]["label"], "Running with stale portfolio")
         self.assertIn("portfolio", dashboard["operation_status"]["message"])
+        self.assertEqual(dashboard["operation_status"]["portfolio_status"], "STALE")
+        self.assertEqual(dashboard["operation_status"]["portfolio_blocking_reason"], "LATENCY_TTL_EXPIRED")
+        self.assertEqual(dashboard["operation_status"]["portfolio_next_action"], dashboard["portfolio_snapshot"]["next_action"])
         self.assertEqual(dashboard["risk_exposure_snapshot"]["status"], "STALE")
         self.assertEqual(dashboard["risk_exposure_snapshot"]["color_token"], "yellow")
         self.assertEqual(dashboard["risk_exposure_snapshot"]["exposure_pct_display"], "UNVERIFIED")

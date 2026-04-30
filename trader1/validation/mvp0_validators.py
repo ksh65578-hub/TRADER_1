@@ -2063,6 +2063,13 @@ def read_only_dashboard_validator() -> ValidatorResult:
                 paths,
                 "HARD_TRUTH_MISSING",
             )
+        if operation.get("portfolio_status") != dashboard.get("portfolio_snapshot", {}).get("status"):
+            return fail_result(
+                "read_only_dashboard_validator",
+                "operation status did not expose the dashboard portfolio trust state",
+                paths,
+                "HARD_TRUTH_MISSING",
+            )
     dashboard_schema = load_json(schema_path)
     metric_schema = dashboard_schema["$defs"]["stability_trends"]["properties"]["metrics"]
     runtime_metric_count = len(dashboard["stability_trends"]["metrics"])
@@ -2158,6 +2165,19 @@ def read_only_dashboard_validator() -> ValidatorResult:
         return fail_result(
             "read_only_dashboard_validator",
             "normal operation was not blocked when portfolio display truth was unverified",
+            paths,
+            "HARD_TRUTH_MISSING",
+        )
+
+    operation_mismatch_dashboard = dict(dashboard)
+    operation_mismatch_dashboard["operation_status"] = dict(dashboard["operation_status"])
+    operation_mismatch_dashboard["operation_status"]["portfolio_status"] = "VERIFIED"
+    operation_mismatch_dashboard["dashboard_hash"] = dashboard_shell_hash(operation_mismatch_dashboard)
+    operation_mismatch_result = validate_read_only_dashboard_shell(operation_mismatch_dashboard, allowed_blockers)
+    if operation_mismatch_result.status != "BLOCKED" or operation_mismatch_result.blocker_code != "HARD_TRUTH_MISSING":
+        return fail_result(
+            "read_only_dashboard_validator",
+            "operation portfolio status mismatch was not blocked",
             paths,
             "HARD_TRUTH_MISSING",
         )

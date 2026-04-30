@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "20C5A9F2B1F663A99BE1DE79C349A28AA081DFBDCFE5DF7E9BA92402DDBA34C0",
+      "sha256": "378EEB4650852C23A5D63324873441656E362EEA1957E6F5EBD791BCE710633F",
       "size_bytes": 1096
     },
     {
@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "339C6660DC7FC545C040766357A90A0A820052060F2E36F95468D7D05B65161A",
-      "size_bytes": 112379
+      "sha256": "F11177CD91697837CA199F27D004CF7DBC595481FC333BB5A28C719A22DF6223",
+      "size_bytes": 112865
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -600,8 +600,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "88A9A8DAC58DD7E9EB139602A6907013C846413753C86F50200C27F8D3EABDF5",
-      "size_bytes": 184248
+      "sha256": "4660D9C92DB92D66CE1B5F50C5FBDC4631FFFC5FD30B8D00E93FE75E1A89D838",
+      "size_bytes": 185753
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -820,8 +820,8 @@
     },
     {
       "path": "tests/runtime/test_bytecode_free_syntax_check.py",
-      "sha256": "D68DDE292051ECE9B5EAB5824AE888E4EB3D762DC1E20B48351955022CC54B34",
-      "size_bytes": 3373
+      "sha256": "207C4EA8A97DC5BF47199A046AEE68366551400ED4D0C7C687CBD465894DD004",
+      "size_bytes": 3451
     },
     {
       "path": "tests/runtime/test_dashboard_artifact_hygiene.py",
@@ -885,8 +885,8 @@
     },
     {
       "path": "tests/runtime/test_safe_smoke.py",
-      "sha256": "5A364AAEC31475FEA2DA22AD73C1A51594287C48DD9EAEAFA86E202DC8760CDD",
-      "size_bytes": 3036
+      "sha256": "649FF21AFC2E15AFAFFD7BAC01DF4DA639F431DB077CA3F045EABE2EAAC746F7",
+      "size_bytes": 3114
     },
     {
       "path": "tests/runtime/test_safety_control.py",
@@ -2114,6 +2114,11 @@
       "size_bytes": 22983
     },
     {
+      "path": "tools/emit_dashboard_operation_portfolio_status_fields_patch_evidence.py",
+      "sha256": "78A41D0FBE993BAE5ACDD95F32CFB35235E682CFA6E712EEFAB69381651134C1",
+      "size_bytes": 28498
+    },
+    {
       "path": "tools/emit_dashboard_operation_status_ux_patch_evidence.py",
       "sha256": "DB987287845F4F56EF5A40FFF9A8DBF35DDDDD707B89F8DE63EE28271FE71FB2",
       "size_bytes": 16571
@@ -3270,8 +3275,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "4AC01E991C4EA8E1941F7B8D7EBF391E1C1222B1F2303D1F5FA0F3B2C943C509",
-      "size_bytes": 517437
+      "sha256": "B59003C6072ED09A49F172BF38475D4D583B50C8CC5D782A0158129349DA5511",
+      "size_bytes": 519103
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -3605,8 +3610,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "916AE628E91E297653E7A275F18AD7B5769A049004E5A8A8E9CDC2E6BF6B3581",
-      "size_bytes": 643116
+      "sha256": "DC6C859AD0FB65D61124DE1B482CCDBDF351583E6E2FAB2B64BCB9F59F3EA369",
+      "size_bytes": 644233
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -3913,6 +3918,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATION_PORTFOLIO_STATUS_FIELDS.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -4601,6 +4610,10 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_DASHBOARD_OPERATION_PORTFOLIO_STATUS_FIELDS.audit.json",
       "reason": "denied:system/"
     },
     {
@@ -5552,6 +5565,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_DASHBOARD_OPERATION_PORTFOLIO_STATUS_FIELDS.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_DASHBOARD_OPERATION_STATUS_UX.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6425,6 +6442,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_DASHBOARD_OPERATION_PORTFOLIO_STATUS_FIELDS.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7309,6 +7330,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_DASHBOARD_OPERATION_PORTFOLIO_STATUS_FIELDS.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8205,6 +8230,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_DASHBOARD_OPERATION_PORTFOLIO_STATUS_FIELDS.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

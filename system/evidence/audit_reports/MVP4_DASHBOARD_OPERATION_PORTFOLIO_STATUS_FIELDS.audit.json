@@ -1,0 +1,138 @@
+{
+  "audit_schema_id": "trader1.dashboard_operation_portfolio_status_fields_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "schema_requires_operation_portfolio_fields": true,
+    "runtime_populates_operation_portfolio_fields": true,
+    "validator_blocks_operation_portfolio_mismatch": true,
+    "unit_tests_cover_operation_portfolio_fields": true,
+    "runtime_dashboard_shells_have_new_fields": true,
+    "runtime_dashboard_shells_keep_live_false": true
+  },
+  "runtime_dashboard_shells_checked": [
+    {
+      "path": "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard_shell.json",
+      "has_portfolio_status": true,
+      "has_portfolio_blocking_reason": true,
+      "has_portfolio_next_action": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "path": "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+      "has_portfolio_status": true,
+      "has_portfolio_blocking_reason": true,
+      "has_portfolio_next_action": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard_shell.json",
+      "has_portfolio_status": true,
+      "has_portfolio_blocking_reason": true,
+      "has_portfolio_next_action": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/dashboard_shell.json",
+      "has_portfolio_status": true,
+      "has_portfolio_blocking_reason": true,
+      "has_portfolio_next_action": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+      "has_portfolio_status": true,
+      "has_portfolio_blocking_reason": true,
+      "has_portfolio_next_action": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    }
+  ],
+  "runtime_paths_regenerated": [
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard/index.html",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard_shell.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/heartbeat.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/launcher/root_launcher_report.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/stability_history.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/startup_probe.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/summary.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard/index.html",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/heartbeat.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/launcher/root_launcher_report.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/paper_portfolio_snapshot.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/reconciliation_report.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/stability_history.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/startup_probe.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/heartbeat.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/launcher/root_launcher_report.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/stability_history.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/startup_probe.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/paper/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/heartbeat.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/launcher/root_launcher_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/paper_ledger_rollup_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/rest_continuity_history.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_operation_gate_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_portfolio_snapshot.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/reconciliation_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/restart_recovery_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/stability_history.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/startup_probe.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+  ],
+  "hidden_defects": [
+    {
+      "classification": "dashboard_operation_status_missing_portfolio_truth_fields",
+      "condition": "Operation status could use portfolio freshness internally without exposing that status in the operation artifact.",
+      "impact": "Operator reports and validators could see a yellow operation card but not the exact portfolio trust state that caused it.",
+      "fix": "operation_status now carries portfolio_status, portfolio_blocking_reason, and portfolio_next_action.",
+      "live_safety_impact": "prevents display-only status from drifting away from portfolio truth boundaries",
+      "ux_impact": "makes the reason for normal/warning status explicit and auditable"
+    },
+    {
+      "classification": "dashboard_runtime_schema_stale_after_schema_delta",
+      "condition": "Checked-in runtime dashboard_shell artifacts lacked new operation_status required fields after schema hardening.",
+      "impact": "runtime_schema_instance_validator failed until launcher dashboard bundles were regenerated.",
+      "fix": "safe launcher bundles were regenerated for UPBIT/BINANCE PAPER/LIVE surfaces with all live flags false.",
+      "live_safety_impact": "keeps runtime artifacts schema-valid without enabling live behavior",
+      "ux_impact": "keeps local dashboard files renderable after schema changes"
+    },
+    {
+      "classification": "test_subprocess_bytecode_write_reintroduces_bundle_hygiene_failure",
+      "condition": "CLI smoke tests spawned Python subprocesses without PYTHONDONTWRITEBYTECODE=1.",
+      "impact": "A full safe test run could recreate __pycache__ files and make source bundle hygiene fail later in the same run.",
+      "fix": "CLI subprocess tests now inherit the environment with PYTHONDONTWRITEBYTECODE=1.",
+      "live_safety_impact": "keeps release hygiene validation reproducible without touching live behavior",
+      "ux_impact": "keeps operator-facing test results from flipping to FAIL because of local test cache side effects"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 import unittest
@@ -54,6 +55,7 @@ class BytecodeFreeSyntaxCheckTest(unittest.TestCase):
             result = subprocess.run(
                 [sys.executable, "tools/run_bytecode_free_syntax_check.py", "--output", str(output_path)],
                 cwd=ROOT,
+                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
                 text=True,
                 capture_output=True,
                 timeout=30,

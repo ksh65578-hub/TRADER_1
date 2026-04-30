@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-04-30T18:26:27Z",
+  "generated_at_utc": "2026-04-30T20:43:07Z",
   "exchange": "BINANCE",
   "market_type": "SPOT",
   "mode": "PAPER",
@@ -47,8 +47,12 @@
   "portfolio": {
     "source": "LEDGER",
     "freshness_status": "PASS",
-    "source_snapshot_hash": "E92B51E89640B36094DF4161D849201FFE7B32D2B3C5AC72200573FFBFBAB5F0",
+    "source_snapshot_hash": "15F73EFCCFABCF94D2075CD0C733CB1F55FF02EAE15023DD04231E1A08A3B232",
     "source_snapshot_status": "PASS",
+    "source_snapshot_generated_at_utc": "2026-04-30T20:43:07Z",
+    "source_snapshot_age_seconds": 0,
+    "source_snapshot_stale_after_seconds": 300,
+    "source_snapshot_freshness_message": "PAPER portfolio snapshot is fresh and display-only",
     "source_balance_kind": "SIMULATED_PAPER_LEDGER",
     "equity": 10000.0,
     "cash_available": 10000.0,
@@ -58,7 +62,8 @@
     "realized_pnl": 0.0,
     "unrealized_pnl": 0.0,
     "total_pnl": 0.0,
-    "mdd": 0.0
+    "mdd": 0.0,
+    "next_action": "Continue PAPER monitoring; portfolio values are display truth only"
   },
   "orders": {
     "source": "SUMMARY_BUILDER",
