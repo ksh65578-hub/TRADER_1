@@ -150,6 +150,9 @@ from trader1.runtime.paper.upbit_public_collector import (
     build_upbit_public_market_data_collection_report,
     upbit_public_market_data_collection_hash,
     validate_upbit_public_market_data_collection_report,
+    validate_upbit_public_market_data_collection_writer_report,
+    validate_upbit_public_market_data_latest_pointer,
+    write_upbit_public_market_data_collection_artifacts,
 )
 from trader1.runtime.paper.upbit_public_rest_sample import (
     build_upbit_public_rest_sample_report,
@@ -2300,6 +2303,20 @@ def runtime_schema_instance_validator() -> ValidatorResult:
             ),
         ]
     )
+    collection_report = build_upbit_public_market_data_collection_report(
+        collector_id="runtime-schema-instance-public-collection",
+        session_id="runtime_schema_instance_validator",
+    )
+    instances.append(("build_upbit_public_market_data_collection_report", collection_report))
+    with TemporaryDirectory() as tmp:
+        collection_writer = write_upbit_public_market_data_collection_artifacts(root=Path(tmp), report=collection_report)
+        latest_pointer = load_json(Path(tmp) / collection_writer["artifact_paths"][3])
+        instances.extend(
+            [
+                ("write_upbit_public_market_data_collection_artifacts:writer", collection_writer),
+                ("write_upbit_public_market_data_collection_artifacts:latest_pointer", latest_pointer),
+            ]
+        )
 
     current_artifact_paths = sorted((ROOT / "system" / "runtime").glob("*/*/paper/*/dashboard_shell.json"))
     current_artifact_paths.extend(sorted((ROOT / "system" / "runtime").glob("*/*/paper/*/heartbeat.json")))
@@ -3406,15 +3423,27 @@ def upbit_paper_runtime_cycle_validator() -> ValidatorResult:
 
 def upbit_public_market_data_collection_validator() -> ValidatorResult:
     schema_path = ROOT / "contracts" / "schema" / "upbit_public_market_data_collection_report.schema.json"
+    latest_pointer_schema_path = ROOT / "contracts" / "schema" / "upbit_public_market_data_latest_pointer.schema.json"
+    writer_schema_path = ROOT / "contracts" / "schema" / "upbit_public_market_data_collection_writer_report.schema.json"
     collector_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_public_collector.py"
     market_data_path = ROOT / "trader1" / "adapters" / "upbit" / "market_data.py"
     test_path = ROOT / "tests" / "integration" / "test_upbit_public_collection_persistent_loop.py"
-    paths = [schema_path, collector_path, market_data_path, test_path]
+    paths = [schema_path, latest_pointer_schema_path, writer_schema_path, collector_path, market_data_path, test_path]
     schema = load_json(schema_path)
     if schema.get("$id") != "trader1.upbit_public_market_data_collection_report.v1":
         return fail_result("upbit_public_market_data_collection_validator", "Upbit public collection schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
     if schema.get("additionalProperties") is not False:
         return fail_result("upbit_public_market_data_collection_validator", "Upbit public collection schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    latest_pointer_schema = load_json(latest_pointer_schema_path)
+    if latest_pointer_schema.get("$id") != "trader1.upbit_public_market_data_latest_pointer.v1":
+        return fail_result("upbit_public_market_data_collection_validator", "Upbit public latest pointer schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if latest_pointer_schema.get("additionalProperties") is not False:
+        return fail_result("upbit_public_market_data_collection_validator", "Upbit public latest pointer schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    writer_schema = load_json(writer_schema_path)
+    if writer_schema.get("$id") != "trader1.upbit_public_market_data_collection_writer_report.v1":
+        return fail_result("upbit_public_market_data_collection_validator", "Upbit public collection writer schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if writer_schema.get("additionalProperties") is not False:
+        return fail_result("upbit_public_market_data_collection_validator", "Upbit public collection writer schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
     required = set(schema.get("required", []))
     for field in (
         "collector_mode",
@@ -3445,6 +3474,56 @@ def upbit_public_market_data_collection_validator() -> ValidatorResult:
         return fail_result("upbit_public_market_data_collection_validator", "public collection did not bind market data hash", paths, "SCHEMA_IDENTITY_MISMATCH")
     if report.get("credential_load_attempted") or report.get("private_endpoint_called") or report.get("order_endpoint_called") or report.get("live_order_allowed"):
         return fail_result("upbit_public_market_data_collection_validator", "public collection attempted forbidden private/live behavior", paths, "LIVE_FINAL_GUARD_FAILED")
+
+    schema_bundle = load_schema_bundle(ROOT / "contracts" / "schema")
+    with TemporaryDirectory() as tmp:
+        writer = write_upbit_public_market_data_collection_artifacts(root=Path(tmp), report=report)
+        latest_pointer = load_json(Path(tmp) / writer["artifact_paths"][3])
+        for label, instance, expected_schema_id in (
+            ("collection writer report", writer, "trader1.upbit_public_market_data_collection_writer_report.v1"),
+            ("latest collection pointer", latest_pointer, "trader1.upbit_public_market_data_latest_pointer.v1"),
+        ):
+            instance_schema = schema_for_instance(instance, schema_bundle)
+            if instance_schema is None or instance_schema.get("$id") != expected_schema_id:
+                return fail_result(
+                    "upbit_public_market_data_collection_validator",
+                    f"{label} did not map to expected schema",
+                    paths,
+                    "SCHEMA_IDENTITY_MISMATCH",
+                )
+            instance_result = validate_instance_against_schema(instance, instance_schema, schema_bundle)
+            if instance_result.status != "PASS":
+                return fail_result(
+                    "upbit_public_market_data_collection_validator",
+                    f"{label} schema validation failed: {instance_result.errors[0]}",
+                    paths,
+                    "SCHEMA_IDENTITY_MISMATCH",
+                )
+        writer_result = validate_upbit_public_market_data_collection_writer_report(writer, source_report=report)
+        if writer_result.status != "PASS":
+            return fail_result("upbit_public_market_data_collection_validator", f"writer report failed validation: {writer_result.message}", paths, writer_result.blocker_code or "UNKNOWN_BLOCKED")
+        pointer_result = validate_upbit_public_market_data_latest_pointer(latest_pointer, source_report=report)
+        if pointer_result.status != "PASS":
+            return fail_result("upbit_public_market_data_collection_validator", f"latest pointer failed validation: {pointer_result.message}", paths, pointer_result.blocker_code or "UNKNOWN_BLOCKED")
+        latest_pointer["public_market_data_hash"] = "0" * 64
+        pointer_mismatch_result = validate_upbit_public_market_data_latest_pointer(latest_pointer, source_report=report)
+        if pointer_mismatch_result.status != "FAIL" or pointer_mismatch_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+            return fail_result(
+                "upbit_public_market_data_collection_validator",
+                "latest pointer hash mismatch was not failed closed",
+                paths,
+                pointer_mismatch_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+            )
+        writer_live_mutation = dict(writer)
+        writer_live_mutation["live_order_allowed"] = True
+        writer_live_result = validate_upbit_public_market_data_collection_writer_report(writer_live_mutation, source_report=report)
+        if writer_live_result.status != "BLOCKED" or writer_live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+            return fail_result(
+                "upbit_public_market_data_collection_validator",
+                "collection writer live flag mutation was not blocked",
+                paths,
+                writer_live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+            )
 
     payload_mismatch = build_upbit_public_market_data_collection_report(
         collector_id="validator-upbit-public-payload-mismatch",
@@ -3539,7 +3618,7 @@ def upbit_public_market_data_collection_validator() -> ValidatorResult:
     if duplicate_result.status != "BLOCKED" or duplicate_result.blocker_code != "RECONCILIATION_REQUIRED":
         return fail_result("upbit_public_market_data_collection_validator", "duplicate canonical event was not reconcile-blocked", paths, duplicate_result.blocker_code or "RECONCILIATION_REQUIRED")
 
-    return pass_result("upbit_public_market_data_collection_validator", "Upbit public market data collection canonicalizes public fixture data, rejects private/live mixing, and blocks duplicate events", paths)
+    return pass_result("upbit_public_market_data_collection_validator", "Upbit public market data collection, writer report, and latest pointer are strict, scoped, hash-bound, and live-blocked", paths)
 
 
 def upbit_public_rest_sample_validator() -> ValidatorResult:

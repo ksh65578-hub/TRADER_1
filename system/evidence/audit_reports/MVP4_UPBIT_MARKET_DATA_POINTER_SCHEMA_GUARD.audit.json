@@ -1,0 +1,26 @@
+{
+  "audit_schema_id": "trader1.upbit_market_data_pointer_schema_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "latest_pointer_schema_registered": true,
+    "collection_writer_schema_registered": true,
+    "latest_pointer_schema_strict": true,
+    "collection_writer_schema_strict": true,
+    "latest_pointer_has_scope_fields": true,
+    "writer_report_has_scope_and_hash_fields": true,
+    "collector_writes_latest_scope_fields": true,
+    "validator_checks_latest_pointer_hash_mismatch": true,
+    "validator_checks_writer_live_mutation": true
+  },
+  "hidden_defect": {
+    "classification": "schema_coverage_gap",
+    "condition": "Upbit market-data latest pointer and collection writer artifacts were emitted without first-class schema/registry coverage",
+    "impact": "runtime_schema_instance_validator could miss drift in operator-visible market-data pointer/writer artifacts",
+    "fix": "added strict schemas, registry entries, runtime instance validation, and negative fixtures for pointer hash drift and writer live-flag mutation"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -13,6 +13,8 @@ from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 
 
 UPBIT_PUBLIC_MARKET_DATA_COLLECTION_SCHEMA_ID = "trader1.upbit_public_market_data_collection_report.v1"
+UPBIT_PUBLIC_MARKET_DATA_LATEST_POINTER_SCHEMA_ID = "trader1.upbit_public_market_data_latest_pointer.v1"
+UPBIT_PUBLIC_MARKET_DATA_COLLECTION_WRITER_SCHEMA_ID = "trader1.upbit_public_market_data_collection_writer_report.v1"
 CANONICAL_MARKET_EVENT_SCHEMA_ID = "trader1.canonical_market_event.v1"
 
 
@@ -337,7 +339,7 @@ def write_upbit_public_market_data_collection_artifacts(*, root: Path, report: d
     writer_report_path = base / "collection" / f"{collector_id}.writer_report.json"
     if result.status != "PASS":
         writer = {
-            "schema_id": "trader1.upbit_public_market_data_collection_writer_report.v1",
+            "schema_id": UPBIT_PUBLIC_MARKET_DATA_COLLECTION_WRITER_SCHEMA_ID,
             "generated_at_utc": utc_now(),
             "project_id": "TRADER_1",
             "writer_status": "BLOCKED",
@@ -346,6 +348,8 @@ def write_upbit_public_market_data_collection_artifacts(*, root: Path, report: d
             "market_type": report.get("market_type"),
             "mode": report.get("mode"),
             "session_id": report.get("session_id"),
+            "symbol": report.get("symbol"),
+            "public_market_data_hash": report.get("public_market_data_hash"),
             "primary_blocker_code": result.blocker_code,
             "blocker_message": result.message,
             "artifact_paths": [],
@@ -361,10 +365,15 @@ def write_upbit_public_market_data_collection_artifacts(*, root: Path, report: d
     recovered_events, quarantine_path = recover_jsonl_records(canonical_path)
     durable_atomic_write_json(report_path, report)
     latest = {
-        "schema_id": "trader1.upbit_public_market_data_latest_pointer.v1",
+        "schema_id": UPBIT_PUBLIC_MARKET_DATA_LATEST_POINTER_SCHEMA_ID,
         "generated_at_utc": utc_now(),
         "project_id": "TRADER_1",
         "collector_id": collector_id,
+        "exchange": report["exchange"],
+        "market_type": report["market_type"],
+        "mode": report["mode"],
+        "session_id": report["session_id"],
+        "symbol": report["symbol"],
         "report_path": _relative_posix(report_path, root),
         "report_hash": report["collection_hash"],
         "public_market_data_hash": report["public_market_data_hash"],
@@ -377,7 +386,7 @@ def write_upbit_public_market_data_collection_artifacts(*, root: Path, report: d
     }
     durable_atomic_write_json(latest_path, latest)
     writer = {
-        "schema_id": "trader1.upbit_public_market_data_collection_writer_report.v1",
+        "schema_id": UPBIT_PUBLIC_MARKET_DATA_COLLECTION_WRITER_SCHEMA_ID,
         "generated_at_utc": utc_now(),
         "project_id": "TRADER_1",
         "writer_status": "PASS" if quarantine_path is None else "BLOCKED",
@@ -386,6 +395,7 @@ def write_upbit_public_market_data_collection_artifacts(*, root: Path, report: d
         "market_type": report["market_type"],
         "mode": report["mode"],
         "session_id": report["session_id"],
+        "symbol": report["symbol"],
         "public_market_data_hash": report["public_market_data_hash"],
         "primary_blocker_code": None if quarantine_path is None else "PARTIAL_WRITE_RECOVERY_REQUIRED",
         "blocker_message": "public market data artifacts written atomically" if quarantine_path is None else "canonical JSONL required recovery",
@@ -402,3 +412,122 @@ def write_upbit_public_market_data_collection_artifacts(*, root: Path, report: d
     }
     durable_atomic_write_json(writer_report_path, writer)
     return writer
+
+
+def validate_upbit_public_market_data_latest_pointer(
+    pointer: dict[str, Any],
+    *,
+    source_report: dict[str, Any] | None = None,
+) -> UpbitPublicMarketDataCollectionValidationResult:
+    required = {
+        "schema_id",
+        "generated_at_utc",
+        "project_id",
+        "collector_id",
+        "exchange",
+        "market_type",
+        "mode",
+        "session_id",
+        "symbol",
+        "report_path",
+        "report_hash",
+        "public_market_data_hash",
+        "canonical_event_count",
+        "quarantine_path",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    }
+    missing = sorted(required - set(pointer))
+    if missing:
+        return UpbitPublicMarketDataCollectionValidationResult("FAIL", f"latest pointer missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH")
+    if pointer.get("schema_id") != UPBIT_PUBLIC_MARKET_DATA_LATEST_POINTER_SCHEMA_ID:
+        return UpbitPublicMarketDataCollectionValidationResult("FAIL", "latest pointer schema_id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if pointer.get("exchange") != "UPBIT" or pointer.get("market_type") != "KRW_SPOT" or pointer.get("mode") != "PAPER":
+        return UpbitPublicMarketDataCollectionValidationResult("BLOCKED", "latest pointer scope must remain UPBIT/KRW_SPOT/PAPER", "SNAPSHOT_SCOPE_MISMATCH")
+    if pointer.get("live_order_ready") or pointer.get("live_order_allowed") or pointer.get("can_live_trade") or pointer.get("scale_up_allowed"):
+        return UpbitPublicMarketDataCollectionValidationResult("BLOCKED", "latest pointer attempted live or scale-up permission", "LIVE_FINAL_GUARD_FAILED")
+    if not isinstance(pointer.get("report_hash"), str) or len(pointer["report_hash"]) != 64:
+        return UpbitPublicMarketDataCollectionValidationResult("FAIL", "latest pointer report_hash must be a 64-char hash", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(pointer.get("public_market_data_hash"), str) or len(pointer["public_market_data_hash"]) != 64:
+        return UpbitPublicMarketDataCollectionValidationResult("FAIL", "latest pointer public_market_data_hash must be a 64-char hash", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(pointer.get("canonical_event_count"), int) or pointer["canonical_event_count"] < 0:
+        return UpbitPublicMarketDataCollectionValidationResult("FAIL", "latest pointer canonical_event_count must be non-negative", "SCHEMA_IDENTITY_MISMATCH")
+    if not str(pointer.get("report_path", "")).startswith(
+        f"system/runtime/upbit/krw_spot/paper/{pointer['session_id']}/market_data/public/collection/"
+    ):
+        return UpbitPublicMarketDataCollectionValidationResult("BLOCKED", "latest pointer report_path escaped scoped market data directory", "SNAPSHOT_SCOPE_MISMATCH")
+    if isinstance(source_report, dict):
+        source_result = validate_upbit_public_market_data_collection_report(source_report)
+        if source_result.status != "PASS":
+            return UpbitPublicMarketDataCollectionValidationResult(source_result.status, source_result.message, source_result.blocker_code)
+        for key in ("collector_id", "exchange", "market_type", "mode", "session_id", "symbol"):
+            if pointer.get(key) != source_report.get(key):
+                return UpbitPublicMarketDataCollectionValidationResult("BLOCKED", f"latest pointer scope mismatch: {key}", "SNAPSHOT_SCOPE_MISMATCH")
+        if pointer.get("report_hash") != source_report.get("collection_hash"):
+            return UpbitPublicMarketDataCollectionValidationResult("FAIL", "latest pointer report_hash does not match source collection", "SCHEMA_IDENTITY_MISMATCH")
+        if pointer.get("public_market_data_hash") != source_report.get("public_market_data_hash"):
+            return UpbitPublicMarketDataCollectionValidationResult("FAIL", "latest pointer market data hash does not match source collection", "SCHEMA_IDENTITY_MISMATCH")
+        if pointer.get("canonical_event_count") != source_report.get("canonical_event_count"):
+            return UpbitPublicMarketDataCollectionValidationResult("FAIL", "latest pointer canonical count does not match source collection", "SCHEMA_IDENTITY_MISMATCH")
+    return UpbitPublicMarketDataCollectionValidationResult("PASS", "latest public market data pointer is scoped and hash-bound", None)
+
+
+def validate_upbit_public_market_data_collection_writer_report(
+    writer: dict[str, Any],
+    *,
+    source_report: dict[str, Any] | None = None,
+) -> UpbitPublicMarketDataCollectionValidationResult:
+    required = {
+        "schema_id",
+        "generated_at_utc",
+        "project_id",
+        "writer_status",
+        "collector_id",
+        "exchange",
+        "market_type",
+        "mode",
+        "session_id",
+        "symbol",
+        "public_market_data_hash",
+        "primary_blocker_code",
+        "blocker_message",
+        "artifact_paths",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    }
+    missing = sorted(required - set(writer))
+    if missing:
+        return UpbitPublicMarketDataCollectionValidationResult("FAIL", f"collection writer missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH")
+    if writer.get("schema_id") != UPBIT_PUBLIC_MARKET_DATA_COLLECTION_WRITER_SCHEMA_ID:
+        return UpbitPublicMarketDataCollectionValidationResult("FAIL", "collection writer schema_id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if writer.get("exchange") != "UPBIT" or writer.get("market_type") != "KRW_SPOT" or writer.get("mode") != "PAPER":
+        return UpbitPublicMarketDataCollectionValidationResult("BLOCKED", "collection writer scope must remain UPBIT/KRW_SPOT/PAPER", "SNAPSHOT_SCOPE_MISMATCH")
+    if writer.get("live_order_ready") or writer.get("live_order_allowed") or writer.get("can_live_trade") or writer.get("scale_up_allowed"):
+        return UpbitPublicMarketDataCollectionValidationResult("BLOCKED", "collection writer attempted live or scale-up permission", "LIVE_FINAL_GUARD_FAILED")
+    if writer.get("writer_status") not in {"PASS", "BLOCKED"}:
+        return UpbitPublicMarketDataCollectionValidationResult("FAIL", "collection writer_status is unsupported", "SCHEMA_IDENTITY_MISMATCH")
+    if writer.get("writer_status") == "PASS":
+        if writer.get("primary_blocker_code") is not None:
+            return UpbitPublicMarketDataCollectionValidationResult("FAIL", "PASS collection writer cannot carry a primary blocker", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(writer.get("public_market_data_hash"), str) or len(writer["public_market_data_hash"]) != 64:
+            return UpbitPublicMarketDataCollectionValidationResult("FAIL", "PASS collection writer requires public_market_data_hash", "SCHEMA_IDENTITY_MISMATCH")
+        artifact_paths = writer.get("artifact_paths")
+        if not isinstance(artifact_paths, list) or len(artifact_paths) != 4:
+            return UpbitPublicMarketDataCollectionValidationResult("FAIL", "PASS collection writer must expose four artifact paths", "SCHEMA_IDENTITY_MISMATCH")
+        expected_prefix = f"system/runtime/upbit/krw_spot/paper/{writer['session_id']}/market_data/public/"
+        if any(not isinstance(path, str) or not path.startswith(expected_prefix) for path in artifact_paths):
+            return UpbitPublicMarketDataCollectionValidationResult("BLOCKED", "collection writer artifact path escaped scoped market data directory", "SNAPSHOT_SCOPE_MISMATCH")
+    else:
+        if not writer.get("primary_blocker_code"):
+            return UpbitPublicMarketDataCollectionValidationResult("FAIL", "BLOCKED collection writer requires primary blocker", "SCHEMA_IDENTITY_MISMATCH")
+    if isinstance(source_report, dict):
+        for key in ("collector_id", "exchange", "market_type", "mode", "session_id", "symbol"):
+            if writer.get(key) != source_report.get(key):
+                return UpbitPublicMarketDataCollectionValidationResult("BLOCKED", f"collection writer scope mismatch: {key}", "SNAPSHOT_SCOPE_MISMATCH")
+        if writer.get("writer_status") == "PASS" and writer.get("public_market_data_hash") != source_report.get("public_market_data_hash"):
+            return UpbitPublicMarketDataCollectionValidationResult("FAIL", "collection writer market data hash does not match source collection", "SCHEMA_IDENTITY_MISMATCH")
+    return UpbitPublicMarketDataCollectionValidationResult("PASS", "collection writer report is scoped and live-blocked", None)

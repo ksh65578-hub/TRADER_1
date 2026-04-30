@@ -6859,6 +6859,42 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-MARKET-DATA-POINTER-SCHEMA-GUARD",
+      "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "schema_files": [
+        "contracts/schema/upbit_public_market_data_latest_pointer.schema.json",
+        "contracts/schema/upbit_public_market_data_collection_writer_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/runtime/paper/upbit_public_collector.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/contract/test_schema_instance_validation.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_public_collector.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_MARKET_DATA_POINTER_SCHEMA_GUARD.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_UPBIT_MARKET_DATA_POINTER_SCHEMA_GUARD.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-CANDIDATE-DECISION-THRESHOLD-GUARD",
       "section_id": "SECTION_MVP3_OPERATIONAL_PAPER",
       "schema_files": [
@@ -7582,7 +7618,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-04-30T16:30:07Z",
+  "updated_at_utc": "2026-04-30T16:48:54Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
