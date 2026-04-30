@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.intent_wal_event.v1",
+  "title": "intent_wal_event",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "wal_event_id",
+    "created_at_utc",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "intent_id",
+    "client_order_id",
+    "symbol",
+    "side",
+    "source_ledger_event_hash",
+    "previous_wal_hash",
+    "paper_live_namespace_separated",
+    "live_key_loaded",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "order_adapter_called",
+    "wal_event_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.intent_wal_event.v1"
+    },
+    "wal_event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at_utc": {
+      "type": "string"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "client_order_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "symbol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "side": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_ledger_event_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "previous_wal_hash": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64,
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "paper_live_namespace_separated": {
+      "const": true
+    },
+    "live_key_loaded": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "wal_event_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    }
+  }
+}

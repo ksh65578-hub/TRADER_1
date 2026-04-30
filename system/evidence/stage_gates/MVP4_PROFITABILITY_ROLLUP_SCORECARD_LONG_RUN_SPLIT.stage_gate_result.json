@@ -1,0 +1,30 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT_20260430_001",
+  "created_at_utc": "2026-04-29T16:07:53Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "PAPER scorecard input eligibility is explicit",
+    "long-run evidence maturity is explicit",
+    "long-run blocker remains visible when maturity is missing",
+    "runtime dashboard artifacts are schema-valid after regeneration",
+    "full unittest and MVP0 validators pass"
+  ],
+  "blocked_conditions": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false
+}

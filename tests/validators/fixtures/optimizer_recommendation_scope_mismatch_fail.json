@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.optimizer_recommendation_report.v1",
+  "generated_at_utc": "2026-04-29T00:00:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "recommendation_id": "optimizer_recommendation_scope_mismatch_fail",
+  "source_scorecard_id": "scorecard_net_ev_pass",
+  "candidate_id": "candidate_scope_mismatch_fail_001",
+  "strategy_id": "trend_pullback",
+  "parameter_hash": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp4_optimizer_recommendation_fixture",
+  "recommendation_scope": "RESEARCH_ONLY_BLOCKED",
+  "recommendation_action": "ALLOW_PAPER_RANKING",
+  "optimizer_output_type": "RANKING_INPUT",
+  "live_readiness_status": "NOT_LIVE_READY",
+  "operator_warning": "Optimizer recommendation is paper ranking input only, not LIVE_READY and cannot place or allow live orders.",
+  "source_evidence_ids": [
+    "scorecard_net_ev_pass"
+  ],
+  "status": "PASS",
+  "blockers": [],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_config_mutation_allowed": false,
+  "writes_live_ready_snapshot": false,
+  "notes": "Negative fixture: ALLOW_PAPER_RANKING requires PAPER_RANKING_RECOMMENDATION_ONLY scope."
+}

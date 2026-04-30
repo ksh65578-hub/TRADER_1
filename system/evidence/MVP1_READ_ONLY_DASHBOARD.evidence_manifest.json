@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T14:15:35Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP1_READ_ONLY_DASHBOARD_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/read_only_dashboard_shell.schema.json",
+    "trader1/dashboard/read_only_dashboard.py",
+    "trader1/validation/mvp0_validators.py",
+    "tools/run_read_only_dashboard_validators.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "system/runtime/upbit/krw_spot/paper/startup_probe.json",
+    "system/runtime/upbit/krw_spot/paper/heartbeat.json",
+    "system/runtime/upbit/krw_spot/paper/summary.json",
+    "system/runtime/upbit/krw_spot/paper/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+    "system/evidence/validator_runs/MVP1_READ_ONLY_DASHBOARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP1_READ_ONLY_DASHBOARD.stage_gate_result.json"
+  ],
+  "known_blockers": [
+    "HARD_TRUTH_MISSING",
+    "LATENCY_TTL_EXPIRED",
+    "LIVE_READY_MISSING",
+    "LIVE_FINAL_GUARD_FAILED",
+    "API_UNVERIFIED",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

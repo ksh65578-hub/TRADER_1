@@ -1,0 +1,16 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "generated_at_utc": "2026-04-29T13:34:39Z",
+  "patch_id": "MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate": "MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR",
+  "result": "PASS_LIVE_BLOCKED_FULL_TEST_PASS",
+  "blocking_reason": "LIVE_ENABLING_EVIDENCE_MISSING",
+  "validator_backlog_remaining": 4,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "patch_result_hash": "ED52598BAD056F0401DCCEFE71CE139FB2139A60EC3CBCADC1433A78C5460862",
+  "stage_gate_hash": "A90FF8B77277700208BA1A74E1A206782EB06A1DB60DB17C464FAF6298153FAC"
+}

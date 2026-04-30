@@ -1,0 +1,48 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T14:51:15Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR_EVIDENCE",
+  "patch_id": "MVP4_PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR_20260429_001",
+  "artifact_paths": [
+    "contracts/schema/parameter_narrowing_report.schema.json",
+    "trader1/validation/mvp0_validators.py",
+    "tests/validators/test_parameter_narrowing_validator.py",
+    "tests/validators/fixtures/parameter_narrowing_pass.json",
+    "tests/validators/fixtures/parameter_narrowing_dependency_untested_fail.json",
+    "tests/validators/fixtures/parameter_narrowing_live_flag_fail.json",
+    "tests/validators/fixtures/parameter_narrowing_live_source_fail.json",
+    "tests/validators/fixtures/parameter_narrowing_missing_binding_fail.json",
+    "tests/validators/fixtures/parameter_narrowing_over_narrow_fail.json",
+    "tests/validators/fixtures/parameter_narrowing_warning_fail.json",
+    "tests/validators/fixtures/parameter_narrowing_identity_mismatch_fail.json",
+    "tests/validators/fixtures/parameter_narrowing_identity_stale_fail.json",
+    "system/evidence/contract_gaps/PARAMETER_EVIDENCE_IDENTITY_JOIN_GAP.contract_gap.json",
+    "contracts/generated/requirement_index.json",
+    "contracts/generated/requirement_artifact_matrix.json",
+    "contracts/generated/current_implementation_state.json",
+    "contracts/generated/read_cache_manifest.json",
+    "contracts/generated/context_pack/PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR.md",
+    "system/evidence/validator_runs/MVP4_PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

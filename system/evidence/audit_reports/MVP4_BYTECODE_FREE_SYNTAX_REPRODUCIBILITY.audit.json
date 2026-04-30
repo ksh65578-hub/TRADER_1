@@ -1,0 +1,22 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T03:08:55Z",
+  "project_id": "TRADER_1",
+  "audit_id": "MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "classification": "RUNTIME_REPRODUCIBILITY_AND_WINDOWS_FILE_LOCK_HARDENING",
+  "condition": "python -m compileall can require replacing .pyc files and can fail when Windows locks an existing __pycache__ entry.",
+  "impact": "A safe source syntax check can be reported as blocked even when source syntax is valid, reducing reproducibility confidence.",
+  "reproducibility": "Observed previously as BLOCKED_BY_WINDOWS_FILE_LOCK on trader1/research/shadow/__pycache__/shadow_runner.cpython-314.pyc.",
+  "affected_scope": "READ_ONLY source validation for trader1/tools/tests; no runtime trading behavior changed.",
+  "live_safety_impact": "No live permission created. The new validator explicitly proves no external call, credential load, live order API attempt, bytecode write, or pycache write was attempted.",
+  "ux_impact": "Operator reports can now distinguish source syntax PASS from compileall file-lock environmental blockers.",
+  "profitability_impact": "Indirect: improves reproducible validation of optimizer/convergence code without promoting candidates or scaling risk.",
+  "fix": "Added bytecode-free syntax report schema, validator, CLI, and tests using tokenize.open plus compile(..., exec) without importing modules or writing bytecode. CLI JSON output was routed through the shared atomic evidence writer after regression detected direct output writes.",
+  "patch_status": "PATCHED_MVP4_SAFE",
+  "test_status": "PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

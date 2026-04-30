@@ -1,0 +1,425 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.summary.v1",
+  "title": "summary",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "project",
+    "generated_at_utc",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "engine",
+    "startup",
+    "operator_status",
+    "resources",
+    "portfolio",
+    "orders",
+    "positions",
+    "strategies",
+    "action_queue",
+    "recent_errors",
+    "recent_no_trade_context",
+    "live_ready",
+    "final_action",
+    "blocking_reason",
+    "next_action"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "freshness_status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "STALE",
+        "UNTESTED"
+      ]
+    },
+    "status_source_object": {
+      "type": "object",
+      "required": [
+        "status",
+        "source",
+        "freshness_status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "LEDGER",
+            "RECONCILIATION",
+            "SUMMARY_BUILDER",
+            "READINESS_SURFACE",
+            "HEARTBEAT",
+            "STARTUP_PROBE",
+            "OPERATOR",
+            "SYSTEM"
+          ]
+        },
+        "freshness_status": {
+          "$ref": "#/$defs/freshness_status"
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "portfolio_object": {
+      "type": "object",
+      "required": [
+        "source",
+        "freshness_status",
+        "equity",
+        "cash_available",
+        "locked_balance"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": [
+            "LEDGER",
+            "RECONCILIATION",
+            "SUMMARY_BUILDER"
+          ]
+        },
+        "freshness_status": {
+          "$ref": "#/$defs/freshness_status"
+        },
+        "equity": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "cash_available": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "locked_balance": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "position_market_value": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "open_position_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "realized_pnl": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "unrealized_pnl": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "total_pnl": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "mdd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "orders_object": {
+      "type": "object",
+      "required": [
+        "source",
+        "freshness_status",
+        "open_order_count",
+        "pending_confirm_count"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": [
+            "LEDGER",
+            "RECONCILIATION",
+            "SUMMARY_BUILDER"
+          ]
+        },
+        "freshness_status": {
+          "$ref": "#/$defs/freshness_status"
+        },
+        "open_order_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pending_confirm_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reconciliation_age_sec": {
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      }
+    },
+    "live_ready_object": {
+      "type": "object",
+      "required": [
+        "source",
+        "live_order_ready",
+        "live_order_allowed",
+        "primary_blocker_code",
+        "blocks_live_order"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": [
+            "READINESS_SURFACE",
+            "SUMMARY_BUILDER"
+          ]
+        },
+        "live_order_ready": {
+          "type": "boolean"
+        },
+        "live_order_allowed": {
+          "type": "boolean"
+        },
+        "primary_blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "primary_blocker_message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "blocks_live_order": {
+          "type": "boolean"
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "applied_snapshot_object": {
+      "type": "object",
+      "required": [
+        "snapshot_id",
+        "source",
+        "scope_hash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "snapshot_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "enum": [
+            "LIVE_READY_SNAPSHOT",
+            "NONE"
+          ]
+        },
+        "scope_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "freshness_status": {
+          "$ref": "#/$defs/freshness_status"
+        }
+      }
+    },
+    "market_context_object": {
+      "type": "object",
+      "required": [
+        "source",
+        "freshness_status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": [
+            "SUMMARY_BUILDER",
+            "MARKET_DATA",
+            "READINESS_SURFACE"
+          ]
+        },
+        "freshness_status": {
+          "$ref": "#/$defs/freshness_status"
+        },
+        "regime": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "liquidity_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "volatility_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_id": {
+      "const": "trader1.summary.v1"
+    },
+    "project": {
+      "const": "TRADER_1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engine": {
+      "$ref": "#/$defs/status_source_object"
+    },
+    "startup": {
+      "$ref": "#/$defs/status_source_object"
+    },
+    "operator_status": {
+      "$ref": "#/$defs/status_source_object"
+    },
+    "connectivity": {
+      "$ref": "#/$defs/status_source_object"
+    },
+    "caches": {
+      "type": "object"
+    },
+    "queues": {
+      "type": "object"
+    },
+    "rate_limits": {
+      "type": "object"
+    },
+    "resources": {
+      "$ref": "#/$defs/status_source_object"
+    },
+    "portfolio": {
+      "$ref": "#/$defs/portfolio_object"
+    },
+    "orders": {
+      "$ref": "#/$defs/orders_object"
+    },
+    "watch_universe": {
+      "type": "array"
+    },
+    "entry_candidates": {
+      "type": "array"
+    },
+    "positions": {
+      "type": "array"
+    },
+    "strategies": {
+      "type": "array"
+    },
+    "market_context": {
+      "$ref": "#/$defs/market_context_object"
+    },
+    "action_queue": {
+      "type": "array"
+    },
+    "recent_errors": {
+      "type": "array"
+    },
+    "recent_no_trade_context": {
+      "type": "array"
+    },
+    "recent_entry_context": {
+      "type": "array"
+    },
+    "fee_snapshot": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "live_ready": {
+      "$ref": "#/$defs/live_ready_object"
+    },
+    "applied_snapshot": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/applied_snapshot_object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "final_action": {
+      "$ref": "common.defs.schema.json#/$defs/final_decision"
+    },
+    "blocking_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "next_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema_id": "trader1.contract_gap.v1",
+  "generated_at_utc": "2026-04-29T14:34:14Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "status": "RESOLVED",
+  "blockers": [],
+  "notes": "Registered validator backlog triage is closed for MVP-4 internal scope. rolling_window_default_validator is implemented, fixture-backed, and included in optimizer/convergence guardrail execution. Remaining blockers are external live-review evidence only; no live permission created.",
+  "contract_gap_id": "VALIDATOR_REGISTRY_BACKLOG_TRIAGE",
+  "severity": "INFO",
+  "source_section_id": "SECTION_VALIDATOR_REGISTRY_BACKLOG",
+  "live_affecting": true
+}

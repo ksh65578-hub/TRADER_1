@@ -1,0 +1,31 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T04:27:23Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD_20260430_001",
+  "inspection_scope": [
+    "runtime stability history",
+    "dashboard long-run display",
+    "dashboard runtime evidence boundary",
+    "runtime schema instances",
+    "live final guard"
+  ],
+  "hidden_defects": [
+    {
+      "classification": "FALSE_SAFE_LONG_RUN_DISPLAY_RISK",
+      "condition": "Distinct dashboard hashes could previously satisfy stability history without proving an observed time span.",
+      "impact": "Operator could over-trust short-duration PAPER monitoring as long-run stability.",
+      "reproducibility": "Covered by short-span negative tests in tests/runtime/test_stability_history.py and tests/dashboard/test_read_only_dashboard.py.",
+      "fix": "Require minimum observed span and expose span status in dashboard long-run display.",
+      "patch_status": "PATCHED",
+      "test_status": "PASS",
+      "live_safety_impact": "Live remains disabled; false-safe display path is reduced.",
+      "ux_impact": "Dashboard now shows observed span versus required span.",
+      "profitability_impact": "Prevents short samples from being mistaken for stable long-run evidence."
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

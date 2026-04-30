@@ -1,0 +1,101 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-29T11:43:14Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_RUNTIME_REPRODUCIBILITY_SAFE_SMOKE_20260429_001",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "target_mvp_level": "MVP-4",
+  "inspection_summary": {
+    "contracts_checked": 6,
+    "schemas_checked": 70,
+    "validators_checked": 37,
+    "tests_checked": 30,
+    "runtime_paths_checked": 4,
+    "ux_items_checked": 3,
+    "coverage_completeness": {
+      "contract_coverage_pct": 100,
+      "schema_coverage_pct": 100,
+      "validator_coverage_pct": 100,
+      "runtime_coverage_pct": 100,
+      "ux_coverage_pct": 75,
+      "optimizer_convergence_coverage_pct": 25,
+      "blocked_area_resolution_coverage_pct": 70
+    }
+  },
+  "hidden_defects": [
+    {
+      "classification": "test_reproducibility_gap",
+      "condition": "A copied or zipped implementation had no single local command proving all root launchers can build isolated runtime bundles without touching production runtime state.",
+      "impact": "Runtime implementation appeared weaker than contract/evidence artifacts because a reviewer could not reproduce safe boot behavior quickly.",
+      "reproducibility": "Reproduced by absence of a dedicated safe smoke entry point before this patch.",
+      "affected_scope": "UPBIT/BINANCE PAPER/LIVE launcher surfaces, temporary runtime artifact generation",
+      "live_safety_impact": "Positive: the new smoke command proves live paths remain blocked while launchers render runtime artifacts.",
+      "ux_impact": "Operator/reviewer now gets one PASS/FAIL report instead of inferring from scattered tests.",
+      "profitability_impact": "Indirect: faster reproducible runtime checks reduce false confidence before strategy and optimizer evidence work.",
+      "fix": "Added trader1.runtime.smoke, tools/run_safe_smoke.py, schema, registry mapping, and tests.",
+      "patch_status": "PATCHED",
+      "test_status": "PASS"
+    },
+    {
+      "classification": "dashboard_truth_check_false_negative",
+      "condition": "Initial smoke logic looked for a non-existent dashboard_display_truth_only field instead of the dashboard shell display_only/dashboard_truth_only/truth_role triplet.",
+      "impact": "A smoke report could fail to prove the dashboard remained display truth only even when the dashboard shell was safe.",
+      "reproducibility": "Observed during tools/run_safe_smoke.py --skip-validators before final patch adjustment.",
+      "affected_scope": "dashboard display truth vs execution truth validation",
+      "live_safety_impact": "Live stayed blocked; proof quality was improved.",
+      "ux_impact": "Prevents misleading or missing dashboard-truth confirmation in the smoke result.",
+      "profitability_impact": "None direct; protects operator interpretation.",
+      "fix": "Smoke check now validates display_only=true, dashboard_truth_only=true, and truth_role=dashboard_serving_truth.",
+      "patch_status": "PATCHED",
+      "test_status": "PASS"
+    },
+    {
+      "classification": "state_code_alignment_gap",
+      "condition": "New runtime reproducibility behavior needed schema, registry, requirement index, artifact matrix, and current state mapping to avoid another code/artifact mismatch.",
+      "impact": "Runtime implementation could be present but invisible to MVP-4 evidence tracking.",
+      "reproducibility": "Detected while reconciling the user score table against current implementation state.",
+      "affected_scope": "MVP-4 state, registry/schema/requirement mapping",
+      "live_safety_impact": "Live remains blocked; traceability improved.",
+      "ux_impact": "Operator/reporting can distinguish implemented smoke verification from unimplemented runtime trading.",
+      "profitability_impact": "None direct; improves build/package confidence before further strategy work.",
+      "fix": "Added safe smoke schema, registry entry, requirement mapping, context pack, evidence, and patch ledger entry.",
+      "patch_status": "PATCHED",
+      "test_status": "PASS"
+    }
+  ],
+  "advancement_gaps": [
+    {
+      "area": "actual_runtime_implementation",
+      "current_level": "safe boot and reproducibility smoke for root launchers",
+      "target_level": "operational PAPER runtime cycle with verified ledger/equity/position updates and strategy candidate generation",
+      "priority": "HIGH",
+      "patchability": "NEXT_SAFE_RUNTIME_PATCH",
+      "contract_gap_required": false
+    },
+    {
+      "area": "test_reproducibility",
+      "current_level": "single local safe smoke command plus unit test coverage",
+      "target_level": "source bundle manifest plus one-command full safe test profile",
+      "priority": "HIGH",
+      "patchability": "NEXT_TEST_HARNESS_PATCH",
+      "contract_gap_required": false
+    },
+    {
+      "area": "strategy_profitability_runtime",
+      "current_level": "schemas/validators and evidence chain scaffolds",
+      "target_level": "PAPER data-backed strategy candidate reports and net-EV scorecards generated by runtime cycle",
+      "priority": "HIGH",
+      "patchability": "PAPER_ONLY_RUNTIME_PATCH",
+      "contract_gap_required": true
+    }
+  ],
+  "live_flags": {
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  }
+}

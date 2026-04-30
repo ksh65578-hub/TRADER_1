@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_SHADOW_OBSERVATION_PERSISTENT_RUNTIME_EXECUTION_STUB_20260430_001",
+  "created_at_utc": "2026-04-30T00:20:13Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_SHADOW_OBSERVATION_PERSISTENT_RUNTIME_EXECUTION_STUB",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "persistent SHADOW runtime report schema is closed and registered",
+    "runtime stub requires PASS scheduler guard, bounded cycle count, heartbeat visibility, atomic commit count, and clean shutdown",
+    "runtime stub blocks source guard failure, loop over-limit, partial execution, order adapter use, false long-run claim, and live flag drift",
+    "runtime stub remains analysis-only and cannot create live permission, scale-up, or long-run evidence claim"
+  ],
+  "blocked_conditions": [
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T00:20:13Z",
+  "status": "PASS_MVP4_INTERNAL_STUB_ONLY",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "0F79F119DD2D5FE649AB469FBD5D2786CE8B30EA2B50EECD6D7AE598EEDE46F2"
+}

@@ -1,0 +1,46 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T04:30:25Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_OPTIMIZER_MEMORY_STATE_SCHEMA_HARDENING_EVIDENCE",
+  "artifact_paths": [
+    "contracts/generated/context_pack/OPTIMIZER_MEMORY_STATE_SCHEMA.md",
+    "contracts/registry.yaml",
+    "contracts/schema/optimizer_memory_state.schema.json",
+    "contracts/validators/fixture_catalog.json",
+    "system/evidence/audit_reports/MVP4_OPTIMIZER_MEMORY_STATE_SCHEMA_HARDENING_20260429.md",
+    "tests/validators/fixtures/optimizer_memory_state_append_without_hash_fail.json",
+    "tests/validators/fixtures/optimizer_memory_state_cross_scope_reuse_fail.json",
+    "tests/validators/fixtures/optimizer_memory_state_failed_candidate_unblocked_fail.json",
+    "tests/validators/fixtures/optimizer_memory_state_forget_failed_candidate_fail.json",
+    "tests/validators/fixtures/optimizer_memory_state_live_flag_fail.json",
+    "tests/validators/fixtures/optimizer_memory_state_live_source_mode_fail.json",
+    "tests/validators/fixtures/optimizer_memory_state_pass.json",
+    "tests/validators/fixtures/optimizer_memory_state_reset_without_audit_fail.json",
+    "tests/validators/test_optimizer_memory_state_validator.py",
+    "tools/emit_optimizer_memory_state_schema_hardening_patch_evidence.py",
+    "tools/run_optimizer_memory_state_validators.py",
+    "trader1/validation/mvp0_validators.py",
+    "system/evidence/validator_runs/MVP4_OPTIMIZER_MEMORY_STATE_SCHEMA_HARDENING.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_OPTIMIZER_MEMORY_STATE_SCHEMA_HARDENING.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_OPTIMIZER_MEMORY_STATE_SCHEMA_HARDENING.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

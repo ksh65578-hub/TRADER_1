@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.paper_portfolio_snapshot.v1",
+  "title": "paper_portfolio_snapshot",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "snapshot_status",
+    "source",
+    "starting_cash_source",
+    "currency",
+    "starting_cash",
+    "cash_available",
+    "locked_balance",
+    "position_market_value",
+    "equity",
+    "realized_pnl",
+    "unrealized_pnl",
+    "total_pnl",
+    "return_pct",
+    "open_position_count",
+    "positions",
+    "paper_only",
+    "display_balance_kind",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "primary_blocker_code",
+    "blockers",
+    "snapshot_hash"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "decimal_string": {
+      "type": "string",
+      "pattern": "^-?[0-9]+(\\.[0-9]+)?$"
+    },
+    "blocker": {
+      "type": "object",
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "common.defs.schema.json#/$defs/live_blocker_code"
+        },
+        "severity": {
+          "enum": [
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_id": {
+      "const": "trader1.paper_portfolio_snapshot.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "const": "PAPER"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "snapshot_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "source": {
+      "enum": [
+        "PAPER_LEDGER_SCAFFOLD",
+        "PAPER_LEDGER_ROLLUP"
+      ]
+    },
+    "starting_cash_source": {
+      "const": "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT"
+    },
+    "currency": {
+      "enum": [
+        "KRW",
+        "USDT",
+        "UNKNOWN"
+      ]
+    },
+    "starting_cash": {
+      "$ref": "#/$defs/decimal_string"
+    },
+    "cash_available": {
+      "$ref": "#/$defs/decimal_string"
+    },
+    "locked_balance": {
+      "$ref": "#/$defs/decimal_string"
+    },
+    "position_market_value": {
+      "$ref": "#/$defs/decimal_string"
+    },
+    "equity": {
+      "$ref": "#/$defs/decimal_string"
+    },
+    "realized_pnl": {
+      "$ref": "#/$defs/decimal_string"
+    },
+    "unrealized_pnl": {
+      "$ref": "#/$defs/decimal_string"
+    },
+    "total_pnl": {
+      "$ref": "#/$defs/decimal_string"
+    },
+    "return_pct": {
+      "$ref": "#/$defs/decimal_string"
+    },
+    "open_position_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "positions": {
+      "type": "array"
+    },
+    "paper_only": {
+      "const": true
+    },
+    "display_balance_kind": {
+      "const": "SIMULATED_PAPER_LEDGER"
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/blocker"
+      }
+    },
+    "snapshot_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

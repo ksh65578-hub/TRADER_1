@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_STABILITY_HISTORY_DISTINCT_SNAPSHOT_GUARD_20260430_001",
+  "created_at_utc": "2026-04-30T02:24:30Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_STABILITY_HISTORY_DISTINCT_SNAPSHOT_GUARD",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "runtime stability history requires at least two distinct source_dashboard_hash values before VALIDATED_HISTORY",
+    "single ATTENTION or ERROR sample propagates to history_status instead of being hidden as sample-insufficient",
+    "unsafe shadow harness dashboard remains writeable as blocked display truth",
+    "safe launcher, read-only dashboard, and full unittest regression pass with live blocked"
+  ],
+  "blocked_conditions": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T02:24:30Z",
+  "status": "PASS_MVP4_DISTINCT_SNAPSHOT_HISTORY_GUARD_LIVE_BLOCKED",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "686F604E791F8CC64423B5E25EC709512B5A4AB55F041D6781AEA842E49BB960"
+}

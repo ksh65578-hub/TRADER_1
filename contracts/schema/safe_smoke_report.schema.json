@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.safe_smoke_report.v1",
+  "title": "safe_smoke_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "status",
+    "execution_mode",
+    "root_launchers_checked",
+    "temporary_runtime_bundles_checked",
+    "validators_requested",
+    "validators_run",
+    "runtime_bundle_checks",
+    "zip_reproducibility_status",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "external_calls_attempted",
+    "credential_load_attempted",
+    "live_order_api_attempted"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.safe_smoke_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "status": {
+      "enum": ["PASS", "FAIL"]
+    },
+    "execution_mode": {
+      "const": "TEMP_RUNTIME_BUNDLE_AND_LOCAL_VALIDATORS_ONLY"
+    },
+    "root_launchers_checked": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "temporary_runtime_bundles_checked": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "validators_requested": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "validators_run": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "runtime_bundle_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "launcher_name",
+          "validation_status",
+          "exchange",
+          "market_type",
+          "mode",
+          "session_id",
+          "report_written",
+          "summary_written",
+          "heartbeat_written",
+          "dashboard_shell_written",
+          "dashboard_html_written",
+          "paths_are_session_scoped",
+          "final_action",
+          "launcher_status",
+          "heartbeat_status",
+          "dashboard_display_truth_only",
+          "summary_final_action",
+          "live_launcher_hard_blocked",
+          "live_path_hard_blocked",
+          "live_flags_false"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "launcher_name": {
+            "enum": ["UPBIT_PAPER", "UPBIT_LIVE", "BINANCE_PAPER", "BINANCE_LIVE"]
+          },
+          "validation_status": {
+            "enum": ["PASS", "FAIL", "BLOCKED"]
+          },
+          "exchange": {
+            "$ref": "common.defs.schema.json#/$defs/exchange"
+          },
+          "market_type": {
+            "$ref": "common.defs.schema.json#/$defs/market_type"
+          },
+          "mode": {
+            "$ref": "common.defs.schema.json#/$defs/mode"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "report_written": {
+            "type": "boolean"
+          },
+          "summary_written": {
+            "type": "boolean"
+          },
+          "heartbeat_written": {
+            "type": "boolean"
+          },
+          "dashboard_shell_written": {
+            "type": "boolean"
+          },
+          "dashboard_html_written": {
+            "type": "boolean"
+          },
+          "paths_are_session_scoped": {
+            "type": "boolean"
+          },
+          "final_action": {
+            "const": "NO_TRADE"
+          },
+          "launcher_status": {
+            "const": "SAFE_MODE"
+          },
+          "heartbeat_status": {
+            "enum": ["PASS", "BLOCKED", "FAIL"]
+          },
+          "dashboard_display_truth_only": {
+            "type": "boolean"
+          },
+          "summary_final_action": {
+            "const": "NO_TRADE"
+          },
+          "live_launcher_hard_blocked": {
+            "type": "boolean"
+          },
+          "live_path_hard_blocked": {
+            "const": true
+          },
+          "live_flags_false": {
+            "const": true
+          }
+        }
+      }
+    },
+    "zip_reproducibility_status": {
+      "enum": ["PASS", "FAIL"]
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "external_calls_attempted": {
+      "const": false
+    },
+    "credential_load_attempted": {
+      "const": false
+    },
+    "live_order_api_attempted": {
+      "const": false
+    }
+  }
+}

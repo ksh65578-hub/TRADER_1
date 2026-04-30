@@ -1,0 +1,319 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR_20260429_001",
+  "created_at_utc": "2026-04-29T14:37:07Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "VALIDATOR_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "MATCHED_ACTIVE_AUTHORITY",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-ROLLING-WINDOW-DEFAULT-VALIDATOR",
+    "REQ-MVP4-OPTIMIZER-BACKLOG-STABILITY-BOUNDS-PROMOTION-VALIDATORS",
+    "REQ-MVP4-PROFIT-CONVERGENCE-CYCLE-VALIDATOR",
+    "REQ-MVP4-REGISTERED-VALIDATOR-BACKLOG-TRIAGE"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER_AND_SHADOW",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "rolling_window_default_validator IMPLEMENTED_FAIL_CLOSED",
+    "rolling_window_default_validator added to OPTIMIZER_CONVERGENCE_GUARDRAIL_VALIDATORS",
+    "rolling_window_default_validator added to VALIDATOR_GROUP:OPTIMIZER_ROBUSTNESS",
+    "VALIDATOR_REGISTRY_BACKLOG_TRIAGE resolved with remaining_unimplemented_count=0"
+  ],
+  "new_or_changed_schema_ids": [],
+  "validators_required": [
+    "rolling_window_default_validator",
+    "ranking_stability_validator",
+    "overfit_diagnostic_validator",
+    "optimizer_no_live_mutation_validator",
+    "optimizer_guardrail_validator",
+    "convergence_assessment_validator",
+    "scale_up_eligibility_validator",
+    "schema_validator",
+    "generated_artifact_dirty_validator",
+    "live_final_guard_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "validator_depth_audit_tool"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "rolling_window_default_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "ranking_stability_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "overfit_diagnostic_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_no_live_mutation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "convergence_assessment_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "scale_up_eligibility_validator",
+      "status": "BLOCKED"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "validator_depth_audit_tool",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.validators.test_rolling_window_default_validator -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 9
+    },
+    {
+      "command": "python -m unittest tests.validators.test_optimizer_convergence_guardrails -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 2
+    },
+    {
+      "command": "python tools/run_optimizer_convergence_guardrail_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "OPTIMIZER_CONVERGENCE_GUARDRAILS"
+    },
+    {
+      "command": "python tools/audit_validator_depth.py --output system/evidence/audit_reports/MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR.audit.json",
+      "status": "PASS",
+      "returncode": 0,
+      "implemented_validator_count": 89,
+      "registered_validator_count": 89,
+      "registered_but_unimplemented_validator_count": 0
+    },
+    {
+      "command": "python -m unittest tests.validators.test_rolling_window_default_validator tests.validators.test_optimizer_convergence_guardrails tests.validators.test_validator_depth_audit -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 13
+    },
+    {
+      "command": "python -m compileall trader1 tools tests -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "FAIL_FIXED_IN_PATCH",
+      "returncode": 1,
+      "failure": "registry_placeholders_remaining was int instead of array; generated_artifact_dirty_validator, patch_result_schema_validator, and patch_result_runtime_schema_instance_validator were listed as required but missing from validators_run"
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "PATCH_RESULT_RUNTIME_SCHEMA_VALIDATORS"
+    },
+    {
+      "command": "python -m unittest tests.contract.test_patch_result_runtime_schema_validation tests.validators.test_mvp0_validators -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 13
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "MVP0_FULL_VALIDATOR_RUN"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 563
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "PASS",
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED_FOR_DELTA_VALIDATOR_PATCH",
+  "read_cache_update_required": true,
+  "context_pack_update_required": true,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_EXTERNAL_BLOCKER_REVIEW_OR_HIGH_VALUE_HARDENING",
+  "next_required_section_ids": [
+    "SECTION_EXTERNAL_LIVE_REVIEW_BLOCKERS",
+    "SECTION_STRATEGY_PROFITABILITY_EVIDENCE"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_LONG_RUN_STABILITY"
+  ],
+  "next_forbidden_default_sections": [
+    "MVP5_LIVE_ENABLING",
+    "BINANCE_FUTURES_LIVE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "TRADER_1.md active overlays by section reference",
+    "AGENTS.md active overlay",
+    "contracts/generated/current_implementation_state.json",
+    "contracts/generated/requirement_index.json",
+    "contracts/registry.yaml",
+    "trader1/validation/mvp0_validators.py"
+  ],
+  "task_class": "VALIDATOR_PATCH",
+  "required_section_ids": [
+    "SECTION_ROLLING_WINDOW_DEFAULTS",
+    "SECTION_OOS_ROBUSTNESS",
+    "SECTION_OPTIMIZER_CONVERGENCE_GUARDRAIL",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_ROLLING_WINDOW_DEFAULTS",
+    "SECTION_OOS_ROBUSTNESS",
+    "SECTION_OPTIMIZER_CONVERGENCE_GUARDRAIL"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "PASS_PRESENT_HASH_RECHECKED",
+  "requirement_index_status": "PASS_UPDATED_WITH_REQ_MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR",
+  "requirement_artifact_matrix_status": "PASS_UPDATED_WITH_ROLLING_WINDOW_DEFAULT_VALIDATOR_ARTIFACTS",
+  "read_cache_manifest_status": "PASS_UPDATED_AND_RECHECKED",
+  "context_pack_status": "PASS_UPDATED",
+  "current_implementation_state_status": "PASS_UPDATED_WITH_FINAL_PATCH_HASH",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "true",
+  "optimizer_stage": "MVP-4_PAPER_SHADOW_REVIEW",
+  "optimizer_status_before": "ROLLING_WINDOW_DEFAULT_VALIDATOR_REGISTERED_BUT_UNIMPLEMENTED",
+  "optimizer_status_after": "ROLLING_WINDOW_DEFAULTS_VALIDATED_FOR_PAPER_SHADOW_ONLY",
+  "optimizer_maturity_level_before": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_maturity_level_after": "PAPER_SHADOW_ROLLING_WINDOW_GUARDRAIL_BACKLOG_CLOSED_LIVE_GAP_OPEN",
+  "optimizer_output_type": "VALIDATOR_GUARDRAIL_ONLY_NO_LIVE_CONFIG_MUTATION",
+  "optimizer_validators_required": [
+    "rolling_window_default_validator",
+    "ranking_stability_validator",
+    "optimizer_no_live_mutation_validator",
+    "optimizer_guardrail_validator"
+  ],
+  "optimizer_validators_run": [
+    {
+      "validator_id": "rolling_window_default_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "ranking_stability_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_no_live_mutation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "status": "PASS"
+    }
+  ],
+  "optimizer_guardrail_result": "PASS_LIVE_BLOCKED_NO_MUTATION",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "true",
+  "convergence_layer_changed": true,
+  "convergence_state_before": "LIVE_BLOCKED_WITH_ROLLING_WINDOW_DEFAULT_BACKLOG",
+  "convergence_state_after": "LIVE_BLOCKED_WITH_ROLLING_WINDOW_DEFAULTS_VALIDATED_FOR_PAPER_SHADOW_ONLY",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_REQUIRED_FOR_VALIDATOR_BACKLOG_CLOSURE",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "rolling_window_default_validator",
+    "overfit_diagnostic_validator",
+    "convergence_assessment_validator",
+    "scale_up_eligibility_validator"
+  ],
+  "convergence_validators_run": [
+    {
+      "validator_id": "rolling_window_default_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "overfit_diagnostic_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "convergence_assessment_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "scale_up_eligibility_validator",
+      "status": "BLOCKED"
+    }
+  ],
+  "convergence_guardrail_result": "PASS_LIVE_BLOCKED_NO_MUTATION_NO_WRITER_INPUT",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "result_hash": "AF83935C1984719359B49F4E4B50F8F0781AD8E46725D940CAD4A61E39E33028"
+}

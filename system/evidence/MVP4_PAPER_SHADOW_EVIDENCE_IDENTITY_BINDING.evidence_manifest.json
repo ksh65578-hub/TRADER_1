@@ -1,0 +1,64 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_id": "MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING",
+  "created_at_utc": "2026-04-29T15:07:01Z",
+  "target_mvp_level": "MVP-4",
+  "patch_id": "MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING_20260429_001",
+  "authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "authority_hashes": {
+    "TRADER_1.md": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "AGENTS.md": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "artifact_paths": [
+    "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json",
+    "trader1/research/shadow/shadow_runner.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/validators/test_paper_shadow_evidence_accumulation_validator.py",
+    "tests/validators/fixtures/paper_shadow_evidence_accumulation_pass.json",
+    "tests/validators/fixtures/paper_shadow_evidence_accumulation_identity_mismatch_fail.json",
+    "tests/validators/fixtures/paper_shadow_evidence_accumulation_identity_stale_fail.json",
+    "contracts/generated/context_pack/PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.md",
+    "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json",
+    "contracts/schema/patch_result.schema.json",
+    "system/evidence/patch_results/MVP4_PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR.patch_result.json",
+    "system/evidence/implementation_patch_ledger.json",
+    "contracts/generated/context_pack/PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.md",
+    "system/evidence/validator_runs/MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.patch_result.json",
+    "system/evidence/audit_reports/MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING_20260429.md"
+  ],
+  "artifact_hashes": {
+    "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json": "93C0E524B6947D092C7829B36FE6AD03DEA6E675BC0226979AD57971C20AE796",
+    "trader1/research/shadow/shadow_runner.py": "21C3E4D7309FA76BD79824E51D73BA18E7ACE3F9BB8F808FCCD2612CC9EFD3BB",
+    "trader1/validation/mvp0_validators.py": "DF159B2C693AA442E4398CE000DB0F6300775E7016014502C7C2665CC57CF2C5",
+    "tests/validators/test_paper_shadow_evidence_accumulation_validator.py": "C775F52A3594AD2CB4C9F61FB34C6C30A7379482C56C713ACC0CAAF6ABCD90B3",
+    "tests/validators/fixtures/paper_shadow_evidence_accumulation_pass.json": "C59A6540E5707C2B9B2D6C3CBC39A0DC580BAF5986B9B51709FA226A2D25FF21",
+    "tests/validators/fixtures/paper_shadow_evidence_accumulation_identity_mismatch_fail.json": "D91871300C27B745BE501723734BE0E887431DFEBB7132F099BE6002E9C1E536",
+    "tests/validators/fixtures/paper_shadow_evidence_accumulation_identity_stale_fail.json": "FB497200D4CB2A61BDE850867DD0892E0A7AF6C9C96EBA2E7B5C2A3804166170",
+    "contracts/generated/context_pack/PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.md": "FF9CDF665654066859B58D1F6C35EB03A5978A1E71685621CD9804BED04ACC70",
+    "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json": "D166AA3E92EFFB9AA0E8C8BDF664E65191C119504CA83839A061082C22023885",
+    "contracts/schema/patch_result.schema.json": "B9531FF62E2575F4E878D3CF99B973973865A16F27B600817DB835893E7085B8",
+    "system/evidence/patch_results/MVP4_PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR.patch_result.json": "38D4FBD572B2674D179A9FCE6B2692D2352770805828A3C186BA8D66E6EE7764",
+    "system/evidence/implementation_patch_ledger.json": "DC26C51F134F82CD0FCF8F3E95152D7336AB0ADE9365DB4216BC98BC08E400B5",
+    "system/evidence/validator_runs/MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.validator_run_log.json": "E813A89C21529245752C71AD1D18C45869746C4CD4EC19C83B21D8B3729A5A2A",
+    "system/evidence/stage_gates/MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.stage_gate_result.json": "3A39B725A5D1689623707FB0B79682573301CF86DAA71BC836CFABD7A444E556",
+    "system/evidence/patch_results/MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.patch_result.json": "AC93F8EF72C857E5E4E1F5B71A8F311E1FE55CDF4D0B7034C66670322A2BB5AA",
+    "system/evidence/audit_reports/MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING_20260429.md": "5445441BA9E450A6040518E5E5C90E27D8BC18C2125C221F836845C273538F08"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "final_decision": "NO_TRADE",
+  "blocking_reason": "LIVE_ENABLING_EVIDENCE_MISSING",
+  "notes": [
+    "Paper/shadow evidence accumulation now requires source evidence identity bindings for paper and shadow roles.",
+    "Patch result coverage_index_result is closed to PASS, UNCHANGED_PASS, UPDATED_PASS.",
+    "No live order path, credential use, or live config mutation was introduced."
+  ],
+  "updated_at_utc": "2026-04-29T15:09:52Z"
+}

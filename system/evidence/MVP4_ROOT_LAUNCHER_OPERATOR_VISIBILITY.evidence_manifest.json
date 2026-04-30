@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T21:45:14Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_ROOT_LAUNCHER_OPERATOR_VISIBILITY_EVIDENCE",
+  "artifact_paths": [
+    "trader1/runtime/boot/safe_launcher.py",
+    "tests/runtime/test_safe_launcher.py",
+    "tools/emit_root_launcher_operator_visibility_patch_evidence.py",
+    "system/evidence/validator_runs/MVP4_ROOT_LAUNCHER_OPERATOR_VISIBILITY.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_ROOT_LAUNCHER_OPERATOR_VISIBILITY.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_ROOT_LAUNCHER_OPERATOR_VISIBILITY.patch_result.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/launcher/root_launcher_report.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/launcher/root_launcher_report.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/launcher/root_launcher_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/launcher/root_launcher_report.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

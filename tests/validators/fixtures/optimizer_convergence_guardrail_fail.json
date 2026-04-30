@@ -1,0 +1,13 @@
+{
+  "fixture_id": "optimizer_convergence_guardrail_live_permission_fail",
+  "validator_id": "optimizer_no_live_mutation_validator",
+  "expected_status": "FAIL",
+  "live_order_ready": false,
+  "live_order_allowed": true,
+  "can_live_trade": true,
+  "optimizer_live_mutation_detected": true,
+  "convergence_live_mutation_detected": false,
+  "scale_up_allowed": false,
+  "expected_order_adapter_called": true,
+  "expected_blocker_code": "LIVE_FINAL_GUARD_FAILED"
+}

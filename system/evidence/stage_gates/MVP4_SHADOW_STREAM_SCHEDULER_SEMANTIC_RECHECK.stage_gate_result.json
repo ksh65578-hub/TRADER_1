@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_SHADOW_STREAM_SCHEDULER_SEMANTIC_RECHECK_20260430_001",
+  "created_at_utc": "2026-04-30T02:31:45Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_SHADOW_STREAM_SCHEDULER_SEMANTIC_RECHECK",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "SHADOW stream report now preserves source_binding_hashes for semantic revalidation",
+    "SHADOW stream validator recomputes duplicate counts, evidence window count, sequence monotonicity, and source-binding match",
+    "SHADOW scheduler guard validator recomputes lock owner, concurrent writer, persisted hash, and sequence summaries",
+    "zero or false-safe lock lease/owner drift is blocked before scheduler PASS",
+    "full unittest regression and MVP0 validator set pass while live flags remain false"
+  ],
+  "blocked_conditions": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T02:31:45Z",
+  "status": "PASS_MVP4_SHADOW_STREAM_SCHEDULER_SEMANTIC_RECHECK_LIVE_BLOCKED",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "F9A305552E3192D65EC1C9D22A591318A69BDE0B0D868361FD0A27927F367AF3"
+}

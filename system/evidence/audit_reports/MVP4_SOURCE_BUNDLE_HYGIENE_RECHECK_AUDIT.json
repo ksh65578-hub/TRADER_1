@@ -1,0 +1,17 @@
+{
+  "audit_schema_id": "trader1.source_bundle_hygiene_recheck_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "included_count": 530,
+  "excluded_count": 968,
+  "forbidden_generated_count": 0,
+  "forbidden_generated_examples": [],
+  "self_referential_manifest_included": false,
+  "contains_secret": false,
+  "forbidden_count": 0,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "next_action": "Continue source bundle hygiene monitoring."
+}

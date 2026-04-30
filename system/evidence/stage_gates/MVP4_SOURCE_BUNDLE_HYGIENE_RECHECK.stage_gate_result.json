@@ -1,0 +1,28 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T08:46:41Z",
+  "patch_id": "MVP4_SOURCE_BUNDLE_HYGIENE_RECHECK_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_SOURCE_BUNDLE_HYGIENE_RECHECK_NO_LIVE_ORDERS",
+  "source_bundle_audit": {
+    "audit_schema_id": "trader1.source_bundle_hygiene_recheck_audit.v1",
+    "status": "PASS",
+    "blockers": [],
+    "included_count": 530,
+    "excluded_count": 968,
+    "forbidden_generated_count": 0,
+    "forbidden_generated_examples": [],
+    "self_referential_manifest_included": false,
+    "contains_secret": false,
+    "forbidden_count": 0,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false,
+    "next_action": "Continue source bundle hygiene monitoring."
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

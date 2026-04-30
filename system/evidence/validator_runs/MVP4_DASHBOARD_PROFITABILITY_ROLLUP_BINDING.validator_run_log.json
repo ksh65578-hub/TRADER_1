@@ -1,0 +1,66 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-29T15:43:55Z",
+  "patch_id": "MVP4_DASHBOARD_PROFITABILITY_ROLLUP_BINDING_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "validators_run": [
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "profitability_evidence_maturity_rollup_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "profitability_optimizer_evidence_gap_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "scale_up_eligibility_validator",
+      "status": "BLOCKED"
+    }
+  ],
+  "commands": [
+    "python -m unittest tests.dashboard.test_read_only_dashboard tests.runtime.test_safe_launcher -v",
+    "python -m compileall trader1 tests -q",
+    "safe_launcher build_launcher_report/write_launcher_runtime_bundle for UPBIT_PAPER, BINANCE_PAPER, UPBIT_LIVE, BINANCE_LIVE",
+    "python tools/run_mvp0_validators.py",
+    "python tools/run_patch_result_runtime_schema_validators.py",
+    "python tools/run_profitability_optimizer_evidence_gap_validators.py",
+    "python -m unittest discover -s tests -v"
+  ],
+  "test_summary": {
+    "dashboard_and_launcher_unittest": "PASS_126_TESTS",
+    "compileall": "PASS",
+    "safe_runtime_dashboard_regeneration": "PASS_4_SCOPES_ALL_LIVE_FLAGS_FALSE",
+    "mvp0_validators": "PASS",
+    "patch_result_runtime_schema_validators": "PASS_131_PATCH_RESULTS_AFTER_GAP_CLOSURE_PENDING_RERUN",
+    "profitability_optimizer_evidence_gap_validators": "PASS",
+    "full_unittest_discover": "PASS_573_TESTS",
+    "patch_result_schema_validator": "PASS_131_PATCH_RESULTS"
+  },
+  "live_flags": {
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "updated_at_utc": "2026-04-29T15:44:52Z"
+}

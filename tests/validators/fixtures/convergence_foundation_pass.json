@@ -1,0 +1,10 @@
+{
+  "fixture_id": "convergence_foundation_schema_only_pass",
+  "validator_id": "convergence_objective_profile_validator",
+  "expected_status": "PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "expected_order_adapter_called": false,
+  "expected_blocker_code": null
+}

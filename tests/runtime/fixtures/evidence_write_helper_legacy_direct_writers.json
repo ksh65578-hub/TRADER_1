@@ -1,0 +1,7 @@
+{
+  "schema_id": "trader1.evidence_write_helper_legacy_direct_writer_baseline.v1",
+  "project_id": "TRADER_1",
+  "baseline_created_utc": "2026-04-29T00:00:00Z",
+  "baseline_rule": "No LOCAL_DIRECT evidence writer paths are allowed. Any reintroduced direct evidence writer must fail the regression test until converted to the shared atomic writer or explicitly audited with a new patch.",
+  "legacy_local_direct_writer_paths": []
+}

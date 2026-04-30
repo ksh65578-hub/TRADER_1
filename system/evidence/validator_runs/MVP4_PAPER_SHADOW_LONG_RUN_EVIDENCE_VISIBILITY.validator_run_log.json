@@ -1,0 +1,56 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-29T15:54:53Z",
+  "patch_id": "MVP4_PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY_20260430_001",
+  "status": "PASS",
+  "validators_run": [
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "profitability_optimizer_evidence_gap_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "profitability_evidence_maturity_rollup_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.validators.test_paper_shadow_evidence_accumulation_validator -v",
+      "status": "PASS",
+      "tests": 10
+    },
+    {
+      "command": "python -m compileall trader1 tests -q",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_profitability_optimizer_evidence_gap_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.validators.test_profitability_optimizer_evidence_gap_validator tests.validators.test_strategy_performance_memory_validator -v",
+      "status": "PASS",
+      "tests": 19
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

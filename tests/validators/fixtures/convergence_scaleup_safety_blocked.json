@@ -1,0 +1,11 @@
+{
+  "fixture_id": "convergence_scaleup_safety_survival_blocked",
+  "validator_id": "survival_layer_validator",
+  "expected_status": "BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "expected_order_adapter_called": false,
+  "expected_blocker_code": "SURVIVAL_LAYER_BLOCKED"
+}

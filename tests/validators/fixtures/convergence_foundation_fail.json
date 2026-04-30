@@ -1,0 +1,10 @@
+{
+  "fixture_id": "convergence_foundation_live_permission_fail",
+  "validator_id": "optimizer_memory_state_validator",
+  "expected_status": "FAIL",
+  "live_order_ready": false,
+  "live_order_allowed": true,
+  "can_live_trade": true,
+  "expected_order_adapter_called": true,
+  "expected_blocker_code": "LIVE_FINAL_GUARD_FAILED"
+}

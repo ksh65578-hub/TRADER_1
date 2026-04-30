@@ -1,0 +1,33 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T14:22:22Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP1_SAFETY_CONTROL_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/safety_control_report.schema.json",
+    "trader1/runtime/resource_guard/safety_control.py",
+    "trader1/validation/mvp0_validators.py",
+    "tools/run_safety_control_validators.py",
+    "tests/runtime/test_safety_control.py",
+    "system/runtime/upbit/krw_spot/paper/safety_control_report.json",
+    "system/evidence/validator_runs/MVP1_SAFETY_CONTROL.validator_run_log.json",
+    "system/evidence/stage_gates/MVP1_SAFETY_CONTROL.stage_gate_result.json"
+  ],
+  "known_blockers": [
+    "KILL_SWITCH_ACTIVE",
+    "RESOURCE_LIMIT",
+    "RESOURCE_LIMIT_BLOCK",
+    "LIVE_READY_MISSING",
+    "LIVE_FINAL_GUARD_FAILED",
+    "API_UNVERIFIED",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

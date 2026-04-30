@@ -1,0 +1,103 @@
+{
+  "validator_run_log_schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-29T14:51:15Z",
+  "patch_id": "MVP4_PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR_20260429_001",
+  "validators_required": [
+    "parameter_narrowing_validator",
+    "optimizer_guardrail_validator",
+    "live_final_guard_validator",
+    "schema_validator",
+    "generated_artifact_dirty_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "validator_depth_audit_tool",
+    "scale_up_eligibility_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "parameter_narrowing_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "validator_depth_audit_tool",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "scale_up_eligibility_validator",
+      "status": "BLOCKED"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.validators.test_parameter_narrowing_validator -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 4
+    },
+    {
+      "command": "python -m compileall trader1 tests -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python tools/run_optimizer_convergence_guardrail_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "OPTIMIZER_CONVERGENCE_GUARDRAILS"
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "MVP0_FULL_VALIDATOR_RUN"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 564
+    },
+    {
+      "command": "python tools/audit_validator_depth.py --output system/evidence/audit_reports/MVP4_PARAMETER_EVIDENCE_IDENTITY_JOIN_VALIDATOR.audit.json",
+      "status": "PASS",
+      "returncode": 0,
+      "implemented_validator_count": 89,
+      "registered_validator_count": 89,
+      "registered_but_unimplemented_validator_count": 0
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "PATCH_RESULT_RUNTIME_SCHEMA_VALIDATORS"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,44 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T23:49:53Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_LONG_RUN_STABILITY_RESOURCE_GUARD_EVIDENCE",
+  "artifact_paths": [
+    "trader1/runtime/health/runtime_resource_pressure.py",
+    "trader1/runtime/boot/safe_launcher.py",
+    "trader1/dashboard/read_only_dashboard.py",
+    "trader1/validation/mvp0_validators.py",
+    "contracts/schema/read_only_dashboard_shell.schema.json",
+    "contracts/registry.yaml",
+    "contracts/validators/validator_registry.json",
+    "tests/runtime/test_runtime_resource_pressure.py",
+    "tests/runtime/test_safe_launcher.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tools/run_runtime_resource_pressure_validators.py",
+    "tools/emit_runtime_resource_pressure_guard_patch_evidence.py",
+    "contracts/generated/context_pack/LONG_RUN_STABILITY_RESOURCE_GUARD.md",
+    "contracts/generated/requirement_index.json",
+    "contracts/generated/requirement_artifact_matrix.json",
+    "system/evidence/validator_runs/MVP4_LONG_RUN_STABILITY_RESOURCE_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_LONG_RUN_STABILITY_RESOURCE_GUARD.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_LONG_RUN_STABILITY_RESOURCE_GUARD.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

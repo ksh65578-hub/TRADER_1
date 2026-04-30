@@ -1,0 +1,69 @@
+{
+  "validator_run_log_schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-29T11:17:12Z",
+  "patch_id": "MVP4_STRATEGY_REGIME_PROFITABILITY_RECHECK_20260429_001",
+  "validators_run": [
+    {
+      "validator_id": "strategy_condition_matrix_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "symbol_strategy_regime_fit_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "market_regime_adaptation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "strategy_performance_memory_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "candidate_scorecard_net_ev_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimization_state_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_run_report_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "convergence_assessment_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "risk_scaling_decision_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "scale_up_eligibility_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "validators_untested": [],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validator_run_log_hash": "62E9FEE11AB2C2887F999B054FAA2372AC12ED84E281837A4CBC3614CA238846"
+}

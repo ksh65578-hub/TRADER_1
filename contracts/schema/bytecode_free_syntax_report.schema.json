@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.bytecode_free_syntax_report.v1",
+  "title": "bytecode_free_syntax_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "status",
+    "execution_mode",
+    "scan_paths",
+    "skipped_directory_names",
+    "files_checked",
+    "syntax_error_count",
+    "syntax_errors",
+    "bytecode_write_attempted",
+    "pycache_write_attempted",
+    "external_calls_attempted",
+    "credential_load_attempted",
+    "live_order_api_attempted",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "blocker_code",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.bytecode_free_syntax_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "status": {
+      "enum": ["PASS", "FAIL"]
+    },
+    "execution_mode": {
+      "const": "READ_ONLY_SOURCE_COMPILE_NO_BYTECODE_WRITE"
+    },
+    "scan_paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "skipped_directory_names": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "files_checked": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "syntax_error_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "syntax_errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "error_type", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "error_type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string"
+          },
+          "line": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          },
+          "offset": {
+            "type": ["integer", "null"],
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "bytecode_write_attempted": {
+      "const": false
+    },
+    "pycache_write_attempted": {
+      "const": false
+    },
+    "external_calls_attempted": {
+      "const": false
+    },
+    "credential_load_attempted": {
+      "const": false
+    },
+    "live_order_api_attempted": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "blocker_code": {
+      "type": ["string", "null"]
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

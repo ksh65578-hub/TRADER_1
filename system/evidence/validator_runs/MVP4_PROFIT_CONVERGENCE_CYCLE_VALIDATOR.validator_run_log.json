@@ -1,0 +1,54 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-29T13:34:39Z",
+  "patch_id": "MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR_20260429_001",
+  "validators_run": [
+    {
+      "validator_id": "profit_convergence_cycle_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "exploration_exploitation_policy_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "convergence_assessment_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "validator_depth_audit_tool",
+      "status": "PASS"
+    }
+  ],
+  "audit_report_path": "system/evidence/audit_reports/MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR.audit.json",
+  "targeted_test_status": "PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "log_hash": "583CD4F2194DE02D98221551CAC15CBCE0520151587E46119A2536DB6C44E95B",
+  "coverage_status_fix": "UPDATED_PASS",
+  "full_test_status": "PASS",
+  "full_test_count": 530,
+  "patch_result_hash": "ED52598BAD056F0401DCCEFE71CE139FB2139A60EC3CBCADC1433A78C5460862"
+}

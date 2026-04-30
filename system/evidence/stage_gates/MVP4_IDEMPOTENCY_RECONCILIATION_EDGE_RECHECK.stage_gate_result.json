@@ -1,0 +1,29 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T09:07:17Z",
+  "patch_id": "MVP4_IDEMPOTENCY_RECONCILIATION_EDGE_RECHECK_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_IDEMPOTENCY_RECONCILIATION_EDGE_RECHECK_NO_LIVE_ORDERS",
+  "idempotency_reconciliation_audit": {
+    "audit_schema_id": "trader1.idempotency_reconciliation_edge_recheck_audit.v1",
+    "status": "PASS",
+    "blockers": [],
+    "same_identifier_primary_blocker": "RECONCILIATION_REQUIRED",
+    "same_identifier_final_decision": "RECONCILE_REQUIRED",
+    "same_identifier_idempotency_action": "RECONCILE_SAME_IDENTIFIER_FIRST",
+    "same_identifier_order_adapter_called": false,
+    "missing_original_primary_blocker": "RECONCILIATION_REQUIRED",
+    "missing_original_final_decision": "RECONCILE_REQUIRED",
+    "missing_original_idempotency_action": "RECONCILE_SAME_IDENTIFIER_FIRST",
+    "missing_original_order_adapter_called": false,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false,
+    "next_action": "Continue ledger/reconciliation recovery edge-case hardening."
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

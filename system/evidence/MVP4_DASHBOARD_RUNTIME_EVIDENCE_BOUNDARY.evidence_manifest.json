@@ -1,0 +1,42 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T04:11:10Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_DASHBOARD_RUNTIME_EVIDENCE_BOUNDARY_20260430_001",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "target_mvp_level": "MVP-4",
+  "evidence_status": "PASS_WITH_LIVE_BLOCKED",
+  "evidence_items": [
+    {
+      "path": "trader1/dashboard/read_only_dashboard.py",
+      "role": "runtime_evidence_boundary_builder_and_validator"
+    },
+    {
+      "path": "contracts/schema/read_only_dashboard_shell.schema.json",
+      "role": "dashboard_shell_requires_runtime_evidence_boundary"
+    },
+    {
+      "path": "tests/dashboard/test_read_only_dashboard.py",
+      "role": "negative_fixtures_for_false_long_run_runtime_evidence"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_DASHBOARD_RUNTIME_EVIDENCE_BOUNDARY.md",
+      "role": "navigation_cache_for_runtime_evidence_boundary"
+    },
+    {
+      "path": "system/evidence/contract_gaps/ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY.contract_gap.json",
+      "role": "external_long_run_evidence_gap_record"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_DASHBOARD_RUNTIME_EVIDENCE_BOUNDARY.patch_result.json",
+      "role": "patch_result"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

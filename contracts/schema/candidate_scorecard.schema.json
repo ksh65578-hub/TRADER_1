@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.candidate_scorecard.v1",
+  "title": "candidate_scorecard",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "scorecard_id",
+    "candidate_id",
+    "strategy_id",
+    "strategy_build_id",
+    "parameter_hash",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "symbol",
+    "timeframe_scope",
+    "regime_scope",
+    "objective_basis",
+    "gross_expected_edge_bps",
+    "expected_fee_bps",
+    "expected_spread_bps",
+    "expected_slippage_bps",
+    "expected_impact_bps",
+    "expected_latency_penalty_bps",
+    "net_ev_after_cost_bps",
+    "min_required_edge_bps",
+    "cost_model_status",
+    "oos_status",
+    "walk_forward_status",
+    "bootstrap_status",
+    "overfit_status",
+    "ranking_eligible",
+    "scorecard_scope",
+    "live_readiness_status",
+    "operator_warning",
+    "source_evidence_ids",
+    "blockers",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.candidate_scorecard.v1"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_build_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parameter_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "symbol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timeframe_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "regime_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "objective_basis": {
+      "const": "NET_EV_AFTER_COST"
+    },
+    "gross_expected_edge_bps": {
+      "type": "number"
+    },
+    "expected_fee_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "expected_spread_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "expected_slippage_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "expected_impact_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "expected_latency_penalty_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "net_ev_after_cost_bps": {
+      "type": "number"
+    },
+    "min_required_edge_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "cost_model_status": {
+      "enum": [
+        "VALIDATED",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "oos_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "walk_forward_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "bootstrap_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "overfit_status": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "ranking_eligible": {
+      "type": "boolean"
+    },
+    "scorecard_scope": {
+      "enum": [
+        "PAPER_SCORECARD_INPUT_ONLY",
+        "PAPER_EVIDENCE_COLLECTION_ONLY",
+        "BLOCKED_RESEARCH_ONLY",
+        "STALE_RESEARCH_ONLY"
+      ]
+    },
+    "live_readiness_status": {
+      "const": "NOT_LIVE_READY"
+    },
+    "operator_warning": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_evidence_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

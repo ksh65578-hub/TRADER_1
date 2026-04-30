@@ -1,0 +1,193 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T11:05:54Z",
+  "patch_id": "MVP4_DASHBOARD_RUNTIME_FRESHNESS_RECHECK_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_DASHBOARD_RUNTIME_FRESHNESS_RECHECK_NO_LIVE_ORDERS",
+  "dashboard_runtime_freshness_audit": {
+    "audit_schema_id": "trader1.dashboard_runtime_freshness_recheck_audit.v1",
+    "status": "PASS",
+    "blockers": [],
+    "dashboard_count": 2,
+    "checked_items": 26,
+    "snapshots": {
+      "UPBIT_KRW_SPOT_PAPER": {
+        "dashboard_generated_at_utc": "2026-04-29T11:05:55Z",
+        "summary_generated_at_utc": "2026-04-29T11:05:55Z",
+        "heartbeat_generated_at_utc": "2026-04-29T11:05:55Z",
+        "startup_generated_at_utc": "2026-04-29T11:05:55Z",
+        "source_freshness": {
+          "SUMMARY": "PASS",
+          "HEARTBEAT": "PASS",
+          "STARTUP_PROBE": "PASS"
+        },
+        "refresh_policy": {
+          "title": "Dashboard Data Freshness",
+          "status": "AUTO_REFRESH_ENABLED",
+          "truth_role": "dashboard_serving_truth",
+          "source": "heartbeat.json",
+          "generated_at_utc": "2026-04-29T11:05:55Z",
+          "auto_refresh_interval_seconds": 10,
+          "stale_after_seconds": 300,
+          "client_stale_guard_enabled": true,
+          "refresh_mode": "LOCAL_FILE_RELOAD",
+          "next_action": "Keep the PAPER safe monitor running. If this page turns stale, rerun PAPER before trusting dashboard values.",
+          "display_only": true,
+          "dashboard_truth_only": true,
+          "live_order_ready": false,
+          "live_order_allowed": false,
+          "can_live_trade": false,
+          "scale_up_allowed": false
+        },
+        "portfolio_checks": {
+          "cash": true,
+          "equity": true,
+          "locked_cash": true,
+          "realized_pnl": true,
+          "unrealized_pnl": true,
+          "total_pnl": true
+        },
+        "html_has_client_guard": true,
+        "readiness_compact_flag_labels": true,
+        "operation_layout_no_overlap_guard": true,
+        "dashboard_text_alignment_guard": true,
+        "detail_card_density_and_wrap_guard": true,
+        "detail_drawer_refresh_state_guard": true,
+        "portfolio_first_screen_density_guard": true,
+        "has_dangerous_controls": false
+      },
+      "BINANCE_SPOT_PAPER": {
+        "dashboard_generated_at_utc": "2026-04-29T11:05:55Z",
+        "summary_generated_at_utc": "2026-04-29T11:05:55Z",
+        "heartbeat_generated_at_utc": "2026-04-29T11:05:55Z",
+        "startup_generated_at_utc": "2026-04-29T11:05:55Z",
+        "source_freshness": {
+          "SUMMARY": "PASS",
+          "HEARTBEAT": "PASS",
+          "STARTUP_PROBE": "PASS"
+        },
+        "refresh_policy": {
+          "title": "Dashboard Data Freshness",
+          "status": "AUTO_REFRESH_ENABLED",
+          "truth_role": "dashboard_serving_truth",
+          "source": "heartbeat.json",
+          "generated_at_utc": "2026-04-29T11:05:55Z",
+          "auto_refresh_interval_seconds": 10,
+          "stale_after_seconds": 300,
+          "client_stale_guard_enabled": true,
+          "refresh_mode": "LOCAL_FILE_RELOAD",
+          "next_action": "Keep the PAPER safe monitor running. If this page turns stale, rerun PAPER before trusting dashboard values.",
+          "display_only": true,
+          "dashboard_truth_only": true,
+          "live_order_ready": false,
+          "live_order_allowed": false,
+          "can_live_trade": false,
+          "scale_up_allowed": false
+        },
+        "portfolio_checks": {
+          "cash": true,
+          "equity": true,
+          "locked_cash": true,
+          "realized_pnl": true,
+          "unrealized_pnl": true,
+          "total_pnl": true
+        },
+        "html_has_client_guard": true,
+        "readiness_compact_flag_labels": true,
+        "operation_layout_no_overlap_guard": true,
+        "dashboard_text_alignment_guard": true,
+        "detail_card_density_and_wrap_guard": true,
+        "detail_drawer_refresh_state_guard": true,
+        "portfolio_first_screen_density_guard": true,
+        "has_dangerous_controls": false
+      }
+    },
+    "hidden_defects": [
+      {
+        "classification": "false-fresh dashboard display",
+        "condition": "HTML remains open after source TTL while the previous generation still says PASS",
+        "impact": "operator may trust old portfolio or heartbeat values",
+        "reproducibility": "open dashboard and stop refreshing monitor artifacts for more than 300 seconds",
+        "fix": "client stale guard plus 10 second local file reload",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      },
+      {
+        "classification": "schema/runtime dirty mismatch",
+        "condition": "schema requires dashboard_refresh_policy but old runtime dashboard_shell.json remains on disk",
+        "impact": "runtime schema validation fails and dashboard artifacts are stale",
+        "reproducibility": "run runtime_schema_instance_validator before regenerating runtime artifacts",
+        "fix": "regenerate scoped runtime dashboard artifacts after schema patch",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      },
+      {
+        "classification": "narrow viewport safety flag wrapping",
+        "condition": "first-screen live readiness chips render long internal field names on a narrow dashboard viewport",
+        "impact": "operator may struggle to read live readiness and scale-up blockers quickly",
+        "reproducibility": "open the dashboard in a narrow in-app browser pane and inspect the live readiness card",
+        "fix": "display compact false chips while preserving exact flag names in title and aria labels",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      },
+      {
+        "classification": "system status text overlap",
+        "condition": "operation status card uses a two-column layout that can squeeze body copy and status metrics into the same visual area",
+        "impact": "operator may misread whether the program is running safely",
+        "reproducibility": "open the dashboard in a narrow in-app browser pane and inspect the System Status card",
+        "fix": "render operation copy as a single-column section and move heartbeat/engine/live-order metrics into a full-width grid below",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      },
+      {
+        "classification": "dashboard alignment inconsistency",
+        "condition": "dashboard cards use inconsistent line-height, label spacing, and card-item alignment rules",
+        "impact": "operator has to scan uneven rows and columns before finding portfolio, operation, or live-readiness facts",
+        "reproducibility": "inspect first-screen cards and expanded detail panels across narrow and desktop widths",
+        "fix": "add shared typography, card grid, label/value alignment, header alignment, and table vertical alignment rules",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      },
+      {
+        "classification": "auto-refresh detail drawer collapse",
+        "condition": "local dashboard reloads while the operator has expanded detailed status, source artifact, or validator log drawers",
+        "impact": "operator loses expanded reading context during freshness refresh and must reopen each drawer repeatedly",
+        "reproducibility": "open any dashboard details drawer, wait for the 10 second dashboard reload, and observe the drawer closing",
+        "fix": "initialize drawer persistence after DOMContentLoaded and persist every details element open state in browser localStorage",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      },
+      {
+        "classification": "portfolio first-screen over-carded layout",
+        "condition": "portfolio snapshot renders too many equal-weight metric cards in the first screen, especially in a narrow dashboard pane",
+        "impact": "operator must scroll through secondary ledger details before seeing program status and live readiness",
+        "reproducibility": "open the dashboard in a narrow in-app browser pane and inspect the Real-Time Portfolio card",
+        "fix": "show only cash, equity, total PnL, and return as primary KPI cards; move locked cash, realized PnL, unrealized PnL, positions, and candidates into compact rows plus the detailed drawer",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      },
+      {
+        "classification": "detail-card overcompression and long-status overflow",
+        "condition": "detailed maturity, dependency, evidence, workflow, and stability grids allow too many narrow columns while long status pills use no robust wrapping rule",
+        "impact": "operator sees cramped cards, clipped long status codes, and uneven scanning in lower dashboard sections",
+        "reproducibility": "open the detailed drawer on a wide dashboard and inspect the maturity gap component grid",
+        "fix": "increase detailed-card minimum widths, widen grid gaps, and make status pills wrap safely except compact readiness chips",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      }
+    ],
+    "runtime_paths_checked": [
+      "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher",
+      "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher"
+    ],
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false,
+    "next_action": "MVP4_DASHBOARD_RECONCILIATION_STALE_ARTIFACT_RECHECK"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

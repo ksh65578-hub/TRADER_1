@@ -1,0 +1,23 @@
+{
+  "schema_id": "trader1.contract_gap.v1",
+  "generated_at_utc": "2026-04-29T15:54:53Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "OPEN",
+  "blockers": [
+    {
+      "code": "CONTRACT_GAP_HIGH",
+      "severity": "HIGH",
+      "message": "Profitability, strategy, optimizer, and convergence evidence maturity is not sufficient for live review or scale-up.",
+      "source_requirement_id": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT"
+    }
+  ],
+  "notes": "Rechecked in MVP-4. Paper/shadow evidence now separates PAPER scorecard input eligibility from long-run evidence maturity. Long-run evidence requires explicit evidence_window_count/min_required_evidence_window_count and evidence_span_hours/min_required_evidence_span_hours fields; short-window evidence must keep LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING visible and cannot become live, scale-up, or LIVE_READY evidence.",
+  "contract_gap_id": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+  "severity": "HIGH",
+  "source_section_id": "SECTION_STRATEGY_PROFITABILITY",
+  "live_affecting": true
+}

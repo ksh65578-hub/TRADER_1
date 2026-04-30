@@ -1,0 +1,130 @@
+{
+  "schema_id": "trader1.mvp4_external_live_review_blocker_report.v1",
+  "created_at_utc": "2026-04-28T17:46:39Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "target_mvp_level": "MVP-4",
+  "current_mvp": "MVP-4",
+  "last_patch_id": "MVP4_EXTERNAL_LIVE_REVIEW_BLOCKER_20260429_001",
+  "last_patch_result_hash": "401904595EBCBA6A0FB20E8013111AEEA92A224F5C3E888C6D4A9F5AC753E84B",
+  "blocking_patch_id": "MVP4_EXTERNAL_LIVE_REVIEW_BLOCKER_20260429_001",
+  "next_allowed_task_class": "MVP4_EXTERNAL_LIVE_REVIEW_EVIDENCE_REQUIRED",
+  "blocked_requirement_ids": [
+    "REQ-MVP4-OFFICIAL-API-PASS-EVIDENCE",
+    "REQ-MVP4-READ-ONLY-ACCOUNT-SNAPSHOT-EVIDENCE",
+    "REQ-MVP4-OPERATOR-APPROVAL-EVIDENCE",
+    "REQ-MVP4-READ-ONLY-BURN-IN-EVIDENCE"
+  ],
+  "blocking_reason": "External exchange/account/operator evidence is required before MVP-5 or any live-enabling behavior.",
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "LIVE_BURN_IN_FEEDBACK_MISSING",
+    "EXECUTION_QUALITY_UNTESTED",
+    "SURVIVAL_LAYER_BLOCKED",
+    "RISK_SCALING_UNTESTED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "operator_inputs_required": [
+    "official API verification PASS evidence",
+    "read-only account snapshot evidence",
+    "operator approval evidence",
+    "read-only burn-in evidence",
+    "manual order test evidence when required by the live review gate"
+  ],
+  "forbidden_next_steps": [
+    "MVP5_LIVE_ENABLING_WITHOUT_EVIDENCE",
+    "LIVE_ORDER_SUBMISSION",
+    "LIVE_ORDER_READY_TRUE",
+    "LIVE_ORDER_ALLOWED_TRUE",
+    "CAN_LIVE_TRADE_TRUE",
+    "OPTIMIZER_LIVE_CONFIG_MUTATION",
+    "CONVERGENCE_LIVE_CONFIG_MUTATION"
+  ],
+  "latest_live_review_patch_result_path": "system/evidence/patch_results/MVP4_UPBIT_LIVE_REVIEW.patch_result.json",
+  "latest_live_review_remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING"
+  ],
+  "latest_scaleup_safety_patch_result_path": "system/evidence/patch_results/MVP4_SCALEUP_SAFETY_BLOCKED.patch_result.json",
+  "latest_scaleup_safety_remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "LIVE_BURN_IN_FEEDBACK_MISSING",
+    "EXECUTION_QUALITY_UNTESTED",
+    "SURVIVAL_LAYER_BLOCKED",
+    "RISK_SCALING_UNTESTED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "latest_scaleup_safety_result_hash": "AA537DF86430F6CD506BE0DBA9733E60C9F84132E440FD5D42B43D70409F5D29",
+  "external_review_input_statuses": [
+    {
+      "artifact_path": "system/evidence/upbit/krw_spot/read_only/mvp4_live_review/official_api_verification_report.json",
+      "exists": true,
+      "artifact_sha256": "19949589B54AF2CE0CE5E5334B44175D62B58DA03A861068C6A7A270C27539AA",
+      "status": "UNVERIFIED",
+      "primary_blocker_code": "API_UNVERIFIED",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "usable_for_live_enabling": false
+    },
+    {
+      "artifact_path": "system/runtime/upbit/krw_spot/read_only/mvp4_live_review/read_only_account_snapshot.json",
+      "exists": true,
+      "artifact_sha256": "7B012F772081DB3E7D60A947A29BE19D45747DAA39FF163D75960306E68DC4C3",
+      "status": "UNVERIFIED",
+      "primary_blocker_code": "API_UNVERIFIED",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "usable_for_live_enabling": false
+    },
+    {
+      "artifact_path": "system/evidence/upbit/krw_spot/read_only/mvp4_live_review/api_key_permission_check_report.json",
+      "exists": true,
+      "artifact_sha256": "057F88F3DDBFBBC389D61507F0FFE8DE0A347E4B653C1AB208474DD80BB2B0BC",
+      "status": "UNVERIFIED",
+      "primary_blocker_code": "API_UNVERIFIED",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "usable_for_live_enabling": false
+    },
+    {
+      "artifact_path": "system/evidence/upbit/krw_spot/live/mvp4_live_review/manual_order_test_evidence_missing.json",
+      "exists": true,
+      "artifact_sha256": "0A58558569E1461F0D5FF59552B343386F7962D7B186E562F72E8DF20F39BB11",
+      "status": "MISSING",
+      "primary_blocker_code": "LIVE_ENABLING_EVIDENCE_MISSING",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "usable_for_live_enabling": false
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "can_submit_order": false,
+  "order_adapter_called": false,
+  "result_hash": "487952911EF92B3502DB5B7C797F3F43AC2A5D50EDCB4BFA6694DF10982B47CC"
+}

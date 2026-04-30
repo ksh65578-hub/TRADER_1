@@ -1,0 +1,19 @@
+{
+  "audit_schema_id": "trader1.dashboard_reconciliation_operator_ux_recheck_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "default_panel_status": "NOT_LOADED",
+  "default_panel_color": "yellow",
+  "pass_panel_status": "PASS",
+  "pass_panel_color": "green",
+  "mismatch_panel_status": "BLOCKED",
+  "mismatch_panel_color": "red",
+  "mismatch_count": 1,
+  "live_drift_result": "BLOCKED",
+  "live_drift_blocker": "LIVE_FINAL_GUARD_FAILED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "next_action": "Bind actual PAPER reconciliation artifacts into launcher dashboard generation."
+}

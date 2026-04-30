@@ -1,0 +1,51 @@
+{
+  "schema_id": "trader1.official_api_verification_report.v1",
+  "verification_id": "mvp4-upbit-official-api-unverified",
+  "generated_at_utc": "2026-04-28T15:55:43Z",
+  "verified_at_utc": "2026-04-28T15:55:43Z",
+  "expires_at_utc": null,
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "READ_ONLY",
+  "verified_by": "AI_COMPILER_SCAFFOLD",
+  "verification_method": "manual_crosscheck",
+  "official_sources": [],
+  "facts": {
+    "endpoints": {},
+    "rate_limits": {},
+    "symbol_rules": {},
+    "fee_rules": {},
+    "auth_requirements": {},
+    "permission_requirements": {},
+    "order_constraints": {},
+    "margin_rules_if_futures": null
+  },
+  "result": "UNVERIFIED",
+  "primary_blocker_code": "API_UNVERIFIED",
+  "blockers": [
+    {
+      "code": "API_UNVERIFIED",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "exchange official API validation required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    }
+  ],
+  "invalidated_by": [
+    "OFFICIAL_API_VERIFICATION_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "report_hash": "BA900B19FB1C8AEC3660217941DCF933A1D5F91AF3DF23ECF20A1004970B9AA8",
+  "signature": null
+}

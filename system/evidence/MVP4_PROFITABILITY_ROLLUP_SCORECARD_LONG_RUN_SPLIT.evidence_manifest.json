@@ -1,0 +1,53 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "manifest_id": "MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT_20260430_001",
+  "created_at_utc": "2026-04-29T16:07:53Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "VALIDATOR_PATCH",
+  "evidence_scope": {
+    "exchange": "UPBIT_AND_BINANCE",
+    "market_type": "KRW_SPOT_AND_SPOT",
+    "mode": "PAPER_SHADOW_READ_ONLY_ONLY"
+  },
+  "artifacts": [
+    {
+      "artifact_id": "validator_run_log",
+      "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT.validator_run_log.json",
+      "sha256": "4A12861532EC9EACA393873C98AB23FC242D45F41824AF2B804E0C0E1E4FE3EA"
+    },
+    {
+      "artifact_id": "stage_gate_result",
+      "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT.stage_gate_result.json",
+      "sha256": "A15C1F821C8E2A0759C7219BC0C563C72963BA507623C1B38359B6274670CD6E"
+    },
+    {
+      "artifact_id": "context_pack",
+      "path": "contracts/generated/context_pack/PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT.md",
+      "sha256": "D43F14AF14655F3B1CB1C3C97A2890AE526417D1B8E300DA9C1FF71C6E651674"
+    },
+    {
+      "artifact_id": "maturity_rollup",
+      "path": "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+      "sha256": "64D214FFCC42A118D1E904F4F1A6E2695AE8EC3FEC80DEB0E289749037AE5ABD"
+    },
+    {
+      "artifact_id": "rollup_fixture",
+      "path": "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
+      "sha256": "23857475DBB7AA30E108AE8921678E5A2348F6A9D2B53888AB978628A6E2106C"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "final_decision": "NO_TRADE",
+  "remaining_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ]
+}

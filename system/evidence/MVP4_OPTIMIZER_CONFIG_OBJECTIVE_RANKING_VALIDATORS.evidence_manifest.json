@@ -1,0 +1,51 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "created_at_utc": "2026-04-29T12:42:23Z",
+  "patch_id": "MVP4_OPTIMIZER_CONFIG_OBJECTIVE_RANKING_VALIDATORS_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_items": [
+    {
+      "artifact_id": "validator_run_log",
+      "path": "system/evidence/validator_runs/MVP4_OPTIMIZER_CONFIG_OBJECTIVE_RANKING_VALIDATORS.validator_run_log.json",
+      "sha256": "A4B1345BDA70E0EC79D56BE02D8F4826F7A9E7231D9EE571B190F82D98AF45FB"
+    },
+    {
+      "artifact_id": "stage_gate_result",
+      "path": "system/evidence/stage_gates/MVP4_OPTIMIZER_CONFIG_OBJECTIVE_RANKING_VALIDATORS.stage_gate_result.json",
+      "sha256": "1281779647DE3305BED82EAF06D0AC17067A0E7C6734BB8E95778E2F508AEDD7"
+    },
+    {
+      "artifact_id": "validator_depth_audit",
+      "path": "system/evidence/audit_reports/MVP4_OPTIMIZER_CONFIG_OBJECTIVE_RANKING_VALIDATORS.audit.json",
+      "sha256": "E6A901C4730A007316D9A484B0535BC9C388238BE2662DF97751E2C7E52B97C1"
+    },
+    {
+      "artifact_id": "contract_gap",
+      "path": "system/evidence/contract_gaps/VALIDATOR_REGISTRY_BACKLOG_TRIAGE.contract_gap.json",
+      "sha256": "FDCBC8EA8AC84663A907419A088603DEAE02A19BCFD1005697E6E1D39431BAC2"
+    },
+    {
+      "artifact_id": "patch_result",
+      "path": "system/evidence/patch_results/MVP4_OPTIMIZER_CONFIG_OBJECTIVE_RANKING_VALIDATORS.patch_result.json",
+      "sha256": "24EA15083534F4E4DE8F424BD54E4FD35150849C2FD36F9A280CDEE1955B29D7"
+    },
+    {
+      "artifact_id": "current_implementation_state",
+      "path": "contracts/generated/current_implementation_state.json",
+      "sha256": "A113C35058034A7EEF9326C7BE1564AB9E00B645928910BE57C61C0B274EA9D2"
+    },
+    {
+      "artifact_id": "read_cache_manifest",
+      "path": "contracts/generated/read_cache_manifest.json",
+      "sha256": "946528D41B2FF9CEC03A82D7E542D3C03EFB3708B8BA5EB19D0D16AD61E106B8"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

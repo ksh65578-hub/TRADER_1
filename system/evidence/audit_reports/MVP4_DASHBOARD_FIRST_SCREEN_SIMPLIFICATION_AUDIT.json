@@ -1,0 +1,24 @@
+{
+  "audit_schema_id": "trader1.dashboard_first_screen_simplification_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "dashboard_count": 2,
+  "checked_items": 5,
+  "snapshots": {
+    "paper": {
+      "summary_grid_index": 15529,
+      "detail_drawer_index": 18690,
+      "has_real_time_portfolio": true,
+      "has_system_status": true,
+      "has_live_readiness": true,
+      "has_collapsed_detail_drawer": true,
+      "has_no_order_controls": true,
+      "live_flags_false": true
+    }
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "next_action": "MVP4_DASHBOARD_RECONCILIATION_STALE_ARTIFACT_RECHECK"
+}

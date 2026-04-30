@@ -1,0 +1,10 @@
+{
+  "fixture_id": "convergence_foundation_dependency_blocked",
+  "validator_id": "strategy_performance_memory_validator",
+  "expected_status": "BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "expected_order_adapter_called": false,
+  "expected_blocker_code": "CONVERGENCE_STATE_UNTESTED"
+}

@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "audit_id": "MVP4_PAPER_SHADOW_EVIDENCE_ACCUMULATOR_20260430",
+  "generated_at_utc": "2026-04-29T23:16:06Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "target_mvp_level": "MVP-4",
+  "scope": "PAPER_SHADOW_EVIDENCE_ACCUMULATION_RUNTIME_PATH",
+  "hidden_defects": [
+    {
+      "classification": "missing_runtime_accumulation_path",
+      "condition": "Single-cycle PAPER evidence was blocked correctly, but there was no dedicated function to safely aggregate multiple scoped PAPER/SHADOW evidence artifacts.",
+      "impact": "Profitability and optimizer review could remain stuck between single-cycle reports and scorecard fixtures, or operators could mistake fixture-based maturity for runtime-collected evidence.",
+      "reproducibility": "Confirmed by code inspection: shadow_runner built individual evidence reports and operational_cycle embedded one report; no accumulator module existed.",
+      "fix": "Added build_paper_shadow_evidence_accumulation_from_operation_reports with strict scope matching, PAPER-only blocking, and live/scale flag drift blocking.",
+      "patch_status": "PATCHED",
+      "test_status": "PASS"
+    },
+    {
+      "classification": "shadow_runtime_gap",
+      "condition": "No actual repeated SHADOW observation runtime stream is produced for the new accumulator to consume.",
+      "impact": "Long-run profitability evidence remains blocked and must not be represented as live review evidence.",
+      "reproducibility": "Confirmed by artifact and runtime scan during this turn.",
+      "fix": "Created PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP contract_gap; next safe task is SHADOW artifact production scaffold.",
+      "patch_status": "BLOCKED_AS_CONTRACT_GAP",
+      "test_status": "PASS_LIVE_BLOCKED"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

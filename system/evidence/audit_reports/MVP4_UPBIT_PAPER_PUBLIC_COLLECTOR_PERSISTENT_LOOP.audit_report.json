@@ -1,0 +1,29 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T10:15:10Z",
+  "patch_id": "MVP4_UPBIT_PAPER_PUBLIC_COLLECTOR_PERSISTENT_LOOP_20260430_001",
+  "findings": [
+    {
+      "classification": "VALIDATOR_DEPTH_GAP",
+      "condition": "collector/loop code existed before validator functions were mapped",
+      "impact": "UNTESTED could look implemented",
+      "fix": "added validators and registry entries"
+    },
+    {
+      "classification": "NEGATIVE_FIXTURE_GAP",
+      "condition": "duplicate event fixture first failed hash tamper before duplicate detection",
+      "impact": "reconciliation blocker path was untested",
+      "fix": "changed duplicate fixture to exact event duplicate"
+    },
+    {
+      "classification": "SCANNER_FALSE_POSITIVE",
+      "condition": "safe alias calls to shared writer were classified as LOCAL_DIRECT",
+      "impact": "full test reproducibility failed",
+      "fix": "made evidence writer scanner alias-aware"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

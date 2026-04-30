@@ -1,0 +1,26 @@
+{
+  "schema_id": "trader1.contract_gap.v1",
+  "generated_at_utc": "2026-04-30T04:11:10Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "status": "OPEN",
+  "blockers": [
+    {
+      "code": "CONTRACT_GAP_HIGH",
+      "severity": "HIGH",
+      "message": "Actual long-run PAPER/SHADOW runtime evidence is still missing; short-window harness and persistent stubs are not live-review evidence.",
+      "source_requirement_id": "REQ-MVP4-DASHBOARD-RUNTIME-EVIDENCE-BOUNDARY"
+    }
+  ],
+  "notes": "The dashboard now shows the boundary explicitly. Closing this gap requires real repeated long-run PAPER/SHADOW runtime evidence with fresh stability history; it cannot be closed by a dashboard display patch.",
+  "contract_gap_id": "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+  "severity": "HIGH",
+  "source_section_id": "SECTION_DASHBOARD_SHELL",
+  "live_affecting": true
+}

@@ -1,0 +1,40 @@
+{
+  "validator_run_log_schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-28T13:33:33Z",
+  "patch_id": "MVP0_LIVE_READY_SNAPSHOT_WRITER_20260428_001",
+  "validators_run": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T13:33:33Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "LIVE_READY writer guard blocks writer input, stale validators, scope mismatch, and unevidenced snapshots",
+      "validator_id": "live_ready_snapshot_writer_validator",
+      "checked_at_utc": "2026-04-28T13:33:33Z",
+      "input_artifact_paths": [
+        "contracts/registry.yaml",
+        "contracts/schema/live_ready_snapshot.schema.json",
+        "contracts/schema/live_ready_candidate_writer_input.schema.json",
+        "trader1/runtime/readiness/live_ready_snapshot.py"
+      ],
+      "blocking": false
+    }
+  ],
+  "validators_untested": [
+    "optimizer_guardrail_validator",
+    "optimizer_no_live_mutation_validator",
+    "convergence_assessment_validator",
+    "scale_up_eligibility_validator"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

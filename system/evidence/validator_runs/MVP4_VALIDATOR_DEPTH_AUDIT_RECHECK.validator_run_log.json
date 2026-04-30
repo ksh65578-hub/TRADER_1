@@ -1,0 +1,40 @@
+{
+  "validator_run_log_schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-29T12:13:23Z",
+  "patch_id": "MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK_20260429_001",
+  "validators_run": [
+    {
+      "validator_id": "validator_depth_audit_tool",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "convergence_objective_profile_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "validators_untested": [],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

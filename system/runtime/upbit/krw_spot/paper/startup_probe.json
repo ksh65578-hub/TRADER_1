@@ -1,0 +1,80 @@
+{
+  "schema_id": "trader1.startup_probe.v1",
+  "generated_at_utc": "2026-04-28T14:15:35Z",
+  "project_id": "TRADER_1",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp1_read_only_dashboard",
+  "config_hash": "DC5E2B0CD66904766873AC6F67E0704D39BAE9B4B0DEF59903D84C0A0A6F9010",
+  "registry_hash": "4BE883AFB90B990B4475B3A7C3EEEB6085A7EEA8FFE50E864A9163AC0C4547FD",
+  "schema_bundle_hash": "CC7EE972461FCCA02CBACD154B2150F3441BB51568308C668A95A3D969CA5BE5",
+  "source_tree_hash": "38B8E260A86CFB438116FC9CA0D84BF6D59ADC506E63EF093E7BC3C206038C00",
+  "engine_state_before": "BOOTSTRAP_READ_ONLY",
+  "engine_state_after_probe": "SAFE_MODE",
+  "startup_probe_phase": "STARTUP_PROBE_GATE_BLOCKED",
+  "startup_probe_passed": false,
+  "can_start": false,
+  "can_run_engine": false,
+  "can_trade": false,
+  "can_live_trade": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "dashboard_truth_only": true,
+  "hard_truth": {
+    "engine_state": {
+      "status": "PASS",
+      "present": true
+    },
+    "mode": {
+      "status": "PASS",
+      "present": true
+    },
+    "exchange": {
+      "status": "PASS",
+      "present": true
+    },
+    "market_type": {
+      "status": "PASS",
+      "present": true
+    },
+    "session_id": {
+      "status": "PASS",
+      "present": true
+    },
+    "config_hash": {
+      "status": "PASS",
+      "present": true
+    },
+    "registry_hash": {
+      "status": "PASS",
+      "present": true
+    },
+    "schema_id": {
+      "status": "PASS",
+      "present": true
+    },
+    "ledger_write_status": {
+      "status": "MISSING",
+      "present": false
+    },
+    "startup_probe_phase": {
+      "status": "PASS",
+      "present": true
+    }
+  },
+  "missing_hard_truth": [
+    "ledger_write_status"
+  ],
+  "primary_blocker_code": "HARD_TRUTH_MISSING",
+  "blockers": [
+    {
+      "code": "HARD_TRUTH_MISSING",
+      "severity": "HIGH",
+      "message": "hard truth missing blocks startup"
+    }
+  ],
+  "final_action": "NO_TRADE",
+  "next_action": "provide missing hard truth and rerun startup probe",
+  "probe_hash": "51CFFE018DB43B46A25E718E682FF2CB85BC833450079C17D3E6DF5C853A2A4B"
+}

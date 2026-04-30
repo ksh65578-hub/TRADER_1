@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.restart_recovery_report.v1",
+  "title": "restart_recovery_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "restart_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "recovery_scope",
+    "startup_recovery_rto_ms",
+    "snapshot_recovery_rpo_events",
+    "ledger_events",
+    "ledger_recovered",
+    "ledger_head_hash",
+    "intent_wal_events",
+    "intent_wal_recovered",
+    "intent_wal_head_hash",
+    "single_writer_recovered",
+    "paper_live_namespace_separated",
+    "recovery_action",
+    "restart_recovery_status",
+    "live_key_loaded",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "order_adapter_called",
+    "primary_blocker_code",
+    "blockers",
+    "restart_recovery_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.restart_recovery_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "restart_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recovery_scope": {
+      "enum": [
+        "PAPER_RESTART_ONLY"
+      ]
+    },
+    "startup_recovery_rto_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "snapshot_recovery_rpo_events": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ledger_events": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "ledger_recovered": {
+      "type": "boolean"
+    },
+    "ledger_head_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "intent_wal_events": {
+      "type": "array",
+      "items": {
+        "$ref": "intent_wal_event.schema.json"
+      }
+    },
+    "intent_wal_recovered": {
+      "type": "boolean"
+    },
+    "intent_wal_head_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "single_writer_recovered": {
+      "type": "boolean"
+    },
+    "paper_live_namespace_separated": {
+      "const": true
+    },
+    "recovery_action": {
+      "enum": [
+        "RESUME_PAPER_ONLY",
+        "SAFE_MODE_RECONCILE",
+        "BLOCK_NEW_ORDERS"
+      ]
+    },
+    "restart_recovery_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "FAIL"
+      ]
+    },
+    "live_key_loaded": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "restart_recovery_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.binance_adapter_surface_report.v1",
+  "title": "binance_adapter_surface_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "adapter_namespace",
+    "adapter_status",
+    "implementation_status",
+    "paper_runtime_status",
+    "live_runtime_status",
+    "futures_runtime_status",
+    "primary_blocker_code",
+    "primary_blocker_message",
+    "next_operator_action",
+    "public_market_data_supported",
+    "paper_broker_supported",
+    "private_account_supported",
+    "live_order_supported",
+    "futures_usdt_m_supported",
+    "order_adapter_called",
+    "private_api_called",
+    "credentials_loaded",
+    "display_only",
+    "dashboard_truth_only",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.binance_adapter_surface_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "exchange": {
+      "const": "BINANCE"
+    },
+    "market_type": {
+      "enum": [
+        "SPOT",
+        "FUTURES_USDT_M"
+      ]
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "adapter_namespace": {
+      "const": "trader1.adapters.binance"
+    },
+    "adapter_status": {
+      "enum": [
+        "SURFACE_ONLY",
+        "BLOCKED"
+      ]
+    },
+    "implementation_status": {
+      "const": "SURFACE_ONLY"
+    },
+    "paper_runtime_status": {
+      "const": "NOT_IMPLEMENTED"
+    },
+    "live_runtime_status": {
+      "const": "LIVE_BLOCKED"
+    },
+    "futures_runtime_status": {
+      "enum": [
+        "NOT_REQUESTED",
+        "NOT_IMPLEMENTED"
+      ]
+    },
+    "primary_blocker_code": {
+      "enum": [
+        "BINANCE_ADAPTER_SURFACE_ONLY",
+        "BINANCE_FUTURES_SURFACE_ONLY",
+        "SNAPSHOT_SCOPE_MISMATCH"
+      ]
+    },
+    "primary_blocker_message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "next_operator_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "public_market_data_supported": {
+      "const": false
+    },
+    "paper_broker_supported": {
+      "const": false
+    },
+    "private_account_supported": {
+      "const": false
+    },
+    "live_order_supported": {
+      "const": false
+    },
+    "futures_usdt_m_supported": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "private_api_called": {
+      "const": false
+    },
+    "credentials_loaded": {
+      "const": false
+    },
+    "display_only": {
+      "const": true
+    },
+    "dashboard_truth_only": {
+      "const": true
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

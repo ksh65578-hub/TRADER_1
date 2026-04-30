@@ -1,0 +1,130 @@
+{
+  "schema_id": "trader1.profit_optimizer_config.v1",
+  "generated_at_utc": "2026-04-29T00:00:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "optimizer_config_id": "profit_optimizer_config_live_writer_fail",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp4_profit_optimizer_config_fixture",
+  "optimizer_stage": "MVP4_PAPER_RANKING_ONLY",
+  "objective_basis": "NET_EV_AFTER_COST",
+  "objective_components": [
+    {
+      "component_id": "NET_EV_AFTER_COST",
+      "weight": 1.0,
+      "direction": "MAXIMIZE",
+      "required": true
+    },
+    {
+      "component_id": "DRAWDOWN_PENALTY",
+      "weight": 0.35,
+      "direction": "MINIMIZE",
+      "required": true
+    },
+    {
+      "component_id": "SLIPPAGE_PENALTY",
+      "weight": 0.25,
+      "direction": "MINIMIZE",
+      "required": true
+    },
+    {
+      "component_id": "FEE_PENALTY",
+      "weight": 0.15,
+      "direction": "MINIMIZE",
+      "required": true
+    },
+    {
+      "component_id": "SPREAD_PENALTY",
+      "weight": 0.15,
+      "direction": "MINIMIZE",
+      "required": true
+    },
+    {
+      "component_id": "IMPACT_PENALTY",
+      "weight": 0.15,
+      "direction": "MINIMIZE",
+      "required": true
+    },
+    {
+      "component_id": "LATENCY_PENALTY",
+      "weight": 0.1,
+      "direction": "MINIMIZE",
+      "required": true
+    },
+    {
+      "component_id": "OVERFIT_PENALTY",
+      "weight": 0.25,
+      "direction": "MINIMIZE",
+      "required": true
+    },
+    {
+      "component_id": "LIQUIDITY_DEPTH_SCORE",
+      "weight": 0.2,
+      "direction": "MAXIMIZE",
+      "required": true
+    },
+    {
+      "component_id": "REGIME_FIT_SCORE",
+      "weight": 0.2,
+      "direction": "MAXIMIZE",
+      "required": true
+    }
+  ],
+  "cost_components": [
+    "FEE",
+    "SPREAD",
+    "SLIPPAGE",
+    "IMPACT",
+    "LATENCY"
+  ],
+  "allowed_source_modes": [
+    "REPLAY",
+    "PAPER",
+    "SHADOW",
+    "READ_ONLY"
+  ],
+  "ranking_policy": {
+    "candidate_output_type": "CANDIDATE_RANKING_INPUT",
+    "sort_key": "NET_EV_AFTER_COST",
+    "tie_breakers": [
+      "MAX_DRAWDOWN",
+      "RANKING_STABILITY",
+      "SLIPPAGE_P95"
+    ],
+    "ranking_stability_required": true,
+    "min_candidate_count": 3
+  },
+  "promotion_policy": {
+    "live_promotion_allowed": false,
+    "live_ready_snapshot_write_allowed": true,
+    "scale_up_allowed": false,
+    "requires_oos_pass": true,
+    "requires_walk_forward_pass": true,
+    "requires_bootstrap_pass": true,
+    "requires_operator_approval": true
+  },
+  "resource_budget": {
+    "max_candidate_count": 64,
+    "max_runtime_seconds": 900,
+    "partial_write_recovery_required": true
+  },
+  "live_readiness_status": "NOT_LIVE_READY",
+  "operator_warning": "Optimizer config is PAPER analysis only, not LIVE_READY and live orders remain blocked.",
+  "status": "PASS",
+  "blockers": [],
+  "dashboard_display_truth_only": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_config_mutation_allowed": false,
+  "writes_live_ready_snapshot": false,
+  "order_submission_allowed": false,
+  "exchange_account_call_allowed": false,
+  "notes": "Negative fixture: optimizer config cannot allow LIVE_READY snapshot writes."
+}

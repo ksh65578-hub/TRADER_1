@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.optimization_state.v1",
+  "title": "optimization_state",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "optimization_state_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "state_scope",
+    "optimization_state_status",
+    "optimizer_stage",
+    "optimizer_maturity_level",
+    "objective_basis",
+    "source_modes",
+    "active_optimizer_run_id",
+    "latest_guardrail_report_id",
+    "latest_recommendation_id",
+    "dependency_summary_status",
+    "dependency_results",
+    "state_write_policy",
+    "live_readiness_status",
+    "operator_warning",
+    "blockers",
+    "dashboard_display_truth_only",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "live_permission_created",
+    "live_config_mutation_allowed",
+    "writes_live_ready_snapshot",
+    "active_snapshot_mutation_allowed",
+    "optimizer_winner_live_config_allowed",
+    "paper_winner_live_config_allowed",
+    "order_submission_allowed",
+    "exchange_account_call_allowed",
+    "scale_up_recommendation_allowed"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.optimization_state.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "optimization_state_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state_scope": {
+      "enum": [
+        "OPTIMIZER_ANALYSIS_ONLY",
+        "PAPER_RANKING_STATE_ONLY",
+        "RESEARCH_BLOCKED"
+      ]
+    },
+    "optimization_state_status": {
+      "enum": [
+        "ACTIVE_ANALYSIS_ONLY",
+        "BLOCKED",
+        "STALE_SAFE_MODE"
+      ]
+    },
+    "optimizer_stage": {
+      "enum": [
+        "MVP4_ANALYSIS_ONLY",
+        "MVP4_PAPER_RANKING_ONLY",
+        "MVP4_RESEARCH_BLOCKED"
+      ]
+    },
+    "optimizer_maturity_level": {
+      "enum": [
+        "MVP4_SCAFFOLD",
+        "MVP4_VALIDATED_NON_LIVE_ARTIFACTS",
+        "MVP4_BLOCKED_FOR_EXTERNAL_EVIDENCE"
+      ]
+    },
+    "objective_basis": {
+      "enum": [
+        "NET_EV_AFTER_COST",
+        "BLOCKED_NO_VALID_OBJECTIVE"
+      ]
+    },
+    "source_modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "REPLAY",
+          "PAPER",
+          "SHADOW",
+          "READ_ONLY"
+        ]
+      }
+    },
+    "active_optimizer_run_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "latest_guardrail_report_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "latest_recommendation_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "dependency_summary_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "TIMEOUT"
+      ]
+    },
+    "dependency_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "validator_id",
+          "status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "validator_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "BLOCKED",
+              "FAIL",
+              "UNTESTED",
+              "STALE",
+              "TIMEOUT"
+            ]
+          }
+        }
+      }
+    },
+    "state_write_policy": {
+      "enum": [
+        "APPEND_AUDIT_ONLY",
+        "READ_ONLY_BLOCKED",
+        "STALE_READ_ONLY"
+      ]
+    },
+    "live_readiness_status": {
+      "const": "NOT_LIVE_READY"
+    },
+    "operator_warning": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "SAFE_MODE",
+        "FAIL"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dashboard_display_truth_only": {
+      "const": true
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "live_permission_created": {
+      "const": false
+    },
+    "live_config_mutation_allowed": {
+      "const": false
+    },
+    "writes_live_ready_snapshot": {
+      "const": false
+    },
+    "active_snapshot_mutation_allowed": {
+      "const": false
+    },
+    "optimizer_winner_live_config_allowed": {
+      "const": false
+    },
+    "paper_winner_live_config_allowed": {
+      "const": false
+    },
+    "order_submission_allowed": {
+      "const": false
+    },
+    "exchange_account_call_allowed": {
+      "const": false
+    },
+    "scale_up_recommendation_allowed": {
+      "const": false
+    }
+  }
+}

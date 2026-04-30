@@ -1,0 +1,245 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_DASHBOARD_PERSISTENT_RUNTIME_DURATION_VISIBILITY_20260430_001",
+  "created_at_utc": "2026-04-30T03:55:17Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "MATCH",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-DASHBOARD-PERSISTENT-RUNTIME-DURATION-VISIBILITY",
+    "REQ-MVP4-PERSISTENT-RUNTIME-DURATION-EVIDENCE-GUARD",
+    "REQ-MVP4-SHADOW-OBSERVATION-PERSISTENT-RUNTIME-EXECUTION-STUB",
+    "REQ-MVP4-DASHBOARD-RUNTIME-FRESHNESS-RECHECK",
+    "REQ-MVP4-LIVE-FINAL-GUARD"
+  ],
+  "affected_exchange": "UPBIT_BINANCE_DISPLAY_SCOPE",
+  "affected_market_type": "KRW_SPOT_SPOT_DISPLAY_SCOPE",
+  "affected_mode": "PAPER_SHADOW_READ_ONLY_DISPLAY",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [],
+  "new_or_changed_schema_ids": [
+    "trader1.read_only_dashboard_shell.v1"
+  ],
+  "validators_required": [
+    "read_only_dashboard_validator",
+    "shadow_observation_persistent_runtime_validator",
+    "runtime_schema_instance_validator",
+    "schema_validator",
+    "registry_validator",
+    "generated_artifact_dirty_validator",
+    "live_final_guard_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "coverage_index_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shadow_observation_persistent_runtime_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.dashboard.test_read_only_dashboard -v",
+      "status": "PASS",
+      "tests": 110
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.research.test_shadow_observation_persistent_runtime -v",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.contract.test_patch_result_runtime_schema_validation -v",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest discover -v",
+      "status": "PASS",
+      "tests": 599
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "UPDATED_PASS",
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED",
+  "read_cache_update_required": false,
+  "context_pack_update_required": false,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_RUNTIME_REPRODUCIBILITY_AND_LONG_RUN_EXECUTION_HARDENING",
+  "next_required_section_ids": [
+    "SECTION_RUNTIME_RECOVERY_RTO_ACTIVE",
+    "SECTION_DASHBOARD_SHELL",
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "OPT_SLICE_EXECUTION_FEEDBACK",
+    "CONV_SLICE_EXECUTION_CALIBRATION",
+    "SECTION_BUNDLE_SECURITY"
+  ],
+  "next_forbidden_default_sections": [
+    "RETAINED_ARCHIVE",
+    "LIVE_ENABLING_PATCH",
+    "BINANCE_FUTURES_LIVE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_DASHBOARD_PERSISTENT_RUNTIME_DURATION_VISIBILITY.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_DASHBOARD_PERSISTENT_RUNTIME_DURATION_VISIBILITY.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_DASHBOARD_PERSISTENT_RUNTIME_DURATION_VISIBILITY.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "current_implementation_state",
+    "dashboard shell slice",
+    "persistent runtime evidence slice",
+    "runtime schema instance validator slice",
+    "live final guard slice"
+  ],
+  "task_class": "MVP4_DASHBOARD_PERSISTENT_RUNTIME_DURATION_VISIBILITY",
+  "required_section_ids": [
+    "SECTION_DASHBOARD_SHELL",
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_RUNTIME_RECOVERY_RTO_ACTIVE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_DASHBOARD_SHELL",
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_RUNTIME_RECOVERY_RTO_ACTIVE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "CURRENT",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED_PASS",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "UPDATED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": true,
+  "optimizer_patch": "false",
+  "optimizer_stage": "NOT_CHANGED_DASHBOARD_RUNTIME_VISIBILITY_ONLY",
+  "optimizer_status_before": "PAPER_SCORECARD_INPUT_ONLY_LIVE_BLOCKED",
+  "optimizer_status_after": "PAPER_SCORECARD_INPUT_ONLY_LIVE_BLOCKED",
+  "optimizer_maturity_level_before": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_maturity_level_after": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_output_type": "NO_OPTIMIZER_OUTPUT_CREATED",
+  "optimizer_validators_required": [
+    "live_final_guard_validator",
+    "read_only_dashboard_validator"
+  ],
+  "optimizer_validators_run": [
+    "live_final_guard_validator:PASS",
+    "read_only_dashboard_validator:PASS"
+  ],
+  "optimizer_guardrail_result": "PASS_NO_OPTIMIZER_LIVE_MUTATION",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "false",
+  "convergence_layer_changed": false,
+  "convergence_state_before": "PERSISTENT_RUNTIME_DURATION_GUARD_NOT_OPERATOR_VISIBLE_IN_DASHBOARD",
+  "convergence_state_after": "PERSISTENT_RUNTIME_DURATION_GUARD_OPERATOR_VISIBLE_AS_STUB_ONLY_NOT_LONG_RUN_EVIDENCE",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_CHANGED",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "shadow_observation_persistent_runtime_validator",
+    "runtime_schema_instance_validator",
+    "live_final_guard_validator",
+    "read_only_dashboard_validator"
+  ],
+  "convergence_validators_run": [
+    "shadow_observation_persistent_runtime_validator:PASS",
+    "runtime_schema_instance_validator:PASS",
+    "live_final_guard_validator:PASS",
+    "read_only_dashboard_validator:PASS"
+  ],
+  "convergence_guardrail_result": "PASS_DASHBOARD_STUB_DURATION_VISIBILITY_LIVE_BLOCKED",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "result_hash": "E8337B7811427E28ED66D3428EF36F38E1B81EB1D35E7957C5B92D98E7C11E7C"
+}

@@ -1,0 +1,116 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T21:27:06Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": null,
+  "market_type": null,
+  "mode": "AUDIT_ONLY",
+  "status": "PASS_LIVE_BLOCKED",
+  "blockers": [
+    {
+      "code": "LIVE_READY_MISSING",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "API_UNVERIFIED",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "EXTERNAL_CREDENTIAL_REQUIRED",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "MANUAL_ORDER_TEST_MISSING",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "OPERATOR_APPROVAL_MISSING",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "READ_ONLY_BURN_IN_MISSING",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "LIVE_ENABLING_EVIDENCE_MISSING",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "LIVE_BURN_IN_FEEDBACK_MISSING",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "EXECUTION_QUALITY_UNTESTED",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "SURVIVAL_LAYER_BLOCKED",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "RISK_SCALING_UNTESTED",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    },
+    {
+      "code": "SCALE_UP_NOT_ELIGIBLE",
+      "severity": "HIGH",
+      "message": "MVP-4 external live-enabling evidence is unavailable",
+      "source_requirement_id": null
+    }
+  ],
+  "notes": "Full safety audit patch; no live-enabling behavior created.",
+  "evidence_manifest_id": "MVP4_FULL_SAFETY_AUDIT_EVIDENCE",
+  "artifact_paths": [
+    "system/evidence/audit_reports/MVP4_FULL_SAFETY_AUDIT_20260429.md",
+    "system/evidence/validator_runs/MVP4_FULL_SAFETY_AUDIT.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_FULL_SAFETY_AUDIT.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_FULL_SAFETY_AUDIT.patch_result.json",
+    "contracts/authority_manifest.json",
+    "contracts/generated/current_implementation_state.json",
+    "contracts/generated/read_cache_manifest.json",
+    "contracts/security/source_bundle_manifest.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "LIVE_BURN_IN_FEEDBACK_MISSING",
+    "EXECUTION_QUALITY_UNTESTED",
+    "SURVIVAL_LAYER_BLOCKED",
+    "RISK_SCALING_UNTESTED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

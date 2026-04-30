@@ -1,0 +1,37 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T04:27:23Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "PASS_WITH_LIVE_BLOCKED",
+  "blockers": [],
+  "notes": "Minimum observed-span guard added to runtime stability history and dashboard long-run display.",
+  "evidence_manifest_id": "MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD",
+  "artifact_paths": [
+    "trader1/runtime/health/stability_history.py",
+    "trader1/dashboard/read_only_dashboard.py",
+    "contracts/schema/runtime_stability_history.schema.json",
+    "contracts/schema/read_only_dashboard_shell.schema.json",
+    "tests/runtime/test_stability_history.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tests/validators/test_runtime_stability_history_validator.py",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/stability_history.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+    "system/evidence/validator_runs/MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD.stage_gate_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

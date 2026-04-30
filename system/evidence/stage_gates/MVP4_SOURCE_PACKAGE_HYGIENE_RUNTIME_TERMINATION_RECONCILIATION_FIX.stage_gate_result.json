@@ -1,0 +1,15 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "patch_id": "MVP4_SOURCE_PACKAGE_HYGIENE_RUNTIME_TERMINATION_RECONCILIATION_FIX_20260430_001",
+  "created_at_utc": "2026-04-30T09:29:35Z",
+  "target_mvp_level": "MVP-4",
+  "stage_gate": "NON_LIVE_MVP4_SOURCE_TRUST_AND_TERMINATION_RECHECK",
+  "status": "PASS_WITH_LIVE_BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "blockers": [
+    "MVP-5 remains blocked: no LIVE_READY snapshot, no official API verification, no operator approval, no burn-in evidence"
+  ]
+}

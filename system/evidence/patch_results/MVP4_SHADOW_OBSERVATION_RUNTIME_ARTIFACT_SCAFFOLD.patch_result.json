@@ -1,0 +1,267 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD_20260430_001",
+  "created_at_utc": "2026-04-29T23:30:27Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "MATCHED_ACTIVE_AUTHORITY",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-SHADOW-OBSERVATION-RUNTIME-ARTIFACT-SCAFFOLD",
+    "REQ-MVP4-PAPER-SHADOW-EVIDENCE-ACCUMULATOR",
+    "REQ-MVP4-PAPER-SHADOW-EVIDENCE-ACCUMULATION-HARDENING",
+    "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT",
+    "REQ-MVP4-OPTIMIZER-CONVERGENCE-GUARDRAIL"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "SHADOW_READ_ONLY_ONLY",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "schemas.shadow_observation_report",
+    "shadow_observation_runtime_validator"
+  ],
+  "new_or_changed_schema_ids": [
+    "trader1.shadow_observation_report.v1"
+  ],
+  "validators_required": [
+    "schema_validator",
+    "shadow_observation_runtime_validator",
+    "paper_shadow_evidence_accumulation_validator",
+    "upbit_operational_paper_gate_validator",
+    "optimizer_guardrail_validator",
+    "live_final_guard_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shadow_observation_runtime_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.research.test_shadow_observation_runtime -v",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "command": "python -m unittest tests.research.test_paper_shadow_evidence_accumulator -v",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "command": "python tools/run_paper_shadow_evidence_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m compileall trader1 tests -q",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "tests": 575
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.contract.test_patch_result_runtime_schema_validation -v",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "UPDATED_PASS",
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED_FOR_SHADOW_OBSERVATION_DELTA",
+  "read_cache_update_required": false,
+  "context_pack_update_required": false,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD",
+  "next_required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_RUNTIME_RECOVERY",
+    "SECTION_LONG_RUN_STABILITY",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_OPTIMIZER_CONVERGENCE_GUARDRAIL"
+  ],
+  "next_forbidden_default_sections": [
+    "MVP5_LIVE_ENABLING",
+    "LIVE_CONFIG_MUTATION",
+    "BINANCE_FUTURES_LIVE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_LONG_RUN_STREAM_REMAINS_OPEN",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD_PENDING",
+    "PAPER_SHADOW_LONG_RUN_EVIDENCE_MISSING",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "contracts/generated/current_implementation_state.json",
+    "trader1/research/shadow/evidence_accumulator.py",
+    "trader1/research/shadow/shadow_runner.py",
+    "trader1/runtime/paper/operational_cycle.py",
+    "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json",
+    "contracts/registry.yaml"
+  ],
+  "task_class": "MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD",
+  "required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_STRATEGY_PROFITABILITY_EVIDENCE",
+    "SECTION_OPTIMIZER_CONVERGENCE_GUARDRAIL",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "AGENTS_0F_CONVERGENCE_MEMORY_IMPLEMENTATION_RULES",
+    "AGENTS_0G_IMPLEMENTATION_DEPTH_ENFORCEMENT"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "PASS_PRESENT_HASH_RECHECKED",
+  "requirement_index_status": "PASS_UPDATED_WITH_SHADOW_OBSERVATION_RUNTIME_ARTIFACT",
+  "requirement_artifact_matrix_status": "PASS_UPDATED_WITH_SHADOW_OBSERVATION_RUNTIME_ARTIFACT",
+  "read_cache_manifest_status": "UPDATED_AFTER_ARTIFACT_REHASH",
+  "context_pack_status": "PASS_CREATED_SHADOW_OBSERVATION_RUNTIME_ARTIFACT",
+  "current_implementation_state_status": "UPDATED_AFTER_PATCH_RESULT_HASH",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "true",
+  "optimizer_stage": "MVP-4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD",
+  "optimizer_status_before": "ACCUMULATOR_ACCEPTED_SHADOW_INPUTS_WITHOUT_DEDICATED_RUNTIME_PRODUCER",
+  "optimizer_status_after": "SHADOW_OBSERVATION_INPUTS_ARE_SCHEMA_BOUND_HASH_BOUND_AND_LIVE_BLOCKED",
+  "optimizer_maturity_level_before": "PAPER_SHADOW_ACCUMULATOR_PRESENT_RUNTIME_SHADOW_PRODUCER_GAP",
+  "optimizer_maturity_level_after": "SINGLE_SHADOW_OBSERVATION_ARTIFACT_SCAFFOLD_PRESENT_LONG_RUN_STREAM_GAP_REMAINS",
+  "optimizer_output_type": "ANALYSIS_ONLY_NO_LIVE_CONFIG_MUTATION",
+  "optimizer_validators_required": [
+    "shadow_observation_runtime_validator",
+    "paper_shadow_evidence_accumulation_validator",
+    "optimizer_guardrail_validator",
+    "live_final_guard_validator"
+  ],
+  "optimizer_validators_run": [
+    {
+      "validator_id": "shadow_observation_runtime_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "optimizer_guardrail_result": "PASS_SHADOW_OBSERVATION_CANNOT_CREATE_RANKING_WITHOUT_MATCHED_PAPER_EVIDENCE_AND_CANNOT_CREATE_LIVE_PERMISSION",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "true",
+  "convergence_layer_changed": true,
+  "convergence_state_before": "SHADOW_RUNTIME_ARTIFACT_PRODUCER_MISSING",
+  "convergence_state_after": "SINGLE_SHADOW_OBSERVATION_ARTIFACT_SCAFFOLD_EXISTS_LONG_RUN_STREAM_REMAINS_BLOCKED",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": true,
+  "failure_analysis_status": "MISSING_SHADOW_OBSERVATION_PRODUCER_PATCHED_LONG_RUN_STREAM_GAP_RECORDED",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "shadow_observation_runtime_validator",
+    "paper_shadow_evidence_accumulation_validator",
+    "live_final_guard_validator"
+  ],
+  "convergence_validators_run": [
+    {
+      "validator_id": "shadow_observation_runtime_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "convergence_guardrail_result": "PASS_NO_LIVE_PERMISSION_NO_SCALE_UP_NO_ACTIVE_SNAPSHOT_MUTATION",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "result_hash": "F414F7979642AC5C084A683D2BF34E10257149E870AAB54EAEE223EE18861154"
+}

@@ -1,0 +1,197 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP0_ORDER_PATH_GUARD_20260428_001",
+  "created_at_utc": "2026-04-28T13:01:35Z",
+  "target_mvp_level": "MVP-0",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "CHECKED",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP0-ORDER-PATH-GUARD"
+  ],
+  "affected_exchange": null,
+  "affected_market_type": null,
+  "affected_mode": null,
+  "removed_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "single_writer_order_path_validator",
+    "strategy_direct_order_validator"
+  ],
+  "new_or_changed_schema_ids": [],
+  "validators_required": [
+    "single_writer_order_path_validator",
+    "strategy_direct_order_validator"
+  ],
+  "validators_run": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T13:01:35Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "single-writer/idempotent order path blocks before adapter submit",
+      "validator_id": "single_writer_order_path_validator",
+      "checked_at_utc": "2026-04-28T13:01:35Z",
+      "input_artifact_paths": [
+        "trader1/execution/live_order_gateway.py"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T13:01:35Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "strategy signals cannot place orders or call exchange APIs directly",
+      "validator_id": "strategy_direct_order_validator",
+      "checked_at_utc": "2026-04-28T13:01:35Z",
+      "input_artifact_paths": [
+        "trader1/execution/live_order_gateway.py"
+      ],
+      "blocking": false
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python tools/run_order_path_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.live_blocked.test_order_path_guard -v",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS"
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "RETAINED_ARCHIVE_READ_FOR_SECTION_LOCATOR_ONLY_NOT_EXECUTION_AUTHORITY",
+  "read_cache_update_required": false,
+  "context_pack_update_required": false,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP0_CONTRACT_BASELINE",
+  "next_required_section_ids": [
+    "SECTION_ACTIVE_CONTRACT_PACK",
+    "SECTION_LIVE_GATE",
+    "SECTION_PATCH_RESULT"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_FINAL_DECISION",
+    "SECTION_DASHBOARD"
+  ],
+  "next_forbidden_default_sections": [
+    "SECTION_RETAINED_ARCHIVE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "LIVE_READY_SNAPSHOT_WRITER_UNTESTED",
+    "API_UNVERIFIED",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP0_ORDER_PATH_GUARD.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP0_ORDER_PATH_GUARD.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP0_ORDER_PATH_GUARD.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "SECTION_ORDER_PATH",
+    "SECTION_LIVE_GATE",
+    "SECTION_PATCH_RESULT"
+  ],
+  "task_class": "MVP0_CONTRACT_BASELINE",
+  "required_section_ids": [
+    "SECTION_ORDER_PATH",
+    "SECTION_LIVE_GATE",
+    "SECTION_PATCH_RESULT"
+  ],
+  "expanded_section_ids": [
+    "SECTION_ORDER_PATH",
+    "SECTION_LIVE_GATE",
+    "SECTION_PATCH_RESULT",
+    "AGENTS_DECISION_AND_ORDER_PATH",
+    "RETAINED_ARCHIVE_ORDER_PATH_LOOKUP"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "UPDATED",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "GENERATED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": true,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "NO_OPTIMIZER_RUNTIME_CHANGE",
+  "optimizer_stage": "METRIC_COLLECTION",
+  "optimizer_status_before": "SCAFFOLD",
+  "optimizer_status_after": "SCAFFOLD",
+  "optimizer_maturity_level_before": "MVP0_SCHEMA_ONLY",
+  "optimizer_maturity_level_after": "MVP0_SCHEMA_ONLY",
+  "optimizer_output_type": "OPTIMIZER_RESEARCH_SIGNAL",
+  "optimizer_validators_required": [
+    "optimizer_guardrail_validator",
+    "optimizer_no_live_mutation_validator"
+  ],
+  "optimizer_validators_run": [],
+  "optimizer_guardrail_result": "UNTESTED",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "NO_CONVERGENCE_RUNTIME_CHANGE",
+  "convergence_layer_changed": false,
+  "convergence_state_before": "UNTESTED",
+  "convergence_state_after": "UNTESTED",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_REQUIRED_FOR_ORDER_PATH_GUARD",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "convergence_assessment_validator",
+    "scale_up_eligibility_validator"
+  ],
+  "convergence_validators_run": [],
+  "convergence_guardrail_result": "UNTESTED",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "scale_up_allowed_after": false,
+  "result_hash": "14C4C868188E0B9725162B1D351D1297D7A5726C68AE817715A38BB106385EF2",
+  "merged_requirements": [],
+  "coverage_index_result": "PASS",
+  "scale_up_allowed_before": false
+}

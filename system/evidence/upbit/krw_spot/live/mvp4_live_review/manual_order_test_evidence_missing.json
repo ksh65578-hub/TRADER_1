@@ -1,0 +1,49 @@
+{
+  "schema_id": "trader1.manual_order_test_evidence.v1",
+  "test_id": "mvp4-manual-order-test-missing",
+  "created_at_utc": "2026-04-28T15:55:43Z",
+  "expires_at_utc": null,
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "LIVE",
+  "api_key_id_hash": null,
+  "symbol": "KRW-BTC",
+  "order_type": "NOT_APPLICABLE",
+  "notional": null,
+  "submit_result": "SKIPPED",
+  "cancel_result": "NOT_APPLICABLE",
+  "fill_result": "NOT_APPLICABLE",
+  "ledger_recorded": false,
+  "reconciliation_result": "SKIPPED",
+  "fee_recorded": false,
+  "balance_delta_verified": false,
+  "order_id_masked": null,
+  "blocker_codes": [
+    "MANUAL_ORDER_TEST_MISSING"
+  ],
+  "blockers": [
+    {
+      "code": "MANUAL_ORDER_TEST_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "manual order test evidence required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    }
+  ],
+  "evidence_manifest_hash": null,
+  "result": "MISSING",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "order_adapter_called": false,
+  "evidence_hash": "2654BA8D9FA9914FEA36CC07F011F97E63DD46D85E6BC656BCFED1CEE7F32D29"
+}

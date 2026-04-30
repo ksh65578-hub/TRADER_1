@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.paper_shadow_evidence_accumulation_report.v1",
+  "title": "paper_shadow_evidence_accumulation_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "evidence_report_id",
+    "candidate_id",
+    "strategy_id",
+    "strategy_build_id",
+    "parameter_hash",
+    "exchange",
+    "market_type",
+    "paper_mode",
+    "shadow_mode",
+    "paper_session_id",
+    "shadow_session_id",
+    "paper_artifact_path",
+    "shadow_artifact_path",
+    "paper_artifact_hash",
+    "shadow_artifact_hash",
+    "paper_sample_count",
+    "shadow_sample_count",
+    "min_required_sample_count",
+    "evidence_window_count",
+    "min_required_evidence_window_count",
+    "evidence_span_hours",
+    "min_required_evidence_span_hours",
+    "long_run_evidence_eligible",
+    "long_run_blocker_code",
+    "paper_artifact_age_seconds",
+    "shadow_artifact_age_seconds",
+    "max_artifact_age_seconds",
+    "entry_reason_count",
+    "exit_reason_count",
+    "no_trade_reason_count",
+    "cost_evidence_count",
+    "source_evidence_ids",
+    "actual_runtime_source_evidence_ids",
+    "actual_runtime_source_status",
+    "actual_runtime_requirement_statuses",
+    "supporting_source_evidence_ids",
+    "source_evidence_bindings",
+    "raw_join_attempted",
+    "session_hashes_distinct",
+    "evidence_chain_complete",
+    "scorecard_input_eligible",
+    "optimizer_ranking_action",
+    "dashboard_display_truth_only",
+    "promotion_eligible",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "order_adapter_called",
+    "primary_blocker_code",
+    "blockers",
+    "evidence_hash"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "required": ["actual_runtime_source_status"],
+        "properties": {
+          "actual_runtime_source_status": {"const": "VALIDATED_NON_LIVE_RUNTIME"}
+        }
+      },
+      "then": {
+        "properties": {
+          "actual_runtime_source_evidence_ids": {"minItems": 2}
+        }
+      }
+    }
+  ],
+  "properties": {
+    "schema_id": {"const": "trader1.paper_shadow_evidence_accumulation_report.v1"},
+    "generated_at_utc": {"type": "string", "minLength": 1},
+    "project_id": {"const": "TRADER_1"},
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "agents_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+      }
+    },
+    "evidence_report_id": {"type": "string", "minLength": 1},
+    "candidate_id": {"type": "string", "minLength": 1},
+    "strategy_id": {"type": "string", "minLength": 1},
+    "strategy_build_id": {"type": "string", "minLength": 1},
+    "parameter_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "exchange": {"const": "UPBIT"},
+    "market_type": {"const": "KRW_SPOT"},
+    "paper_mode": {"const": "PAPER"},
+    "shadow_mode": {"const": "SHADOW"},
+    "paper_session_id": {"type": "string", "minLength": 1},
+    "shadow_session_id": {"type": "string", "minLength": 1},
+    "paper_artifact_path": {
+      "type": "string",
+      "pattern": "^system/runtime/upbit/krw_spot/paper/.+paper_operation_gate_report\\.json$"
+    },
+    "shadow_artifact_path": {
+      "type": "string",
+      "pattern": "^system/runtime/upbit/krw_spot/shadow/.+shadow_projection\\.json$"
+    },
+    "paper_artifact_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "shadow_artifact_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "paper_sample_count": {"type": "integer", "minimum": 0},
+    "shadow_sample_count": {"type": "integer", "minimum": 0},
+    "min_required_sample_count": {"type": "integer", "minimum": 1},
+    "evidence_window_count": {"type": "integer", "minimum": 0},
+    "min_required_evidence_window_count": {"type": "integer", "minimum": 1},
+    "evidence_span_hours": {"type": "integer", "minimum": 0},
+    "min_required_evidence_span_hours": {"type": "integer", "minimum": 1},
+    "long_run_evidence_eligible": {"type": "boolean"},
+    "long_run_blocker_code": {"type": ["string", "null"]},
+    "paper_artifact_age_seconds": {"type": "integer", "minimum": 0},
+    "shadow_artifact_age_seconds": {"type": "integer", "minimum": 0},
+    "max_artifact_age_seconds": {"type": "integer", "minimum": 1},
+    "entry_reason_count": {"type": "integer", "minimum": 0},
+    "exit_reason_count": {"type": "integer", "minimum": 0},
+    "no_trade_reason_count": {"type": "integer", "minimum": 0},
+    "cost_evidence_count": {"type": "integer", "minimum": 0},
+    "source_evidence_ids": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "actual_runtime_source_evidence_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "actual_runtime_source_status": {
+      "enum": ["MISSING", "STUB_ONLY", "VALIDATED_NON_LIVE_RUNTIME"]
+    },
+    "actual_runtime_requirement_statuses": {
+      "type": "object",
+      "required": [
+        "runtime_span",
+        "cycle_count",
+        "heartbeat_freshness",
+        "recovery_clean",
+        "partial_write_clean"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "runtime_span": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+        "cycle_count": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+        "heartbeat_freshness": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+        "recovery_clean": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+        "partial_write_clean": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]}
+      }
+    },
+    "supporting_source_evidence_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "source_evidence_bindings": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "source_evidence_id",
+          "source_role",
+          "exchange",
+          "market_type",
+          "mode",
+          "session_id",
+          "artifact_path",
+          "artifact_hash",
+          "candidate_id",
+          "strategy_id",
+          "strategy_build_id",
+          "parameter_hash",
+          "sample_count",
+          "artifact_age_seconds",
+          "identity_match_status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source_evidence_id": {"type": "string", "minLength": 1},
+          "source_role": {"enum": ["PAPER_OPERATION", "SHADOW_OBSERVATION"]},
+          "exchange": {"const": "UPBIT"},
+          "market_type": {"const": "KRW_SPOT"},
+          "mode": {"enum": ["PAPER", "SHADOW"]},
+          "session_id": {"type": "string", "minLength": 1},
+          "artifact_path": {"type": "string", "minLength": 1},
+          "artifact_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+          "candidate_id": {"type": "string", "minLength": 1},
+          "strategy_id": {"type": "string", "minLength": 1},
+          "strategy_build_id": {"type": "string", "minLength": 1},
+          "parameter_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+          "sample_count": {"type": "integer", "minimum": 0},
+          "artifact_age_seconds": {"type": "integer", "minimum": 0},
+          "identity_match_status": {"enum": ["PASS", "FAIL", "BLOCKED", "UNTESTED", "STALE", "TIMEOUT"]}
+        }
+      }
+    },
+    "raw_join_attempted": {"type": "boolean"},
+    "session_hashes_distinct": {"type": "boolean"},
+    "evidence_chain_complete": {"type": "boolean"},
+    "scorecard_input_eligible": {"type": "boolean"},
+    "optimizer_ranking_action": {"enum": ["ALLOW_RANKING", "PENALIZE_RANKING", "BLOCK_RANKING"]},
+    "dashboard_display_truth_only": {"const": true},
+    "promotion_eligible": {"const": false},
+    "live_order_ready": {"const": false},
+    "live_order_allowed": {"const": false},
+    "can_live_trade": {"const": false},
+    "scale_up_allowed": {"const": false},
+    "order_adapter_called": {"const": false},
+    "primary_blocker_code": {"type": ["string", "null"]},
+    "blockers": {"type": "array", "items": {"$ref": "common.defs.schema.json#/$defs/blocker_object"}},
+    "evidence_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "notes": {"type": ["string", "null"]}
+  }
+}

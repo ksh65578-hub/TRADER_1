@@ -1,0 +1,1802 @@
+{
+  "schema_id": "trader1.validator_depth_audit.v1",
+  "generated_at_utc": "2026-04-29T14:48:13Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "audit_status": "PASS",
+  "implemented_validator_count": 89,
+  "registered_validator_count": 89,
+  "validator_reports": [
+    {
+      "validator_id": "active_schema_extraction_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 10,
+      "branch_count": 3,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:794",
+      "test_refs": [
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "authority_integrity_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 12,
+      "branch_count": 4,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:390",
+      "test_refs": [
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "candidate_cooldown_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 71,
+      "branch_count": 7,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 2,
+      "fixture_ref_count": 5,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:4530",
+      "test_refs": [
+        "tests/validators/test_candidate_cooldown_validator.py",
+        "tests/validators/test_optimizer_convergence_guardrails.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/candidate_cooldown_blocked_pass.json",
+        "tests/validators/fixtures/candidate_cooldown_bypass_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_false_pass_status_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_missing_blocker_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_stale_blocker_fail.json"
+      ]
+    },
+    {
+      "validator_id": "candidate_ranking_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 69,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 5,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:7231",
+      "test_refs": [
+        "tests/validators/test_profit_optimizer_config_validator.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "candidate_scorecard_net_ev_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 59,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 5,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:6096",
+      "test_refs": [
+        "tests/validators/test_candidate_scorecard_net_ev_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/candidate_scorecard_net_ev_live_flag_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_live_ready_wording_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_oos_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_pass.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_raw_cost_fail.json"
+      ]
+    },
+    {
+      "validator_id": "candidate_scorecard_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 59,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 4,
+      "test_ref_count": 1,
+      "fixture_ref_count": 14,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:6157",
+      "test_refs": [
+        "tests/validators/test_optimizer_backlog_validators.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/candidate_scorecard_net_ev_live_flag_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_live_ready_wording_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_missing_oos_fail.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_pass.json",
+        "tests/validators/fixtures/candidate_scorecard_net_ev_raw_cost_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_dependency_untested_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_identity_mismatch_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_identity_stale_fail.json"
+      ]
+    },
+    {
+      "validator_id": "closed_enum_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 12,
+      "branch_count": 3,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:461",
+      "test_refs": [
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "common_defs_drift_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 11,
+      "branch_count": 2,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:475",
+      "test_refs": [
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "convergence_assessment_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 93,
+      "branch_count": 7,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 3,
+      "fixture_ref_count": 27,
+      "risk_tags": [
+        "convergence"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:7980",
+      "test_refs": [
+        "tests/live_blocked/test_optimizer_convergence_untested_blockers.py",
+        "tests/validators/test_convergence_assessment_validator.py",
+        "tests/validators/test_optimizer_convergence_guardrails.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/candidate_cooldown_blocked_pass.json",
+        "tests/validators/fixtures/candidate_cooldown_bypass_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_false_pass_status_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_missing_blocker_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_stale_blocker_fail.json",
+        "tests/validators/fixtures/convergence_assessment_dependencies_blocked.json",
+        "tests/validators/fixtures/convergence_assessment_dependencies_fail.json",
+        "tests/validators/fixtures/convergence_assessment_dependencies_pass.json"
+      ]
+    },
+    {
+      "validator_id": "convergence_claim_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 69,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 6,
+      "risk_tags": [
+        "convergence"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:8125",
+      "test_refs": [
+        "tests/validators/test_convergence_claim_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_claim_dependency_fail.json",
+        "tests/validators/fixtures/convergence_claim_drift_fail.json",
+        "tests/validators/fixtures/convergence_claim_forbidden_wording_fail.json",
+        "tests/validators/fixtures/convergence_claim_pass.json",
+        "tests/validators/fixtures/convergence_claim_stale_data_fail.json",
+        "tests/validators/fixtures/convergence_claim_writer_input_fail.json"
+      ]
+    },
+    {
+      "validator_id": "convergence_objective_profile_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 47,
+      "branch_count": 7,
+      "fail_or_blocked_calls": 7,
+      "validate_or_evaluate_calls": 7,
+      "test_ref_count": 2,
+      "fixture_ref_count": 19,
+      "risk_tags": [
+        "convergence"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:3277",
+      "test_refs": [
+        "tests/validators/test_convergence_foundation_validators.py",
+        "tests/validators/test_validator_depth_audit.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json",
+        "tests/validators/fixtures/convergence_assessment_missing_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_pass.json",
+        "tests/validators/fixtures/convergence_assessment_scale_up_fail.json",
+        "tests/validators/fixtures/convergence_assessment_untested_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_writer_input_fail.json",
+        "tests/validators/fixtures/convergence_claim_dependency_fail.json"
+      ]
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 13,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 18,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:779",
+      "test_refs": [
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json",
+        "tests/validators/fixtures/convergence_assessment_missing_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_pass.json",
+        "tests/validators/fixtures/convergence_assessment_scale_up_fail.json",
+        "tests/validators/fixtures/convergence_assessment_untested_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_writer_input_fail.json",
+        "tests/validators/fixtures/convergence_claim_dependency_fail.json"
+      ]
+    },
+    {
+      "validator_id": "emergency_flatten_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 139,
+      "branch_count": 27,
+      "fail_or_blocked_calls": 14,
+      "validate_or_evaluate_calls": 12,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "emergency"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:2376",
+      "test_refs": [
+        "tests/emergency/test_emergency_flatten_dry_run.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "execution_feedback_loop_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 51,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 2,
+      "fixture_ref_count": 28,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:3695",
+      "test_refs": [
+        "tests/validators/test_convergence_assessment_dependency_validators.py",
+        "tests/validators/test_optimizer_feedback_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_assessment_dependencies_fail.json",
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json",
+        "tests/validators/fixtures/convergence_assessment_missing_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_pass.json",
+        "tests/validators/fixtures/convergence_assessment_scale_up_fail.json",
+        "tests/validators/fixtures/convergence_assessment_untested_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_writer_input_fail.json"
+      ]
+    },
+    {
+      "validator_id": "execution_quality_measurement_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 21,
+      "branch_count": 2,
+      "fail_or_blocked_calls": 1,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 2,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:5128",
+      "test_refs": [
+        "tests/validators/test_convergence_risk_scale_validators.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_scaleup_safety_fail.json",
+        "tests/validators/fixtures/convergence_scaleup_safety_pass.json"
+      ]
+    },
+    {
+      "validator_id": "exploration_exploitation_policy_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 62,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 3,
+      "fixture_ref_count": 20,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:4393",
+      "test_refs": [
+        "tests/live_blocked/test_optimizer_convergence_untested_blockers.py",
+        "tests/validators/test_exploration_exploitation_policy_validator.py",
+        "tests/validators/test_optimizer_convergence_guardrails.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/exploration_exploitation_policy_budget_exceeded_fail.json",
+        "tests/validators/fixtures/exploration_exploitation_policy_dependency_untested_fail.json",
+        "tests/validators/fixtures/exploration_exploitation_policy_live_flag_fail.json",
+        "tests/validators/fixtures/exploration_exploitation_policy_live_source_fail.json",
+        "tests/validators/fixtures/exploration_exploitation_policy_pass.json",
+        "tests/validators/fixtures/exploration_exploitation_policy_warning_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_dependency_untested_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_identity_mismatch_fail.json"
+      ]
+    },
+    {
+      "validator_id": "exploration_to_exploitation_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 71,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 2,
+      "fixture_ref_count": 5,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:4457",
+      "test_refs": [
+        "tests/validators/test_exploration_to_exploitation_validator.py",
+        "tests/validators/test_optimizer_convergence_guardrails.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/exploration_to_exploitation_blocker_conflict_fail.json",
+        "tests/validators/fixtures/exploration_to_exploitation_controller_fail.json",
+        "tests/validators/fixtures/exploration_to_exploitation_cooldown_fail.json",
+        "tests/validators/fixtures/exploration_to_exploitation_missing_shadow_fail.json",
+        "tests/validators/fixtures/exploration_to_exploitation_zero_exploration_floor_fail.json"
+      ]
+    },
+    {
+      "validator_id": "external_authority_manifest_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 14,
+      "branch_count": 3,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:404",
+      "test_refs": [
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "failure_analysis_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 49,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 22,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:3801",
+      "test_refs": [
+        "tests/validators/test_failure_analysis_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json",
+        "tests/validators/fixtures/convergence_assessment_missing_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_pass.json",
+        "tests/validators/fixtures/convergence_assessment_scale_up_fail.json",
+        "tests/validators/fixtures/convergence_assessment_untested_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_writer_input_fail.json",
+        "tests/validators/fixtures/convergence_claim_dependency_fail.json"
+      ]
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 22,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:806",
+      "test_refs": [
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "heartbeat_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 65,
+      "branch_count": 10,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 4,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1460",
+      "test_refs": [
+        "tests/runtime/test_heartbeat.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "ledger_durability_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 46,
+      "branch_count": 10,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 5,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "ledger"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:2137",
+      "test_refs": [
+        "tests/runtime/test_execution_ledger.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "ledger_reconciliation_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 48,
+      "branch_count": 10,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 4,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "ledger",
+        "reconciliation"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:2326",
+      "test_refs": [
+        "tests/runtime/test_reconciliation.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "live_blocked_negative_matrix_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 21,
+      "branch_count": 4,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 1,
+      "test_ref_count": 0,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "live"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:830",
+      "test_refs": [],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "live_blocked_scaffold_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 41,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 1,
+      "test_ref_count": 1,
+      "fixture_ref_count": 3,
+      "risk_tags": [
+        "live"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:853",
+      "test_refs": [
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/mvp0_core_blocked.json",
+        "tests/validators/fixtures/mvp0_core_fail.json",
+        "tests/validators/fixtures/mvp0_core_pass.json"
+      ]
+    },
+    {
+      "validator_id": "live_burn_in_feedback_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 21,
+      "branch_count": 2,
+      "fail_or_blocked_calls": 1,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 1,
+      "risk_tags": [
+        "live"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:5083",
+      "test_refs": [
+        "tests/validators/test_convergence_risk_scale_validators.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_risk_scale_fail.json"
+      ]
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 108,
+      "branch_count": 20,
+      "fail_or_blocked_calls": 10,
+      "validate_or_evaluate_calls": 4,
+      "test_ref_count": 2,
+      "fixture_ref_count": 13,
+      "risk_tags": [
+        "live"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:5217",
+      "test_refs": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/live_blocked/test_live_final_guard_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/live_final_guard_blocked.json",
+        "tests/validators/fixtures/live_final_guard_fail.json",
+        "tests/validators/fixtures/live_final_guard_pass.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_pass.json",
+        "tests/validators/fixtures/parameter_narrowing_dependency_untested_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_identity_mismatch_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_identity_stale_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_live_flag_fail.json"
+      ]
+    },
+    {
+      "validator_id": "live_ready_snapshot_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 78,
+      "branch_count": 19,
+      "fail_or_blocked_calls": 7,
+      "validate_or_evaluate_calls": 6,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "live"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:1181",
+      "test_refs": [
+        "tests/readiness/test_live_ready_snapshot_writer.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "live_ready_snapshot_writer_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 81,
+      "branch_count": 10,
+      "fail_or_blocked_calls": 7,
+      "validate_or_evaluate_calls": 6,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "live"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:1261",
+      "test_refs": [
+        "tests/readiness/test_live_ready_snapshot_writer.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "market_regime_adaptation_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 80,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 25,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:6877",
+      "test_refs": [
+        "tests/validators/test_market_regime_adaptation_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json",
+        "tests/validators/fixtures/convergence_assessment_missing_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_pass.json",
+        "tests/validators/fixtures/convergence_assessment_scale_up_fail.json",
+        "tests/validators/fixtures/convergence_assessment_untested_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_writer_input_fail.json",
+        "tests/validators/fixtures/convergence_claim_dependency_fail.json"
+      ]
+    },
+    {
+      "validator_id": "model_drift_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 65,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 2,
+      "fixture_ref_count": 42,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:4101",
+      "test_refs": [
+        "tests/validators/test_convergence_assessment_dependency_validators.py",
+        "tests/validators/test_model_drift_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/candidate_cooldown_blocked_pass.json",
+        "tests/validators/fixtures/candidate_cooldown_bypass_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_false_pass_status_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_missing_blocker_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_stale_blocker_fail.json",
+        "tests/validators/fixtures/convergence_assessment_dependencies_blocked.json",
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json"
+      ]
+    },
+    {
+      "validator_id": "objective_function_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 64,
+      "branch_count": 8,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 5,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:7165",
+      "test_refs": [
+        "tests/validators/test_profit_optimizer_config_validator.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "official_api_verification_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 56,
+      "branch_count": 17,
+      "fail_or_blocked_calls": 6,
+      "validate_or_evaluate_calls": 5,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1344",
+      "test_refs": [
+        "tests/contract/test_official_api_verification_report.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "operator_action_audit_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 49,
+      "branch_count": 7,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 3,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:2517",
+      "test_refs": [
+        "tests/runtime/test_operator_control.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "operator_control_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 69,
+      "branch_count": 12,
+      "fail_or_blocked_calls": 6,
+      "validate_or_evaluate_calls": 6,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:2568",
+      "test_refs": [
+        "tests/runtime/test_operator_control.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "optimization_state_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 65,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 7,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:7756",
+      "test_refs": [
+        "tests/validators/test_optimization_state_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/optimization_state_active_snapshot_mutation_fail.json",
+        "tests/validators/fixtures/optimization_state_dependency_override_fail.json",
+        "tests/validators/fixtures/optimization_state_live_flag_fail.json",
+        "tests/validators/fixtures/optimization_state_live_ready_wording_fail.json",
+        "tests/validators/fixtures/optimization_state_missing_blocker_fail.json",
+        "tests/validators/fixtures/optimization_state_pass.json",
+        "tests/validators/fixtures/optimization_state_raw_pnl_objective_fail.json"
+      ]
+    },
+    {
+      "validator_id": "optimizer_guardrail_report_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 65,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 11,
+      "risk_tags": [
+        "optimizer"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:7611",
+      "test_refs": [
+        "tests/validators/test_optimizer_guardrail_report_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/optimization_state_active_snapshot_mutation_fail.json",
+        "tests/validators/fixtures/optimization_state_dependency_override_fail.json",
+        "tests/validators/fixtures/optimization_state_missing_blocker_fail.json",
+        "tests/validators/fixtures/optimization_state_pass.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_dependency_override_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_live_flag_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_live_ready_wording_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_live_writer_fail.json"
+      ]
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 31,
+      "branch_count": 1,
+      "fail_or_blocked_calls": 1,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 2,
+      "fixture_ref_count": 7,
+      "risk_tags": [
+        "optimizer"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:7836",
+      "test_refs": [
+        "tests/live_blocked/test_optimizer_convergence_untested_blockers.py",
+        "tests/validators/test_optimizer_convergence_guardrails.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/optimizer_guardrail_report_dependency_override_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_live_flag_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_live_ready_wording_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_live_writer_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_missing_blocker_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_pass.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_scale_up_fail.json"
+      ]
+    },
+    {
+      "validator_id": "optimizer_memory_state_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 68,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 2,
+      "fixture_ref_count": 27,
+      "risk_tags": [
+        "optimizer"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:3410",
+      "test_refs": [
+        "tests/validators/test_convergence_foundation_validators.py",
+        "tests/validators/test_optimizer_memory_state_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json",
+        "tests/validators/fixtures/convergence_assessment_missing_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_pass.json",
+        "tests/validators/fixtures/convergence_assessment_scale_up_fail.json",
+        "tests/validators/fixtures/convergence_assessment_untested_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_writer_input_fail.json",
+        "tests/validators/fixtures/convergence_claim_dependency_fail.json"
+      ]
+    },
+    {
+      "validator_id": "optimizer_no_live_mutation_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 38,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 2,
+      "fixture_ref_count": 4,
+      "risk_tags": [
+        "live",
+        "optimizer"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:5327",
+      "test_refs": [
+        "tests/live_blocked/test_optimizer_convergence_untested_blockers.py",
+        "tests/validators/test_optimizer_convergence_guardrails.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/optimizer_convergence_guardrail_fail.json",
+        "tests/validators/fixtures/optimizer_convergence_guardrail_pass.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_live_flag_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_pass.json"
+      ]
+    },
+    {
+      "validator_id": "optimizer_recommendation_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 51,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 16,
+      "risk_tags": [
+        "optimizer"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:7486",
+      "test_refs": [
+        "tests/validators/test_optimizer_recommendation_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/optimization_state_pass.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_pass.json",
+        "tests/validators/fixtures/optimizer_recommendation_live_flag_fail.json",
+        "tests/validators/fixtures/optimizer_recommendation_live_ready_wording_fail.json",
+        "tests/validators/fixtures/optimizer_recommendation_live_writer_fail.json",
+        "tests/validators/fixtures/optimizer_recommendation_pass.json",
+        "tests/validators/fixtures/optimizer_recommendation_scope_mismatch_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_dependency_untested_fail.json"
+      ]
+    },
+    {
+      "validator_id": "optimizer_run_report_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 65,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 19,
+      "risk_tags": [
+        "optimizer"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:7371",
+      "test_refs": [
+        "tests/validators/test_optimizer_run_report_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/optimization_state_live_flag_fail.json",
+        "tests/validators/fixtures/optimization_state_live_ready_wording_fail.json",
+        "tests/validators/fixtures/optimization_state_pass.json",
+        "tests/validators/fixtures/optimization_state_raw_pnl_objective_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_dependency_override_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_live_ready_wording_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_live_writer_fail.json",
+        "tests/validators/fixtures/optimizer_guardrail_report_missing_blocker_fail.json"
+      ]
+    },
+    {
+      "validator_id": "order_failure_taxonomy_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 90,
+      "branch_count": 8,
+      "fail_or_blocked_calls": 6,
+      "validate_or_evaluate_calls": 4,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "order"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:3928",
+      "test_refs": [
+        "tests/validators/test_execution_failure_backlog_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "overfit_diagnostic_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 49,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 2,
+      "fixture_ref_count": 43,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:3644",
+      "test_refs": [
+        "tests/validators/test_convergence_assessment_dependency_validators.py",
+        "tests/validators/test_overfit_diagnostic_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/candidate_cooldown_blocked_pass.json",
+        "tests/validators/fixtures/candidate_cooldown_bypass_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_false_pass_status_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_missing_blocker_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_stale_blocker_fail.json",
+        "tests/validators/fixtures/convergence_assessment_dependencies_pass.json",
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json"
+      ]
+    },
+    {
+      "validator_id": "paper_exposure_quality_report_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 59,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:5517",
+      "test_refs": [
+        "tests/validators/test_paper_exposure_quality_report_validator.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "paper_live_parity_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 20,
+      "branch_count": 3,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 1,
+      "risk_tags": [
+        "live"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:5106",
+      "test_refs": [
+        "tests/validators/test_convergence_risk_scale_validators.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_risk_scale_blocked.json"
+      ]
+    },
+    {
+      "validator_id": "paper_portfolio_snapshot_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 30,
+      "branch_count": 10,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 5,
+      "test_ref_count": 0,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:2025",
+      "test_refs": [],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 51,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 23,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:3748",
+      "test_refs": [
+        "tests/validators/test_paper_shadow_evidence_accumulation_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json",
+        "tests/validators/fixtures/convergence_assessment_missing_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_pass.json",
+        "tests/validators/fixtures/convergence_assessment_scale_up_fail.json",
+        "tests/validators/fixtures/convergence_assessment_untested_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_writer_input_fail.json",
+        "tests/validators/fixtures/convergence_claim_dependency_fail.json"
+      ]
+    },
+    {
+      "validator_id": "parameter_bound_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 65,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 5,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:6375",
+      "test_refs": [
+        "tests/validators/test_optimizer_backlog_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "parameter_narrowing_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 71,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 9,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:4996",
+      "test_refs": [
+        "tests/validators/test_parameter_narrowing_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/parameter_narrowing_dependency_untested_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_identity_mismatch_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_identity_stale_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_live_flag_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_live_source_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_missing_binding_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_over_narrow_fail.json",
+        "tests/validators/fixtures/parameter_narrowing_pass.json"
+      ]
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 84,
+      "branch_count": 12,
+      "fail_or_blocked_calls": 7,
+      "validate_or_evaluate_calls": 1,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:693",
+      "test_refs": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 60,
+      "branch_count": 8,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 2,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:542",
+      "test_refs": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "path_namespace_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 23,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 3,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:919",
+      "test_refs": [
+        "tests/namespace/test_namespace_truth.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "profit_convergence_cycle_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 68,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 5,
+      "risk_tags": [
+        "convergence"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:4715",
+      "test_refs": [
+        "tests/validators/test_profit_convergence_cycle_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/profit_convergence_cycle_dependency_untested_fail.json",
+        "tests/validators/fixtures/profit_convergence_cycle_drift_unblocked_fail.json",
+        "tests/validators/fixtures/profit_convergence_cycle_live_flag_fail.json",
+        "tests/validators/fixtures/profit_convergence_cycle_pass.json",
+        "tests/validators/fixtures/profit_convergence_cycle_raw_pnl_net_negative_fail.json"
+      ]
+    },
+    {
+      "validator_id": "profit_optimizer_config_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 50,
+      "branch_count": 3,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 6,
+      "risk_tags": [
+        "optimizer"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:7113",
+      "test_refs": [
+        "tests/validators/test_profit_optimizer_config_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/profit_optimizer_config_live_flag_fail.json",
+        "tests/validators/fixtures/profit_optimizer_config_live_source_fail.json",
+        "tests/validators/fixtures/profit_optimizer_config_live_writer_fail.json",
+        "tests/validators/fixtures/profit_optimizer_config_missing_cost_fail.json",
+        "tests/validators/fixtures/profit_optimizer_config_pass.json",
+        "tests/validators/fixtures/profit_optimizer_config_raw_pnl_fail.json"
+      ]
+    },
+    {
+      "validator_id": "profitability_optimizer_evidence_gap_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 60,
+      "branch_count": 8,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 1,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "optimizer"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:6959",
+      "test_refs": [
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "promotion_threshold_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 74,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 3,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:6442",
+      "test_refs": [
+        "tests/validators/test_optimizer_backlog_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "ranking_stability_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 80,
+      "branch_count": 7,
+      "fail_or_blocked_calls": 6,
+      "validate_or_evaluate_calls": 6,
+      "test_ref_count": 1,
+      "fixture_ref_count": 16,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:6218",
+      "test_refs": [
+        "tests/validators/test_optimizer_backlog_validators.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/candidate_cooldown_blocked_pass.json",
+        "tests/validators/fixtures/candidate_cooldown_bypass_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_false_pass_status_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_missing_blocker_fail.json",
+        "tests/validators/fixtures/candidate_cooldown_stale_blocker_fail.json",
+        "tests/validators/fixtures/exploration_exploitation_policy_budget_exceeded_fail.json",
+        "tests/validators/fixtures/exploration_exploitation_policy_dependency_untested_fail.json",
+        "tests/validators/fixtures/exploration_exploitation_policy_live_flag_fail.json"
+      ]
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 146,
+      "branch_count": 23,
+      "fail_or_blocked_calls": 13,
+      "validate_or_evaluate_calls": 6,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1621",
+      "test_refs": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "readiness_surface_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 30,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1061",
+      "test_refs": [
+        "tests/readiness/test_readiness_surface.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "realized_slippage_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 74,
+      "branch_count": 7,
+      "fail_or_blocked_calls": 6,
+      "validate_or_evaluate_calls": 3,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:3852",
+      "test_refs": [
+        "tests/validators/test_execution_failure_backlog_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "reconciliation_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 139,
+      "branch_count": 23,
+      "fail_or_blocked_calls": 12,
+      "validate_or_evaluate_calls": 10,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "reconciliation"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:2185",
+      "test_refs": [
+        "tests/runtime/test_reconciliation.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "registry_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 17,
+      "branch_count": 9,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 2,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:420",
+      "test_refs": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "restart_recovery_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 100,
+      "branch_count": 36,
+      "fail_or_blocked_calls": 16,
+      "validate_or_evaluate_calls": 9,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:2737",
+      "test_refs": [
+        "tests/runtime/test_restart_recovery.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "risk_scaling_decision_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 30,
+      "branch_count": 2,
+      "fail_or_blocked_calls": 1,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 1,
+      "risk_tags": [
+        "risk"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:5185",
+      "test_refs": [
+        "tests/validators/test_convergence_risk_scale_validators.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_risk_scale_pass.json"
+      ]
+    },
+    {
+      "validator_id": "rolling_window_default_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 73,
+      "branch_count": 6,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 2,
+      "fixture_ref_count": 6,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:6300",
+      "test_refs": [
+        "tests/validators/test_optimizer_convergence_guardrails.py",
+        "tests/validators/test_rolling_window_default_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/rolling_window_default_oos_window_fail.json",
+        "tests/validators/fixtures/rolling_window_default_pass.json",
+        "tests/validators/fixtures/rolling_window_default_source_evidence_fail.json",
+        "tests/validators/fixtures/rolling_window_default_stale_status_fail.json",
+        "tests/validators/fixtures/rolling_window_default_train_window_fail.json",
+        "tests/validators/fixtures/rolling_window_default_walk_forward_fail.json"
+      ]
+    },
+    {
+      "validator_id": "root_launcher_guard_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 18,
+      "branch_count": 4,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1093",
+      "test_refs": [
+        "tests/contract/test_root_launchers.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "root_launcher_surface_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 34,
+      "branch_count": 8,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 1,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1113",
+      "test_refs": [
+        "tests/contract/test_root_launchers.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "runtime_config_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 30,
+      "branch_count": 4,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1149",
+      "test_refs": [
+        "tests/config/test_config_validation.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "runtime_resource_pressure_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 32,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1991",
+      "test_refs": [
+        "tests/runtime/test_runtime_resource_pressure.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 141,
+      "branch_count": 9,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 1,
+      "test_ref_count": 2,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1769",
+      "test_refs": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_schema_instance_validation.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "runtime_stability_history_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 77,
+      "branch_count": 10,
+      "fail_or_blocked_calls": 7,
+      "validate_or_evaluate_calls": 1,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1912",
+      "test_refs": [
+        "tests/validators/test_runtime_stability_history_validator.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "safety_control_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 78,
+      "branch_count": 16,
+      "fail_or_blocked_calls": 8,
+      "validate_or_evaluate_calls": 7,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "safety"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:2057",
+      "test_refs": [
+        "tests/runtime/test_safety_control.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "scale_up_eligibility_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 33,
+      "branch_count": 3,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 2,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "scale"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:8196",
+      "test_refs": [
+        "tests/live_blocked/test_optimizer_convergence_untested_blockers.py",
+        "tests/validators/test_optimizer_convergence_guardrails.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "schema_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 14,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 2,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:439",
+      "test_refs": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 6,
+      "branch_count": 2,
+      "fail_or_blocked_calls": 1,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:911",
+      "test_refs": [
+        "tests/security/test_source_bundle_security.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "single_writer_order_path_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 81,
+      "branch_count": 11,
+      "fail_or_blocked_calls": 6,
+      "validate_or_evaluate_calls": 5,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "order"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:957",
+      "test_refs": [
+        "tests/live_blocked/test_order_path_guard.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 13,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:896",
+      "test_refs": [
+        "tests/security/test_source_bundle_security.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "startup_probe_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 56,
+      "branch_count": 8,
+      "fail_or_blocked_calls": 4,
+      "validate_or_evaluate_calls": 3,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1402",
+      "test_refs": [
+        "tests/runtime/test_startup_probe.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "strategy_condition_matrix_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 49,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 11,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:6598",
+      "test_refs": [
+        "tests/validators/test_strategy_condition_matrix_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/market_regime_adaptation_live_flag_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_live_observation_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_missing_dependency_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_missing_source_role_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_pass.json",
+        "tests/validators/fixtures/market_regime_adaptation_risk_off_entry_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_stale_data_entry_fail.json",
+        "tests/validators/fixtures/strategy_condition_matrix_live_flag_fail.json"
+      ]
+    },
+    {
+      "validator_id": "strategy_direct_order_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 19,
+      "branch_count": 3,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 1,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "order"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:1040",
+      "test_refs": [
+        "tests/live_blocked/test_order_path_guard.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "strategy_performance_memory_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 68,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 2,
+      "fixture_ref_count": 34,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:3574",
+      "test_refs": [
+        "tests/validators/test_convergence_foundation_validators.py",
+        "tests/validators/test_strategy_performance_memory_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json",
+        "tests/validators/fixtures/convergence_assessment_live_flag_fail.json",
+        "tests/validators/fixtures/convergence_assessment_missing_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_pass.json",
+        "tests/validators/fixtures/convergence_assessment_scale_up_fail.json",
+        "tests/validators/fixtures/convergence_assessment_untested_dependency_fail.json",
+        "tests/validators/fixtures/convergence_assessment_writer_input_fail.json",
+        "tests/validators/fixtures/convergence_claim_dependency_fail.json"
+      ]
+    },
+    {
+      "validator_id": "summary_shell_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 92,
+      "branch_count": 10,
+      "fail_or_blocked_calls": 5,
+      "validate_or_evaluate_calls": 4,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:1527",
+      "test_refs": [
+        "tests/dashboard/test_summary_writer.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "survival_layer_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 32,
+      "branch_count": 3,
+      "fail_or_blocked_calls": 2,
+      "validate_or_evaluate_calls": 0,
+      "test_ref_count": 1,
+      "fixture_ref_count": 1,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:5151",
+      "test_refs": [
+        "tests/validators/test_convergence_risk_scale_validators.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/convergence_scaleup_safety_blocked.json"
+      ]
+    },
+    {
+      "validator_id": "symbol_strategy_regime_fit_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 62,
+      "branch_count": 5,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 2,
+      "fixture_ref_count": 13,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:6714",
+      "test_refs": [
+        "tests/validators/test_market_regime_adaptation_validator.py",
+        "tests/validators/test_symbol_strategy_regime_fit_validator.py"
+      ],
+      "fixture_refs": [
+        "tests/validators/fixtures/market_regime_adaptation_live_flag_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_live_observation_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_missing_dependency_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_missing_source_role_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_pass.json",
+        "tests/validators/fixtures/market_regime_adaptation_risk_off_entry_fail.json",
+        "tests/validators/fixtures/market_regime_adaptation_stale_data_entry_fail.json",
+        "tests/validators/fixtures/symbol_strategy_regime_fit_high_spread_fail.json"
+      ]
+    },
+    {
+      "validator_id": "truth_hierarchy_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 11,
+      "branch_count": 3,
+      "fail_or_blocked_calls": 3,
+      "validate_or_evaluate_calls": 2,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:944",
+      "test_refs": [
+        "tests/namespace/test_namespace_truth.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "upbit_live_review_preflight_validator",
+      "depth_class": "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE",
+      "line_count": 155,
+      "branch_count": 60,
+      "fail_or_blocked_calls": 24,
+      "validate_or_evaluate_calls": 17,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [
+        "live"
+      ],
+      "function_location": "trader1/validation/mvp0_validators.py:2992",
+      "test_refs": [
+        "tests/contract/test_official_api_verification_report.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 151,
+      "branch_count": 46,
+      "fail_or_blocked_calls": 20,
+      "validate_or_evaluate_calls": 14,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:2839",
+      "test_refs": [
+        "tests/contract/test_strategy_unit_scope.py"
+      ],
+      "fixture_refs": []
+    },
+    {
+      "validator_id": "upbit_paper_dry_run_validator",
+      "depth_class": "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED",
+      "line_count": 96,
+      "branch_count": 29,
+      "fail_or_blocked_calls": 12,
+      "validate_or_evaluate_calls": 7,
+      "test_ref_count": 1,
+      "fixture_ref_count": 0,
+      "risk_tags": [],
+      "function_location": "trader1/validation/mvp0_validators.py:2639",
+      "test_refs": [
+        "tests/paper/test_upbit_paper_dry_run.py"
+      ],
+      "fixture_refs": []
+    }
+  ],
+  "depth_counts": {
+    "DEPTH_2_VALIDATOR_LOGIC_WITH_TEST_REFERENCE": 42,
+    "DEPTH_3_NEGATIVE_FIXTURE_OR_STATUS_TESTED": 47
+  },
+  "blocking_gap_count": 0,
+  "warning_gap_count": 0,
+  "blocking_gaps": [],
+  "warning_gaps": [],
+  "registered_but_unimplemented_validator_ids": [],
+  "implemented_but_unregistered_validator_ids": [],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

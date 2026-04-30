@@ -1,0 +1,48 @@
+{
+  "schema_id": "trader1.optimizer_guardrail_report.v1",
+  "generated_at_utc": "2026-04-29T00:00:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "guardrail_report_id": "optimizer_guardrail_report_scale_up_fail",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp4_optimizer_guardrail_fixture",
+  "guardrail_scope": "OPTIMIZER_PAPER_RANKING_ONLY",
+  "guardrail_status": "PASS_NO_LIVE_PERMISSION",
+  "guardrail_decision": "ALLOW_ANALYSIS_OUTPUT",
+  "dependency_summary_status": "PASS",
+  "dependency_results": [
+    {
+      "validator_id": "optimizer_run_report_validator",
+      "status": "PASS"
+    }
+  ],
+  "checked_artifact_ids": [
+    "optimizer_run_pass"
+  ],
+  "source_modes": [
+    "PAPER"
+  ],
+  "output_ranking_scope": "PAPER_RANKING_ONLY",
+  "live_readiness_status": "NOT_LIVE_READY",
+  "operator_warning": "Optimizer guardrail PASS is not LIVE_READY and live orders remain blocked.",
+  "status": "PASS",
+  "blockers": [],
+  "dashboard_display_truth_only": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_permission_created": false,
+  "live_config_mutation_allowed": false,
+  "writes_live_ready_snapshot": false,
+  "optimizer_live_mutation_detected": false,
+  "order_submission_allowed": false,
+  "exchange_account_call_allowed": false,
+  "scale_up_recommendation_allowed": true,
+  "notes": "Negative fixture: guardrail report cannot recommend risk scale-up."
+}

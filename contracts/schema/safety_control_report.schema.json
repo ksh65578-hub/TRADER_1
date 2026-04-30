@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.safety_control_report.v1",
+  "title": "safety_control_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "operator_action",
+    "kill_switch_state",
+    "kill_switch_available",
+    "kill_switch_engaged",
+    "resource_health_state",
+    "resource_block_new_entries",
+    "safe_mode_required",
+    "dashboard_truth_only",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "order_adapter_called",
+    "final_decision",
+    "primary_blocker_code",
+    "blockers",
+    "next_action",
+    "safety_control_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.safety_control_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kill_switch_state": {
+      "enum": [
+        "AVAILABLE",
+        "ENGAGED",
+        "UNAVAILABLE"
+      ]
+    },
+    "kill_switch_available": {
+      "type": "boolean"
+    },
+    "kill_switch_engaged": {
+      "type": "boolean"
+    },
+    "resource_health_state": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "LIMITED",
+        "CRITICAL",
+        "UNKNOWN"
+      ]
+    },
+    "resource_block_new_entries": {
+      "type": "boolean"
+    },
+    "safe_mode_required": {
+      "type": "boolean"
+    },
+    "dashboard_truth_only": {
+      "type": "boolean"
+    },
+    "live_order_ready": {
+      "type": "boolean"
+    },
+    "live_order_allowed": {
+      "type": "boolean"
+    },
+    "can_live_trade": {
+      "type": "boolean"
+    },
+    "can_submit_order": {
+      "type": "boolean"
+    },
+    "order_adapter_called": {
+      "type": "boolean"
+    },
+    "final_decision": {
+      "$ref": "common.defs.schema.json#/$defs/final_decision"
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "next_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "safety_control_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

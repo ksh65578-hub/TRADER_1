@@ -1,0 +1,99 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "run_id": "MVP4_PAPER_SHADOW_EVIDENCE_ACCUMULATOR_20260430_001",
+  "created_at_utc": "2026-04-29T23:16:06Z",
+  "target_mvp_level": "MVP-4",
+  "execution_mode": "PAPER_SHADOW_READ_ONLY_UNIT_CONTRACT_VALIDATOR_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validators_run": [
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS",
+      "evidence": "aggregated reports validate PASS only for matched short-window PAPER scorecard input, not live readiness"
+    },
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS",
+      "evidence": "single-cycle operational PAPER remains live-blocked and sample-insufficient without shadow evidence"
+    },
+    {
+      "validator_id": "profitability_optimizer_evidence_gap_validator",
+      "status": "PASS",
+      "evidence": "profitability maturity gap remains explicit and live-blocking"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "evidence": "schema bundle parses after accumulator patch"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS",
+      "evidence": "all live and scale-up flags remain false"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS",
+      "evidence": "post-emission patch_result runtime schema validation reports 135 artifacts schema-valid"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS",
+      "evidence": "runtime patch_result schema instance tests passed after emission"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.research.test_paper_shadow_evidence_accumulator -v",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "command": "python -m unittest tests.validators.test_paper_shadow_evidence_accumulation_validator tests.integration.test_upbit_operational_paper_cycle -v",
+      "status": "PASS",
+      "tests": 16
+    },
+    {
+      "command": "python -m compileall trader1/research/shadow tests/research -q",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "tests": 575
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_paper_shadow_evidence_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_profitability_optimizer_evidence_gap_validators.py",
+      "status": "PASS"
+    }
+  ],
+  "hidden_defect": {
+    "classification": "missing_runtime_accumulation_path",
+    "condition": "Single-cycle PAPER evidence was blocked correctly, but there was no dedicated function to safely aggregate multiple scoped PAPER/SHADOW evidence artifacts.",
+    "impact": "Profitability and optimizer review could remain stuck between single-cycle reports and scorecard fixtures, or operators could mistake fixture-based maturity for runtime-collected evidence.",
+    "reproducibility": "Confirmed by code inspection: shadow_runner built individual evidence reports and operational_cycle embedded one report; no accumulator module existed.",
+    "fix": "Added build_paper_shadow_evidence_accumulation_from_operation_reports with strict scope matching, PAPER-only blocking, and live/scale flag drift blocking.",
+    "patch_status": "PATCHED",
+    "test_status": "PASS"
+  },
+  "remaining_gap": {
+    "classification": "shadow_runtime_gap",
+    "condition": "No actual repeated SHADOW observation runtime stream is produced for the new accumulator to consume.",
+    "impact": "Long-run profitability evidence remains blocked and must not be represented as live review evidence.",
+    "reproducibility": "Confirmed by artifact and runtime scan during this turn.",
+    "fix": "Created PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP contract_gap; next safe task is SHADOW artifact production scaffold.",
+    "patch_status": "BLOCKED_AS_CONTRACT_GAP",
+    "test_status": "PASS_LIVE_BLOCKED"
+  }
+}

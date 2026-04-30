@@ -1,0 +1,47 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-29T15:54:53Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY_20260430_001",
+  "inspection_scope": [
+    "paper_shadow_evidence_accumulation_report.schema.json",
+    "shadow_runner paper/shadow evidence builder and validator",
+    "mvp0 paper_shadow_evidence_accumulation_validator dependency chain",
+    "paper/shadow validator fixtures and unit tests",
+    "profitability maturity rollup and contract gap visibility",
+    "live safety invariants"
+  ],
+  "hidden_defects": [
+    {
+      "classification": "false-safe evidence maturity",
+      "condition": "PAPER/SHADOW sample counts can pass scorecard input while long-run evidence remains absent.",
+      "impact": "Operator or downstream reports could confuse PAPER scorecard input with long-run live-review evidence.",
+      "reproducibility": "Deterministic via paper_shadow_evidence_accumulation_false_long_run_claim_fail.json.",
+      "fix": "Added long-run window/span fields, explicit long_run_evidence_eligible flag, visible long_run_blocker_code, and negative validator fixture.",
+      "patch_status": "PATCHED",
+      "live_safety_impact": "Keeps live and scale-up false; blocks false long-run claims.",
+      "ux_impact": "Maturity rollup next action now says longer PAPER/SHADOW windows are required."
+    }
+  ],
+  "safety_invariants": {
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "tests_observed_pass": [
+    "python -m unittest tests.validators.test_paper_shadow_evidence_accumulation_validator -v",
+    "python -m compileall trader1 tests -q",
+    "python tools/run_profitability_optimizer_evidence_gap_validators.py",
+    "python tools/run_mvp0_validators.py",
+    "python -m unittest tests.validators.test_profitability_optimizer_evidence_gap_validator tests.validators.test_strategy_performance_memory_validator -v"
+  ],
+  "remaining_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ]
+}

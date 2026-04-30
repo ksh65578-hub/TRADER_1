@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.official_api_verification_report.v1",
+  "title": "official_api_verification_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "verification_id",
+    "generated_at_utc",
+    "verified_at_utc",
+    "expires_at_utc",
+    "project_id",
+    "authority",
+    "exchange",
+    "market_type",
+    "mode",
+    "verified_by",
+    "verification_method",
+    "official_sources",
+    "facts",
+    "result",
+    "primary_blocker_code",
+    "blockers",
+    "invalidated_by",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "report_hash",
+    "signature"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.official_api_verification_report.v1"
+    },
+    "verification_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "verified_at_utc": {
+      "type": "string"
+    },
+    "expires_at_utc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "verified_by": {
+      "type": "string"
+    },
+    "verification_method": {
+      "enum": [
+        "official_docs",
+        "official_api_probe",
+        "exchange_response_fixture",
+        "manual_crosscheck"
+      ]
+    },
+    "official_sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source_name",
+          "source_url",
+          "retrieved_at_utc",
+          "content_hash"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source_name": {
+            "type": "string"
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retrieved_at_utc": {
+            "type": "string"
+          },
+          "content_hash": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "facts": {
+      "type": "object",
+      "required": [
+        "endpoints",
+        "rate_limits",
+        "symbol_rules",
+        "fee_rules",
+        "auth_requirements",
+        "permission_requirements",
+        "order_constraints",
+        "margin_rules_if_futures"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "endpoints": {
+          "type": "object"
+        },
+        "rate_limits": {
+          "type": "object"
+        },
+        "symbol_rules": {
+          "type": "object"
+        },
+        "fee_rules": {
+          "type": "object"
+        },
+        "auth_requirements": {
+          "type": "object"
+        },
+        "permission_requirements": {
+          "type": "object"
+        },
+        "order_constraints": {
+          "type": "object"
+        },
+        "margin_rules_if_futures": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "result": {
+      "$ref": "common.defs.schema.json#/$defs/api_verification_result"
+    },
+    "primary_blocker_code": {
+      "anyOf": [
+        {
+          "$ref": "common.defs.schema.json#/$defs/live_blocker_code"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "invalidated_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "signature": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

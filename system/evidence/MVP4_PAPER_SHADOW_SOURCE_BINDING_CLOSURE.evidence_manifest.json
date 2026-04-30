@@ -1,0 +1,29 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "created_at_utc": "2026-04-30T02:12:00Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_PAPER_SHADOW_SOURCE_BINDING_CLOSURE_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "evidence_status": "PASS_WITH_LIVE_BLOCKED",
+  "patch_result_path": "system/evidence/patch_results/MVP4_PAPER_SHADOW_SOURCE_BINDING_CLOSURE.patch_result.json",
+  "patch_result_hash": "C02DE1278E3CB5BAC2B25AAE968D9B9F839705DA4CE0BB0D5D7E9F971EAAA4A1",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_PAPER_SHADOW_SOURCE_BINDING_CLOSURE.validator_run_log.json",
+  "validator_run_log_hash": "6FF102B3A1EA95F57BF8E13BE80901CF2EA84E5AE3FBFDA5FCF37A2F8B0DD461",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_PAPER_SHADOW_SOURCE_BINDING_CLOSURE.stage_gate_result.json",
+  "stage_gate_result_hash": "168EAFE2BA48DA7CBCB37FF1141E37A0D5DB18E684E53247264FAA3B09E3D084",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "remaining_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "evidence_manifest_hash": "DBA883D743795F4E3174FE0F0338304FDB98A98DB2966E4CD4CA831276DED50F"
+}

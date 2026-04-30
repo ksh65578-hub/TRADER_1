@@ -1,0 +1,51 @@
+{
+  "schema_id": "trader1.failure_analysis_report.v1",
+  "generated_at_utc": "2026-04-29T01:30:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "failure_analysis_id": "failure_analysis_repeated_unblocked_001",
+  "candidate_id": "candidate_repeated_failure_001",
+  "strategy_id": "strategy_trend_pullback",
+  "strategy_build_id": "strategy_build_mvp4_001",
+  "parameter_hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp4_failure_learning_fixture",
+  "symbol": "KRW-XRP",
+  "timeframe_scope": "15m",
+  "regime_scope": "TRENDING",
+  "failure_event_id": "repeated_regime_failure_003",
+  "failure_status": "ANALYZED",
+  "primary_root_cause_code": "REGIME_MISMATCH",
+  "secondary_root_cause_codes": [],
+  "root_cause_status": "KNOWN",
+  "live_affecting": false,
+  "repeated_failure_count": 3,
+  "repeated_failure_same_root_cause": true,
+  "previous_failure_analysis_ids": [
+    "failure_analysis_repeated_unblocked_000"
+  ],
+  "recommended_response": "KEEP_RESEARCH_ONLY",
+  "blocks_promotion": false,
+  "blocks_live_order": false,
+  "optimizer_ranking_action": "ALLOW_RANKING",
+  "memory_write_required": true,
+  "memory_write_status": "APPEND_ONLY_RECORDED",
+  "source_evidence_ids": [
+    "regime_mismatch_repeated_fixture_source"
+  ],
+  "dashboard_display_truth_only": true,
+  "promotion_eligible": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "blockers": [],
+  "audit_prev_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+  "audit_hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+  "notes": "Negative fixture: repeated same-root-cause failure tries to keep ranking allowed."
+}

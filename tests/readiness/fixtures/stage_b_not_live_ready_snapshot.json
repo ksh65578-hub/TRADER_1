@@ -1,0 +1,11 @@
+{
+  "fixture_id": "stage_b_not_live_ready_snapshot",
+  "validator_id": "live_ready_snapshot_writer_validator",
+  "case": "REFINEMENT_CANDIDATE or Stage B PASS cannot be treated as LIVE_READY snapshot",
+  "expected_status": "BLOCKED",
+  "expected_blocker_code": "PROMOTION_INPUT_TYPE_INVALID",
+  "expected_snapshot_written": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

@@ -1,0 +1,248 @@
+{
+  "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
+  "generated_at_utc": "2026-04-29T16:10:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "rollup_id": "fixture_profitability_evidence_maturity_rollup_pass",
+  "status": "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY",
+  "scope": {
+    "exchange_scope": "UPBIT_AND_BINANCE",
+    "market_type_scope": "KRW_SPOT_AND_SPOT",
+    "mode_scope": "PAPER_SHADOW_READ_ONLY_ONLY",
+    "max_mvp": "MVP-4"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_permission_created": false,
+  "profitability_guarantee_created": false,
+  "optimizer_live_mutation_detected": false,
+  "convergence_live_mutation_detected": false,
+  "required_component_count": 10,
+  "component_count": 10,
+  "components": [
+    {
+      "component_id": "strategy_entry_exit_no_trade",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/strategy_condition_matrix.schema.json"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 0,
+      "min_required_sample_count": 20,
+      "freshness_status": "BLOCKED",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect PAPER entry, exit, and no-trade traces.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "symbol_selection_regime",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/symbol_strategy_regime_fit_report.schema.json"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 0,
+      "min_required_sample_count": 20,
+      "freshness_status": "BLOCKED",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect PAPER symbol liquidity, spread, depth, and regime evidence.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "vwap_trend_breakout",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/strategy_condition_matrix.schema.json"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 0,
+      "min_required_sample_count": 20,
+      "freshness_status": "BLOCKED",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect PAPER VWAP, trend, and breakout/retest evidence.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "risk_sizing_exposure",
+      "maturity_status": "PAPER_SCORECARD_INPUT_ONLY",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/paper_exposure_quality_report.schema.json"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 1,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Extend PAPER exposure evidence; live and scale-up stay blocked.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": true,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "execution_slippage_fee_impact",
+      "maturity_status": "PAPER_SCORECARD_INPUT_ONLY",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/optimizer_feedback_report.schema.json"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 1,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect PAPER expected-vs-realized cost feedback.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": true,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "optimizer_objective_net_ev_after_cost",
+      "maturity_status": "PAPER_SCORECARD_INPUT_ONLY",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/candidate_scorecard.schema.json"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 1,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect PAPER net EV after all cost components.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": true,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "overfit_oos_walk_forward",
+      "maturity_status": "BLOCKED_LONG_RUN_EVIDENCE",
+      "validator_status": "BLOCKED",
+      "evidence_status": "BLOCKED",
+      "source_artifact_paths": [
+        "contracts/schema/overfit_diagnostic_report.schema.json"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 0,
+      "min_required_sample_count": 30,
+      "freshness_status": "BLOCKED",
+      "dependency_status": "BLOCKED",
+      "next_required_evidence": "Collect OOS, walk-forward, bootstrap, and concentration evidence.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "convergence_memory_failure_learning",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/failure_analysis_report.schema.json"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 1,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Append repeated failure root-cause evidence.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "paper_shadow_evidence_accumulation",
+      "maturity_status": "BLOCKED_LONG_RUN_EVIDENCE",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 2,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect session-hashed PAPER and SHADOW evidence across at least 20 windows and 120 hours; short scorecard input is not long-run evidence.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": true,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+    },
+    {
+      "component_id": "dashboard_operator_profitability_visibility",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "trader1/dashboard/static/read_only_dashboard.html"
+      ],
+      "source_evidence_ids": [],
+      "sample_count": 1,
+      "min_required_sample_count": 10,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Keep PAPER maturity, next action, and live blocked wording visible.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    }
+  ],
+  "coverage_complete": true,
+  "all_component_ids_present": true,
+  "all_validators_passed": false,
+  "paper_scorecard_input_allowed": true,
+  "live_review_eligible": false,
+  "scale_up_eligible": false,
+  "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+  "next_operator_action": "Collect PAPER/SHADOW scorecard evidence and keep live blocked until external live-review evidence exists.",
+  "rollup_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+}

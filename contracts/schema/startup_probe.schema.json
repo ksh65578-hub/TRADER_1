@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.startup_probe.v1",
+  "title": "startup_probe",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "config_hash",
+    "registry_hash",
+    "schema_bundle_hash",
+    "source_tree_hash",
+    "engine_state_before",
+    "engine_state_after_probe",
+    "startup_probe_phase",
+    "startup_probe_passed",
+    "can_start",
+    "can_run_engine",
+    "can_trade",
+    "can_live_trade",
+    "live_order_ready",
+    "live_order_allowed",
+    "dashboard_truth_only",
+    "hard_truth",
+    "missing_hard_truth",
+    "primary_blocker_code",
+    "blockers",
+    "final_action",
+    "next_action",
+    "probe_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.startup_probe.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "config_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "registry_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_bundle_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_tree_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "engine_state_before": {
+      "type": "string"
+    },
+    "engine_state_after_probe": {
+      "enum": [
+        "BOOTSTRAP_READ_ONLY",
+        "SAFE_MODE",
+        "BLOCKED",
+        "RUNNING"
+      ]
+    },
+    "startup_probe_phase": {
+      "enum": [
+        "STARTUP_PROBE_IN_PROGRESS",
+        "STARTUP_PROBE_GATE_BLOCKED",
+        "PASS"
+      ]
+    },
+    "startup_probe_passed": {
+      "type": "boolean"
+    },
+    "can_start": {
+      "type": "boolean"
+    },
+    "can_run_engine": {
+      "type": "boolean"
+    },
+    "can_trade": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "dashboard_truth_only": {
+      "const": true
+    },
+    "hard_truth": {
+      "type": "object"
+    },
+    "missing_hard_truth": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "final_action": {
+      "enum": [
+        "NO_TRADE",
+        "SAFE_MODE"
+      ]
+    },
+    "next_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "probe_hash": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

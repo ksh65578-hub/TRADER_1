@@ -1,0 +1,11 @@
+{
+  "fixture_id": "convergence_risk_scale_live_permission_fail",
+  "validator_id": "live_burn_in_feedback_validator",
+  "expected_status": "FAIL",
+  "live_order_ready": false,
+  "live_order_allowed": true,
+  "can_live_trade": true,
+  "scale_up_allowed": true,
+  "expected_order_adapter_called": true,
+  "expected_blocker_code": "LIVE_FINAL_GUARD_FAILED"
+}

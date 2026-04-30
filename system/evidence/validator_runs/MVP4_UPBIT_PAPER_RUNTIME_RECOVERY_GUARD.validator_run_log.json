@@ -1,0 +1,113 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T10:36:35Z",
+  "patch_id": "MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD_20260430_001",
+  "validators_run": [
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "schemas_parsed": 85
+    },
+    {
+      "validator_id": "upbit_paper_persistent_loop_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_runtime_recovery_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "restart_recovery_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_stability_history_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS",
+      "patch_results_checked": 186
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_dashboard_artifact_hygiene_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.integration.test_upbit_public_collection_persistent_loop -v",
+      "tests": 9,
+      "status": "PASS"
+    },
+    {
+      "command": "run_validators([schema_validator, upbit_paper_persistent_loop_validator, upbit_paper_runtime_recovery_guard_validator])",
+      "status": "PASS"
+    },
+    {
+      "command": "run_upbit_paper_persistent_loop(... loop_id=mvp4-upbit-recovery-guard-loop, requested_cycle_count=2)",
+      "status": "PASS",
+      "completed_cycle_count": 2,
+      "recovery_guard_status": "PASS",
+      "live_order_allowed": false
+    },
+    {
+      "command": "python -m unittest tests.runtime.test_restart_recovery tests.validators.test_runtime_stability_history_validator -v",
+      "tests": 20,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "tests": 657,
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_bytecode_free_syntax_check.py",
+      "files_checked": 393,
+      "status": "PASS",
+      "bytecode_write_attempted": false
+    },
+    {
+      "command": "source bytecode cache scan",
+      "pycache_count": 0,
+      "pyc_count": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "run_validators([generated_artifact_dirty_validator, patch_result_schema_validator, patch_result_runtime_schema_instance_validator, live_final_guard_validator])",
+      "status": "PASS"
+    },
+    {
+      "command": "run_validators([source_bundle_hygiene_validator, shipped_package_hygiene_validator, runtime_dashboard_artifact_hygiene_validator])",
+      "status": "PASS"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

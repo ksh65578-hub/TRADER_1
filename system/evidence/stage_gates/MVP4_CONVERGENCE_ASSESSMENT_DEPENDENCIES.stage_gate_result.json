@@ -1,0 +1,13 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-28T17:24:47Z",
+  "patch_id": "MVP4_CONVERGENCE_ASSESSMENT_DEPENDENCIES_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "CONVERGENCE_ASSESSMENT_PASS_LIVE_AND_SCALE_UP_REMAIN_BLOCKED",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_CONVERGENCE_ASSESSMENT_DEPENDENCIES.validator_run_log.json",
+  "next_allowed_task_class": "MVP4_EXTERNAL_LIVE_REVIEW_EVIDENCE_REQUIRED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

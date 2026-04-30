@@ -1,0 +1,222 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP3_OPERATIONAL_UPBIT_PAPER_FOUNDATION_20260429_001",
+  "created_at_utc": "2026-04-28T15:38:59Z",
+  "target_mvp_level": "MVP-3",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "CHECKED",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP3-OPERATIONAL-UPBIT-PAPER-FOUNDATION"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER",
+  "removed_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "strategy_unit",
+    "position_sizing_decision",
+    "replay_consistency_report",
+    "paper_shadow_separation_report",
+    "paper_operation_gate_report",
+    "upbit_operational_paper_gate_validator"
+  ],
+  "new_or_changed_schema_ids": [
+    "trader1.strategy_unit.v1",
+    "trader1.position_sizing_decision.v1",
+    "trader1.replay_consistency_report.v1",
+    "trader1.paper_shadow_separation_report.v1",
+    "trader1.paper_operation_gate_report.v1"
+  ],
+  "validators_required": [
+    "upbit_operational_paper_gate_validator"
+  ],
+  "validators_run": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T15:38:59Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "operational Upbit paper foundation is paper/shadow scoped, deterministic, and live-blocked",
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "checked_at_utc": "2026-04-28T15:38:59Z",
+      "input_artifact_paths": [
+        "contracts/schema/strategy_unit.schema.json",
+        "contracts/schema/position_sizing_decision.schema.json",
+        "contracts/schema/replay_consistency_report.schema.json",
+        "contracts/schema/paper_shadow_separation_report.schema.json",
+        "contracts/schema/paper_operation_gate_report.schema.json",
+        "trader1/core/strategy/strategy_unit.py",
+        "trader1/core/sizing/position_sizing.py",
+        "trader1/research/replay/replay_runner.py",
+        "trader1/research/shadow/shadow_runner.py",
+        "trader1/runtime/paper/operational_cycle.py"
+      ],
+      "blocking": false
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m compileall trader1 tools tests -q",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_operational_paper_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.contract.test_strategy_unit_scope tests.contract.test_paper_shadow_separation tests.replay.test_replay_determinism tests.integration.test_upbit_operational_paper_cycle -v",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.paper.test_upbit_paper_dry_run tests.runtime.test_restart_recovery tests.runtime.test_execution_ledger -v",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/validate_mvp0_contracts.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS"
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "SEARCH_RESULT_ONLY_NOT_USED_FOR_AUTHORITY_ACTIVE_AUTHORITY_PREVAILED",
+  "read_cache_update_required": false,
+  "context_pack_update_required": false,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_UPBIT_LIVE_REVIEW_SCAFFOLD",
+  "next_required_section_ids": [
+    "SECTION_MVP4_LADDER_ACTIVE",
+    "SECTION_MVP4_REQUIRED_COMPONENTS_ACTIVE"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_AGENTS_MVP4_REQUIRED_FILES"
+  ],
+  "next_forbidden_default_sections": [
+    "SECTION_RETAINED_ARCHIVE",
+    "SECTION_OPTIMIZER_FULL",
+    "SECTION_CONVERGENCE_FULL",
+    "SECTION_LIVE_ENABLING"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MVP4_LIVE_REVIEW_SCAFFOLD_PENDING"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP3_OPERATIONAL_UPBIT_PAPER.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP3_OPERATIONAL_UPBIT_PAPER.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP3_OPERATIONAL_UPBIT_PAPER.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "SECTION_MVP3_LADDER_ACTIVE",
+    "SECTION_MVP3_SCOPE_ACTIVE",
+    "SECTION_MVP3_FOUNDATION_ACTIVE",
+    "SECTION_MVP3_REQUIRED_COMPONENTS_ACTIVE",
+    "SECTION_MVP3_OUTPUT_ARTIFACT_ACTIVE",
+    "SECTION_STAGE_EVIDENCE_PACK_ACTIVE",
+    "SECTION_SIZING_INPUT_ACTIVE",
+    "SECTION_REPLAY_CONSISTENCY_ACTIVE",
+    "SECTION_AGENTS_MVP3_IMPLEMENT_FIRST",
+    "SECTION_AGENTS_MVP3_REQUIRED_FILES"
+  ],
+  "task_class": "MVP3_OPERATIONAL_UPBIT_PAPER_FOUNDATION",
+  "required_section_ids": [
+    "SECTION_MVP3_REQUIRED_COMPONENTS_ACTIVE",
+    "SECTION_AGENTS_MVP3_IMPLEMENT_FIRST"
+  ],
+  "expanded_section_ids": [
+    "SECTION_MVP3_LADDER_ACTIVE",
+    "SECTION_MVP3_SCOPE_ACTIVE",
+    "SECTION_MVP3_FOUNDATION_ACTIVE",
+    "SECTION_MVP3_REQUIRED_COMPONENTS_ACTIVE",
+    "SECTION_MVP3_OUTPUT_ARTIFACT_ACTIVE",
+    "SECTION_STAGE_EVIDENCE_PACK_ACTIVE",
+    "SECTION_SIZING_INPUT_ACTIVE",
+    "SECTION_REPLAY_CONSISTENCY_ACTIVE",
+    "SECTION_AGENTS_MVP3_IMPLEMENT_FIRST",
+    "SECTION_AGENTS_MVP3_REQUIRED_FILES"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "UPDATED",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "GENERATED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": true,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "NO_OPTIMIZER_RUNTIME_CHANGE",
+  "optimizer_stage": "METRIC_COLLECTION",
+  "optimizer_status_before": "SCAFFOLD",
+  "optimizer_status_after": "SCAFFOLD",
+  "optimizer_maturity_level_before": "MVP0_SCHEMA_ONLY",
+  "optimizer_maturity_level_after": "MVP0_SCHEMA_ONLY",
+  "optimizer_output_type": "OPTIMIZER_RESEARCH_SIGNAL",
+  "optimizer_validators_required": [
+    "optimizer_guardrail_validator",
+    "optimizer_no_live_mutation_validator"
+  ],
+  "optimizer_validators_run": [],
+  "optimizer_guardrail_result": "UNTESTED",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "NO_CONVERGENCE_RUNTIME_CHANGE",
+  "convergence_layer_changed": false,
+  "convergence_state_before": "UNTESTED",
+  "convergence_state_after": "UNTESTED",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_REQUIRED_FOR_OPERATIONAL_UPBIT_PAPER_FOUNDATION",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "convergence_assessment_validator",
+    "scale_up_eligibility_validator"
+  ],
+  "convergence_validators_run": [],
+  "convergence_guardrail_result": "UNTESTED",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "scale_up_allowed_after": false,
+  "result_hash": "351FF2589C964E12E9018D0CB55E0B672F04A3426E7AAB111BF379A30A894E33",
+  "merged_requirements": [],
+  "coverage_index_result": "PASS",
+  "scale_up_allowed_before": false
+}

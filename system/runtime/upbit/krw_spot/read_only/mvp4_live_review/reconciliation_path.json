@@ -1,0 +1,37 @@
+{
+  "schema_id": "trader1.upbit_read_only_reconciliation_path.v1",
+  "reconciliation_path_id": "mvp4-upbit-read-only-reconciliation-path",
+  "generated_at_utc": "2026-04-28T15:55:43Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "READ_ONLY",
+  "session_id": "mvp4_upbit_live_review",
+  "account_snapshot_id": "mvp4-upbit-read-only-account-snapshot",
+  "private_stream_health_id": "mvp4-upbit-private-stream-health",
+  "same_identifier_reconciliation_required": true,
+  "reconciliation_path_status": "BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "order_adapter_called": false,
+  "primary_blocker_code": "RECONCILIATION_REQUIRED",
+  "blockers": [
+    {
+      "code": "RECONCILIATION_REQUIRED",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "account and internal status synchronization required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    }
+  ],
+  "reconciliation_path_hash": "AB37F949ECADD1B4EBFC06D3D8BEB31C4D2D51DE5E61E3EF77F3972357E0B6DE"
+}

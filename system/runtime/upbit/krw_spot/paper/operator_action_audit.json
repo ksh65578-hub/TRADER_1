@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.operator_action_audit.v1",
+  "action_id": "mvp1-manual-stop",
+  "created_at_utc": "2026-04-28T14:39:08Z",
+  "operator_id_hash": "operator-hash-redacted",
+  "action_code": "manual_stop",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp1_operator_control",
+  "target_symbol": null,
+  "previous_state": {
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "can_submit_order": false,
+    "order_adapter_called": false
+  },
+  "requested_state": {
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "can_submit_order": false,
+    "order_adapter_called": false,
+    "kill_switch_state": "ENGAGED"
+  },
+  "risk_veto_result": "NOT_APPLICABLE",
+  "reconciliation_status": "NOT_APPLICABLE",
+  "final_decision_id": "KILL_SWITCH",
+  "confirmation_required": false,
+  "confirmation_method": "NONE",
+  "result": "BLOCKED",
+  "result_reason": "manual stop keeps trading blocked",
+  "event_hash": "8358D26E13F880228043A223EDC3533291C79ACEE537770762D5D9BBAFC06FA5"
+}

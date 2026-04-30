@@ -1,0 +1,48 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T09:52:59Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "status": "PASS_WITH_LIVE_BLOCKED",
+  "blockers": [
+    {
+      "code": "LIVE_READY_MISSING",
+      "severity": "HIGH",
+      "message": "No LIVE_READY snapshot exists for exact scope"
+    },
+    {
+      "code": "OFFICIAL_API_VERIFICATION_MISSING",
+      "severity": "HIGH",
+      "message": "Official API verification evidence is absent"
+    },
+    {
+      "code": "OPERATOR_APPROVAL_MISSING",
+      "severity": "HIGH",
+      "message": "Operator approval is absent"
+    }
+  ],
+  "notes": "MVP-4 Upbit PAPER runtime foundation uses deterministic public fixture and simulated PAPER broker only; not live readiness evidence.",
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_RUNTIME_ENGINE_0_TO_1_FOUNDATION_20260430_001",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_ENGINE_0_TO_1_FOUNDATION.patch_result.json",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_RUNTIME_ENGINE_0_TO_1_FOUNDATION.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_ENGINE_0_TO_1_FOUNDATION.stage_gate_result.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "OFFICIAL_API_VERIFICATION_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

@@ -1,0 +1,101 @@
+{
+  "schema_id": "trader1.summary.v1",
+  "project": "TRADER_1",
+  "generated_at_utc": "2026-04-30T14:06:45Z",
+  "exchange": "BINANCE",
+  "market_type": "SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp1_binance_paper_launcher",
+  "engine": {
+    "status": "SAFE_MODE",
+    "source": "STARTUP_PROBE",
+    "freshness_status": "PASS",
+    "evidence_id": null,
+    "message": "provide missing hard truth and rerun startup probe"
+  },
+  "startup": {
+    "status": "BLOCKED",
+    "source": "STARTUP_PROBE",
+    "freshness_status": "PASS",
+    "evidence_id": null,
+    "message": "provide missing hard truth and rerun startup probe"
+  },
+  "operator_status": {
+    "status": "UNTESTED",
+    "source": "OPERATOR",
+    "freshness_status": "UNTESTED",
+    "evidence_id": null,
+    "message": "operator surface not implemented in MVP-1 summary shell"
+  },
+  "connectivity": {
+    "status": "PASS",
+    "source": "HEARTBEAT",
+    "freshness_status": "PASS",
+    "evidence_id": null,
+    "message": "continue read-only monitoring"
+  },
+  "caches": {},
+  "queues": {},
+  "rate_limits": {},
+  "resources": {
+    "status": "PASS",
+    "source": "HEARTBEAT",
+    "freshness_status": "PASS",
+    "evidence_id": null,
+    "message": "continue read-only monitoring"
+  },
+  "portfolio": {
+    "source": "LEDGER",
+    "freshness_status": "PASS",
+    "equity": 10000.0,
+    "cash_available": 10000.0,
+    "locked_balance": 0.0,
+    "position_market_value": 0.0,
+    "open_position_count": 0,
+    "realized_pnl": 0.0,
+    "unrealized_pnl": 0.0,
+    "total_pnl": 0.0,
+    "mdd": 0.0
+  },
+  "orders": {
+    "source": "SUMMARY_BUILDER",
+    "freshness_status": "UNTESTED",
+    "open_order_count": 0,
+    "pending_confirm_count": 0,
+    "reconciliation_age_sec": null
+  },
+  "watch_universe": [],
+  "entry_candidates": [],
+  "positions": [],
+  "strategies": [],
+  "market_context": {
+    "source": "SUMMARY_BUILDER",
+    "freshness_status": "UNTESTED",
+    "regime": null,
+    "liquidity_status": null,
+    "volatility_status": null
+  },
+  "action_queue": [],
+  "recent_errors": [],
+  "recent_no_trade_context": [],
+  "recent_entry_context": [],
+  "fee_snapshot": null,
+  "live_ready": {
+    "source": "READINESS_SURFACE",
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "primary_blocker_code": "BINANCE_ADAPTER_SURFACE_ONLY",
+    "primary_blocker_message": "Binance SPOT is visible only as a surface; no Binance PAPER adapter or broker is implemented yet.",
+    "blocks_live_order": true,
+    "evidence_id": null
+  },
+  "applied_snapshot": {
+    "snapshot_id": null,
+    "source": "NONE",
+    "scope_hash": null,
+    "freshness_status": "UNTESTED"
+  },
+  "final_action": "NO_TRADE",
+  "blocking_reason": "BINANCE_ADAPTER_SURFACE_ONLY",
+  "next_action": "Binance SPOT is visible only as a surface; no Binance PAPER adapter or broker is implemented yet."
+}

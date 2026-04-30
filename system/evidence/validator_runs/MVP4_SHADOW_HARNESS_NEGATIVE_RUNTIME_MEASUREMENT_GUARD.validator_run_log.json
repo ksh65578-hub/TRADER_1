@@ -1,0 +1,90 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T03:19:12Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_SHADOW_HARNESS_NEGATIVE_RUNTIME_MEASUREMENT_GUARD_20260430_001",
+  "status": "PASS",
+  "validators_run": [
+    {
+      "validator_id": "shadow_observation_actual_runtime_harness_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.research.test_shadow_observation_actual_runtime_harness -v",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_shows_shadow_runtime_harness_without_live_permission tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_marks_negative_shadow_harness_measurement_as_error -v",
+      "status": "PASS",
+      "tests": 2
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "validators": 35
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.dashboard.test_read_only_dashboard -v",
+      "status": "PASS",
+      "tests": 105
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "validators": 6
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest discover -v",
+      "status": "PASS",
+      "tests": 594
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.contract.test_patch_result_runtime_schema_validation -v",
+      "status": "PASS"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validator_run_log_hash": "20557D50BF9DFA77EE6F76C8FD9AFE9BCE2C706265E95E2F160BEBB51D6D830B"
+}

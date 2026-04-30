@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.live_ready_candidate_writer_input.v1",
+  "title": "live_ready_candidate_writer_input",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "writer_input_id",
+    "created_at_utc",
+    "promotion_input_type",
+    "exchange",
+    "market_type",
+    "strategy_id",
+    "strategy_build_id",
+    "parameter_hash",
+    "risk_profile",
+    "timeframe_scope",
+    "regime_scope",
+    "registry_hash",
+    "schema_bundle_hash",
+    "source_tree_hash",
+    "promotion_threshold_status",
+    "paper_live_parity_status",
+    "execution_quality_status",
+    "cost_after_edge_status",
+    "evidence_manifest_hash",
+    "validator_results_fresh",
+    "high_contract_gap_count",
+    "critical_contract_gap_count",
+    "manual_or_operator_requirements_preserved",
+    "live_ready_snapshot_writer_status",
+    "blockers",
+    "writer_input_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.live_ready_candidate_writer_input.v1"
+    },
+    "writer_input_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at_utc": {
+      "type": "string"
+    },
+    "promotion_input_type": {
+      "const": "LIVE_READY_CANDIDATE_WRITER_INPUT"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_build_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parameter_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk_profile": {
+      "$ref": "common.defs.schema.json#/$defs/risk_profile"
+    },
+    "timeframe_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "regime_scope": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "registry_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_bundle_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_tree_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "promotion_threshold_status": {
+      "const": "PASS"
+    },
+    "paper_live_parity_status": {
+      "enum": [
+        "PASS",
+        "SKIPPED_NOT_APPLICABLE"
+      ]
+    },
+    "execution_quality_status": {
+      "const": "PASS"
+    },
+    "cost_after_edge_status": {
+      "const": "PASS"
+    },
+    "evidence_manifest_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "validator_results_fresh": {
+      "const": true
+    },
+    "high_contract_gap_count": {
+      "type": "integer",
+      "const": 0
+    },
+    "critical_contract_gap_count": {
+      "type": "integer",
+      "const": 0
+    },
+    "manual_or_operator_requirements_preserved": {
+      "const": true
+    },
+    "live_ready_snapshot_writer_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED",
+        "UNTESTED",
+        "STALE",
+        "TIMEOUT"
+      ]
+    },
+    "live_ready_snapshot_writer_validator_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/live_blocker_code"
+      }
+    },
+    "writer_input_hash": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "live_ready_snapshot_writer_status": {
+            "const": "PASS"
+          }
+        },
+        "required": [
+          "live_ready_snapshot_writer_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "blockers": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}

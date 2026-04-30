@@ -1,0 +1,45 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T14:37:07Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR_EVIDENCE",
+  "artifact_paths": [
+    "trader1/validation/mvp0_validators.py",
+    "contracts/registry.yaml",
+    "contracts/validators/validator_registry.json",
+    "contracts/validators/fixture_catalog.json",
+    "contracts/generated/requirement_index.json",
+    "contracts/generated/requirement_artifact_matrix.json",
+    "contracts/generated/context_pack/MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR.md",
+    "tests/validators/test_rolling_window_default_validator.py",
+    "tests/validators/test_optimizer_convergence_guardrails.py",
+    "tests/validators/fixtures/rolling_window_default_pass.json",
+    "tests/validators/fixtures/overfit_diagnostic_short_window_fail.json",
+    "tests/validators/fixtures/rolling_window_default_train_window_fail.json",
+    "tests/validators/fixtures/rolling_window_default_oos_window_fail.json",
+    "tests/validators/fixtures/rolling_window_default_walk_forward_fail.json",
+    "tests/validators/fixtures/rolling_window_default_source_evidence_fail.json",
+    "tests/validators/fixtures/rolling_window_default_stale_status_fail.json",
+    "system/evidence/contract_gaps/VALIDATOR_REGISTRY_BACKLOG_TRIAGE.contract_gap.json",
+    "system/evidence/audit_reports/MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR.audit.json",
+    "system/evidence/validator_runs/MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_ROLLING_WINDOW_DEFAULT_VALIDATOR.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

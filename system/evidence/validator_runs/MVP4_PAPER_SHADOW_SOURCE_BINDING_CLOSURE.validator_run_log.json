@@ -1,0 +1,107 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T02:12:00Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_PAPER_SHADOW_SOURCE_BINDING_CLOSURE_20260430_001",
+  "status": "PASS",
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "convergence_assessment_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.research.test_paper_shadow_evidence_accumulator -v",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "command": "python -m unittest tests.validators.test_paper_shadow_evidence_accumulation_validator -v",
+      "status": "PASS",
+      "tests": 12
+    },
+    {
+      "command": "python -m compileall trader1 tools tests",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_paper_shadow_evidence_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "validators": 34
+    },
+    {
+      "command": "python tools/run_read_only_dashboard_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.dashboard.test_read_only_dashboard -v",
+      "status": "PASS",
+      "tests": 104
+    },
+    {
+      "command": "python -m unittest discover -v",
+      "status": "PASS",
+      "tests": 585
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "validators": 4
+    },
+    {
+      "command": "python -m unittest tests.contract.test_patch_result_runtime_schema_validation -v",
+      "status": "PASS",
+      "tests": 6
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validator_run_log_hash": "6FF102B3A1EA95F57BF8E13BE80901CF2EA84E5AE3FBFDA5FCF37A2F8B0DD461"
+}

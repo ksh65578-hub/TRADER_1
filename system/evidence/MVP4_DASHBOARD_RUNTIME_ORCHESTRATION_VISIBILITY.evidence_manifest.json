@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY_EVIDENCE",
+  "created_at_utc": "2026-04-30T05:12:36Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY_20260430_001",
+  "artifact_paths": [
+    "trader1/dashboard/read_only_dashboard.py",
+    "contracts/schema/read_only_dashboard_shell.schema.json",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tools/emit_dashboard_runtime_orchestration_visibility_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY.md",
+    "system/evidence/validator_runs/MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_DASHBOARD_RUNTIME_ORCHESTRATION_VISIBILITY.patch_result.json"
+  ],
+  "known_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

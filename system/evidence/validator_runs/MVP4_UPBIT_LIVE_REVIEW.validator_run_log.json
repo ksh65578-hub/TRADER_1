@@ -1,0 +1,52 @@
+{
+  "validator_run_log_schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-28T15:55:42Z",
+  "patch_id": "MVP4_UPBIT_LIVE_REVIEW_SCAFFOLD_20260429_001",
+  "validators_run": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T15:55:43Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "Upbit live review scaffold is review-only and blocks all live orders",
+      "validator_id": "upbit_live_review_preflight_validator",
+      "checked_at_utc": "2026-04-28T15:55:43Z",
+      "input_artifact_paths": [
+        "contracts/schema/official_api_verification_report.schema.json",
+        "contracts/schema/manual_order_test_evidence.schema.json",
+        "contracts/schema/read_only_account_snapshot.schema.json",
+        "contracts/schema/private_stream_health.schema.json",
+        "contracts/schema/upbit_read_only_reconciliation_path.schema.json",
+        "contracts/schema/api_key_permission_check_report.schema.json",
+        "contracts/schema/live_preflight_report.schema.json",
+        "contracts/schema/live_review_dashboard.schema.json",
+        "trader1/runtime/readiness/official_api_verification.py",
+        "trader1/runtime/readiness/manual_order_test_evidence.py",
+        "trader1/runtime/readiness/live_preflight.py",
+        "trader1/adapters/upbit/account_readonly.py",
+        "trader1/adapters/upbit/private_stream.py",
+        "trader1/adapters/upbit/reconciliation.py",
+        "trader1/security/api_key_permission_check.py",
+        "trader1/dashboard/live_review_dashboard.py"
+      ],
+      "blocking": false
+    }
+  ],
+  "validators_untested": [
+    "optimizer_guardrail_validator",
+    "optimizer_no_live_mutation_validator",
+    "convergence_assessment_validator",
+    "scale_up_eligibility_validator"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

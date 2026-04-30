@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.root_launcher_report.v1",
+  "title": "root_launcher_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "launcher_name",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "market_type_source",
+    "config_hash",
+    "registry_hash",
+    "schema_bundle_hash",
+    "source_tree_hash",
+    "config_status",
+    "startup_probe_status",
+    "heartbeat_status",
+    "summary_status",
+    "launcher_status",
+    "live_launcher_hard_blocked",
+    "live_path_hard_blocked",
+    "forbidden_runtime_actions",
+    "final_action",
+    "blocking_reason",
+    "next_action",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "forbidden_runtime_actions": {
+      "type": "object",
+      "required": [
+        "live_key_load_attempted",
+        "live_order_api_attempted",
+        "order_adapter_submit_attempted",
+        "strategy_direct_exchange_call_attempted"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "live_key_load_attempted": {
+          "const": false
+        },
+        "live_order_api_attempted": {
+          "const": false
+        },
+        "order_adapter_submit_attempted": {
+          "const": false
+        },
+        "strategy_direct_exchange_call_attempted": {
+          "const": false
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_id": {
+      "const": "trader1.root_launcher_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "launcher_name": {
+      "enum": [
+        "UPBIT_PAPER",
+        "UPBIT_LIVE",
+        "BINANCE_PAPER",
+        "BINANCE_LIVE"
+      ]
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "market_type_source": {
+      "enum": [
+        "SAFE_CONFIG_SCHEMA",
+        "LAUNCHER_INTERNAL_UI",
+        "EXPLICIT_COMMAND_OPTION",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "config_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "registry_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "schema_bundle_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "source_tree_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "config_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "startup_probe_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "heartbeat_status": {
+      "enum": [
+        "PASS",
+        "DEGRADED",
+        "BLOCKED"
+      ]
+    },
+    "summary_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "launcher_status": {
+      "enum": [
+        "SAFE_MODE",
+        "BLOCKED"
+      ]
+    },
+    "live_launcher_hard_blocked": {
+      "type": "boolean"
+    },
+    "live_path_hard_blocked": {
+      "const": true
+    },
+    "forbidden_runtime_actions": {
+      "$ref": "#/$defs/forbidden_runtime_actions"
+    },
+    "final_action": {
+      "$ref": "common.defs.schema.json#/$defs/final_decision"
+    },
+    "blocking_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "next_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
+

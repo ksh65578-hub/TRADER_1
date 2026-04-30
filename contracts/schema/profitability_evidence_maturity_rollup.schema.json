@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.profitability_evidence_maturity_rollup.v1",
+  "title": "profitability_evidence_maturity_rollup",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "rollup_id",
+    "status",
+    "scope",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "live_permission_created",
+    "profitability_guarantee_created",
+    "optimizer_live_mutation_detected",
+    "convergence_live_mutation_detected",
+    "required_component_count",
+    "component_count",
+    "components",
+    "coverage_complete",
+    "all_component_ids_present",
+    "all_validators_passed",
+    "paper_scorecard_input_allowed",
+    "live_review_eligible",
+    "scale_up_eligible",
+    "primary_blocker_code",
+    "next_operator_action",
+    "rollup_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {"const": "trader1.profitability_evidence_maturity_rollup.v1"},
+    "generated_at_utc": {"type": "string", "minLength": 1},
+    "project_id": {"const": "TRADER_1"},
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "agents_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+      }
+    },
+    "rollup_id": {"type": "string", "minLength": 1},
+    "status": {
+      "enum": [
+        "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY",
+        "PAPER_SCORECARD_INPUT_ONLY_LIVE_BLOCKED",
+        "UNTESTED"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "required": ["exchange_scope", "market_type_scope", "mode_scope", "max_mvp"],
+      "additionalProperties": false,
+      "properties": {
+        "exchange_scope": {"enum": ["UPBIT", "BINANCE", "UPBIT_AND_BINANCE"]},
+        "market_type_scope": {"enum": ["KRW_SPOT", "SPOT", "FUTURES_USDT_M", "KRW_SPOT_AND_SPOT"]},
+        "mode_scope": {"enum": ["REPLAY", "PAPER", "SHADOW", "READ_ONLY", "PAPER_SHADOW_READ_ONLY_ONLY"]},
+        "max_mvp": {"const": "MVP-4"}
+      }
+    },
+    "live_order_ready": {"const": false},
+    "live_order_allowed": {"const": false},
+    "can_live_trade": {"const": false},
+    "scale_up_allowed": {"const": false},
+    "live_permission_created": {"const": false},
+    "profitability_guarantee_created": {"const": false},
+    "optimizer_live_mutation_detected": {"const": false},
+    "convergence_live_mutation_detected": {"const": false},
+    "required_component_count": {"type": "integer", "minimum": 10},
+    "component_count": {"type": "integer", "minimum": 10},
+    "components": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "required": [
+          "component_id",
+          "maturity_status",
+          "validator_status",
+          "evidence_status",
+          "source_artifact_paths",
+          "source_evidence_ids",
+          "sample_count",
+          "min_required_sample_count",
+          "freshness_status",
+          "dependency_status",
+          "next_required_evidence",
+          "primary_blocker_code",
+          "paper_scorecard_input_eligible",
+          "long_run_evidence_eligible",
+          "long_run_blocker_code",
+          "live_review_eligible",
+          "scale_up_allowed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "component_id": {
+            "enum": [
+              "strategy_entry_exit_no_trade",
+              "symbol_selection_regime",
+              "vwap_trend_breakout",
+              "risk_sizing_exposure",
+              "execution_slippage_fee_impact",
+              "optimizer_objective_net_ev_after_cost",
+              "overfit_oos_walk_forward",
+              "convergence_memory_failure_learning",
+              "paper_shadow_evidence_accumulation",
+              "dashboard_operator_profitability_visibility"
+            ]
+          },
+          "maturity_status": {
+            "enum": [
+              "MISSING",
+              "PARTIAL_PATCHED",
+              "PAPER_SCORECARD_INPUT_ONLY",
+              "BLOCKED_EXTERNAL_EVIDENCE",
+              "BLOCKED_LONG_RUN_EVIDENCE"
+            ]
+          },
+          "validator_status": {"enum": ["PASS", "BLOCKED"]},
+          "evidence_status": {"enum": ["MISSING", "PARTIAL", "PASS", "BLOCKED"]},
+          "source_artifact_paths": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "source_evidence_ids": {"type": "array", "items": {"type": "string", "minLength": 1}},
+          "sample_count": {"type": "integer", "minimum": 0},
+          "min_required_sample_count": {"type": "integer", "minimum": 0},
+          "freshness_status": {"enum": ["PASS", "BLOCKED"]},
+          "dependency_status": {"enum": ["PASS", "BLOCKED"]},
+          "next_required_evidence": {"type": "string", "minLength": 1},
+          "primary_blocker_code": {"type": "string", "minLength": 1},
+          "paper_scorecard_input_eligible": {"type": "boolean"},
+          "long_run_evidence_eligible": {"type": "boolean"},
+          "long_run_blocker_code": {"type": ["string", "null"], "minLength": 1},
+          "live_review_eligible": {"const": false},
+          "scale_up_allowed": {"const": false}
+        }
+      }
+    },
+    "coverage_complete": {"const": true},
+    "all_component_ids_present": {"const": true},
+    "all_validators_passed": {"type": "boolean"},
+    "paper_scorecard_input_allowed": {"const": true},
+    "live_review_eligible": {"const": false},
+    "scale_up_eligible": {"const": false},
+    "primary_blocker_code": {"type": "string", "minLength": 1},
+    "next_operator_action": {"type": "string", "minLength": 1},
+    "rollup_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T15:43:55Z",
+  "patch_id": "MVP4_DASHBOARD_PROFITABILITY_ROLLUP_BINDING_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_DASHBOARD_PROFITABILITY_ROLLUP_BINDING",
+  "result": "PASS_LIVE_BLOCKED_FULL_SAFE_TESTS_PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "mvp5_blocked": true,
+  "blockers": [
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_REMAINS_OPEN"
+  ]
+}

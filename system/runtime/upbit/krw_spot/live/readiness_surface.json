@@ -1,0 +1,60 @@
+{
+  "schema_id": "trader1.readiness_surface.v1",
+  "generated_at_utc": "2026-04-28T13:08:45Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "LIVE",
+  "session_id": "mvp0_readiness_surface",
+  "build_id": null,
+  "authority_document": "TRADER_1.md",
+  "authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+  "registry_hash": "8DE571E229AC2C57EB07C8B396B1C173B83FCF65D30AC38980FB34D63DBA860E",
+  "schema_bundle_hash": "E36192E5550E251D0BF600A952D52CFF30CDDC378659A5ADBF0C10EAD55E797A",
+  "source_tree_hash": null,
+  "release_package_status": "NOT_BUILT",
+  "bundle_readiness_status": "UNKNOWN",
+  "can_start": true,
+  "can_collect_data": true,
+  "can_evaluate_candidates": false,
+  "can_paper_trade": false,
+  "can_shadow_evaluate": false,
+  "can_replay": false,
+  "can_live_review": true,
+  "can_live_trade": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "start_gate_status": "PASS",
+  "live_trading_status": "BLOCKED",
+  "primary_blocker_code": "LIVE_READY_MISSING",
+  "primary_blocker_message": "LIVE_READY snapshot missing",
+  "blockers": [
+    {
+      "code": "LIVE_READY_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "LIVE_READY snapshot missing",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP0-READINESS-SURFACE",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "LIVE_READY_SNAPSHOT_WRITER_UNTESTED",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "LIVE_READY snapshot writer validator untested",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP0-READINESS-SURFACE",
+      "blocks_start": false,
+      "blocks_live_order": true
+    }
+  ],
+  "surface_hash": "17E31CEF6AED6A526F2DD7DCD78630B98FD10C7163783A2F941CFEE11D3C50BF"
+}

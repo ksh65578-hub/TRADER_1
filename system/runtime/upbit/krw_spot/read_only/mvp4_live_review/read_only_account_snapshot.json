@@ -1,0 +1,44 @@
+{
+  "schema_id": "trader1.read_only_account_snapshot.v1",
+  "snapshot_id": "mvp4-upbit-read-only-account-snapshot",
+  "generated_at_utc": "2026-04-28T15:55:43Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "READ_ONLY",
+  "session_id": "mvp4_upbit_live_review",
+  "account_snapshot_status": "UNVERIFIED",
+  "balance_snapshot_status": "UNVERIFIED",
+  "position_snapshot_status": "UNVERIFIED",
+  "open_order_snapshot_status": "UNVERIFIED",
+  "balances": [],
+  "positions": [],
+  "open_orders": [],
+  "credential_loaded": false,
+  "private_api_called": false,
+  "withdrawal_permission_detected": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "can_submit_order": false,
+  "order_adapter_called": false,
+  "primary_blocker_code": "API_UNVERIFIED",
+  "blockers": [
+    {
+      "code": "API_UNVERIFIED",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "exchange official API validation required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    }
+  ],
+  "snapshot_hash": "D9C1AAEB5DE22BD4582FDD6DCE511D2F44405014DB4296125523006D84B7E7FE"
+}

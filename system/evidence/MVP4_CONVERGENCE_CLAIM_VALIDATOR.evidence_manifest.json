@@ -1,0 +1,31 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "created_at_utc": "2026-04-29T13:46:20Z",
+  "project_id": "TRADER_1",
+  "evidence_id": "MVP4_CONVERGENCE_CLAIM_VALIDATOR",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_CONVERGENCE_CLAIM_VALIDATOR.patch_result.json",
+    "system/evidence/validator_runs/MVP4_CONVERGENCE_CLAIM_VALIDATOR.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_CONVERGENCE_CLAIM_VALIDATOR.stage_gate_result.json",
+    "system/evidence/audit_reports/MVP4_CONVERGENCE_CLAIM_VALIDATOR.audit.json",
+    "tests/validators/test_convergence_claim_validator.py"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "VALIDATOR_REGISTRY_BACKLOG_TRIAGE_REMAINING_3"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "evidence_hash": "E012454DC46A29E1394E57D250C5AE5E89ACAF0EDF8435CEA8B658D7EDB1420B"
+}

@@ -1,0 +1,380 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.patch_result.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "created_at_utc",
+    "target_mvp_level",
+    "patch_class",
+    "input_authority_files",
+    "input_authority_hash_status",
+    "authority_hash_checked",
+    "affected_contract_ids",
+    "affected_exchange",
+    "affected_market_type",
+    "affected_mode",
+    "removed_requirements",
+    "merged_requirements",
+    "file_split",
+    "detail_reduction_allowed",
+    "semantic_reduction_allowed",
+    "retained_archive_preserved",
+    "new_registry_items",
+    "new_or_changed_schema_ids",
+    "validators_required",
+    "validators_run",
+    "tests_run",
+    "coverage_unmapped_count",
+    "coverage_index_result",
+    "registry_yaml_parse_status",
+    "registry_placeholders_remaining",
+    "retained_archive_semantic_mapping_status",
+    "read_cache_update_required",
+    "context_pack_update_required",
+    "current_implementation_state_updated",
+    "next_task_class",
+    "next_required_section_ids",
+    "next_optional_section_ids",
+    "next_forbidden_default_sections",
+    "live_order_ready_before",
+    "live_order_ready_after",
+    "live_order_allowed_before",
+    "live_order_allowed_after",
+    "can_live_trade_before",
+    "can_live_trade_after",
+    "scale_up_allowed_before",
+    "remaining_blockers",
+    "evidence_manifest_path",
+    "validator_run_log_path",
+    "stage_gate_result_path",
+    "token_navigation_patch",
+    "active_read_surface_used",
+    "task_class",
+    "required_section_ids",
+    "expanded_section_ids",
+    "forbidden_default_sections_respected",
+    "authority_section_map_status",
+    "requirement_index_status",
+    "requirement_artifact_matrix_status",
+    "read_cache_manifest_status",
+    "context_pack_status",
+    "current_implementation_state_status",
+    "retained_archive_read",
+    "full_document_read",
+    "read_cache_invalidated",
+    "result_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.patch_result.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at_utc": {
+      "type": "string"
+    },
+    "target_mvp_level": {
+      "enum": [
+        "MVP-0",
+        "MVP-1",
+        "MVP-2",
+        "MVP-3",
+        "MVP-4",
+        "MVP-5",
+        "MVP-6",
+        "MVP-7"
+      ]
+    },
+    "patch_class": {
+      "enum": [
+        "DOC_CONTRACT_PATCH",
+        "REGISTRY_PATCH",
+        "SCHEMA_PATCH",
+        "VALIDATOR_PATCH",
+        "RUNTIME_SAFETY_PATCH",
+        "TEST_PATCH",
+        "EVIDENCE_PATCH",
+        "LIVE_ENABLING_PATCH"
+      ]
+    },
+    "affected_exchange": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "affected_market_type": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "affected_mode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "coverage_unmapped_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "coverage_index_result": {
+      "enum": ["PASS", "UNCHANGED_PASS", "UPDATED_PASS"]
+    },
+    "result_hash": {
+      "type": "string"
+    },
+    "input_authority_files": {
+      "type": "array"
+    },
+    "affected_contract_ids": {
+      "type": "array"
+    },
+    "removed_requirements": {
+      "type": "array"
+    },
+    "merged_requirements": {
+      "type": "array"
+    },
+    "new_registry_items": {
+      "type": "array"
+    },
+    "new_or_changed_schema_ids": {
+      "type": "array"
+    },
+    "validators_required": {
+      "type": "array"
+    },
+    "validators_run": {
+      "type": "array"
+    },
+    "tests_run": {
+      "type": "array"
+    },
+    "registry_placeholders_remaining": {
+      "type": "array"
+    },
+    "next_required_section_ids": {
+      "type": "array"
+    },
+    "next_optional_section_ids": {
+      "type": "array"
+    },
+    "next_forbidden_default_sections": {
+      "type": "array"
+    },
+    "remaining_blockers": {
+      "type": "array"
+    },
+    "active_read_surface_used": {
+      "type": "array"
+    },
+    "required_section_ids": {
+      "type": "array"
+    },
+    "expanded_section_ids": {
+      "type": "array"
+    },
+    "optimizer_validators_required": {
+      "type": "array"
+    },
+    "optimizer_validators_run": {
+      "type": "array"
+    },
+    "convergence_validators_required": {
+      "type": "array"
+    },
+    "convergence_validators_run": {
+      "type": "array"
+    },
+    "input_authority_hash_status": {
+      "type": "string"
+    },
+    "registry_yaml_parse_status": {
+      "type": "string"
+    },
+    "retained_archive_semantic_mapping_status": {
+      "type": "string"
+    },
+    "next_task_class": {
+      "type": "string"
+    },
+    "evidence_manifest_path": {
+      "type": "string"
+    },
+    "validator_run_log_path": {
+      "type": "string"
+    },
+    "stage_gate_result_path": {
+      "type": "string"
+    },
+    "task_class": {
+      "type": "string"
+    },
+    "authority_section_map_status": {
+      "type": "string"
+    },
+    "requirement_index_status": {
+      "type": "string"
+    },
+    "requirement_artifact_matrix_status": {
+      "type": "string"
+    },
+    "read_cache_manifest_status": {
+      "type": "string"
+    },
+    "context_pack_status": {
+      "type": "string"
+    },
+    "current_implementation_state_status": {
+      "type": "string"
+    },
+    "optimizer_patch": {
+      "type": "string"
+    },
+    "optimizer_stage": {
+      "type": "string"
+    },
+    "optimizer_status_before": {
+      "type": "string"
+    },
+    "optimizer_status_after": {
+      "type": "string"
+    },
+    "optimizer_maturity_level_before": {
+      "type": "string"
+    },
+    "optimizer_maturity_level_after": {
+      "type": "string"
+    },
+    "optimizer_output_type": {
+      "type": "string"
+    },
+    "optimizer_guardrail_result": {
+      "type": "string"
+    },
+    "profit_convergence_patch": {
+      "type": "string"
+    },
+    "convergence_state_before": {
+      "type": "string"
+    },
+    "convergence_state_after": {
+      "type": "string"
+    },
+    "failure_analysis_status": {
+      "type": "string"
+    },
+    "convergence_guardrail_result": {
+      "type": "string"
+    },
+    "authority_hash_checked": {
+      "type": "boolean"
+    },
+    "file_split": {
+      "type": "boolean"
+    },
+    "detail_reduction_allowed": {
+      "type": "boolean"
+    },
+    "semantic_reduction_allowed": {
+      "type": "boolean"
+    },
+    "retained_archive_preserved": {
+      "type": "boolean"
+    },
+    "read_cache_update_required": {
+      "type": "boolean"
+    },
+    "context_pack_update_required": {
+      "type": "boolean"
+    },
+    "current_implementation_state_updated": {
+      "type": "boolean"
+    },
+    "live_order_ready_before": {
+      "type": "boolean"
+    },
+    "live_order_ready_after": {
+      "type": "boolean"
+    },
+    "live_order_allowed_before": {
+      "type": "boolean"
+    },
+    "live_order_allowed_after": {
+      "type": "boolean"
+    },
+    "can_live_trade_before": {
+      "type": "boolean"
+    },
+    "can_live_trade_after": {
+      "type": "boolean"
+    },
+    "scale_up_allowed_before": {
+      "type": "boolean"
+    },
+    "token_navigation_patch": {
+      "type": "boolean"
+    },
+    "forbidden_default_sections_respected": {
+      "type": "boolean"
+    },
+    "retained_archive_read": {
+      "type": "boolean"
+    },
+    "full_document_read": {
+      "type": "boolean"
+    },
+    "read_cache_invalidated": {
+      "type": "boolean"
+    },
+    "optimizer_live_mutation_detected": {
+      "type": "boolean"
+    },
+    "optimizer_live_order_allowed_after": {
+      "type": "boolean"
+    },
+    "convergence_layer_changed": {
+      "type": "boolean"
+    },
+    "objective_profile_changed": {
+      "type": "boolean"
+    },
+    "memory_schema_changed": {
+      "type": "boolean"
+    },
+    "failure_analysis_required": {
+      "type": "boolean"
+    },
+    "exploration_exploitation_policy_changed": {
+      "type": "boolean"
+    },
+    "regime_adaptation_changed": {
+      "type": "boolean"
+    },
+    "risk_scaling_policy_changed": {
+      "type": "boolean"
+    },
+    "survival_layer_changed": {
+      "type": "boolean"
+    },
+    "convergence_live_mutation_detected": {
+      "type": "boolean"
+    },
+    "convergence_live_order_allowed_after": {
+      "type": "boolean"
+    },
+    "scale_up_eligibility_changed": {
+      "type": "boolean"
+    },
+    "scale_up_allowed_after": {
+      "type": "boolean"
+    }
+  }
+}

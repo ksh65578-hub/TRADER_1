@@ -1,0 +1,46 @@
+{
+  "schema_id": "trader1.optimizer_run_report.v1",
+  "generated_at_utc": "2026-04-29T00:00:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "optimizer_run_id": "optimizer_run_raw_pnl_objective_fail",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp4_optimizer_run_fixture",
+  "run_scope": "REPLAY_PAPER_SHADOW_READ_ONLY_ONLY",
+  "optimizer_run_status": "COMPLETED_ANALYSIS_ONLY",
+  "optimizer_stage": "MVP4_PAPER_RANKING_ONLY",
+  "optimizer_output_type": "CANDIDATE_RANKING_INPUT",
+  "objective_basis": "RAW_PNL",
+  "source_modes": [
+    "PAPER"
+  ],
+  "source_evidence_ids": [
+    "paper_fixture_001"
+  ],
+  "candidate_count": 1,
+  "output_artifact_ids": [
+    "candidate_scorecard_pass"
+  ],
+  "resource_budget_status": "PASS",
+  "partial_write_recovery_status": "PASS",
+  "live_readiness_status": "NOT_LIVE_READY",
+  "operator_warning": "Optimizer run is paper analysis only, not LIVE_READY and cannot place or allow live orders.",
+  "status": "PASS",
+  "blockers": [],
+  "dashboard_display_truth_only": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_config_mutation_allowed": false,
+  "writes_live_ready_snapshot": false,
+  "order_submission_allowed": false,
+  "exchange_account_call_allowed": false,
+  "scale_up_recommendation_allowed": false,
+  "notes": "Negative fixture: optimizer run cannot rank candidates by raw PnL."
+}

@@ -1,0 +1,11 @@
+{
+  "fixture_id": "convergence_risk_scale_blocked_without_burn_in",
+  "validator_id": "paper_live_parity_validator",
+  "expected_status": "BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "expected_order_adapter_called": false,
+  "expected_blocker_code": "READ_ONLY_BURN_IN_MISSING"
+}

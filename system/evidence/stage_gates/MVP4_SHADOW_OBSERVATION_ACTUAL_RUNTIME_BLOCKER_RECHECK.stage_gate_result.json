@@ -1,0 +1,38 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_SHADOW_OBSERVATION_ACTUAL_RUNTIME_BLOCKER_RECHECK_20260430_001",
+  "created_at_utc": "2026-04-30T00:55:45Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_SHADOW_OBSERVATION_ACTUAL_RUNTIME_BLOCKER_RECHECK",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "actual runtime blocker schema is closed and registered",
+    "stub-only SHADOW runtime artifacts are explicitly blocked from long-run evidence use",
+    "false long-run, threshold, source drift, live, order, promotion, optimizer, and scale-up claims are blocked",
+    "coverage matrix row is present under rows for the new requirement",
+    "patch_result validators_run entries are structured validator/status objects",
+    "full unittest discovery passed with 576 tests",
+    "patch_result runtime schema validators and MVP0 validators passed after artifact update"
+  ],
+  "blocked_conditions": [
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T01:04:00Z",
+  "status": "PASS_MVP4_INTERNAL_STUB_ONLY",
+  "tests_status": "PASS_576_UNITTESTS_26_RESEARCH_COMPILEALL",
+  "validators_status": "PASS_34_MVP0_4_PATCH_RESULT_PAPER_SHADOW",
+  "stage_gate_hash": "C0338B28BF1924F3DDC57C3C975E88739A7F208BDDF01CDAFD699DBDA479CB67"
+}

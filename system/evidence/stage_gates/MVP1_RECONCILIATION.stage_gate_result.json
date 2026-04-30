@@ -1,0 +1,11 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-28T14:50:36Z",
+  "patch_id": "MVP1_RECONCILIATION_SCAFFOLD_20260428_001",
+  "target_mvp_level": "MVP-1",
+  "reconciliation_validator": "PASS",
+  "ledger_reconciliation_validator": "PASS",
+  "runtime_reconciliation_report": "system/runtime/upbit/krw_spot/paper/reconciliation/reconciliation_report.json",
+  "live_order_allowed": false,
+  "stage_gate_status": "PASS_FOR_MVP1_RECONCILIATION_ONLY"
+}

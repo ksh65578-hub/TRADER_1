@@ -1,0 +1,1513 @@
+{
+  "registry_schema_id": "trader1.registry.v1",
+  "project_id": "TRADER_1",
+  "authority": {
+    "document": "TRADER_1.md",
+    "status": "ACTIVE",
+    "authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_document": "AGENTS.md",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "generated_marker": {
+    "header": "GENERATED_FROM: contracts/registry.yaml",
+    "edit_policy": "DO_NOT_EDIT_MANUALLY"
+  },
+  "enums": {
+    "exchange": {
+      "values": [
+        "UPBIT",
+        "BINANCE"
+      ]
+    },
+    "market_type": {
+      "values": [
+        "KRW_SPOT",
+        "SPOT",
+        "FUTURES_USDT_M"
+      ]
+    },
+    "mode": {
+      "values": [
+        "REPLAY",
+        "PAPER",
+        "SHADOW",
+        "LIVE",
+        "SAFE",
+        "READ_ONLY"
+      ]
+    },
+    "risk_profile": {
+      "values": [
+        "CONSERVATIVE",
+        "BALANCED",
+        "GROWTH",
+        "AGGRESSIVE_SANDBOX"
+      ]
+    },
+    "final_decision": {
+      "values": [
+        "ENTER_LONG",
+        "ENTER_SHORT",
+        "EXIT_POSITION",
+        "REDUCE_POSITION",
+        "CANCEL_ORDER",
+        "HOLD_POSITION",
+        "NO_TRADE",
+        "SAFE_MODE",
+        "RECONCILE_REQUIRED",
+        "TRADE_DISABLED",
+        "KILL_SWITCH",
+        "BLOCKED"
+      ]
+    },
+    "validator_result_status": {
+      "values": [
+        "PASS",
+        "FAIL",
+        "WARN",
+        "BLOCKED",
+        "UNTESTED",
+        "STALE",
+        "SKIPPED_NOT_APPLICABLE",
+        "TIMEOUT"
+      ]
+    },
+    "live_trading_status": {
+      "values": [
+        "NOT_APPLICABLE",
+        "REVIEW_ONLY",
+        "BLOCKED",
+        "SMALL_LIVE_BURN_IN",
+        "LIVE_ACTIVE"
+      ]
+    },
+    "blocker_category": {
+      "values": [
+        "DATA",
+        "LIQUIDITY",
+        "REGIME",
+        "STRATEGY",
+        "RISK",
+        "PORTFOLIO",
+        "EXECUTION",
+        "CONFIG",
+        "READINESS",
+        "OPERATOR",
+        "SECURITY",
+        "BUNDLE"
+      ]
+    },
+    "severity": {
+      "values": [
+        "INFO",
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ]
+    },
+    "api_verification_result": {
+      "values": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "STALE",
+        "UNVERIFIED"
+      ]
+    },
+    "operator_action": {
+      "values": [
+        "manual_stop",
+        "manual_resume_read_only",
+        "manual_ack_trade_disabled",
+        "manual_unlock_held_market_event",
+        "manual_retry_reconcile",
+        "manual_safe_mode",
+        "manual_disable_strategy",
+        "manual_reduce_position",
+        "manual_exit_all_positions"
+      ]
+    },
+    "exploration_stage": {
+      "values": [
+        "STAGE_A_WIDE",
+        "STAGE_B_REFINEMENT"
+      ]
+    },
+    "promotion_input_type": {
+      "values": [
+        "NOT_PROMOTION_INPUT",
+        "EXPLORATION_CANDIDATE",
+        "REFINEMENT_CANDIDATE",
+        "LIVE_READY_CANDIDATE_WRITER_INPUT"
+      ]
+    },
+    "exploration_bound_type": {
+      "values": [
+        "INITIAL_CANDIDATE_BOUND",
+        "EXPANDED_EXPLORATION_BOUND",
+        "LIVE_PARAMETER_BOUND"
+      ]
+    },
+    "entry_variation": {
+      "values": [
+        "breakout",
+        "retest",
+        "momentum",
+        "mean_reversion",
+        "vwap_reversion",
+        "pullback"
+      ]
+    },
+    "exit_variation": {
+      "values": [
+        "fixed_tp",
+        "trailing_tp",
+        "partial_exit",
+        "time_exit",
+        "volatility_exit",
+        "invalidation_exit",
+        "hard_stop"
+      ]
+    },
+    "execution_variation": {
+      "values": [
+        "market",
+        "limit",
+        "ioc",
+        "maker",
+        "split_order",
+        "single_order"
+      ]
+    },
+    "regime_family": {
+      "values": [
+        "TRENDING",
+        "RANGE",
+        "RISK_OFF"
+      ]
+    },
+    "combination_dimension": {
+      "values": [
+        "entry",
+        "exit",
+        "regime",
+        "execution",
+        "timeframe",
+        "liquidity_tier"
+      ]
+    },
+    "order_failure_type": {
+      "values": [
+        "INSUFFICIENT_BALANCE",
+        "MIN_NOTIONAL_FAIL",
+        "PRICE_FILTER_FAIL",
+        "LOT_SIZE_FAIL",
+        "TICK_SIZE_FAIL",
+        "STEP_SIZE_FAIL",
+        "SYMBOL_RULE_MISMATCH",
+        "FEE_MODEL_MISMATCH",
+        "POST_ONLY_REJECT",
+        "IOC_PARTIAL",
+        "FOK_REJECT",
+        "MARKET_ORDER_REJECT",
+        "RATE_LIMIT_HIT",
+        "API_TIMEOUT",
+        "AUTH_FAILURE",
+        "PERMISSION_DENIED",
+        "WITHDRAWAL_PERMISSION_DETECTED",
+        "SIGNATURE_INVALID",
+        "TIMESTAMP_DRIFT",
+        "NETWORK_TIMEOUT",
+        "TRANSPORT_AMBIGUOUS",
+        "EXCHANGE_UNKNOWN_ORDER",
+        "DUPLICATE_CLIENT_ORDER_ID",
+        "ORDER_NOT_FOUND_DURING_RECONCILE",
+        "CANCEL_REJECTED_ALREADY_FILLED",
+        "PARTIAL_FILL_STALE",
+        "PRIVATE_WS_GAP",
+        "UNKNOWN_REJECT"
+      ]
+    },
+    "no_trade_reason": {
+      "values": [
+        "MIN_EDGE_FAIL",
+        "EXPECTED_SLIPPAGE_EXCEEDED",
+        "DEPTH_TOO_THIN",
+        "DEPTH_EXCHANGE_REJECT_RISK",
+        "STALE_ORDERBOOK",
+        "STALE_TICKER",
+        "STALE_TRADE_TAPE",
+        "STALE_CANDLE_15M",
+        "STALE_CANDLE_60M",
+        "STALE_BENCHMARK_CONTEXT",
+        "MARKET_CONTEXT_LOAD_TIMEOUT",
+        "API_TIMEOUT",
+        "WEBSOCKET_GAP",
+        "CLOCK_DRIFT",
+        "PRIVATE_WS_UNHEALTHY",
+        "DRIFT_UNRECOVERED",
+        "SESSION_PAUSE",
+        "TICK_SIZE_CLIFF",
+        "BALANCE_MISMATCH",
+        "MARKET_EVENT_RISK",
+        "BREADTH_OFF_BLOCKED",
+        "PENDING_CONFIRM_EXISTS",
+        "COOLDOWN",
+        "CLUSTER_RISK",
+        "UNIVERSE_FILTERED",
+        "POSITION_LIMIT",
+        "TRADE_DISABLED",
+        "COLD_START",
+        "DATA_UNAVAILABLE",
+        "HARD_TRUTH_MISSING",
+        "SOFT_TRUTH_UNREGISTERED_FALLBACK",
+        "RESOURCE_LIMIT",
+        "RESOURCE_LIMIT_BLOCK",
+        "LEDGER_INTEGRITY_FAIL",
+        "LEDGER_UNAVAILABLE",
+        "EXCHANGE_SYNC_REQUIRED",
+        "RECONCILIATION_REQUIRED",
+        "SYMBOL_RULE_BLOCK",
+        "SYMBOL_RULE_UNVERIFIED",
+        "FEE_MODEL_UNVERIFIED",
+        "FEE_EXCEEDS_EDGE",
+        "MARKET_IMPACT_EXCEEDS_EDGE",
+        "LIVE_READY_MISSING",
+        "USER_APPROVAL_MISSING",
+        "PREFLIGHT_FAILED",
+        "SNAPSHOT_SCOPE_MISMATCH",
+        "API_UNVERIFIED",
+        "RISK_VETO",
+        "REGIME_MISMATCH",
+        "EXCHANGE_POLICY_BLOCK",
+        "BINANCE_ADAPTER_SURFACE_ONLY",
+        "BINANCE_FUTURES_SURFACE_ONLY",
+        "STRATEGY_NOT_ELIGIBLE",
+        "STRATEGY_CONFIDENCE_LOW",
+        "KILL_SWITCH_ACTIVE",
+        "LATENCY_TTL_EXPIRED",
+        "OFFICIAL_API_VERIFICATION_EXPIRED",
+        "MANUAL_ORDER_TEST_MISSING",
+        "OPERATOR_APPROVAL_MISSING",
+        "EMERGENCY_FLATTEN_UNAVAILABLE",
+        "SOURCE_IDENTITY_MISMATCH",
+        "BUNDLE_HYGIENE_FAIL",
+        "READ_ONLY_BURN_IN_MISSING",
+        "ORPHAN_POSITION_REVIEW_REQUIRED",
+        "ORPHAN_OPEN_ORDER_REVIEW_REQUIRED",
+        "LIVE_FINAL_GUARD_FAILED",
+        "SCHEMA_IDENTITY_MISMATCH",
+        "REGISTRY_DRIFT",
+        "GENERATED_ARTIFACT_DIRTY",
+        "CONTRACT_GAP_HIGH",
+        "CONTRACT_GAP_CRITICAL",
+        "MEASUREMENT_MISSING",
+        "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+        "EXECUTION_QUALITY_UNTESTED",
+        "EXPANDED_BOUND_UNVERIFIED",
+        "PROMOTION_INPUT_TYPE_INVALID",
+        "EXPLORATION_STAGE_MISMATCH",
+        "VARIATION_UNREGISTERED",
+        "TIMEFRAME_SCOPE_MISMATCH",
+        "CANDIDATE_BUDGET_EXCEEDED",
+        "DUPLICATE_CANDIDATE",
+        "DUPLICATE_WRITER_RISK",
+        "PARTIAL_WRITE_RECOVERY_REQUIRED",
+        "EXPLORATION_RESOURCE_LIMIT",
+        "LIVE_READY_SNAPSHOT_WRITER_UNTESTED",
+        "LIVE_READY_SNAPSHOT_WRITER_FAILED",
+        "LOW_RR_RATIO_UNVERIFIED",
+        "COST_AFTER_EDGE_UNVERIFIED",
+        "REGIME_SCOPE_MISMATCH",
+        "COMBINATION_COMPLEXITY_EXCEEDED",
+        "UNBOUNDED_CANDIDATE_EXPANSION",
+        "DATA_QUALITY_INSUFFICIENT",
+        "CANDIDATE_DIRECT_LIVE_FORBIDDEN",
+        "PAPER_WINNER_DIRECT_LIVE_FORBIDDEN",
+        "SNAPSHOT_WRITER_INPUT_NOT_SNAPSHOT",
+        "OPTIMIZER_UNTESTED",
+        "OBJECTIVE_FUNCTION_MISSING",
+        "SCORECARD_MISSING",
+        "SCORECARD_SCHEMA_INVALID",
+        "RANKING_UNSTABLE",
+        "SAMPLE_INSUFFICIENT",
+        "HOLDOUT_MISSING",
+        "WALK_FORWARD_MISSING",
+        "OOS_MISSING",
+        "BOOTSTRAP_UNSTABLE",
+        "OVERFIT_RISK_HIGH",
+        "SURVIVORSHIP_BIAS_RISK",
+        "DATA_SNOOPING_RISK",
+        "SYMBOL_SELECTION_BIAS",
+        "REGIME_FIT_UNTESTED",
+        "EXECUTION_FEEDBACK_MISSING",
+        "EXECUTION_FEEDBACK_DIVERGENT",
+        "PARAMETER_NARROWING_UNVERIFIED",
+        "EXPLOITATION_SHIFT_UNVERIFIED",
+        "OPTIMIZER_RESOURCE_LIMIT",
+        "OPTIMIZER_DIRECT_LIVE_FORBIDDEN",
+        "OPTIMIZER_LIVE_MUTATION_FORBIDDEN",
+        "CONVERGENCE_OBJECTIVE_MISSING",
+        "CONVERGENCE_MEMORY_MISSING",
+        "CONVERGENCE_MEMORY_STALE",
+        "CONVERGENCE_STATE_UNTESTED",
+        "CONVERGENCE_CLAIM_UNVERIFIED",
+        "FAILURE_ANALYSIS_MISSING",
+        "ROOT_CAUSE_UNKNOWN_LIVE_AFFECTING",
+        "MODEL_DRIFT_DETECTED",
+        "REGIME_ADAPTATION_UNTESTED",
+        "EXPLORATION_EXPLOITATION_TRANSITION_UNTESTED",
+        "RISK_SCALING_UNTESTED",
+        "RISK_SCALING_UP_FORBIDDEN",
+        "SURVIVAL_LAYER_BLOCKED",
+        "DRAWDOWN_FREEZE_ACTIVE",
+        "LIVE_BURN_IN_FEEDBACK_MISSING",
+        "SCALE_UP_VALIDATOR_MISSING",
+        "SCALE_UP_NOT_ELIGIBLE",
+        "UNKNOWN_BLOCKED"
+      ]
+    },
+    "live_blocker_code": {
+      "values": [
+        "MIN_EDGE_FAIL",
+        "EXPECTED_SLIPPAGE_EXCEEDED",
+        "DEPTH_TOO_THIN",
+        "DEPTH_EXCHANGE_REJECT_RISK",
+        "STALE_ORDERBOOK",
+        "STALE_TICKER",
+        "STALE_TRADE_TAPE",
+        "STALE_CANDLE_15M",
+        "STALE_CANDLE_60M",
+        "STALE_BENCHMARK_CONTEXT",
+        "MARKET_CONTEXT_LOAD_TIMEOUT",
+        "API_TIMEOUT",
+        "WEBSOCKET_GAP",
+        "CLOCK_DRIFT",
+        "PRIVATE_WS_UNHEALTHY",
+        "DRIFT_UNRECOVERED",
+        "SESSION_PAUSE",
+        "TICK_SIZE_CLIFF",
+        "BALANCE_MISMATCH",
+        "MARKET_EVENT_RISK",
+        "BREADTH_OFF_BLOCKED",
+        "PENDING_CONFIRM_EXISTS",
+        "COOLDOWN",
+        "CLUSTER_RISK",
+        "UNIVERSE_FILTERED",
+        "POSITION_LIMIT",
+        "TRADE_DISABLED",
+        "COLD_START",
+        "DATA_UNAVAILABLE",
+        "HARD_TRUTH_MISSING",
+        "SOFT_TRUTH_UNREGISTERED_FALLBACK",
+        "RESOURCE_LIMIT",
+        "RESOURCE_LIMIT_BLOCK",
+        "LEDGER_INTEGRITY_FAIL",
+        "LEDGER_UNAVAILABLE",
+        "EXCHANGE_SYNC_REQUIRED",
+        "RECONCILIATION_REQUIRED",
+        "SYMBOL_RULE_BLOCK",
+        "SYMBOL_RULE_UNVERIFIED",
+        "FEE_MODEL_UNVERIFIED",
+        "FEE_EXCEEDS_EDGE",
+        "MARKET_IMPACT_EXCEEDS_EDGE",
+        "LIVE_READY_MISSING",
+        "USER_APPROVAL_MISSING",
+        "PREFLIGHT_FAILED",
+        "SNAPSHOT_SCOPE_MISMATCH",
+        "API_UNVERIFIED",
+        "RISK_VETO",
+        "REGIME_MISMATCH",
+        "EXCHANGE_POLICY_BLOCK",
+        "BINANCE_ADAPTER_SURFACE_ONLY",
+        "BINANCE_FUTURES_SURFACE_ONLY",
+        "STRATEGY_NOT_ELIGIBLE",
+        "STRATEGY_CONFIDENCE_LOW",
+        "KILL_SWITCH_ACTIVE",
+        "LATENCY_TTL_EXPIRED",
+        "OFFICIAL_API_VERIFICATION_EXPIRED",
+        "MANUAL_ORDER_TEST_MISSING",
+        "OPERATOR_APPROVAL_MISSING",
+        "EMERGENCY_FLATTEN_UNAVAILABLE",
+        "SOURCE_IDENTITY_MISMATCH",
+        "BUNDLE_HYGIENE_FAIL",
+        "READ_ONLY_BURN_IN_MISSING",
+        "ORPHAN_POSITION_REVIEW_REQUIRED",
+        "ORPHAN_OPEN_ORDER_REVIEW_REQUIRED",
+        "LIVE_FINAL_GUARD_FAILED",
+        "SCHEMA_IDENTITY_MISMATCH",
+        "REGISTRY_DRIFT",
+        "GENERATED_ARTIFACT_DIRTY",
+        "CONTRACT_GAP_HIGH",
+        "CONTRACT_GAP_CRITICAL",
+        "MEASUREMENT_MISSING",
+        "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+        "EXECUTION_QUALITY_UNTESTED",
+        "EXPANDED_BOUND_UNVERIFIED",
+        "PROMOTION_INPUT_TYPE_INVALID",
+        "EXPLORATION_STAGE_MISMATCH",
+        "VARIATION_UNREGISTERED",
+        "TIMEFRAME_SCOPE_MISMATCH",
+        "CANDIDATE_BUDGET_EXCEEDED",
+        "DUPLICATE_CANDIDATE",
+        "DUPLICATE_WRITER_RISK",
+        "PARTIAL_WRITE_RECOVERY_REQUIRED",
+        "EXPLORATION_RESOURCE_LIMIT",
+        "LIVE_READY_SNAPSHOT_WRITER_UNTESTED",
+        "LIVE_READY_SNAPSHOT_WRITER_FAILED",
+        "LOW_RR_RATIO_UNVERIFIED",
+        "COST_AFTER_EDGE_UNVERIFIED",
+        "REGIME_SCOPE_MISMATCH",
+        "COMBINATION_COMPLEXITY_EXCEEDED",
+        "UNBOUNDED_CANDIDATE_EXPANSION",
+        "DATA_QUALITY_INSUFFICIENT",
+        "CANDIDATE_DIRECT_LIVE_FORBIDDEN",
+        "PAPER_WINNER_DIRECT_LIVE_FORBIDDEN",
+        "SNAPSHOT_WRITER_INPUT_NOT_SNAPSHOT",
+        "OPTIMIZER_UNTESTED",
+        "OBJECTIVE_FUNCTION_MISSING",
+        "SCORECARD_MISSING",
+        "SCORECARD_SCHEMA_INVALID",
+        "RANKING_UNSTABLE",
+        "SAMPLE_INSUFFICIENT",
+        "HOLDOUT_MISSING",
+        "WALK_FORWARD_MISSING",
+        "OOS_MISSING",
+        "BOOTSTRAP_UNSTABLE",
+        "OVERFIT_RISK_HIGH",
+        "SURVIVORSHIP_BIAS_RISK",
+        "DATA_SNOOPING_RISK",
+        "SYMBOL_SELECTION_BIAS",
+        "REGIME_FIT_UNTESTED",
+        "EXECUTION_FEEDBACK_MISSING",
+        "EXECUTION_FEEDBACK_DIVERGENT",
+        "PARAMETER_NARROWING_UNVERIFIED",
+        "EXPLOITATION_SHIFT_UNVERIFIED",
+        "OPTIMIZER_RESOURCE_LIMIT",
+        "OPTIMIZER_DIRECT_LIVE_FORBIDDEN",
+        "OPTIMIZER_LIVE_MUTATION_FORBIDDEN",
+        "CONVERGENCE_OBJECTIVE_MISSING",
+        "CONVERGENCE_MEMORY_MISSING",
+        "CONVERGENCE_MEMORY_STALE",
+        "CONVERGENCE_STATE_UNTESTED",
+        "CONVERGENCE_CLAIM_UNVERIFIED",
+        "FAILURE_ANALYSIS_MISSING",
+        "ROOT_CAUSE_UNKNOWN_LIVE_AFFECTING",
+        "MODEL_DRIFT_DETECTED",
+        "REGIME_ADAPTATION_UNTESTED",
+        "EXPLORATION_EXPLOITATION_TRANSITION_UNTESTED",
+        "RISK_SCALING_UNTESTED",
+        "RISK_SCALING_UP_FORBIDDEN",
+        "SURVIVAL_LAYER_BLOCKED",
+        "DRAWDOWN_FREEZE_ACTIVE",
+        "LIVE_BURN_IN_FEEDBACK_MISSING",
+        "SCALE_UP_VALIDATOR_MISSING",
+        "SCALE_UP_NOT_ELIGIBLE",
+        "UNKNOWN_BLOCKED"
+      ]
+    },
+    "patch_class": {
+      "values": [
+        "DOC_CONTRACT_PATCH",
+        "REGISTRY_PATCH",
+        "SCHEMA_PATCH",
+        "VALIDATOR_PATCH",
+        "RUNTIME_SAFETY_PATCH",
+        "TEST_PATCH",
+        "EVIDENCE_PATCH",
+        "LIVE_ENABLING_PATCH"
+      ]
+    },
+    "profit_optimizer_status": {
+      "values": [
+        "DISABLED",
+        "SCAFFOLD",
+        "COLLECTING",
+        "RANKING",
+        "EXPLORING",
+        "EXPLOITING",
+        "NARROWING",
+        "VALIDATING",
+        "BLOCKED",
+        "DEGRADED",
+        "RETIRED"
+      ]
+    },
+    "profit_optimizer_stage": {
+      "values": [
+        "METRIC_COLLECTION",
+        "BROAD_RANKING",
+        "LOCAL_EXPLOITATION",
+        "ROBUSTNESS_SWEEP",
+        "PARAMETER_NARROWING",
+        "SYMBOL_FIT_LEARNING",
+        "REGIME_FIT_LEARNING",
+        "EXECUTION_FEEDBACK",
+        "OVERFIT_DIAGNOSTIC",
+        "WRITER_INPUT_REVIEW"
+      ]
+    },
+    "profit_optimizer_output_type": {
+      "values": [
+        "OPTIMIZER_RESEARCH_SIGNAL",
+        "RANKED_EXPLORATION_CANDIDATE",
+        "REFINEMENT_CANDIDATE",
+        "PARAMETER_NARROWING_PROPOSAL",
+        "SYMBOL_STRATEGY_REGIME_FIT_REPORT",
+        "EXECUTION_FEEDBACK_ADJUSTMENT_PROPOSAL",
+        "LIVE_READY_CANDIDATE_WRITER_INPUT"
+      ]
+    },
+    "profit_optimizer_convergence_status": {
+      "values": [
+        "NOT_STARTED",
+        "COLLECTING",
+        "DIVERGING",
+        "FLAT",
+        "LOCALLY_IMPROVING",
+        "ROBUSTLY_IMPROVING",
+        "STABLE_CANDIDATE",
+        "ROBUST_CANDIDATE",
+        "WRITER_INPUT_ELIGIBLE",
+        "BLOCKED",
+        "UNTESTED",
+        "INSUFFICIENT_SAMPLE"
+      ]
+    },
+    "profit_optimizer_search_policy": {
+      "values": [
+        "GRID",
+        "RANDOM",
+        "LATIN_HYPERCUBE",
+        "BAYESIAN_SURROGATE",
+        "THOMPSON_SAMPLING",
+        "UCB_BANDIT",
+        "EVOLUTIONARY_MUTATION",
+        "LOCAL_NEIGHBORHOOD",
+        "WALK_FORWARD_ROLLING",
+        "SHADOW_CHAMPION_CHALLENGER"
+      ]
+    },
+    "profit_optimizer_model_type": {
+      "values": [
+        "RULE_BASED",
+        "LINEAR_SCORE",
+        "TREE_ENSEMBLE",
+        "BAYESIAN_SURROGATE",
+        "BANDIT_POLICY",
+        "ENSEMBLE_RANKER",
+        "CALIBRATED_META_MODEL"
+      ]
+    },
+    "profit_optimizer_blocker_code": {
+      "values": [
+        "OPTIMIZER_UNTESTED",
+        "OBJECTIVE_FUNCTION_MISSING",
+        "SCORECARD_MISSING",
+        "SCORECARD_SCHEMA_INVALID",
+        "RANKING_UNSTABLE",
+        "SAMPLE_INSUFFICIENT",
+        "HOLDOUT_MISSING",
+        "WALK_FORWARD_MISSING",
+        "OOS_MISSING",
+        "BOOTSTRAP_UNSTABLE",
+        "OVERFIT_RISK_HIGH",
+        "SURVIVORSHIP_BIAS_RISK",
+        "DATA_SNOOPING_RISK",
+        "SYMBOL_SELECTION_BIAS",
+        "REGIME_FIT_UNTESTED",
+        "EXECUTION_FEEDBACK_MISSING",
+        "EXECUTION_FEEDBACK_DIVERGENT",
+        "PARAMETER_NARROWING_UNVERIFIED",
+        "EXPLOITATION_SHIFT_UNVERIFIED",
+        "OPTIMIZER_RESOURCE_LIMIT",
+        "OPTIMIZER_DIRECT_LIVE_FORBIDDEN",
+        "OPTIMIZER_LIVE_MUTATION_FORBIDDEN"
+      ]
+    },
+    "profit_optimizer_score_band": {
+      "values": [
+        "UNKNOWN",
+        "NEGATIVE",
+        "WEAK",
+        "LOCAL",
+        "ROBUST",
+        "BLOCKED"
+      ]
+    },
+    "profit_optimizer_safety_mode": {
+      "values": [
+        "RESEARCH_ONLY",
+        "PAPER_ONLY",
+        "SHADOW_ONLY",
+        "READ_ONLY",
+        "BLOCKED"
+      ]
+    },
+    "profit_convergence_state": {
+      "values": [
+        "NOT_STARTED",
+        "COLLECTING",
+        "LOCALLY_IMPROVING",
+        "ROBUSTLY_IMPROVING",
+        "WRITER_INPUT_REVIEW",
+        "LIVE_BURN_IN_OBSERVING",
+        "SCALE_UP_REVIEW",
+        "BLOCKED",
+        "UNTESTED"
+      ]
+    },
+    "profit_convergence_objective_component": {
+      "values": [
+        "NET_EV_AFTER_COST",
+        "DRAWDOWN_CONTROL",
+        "EXECUTION_QUALITY",
+        "ROBUSTNESS",
+        "SURVIVAL"
+      ]
+    },
+    "profit_convergence_penalty_component": {
+      "values": [
+        "OVERFIT_RISK",
+        "SLIPPAGE_DIVERGENCE",
+        "DRAWDOWN_BREACH",
+        "UNKNOWN_ROOT_CAUSE",
+        "MODEL_DRIFT"
+      ]
+    },
+    "profit_convergence_memory_type": {
+      "values": [
+        "STRATEGY_PERFORMANCE",
+        "PARAMETER_OUTCOME",
+        "FAILURE_ROOT_CAUSE",
+        "RISK_SCALING",
+        "MODEL_DRIFT"
+      ]
+    },
+    "profit_convergence_root_cause": {
+      "values": [
+        "UNKNOWN_ROOT_CAUSE",
+        "DATA_QUALITY",
+        "REGIME_SHIFT",
+        "EXECUTION_COST",
+        "OVERFIT",
+        "RISK_LIMIT",
+        "RESOURCE_LIMIT"
+      ]
+    },
+    "profit_convergence_controller_state": {
+      "values": [
+        "IDLE",
+        "COLLECTING",
+        "ANALYZING",
+        "PROPOSING",
+        "BLOCKED"
+      ]
+    },
+    "profit_convergence_action": {
+      "values": [
+        "COLLECT_MORE_EVIDENCE",
+        "RETIRE_CANDIDATE",
+        "NARROW_PARAMETERS",
+        "ADAPT_REGIME_SCOPE",
+        "SCALE_DOWN_RECOMMENDATION",
+        "SCALE_UP_PROPOSAL",
+        "BLOCK"
+      ]
+    },
+    "profit_convergence_claim_type": {
+      "values": [
+        "NO_CLAIM",
+        "LOCALLY_IMPROVING",
+        "ROBUSTLY_IMPROVING",
+        "WRITER_INPUT_ELIGIBLE",
+        "BLOCKED"
+      ]
+    },
+    "risk_scaling_decision_type": {
+      "values": [
+        "NO_CHANGE",
+        "SCALE_DOWN",
+        "SCALE_UP_PROPOSAL",
+        "FREEZE",
+        "BLOCKED"
+      ]
+    },
+    "risk_scaling_trigger": {
+      "values": [
+        "DRAWDOWN",
+        "SLIPPAGE_DIVERGENCE",
+        "ROBUST_EVIDENCE",
+        "OPERATOR_POLICY",
+        "SURVIVAL"
+      ]
+    },
+    "market_regime_adaptation_signal": {
+      "values": [
+        "NO_SIGNAL",
+        "REGIME_SHIFT",
+        "VOLATILITY_SHIFT",
+        "LIQUIDITY_SHIFT",
+        "DATA_STALE"
+      ]
+    },
+    "failure_pattern_status": {
+      "values": [
+        "NEW",
+        "REPEATED",
+        "WORSENING",
+        "RESOLVED",
+        "UNKNOWN"
+      ]
+    },
+    "model_drift_status": {
+      "values": [
+        "NOT_EVALUATED",
+        "NO_DRIFT",
+        "DRIFT_SUSPECTED",
+        "DRIFT_DETECTED",
+        "BLOCKED"
+      ]
+    },
+    "survival_layer_action": {
+      "values": [
+        "ALLOW_ANALYSIS",
+        "SCALE_DOWN",
+        "FREEZE",
+        "BLOCK_PROMOTION",
+        "BLOCK_LIVE"
+      ]
+    },
+    "convergence_blocker_code": {
+      "values": [
+        "CONVERGENCE_OBJECTIVE_MISSING",
+        "CONVERGENCE_MEMORY_MISSING",
+        "CONVERGENCE_MEMORY_STALE",
+        "CONVERGENCE_STATE_UNTESTED",
+        "CONVERGENCE_CLAIM_UNVERIFIED",
+        "FAILURE_ANALYSIS_MISSING",
+        "ROOT_CAUSE_UNKNOWN_LIVE_AFFECTING",
+        "MODEL_DRIFT_DETECTED",
+        "REGIME_ADAPTATION_UNTESTED",
+        "EXPLORATION_EXPLOITATION_TRANSITION_UNTESTED",
+        "RISK_SCALING_UNTESTED",
+        "RISK_SCALING_UP_FORBIDDEN",
+        "SURVIVAL_LAYER_BLOCKED",
+        "DRAWDOWN_FREEZE_ACTIVE",
+        "LIVE_BURN_IN_FEEDBACK_MISSING",
+        "SCALE_UP_VALIDATOR_MISSING",
+        "SCALE_UP_NOT_ELIGIBLE"
+      ]
+    }
+  },
+  "readiness_vocabulary": {
+    "release_ready": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "bundle_ready": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "can_start": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "can_collect_data": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "can_evaluate_candidates": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "can_paper_trade": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "can_shadow_evaluate": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "can_replay": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "can_live_review": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "can_live_trade": {
+      "type": "boolean",
+      "default": false,
+      "implies_live_order_ready": false
+    },
+    "live_order_ready": {
+      "type": "boolean",
+      "default": false
+    },
+    "live_order_allowed": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "schemas": {
+    "common_defs": {
+      "schema_id": "trader1.common_defs.v1",
+      "path": "contracts/schema/common.defs.schema.json"
+    },
+    "readiness_surface": {
+      "schema_id": "trader1.readiness_surface.v1",
+      "path": "contracts/schema/readiness_surface.schema.json"
+    },
+    "live_ready_snapshot": {
+      "schema_id": "trader1.live_ready_snapshot.v1",
+      "path": "contracts/schema/live_ready_snapshot.schema.json"
+    },
+    "manual_order_test_evidence": {
+      "schema_id": "trader1.manual_order_test_evidence.v1",
+      "path": "contracts/schema/manual_order_test_evidence.schema.json"
+    },
+    "final_decision": {
+      "schema_id": "trader1.final_decision.v1",
+      "path": "contracts/schema/final_decision.schema.json"
+    },
+    "ledger_event": {
+      "schema_id": "trader1.ledger_event.v1",
+      "path": "contracts/schema/ledger_event.schema.json"
+    },
+    "summary": {
+      "schema_id": "trader1.summary.v1",
+      "path": "contracts/schema/summary.schema.json"
+    },
+    "paper_portfolio_snapshot": {
+      "schema_id": "trader1.paper_portfolio_snapshot.v1",
+      "path": "contracts/schema/paper_portfolio_snapshot.schema.json"
+    },
+    "paper_ledger_rollup_report": {
+      "schema_id": "trader1.paper_ledger_rollup_report.v1",
+      "path": "contracts/schema/paper_ledger_rollup_report.schema.json"
+    },
+    "evidence_manifest": {
+      "schema_id": "trader1.evidence_manifest.v1",
+      "path": "contracts/schema/evidence_manifest.schema.json"
+    },
+    "official_api_verification_report": {
+      "schema_id": "trader1.official_api_verification_report.v1",
+      "path": "contracts/schema/official_api_verification_report.schema.json"
+    },
+    "validator_result": {
+      "schema_id": "trader1.validator_result.v1",
+      "path": "contracts/schema/validator_result.schema.json"
+    },
+    "operator_action_audit": {
+      "schema_id": "trader1.operator_action_audit.v1",
+      "path": "contracts/schema/operator_action_audit.schema.json"
+    },
+    "release_source_identity": {
+      "schema_id": "trader1.release_source_identity.v1",
+      "path": "contracts/schema/release_source_identity.schema.json"
+    },
+    "contract_gap": {
+      "schema_id": "trader1.contract_gap.v1",
+      "path": "contracts/schema/contract_gap.schema.json"
+    },
+    "patch_result": {
+      "schema_id": "trader1.patch_result.v1",
+      "path": "contracts/schema/patch_result.schema.json"
+    },
+    "strategy_candidate": {
+      "schema_id": "trader1.strategy_candidate.v1",
+      "path": "contracts/schema/strategy_candidate.schema.json"
+    },
+    "candidate_generation_report": {
+      "schema_id": "trader1.candidate_generation_report.v1",
+      "path": "contracts/schema/candidate_generation_report.schema.json"
+    },
+    "live_ready_candidate_writer_input": {
+      "schema_id": "trader1.live_ready_candidate_writer_input.v1",
+      "path": "contracts/schema/live_ready_candidate_writer_input.schema.json"
+    },
+    "validator_fixture_catalog": {
+      "schema_id": "trader1.validator_fixture_catalog.v1",
+      "path": "contracts/schema/validator_fixture_catalog.schema.json"
+    },
+    "profit_optimizer_config": {
+      "schema_id": "trader1.profit_optimizer_config.v1",
+      "path": "contracts/schema/profit_optimizer_config.schema.json"
+    },
+    "candidate_scorecard": {
+      "schema_id": "trader1.candidate_scorecard.v1",
+      "path": "contracts/schema/candidate_scorecard.schema.json"
+    },
+    "optimizer_run_report": {
+      "schema_id": "trader1.optimizer_run_report.v1",
+      "path": "contracts/schema/optimizer_run_report.schema.json"
+    },
+    "optimization_state": {
+      "schema_id": "trader1.optimization_state.v1",
+      "path": "contracts/schema/optimization_state.schema.json"
+    },
+    "search_space_snapshot": {
+      "schema_id": "trader1.search_space_snapshot.v1",
+      "path": "contracts/schema/search_space_snapshot.schema.json"
+    },
+    "parameter_narrowing_report": {
+      "schema_id": "trader1.parameter_narrowing_report.v1",
+      "path": "contracts/schema/parameter_narrowing_report.schema.json"
+    },
+    "symbol_strategy_regime_fit_report": {
+      "schema_id": "trader1.symbol_strategy_regime_fit_report.v1",
+      "path": "contracts/schema/symbol_strategy_regime_fit_report.schema.json"
+    },
+    "optimizer_feedback_report": {
+      "schema_id": "trader1.optimizer_feedback_report.v1",
+      "path": "contracts/schema/optimizer_feedback_report.schema.json"
+    },
+    "overfit_diagnostic_report": {
+      "schema_id": "trader1.overfit_diagnostic_report.v1",
+      "path": "contracts/schema/overfit_diagnostic_report.schema.json"
+    },
+    "optimizer_recommendation_report": {
+      "schema_id": "trader1.optimizer_recommendation_report.v1",
+      "path": "contracts/schema/optimizer_recommendation_report.schema.json"
+    },
+    "optimizer_guardrail_report": {
+      "schema_id": "trader1.optimizer_guardrail_report.v1",
+      "path": "contracts/schema/optimizer_guardrail_report.schema.json"
+    },
+    "convergence_objective_profile": {
+      "schema_id": "trader1.convergence_objective_profile.v1",
+      "path": "contracts/schema/convergence_objective_profile.schema.json"
+    },
+    "optimizer_memory_state": {
+      "schema_id": "trader1.optimizer_memory_state.v1",
+      "path": "contracts/schema/optimizer_memory_state.schema.json"
+    },
+    "strategy_performance_memory": {
+      "schema_id": "trader1.strategy_performance_memory.v1",
+      "path": "contracts/schema/strategy_performance_memory.schema.json"
+    },
+    "failure_analysis_report": {
+      "schema_id": "trader1.failure_analysis_report.v1",
+      "path": "contracts/schema/failure_analysis_report.schema.json"
+    },
+    "market_regime_adaptation_report": {
+      "schema_id": "trader1.market_regime_adaptation_report.v1",
+      "path": "contracts/schema/market_regime_adaptation_report.schema.json"
+    },
+    "exploration_exploitation_policy": {
+      "schema_id": "trader1.exploration_exploitation_policy.v1",
+      "path": "contracts/schema/exploration_exploitation_policy.schema.json"
+    },
+    "risk_scaling_decision": {
+      "schema_id": "trader1.risk_scaling_decision.v1",
+      "path": "contracts/schema/risk_scaling_decision.schema.json"
+    },
+    "convergence_assessment_report": {
+      "schema_id": "trader1.convergence_assessment_report.v1",
+      "path": "contracts/schema/convergence_assessment_report.schema.json"
+    },
+    "model_drift_report": {
+      "schema_id": "trader1.model_drift_report.v1",
+      "path": "contracts/schema/model_drift_report.schema.json"
+    },
+    "live_burn_in_feedback_report": {
+      "schema_id": "trader1.live_burn_in_feedback_report.v1",
+      "path": "contracts/schema/live_burn_in_feedback_report.schema.json"
+    },
+    "profit_convergence_cycle_report": {
+      "schema_id": "trader1.profit_convergence_cycle_report.v1",
+      "path": "contracts/schema/profit_convergence_cycle_report.schema.json"
+    },
+    "runtime_config": {
+      "schema_id": "trader1.runtime_config.v1",
+      "path": "contracts/schema/runtime_config.schema.json"
+    },
+    "startup_probe": {
+      "schema_id": "trader1.startup_probe.v1",
+      "path": "contracts/schema/startup_probe.schema.json"
+    },
+    "heartbeat": {
+      "schema_id": "trader1.heartbeat.v1",
+      "path": "contracts/schema/heartbeat.schema.json"
+    },
+    "root_launcher_report": {
+      "schema_id": "trader1.root_launcher_report.v1",
+      "path": "contracts/schema/root_launcher_report.schema.json"
+    },
+    "safe_smoke_report": {
+      "schema_id": "trader1.safe_smoke_report.v1",
+      "path": "contracts/schema/safe_smoke_report.schema.json"
+    },
+    "bytecode_free_syntax_report": {
+      "schema_id": "trader1.bytecode_free_syntax_report.v1",
+      "path": "contracts/schema/bytecode_free_syntax_report.schema.json"
+    },
+    "read_only_dashboard_shell": {
+      "schema_id": "trader1.read_only_dashboard_shell.v1",
+      "path": "contracts/schema/read_only_dashboard_shell.schema.json"
+    },
+    "runtime_stability_history": {
+      "schema_id": "trader1.runtime_stability_history.v1",
+      "path": "contracts/schema/runtime_stability_history.schema.json"
+    },
+    "safety_control_report": {
+      "schema_id": "trader1.safety_control_report.v1",
+      "path": "contracts/schema/safety_control_report.schema.json"
+    },
+    "reconciliation_report": {
+      "schema_id": "trader1.reconciliation_report.v1",
+      "path": "contracts/schema/reconciliation_report.schema.json"
+    },
+    "emergency_flatten_report": {
+      "schema_id": "trader1.emergency_flatten_report.v1",
+      "path": "contracts/schema/emergency_flatten_report.schema.json"
+    },
+    "upbit_paper_dry_run_report": {
+      "schema_id": "trader1.upbit_paper_dry_run_report.v1",
+      "path": "contracts/schema/upbit_paper_dry_run_report.schema.json"
+    },
+    "intent_wal_event": {
+      "schema_id": "trader1.intent_wal_event.v1",
+      "path": "contracts/schema/intent_wal_event.schema.json"
+    },
+    "restart_recovery_report": {
+      "schema_id": "trader1.restart_recovery_report.v1",
+      "path": "contracts/schema/restart_recovery_report.schema.json"
+    },
+    "strategy_unit": {
+      "schema_id": "trader1.strategy_unit.v1",
+      "path": "contracts/schema/strategy_unit.schema.json"
+    },
+    "position_sizing_decision": {
+      "schema_id": "trader1.position_sizing_decision.v1",
+      "path": "contracts/schema/position_sizing_decision.schema.json"
+    },
+    "replay_consistency_report": {
+      "schema_id": "trader1.replay_consistency_report.v1",
+      "path": "contracts/schema/replay_consistency_report.schema.json"
+    },
+    "paper_shadow_separation_report": {
+      "schema_id": "trader1.paper_shadow_separation_report.v1",
+      "path": "contracts/schema/paper_shadow_separation_report.schema.json"
+    },
+    "paper_operation_gate_report": {
+      "schema_id": "trader1.paper_operation_gate_report.v1",
+      "path": "contracts/schema/paper_operation_gate_report.schema.json"
+    },
+    "read_only_account_snapshot": {
+      "schema_id": "trader1.read_only_account_snapshot.v1",
+      "path": "contracts/schema/read_only_account_snapshot.schema.json"
+    },
+    "private_stream_health": {
+      "schema_id": "trader1.private_stream_health.v1",
+      "path": "contracts/schema/private_stream_health.schema.json"
+    },
+    "upbit_read_only_reconciliation_path": {
+      "schema_id": "trader1.upbit_read_only_reconciliation_path.v1",
+      "path": "contracts/schema/upbit_read_only_reconciliation_path.schema.json"
+    },
+    "api_key_permission_check_report": {
+      "schema_id": "trader1.api_key_permission_check_report.v1",
+      "path": "contracts/schema/api_key_permission_check_report.schema.json"
+    },
+    "live_preflight_report": {
+      "schema_id": "trader1.live_preflight_report.v1",
+      "path": "contracts/schema/live_preflight_report.schema.json"
+    },
+    "live_review_dashboard": {
+      "schema_id": "trader1.live_review_dashboard.v1",
+      "path": "contracts/schema/live_review_dashboard.schema.json"
+    },
+    "execution_quality_measurement_report": {
+      "schema_id": "trader1.execution_quality_measurement_report.v1",
+      "path": "contracts/schema/execution_quality_measurement_report.schema.json"
+    },
+    "survival_layer_report": {
+      "schema_id": "trader1.survival_layer_report.v1",
+      "path": "contracts/schema/survival_layer_report.schema.json"
+    },
+    "strategy_condition_matrix": {
+      "schema_id": "trader1.strategy_condition_matrix.v1",
+      "path": "contracts/schema/strategy_condition_matrix.schema.json"
+    },
+    "paper_shadow_evidence_accumulation_report": {
+      "schema_id": "trader1.paper_shadow_evidence_accumulation_report.v1",
+      "path": "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json"
+    },
+    "shadow_observation_report": {
+      "schema_id": "trader1.shadow_observation_report.v1",
+      "path": "contracts/schema/shadow_observation_report.schema.json"
+    },
+    "shadow_observation_stream_report": {
+      "schema_id": "trader1.shadow_observation_stream_report.v1",
+      "path": "contracts/schema/shadow_observation_stream_report.schema.json"
+    },
+    "shadow_observation_scheduler_guard_report": {
+      "schema_id": "trader1.shadow_observation_scheduler_guard_report.v1",
+      "path": "contracts/schema/shadow_observation_scheduler_guard_report.schema.json"
+    },
+    "shadow_observation_persistent_runtime_report": {
+      "schema_id": "trader1.shadow_observation_persistent_runtime_report.v1",
+      "path": "contracts/schema/shadow_observation_persistent_runtime_report.schema.json"
+    },
+    "shadow_observation_actual_runtime_blocker_report": {
+      "schema_id": "trader1.shadow_observation_actual_runtime_blocker_report.v1",
+      "path": "contracts/schema/shadow_observation_actual_runtime_blocker_report.schema.json"
+    },
+    "shadow_observation_actual_runtime_harness_report": {
+      "schema_id": "trader1.shadow_observation_actual_runtime_harness_report.v1",
+      "path": "contracts/schema/shadow_observation_actual_runtime_harness_report.schema.json"
+    },
+    "shadow_observation_runtime_artifact_writer_report": {
+      "schema_id": "trader1.shadow_observation_runtime_artifact_writer_report.v1",
+      "path": "contracts/schema/shadow_observation_runtime_artifact_writer_report.schema.json"
+    },
+    "paper_exposure_quality_report": {
+      "schema_id": "trader1.paper_exposure_quality_report.v1",
+      "path": "contracts/schema/paper_exposure_quality_report.schema.json"
+    },
+    "profitability_evidence_maturity_rollup": {
+      "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
+      "path": "contracts/schema/profitability_evidence_maturity_rollup.schema.json"
+    },
+    "upbit_public_rest_sample_report": {
+      "schema_id": "trader1.upbit_public_rest_sample_report.v1",
+      "path": "contracts/schema/upbit_public_rest_sample_report.schema.json"
+    },
+    "upbit_public_rest_continuity_report": {
+      "schema_id": "trader1.upbit_public_rest_continuity_report.v1",
+      "path": "contracts/schema/upbit_public_rest_continuity_report.schema.json"
+    },
+    "upbit_public_rest_continuity_history": {
+      "schema_id": "trader1.upbit_public_rest_continuity_history.v1",
+      "path": "contracts/schema/upbit_public_rest_continuity_history.schema.json"
+    },
+    "binance_adapter_surface_report": {
+      "schema_id": "trader1.binance_adapter_surface_report.v1",
+      "path": "contracts/schema/binance_adapter_surface_report.schema.json"
+    }
+  },
+  "path_slugs": {
+    "UPBIT": "upbit",
+    "BINANCE": "binance",
+    "KRW_SPOT": "krw_spot",
+    "SPOT": "spot",
+    "FUTURES_USDT_M": "futures_usdt_m",
+    "REPLAY": "replay",
+    "PAPER": "paper",
+    "SHADOW": "shadow",
+    "LIVE": "live",
+    "SAFE": "safe",
+    "READ_ONLY": "read_only"
+  },
+  "bundle_rules": {
+    "source_bundle_denylist_path": "contracts/security/source_bundle_denylist.json",
+    "deny_secret_patterns": [
+      ".env",
+      "*.pem",
+      "*.key",
+      "*secret*",
+      "*token*",
+      "*credential*"
+    ]
+  },
+  "authority_integrity": {
+    "authority_hash_required": true,
+    "placeholder_hash_forbidden": true,
+    "stale_hash_blocks_live": true
+  },
+  "validators": {
+    "VALIDATOR_GROUP:MVP0_CORE": [
+      "authority_integrity_validator",
+      "external_authority_manifest_validator",
+      "registry_validator",
+      "schema_validator",
+      "closed_enum_validator",
+      "common_defs_drift_validator",
+      "patch_result_schema_validator",
+      "patch_result_runtime_schema_instance_validator",
+      "coverage_index_validator",
+      "active_schema_extraction_validator",
+      "generated_artifact_dirty_validator",
+      "root_launcher_guard_validator",
+      "runtime_config_validator",
+      "live_ready_snapshot_writer_validator",
+      "startup_probe_validator",
+      "heartbeat_validator",
+      "summary_shell_validator",
+      "root_launcher_surface_validator",
+      "binance_adapter_surface_validator",
+      "read_only_dashboard_validator",
+      "dashboard_visual_layout_validator",
+      "runtime_schema_instance_validator",
+      "runtime_stability_history_validator",
+      "runtime_resource_pressure_validator",
+      "bytecode_free_syntax_validator",
+      "paper_portfolio_snapshot_validator",
+      "safety_control_validator",
+      "ledger_durability_validator",
+      "paper_ledger_rollup_validator",
+      "operator_action_audit_validator",
+      "operator_control_validator",
+      "reconciliation_validator",
+      "ledger_reconciliation_validator",
+      "emergency_flatten_validator",
+      "upbit_paper_dry_run_validator",
+      "upbit_paper_runtime_cycle_validator",
+      "upbit_public_market_data_collection_validator",
+      "upbit_public_rest_sample_validator",
+      "upbit_public_rest_continuity_validator",
+      "upbit_public_rest_continuity_history_validator",
+      "upbit_paper_persistent_loop_validator",
+      "upbit_paper_runtime_recovery_guard_validator",
+      "restart_recovery_validator",
+      "upbit_operational_paper_gate_validator",
+      "upbit_live_review_preflight_validator",
+      "convergence_assessment_validator",
+      "exploration_exploitation_policy_validator",
+      "parameter_narrowing_validator",
+      "live_blocked_negative_matrix_validator",
+      "live_blocked_scaffold_validator",
+      "path_namespace_validator",
+      "truth_hierarchy_validator",
+      "source_bundle_hygiene_validator",
+      "shipped_package_hygiene_validator",
+      "secret_scan_validator"
+    ],
+    "VALIDATOR_GROUP:LIVE_SAFETY_CORE": [
+      "readiness_surface_validator",
+      "patch_result_runtime_schema_instance_validator",
+      "live_ready_snapshot_validator",
+      "live_ready_snapshot_writer_validator",
+      "live_final_guard_validator",
+      "single_writer_order_path_validator",
+      "strategy_direct_order_validator",
+      "official_api_verification_validator",
+      "paper_live_parity_validator",
+      "execution_quality_measurement_validator",
+      "ledger_reconciliation_validator",
+      "emergency_flatten_validator",
+      "root_launcher_guard_validator",
+      "runtime_config_validator",
+      "startup_probe_validator",
+      "heartbeat_validator",
+      "summary_shell_validator",
+      "root_launcher_surface_validator",
+      "read_only_dashboard_validator",
+      "dashboard_visual_layout_validator",
+      "runtime_schema_instance_validator",
+      "patch_result_runtime_schema_instance_validator",
+      "runtime_stability_history_validator",
+      "runtime_resource_pressure_validator",
+      "bytecode_free_syntax_validator",
+      "paper_portfolio_snapshot_validator",
+      "safety_control_validator",
+      "ledger_durability_validator",
+      "paper_ledger_rollup_validator",
+      "operator_action_audit_validator",
+      "operator_control_validator",
+      "reconciliation_validator",
+      "upbit_paper_dry_run_validator",
+      "upbit_paper_runtime_cycle_validator",
+      "upbit_public_market_data_collection_validator",
+      "upbit_public_rest_sample_validator",
+      "upbit_public_rest_continuity_validator",
+      "upbit_public_rest_continuity_history_validator",
+      "upbit_paper_persistent_loop_validator",
+      "upbit_paper_runtime_recovery_guard_validator",
+      "restart_recovery_validator",
+      "upbit_operational_paper_gate_validator",
+      "upbit_live_review_preflight_validator",
+      "convergence_assessment_validator",
+      "exploration_exploitation_policy_validator",
+      "parameter_narrowing_validator",
+      "live_blocked_negative_matrix_validator",
+      "live_blocked_scaffold_validator",
+      "path_namespace_validator",
+      "truth_hierarchy_validator",
+      "source_bundle_hygiene_validator",
+      "shipped_package_hygiene_validator",
+      "secret_scan_validator"
+    ],
+    "VALIDATOR_GROUP:OPTIMIZER_CORE": [
+      "profit_optimizer_config_validator",
+      "objective_function_validator",
+      "candidate_scorecard_validator",
+      "optimizer_recommendation_validator",
+      "optimizer_run_report_validator",
+      "optimizer_guardrail_report_validator",
+      "optimization_state_validator",
+      "optimizer_memory_state_validator",
+      "strategy_performance_memory_validator",
+      "candidate_ranking_validator",
+      "optimizer_guardrail_validator",
+      "optimizer_no_live_mutation_validator",
+      "profitability_evidence_maturity_rollup_validator",
+      "profitability_optimizer_evidence_gap_validator",
+      "candidate_scorecard_net_ev_validator",
+      "strategy_condition_matrix_validator",
+      "symbol_strategy_regime_fit_validator",
+      "market_regime_adaptation_validator",
+      "overfit_diagnostic_validator",
+      "execution_feedback_loop_validator",
+      "shadow_observation_runtime_validator",
+      "shadow_observation_stream_validator",
+      "shadow_observation_scheduler_guard_validator",
+      "shadow_observation_persistent_runtime_validator",
+      "shadow_observation_actual_runtime_blocker_validator",
+      "shadow_observation_actual_runtime_harness_validator",
+      "shadow_observation_artifact_writer_validator",
+      "paper_shadow_evidence_accumulation_validator",
+      "paper_exposure_quality_report_validator",
+      "profitability_evidence_maturity_rollup_validator",
+      "failure_analysis_validator",
+      "exploration_exploitation_policy_validator",
+      "read_only_dashboard_validator",
+      "parameter_narrowing_validator"
+    ],
+    "VALIDATOR_GROUP:OPTIMIZER_ROBUSTNESS": [
+      "ranking_stability_validator",
+      "rolling_window_default_validator",
+      "exploration_to_exploitation_validator",
+      "parameter_narrowing_validator",
+      "overfit_diagnostic_validator",
+      "convergence_claim_validator",
+      "execution_feedback_loop_validator",
+      "shadow_observation_runtime_validator",
+      "shadow_observation_stream_validator",
+      "shadow_observation_scheduler_guard_validator",
+      "shadow_observation_persistent_runtime_validator",
+      "shadow_observation_actual_runtime_blocker_validator",
+      "shadow_observation_actual_runtime_harness_validator",
+      "shadow_observation_artifact_writer_validator",
+      "paper_shadow_evidence_accumulation_validator",
+      "paper_exposure_quality_report_validator",
+      "failure_analysis_validator",
+      "exploration_exploitation_policy_validator"
+    ],
+    "VALIDATOR_GROUP:CONVERGENCE_CORE": [
+      "convergence_objective_profile_validator",
+      "optimizer_memory_state_validator",
+      "strategy_performance_memory_validator",
+      "convergence_assessment_validator",
+      "profit_convergence_cycle_validator",
+      "profitability_evidence_maturity_rollup_validator",
+      "profitability_optimizer_evidence_gap_validator",
+      "execution_feedback_loop_validator",
+      "shadow_observation_runtime_validator",
+      "shadow_observation_stream_validator",
+      "shadow_observation_scheduler_guard_validator",
+      "shadow_observation_persistent_runtime_validator",
+      "shadow_observation_actual_runtime_blocker_validator",
+      "shadow_observation_actual_runtime_harness_validator",
+      "shadow_observation_artifact_writer_validator",
+      "paper_shadow_evidence_accumulation_validator",
+      "paper_exposure_quality_report_validator",
+      "failure_analysis_validator",
+      "market_regime_adaptation_validator",
+      "read_only_dashboard_validator",
+      "exploration_exploitation_policy_validator",
+      "parameter_narrowing_validator"
+    ],
+    "VALIDATOR_GROUP:CONVERGENCE_RISK_SCALE": [
+      "risk_scaling_decision_validator",
+      "live_burn_in_feedback_validator",
+      "survival_layer_validator",
+      "scale_up_eligibility_validator",
+      "model_drift_validator"
+    ],
+    "supplemental_mvp0": [
+      "parameter_bound_validator",
+      "candidate_cooldown_validator",
+      "promotion_threshold_validator",
+      "paper_live_parity_validator",
+      "order_failure_taxonomy_validator",
+      "realized_slippage_validator",
+      "execution_quality_measurement_validator",
+      "rolling_window_default_validator",
+      "root_launcher_guard_validator",
+      "runtime_config_validator",
+      "live_ready_snapshot_writer_validator",
+      "live_blocked_negative_matrix_validator",
+      "live_blocked_scaffold_validator",
+      "path_namespace_validator",
+      "truth_hierarchy_validator",
+      "source_bundle_hygiene_validator",
+      "shipped_package_hygiene_validator",
+      "secret_scan_validator"
+    ],
+    "supplemental_mvp1": [
+      "startup_probe_validator",
+      "heartbeat_validator",
+      "summary_shell_validator",
+      "root_launcher_surface_validator",
+      "read_only_dashboard_validator",
+      "runtime_schema_instance_validator",
+      "runtime_stability_history_validator",
+      "runtime_resource_pressure_validator",
+      "bytecode_free_syntax_validator",
+      "paper_portfolio_snapshot_validator",
+      "safety_control_validator",
+      "ledger_durability_validator",
+      "paper_ledger_rollup_validator",
+      "operator_action_audit_validator",
+      "operator_control_validator",
+      "reconciliation_validator",
+      "ledger_reconciliation_validator",
+      "emergency_flatten_validator"
+    ],
+    "supplemental_mvp2": [
+      "upbit_paper_dry_run_validator",
+      "restart_recovery_validator"
+    ],
+    "supplemental_mvp3": [
+      "upbit_operational_paper_gate_validator"
+    ],
+    "supplemental_mvp4": [
+      "upbit_paper_runtime_cycle_validator",
+      "upbit_public_market_data_collection_validator",
+      "upbit_public_rest_sample_validator",
+      "upbit_public_rest_continuity_validator",
+      "upbit_public_rest_continuity_history_validator",
+      "upbit_paper_persistent_loop_validator",
+      "upbit_paper_runtime_recovery_guard_validator",
+      "paper_ledger_rollup_validator",
+      "upbit_live_review_preflight_validator",
+      "shadow_observation_runtime_validator",
+      "shadow_observation_stream_validator",
+      "shadow_observation_scheduler_guard_validator",
+      "shadow_observation_persistent_runtime_validator",
+      "shadow_observation_actual_runtime_blocker_validator",
+      "shadow_observation_actual_runtime_harness_validator",
+      "shadow_observation_artifact_writer_validator",
+      "paper_shadow_evidence_accumulation_validator",
+      "paper_exposure_quality_report_validator",
+      "read_only_dashboard_validator",
+      "convergence_assessment_validator",
+      "exploration_exploitation_policy_validator",
+      "parameter_narrowing_validator",
+      "profitability_evidence_maturity_rollup_validator",
+      "profitability_optimizer_evidence_gap_validator"
+    ]
+  },
+  "validator_default_status": "UNTESTED",
+  "live_defaults": {
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "updated_at_utc": "2026-04-30T12:15:00Z"
+}

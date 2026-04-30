@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.emergency_flatten_report.v1",
+  "title": "emergency_flatten_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "emergency_flatten_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "emergency_protection_available",
+    "emergency_flatten_available",
+    "manual_exit_all_positions_available",
+    "manual_reduce_position_available",
+    "cancel_all_open_orders_available",
+    "reduce_only_path_available_for_futures",
+    "reconciliation_path_available",
+    "operator_alert_available",
+    "ledger_recording_available",
+    "orphan_position_state",
+    "orphan_open_order_state",
+    "dry_run",
+    "dry_run_status",
+    "dry_run_actions",
+    "component_checks",
+    "final_decision",
+    "primary_blocker_code",
+    "blockers",
+    "new_entry_allowed",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "order_adapter_called",
+    "emergency_flatten_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.emergency_flatten_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "emergency_flatten_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "emergency_protection_available": {
+      "type": "boolean"
+    },
+    "emergency_flatten_available": {
+      "type": "boolean"
+    },
+    "manual_exit_all_positions_available": {
+      "type": "boolean"
+    },
+    "manual_reduce_position_available": {
+      "type": "boolean"
+    },
+    "cancel_all_open_orders_available": {
+      "type": "boolean"
+    },
+    "reduce_only_path_available_for_futures": {
+      "type": "boolean"
+    },
+    "reconciliation_path_available": {
+      "type": "boolean"
+    },
+    "operator_alert_available": {
+      "type": "boolean"
+    },
+    "ledger_recording_available": {
+      "type": "boolean"
+    },
+    "orphan_position_state": {
+      "enum": [
+        "NONE",
+        "PRESENT",
+        "UNKNOWN"
+      ]
+    },
+    "orphan_open_order_state": {
+      "enum": [
+        "NONE",
+        "PRESENT",
+        "UNKNOWN"
+      ]
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "dry_run_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "NOT_RUN"
+      ]
+    },
+    "dry_run_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "action",
+          "would_call_adapter",
+          "would_create_entry_risk",
+          "requires_ledger",
+          "requires_reconciliation"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "cancel_all_open_orders",
+              "manual_exit_all_positions",
+              "manual_reduce_position",
+              "futures_reduce_only_flatten"
+            ]
+          },
+          "would_call_adapter": {
+            "type": "boolean"
+          },
+          "would_create_entry_risk": {
+            "type": "boolean"
+          },
+          "requires_ledger": {
+            "type": "boolean"
+          },
+          "requires_reconciliation": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "component_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "component",
+          "available",
+          "exchange",
+          "market_type",
+          "mode",
+          "session_id",
+          "message"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "component": {
+            "enum": [
+              "emergency_flatten",
+              "manual_exit_all_positions",
+              "manual_reduce_position",
+              "cancel_all_open_orders",
+              "reduce_only_path_for_futures",
+              "reconciliation_path",
+              "operator_alert",
+              "ledger_recording"
+            ]
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "exchange": {
+            "$ref": "common.defs.schema.json#/$defs/exchange"
+          },
+          "market_type": {
+            "$ref": "common.defs.schema.json#/$defs/market_type"
+          },
+          "mode": {
+            "$ref": "common.defs.schema.json#/$defs/mode"
+          },
+          "session_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "final_decision": {
+      "$ref": "common.defs.schema.json#/$defs/final_decision"
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "new_entry_allowed": {
+      "type": "boolean"
+    },
+    "live_order_ready": {
+      "type": "boolean"
+    },
+    "live_order_allowed": {
+      "type": "boolean"
+    },
+    "can_live_trade": {
+      "type": "boolean"
+    },
+    "can_submit_order": {
+      "type": "boolean"
+    },
+    "order_adapter_called": {
+      "type": "boolean"
+    },
+    "emergency_flatten_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T23:36:53Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "SHADOW",
+  "status": "PASS_LIVE_BLOCKED",
+  "blockers": [],
+  "notes": "A schema-bound SHADOW observation artifact can now be generated from a validated PAPER gate and consumed by PAPER/SHADOW evidence accumulation without live permission.",
+  "evidence_manifest_id": "MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD",
+  "artifact_paths": [
+    "contracts/schema/shadow_observation_report.schema.json",
+    "contracts/registry.yaml",
+    "trader1/research/shadow/shadow_observation.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/research/test_shadow_observation_runtime.py",
+    "tools/run_paper_shadow_evidence_validators.py",
+    "contracts/generated/context_pack/SHADOW_OBSERVATION_RUNTIME_ARTIFACT.md",
+    "system/evidence/contract_gaps/PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP.contract_gap.json",
+    "system/evidence/validator_runs/MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD.stage_gate_result.json"
+  ],
+  "known_blockers": [
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_LONG_RUN_STREAM_REMAINS_OPEN",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "patch_result_hash": "F414F7979642AC5C084A683D2BF34E10257149E870AAB54EAEE223EE18861154",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD.stage_gate_result.json",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "scale_up_allowed": false,
+  "evidence_manifest_hash": "BEF2E4078BE85A848247FCBD862C77A96408DE3B6B78B9626E37AA395AEE0F08"
+}

@@ -1,0 +1,17 @@
+{
+  "manifest_schema_id": "trader1.authority_manifest.v1",
+  "created_at_utc": "2026-04-28T12:30:42Z",
+  "trader1_md_path": "TRADER_1.md",
+  "trader1_md_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+  "agents_md_path": "AGENTS.md",
+  "agents_md_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+  "registry_yaml_sha256_when_generated": "7993C3A01571BAC352A398262E3DBDEE3E9A3BB312AEE28AD8F3EC257AD8C9CD",
+  "schema_bundle_sha256_when_generated": "915CA66FC8B53408933214B6716D5F355FE1107DBFA6C3FB358710E23E3DCAB5",
+  "validator_bundle_sha256_when_generated": "9A3DB598F452B51C4519B4B247D55F22298028862A7C6CBFC0C497CE66DA2221",
+  "source_tree_hash_when_generated": "BC2B599EFF748A8DBA43E25D571AC1744268BE384D19101073C2E9319F201578",
+  "generated_trader_projection_sha256": null,
+  "generated_agents_projection_sha256": null,
+  "manifest_hash_policy": "sha256 of manifest JSON with manifest_sha256 omitted",
+  "updated_at_utc": "2026-04-30T14:06:44Z",
+  "manifest_sha256": "3D8D66E5C26FC019FCAACE50D630803ADB884494A287951E401B162F176AF879"
+}

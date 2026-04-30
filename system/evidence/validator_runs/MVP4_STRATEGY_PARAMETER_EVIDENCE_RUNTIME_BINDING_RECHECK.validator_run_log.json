@@ -1,0 +1,74 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-29T11:25:58Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_STRATEGY_PARAMETER_EVIDENCE_RUNTIME_BINDING_RECHECK_20260429_001",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "execution_mode": "UNIT_CONTRACT_VALIDATOR_SAFE_LOCAL_ONLY",
+  "commands": [
+    {
+      "command": "python -m py_compile trader1/validation/mvp0_validators.py tests/validators/test_parameter_narrowing_validator.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -m unittest tests.validators.test_parameter_narrowing_validator -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 3
+    },
+    {
+      "command": "python -m unittest tests.validators.test_parameter_narrowing_validator tests.validators.test_paper_shadow_evidence_accumulation_validator tests.validators.test_candidate_scorecard_net_ev_validator tests.validators.test_optimizer_recommendation_validator tests.validators.test_optimizer_run_report_validator -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 34
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validators": 34
+    }
+  ],
+  "validators_run": [
+    {
+      "validator_id": "parameter_narrowing_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "candidate_scorecard_net_ev_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_recommendation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_run_report_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

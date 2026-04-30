@@ -1,0 +1,14 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T04:11:10Z",
+  "project_id": "TRADER_1",
+  "audit_id": "MVP4_DASHBOARD_RUNTIME_EVIDENCE_BOUNDARY",
+  "classification": "dashboard_false_safe_runtime_evidence_boundary",
+  "condition": "dashboard showed running and persistent runtime information but did not explicitly separate actual long-run evidence from short-window harness checks and stub-only runtime estimates",
+  "impact": "operator could over-trust a short safe run as live-review-grade long-run evidence; this increases UX false-safe risk while live remains blocked",
+  "fix": "runtime_evidence_boundary was added to the dashboard shell, schema, HTML, runtime artifacts, and negative tests so actual long-run evidence remains visibly separate and cannot drift into live permission",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,52 @@
+{
+  "schema_id": "trader1.symbol_strategy_regime_fit_report.v1",
+  "generated_at_utc": "2026-04-29T01:05:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "fit_report_id": "symbol_strategy_regime_fit_fixture_missing_family",
+  "candidate_id": "candidate_symbol_fit_fixture_missing_family",
+  "strategy_id": "mvp4_multi_family_review",
+  "strategy_build_id": "strategy_build_mvp4_symbol_fit",
+  "parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp4_symbol_strategy_regime_fit_fixture",
+  "symbol": "KRW-BTC",
+  "timeframe_scope": "15m",
+  "regime_scope": "TRENDING",
+  "regime_family": "TRENDING",
+  "fit_status": "ELIGIBLE_FOR_PAPER_REVIEW",
+  "symbol_selection_basis": "LIQUIDITY_VOLATILITY_SPREAD_DEPTH_REGIME",
+  "liquidity_score": 0.86,
+  "volatility_score": 0.58,
+  "spread_bps": 3.4,
+  "depth_score": 0.82,
+  "depth_notional_krw": 150000000.0,
+  "average_daily_value_krw": 95000000000.0,
+  "min_required_liquidity_score": 0.7,
+  "max_allowed_spread_bps": 6.0,
+  "min_required_depth_score": 0.7,
+  "supported_strategy_families": [
+    "TREND_PULLBACK"
+  ],
+  "rejected_strategy_families": [
+    "VWAP_REVERSION"
+  ],
+  "symbol_blocker_codes": [],
+  "paper_review_eligible": true,
+  "dashboard_display_truth_only": true,
+  "promotion_eligible": false,
+  "source_evidence_ids": [
+    "paper_symbol_fit_fixture_missing_family"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "blockers": [],
+  "fit_report_hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+}

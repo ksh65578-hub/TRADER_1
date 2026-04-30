@@ -1,0 +1,15 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "patch_id": "MVP4_SOURCE_PACKAGE_HYGIENE_RUNTIME_TERMINATION_RECONCILIATION_FIX_20260430_001",
+  "created_at_utc": "2026-04-30T09:29:35Z",
+  "evidence_type": "NON_LIVE_PATCH_EVIDENCE",
+  "evidence_items": [
+    "system/evidence/validator_runs/MVP4_SOURCE_PACKAGE_HYGIENE_RUNTIME_TERMINATION_RECONCILIATION_FIX.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SOURCE_PACKAGE_HYGIENE_RUNTIME_TERMINATION_RECONCILIATION_FIX.stage_gate_result.json",
+    "contracts/security/source_bundle_manifest.json"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

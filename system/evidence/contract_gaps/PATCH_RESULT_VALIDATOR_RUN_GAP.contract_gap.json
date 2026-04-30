@@ -1,0 +1,23 @@
+{
+  "schema_id": "trader1.contract_gap.v1",
+  "generated_at_utc": "2026-04-29T07:28:58Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "OPEN",
+  "blockers": [
+    {
+      "code": "CONTRACT_GAP_HIGH",
+      "severity": "HIGH",
+      "message": "Historical patch_result artifacts have validators_required entries without matching validators_run evidence. The baseline is sealed; new gaps are blocked.",
+      "source_requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-RECHECK"
+    }
+  ],
+  "notes": "Historical gap count=9; current gap count=9; unbaselined gap count=0. Historical patch_result evidence is not backfilled.",
+  "contract_gap_id": "PATCH_RESULT_VALIDATOR_RUN_GAP",
+  "severity": "HIGH",
+  "source_section_id": "SECTION_PATCH_RESULT",
+  "live_affecting": true
+}

@@ -1,0 +1,16 @@
+{
+  "audit_schema_id": "trader1.paper_reconciliation_artifact_binding_recheck_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "upbit_reconciliation_status": "PASS",
+  "upbit_reconciliation_color": "green",
+  "upbit_primary_blocker": "LIVE_READY_MISSING",
+  "binance_reconciliation_status": "RECONCILE_REQUIRED",
+  "binance_reconciliation_color": "yellow",
+  "binance_restart_recovery_status": "NOT_LOADED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "next_action": "MVP4_DASHBOARD_RECONCILIATION_STALE_ARTIFACT_RECHECK"
+}

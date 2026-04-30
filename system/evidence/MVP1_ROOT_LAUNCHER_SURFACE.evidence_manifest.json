@@ -1,0 +1,40 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T14:06:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP1_ROOT_LAUNCHER_SURFACE_EVIDENCE",
+  "artifact_paths": [
+    "UPBIT_PAPER.py",
+    "UPBIT_LIVE.py",
+    "BINANCE_PAPER.py",
+    "BINANCE_LIVE.py",
+    "contracts/schema/root_launcher_report.schema.json",
+    "trader1/runtime/boot/safe_launcher.py",
+    "trader1/runtime/boot/launcher_guard.py",
+    "trader1/validation/mvp0_validators.py",
+    "tools/run_root_launcher_validators.py",
+    "tests/contract/test_root_launchers.py",
+    "tests/runtime/test_safe_launcher.py",
+    "system/runtime/binance/spot/live/launcher_report.json",
+    "system/runtime/binance/spot/paper/launcher_report.json",
+    "system/runtime/upbit/krw_spot/live/launcher_report.json",
+    "system/runtime/upbit/krw_spot/paper/launcher_report.json"
+  ],
+  "known_blockers": [
+    "CONTRACT_GAP_HIGH",
+    "LIVE_FINAL_GUARD_FAILED",
+    "SNAPSHOT_SCOPE_MISMATCH",
+    "PREFLIGHT_FAILED",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

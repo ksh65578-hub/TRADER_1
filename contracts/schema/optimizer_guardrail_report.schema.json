@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.optimizer_guardrail_report.v1",
+  "title": "optimizer_guardrail_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "guardrail_report_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "guardrail_scope",
+    "guardrail_status",
+    "guardrail_decision",
+    "dependency_summary_status",
+    "dependency_results",
+    "checked_artifact_ids",
+    "source_modes",
+    "output_ranking_scope",
+    "live_readiness_status",
+    "operator_warning",
+    "blockers",
+    "dashboard_display_truth_only",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "live_permission_created",
+    "live_config_mutation_allowed",
+    "writes_live_ready_snapshot",
+    "optimizer_live_mutation_detected",
+    "order_submission_allowed",
+    "exchange_account_call_allowed",
+    "scale_up_recommendation_allowed"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.optimizer_guardrail_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "guardrail_report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "guardrail_scope": {
+      "enum": [
+        "OPTIMIZER_ANALYSIS_ONLY",
+        "OPTIMIZER_PAPER_RANKING_ONLY",
+        "OPTIMIZER_BLOCKED"
+      ]
+    },
+    "guardrail_status": {
+      "enum": [
+        "PASS_NO_LIVE_PERMISSION",
+        "BLOCKED",
+        "FAIL_CLOSED"
+      ]
+    },
+    "guardrail_decision": {
+      "enum": [
+        "ALLOW_ANALYSIS_OUTPUT",
+        "BLOCK_OPTIMIZER_OUTPUT",
+        "ALLOW_SCALE_DOWN_ONLY"
+      ]
+    },
+    "dependency_summary_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "TIMEOUT"
+      ]
+    },
+    "dependency_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "validator_id",
+          "status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "validator_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "BLOCKED",
+              "FAIL",
+              "UNTESTED",
+              "STALE",
+              "TIMEOUT"
+            ]
+          }
+        }
+      }
+    },
+    "checked_artifact_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "source_modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "REPLAY",
+          "PAPER",
+          "SHADOW",
+          "READ_ONLY"
+        ]
+      }
+    },
+    "output_ranking_scope": {
+      "enum": [
+        "PAPER_RANKING_ONLY",
+        "ANALYSIS_ONLY",
+        "NONE"
+      ]
+    },
+    "live_readiness_status": {
+      "const": "NOT_LIVE_READY"
+    },
+    "operator_warning": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "SAFE_MODE",
+        "FAIL"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dashboard_display_truth_only": {
+      "const": true
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "live_permission_created": {
+      "const": false
+    },
+    "live_config_mutation_allowed": {
+      "const": false
+    },
+    "writes_live_ready_snapshot": {
+      "const": false
+    },
+    "optimizer_live_mutation_detected": {
+      "const": false
+    },
+    "order_submission_allowed": {
+      "const": false
+    },
+    "exchange_account_call_allowed": {
+      "const": false
+    },
+    "scale_up_recommendation_allowed": {
+      "const": false
+    }
+  }
+}

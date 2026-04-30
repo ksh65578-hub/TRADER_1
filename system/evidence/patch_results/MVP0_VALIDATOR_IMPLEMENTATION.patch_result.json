@@ -1,0 +1,417 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP0_VALIDATOR_IMPLEMENTATION_20260428_001",
+  "created_at_utc": "2026-04-28T12:39:15Z",
+  "target_mvp_level": "MVP-0",
+  "patch_class": "VALIDATOR_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "CHECKED",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP0-VALIDATOR-LOGIC",
+    "REQ-MVP0-VALIDATOR-FIXTURES"
+  ],
+  "affected_exchange": null,
+  "affected_market_type": null,
+  "affected_mode": null,
+  "removed_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [],
+  "new_or_changed_schema_ids": [],
+  "validators_required": [
+    "authority_integrity_validator",
+    "external_authority_manifest_validator",
+    "registry_validator",
+    "schema_validator",
+    "closed_enum_validator",
+    "common_defs_drift_validator",
+    "patch_result_schema_validator",
+    "coverage_index_validator",
+    "active_schema_extraction_validator",
+    "generated_artifact_dirty_validator",
+    "live_blocked_scaffold_validator"
+  ],
+  "validators_run": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "authority hashes match registry",
+      "validator_id": "authority_integrity_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "TRADER_1.md",
+        "AGENTS.md",
+        "contracts/registry.yaml"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "external authority manifest is current",
+      "validator_id": "external_authority_manifest_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "contracts/authority_manifest.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "registry parsed and fail-closed defaults are intact",
+      "validator_id": "registry_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "contracts/registry.yaml"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "40 schema files parsed",
+      "validator_id": "schema_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "contracts/schema/candidate_generation_report.schema.json",
+        "contracts/schema/candidate_scorecard.schema.json",
+        "contracts/schema/common.defs.schema.json",
+        "contracts/schema/contract_gap.schema.json",
+        "contracts/schema/convergence_assessment_report.schema.json",
+        "contracts/schema/convergence_objective_profile.schema.json",
+        "contracts/schema/evidence_manifest.schema.json",
+        "contracts/schema/exploration_exploitation_policy.schema.json",
+        "contracts/schema/failure_analysis_report.schema.json",
+        "contracts/schema/final_decision.schema.json",
+        "contracts/schema/ledger_event.schema.json",
+        "contracts/schema/live_burn_in_feedback_report.schema.json",
+        "contracts/schema/live_ready_candidate_writer_input.schema.json",
+        "contracts/schema/live_ready_snapshot.schema.json",
+        "contracts/schema/manual_order_test_evidence.schema.json",
+        "contracts/schema/market_regime_adaptation_report.schema.json",
+        "contracts/schema/model_drift_report.schema.json",
+        "contracts/schema/official_api_verification_report.schema.json",
+        "contracts/schema/operator_action_audit.schema.json",
+        "contracts/schema/optimization_state.schema.json",
+        "contracts/schema/optimizer_feedback_report.schema.json",
+        "contracts/schema/optimizer_guardrail_report.schema.json",
+        "contracts/schema/optimizer_memory_state.schema.json",
+        "contracts/schema/optimizer_recommendation_report.schema.json",
+        "contracts/schema/optimizer_run_report.schema.json",
+        "contracts/schema/overfit_diagnostic_report.schema.json",
+        "contracts/schema/parameter_narrowing_report.schema.json",
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/profit_convergence_cycle_report.schema.json",
+        "contracts/schema/profit_optimizer_config.schema.json",
+        "contracts/schema/readiness_surface.schema.json",
+        "contracts/schema/release_source_identity.schema.json",
+        "contracts/schema/risk_scaling_decision.schema.json",
+        "contracts/schema/search_space_snapshot.schema.json",
+        "contracts/schema/strategy_candidate.schema.json",
+        "contracts/schema/strategy_performance_memory.schema.json",
+        "contracts/schema/summary.schema.json",
+        "contracts/schema/symbol_strategy_regime_fit_report.schema.json",
+        "contracts/schema/validator_fixture_catalog.schema.json",
+        "contracts/schema/validator_result.schema.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "registry-backed common enums are closed and synchronized",
+      "validator_id": "closed_enum_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "contracts/registry.yaml",
+        "contracts/schema/common.defs.schema.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "common blocker definitions match registry projections",
+      "validator_id": "common_defs_drift_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "contracts/registry.yaml",
+        "contracts/schema/common.defs.schema.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "patch result required fields and non-live invariants hold",
+      "validator_id": "patch_result_schema_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "contracts/schema/patch_result.schema.json",
+        "system/evidence/patch_results/MVP0_VALIDATOR_IMPLEMENTATION.patch_result.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "mapped requirements have artifact rows and live-affecting entries keep validators/tests",
+      "validator_id": "coverage_index_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "contracts/generated/requirement_index.json",
+        "contracts/generated/requirement_artifact_matrix.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "schema extraction is mapped to active sections only",
+      "validator_id": "active_schema_extraction_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "contracts/generated/authority_section_map.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:39:15Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "generated read cache hashes match current artifacts",
+      "validator_id": "generated_artifact_dirty_validator",
+      "checked_at_utc": "2026-04-28T12:39:15Z",
+      "input_artifact_paths": [
+        "contracts/generated/read_cache_manifest.json"
+      ],
+      "blocking": false
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS"
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED_FOR_VALIDATOR_IMPLEMENTATION",
+  "read_cache_update_required": false,
+  "context_pack_update_required": false,
+  "current_implementation_state_updated": true,
+  "next_task_class": "LIVE_BLOCKED_TEST",
+  "next_required_section_ids": [
+    "SECTION_LIVE_GATE",
+    "SECTION_LIVE_READY_WRITER_GUARD",
+    "SECTION_LIVE_FINAL_GUARD",
+    "SECTION_LIVE_BLOCKED_TESTS",
+    "SECTION_VALIDATOR_FIXTURES",
+    "SECTION_PATCH_RESULT"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_SCHEMA_CONTRACTS"
+  ],
+  "next_forbidden_default_sections": [
+    "SECTION_RETAINED_ARCHIVE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "LIVE_READY_SNAPSHOT_WRITER_UNTESTED",
+    "API_UNVERIFIED",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP0_VALIDATOR_IMPLEMENTATION.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP0_VALIDATOR_IMPLEMENTATION.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP0_VALIDATOR_IMPLEMENTATION.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "contracts/generated/context_pack/VALIDATOR_IMPLEMENTATION.md",
+    "SECTION_VALIDATOR_REGISTRY",
+    "SECTION_VALIDATOR_FIXTURES",
+    "SECTION_SCHEMA_CONTRACTS",
+    "SECTION_PATCH_RESULT"
+  ],
+  "task_class": "VALIDATOR_IMPLEMENTATION",
+  "required_section_ids": [
+    "SECTION_VALIDATOR_REGISTRY",
+    "SECTION_VALIDATOR_FIXTURES",
+    "SECTION_SCHEMA_CONTRACTS",
+    "SECTION_PATCH_RESULT"
+  ],
+  "expanded_section_ids": [
+    "SECTION_VALIDATOR_REGISTRY",
+    "SECTION_VALIDATOR_FIXTURES",
+    "SECTION_SCHEMA_CONTRACTS",
+    "SECTION_PATCH_RESULT"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "UPDATED",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "UPDATED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "NO_OPTIMIZER_RUNTIME_CHANGE",
+  "optimizer_stage": "METRIC_COLLECTION",
+  "optimizer_status_before": "SCAFFOLD",
+  "optimizer_status_after": "SCAFFOLD",
+  "optimizer_maturity_level_before": "MVP0_SCHEMA_ONLY",
+  "optimizer_maturity_level_after": "MVP0_SCHEMA_ONLY",
+  "optimizer_output_type": "OPTIMIZER_RESEARCH_SIGNAL",
+  "optimizer_validators_required": [
+    "optimizer_guardrail_validator",
+    "optimizer_no_live_mutation_validator"
+  ],
+  "optimizer_validators_run": [],
+  "optimizer_guardrail_result": "UNTESTED",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "NO_CONVERGENCE_RUNTIME_CHANGE",
+  "convergence_layer_changed": false,
+  "convergence_state_before": "UNTESTED",
+  "convergence_state_after": "UNTESTED",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_REQUIRED_FOR_VALIDATOR_IMPLEMENTATION",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "convergence_assessment_validator",
+    "scale_up_eligibility_validator"
+  ],
+  "convergence_validators_run": [],
+  "convergence_guardrail_result": "UNTESTED",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "scale_up_allowed_after": false,
+  "result_hash": "34719B8FD25FE07DBC78AFD6300A00E8550F1318397A582E9805A88D45130876",
+  "merged_requirements": [],
+  "coverage_index_result": "PASS",
+  "scale_up_allowed_before": false
+}

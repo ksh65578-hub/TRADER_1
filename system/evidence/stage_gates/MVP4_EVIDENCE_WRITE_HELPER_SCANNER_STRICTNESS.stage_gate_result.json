@@ -1,0 +1,18 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T08:38:06Z",
+  "patch_id": "MVP4_EVIDENCE_WRITE_HELPER_SCANNER_STRICTNESS_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_EVIDENCE_WRITER_SCANNER_STRICTNESS_NO_LIVE_ORDERS",
+  "evidence_write_helper_coverage_pct": 100.0,
+  "legacy_local_direct_writer_count": 0,
+  "scanner_strictness_checks": [
+    "DIRECT_PATH_WRITE_DETECTED",
+    "WEAK_LOCAL_ATOMIC_WITHOUT_FSYNC_BLOCKED",
+    "PASS_NEXT_ACTION_MATCHES_ZERO_BLOCKER_STATE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,47 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T13:23:32Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_LEDGER_ROLLUP_EVIDENCE",
+  "artifact_paths": [
+    "trader1/runtime/ledger/execution_ledger.py",
+    "trader1/runtime/ledger/paper_ledger_rollup.py",
+    "trader1/runtime/portfolio/paper_portfolio.py",
+    "trader1/runtime/paper/upbit_paper_persistent_loop.py",
+    "trader1/runtime/boot/safe_launcher.py",
+    "trader1/validation/mvp0_validators.py",
+    "contracts/registry.yaml",
+    "contracts/schema/paper_ledger_rollup_report.schema.json",
+    "contracts/schema/paper_portfolio_snapshot.schema.json",
+    "contracts/schema/upbit_paper_persistent_loop_report.schema.json",
+    "tests/runtime/test_execution_ledger.py",
+    "tests/runtime/test_paper_portfolio.py",
+    "tests/runtime/test_paper_ledger_rollup.py",
+    "tests/runtime/test_safe_launcher.py",
+    "tests/integration/test_upbit_public_collection_persistent_loop.py",
+    "contracts/generated/context_pack/UPBIT_PAPER_LEDGER_ROLLUP.md",
+    "tools/emit_upbit_paper_ledger_rollup_patch_evidence.py",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_LEDGER_ROLLUP.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_LEDGER_ROLLUP.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_LEDGER_ROLLUP.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE",
+    "PAPER_LEDGER_ROLLUP_DISPLAY_ONLY_NOT_EXCHANGE_RECONCILED"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

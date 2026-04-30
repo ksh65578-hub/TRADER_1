@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.upbit_paper_dry_run_report.v1",
+  "title": "upbit_paper_dry_run_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "paper_run_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "symbol",
+    "public_data_source",
+    "public_data_loaded",
+    "public_market_data",
+    "symbol_rule_status",
+    "fee_model_status",
+    "slippage_model_status",
+    "fee_rate",
+    "slippage_bps",
+    "paper_broker_status",
+    "paper_order_id",
+    "paper_order_submitted",
+    "final_decision",
+    "no_trade_reasons",
+    "entry_reasons",
+    "paper_ledger_events",
+    "paper_ledger_head_hash",
+    "paper_ledger_write_status",
+    "paper_live_namespace_separated",
+    "live_key_loaded",
+    "binance_live_touched",
+    "strategy_promotion_attempted",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "order_adapter_called",
+    "primary_blocker_code",
+    "blockers",
+    "dry_run_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.upbit_paper_dry_run_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "paper_run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "symbol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "public_data_source": {
+      "enum": [
+        "STATIC_FIXTURE",
+        "PUBLIC_REST_READ_ONLY",
+        "UNAVAILABLE"
+      ]
+    },
+    "public_data_loaded": {
+      "type": "boolean"
+    },
+    "public_market_data": {
+      "type": "object"
+    },
+    "symbol_rule_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "fee_model_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "slippage_model_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "fee_rate": {
+      "type": "string"
+    },
+    "slippage_bps": {
+      "type": "string"
+    },
+    "paper_broker_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "paper_order_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "paper_order_submitted": {
+      "type": "boolean"
+    },
+    "final_decision": {
+      "$ref": "common.defs.schema.json#/$defs/final_decision"
+    },
+    "no_trade_reasons": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/no_trade_reason"
+      }
+    },
+    "entry_reasons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "reason_code",
+          "message"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {
+            "enum": [
+              "PAPER_DRY_RUN_ENTRY",
+              "PUBLIC_DATA_AVAILABLE",
+              "SYMBOL_RULE_PASS",
+              "FEE_SLIPPAGE_BASELINE_PASS"
+            ]
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "paper_ledger_events": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "paper_ledger_head_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "paper_ledger_write_status": {
+      "enum": [
+        "WRITTEN",
+        "SKIPPED_NO_TRADE",
+        "BLOCKED"
+      ]
+    },
+    "paper_live_namespace_separated": {
+      "type": "boolean"
+    },
+    "live_key_loaded": {
+      "type": "boolean"
+    },
+    "binance_live_touched": {
+      "type": "boolean"
+    },
+    "strategy_promotion_attempted": {
+      "type": "boolean"
+    },
+    "live_order_ready": {
+      "type": "boolean"
+    },
+    "live_order_allowed": {
+      "type": "boolean"
+    },
+    "can_live_trade": {
+      "type": "boolean"
+    },
+    "can_submit_order": {
+      "type": "boolean"
+    },
+    "order_adapter_called": {
+      "type": "boolean"
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "dry_run_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

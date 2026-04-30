@@ -1,0 +1,25 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "generated_at_utc": "2026-04-30T10:15:10Z",
+  "patch_id": "MVP4_UPBIT_PAPER_PUBLIC_COLLECTOR_PERSISTENT_LOOP_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate": "MVP4_UPBIT_PAPER_PUBLIC_COLLECTOR_PERSISTENT_LOOP",
+  "status": "PASS_WITH_LIVE_BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "mvp5_blocked": true,
+  "blockers": [
+    "No LIVE_READY snapshot",
+    "No official API verification",
+    "No operator approval",
+    "No read-only account snapshot evidence",
+    "No read-only burn-in evidence",
+    "No manual order test evidence",
+    "Persistent loop is bounded and is not long-run evidence",
+    "Public REST live fetch remains disabled by default; fixture-backed public collection only",
+    "Binance adapter remains surface-only",
+    "MVP-5 remains blocked by live-enabling evidence requirements"
+  ]
+}

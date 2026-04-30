@@ -1,0 +1,85 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "run_id": "MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT_20260430_001",
+  "created_at_utc": "2026-04-29T16:07:53Z",
+  "target_mvp_level": "MVP-4",
+  "execution_mode": "UNIT_CONTRACT_VALIDATOR_READ_ONLY_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validators_run": [
+    {
+      "validator_id": "profitability_evidence_maturity_rollup_validator",
+      "status": "PASS",
+      "evidence": "scorecard input eligibility separated from long-run evidence maturity"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS",
+      "evidence": "dashboard projects explicit paper_scorecard_input_eligible and long_run_evidence_eligible fields"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS",
+      "evidence": "runtime dashboard_shell artifacts regenerated and schema-valid"
+    },
+    {
+      "validator_id": "profitability_optimizer_evidence_gap_validator",
+      "status": "PASS",
+      "evidence": "long-run false claim negative fixture rejects hidden long-run eligibility"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "evidence": "schema bundle parses after required field split"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS",
+      "evidence": "live flags remain false and no live-enabling evidence created"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.validators.test_profitability_optimizer_evidence_gap_validator tests.dashboard.test_read_only_dashboard -v",
+      "status": "PASS",
+      "tests": 107
+    },
+    {
+      "command": "python -m compileall trader1 tests -q",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.contract.test_schema_instance_validation tests.runtime.test_safe_smoke -v",
+      "status": "PASS",
+      "tests": 6
+    },
+    {
+      "command": "python tools/run_profitability_optimizer_evidence_gap_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "tests": 575
+    }
+  ],
+  "runtime_artifacts_regenerated": [
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard_shell.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json"
+  ],
+  "hidden_defect": {
+    "classification": "cross_component_semantic_mismatch",
+    "condition": "maturity_status used both for PAPER scorecard input eligibility and long-run evidence maturity",
+    "impact": "dashboard/test/validator disagreement could undercount PAPER inputs or hide long-run blocker clarity",
+    "reproducibility": "reproduced by full unittest failure before split",
+    "fix": "added explicit paper_scorecard_input_eligible, long_run_evidence_eligible, and long_run_blocker_code fields"
+  }
+}

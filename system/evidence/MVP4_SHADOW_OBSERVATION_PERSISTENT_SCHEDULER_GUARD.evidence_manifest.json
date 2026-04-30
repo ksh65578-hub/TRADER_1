@@ -1,0 +1,52 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T00:09:41Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "SHADOW",
+  "status": "PASS_LIVE_BLOCKED",
+  "blockers": [],
+  "notes": "SHADOW observation scheduler guard is single-writer, sequence-safe, recovery-clean, persisted-stream-hash-bound, and analysis-only; live and scale-up remain blocked.",
+  "evidence_manifest_id": "MVP4_SHADOW_OBSERVATION_PERSISTENT_SCHEDULER_GUARD",
+  "artifact_paths": [
+    "contracts/schema/shadow_observation_scheduler_guard_report.schema.json",
+    "contracts/schema/shadow_observation_stream_report.schema.json",
+    "contracts/registry.yaml",
+    "contracts/schema/common.defs.schema.json",
+    "trader1/research/shadow/shadow_observation_scheduler.py",
+    "trader1/research/shadow/shadow_observation_stream.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/research/test_shadow_observation_scheduler.py",
+    "tools/run_paper_shadow_evidence_validators.py",
+    "contracts/generated/context_pack/SHADOW_OBSERVATION_PERSISTENT_SCHEDULER_GUARD.md",
+    "system/evidence/contract_gaps/PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP.contract_gap.json",
+    "system/evidence/validator_runs/MVP4_SHADOW_OBSERVATION_PERSISTENT_SCHEDULER_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SHADOW_OBSERVATION_PERSISTENT_SCHEDULER_GUARD.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_SHADOW_OBSERVATION_PERSISTENT_SCHEDULER_GUARD.patch_result.json"
+  ],
+  "known_blockers": [
+    "PERSISTENT_SCHEDULER_RUNTIME_EXECUTION_MISSING",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "patch_result_hash": "1F4C0B40814E4EE61CB9663C0BA27D9F2FE2DD9C94FFB5A90827DBA46A1EB37D",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_SHADOW_OBSERVATION_PERSISTENT_SCHEDULER_GUARD.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_SHADOW_OBSERVATION_PERSISTENT_SCHEDULER_GUARD.stage_gate_result.json",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "scale_up_allowed": false,
+  "evidence_manifest_hash": "965F5965969F205688BAE8842987BE6866D5743F164166721844AE5D3E644962"
+}

@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.shadow_observation_stream_report.v1",
+  "title": "shadow_observation_stream_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "stream_id",
+    "exchange",
+    "market_type",
+    "source_mode",
+    "mode",
+    "stream_artifact_path",
+    "candidate_id",
+    "strategy_id",
+    "strategy_build_id",
+    "parameter_hash",
+    "observation_count",
+    "min_required_observation_count",
+    "evidence_window_count",
+    "evidence_span_hours",
+    "min_required_evidence_span_hours",
+    "max_artifact_age_seconds",
+    "observation_hashes",
+    "paper_operation_gate_hashes",
+    "source_binding_hashes",
+    "paper_session_ids",
+    "shadow_session_ids",
+    "observation_bindings",
+    "duplicate_observation_count",
+    "duplicate_paper_source_count",
+    "duplicate_shadow_session_count",
+    "paper_shadow_session_overlap",
+    "sequence_monotonic",
+    "source_binding_hash_match",
+    "stream_status",
+    "long_run_evidence_eligible",
+    "optimizer_input_role",
+    "dashboard_display_truth_only",
+    "promotion_eligible",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "order_adapter_called",
+    "primary_blocker_code",
+    "blockers",
+    "stream_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {"const": "trader1.shadow_observation_stream_report.v1"},
+    "generated_at_utc": {"type": "string", "minLength": 1},
+    "project_id": {"const": "TRADER_1"},
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "agents_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+      }
+    },
+    "stream_id": {"type": "string", "minLength": 1},
+    "exchange": {"$ref": "common.defs.schema.json#/$defs/exchange"},
+    "market_type": {"$ref": "common.defs.schema.json#/$defs/market_type"},
+    "source_mode": {"const": "PAPER"},
+    "mode": {"const": "SHADOW"},
+    "stream_artifact_path": {"type": "string", "minLength": 1},
+    "candidate_id": {"type": "string", "minLength": 1},
+    "strategy_id": {"type": "string", "minLength": 1},
+    "strategy_build_id": {"type": "string", "minLength": 1},
+    "parameter_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "observation_count": {"type": "integer", "minimum": 0},
+    "min_required_observation_count": {"type": "integer", "minimum": 1},
+    "evidence_window_count": {"type": "integer", "minimum": 0},
+    "evidence_span_hours": {"type": "integer", "minimum": 0},
+    "min_required_evidence_span_hours": {"type": "integer", "minimum": 1},
+    "max_artifact_age_seconds": {"type": "integer", "minimum": 1},
+    "observation_hashes": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+    },
+    "paper_operation_gate_hashes": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+    },
+    "source_binding_hashes": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+    },
+    "paper_session_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "shadow_session_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "observation_bindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "observation_id",
+          "sequence_number",
+          "observation_hash",
+          "paper_operation_gate_hash",
+          "paper_session_id",
+          "shadow_session_id",
+          "shadow_artifact_age_seconds",
+          "validation_status"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "observation_id": {"type": "string", "minLength": 1},
+          "sequence_number": {"type": "integer", "minimum": 1},
+          "observation_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+          "paper_operation_gate_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+          "paper_session_id": {"type": "string", "minLength": 1},
+          "shadow_session_id": {"type": "string", "minLength": 1},
+          "shadow_artifact_age_seconds": {"type": "integer", "minimum": 0},
+          "validation_status": {"$ref": "common.defs.schema.json#/$defs/validator_status"}
+        }
+      }
+    },
+    "duplicate_observation_count": {"type": "integer", "minimum": 0},
+    "duplicate_paper_source_count": {"type": "integer", "minimum": 0},
+    "duplicate_shadow_session_count": {"type": "integer", "minimum": 0},
+    "paper_shadow_session_overlap": {"type": "boolean"},
+    "sequence_monotonic": {"type": "boolean"},
+    "source_binding_hash_match": {"type": "boolean"},
+    "stream_status": {"enum": ["PASS", "BLOCKED", "FAIL"]},
+    "long_run_evidence_eligible": {"const": false},
+    "optimizer_input_role": {"const": "SHADOW_STREAM_OBSERVATION_ONLY"},
+    "dashboard_display_truth_only": {"const": true},
+    "promotion_eligible": {"const": false},
+    "live_order_ready": {"const": false},
+    "live_order_allowed": {"const": false},
+    "can_live_trade": {"const": false},
+    "scale_up_allowed": {"const": false},
+    "order_adapter_called": {"const": false},
+    "primary_blocker_code": {"type": ["string", "null"]},
+    "blockers": {"type": "array", "items": {"$ref": "common.defs.schema.json#/$defs/blocker_object"}},
+    "stream_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "notes": {"type": ["string", "null"]}
+  }
+}

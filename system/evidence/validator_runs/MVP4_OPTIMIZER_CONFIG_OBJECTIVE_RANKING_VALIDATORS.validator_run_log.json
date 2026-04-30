@@ -1,0 +1,54 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-29T12:42:23Z",
+  "patch_id": "MVP4_OPTIMIZER_CONFIG_OBJECTIVE_RANKING_VALIDATORS_20260429_001",
+  "validators_run": [
+    {
+      "validator_id": "profit_optimizer_config_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "objective_function_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "candidate_ranking_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_run_report_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "validator_depth_audit_tool",
+      "status": "PASS",
+      "implemented_validator_count": 78,
+      "registered_but_unimplemented_validator_count": 11
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "updated_at_utc": "2026-04-29T12:42:23Z"
+}

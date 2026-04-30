@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.live_ready_snapshot.v1",
+  "title": "live_ready_snapshot",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "snapshot_id",
+    "created_at_utc",
+    "expires_at_utc",
+    "exchange",
+    "market_type",
+    "mode_source",
+    "strategy_id",
+    "strategy_build_id",
+    "parameter_hash",
+    "risk_profile",
+    "build_id",
+    "source_tree_hash",
+    "registry_hash",
+    "schema_bundle_hash",
+    "validation_results",
+    "performance_summary",
+    "risk_limits",
+    "sizing_limits",
+    "manual_order_test_required",
+    "operator_approval_required",
+    "live_ready",
+    "live_order_allowed",
+    "invalidated_by",
+    "validator_rollup_status",
+    "manifest_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.live_ready_snapshot.v1"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at_utc": {
+      "type": "string"
+    },
+    "expires_at_utc": {
+      "type": "string"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode_source": {
+      "enum": [
+        "PAPER",
+        "SHADOW",
+        "REPLAY"
+      ]
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_build_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parameter_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk_profile": {
+      "$ref": "common.defs.schema.json#/$defs/risk_profile"
+    },
+    "build_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_tree_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "registry_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_bundle_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "validation_results": {
+      "type": "object"
+    },
+    "performance_summary": {
+      "type": "object"
+    },
+    "risk_limits": {
+      "type": "object"
+    },
+    "sizing_limits": {
+      "type": "object"
+    },
+    "official_api_verification_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "manual_order_test_required": {
+      "type": "boolean"
+    },
+    "manual_order_test_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "operator_approval_required": {
+      "type": "boolean"
+    },
+    "operator_approval_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "read_only_burn_in_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "emergency_protection_evidence_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "live_ready": {
+      "type": "boolean"
+    },
+    "live_order_allowed": {
+      "type": "boolean"
+    },
+    "validator_rollup_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "WARN",
+        "BLOCKED",
+        "UNTESTED",
+        "STALE",
+        "SKIPPED_NOT_APPLICABLE",
+        "TIMEOUT"
+      ]
+    },
+    "invalidated_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "manifest_hash": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "live_order_allowed": {
+            "const": true
+          }
+        },
+        "required": [
+          "live_order_allowed"
+        ]
+      },
+      "then": {
+        "required": [
+          "official_api_verification_id",
+          "read_only_burn_in_id",
+          "emergency_protection_evidence_id"
+        ],
+        "properties": {
+          "live_ready": {
+            "const": true
+          },
+          "official_api_verification_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "read_only_burn_in_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "emergency_protection_evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "validator_rollup_status": {
+            "const": "PASS"
+          },
+          "invalidated_by": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "live_order_allowed": {
+            "const": true
+          },
+          "manual_order_test_required": {
+            "const": true
+          }
+        },
+        "required": [
+          "live_order_allowed",
+          "manual_order_test_required"
+        ]
+      },
+      "then": {
+        "required": [
+          "manual_order_test_id"
+        ],
+        "properties": {
+          "manual_order_test_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "live_order_allowed": {
+            "const": true
+          },
+          "operator_approval_required": {
+            "const": true
+          }
+        },
+        "required": [
+          "live_order_allowed",
+          "operator_approval_required"
+        ]
+      },
+      "then": {
+        "required": [
+          "operator_approval_id"
+        ],
+        "properties": {
+          "operator_approval_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ]
+}

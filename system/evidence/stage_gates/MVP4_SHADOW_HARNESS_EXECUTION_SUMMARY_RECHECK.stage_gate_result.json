@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_SHADOW_HARNESS_EXECUTION_SUMMARY_RECHECK_20260430_001",
+  "created_at_utc": "2026-04-30T02:43:29Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_SHADOW_HARNESS_EXECUTION_SUMMARY_RECHECK",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "actual runtime harness validator now derives execution summary consistency from harness_status",
+    "PASS harness reports with actual_non_live_runtime_harness_executed=false are blocked",
+    "BLOCKED harness reports with actual_non_live_runtime_harness_executed=true are blocked",
+    "MVP0 validators, PAPER/SHADOW validators, runtime schema validators, compileall, and full unittest regression pass",
+    "live, credential, order adapter, optimizer ranking, and scale-up paths remain blocked"
+  ],
+  "blocked_conditions": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T02:43:29Z",
+  "status": "PASS_MVP4_SHADOW_HARNESS_EXECUTION_SUMMARY_RECHECK_LIVE_BLOCKED",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "625E261FD24028C240F2C9310020D237309C21DE047BE47BBF53ADE9DB570A19"
+}

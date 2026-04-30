@@ -1,0 +1,71 @@
+{
+  "authorization_header_present": false,
+  "candles": [
+    {
+      "close": "1006500",
+      "high": "1008500",
+      "low": "1004000",
+      "open": "1006000",
+      "timestamp": "2026-04-30T09:06:00Z",
+      "volume": "8"
+    },
+    {
+      "close": "1007500",
+      "high": "1009500",
+      "low": "1005000",
+      "open": "1007000",
+      "timestamp": "2026-04-30T09:07:00Z",
+      "volume": "9"
+    },
+    {
+      "close": "1008500",
+      "high": "1010500",
+      "low": "1006000",
+      "open": "1008000",
+      "timestamp": "2026-04-30T09:08:00Z",
+      "volume": "10"
+    },
+    {
+      "close": "1009500",
+      "high": "1011500",
+      "low": "1007000",
+      "open": "1009000",
+      "timestamp": "2026-04-30T09:09:00Z",
+      "volume": "11"
+    },
+    {
+      "close": "1010500",
+      "high": "1012500",
+      "low": "1008000",
+      "open": "1010000",
+      "timestamp": "2026-04-30T09:10:00Z",
+      "volume": "12"
+    },
+    {
+      "close": "1011500",
+      "high": "1013500",
+      "low": "1009000",
+      "open": "1011000",
+      "timestamp": "2026-04-30T09:11:00Z",
+      "volume": "13"
+    }
+  ],
+  "credential_load_attempted": false,
+  "exchange": "UPBIT",
+  "interval": "1m",
+  "is_public": true,
+  "loaded_at_utc": "2026-04-30T11:39:52Z",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "order_endpoint_called": false,
+  "private_account_fields_present": false,
+  "private_endpoint_called": false,
+  "profile": "PUBLIC_REST_READ_ONLY_1M_CANDLES",
+  "public_endpoint_host": "api.upbit.com",
+  "public_endpoint_path": "/v1/candles/minutes/1",
+  "raw_payload_private_fields_present": false,
+  "raw_sample_count": 6,
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source": "PUBLIC_REST_READ_ONLY",
+  "symbol": "KRW-BTC"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T03:55:17Z",
+  "project_id": "TRADER_1",
+  "audit_id": "MVP4_DASHBOARD_PERSISTENT_RUNTIME_DURATION_VISIBILITY",
+  "classification": "dashboard_false_safe_persistent_runtime_evidence_visibility",
+  "condition": "dashboard contract exposed persistent runtime duration guard in code but existing dashboard artifacts lacked the new field, and blocked source reports could be misread as stub-only display evidence",
+  "impact": "operator could miss that persistent runtime remains estimate-only, not observed long-run evidence; stale dashboard_shell artifacts could fail runtime schema validation",
+  "fix": "dashboard now shows persistent runtime status as display-only, blocks source status drift, tests negative cases, and migrates runtime dashboard_shell artifacts with valid hashes",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

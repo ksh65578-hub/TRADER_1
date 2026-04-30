@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.read_only_account_snapshot.v1",
+  "title": "read_only_account_snapshot",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "snapshot_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "account_snapshot_status",
+    "balance_snapshot_status",
+    "position_snapshot_status",
+    "open_order_snapshot_status",
+    "balances",
+    "positions",
+    "open_orders",
+    "credential_loaded",
+    "private_api_called",
+    "withdrawal_permission_detected",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "order_adapter_called",
+    "primary_blocker_code",
+    "blockers",
+    "snapshot_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.read_only_account_snapshot.v1"
+    },
+    "snapshot_id": {
+      "type": "string"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "const": "READ_ONLY"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "account_snapshot_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "UNVERIFIED",
+        "STALE"
+      ]
+    },
+    "balance_snapshot_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "UNVERIFIED",
+        "STALE"
+      ]
+    },
+    "position_snapshot_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "UNVERIFIED",
+        "STALE"
+      ]
+    },
+    "open_order_snapshot_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "UNVERIFIED",
+        "STALE"
+      ]
+    },
+    "balances": {
+      "type": "array"
+    },
+    "positions": {
+      "type": "array"
+    },
+    "open_orders": {
+      "type": "array"
+    },
+    "credential_loaded": {
+      "type": "boolean"
+    },
+    "private_api_called": {
+      "type": "boolean"
+    },
+    "withdrawal_permission_detected": {
+      "type": "boolean"
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "primary_blocker_code": {
+      "$ref": "common.defs.schema.json#/$defs/live_blocker_code"
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "snapshot_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    }
+  }
+}

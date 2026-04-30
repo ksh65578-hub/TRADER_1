@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T15:14:58Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP2_UPBIT_PAPER_DRY_RUN_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/upbit_paper_dry_run_report.schema.json",
+    "trader1/adapters/upbit/market_data.py",
+    "trader1/adapters/upbit/symbol_rules.py",
+    "trader1/adapters/upbit/fee_model.py",
+    "trader1/adapters/upbit/paper_broker.py",
+    "trader1/core/ledger/paper_ledger.py",
+    "trader1/validation/mvp0_validators.py",
+    "tools/run_upbit_paper_validators.py",
+    "tests/paper/test_upbit_paper_dry_run.py",
+    "tests/adapter/test_upbit_paper_adapter.py",
+    "system/runtime/upbit/krw_spot/paper/paper_dry_run/upbit_paper_dry_run_report.json",
+    "system/evidence/validator_runs/MVP2_UPBIT_PAPER_DRY_RUN.validator_run_log.json",
+    "system/evidence/stage_gates/MVP2_UPBIT_PAPER_DRY_RUN.stage_gate_result.json"
+  ],
+  "known_blockers": [
+    "SNAPSHOT_SCOPE_MISMATCH",
+    "SYMBOL_RULE_UNVERIFIED",
+    "FEE_MODEL_UNVERIFIED",
+    "MEASUREMENT_MISSING",
+    "LEDGER_UNAVAILABLE",
+    "LIVE_FINAL_GUARD_FAILED"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_SHADOW_HARNESS_SHORT_WINDOW_BOUNDS_20260430_001",
+  "created_at_utc": "2026-04-30T02:01:30Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_SHADOW_HARNESS_SHORT_WINDOW_BOUNDS",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "actual runtime harness rejects cycle counts above the bounded short-window capacity",
+    "actual runtime harness rejects observation fan-out and measured runtime values that can mislead long-run evidence review",
+    "actual runtime harness rejects parameterized thresholds that would let a short-window run satisfy long-run criteria",
+    "schema now constrains short-window harness counts, fan-out, runtime, and long-run thresholds",
+    "all live, credential, optimizer ranking, and scale-up paths remain blocked"
+  ],
+  "blocked_conditions": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T02:01:30Z",
+  "status": "PASS_MVP4_SHORT_WINDOW_BOUNDS_ONLY",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "E55C15677F5A0391A28481E1738A6F1145A64FC652F52031D9837A334B59B595"
+}

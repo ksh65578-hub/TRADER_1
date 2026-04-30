@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "created_at_utc": "2026-04-29T12:23:13Z",
+  "patch_id": "MVP4_REGISTERED_VALIDATOR_BACKLOG_TRIAGE_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_items": [
+    {
+      "artifact_id": "validator_run_log",
+      "path": "system/evidence/validator_runs/MVP4_REGISTERED_VALIDATOR_BACKLOG_TRIAGE.validator_run_log.json",
+      "sha256": "524DE164653D419B6F6943883219841A045E8C7FF295043FFC6F1C09556FBE46"
+    },
+    {
+      "artifact_id": "stage_gate_result",
+      "path": "system/evidence/stage_gates/MVP4_REGISTERED_VALIDATOR_BACKLOG_TRIAGE.stage_gate_result.json",
+      "sha256": "CEA08BA97DBF25702C04C5B980B9024200FC9AC3CD8A82D5285C979ED0C9BF4F"
+    },
+    {
+      "artifact_id": "validator_depth_audit",
+      "path": "system/evidence/audit_reports/MVP4_REGISTERED_VALIDATOR_BACKLOG_TRIAGE.audit.json",
+      "sha256": "F2DE0166092E737654FB40D71083906AED5AA7C938B742449C8E1FA79F28C1D6"
+    },
+    {
+      "artifact_id": "contract_gap",
+      "path": "system/evidence/contract_gaps/VALIDATOR_REGISTRY_BACKLOG_TRIAGE.contract_gap.json",
+      "sha256": "3EDD9EFE020F66E62275B2485C8B12577A9CF08BC63E1DE043334B395246411A"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

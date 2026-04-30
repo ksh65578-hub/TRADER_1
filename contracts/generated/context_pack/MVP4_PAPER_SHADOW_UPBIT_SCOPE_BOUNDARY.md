@@ -1,0 +1,27 @@
+# MVP4_PAPER_SHADOW_UPBIT_SCOPE_BOUNDARY
+
+context_pack_id: MVP4_PAPER_SHADOW_UPBIT_SCOPE_BOUNDARY
+task_class: MVP4_ACTUAL_LONG_RUN_PAPER_SHADOW_RUNTIME_EXECUTION_EVIDENCE_BOUNDARY
+source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
+source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
+included_section_ids: ["SECTION_PAPER_SHADOW_EVIDENCE", "SECTION_STRATEGY_PROFITABILITY", "SECTION_LIVE_FINAL_GUARD"]
+included_requirement_ids: ["REQ-MVP4-PAPER-SHADOW-UPBIT-SCOPE-BOUNDARY"]
+included_schema_ids: ["trader1.paper_shadow_evidence_accumulation_report.v1"]
+included_validator_ids: ["schema_validator", "registry_validator", "paper_shadow_evidence_accumulation_validator", "upbit_operational_paper_gate_validator", "live_final_guard_validator", "patch_result_schema_validator", "patch_result_runtime_schema_instance_validator", "generated_artifact_dirty_validator", "coverage_index_validator"]
+included_artifact_ids: ["trader1/research/shadow/shadow_runner.py", "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json", "tests/validators/test_paper_shadow_evidence_accumulation_validator.py", "tools/emit_paper_shadow_upbit_scope_boundary_patch_evidence.py", "contracts/generated/context_pack/MVP4_PAPER_SHADOW_UPBIT_SCOPE_BOUNDARY.md"]
+source_section_hashes: see contracts/generated/authority_section_map.json
+
+acceptance_checklist:
+- MVP-4 paper/shadow evidence accumulation accepts only UPBIT/KRW_SPOT scope.
+- BINANCE/SPOT paper evidence cannot become MVP-4 paper scorecard input.
+- Schema paths require upbit/krw_spot paper and shadow namespaces.
+- Dashboard and optimizer outputs remain analysis-only; live, order, promotion, and scale-up flags remain false.
+
+known_omissions_by_design:
+- Binance paper/live and futures remain later-stage work and are not deleted here.
+- No actual long-run runtime evidence is created by this patch.
+- No API keys, credentials, exchange account calls, order-capable endpoints, live orders, or scale-up are used.
+
+conflict_resolution_rule:
+TRADER_1.md active authority wins over this context pack. This context pack is a read cache only.
+generated_at_utc: 2026-04-30T06:29:27Z

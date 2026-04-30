@@ -1,0 +1,22 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T15:54:53Z",
+  "patch_id": "MVP4_PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY",
+  "result": "PASS_LIVE_BLOCKED_LONG_RUN_EVIDENCE_VISIBILITY_HARDENED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "mvp5_blocked": true,
+  "blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ]
+}

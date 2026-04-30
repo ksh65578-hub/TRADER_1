@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_DASHBOARD_SHADOW_HARNESS_STATUS_BINDING_20260430_001",
+  "created_at_utc": "2026-04-30T01:35:08Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_DASHBOARD_SHADOW_HARNESS_STATUS_BINDING",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "dashboard shell includes shadow_runtime_harness_status for runtime schema closure",
+    "safe launcher loads only scoped UPBIT/KRW_SPOT PAPER shadow harness reports and keeps display-only semantics",
+    "unsafe harness live drift renders as blocked without mutating live flags",
+    "runtime dashboard artifacts regenerate with live and scale flags false"
+  ],
+  "blocked_conditions": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T01:35:54Z",
+  "status": "PASS_MVP4_DASHBOARD_BINDING_ONLY",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "EE1C8C7A2A886B7EFDE568F193B458AEEF9EF31868F7F99D7E7F0928A7AF088A"
+}

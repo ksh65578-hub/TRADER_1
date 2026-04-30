@@ -1,0 +1,231 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_UPBIT_PAPER_PUBLIC_COLLECTOR_PERSISTENT_LOOP_20260430_001",
+  "created_at_utc": "2026-04-30T10:15:10Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "TRADER_1=FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B; AGENTS=21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-UPBIT-PUBLIC-MARKET-DATA-COLLECTOR",
+    "REQ-MVP4-UPBIT-PAPER-PERSISTENT-LOOP-BOUNDED",
+    "REQ-MVP4-PUBLIC-CANONICAL-EVENT-JSONL-RECOVERY",
+    "REQ-MVP4-PAPER-RUNTIME-COLLECTION-HASH-BINDING",
+    "REQ-MVP4-EVIDENCE-WRITE-HELPER-ALIAS-AWARE-SCANNER",
+    "REQ-MVP4-LIVE-SAFETY-INVARIANTS"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "upbit_public_market_data_collection_validator",
+    "upbit_paper_persistent_loop_validator"
+  ],
+  "new_or_changed_schema_ids": [
+    "trader1.upbit_public_market_data_collection_report.v1",
+    "trader1.upbit_paper_persistent_loop_report.v1",
+    "trader1.upbit_paper_runtime_cycle_report.v1"
+  ],
+  "validators_required": [
+    "registry_validator",
+    "schema_validator",
+    "upbit_paper_runtime_cycle_validator",
+    "upbit_public_market_data_collection_validator",
+    "upbit_paper_persistent_loop_validator",
+    "live_final_guard_validator",
+    "bytecode_free_syntax_validator",
+    "generated_artifact_dirty_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "schemas_parsed": 84
+    },
+    {
+      "validator_id": "upbit_paper_runtime_cycle_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_public_market_data_collection_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_persistent_loop_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "bytecode_free_syntax_validator",
+      "status": "PASS",
+      "files_checked": 393
+    },
+    {
+      "validator_id": "evidence_write_helper_coverage_audit",
+      "status": "PASS",
+      "coverage_pct": 100.0
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.integration.test_upbit_public_collection_persistent_loop -v",
+      "tests": 6,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.integration.test_upbit_paper_runtime_cycle -v",
+      "tests": 6,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.dashboard.test_summary_writer tests.dashboard.test_read_only_dashboard -v",
+      "tests": 136,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.runtime.test_safe_launcher -v",
+      "tests": 34,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests/live_blocked -v",
+      "tests": 21,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.runtime.test_evidence_write_helper_coverage -v",
+      "tests": 4,
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_bytecode_free_syntax_check.py",
+      "files_checked": 393,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "tests": 654,
+      "status": "FAIL_BEFORE_PATCH",
+      "failures": 2,
+      "note": "exposed generated_artifact_dirty drift and evidence writer alias scanner false-positive; both patched in this turn"
+    },
+    {
+      "command": "run_upbit_paper_persistent_loop(... requested_cycle_count=2)",
+      "status": "PASS",
+      "completed_cycle_count": 2,
+      "live_order_allowed": false
+    },
+    {
+      "command": "launcher_main('UPBIT_PAPER', pause=False, open_dashboard=False, console_heartbeat_ticks=1)",
+      "status": "PASS",
+      "exit_code": 0,
+      "portfolio_source": "LEDGER",
+      "open_position_count": 1
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "UPDATED_PASS",
+  "registry_yaml_parse_status": "PASS_JSON_COMPATIBLE_YAML",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED",
+  "read_cache_update_required": false,
+  "context_pack_update_required": false,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_AND_LONG_RUN_GUARDS",
+  "next_required_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_LONG_RUN_OPERATION",
+    "SECTION_DASHBOARD_OPERATOR_UX"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_STRATEGY_PROFITABILITY_LOOP",
+    "SECTION_RUNTIME_RECOVERY"
+  ],
+  "next_forbidden_default_sections": [
+    "LIVE_ENABLING_PATCH",
+    "BINANCE_FUTURES_LIVE_IMPLEMENTATION",
+    "EXCHANGE_PRIVATE_API_CREDENTIAL_USE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "No LIVE_READY snapshot",
+    "No official API verification",
+    "No operator approval",
+    "No read-only account snapshot evidence",
+    "No read-only burn-in evidence",
+    "No manual order test evidence",
+    "Persistent loop is bounded and is not long-run evidence",
+    "Public REST live fetch remains disabled by default; fixture-backed public collection only",
+    "Binance adapter remains surface-only",
+    "MVP-5 remains blocked by live-enabling evidence requirements"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_UPBIT_PAPER_PUBLIC_COLLECTOR_PERSISTENT_LOOP.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_PUBLIC_COLLECTOR_PERSISTENT_LOOP.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_PUBLIC_COLLECTOR_PERSISTENT_LOOP.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "contracts/generated/current_implementation_state.json",
+    "contracts/generated/read_cache_manifest.json",
+    "contracts/generated/context_pack/MVP4_UPBIT_PAPER_RUNTIME_ENGINE_0_TO_1_FOUNDATION.md",
+    "검토안 implementation plan supplied by user",
+    "task-specific runtime, validator, dashboard, and evidence scanner source files"
+  ],
+  "task_class": "MVP4_UPBIT_PAPER_PUBLIC_COLLECTOR_PERSISTENT_LOOP",
+  "required_section_ids": [
+    "AGENTS_0G",
+    "TRADER1_MVP4_LIVE_SAFETY",
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_DASHBOARD_OPERATOR_UX"
+  ],
+  "expanded_section_ids": [
+    "trader1.runtime.paper.upbit_public_collector",
+    "trader1.runtime.paper.upbit_paper_persistent_loop",
+    "trader1.runtime.paper.upbit_paper_runtime",
+    "trader1.runtime.boot.safe_launcher",
+    "trader1.validation.mvp0_validators",
+    "tools.evidence_write_helper_coverage",
+    "tests.integration.test_upbit_public_collection_persistent_loop",
+    "tests.runtime.test_evidence_write_helper_coverage"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "UNCHANGED_PRESENT",
+  "requirement_index_status": "UPDATED_PRESENT",
+  "requirement_artifact_matrix_status": "UPDATED_PRESENT",
+  "read_cache_manifest_status": "UPDATED_PRESENT",
+  "context_pack_status": "UPDATED_PRESENT",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "result_hash": "2E28AE6C36C8868566B5E1B59DCF8A2FFD00BCFD7B2618ACD6E1402104EE162D"
+}

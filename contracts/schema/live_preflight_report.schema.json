@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.live_preflight_report.v1",
+  "title": "live_preflight_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "preflight_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "can_live_review",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "order_adapter_called",
+    "live_new_order_blocked",
+    "official_api_verification_report",
+    "account_snapshot",
+    "private_stream_health",
+    "reconciliation_path",
+    "api_key_permission_check",
+    "readiness_surface",
+    "manual_order_test_status",
+    "operator_approval_status",
+    "read_only_burn_in_status",
+    "preflight_status",
+    "primary_blocker_code",
+    "blockers",
+    "preflight_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.live_preflight_report.v1"
+    },
+    "preflight_id": {
+      "type": "string"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "const": "LIVE"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "can_live_review": {
+      "type": "boolean"
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "live_new_order_blocked": {
+      "const": true
+    },
+    "official_api_verification_report": {
+      "type": "object"
+    },
+    "account_snapshot": {
+      "type": "object"
+    },
+    "private_stream_health": {
+      "type": "object"
+    },
+    "reconciliation_path": {
+      "type": "object"
+    },
+    "api_key_permission_check": {
+      "type": "object"
+    },
+    "readiness_surface": {
+      "type": "object"
+    },
+    "manual_order_test_status": {
+      "enum": [
+        "NOT_REQUIRED",
+        "MISSING",
+        "PENDING",
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "operator_approval_status": {
+      "enum": [
+        "NOT_REQUIRED",
+        "MISSING",
+        "PENDING",
+        "APPROVED",
+        "REVOKED"
+      ]
+    },
+    "read_only_burn_in_status": {
+      "enum": [
+        "MISSING",
+        "PASS",
+        "FAIL",
+        "STALE",
+        "UNTESTED"
+      ]
+    },
+    "preflight_status": {
+      "enum": [
+        "PASS_REVIEW_ONLY",
+        "BLOCKED",
+        "FAIL"
+      ]
+    },
+    "primary_blocker_code": {
+      "$ref": "common.defs.schema.json#/$defs/live_blocker_code"
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "preflight_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    }
+  }
+}

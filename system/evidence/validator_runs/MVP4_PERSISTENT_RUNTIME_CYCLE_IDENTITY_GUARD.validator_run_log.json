@@ -1,0 +1,82 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T03:27:34Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_PERSISTENT_RUNTIME_CYCLE_IDENTITY_GUARD_20260430_001",
+  "validators_run": [
+    {
+      "validator_id": "shadow_observation_persistent_runtime_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shadow_observation_artifact_writer_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.research.test_shadow_observation_persistent_runtime -v",
+      "status": "PASS",
+      "tests": 5
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.research.test_shadow_observation_artifact_writer -v",
+      "status": "PASS",
+      "tests": 3
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest discover -v",
+      "status": "PASS",
+      "tests": 594
+    }
+  ],
+  "overall_status": "PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

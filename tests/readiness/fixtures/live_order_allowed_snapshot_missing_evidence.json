@@ -1,0 +1,11 @@
+{
+  "fixture_id": "live_order_allowed_snapshot_missing_evidence",
+  "validator_id": "live_ready_snapshot_writer_validator",
+  "case": "live_order_allowed snapshot requires official API, burn-in, emergency protection, operator/manual evidence, and PASS rollup",
+  "expected_status": "BLOCKED",
+  "expected_blocker_code": "API_UNVERIFIED",
+  "expected_snapshot_written": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

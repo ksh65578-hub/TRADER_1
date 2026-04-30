@@ -1,0 +1,10 @@
+{
+  "fixture_id": "live_final_guard_disabled_blocked",
+  "validator_id": "live_final_guard_validator",
+  "expected_status": "BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "expected_order_adapter_called": false,
+  "expected_blocker_code": "LIVE_FINAL_GUARD_FAILED"
+}

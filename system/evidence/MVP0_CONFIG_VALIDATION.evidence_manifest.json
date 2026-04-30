@@ -1,0 +1,29 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T13:24:49Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP0_CONFIG_VALIDATION_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/runtime_config.schema.json",
+    "trader1/config/config_schema.py",
+    "trader1/validation/mvp0_validators.py",
+    "tools/run_config_validators.py",
+    "tests/config/test_config_validation.py",
+    "system/evidence/validator_runs/MVP0_CONFIG_VALIDATION.validator_run_log.json",
+    "system/evidence/stage_gates/MVP0_CONFIG_VALIDATION.stage_gate_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "LIVE_READY_SNAPSHOT_WRITER_UNTESTED",
+    "API_UNVERIFIED",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

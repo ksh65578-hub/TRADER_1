@@ -1,0 +1,10 @@
+{
+  "fixture_id": "convergence_assessment_dependencies_schema_only_pass",
+  "validator_id": "overfit_diagnostic_validator",
+  "expected_status": "PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "expected_order_adapter_called": false,
+  "expected_blocker_code": null
+}

@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.shadow_observation_runtime_artifact_writer_report.v1",
+  "title": "TRADER_1 Shadow Observation Runtime Artifact Writer Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "writer_id",
+    "exchange",
+    "market_type",
+    "source_mode",
+    "mode",
+    "session_id",
+    "writer_mode",
+    "writer_status",
+    "artifact_truth_role",
+    "runtime_evidence_role",
+    "dashboard_visibility_status",
+    "source_runtime_report_id",
+    "source_runtime_report_hash",
+    "source_runtime_hash_verified",
+    "artifact_path",
+    "writer_report_path",
+    "artifact_hash",
+    "atomic_writer_status",
+    "temp_artifact_count_after",
+    "partial_write_detected",
+    "actual_persistent_runtime_executed",
+    "long_run_evidence_eligible",
+    "promotion_eligible",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "order_adapter_called",
+    "primary_blocker_code",
+    "blocker_message",
+    "next_operator_action",
+    "writer_report_hash"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "trader1.shadow_observation_runtime_artifact_writer_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "writer_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "const": "UPBIT"
+    },
+    "market_type": {
+      "const": "KRW_SPOT"
+    },
+    "source_mode": {
+      "const": "PAPER"
+    },
+    "mode": {
+      "const": "SHADOW"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "writer_mode": {
+      "const": "ATOMIC_SHADOW_STUB_WRITER"
+    },
+    "writer_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "artifact_truth_role": {
+      "const": "shadow_runtime_stub_display_truth_only"
+    },
+    "runtime_evidence_role": {
+      "const": "PERSISTENT_RUNTIME_STUB_ONLY"
+    },
+    "dashboard_visibility_status": {
+      "enum": [
+        "VISIBLE_AS_STUB_ONLY",
+        "BLOCKED_FROM_DASHBOARD"
+      ]
+    },
+    "source_runtime_report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_runtime_report_hash": {
+      "type": "string",
+      "pattern": "^[A-F0-9]{64}$"
+    },
+    "source_runtime_hash_verified": {
+      "const": true
+    },
+    "artifact_path": {
+      "type": "string",
+      "pattern": "system/runtime/upbit/krw_spot/shadow/.+/shadow_observation/shadow_observation_persistent_runtime_report\\.json$"
+    },
+    "writer_report_path": {
+      "type": "string",
+      "pattern": "system/runtime/upbit/krw_spot/shadow/.+/shadow_observation/shadow_observation_runtime_artifact_writer_report\\.json$"
+    },
+    "artifact_hash": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-F0-9]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "atomic_writer_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "temp_artifact_count_after": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "partial_write_detected": {
+      "type": "boolean"
+    },
+    "actual_persistent_runtime_executed": {
+      "const": false
+    },
+    "long_run_evidence_eligible": {
+      "const": false
+    },
+    "promotion_eligible": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "primary_blocker_code": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "blocker_message": {
+      "type": "string",
+      "minLength": 1
+    },
+    "next_operator_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "writer_report_hash": {
+      "type": "string",
+      "pattern": "^[A-F0-9]{64}$"
+    }
+  }
+}

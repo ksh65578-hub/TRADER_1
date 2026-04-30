@@ -1,0 +1,267 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING_20260430_001",
+  "created_at_utc": "2026-04-29T16:19:53Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "MATCHED_ACTIVE_AUTHORITY",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-OPERATIONAL-PAPER-EVIDENCE-COUNT-BINDING",
+    "REQ-MVP4-PAPER-SHADOW-EVIDENCE-ACCUMULATION-HARDENING",
+    "REQ-MVP4-DASHBOARD-PROFITABILITY-ROLLUP-BINDING",
+    "REQ-MVP4-LONG-RUN-PAPER-SHADOW-OPERATIONAL-EVIDENCE-COLLECTION",
+    "REQ-MVP4-SCHEMA-RUNTIME-INSTANCE-VALIDATION"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER_SHADOW_READ_ONLY_ONLY",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [],
+  "new_or_changed_schema_ids": [
+    "trader1.paper_shadow_evidence_accumulation_report.v1",
+    "trader1.paper_operation_gate_report.v1",
+    "trader1.read_only_dashboard_shell.v1"
+  ],
+  "validators_required": [
+    "upbit_operational_paper_gate_validator",
+    "paper_shadow_evidence_accumulation_validator",
+    "read_only_dashboard_validator",
+    "runtime_schema_instance_validator",
+    "profitability_optimizer_evidence_gap_validator",
+    "schema_validator",
+    "live_final_guard_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "profitability_optimizer_evidence_gap_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.integration.test_upbit_operational_paper_cycle tests.runtime.test_safe_launcher -v",
+      "status": "PASS",
+      "tests": 34
+    },
+    {
+      "command": "python -m unittest tests.dashboard.test_read_only_dashboard -v",
+      "status": "PASS",
+      "tests": 98
+    },
+    {
+      "command": "python -m unittest tests.contract.test_patch_result_runtime_schema_validation tests.contract.test_schema_instance_validation -v",
+      "status": "PASS",
+      "tests": 10
+    },
+    {
+      "command": "python -m compileall trader1 tests -q",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_profitability_optimizer_evidence_gap_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "tests": 575
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "UPDATED_PASS",
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED_FOR_OPERATIONAL_EVIDENCE_COUNT_BINDING_DELTA",
+  "read_cache_update_required": true,
+  "context_pack_update_required": true,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_LONG_RUN_PAPER_SHADOW_OPERATIONAL_EVIDENCE_COLLECTION",
+  "next_required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_STRATEGY_PROFITABILITY_EVIDENCE",
+    "SECTION_LONG_RUN_STABILITY",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_OPTIMIZER_CONVERGENCE_GUARDRAIL",
+    "SECTION_RUNTIME_RECOVERY"
+  ],
+  "next_forbidden_default_sections": [
+    "MVP5_LIVE_ENABLING",
+    "LIVE_CONFIG_MUTATION",
+    "BINANCE_FUTURES_LIVE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "contracts/generated/current_implementation_state.json",
+    "trader1/runtime/paper/operational_cycle.py",
+    "trader1/validation/mvp0_validators.py",
+    "trader1/dashboard/read_only_dashboard.py",
+    "tests/integration/test_upbit_operational_paper_cycle.py",
+    "tests/runtime/test_safe_launcher.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json",
+    "contracts/schema/paper_operation_gate_report.schema.json"
+  ],
+  "task_class": "MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING",
+  "required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_STRATEGY_PROFITABILITY_EVIDENCE",
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_PROFIT_CONVERGENCE_MVP3_ACTIVE_SURFACE",
+    "SECTION_DASHBOARD_OPERATOR_UX_ACTIVE_SURFACE",
+    "AGENTS_0F_CONVERGENCE_VALIDATOR_RULES",
+    "AGENTS_0G_IMPLEMENTATION_DEPTH_ENFORCEMENT"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "PASS_PRESENT_HASH_RECHECKED",
+  "requirement_index_status": "PASS_UPDATED_WITH_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING",
+  "requirement_artifact_matrix_status": "PASS_UPDATED_WITH_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING",
+  "read_cache_manifest_status": "PASS_UPDATED_WITH_OPERATIONAL_EVIDENCE_COUNT_CONTEXT_PACK",
+  "context_pack_status": "PASS_CREATED_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING",
+  "current_implementation_state_status": "PASS_UPDATED_WITH_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "true",
+  "optimizer_stage": "MVP-4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING",
+  "optimizer_status_before": "SINGLE_OPERATIONAL_PAPER_CYCLE_COULD_OVERCLAIM_SAMPLE_MATURITY",
+  "optimizer_status_after": "OPERATIONAL_PAPER_CYCLE_BLOCKS_RANKING_UNTIL_REAL_PAPER_SHADOW_EVIDENCE_ACCUMULATES",
+  "optimizer_maturity_level_before": "FALSE_SAFE_SAMPLE_DEFAULT_RISK_DETECTED",
+  "optimizer_maturity_level_after": "COUNT_BOUND_TO_ACTUAL_ARTIFACTS_LONG_RUN_EVIDENCE_STILL_BLOCKED",
+  "optimizer_output_type": "RUNTIME_VALIDATOR_DASHBOARD_ONLY_NO_LIVE_CONFIG_MUTATION",
+  "optimizer_validators_required": [
+    "paper_shadow_evidence_accumulation_validator",
+    "profitability_optimizer_evidence_gap_validator",
+    "upbit_operational_paper_gate_validator"
+  ],
+  "optimizer_validators_run": [
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "profitability_optimizer_evidence_gap_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS"
+    }
+  ],
+  "optimizer_guardrail_result": "PASS_BLOCK_RANKING_WHEN_OPERATIONAL_EVIDENCE_IS_SINGLE_CYCLE_OR_SHADOW_MISSING",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "true",
+  "convergence_layer_changed": false,
+  "convergence_state_before": "PAPER_OPERATIONAL_EVIDENCE_COULD_APPEAR_MATURE_WITH_DEFAULT_COUNTS",
+  "convergence_state_after": "PAPER_OPERATIONAL_EVIDENCE_REMAINS_COLLECTING_UNTIL_REAL_SCOPED_COUNTS_EXIST",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": true,
+  "failure_analysis_status": "FALSE_SAFE_SAMPLE_MATURITY_DEFECT_RECORDED_IN_VALIDATOR_RUN_LOG",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "paper_shadow_evidence_accumulation_validator",
+    "upbit_operational_paper_gate_validator",
+    "live_final_guard_validator"
+  ],
+  "convergence_validators_run": [
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "convergence_guardrail_result": "PASS_NO_LIVE_PERMISSION_NO_SCALE_UP_NO_DIRECT_ACTIVE_SNAPSHOT_MUTATION",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "result_hash": "0A12F558375E27B827D511AF59D8EDD6924F4C4A6ABC69B9F37B68BB9BC50199"
+}

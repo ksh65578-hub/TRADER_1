@@ -1,0 +1,30 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T09:00:56Z",
+  "patch_id": "MVP4_ORDER_PATH_ADAPTER_SUBMIT_RECHECK_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_ORDER_PATH_ADAPTER_SUBMIT_RECHECK_NO_LIVE_ORDERS",
+  "order_path_adapter_audit": {
+    "audit_schema_id": "trader1.order_path_adapter_submit_recheck_audit.v1",
+    "status": "PASS",
+    "blockers": [],
+    "prior_attempt_external_submit_attempted": true,
+    "prior_attempt_order_adapter_called": false,
+    "prior_attempt_blockers": [
+      "LIVE_FINAL_GUARD_FAILED",
+      "LIVE_READY_MISSING"
+    ],
+    "all_green_order_adapter_called": false,
+    "all_green_external_submit_attempted": false,
+    "all_green_primary_blocker_code": "LIVE_ENABLING_EVIDENCE_MISSING",
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false,
+    "next_action": "Continue adapter-submit blocked regression monitoring."
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

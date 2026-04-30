@@ -1,0 +1,96 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T04:27:23Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD_20260430_001",
+  "validators_run": [
+    {
+      "validator_id": "runtime_stability_history_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.runtime.test_stability_history -v",
+      "status": "PASS",
+      "tests": 9
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest targeted dashboard stability-history tests -v",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.dashboard.test_read_only_dashboard -v",
+      "status": "PASS",
+      "tests": 114
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.runtime.test_stability_history tests.validators.test_runtime_stability_history_validator -v",
+      "status": "PASS",
+      "tests": 14
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_runtime_stability_history_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest discover -v",
+      "status": "PASS",
+      "tests": 605
+    }
+  ],
+  "overall_status": "PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

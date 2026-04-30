@@ -1,0 +1,80 @@
+{
+  "schema_id": "trader1.startup_probe.v1",
+  "generated_at_utc": "2026-04-30T14:06:46Z",
+  "project_id": "TRADER_1",
+  "exchange": "BINANCE",
+  "market_type": "SPOT",
+  "mode": "LIVE",
+  "session_id": "mvp1_binance_live_launcher",
+  "config_hash": "0209DFB1C8C8290EC5829865124710B0EAE8BCF0FEDAFC15CD301E8302A553DB",
+  "registry_hash": "7993C3A01571BAC352A398262E3DBDEE3E9A3BB312AEE28AD8F3EC257AD8C9CD",
+  "schema_bundle_hash": "915CA66FC8B53408933214B6716D5F355FE1107DBFA6C3FB358710E23E3DCAB5",
+  "source_tree_hash": "485253221E9B781AC3D28D5EE2456ED441CD81F866186126A923DD39880655DD",
+  "engine_state_before": "BOOTSTRAP_READ_ONLY",
+  "engine_state_after_probe": "SAFE_MODE",
+  "startup_probe_phase": "STARTUP_PROBE_GATE_BLOCKED",
+  "startup_probe_passed": false,
+  "can_start": false,
+  "can_run_engine": false,
+  "can_trade": false,
+  "can_live_trade": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "dashboard_truth_only": true,
+  "hard_truth": {
+    "engine_state": {
+      "status": "PASS",
+      "present": true
+    },
+    "mode": {
+      "status": "PASS",
+      "present": true
+    },
+    "exchange": {
+      "status": "PASS",
+      "present": true
+    },
+    "market_type": {
+      "status": "PASS",
+      "present": true
+    },
+    "session_id": {
+      "status": "PASS",
+      "present": true
+    },
+    "config_hash": {
+      "status": "PASS",
+      "present": true
+    },
+    "registry_hash": {
+      "status": "PASS",
+      "present": true
+    },
+    "schema_id": {
+      "status": "PASS",
+      "present": true
+    },
+    "ledger_write_status": {
+      "status": "MISSING",
+      "present": false
+    },
+    "startup_probe_phase": {
+      "status": "PASS",
+      "present": true
+    }
+  },
+  "missing_hard_truth": [
+    "ledger_write_status"
+  ],
+  "primary_blocker_code": "HARD_TRUTH_MISSING",
+  "blockers": [
+    {
+      "code": "HARD_TRUTH_MISSING",
+      "severity": "HIGH",
+      "message": "hard truth missing blocks startup"
+    }
+  ],
+  "final_action": "NO_TRADE",
+  "next_action": "provide missing hard truth and rerun startup probe",
+  "probe_hash": "A3BE88E2D5BA1F5C96A6485DE0623F00DA1A16A2A54E8A22BC59682E90185B7E"
+}

@@ -1,0 +1,24 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "generated_at_utc": "2026-04-30T04:27:23Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_WITH_LIVE_BLOCKED",
+  "stage_gate_decision": "CONTINUE_MVP4_SAFE_HARDENING",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "remaining_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ]
+}

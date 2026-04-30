@@ -1,0 +1,81 @@
+{
+  "schema_id": "trader1.heartbeat.v1",
+  "generated_at_utc": "2026-04-28T14:15:35Z",
+  "project_id": "TRADER_1",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp1_read_only_dashboard",
+  "config_hash": "DC5E2B0CD66904766873AC6F67E0704D39BAE9B4B0DEF59903D84C0A0A6F9010",
+  "registry_hash": "4BE883AFB90B990B4475B3A7C3EEEB6085A7EEA8FFE50E864A9163AC0C4547FD",
+  "schema_bundle_hash": "CC7EE972461FCCA02CBACD154B2150F3441BB51568308C668A95A3D969CA5BE5",
+  "source_tree_hash": "38B8E260A86CFB438116FC9CA0D84BF6D59ADC506E63EF093E7BC3C206038C00",
+  "engine_state": "BOOTSTRAP_READ_ONLY",
+  "startup_probe_phase": "STARTUP_PROBE_GATE_BLOCKED",
+  "heartbeat_status": "PASS",
+  "last_heartbeat_at_utc": "2026-04-28T14:15:35Z",
+  "stale_after_seconds": 30,
+  "heartbeat_age_seconds": 0.0,
+  "dashboard_truth_only": true,
+  "can_trade": false,
+  "can_live_trade": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "components": {
+    "cpu": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    },
+    "memory": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    },
+    "disk": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    },
+    "event_latency": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    },
+    "queue_backlog": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    },
+    "rest_health": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    },
+    "websocket_health": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    },
+    "private_stream_health": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    },
+    "rate_limit_pressure": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    },
+    "watchdog_heartbeat": {
+      "status": "PASS",
+      "message": null,
+      "observed_at_utc": "2026-04-28T14:15:35Z"
+    }
+  },
+  "primary_blocker_code": null,
+  "blockers": [],
+  "final_action": "SAFE_MODE",
+  "next_action": "continue read-only monitoring",
+  "heartbeat_hash": "E7A3276A31A80A5CC8B777BFA60F484E448D08CDD1967FDDF41406A2F6A1131C"
+}

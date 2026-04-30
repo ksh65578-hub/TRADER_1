@@ -1,0 +1,47 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T15:55:42Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_UPBIT_LIVE_REVIEW_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/official_api_verification_report.schema.json",
+    "contracts/schema/manual_order_test_evidence.schema.json",
+    "contracts/schema/read_only_account_snapshot.schema.json",
+    "contracts/schema/private_stream_health.schema.json",
+    "contracts/schema/upbit_read_only_reconciliation_path.schema.json",
+    "contracts/schema/api_key_permission_check_report.schema.json",
+    "contracts/schema/live_preflight_report.schema.json",
+    "contracts/schema/live_review_dashboard.schema.json",
+    "trader1/runtime/readiness/live_preflight.py",
+    "trader1/validation/mvp0_validators.py",
+    "tools/run_upbit_live_review_validators.py",
+    "tests/readiness/test_upbit_live_review_preflight.py",
+    "tests/live_blocked/test_upbit_live_review_no_new_order.py",
+    "tests/contract/test_official_api_verification_report.py",
+    "system/evidence/upbit/krw_spot/read_only/mvp4_live_review/official_api_verification_report.json",
+    "system/runtime/upbit/krw_spot/read_only/mvp4_live_review/read_only_account_snapshot.json",
+    "system/runtime/upbit/krw_spot/read_only/mvp4_live_review/private_stream_health.json",
+    "system/runtime/upbit/krw_spot/read_only/mvp4_live_review/reconciliation_path.json",
+    "system/evidence/upbit/krw_spot/read_only/mvp4_live_review/api_key_permission_check_report.json",
+    "system/evidence/upbit/krw_spot/live/mvp4_live_review/manual_order_test_evidence_missing.json",
+    "system/runtime/upbit/krw_spot/live/review/live_preflight_report.json",
+    "system/runtime/upbit/krw_spot/live/review/live_review_dashboard.json",
+    "system/evidence/validator_runs/MVP4_UPBIT_LIVE_REVIEW.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_LIVE_REVIEW.stage_gate_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "RECONCILIATION_REQUIRED"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

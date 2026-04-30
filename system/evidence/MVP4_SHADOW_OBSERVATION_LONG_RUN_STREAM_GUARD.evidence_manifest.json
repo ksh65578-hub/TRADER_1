@@ -1,0 +1,50 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T23:55:25Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "SHADOW",
+  "status": "PASS_LIVE_BLOCKED",
+  "blockers": [],
+  "notes": "SHADOW observation streams are now ordered, duplicate-guarded, source-hash-bound, stale-guarded, and analysis-only; live and scale-up remain blocked.",
+  "evidence_manifest_id": "MVP4_SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD",
+  "artifact_paths": [
+    "contracts/schema/shadow_observation_stream_report.schema.json",
+    "contracts/registry.yaml",
+    "contracts/schema/common.defs.schema.json",
+    "trader1/research/shadow/shadow_observation_stream.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/research/test_shadow_observation_stream.py",
+    "tools/run_paper_shadow_evidence_validators.py",
+    "contracts/generated/context_pack/SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD.md",
+    "system/evidence/contract_gaps/PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP.contract_gap.json",
+    "system/evidence/validator_runs/MVP4_SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD.patch_result.json"
+  ],
+  "known_blockers": [
+    "PERSISTENT_SHADOW_STREAM_SCHEDULER_MISSING",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "patch_result_hash": "3E04CE952DC4ACED590049273629CDD0E991B25F662876DFFCEA70BBC1933D22",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD.stage_gate_result.json",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "scale_up_allowed": false,
+  "evidence_manifest_hash": "07D814E45A9528ADE7E04C3B54A0AD582C6D3D490608C6DC37D46E61E342409E"
+}

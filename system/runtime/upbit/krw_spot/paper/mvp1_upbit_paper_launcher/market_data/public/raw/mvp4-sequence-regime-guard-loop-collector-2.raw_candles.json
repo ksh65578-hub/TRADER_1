@@ -1,0 +1,63 @@
+{
+  "candles": [
+    {
+      "close": "1020000",
+      "high": "1022500",
+      "low": "1017500",
+      "open": "1018800",
+      "timestamp": "2026-04-30T09:00:00Z",
+      "volume": "2"
+    },
+    {
+      "close": "1012000",
+      "high": "1014500",
+      "low": "1009500",
+      "open": "1010800",
+      "timestamp": "2026-04-30T09:01:00Z",
+      "volume": "3"
+    },
+    {
+      "close": "1007000",
+      "high": "1009500",
+      "low": "1004500",
+      "open": "1005800",
+      "timestamp": "2026-04-30T09:02:00Z",
+      "volume": "4"
+    },
+    {
+      "close": "1001000",
+      "high": "1003500",
+      "low": "998500",
+      "open": "999800",
+      "timestamp": "2026-04-30T09:03:00Z",
+      "volume": "5"
+    },
+    {
+      "close": "996000",
+      "high": "998500",
+      "low": "993500",
+      "open": "994800",
+      "timestamp": "2026-04-30T09:04:00Z",
+      "volume": "6"
+    },
+    {
+      "close": "990000",
+      "high": "992500",
+      "low": "987500",
+      "open": "988800",
+      "timestamp": "2026-04-30T09:05:00Z",
+      "volume": "7"
+    }
+  ],
+  "exchange": "UPBIT",
+  "interval": "1m",
+  "is_public": true,
+  "loaded_at_utc": "2026-04-30T11:46:36Z",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "private_account_fields_present": false,
+  "profile": "DOWNTREND",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source": "STATIC_FIXTURE",
+  "symbol": "KRW-BTC"
+}

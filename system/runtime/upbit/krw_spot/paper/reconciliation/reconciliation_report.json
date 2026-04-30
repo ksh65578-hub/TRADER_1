@@ -1,0 +1,50 @@
+{
+  "schema_id": "trader1.reconciliation_report.v1",
+  "generated_at_utc": "2026-04-28T14:50:36Z",
+  "project_id": "TRADER_1",
+  "reconciliation_id": "mvp1-reconciliation-report",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp1_reconciliation",
+  "account_snapshot_id": "account-snapshot-1",
+  "ledger_head_hash": "LEDGER_HEAD_NOT_LIVE",
+  "exchange_snapshot_hash": "CD14AF926ADA9DD3012E250F84ABDE4D5067F9DA3F3B90ECDAC84C3568FCFD0B",
+  "internal_state_hash": "CD14AF926ADA9DD3012E250F84ABDE4D5067F9DA3F3B90ECDAC84C3568FCFD0B",
+  "exchange_snapshot": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER",
+    "session_id": "mvp1_reconciliation",
+    "balances": {},
+    "positions": [],
+    "open_orders": []
+  },
+  "internal_state": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER",
+    "session_id": "mvp1_reconciliation",
+    "balances": {},
+    "positions": [],
+    "open_orders": []
+  },
+  "reconciliation_status": "STALE",
+  "final_decision": "RECONCILE_REQUIRED",
+  "primary_blocker_code": "RECONCILIATION_REQUIRED",
+  "blockers": [
+    {
+      "code": "RECONCILIATION_REQUIRED",
+      "severity": "HIGH",
+      "message": "reconciliation snapshots are stale"
+    }
+  ],
+  "mismatches": [],
+  "new_entry_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "can_submit_order": false,
+  "order_adapter_called": false,
+  "reconciliation_hash": "2D182CD52308B36C63F5CCBD13E0374D2BFC2E6352BD7276DEC4A65D1FE189DF"
+}

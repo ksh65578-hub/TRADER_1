@@ -1,0 +1,96 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "patch_id": "MVP4_SOURCE_PACKAGE_HYGIENE_RUNTIME_TERMINATION_RECONCILIATION_FIX_20260430_001",
+  "created_at_utc": "2026-04-30T09:29:35Z",
+  "validators": [
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "root_launcher_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "root_launcher_surface_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "ledger_reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "bytecode_free_syntax_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests": [
+    {
+      "command": "python -m unittest tests.security.test_source_bundle_security -v",
+      "tests": 7,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.runtime.test_reconciliation -v",
+      "tests": 13,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.runtime.test_safe_launcher -v",
+      "tests": 33,
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_bytecode_free_syntax_check.py",
+      "files_checked": 388,
+      "status": "PASS"
+    },
+    {
+      "command": "python UPBIT_PAPER.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "heartbeat": "HEARTBEAT 1/1 PASS",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false
+    }
+  ],
+  "bytecode_cache_after": {
+    "pycache_dirs": 0,
+    "pyc_files": 0
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "patch_result_hash": "6F92405F33FCE5DC35CE6DDF83963B38801FE92B93B1F8F20DC59C6FB2CE2912",
+  "launcher_runs": [
+    {
+      "command": "python UPBIT_PAPER.py",
+      "status": "PASS",
+      "exit_code": 0,
+      "execution_mode": "PAPER_SAFE_BOOT_ONE_SHOT",
+      "heartbeat": "HEARTBEAT 1/1 PASS",
+      "launcher_status": "SAFE_MODE",
+      "final_action": "NO_TRADE",
+      "blocking_reason": "HARD_TRUTH_MISSING",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    }
+  ],
+  "updated_at_utc": "2026-04-30T09:32:54Z"
+}

@@ -1,0 +1,46 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T01:02:21Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_SYMBOL_REGIME_FIT_SCHEMA_HARDENING_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/symbol_strategy_regime_fit_report.schema.json",
+    "trader1/validation/mvp0_validators.py",
+    "contracts/registry.yaml",
+    "contracts/validators/validator_registry.json",
+    "tests/validators/test_symbol_strategy_regime_fit_validator.py",
+    "tests/validators/fixtures/symbol_strategy_regime_fit_pass.json",
+    "tests/validators/fixtures/symbol_strategy_regime_fit_low_liquidity_fail.json",
+    "tests/validators/fixtures/symbol_strategy_regime_fit_live_flag_fail.json",
+    "tests/validators/fixtures/symbol_strategy_regime_fit_missing_family_fail.json",
+    "tools/run_symbol_strategy_regime_fit_validators.py",
+    "tools/emit_symbol_strategy_regime_fit_schema_hardening_patch_evidence.py",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_AUDIT.json",
+    "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json",
+    "contracts/generated/context_pack/SYMBOL_REGIME_FIT_SCHEMA_HARDENING.md",
+    "contracts/generated/requirement_index.json",
+    "contracts/generated/requirement_artifact_matrix.json",
+    "system/evidence/validator_runs/MVP4_SYMBOL_REGIME_FIT_SCHEMA_HARDENING.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SYMBOL_REGIME_FIT_SCHEMA_HARDENING.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_SYMBOL_REGIME_FIT_SCHEMA_HARDENING.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE",
+    "CONTRACT_GAP_HIGH"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

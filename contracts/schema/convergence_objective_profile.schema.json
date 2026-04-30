@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.convergence_objective_profile.v1",
+  "title": "convergence_objective_profile",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "exchange",
+    "market_type",
+    "mode",
+    "objective_profile_id",
+    "objective_profile_version",
+    "objective_status",
+    "source_modes",
+    "objective_components",
+    "net_ev_after_cost_required",
+    "raw_pnl_only_allowed",
+    "live_permission_created",
+    "live_config_mutation_allowed",
+    "writes_live_ready_snapshot",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "operator_warning",
+    "blockers",
+    "profile_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.convergence_objective_profile.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "status": {
+      "type": "string"
+    },
+    "objective_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "objective_profile_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "objective_status": {
+      "enum": [
+        "COLLECTING",
+        "EVALUATION_ONLY",
+        "BLOCKED"
+      ]
+    },
+    "source_modes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/mode"
+      }
+    },
+    "objective_components": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "component_id",
+          "component_kind",
+          "weight",
+          "required"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "component_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "component_kind": {
+            "enum": [
+              "NET_EV_AFTER_COST",
+              "DRAWDOWN_PENALTY",
+              "SLIPPAGE_PENALTY",
+              "FEE_PENALTY",
+              "IMPACT_PENALTY",
+              "OOS_ROBUSTNESS",
+              "CONCENTRATION_PENALTY",
+              "REGIME_FIT"
+            ]
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "net_ev_after_cost_required": {
+      "type": "boolean"
+    },
+    "raw_pnl_only_allowed": {
+      "type": "boolean"
+    },
+    "live_permission_created": {
+      "type": "boolean"
+    },
+    "live_config_mutation_allowed": {
+      "type": "boolean"
+    },
+    "writes_live_ready_snapshot": {
+      "type": "boolean"
+    },
+    "live_order_ready": {
+      "type": "boolean"
+    },
+    "live_order_allowed": {
+      "type": "boolean"
+    },
+    "can_live_trade": {
+      "type": "boolean"
+    },
+    "scale_up_allowed": {
+      "type": "boolean"
+    },
+    "operator_warning": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "profile_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    }
+  }
+}

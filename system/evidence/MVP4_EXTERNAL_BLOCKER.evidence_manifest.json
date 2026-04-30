@@ -1,0 +1,85 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T17:46:39Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_EXTERNAL_LIVE_REVIEW_BLOCKER_EVIDENCE",
+  "artifact_paths": [
+    "system/evidence/blocker_reports/MVP4_EXTERNAL_LIVE_REVIEW_EVIDENCE.blocker_report.json",
+    "system/evidence/validator_runs/MVP4_EXTERNAL_BLOCKER.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_EXTERNAL_BLOCKER.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_EXTERNAL_BLOCKER.patch_result.json",
+    "system/evidence/upbit/krw_spot/read_only/mvp4_live_review/official_api_verification_report.json",
+    "system/runtime/upbit/krw_spot/read_only/mvp4_live_review/read_only_account_snapshot.json",
+    "system/evidence/upbit/krw_spot/read_only/mvp4_live_review/api_key_permission_check_report.json",
+    "system/evidence/upbit/krw_spot/live/mvp4_live_review/manual_order_test_evidence_missing.json",
+    "system/runtime/upbit/krw_spot/live/review/live_preflight_report.json",
+    "system/runtime/upbit/krw_spot/live/review/live_review_dashboard.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "LIVE_BURN_IN_FEEDBACK_MISSING",
+    "EXECUTION_QUALITY_UNTESTED",
+    "SURVIVAL_LAYER_BLOCKED",
+    "RISK_SCALING_UNTESTED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "external_review_input_statuses": [
+    {
+      "artifact_path": "system/evidence/upbit/krw_spot/read_only/mvp4_live_review/official_api_verification_report.json",
+      "exists": true,
+      "artifact_sha256": "19949589B54AF2CE0CE5E5334B44175D62B58DA03A861068C6A7A270C27539AA",
+      "status": "UNVERIFIED",
+      "primary_blocker_code": "API_UNVERIFIED",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "usable_for_live_enabling": false
+    },
+    {
+      "artifact_path": "system/runtime/upbit/krw_spot/read_only/mvp4_live_review/read_only_account_snapshot.json",
+      "exists": true,
+      "artifact_sha256": "7B012F772081DB3E7D60A947A29BE19D45747DAA39FF163D75960306E68DC4C3",
+      "status": "UNVERIFIED",
+      "primary_blocker_code": "API_UNVERIFIED",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "usable_for_live_enabling": false
+    },
+    {
+      "artifact_path": "system/evidence/upbit/krw_spot/read_only/mvp4_live_review/api_key_permission_check_report.json",
+      "exists": true,
+      "artifact_sha256": "057F88F3DDBFBBC389D61507F0FFE8DE0A347E4B653C1AB208474DD80BB2B0BC",
+      "status": "UNVERIFIED",
+      "primary_blocker_code": "API_UNVERIFIED",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "usable_for_live_enabling": false
+    },
+    {
+      "artifact_path": "system/evidence/upbit/krw_spot/live/mvp4_live_review/manual_order_test_evidence_missing.json",
+      "exists": true,
+      "artifact_sha256": "0A58558569E1461F0D5FF59552B343386F7962D7B186E562F72E8DF20F39BB11",
+      "status": "MISSING",
+      "primary_blocker_code": "LIVE_ENABLING_EVIDENCE_MISSING",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "usable_for_live_enabling": false
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

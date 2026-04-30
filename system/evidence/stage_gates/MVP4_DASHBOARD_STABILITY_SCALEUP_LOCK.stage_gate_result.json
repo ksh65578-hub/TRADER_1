@@ -1,0 +1,11 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-30T05:58:46Z",
+  "patch_id": "MVP4_DASHBOARD_STABILITY_SCALEUP_LOCK_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_DASHBOARD_STABILITY_TRENDS_SCALE_UP_LOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

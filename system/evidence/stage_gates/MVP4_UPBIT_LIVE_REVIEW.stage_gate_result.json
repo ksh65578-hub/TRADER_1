@@ -1,0 +1,21 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-28T15:55:42Z",
+  "patch_id": "MVP4_UPBIT_LIVE_REVIEW_SCAFFOLD_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "upbit_live_review_preflight_validator": "PASS",
+  "live_preflight_report": "system/runtime/upbit/krw_spot/live/review/live_preflight_report.json",
+  "live_review_dashboard": "system/runtime/upbit/krw_spot/live/review/live_review_dashboard.json",
+  "can_live_review": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "stage_gate_status": "PASS_FOR_MVP4_LIVE_REVIEW_ONLY_NO_LIVE_ORDERS",
+  "remaining_external_blockers": [
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_READY_MISSING"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_EVIDENCE_WRITE_HELPER_COVERAGE_RECHECK_EVIDENCE",
+  "created_at_utc": "2026-04-29T07:09:21Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_EVIDENCE_WRITE_HELPER_COVERAGE_RECHECK_20260429_001",
+  "artifact_paths": [
+    "tools/evidence_write_helper_coverage.py",
+    "tests/runtime/test_evidence_write_helper_coverage.py",
+    "tests/runtime/fixtures/evidence_write_helper_legacy_direct_writers.json",
+    "tools/emit_evidence_write_helper_coverage_recheck_patch_evidence.py",
+    "system/evidence/audit_reports/EVIDENCE_WRITE_HELPER_COVERAGE_AUDIT.json",
+    "system/evidence/contract_gaps/EVIDENCE_WRITE_HELPER_ATOMIC_COVERAGE.contract_gap.json",
+    "contracts/generated/context_pack/EVIDENCE_WRITE_HELPER_COVERAGE_RECHECK.md",
+    "system/evidence/validator_runs/MVP4_EVIDENCE_WRITE_HELPER_COVERAGE_RECHECK.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_EVIDENCE_WRITE_HELPER_COVERAGE_RECHECK.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_EVIDENCE_WRITE_HELPER_COVERAGE_RECHECK.patch_result.json",
+    "contracts/generated/context_pack/EVIDENCE_WRITE_HELPER_COVERAGE_RECHECK.md",
+    "system/evidence/audit_reports/EVIDENCE_WRITE_HELPER_COVERAGE_AUDIT.json",
+    "system/evidence/contract_gaps/EVIDENCE_WRITE_HELPER_ATOMIC_COVERAGE.contract_gap.json",
+    "REQ-MVP4-EVIDENCE-WRITE-HELPER-COVERAGE-RECHECK"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE",
+    "EVIDENCE_WRITE_HELPER_ATOMIC_COVERAGE_INCOMPLETE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

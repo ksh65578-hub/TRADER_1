@@ -1,0 +1,20 @@
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+markers = [
+    "smoke: fast checks for launchers, live-blocked defaults, and source hygiene",
+    "unit: focused unit-level behavior checks",
+    "contract: registry, schema, validator, and artifact contract checks",
+    "integration: safe non-live multi-module execution checks",
+    "slow: long-running or broad scans excluded from quick loops",
+    "release: source/evidence package boundary and release-gate checks",
+]
+
+[tool.trader1]
+default_live_order_ready = false
+default_live_order_allowed = false
+default_can_live_trade = false
+default_scale_up_allowed = false
+quick_test_target_seconds = 30

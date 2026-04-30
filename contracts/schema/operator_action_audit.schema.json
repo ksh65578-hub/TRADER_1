@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.operator_action_audit.v1",
+  "title": "operator_action_audit",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "action_id",
+    "created_at_utc",
+    "operator_id_hash",
+    "action_code",
+    "confirmation_required",
+    "confirmation_method",
+    "result",
+    "event_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.operator_action_audit.v1"
+    },
+    "action_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at_utc": {
+      "type": "string"
+    },
+    "operator_id_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action_code": {
+      "enum": [
+        "manual_stop",
+        "manual_resume_read_only",
+        "manual_ack_trade_disabled",
+        "manual_unlock_held_market_event",
+        "manual_retry_reconcile",
+        "manual_safe_mode",
+        "manual_disable_strategy",
+        "manual_reduce_position",
+        "manual_exit_all_positions"
+      ]
+    },
+    "exchange": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "UPBIT",
+        "BINANCE",
+        null
+      ]
+    },
+    "market_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "KRW_SPOT",
+        "SPOT",
+        "FUTURES_USDT_M",
+        null
+      ]
+    },
+    "mode": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "REPLAY",
+        "PAPER",
+        "SHADOW",
+        "LIVE",
+        "SAFE",
+        "READ_ONLY",
+        null
+      ]
+    },
+    "session_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "target_symbol": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "previous_state": {
+      "type": "object"
+    },
+    "requested_state": {
+      "type": "object"
+    },
+    "risk_veto_result": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "reconciliation_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "STALE",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "final_decision_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "confirmation_required": {
+      "type": "boolean"
+    },
+    "confirmation_method": {
+      "enum": [
+        "NONE",
+        "LOCAL_UI",
+        "CLI_CONFIRM_PHRASE",
+        "TWO_STEP"
+      ]
+    },
+    "result": {
+      "enum": [
+        "ACCEPTED",
+        "REJECTED",
+        "EXECUTED",
+        "FAILED",
+        "BLOCKED"
+      ]
+    },
+    "result_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "event_hash": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action_code": {
+            "enum": [
+              "manual_exit_all_positions",
+              "manual_reduce_position",
+              "manual_disable_strategy",
+              "manual_safe_mode",
+              "manual_ack_trade_disabled"
+            ]
+          }
+        },
+        "required": [
+          "action_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "confirmation_required": {
+            "const": true
+          },
+          "confirmation_method": {
+            "enum": [
+              "LOCAL_UI",
+              "CLI_CONFIRM_PHRASE",
+              "TWO_STEP"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

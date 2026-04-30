@@ -1,0 +1,57 @@
+{
+  "schema_id": "trader1.failure_analysis_report.v1",
+  "generated_at_utc": "2026-04-29T01:30:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "failure_analysis_id": "failure_analysis_live_flag_001",
+  "candidate_id": "candidate_cost_guard_001",
+  "strategy_id": "strategy_vwap_reversion",
+  "strategy_build_id": "strategy_build_mvp4_001",
+  "parameter_hash": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp4_failure_learning_fixture",
+  "symbol": "KRW-BTC",
+  "timeframe_scope": "15m",
+  "regime_scope": "RANGE",
+  "failure_event_id": "execution_feedback_cost_divergence_001",
+  "failure_status": "ANALYZED",
+  "primary_root_cause_code": "SLIPPAGE_DIVERGENCE",
+  "secondary_root_cause_codes": [
+    "EXECUTION_FEEDBACK_DIVERGENT"
+  ],
+  "root_cause_status": "KNOWN",
+  "live_affecting": true,
+  "repeated_failure_count": 1,
+  "repeated_failure_same_root_cause": false,
+  "previous_failure_analysis_ids": [],
+  "recommended_response": "PENALIZE_RANKING",
+  "blocks_promotion": true,
+  "blocks_live_order": true,
+  "optimizer_ranking_action": "BLOCK_RANKING",
+  "memory_write_required": true,
+  "memory_write_status": "APPEND_ONLY_RECORDED",
+  "source_evidence_ids": [
+    "optimizer_feedback_slippage_divergent_fail"
+  ],
+  "dashboard_display_truth_only": true,
+  "promotion_eligible": false,
+  "live_order_ready": false,
+  "live_order_allowed": true,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "blockers": [
+    {
+      "code": "EXECUTION_FEEDBACK_DIVERGENT",
+      "severity": "HIGH",
+      "message": "Realized slippage diverged from expected cost model; candidate ranking remains blocked."
+    }
+  ],
+  "audit_prev_hash": null,
+  "audit_hash": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+  "notes": "Negative fixture: failure analysis cannot carry live order permission."
+}

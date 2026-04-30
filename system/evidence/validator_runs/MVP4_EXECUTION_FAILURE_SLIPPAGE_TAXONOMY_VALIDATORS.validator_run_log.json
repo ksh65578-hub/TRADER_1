@@ -1,0 +1,91 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-29T13:16:46Z",
+  "patch_id": "MVP4_EXECUTION_FAILURE_SLIPPAGE_TAXONOMY_VALIDATORS_20260429_001",
+  "validators_run": [
+    {
+      "validator_id": "realized_slippage_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "order_failure_taxonomy_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "execution_feedback_loop_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "failure_analysis_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "validator_depth_audit_tool",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.validators.test_execution_failure_backlog_validators tests.validators.test_optimizer_feedback_validator tests.validators.test_failure_analysis_validator -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 19
+    },
+    {
+      "command": "python tools/audit_validator_depth.py --output system/evidence/audit_reports/MVP4_EXECUTION_FAILURE_SLIPPAGE_TAXONOMY_VALIDATORS.audit.json",
+      "status": "PASS",
+      "returncode": 0,
+      "implemented_validator_count": 84,
+      "registered_validator_count": 89,
+      "registered_but_unimplemented_validator_count": 5
+    },
+    {
+      "command": "python -m unittest tests.validators.test_execution_failure_backlog_validators tests.validators.test_validator_depth_audit -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 7
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "MVP0_FULL_VALIDATOR_RUN_FINAL"
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "PATCH_RESULT_RUNTIME_SCHEMA_VALIDATORS_FINAL"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 523
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

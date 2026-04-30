@@ -1,0 +1,29 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T09:14:18Z",
+  "patch_id": "MVP4_LEDGER_RECONCILIATION_RECOVERY_EDGE_RECHECK_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_LEDGER_RECONCILIATION_RECOVERY_EDGE_RECHECK_NO_LIVE_ORDERS",
+  "ledger_reconciliation_recovery_audit": {
+    "audit_schema_id": "trader1.ledger_reconciliation_recovery_edge_recheck_audit.v1",
+    "status": "PASS",
+    "blockers": [],
+    "crafted_mismatch_status": "BLOCKED",
+    "crafted_mismatch_blocker": "RECONCILIATION_REQUIRED",
+    "snapshot_hash_mismatch_status": "FAIL",
+    "snapshot_hash_mismatch_blocker": "SCHEMA_IDENTITY_MISMATCH",
+    "no_single_writer_status": "BLOCKED",
+    "no_single_writer_blocker": "RECONCILIATION_REQUIRED",
+    "recovered_flag_mismatch_status": "FAIL",
+    "recovered_flag_mismatch_blocker": "LEDGER_INTEGRITY_FAIL",
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false,
+    "next_action": "Continue operator UX recheck for reconciliation blockers."
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

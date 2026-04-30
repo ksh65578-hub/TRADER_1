@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD_20260430_001",
+  "created_at_utc": "2026-04-29T23:30:27Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_SHADOW_OBSERVATION_RUNTIME_ARTIFACT_SCAFFOLD",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "SHADOW observation artifact schema is closed and registered",
+    "SHADOW observation builder binds to validated PAPER operation gate hash",
+    "same-session, stale, tampered-source, and live flag drift cases fail closed",
+    "SHADOW observation can feed PAPER scorecard accumulation only and cannot create live readiness"
+  ],
+  "blocked_conditions": [
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_LONG_RUN_STREAM_REMAINS_OPEN",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-29T23:36:53Z",
+  "status": "PASS_MVP4_INTERNAL_SCAFFOLD_ONLY",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "8F7182BCA4BC7E370D272F70C4863CB2CF520D9A637AE36E18D3D3A724BC860C"
+}

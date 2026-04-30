@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.runtime_dashboard_artifact_hygiene_report.v1",
+  "title": "TRADER_1 runtime dashboard artifact hygiene report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "scan_root",
+    "active_session_dashboard_shells",
+    "legacy_retained_dashboard_shells",
+    "unknown_dashboard_shells",
+    "active_count",
+    "legacy_retained_count",
+    "unknown_count",
+    "active_unsafe_paths",
+    "legacy_unsafe_paths",
+    "unknown_unsafe_paths",
+    "blocking_reasons",
+    "status",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "report_hash"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "trader1.runtime_dashboard_artifact_hygiene_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 7
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 7
+        }
+      }
+    },
+    "scan_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "active_session_dashboard_shells": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact_item"
+      }
+    },
+    "legacy_retained_dashboard_shells": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact_item"
+      }
+    },
+    "unknown_dashboard_shells": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact_item"
+      }
+    },
+    "active_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "legacy_retained_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unknown_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "active_unsafe_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "legacy_unsafe_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unknown_unsafe_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocking_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "PASS_WITH_LEGACY_RETAINED",
+        "BLOCKED"
+      ]
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "pattern": "^[A-F0-9]{64}$"
+    }
+  },
+  "$defs": {
+    "artifact_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_path",
+        "load_status",
+        "load_error",
+        "schema_id",
+        "exchange",
+        "market_type",
+        "mode",
+        "session_id",
+        "freshness_status",
+        "runtime_evidence_requirement_count",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "classification",
+        "session_scoped",
+        "execution_authority",
+        "dashboard_serving_truth",
+        "operator_action",
+        "reason"
+      ],
+      "properties": {
+        "artifact_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "load_status": {
+          "enum": [
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "load_error": {
+          "type": "string"
+        },
+        "schema_id": {
+          "type": "string"
+        },
+        "exchange": {
+          "type": "string"
+        },
+        "market_type": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "freshness_status": {
+          "type": "string"
+        },
+        "runtime_evidence_requirement_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "live_order_ready": {
+          "type": "boolean"
+        },
+        "live_order_allowed": {
+          "type": "boolean"
+        },
+        "can_live_trade": {
+          "type": "boolean"
+        },
+        "scale_up_allowed": {
+          "type": "boolean"
+        },
+        "classification": {
+          "enum": [
+            "ACTIVE_SESSION_SCOPED",
+            "LEGACY_UNSESSIONED_RETAINED",
+            "UNKNOWN_RUNTIME_DASHBOARD_SHELL"
+          ]
+        },
+        "session_scoped": {
+          "type": "boolean"
+        },
+        "execution_authority": {
+          "type": "boolean"
+        },
+        "dashboard_serving_truth": {
+          "type": "boolean"
+        },
+        "operator_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

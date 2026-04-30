@@ -1,0 +1,42 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T16:19:53Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "status": "PASS_LIVE_BLOCKED",
+  "blockers": [],
+  "notes": "Operational PAPER evidence counts are now bound to actual dry-run artifacts; insufficient samples remain visible and live/scale-up stay blocked.",
+  "evidence_manifest_id": "MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING",
+  "artifact_paths": [
+    "trader1/runtime/paper/operational_cycle.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/integration/test_upbit_operational_paper_cycle.py",
+    "tests/runtime/test_safe_launcher.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json",
+    "contracts/schema/paper_operation_gate_report.schema.json",
+    "contracts/generated/context_pack/MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING.md",
+    "system/evidence/validator_runs/MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING.stage_gate_result.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_operation_gate_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json"
+  ],
+  "known_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

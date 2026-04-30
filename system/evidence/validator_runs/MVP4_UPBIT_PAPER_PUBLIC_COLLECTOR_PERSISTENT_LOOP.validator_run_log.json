@@ -1,0 +1,107 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T10:16:00Z",
+  "patch_id": "MVP4_UPBIT_PAPER_PUBLIC_COLLECTOR_PERSISTENT_LOOP_20260430_001",
+  "validators_run": [
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "schemas_parsed": 84
+    },
+    {
+      "validator_id": "upbit_paper_runtime_cycle_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_public_market_data_collection_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_persistent_loop_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "bytecode_free_syntax_validator",
+      "status": "PASS",
+      "files_checked": 393
+    },
+    {
+      "validator_id": "evidence_write_helper_coverage_audit",
+      "status": "PASS",
+      "coverage_pct": 100.0
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.integration.test_upbit_public_collection_persistent_loop -v",
+      "tests": 6,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.integration.test_upbit_paper_runtime_cycle -v",
+      "tests": 6,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.dashboard.test_summary_writer tests.dashboard.test_read_only_dashboard -v",
+      "tests": 136,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.runtime.test_safe_launcher -v",
+      "tests": 34,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests/live_blocked -v",
+      "tests": 21,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest tests.runtime.test_evidence_write_helper_coverage -v",
+      "tests": 4,
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_bytecode_free_syntax_check.py",
+      "files_checked": 393,
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "tests": 654,
+      "status": "FAIL_BEFORE_PATCH",
+      "failures": 2,
+      "note": "exposed generated_artifact_dirty drift and evidence writer alias scanner false-positive; both patched in this turn"
+    },
+    {
+      "command": "run_upbit_paper_persistent_loop(... requested_cycle_count=2)",
+      "status": "PASS",
+      "completed_cycle_count": 2,
+      "live_order_allowed": false
+    },
+    {
+      "command": "launcher_main('UPBIT_PAPER', pause=False, open_dashboard=False, console_heartbeat_ticks=1)",
+      "status": "PASS",
+      "exit_code": 0,
+      "portfolio_source": "LEDGER",
+      "open_position_count": 1
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

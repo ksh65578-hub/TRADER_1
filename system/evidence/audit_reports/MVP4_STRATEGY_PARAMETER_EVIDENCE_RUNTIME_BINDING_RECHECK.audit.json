@@ -1,0 +1,72 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-29T11:25:58Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_STRATEGY_PARAMETER_EVIDENCE_RUNTIME_BINDING_RECHECK_20260429_001",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "target_mvp_level": "MVP-4",
+  "inspection_summary": {
+    "contracts_checked": 4,
+    "schemas_checked": 3,
+    "validators_checked": 5,
+    "tests_checked": 5,
+    "runtime_paths_checked": 0,
+    "ux_items_checked": 1,
+    "coverage_completeness": {
+      "contract_coverage_pct": 100,
+      "schema_coverage_pct": 100,
+      "validator_coverage_pct": 100,
+      "runtime_coverage_pct": 0,
+      "ux_coverage_pct": 100,
+      "optimizer_convergence_coverage_pct": 100,
+      "blocked_area_resolution_coverage_pct": 80
+    }
+  },
+  "hidden_defects": [
+    {
+      "classification": "validator_dependency_omission",
+      "condition": "parameter_narrowing_report allowed PAPER ranking proposal with non-empty source_evidence_ids but without explicit PAPER/SHADOW evidence and optimizer recommendation ids",
+      "impact": "A proposal could appear evidence-backed while missing required source artifact roles.",
+      "reproducibility": "Reproduced with parameter_narrowing_missing_binding_fail.json",
+      "affected_scope": "UPBIT/BINANCE PAPER/SHADOW optimizer parameter review",
+      "live_safety_impact": "Live remains blocked; prevents future promotion chain ambiguity.",
+      "ux_impact": "Dashboard/operator reports can trust that parameter review source roles are explicit.",
+      "profitability_impact": "Prevents optimizer parameter narrowing from being driven by incomplete evidence chains.",
+      "fix": "Added fail-closed source evidence role checks and negative unit fixture.",
+      "patch_status": "PATCHED",
+      "test_status": "PASS"
+    },
+    {
+      "classification": "cross_artifact_identity_gap",
+      "condition": "Exact candidate_id/strategy_id/parameter_hash/timeframe/regime identity joins are not schema-enforced across source artifacts.",
+      "impact": "Role ids are now required, but exact source identity binding still needs schema/validator expansion.",
+      "reproducibility": "Observed during fixture comparison and recorded as contract gap.",
+      "affected_scope": "PAPER/SHADOW scorecard -> optimizer -> parameter narrowing chain",
+      "live_safety_impact": "MVP-5 remains blocked until exact scoped evidence identity can be independently validated.",
+      "ux_impact": "Operator should see blocker rather than a misleading complete evidence chain.",
+      "profitability_impact": "Avoids ranking candidates from mismatched evidence scopes.",
+      "fix": "Recorded live-affecting contract gap for next schema/validator patch.",
+      "patch_status": "OPEN_CONTRACT_GAP",
+      "test_status": "BLOCKED_BY_SCHEMA_FIELDS"
+    }
+  ],
+  "advancement_gaps": [
+    {
+      "area": "parameter_adaptation",
+      "current_level": "source-role-bound PAPER review proposal",
+      "target_level": "exact source artifact identity-joined PAPER/SHADOW evidence chain",
+      "priority": "HIGH",
+      "patchability": "NEXT_SCHEMA_VALIDATOR_PATCH",
+      "contract_gap_required": true
+    }
+  ],
+  "live_flags": {
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  }
+}

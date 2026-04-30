@@ -1,0 +1,269 @@
+{
+  "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
+  "generated_at_utc": "2026-04-29T15:54:53Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "rollup_id": "MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_20260429_001",
+  "status": "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY",
+  "scope": {
+    "exchange_scope": "UPBIT_AND_BINANCE",
+    "market_type_scope": "KRW_SPOT_AND_SPOT",
+    "mode_scope": "PAPER_SHADOW_READ_ONLY_ONLY",
+    "max_mvp": "MVP-4"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_permission_created": false,
+  "profitability_guarantee_created": false,
+  "optimizer_live_mutation_detected": false,
+  "convergence_live_mutation_detected": false,
+  "required_component_count": 10,
+  "component_count": 10,
+  "components": [
+    {
+      "component_id": "strategy_entry_exit_no_trade",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/strategy_condition_matrix.schema.json"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-STRATEGY-CONDITION-MATRIX-SCHEMA-HARDENING"
+      ],
+      "sample_count": 0,
+      "min_required_sample_count": 20,
+      "freshness_status": "BLOCKED",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect PAPER entry, exit, and no-trade traces with source evidence ids.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "symbol_selection_regime",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/symbol_strategy_regime_fit_report.schema.json"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-SYMBOL-REGIME-FIT-SCHEMA-HARDENING"
+      ],
+      "sample_count": 0,
+      "min_required_sample_count": 20,
+      "freshness_status": "BLOCKED",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect liquidity, volatility, spread, depth, and regime evidence per reviewed symbol.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "vwap_trend_breakout",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/strategy_condition_matrix.schema.json"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-STRATEGY-CONDITION-MATRIX-SCHEMA-HARDENING"
+      ],
+      "sample_count": 0,
+      "min_required_sample_count": 20,
+      "freshness_status": "BLOCKED",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect regime-labeled VWAP, trend pullback, and breakout/retest outcome samples.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "risk_sizing_exposure",
+      "maturity_status": "PAPER_SCORECARD_INPUT_ONLY",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/paper_exposure_quality_report.schema.json"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-PAPER-EXPOSURE-QUALITY-REPORT"
+      ],
+      "sample_count": 1,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Extend PAPER exposure history across sessions; scale-up remains blocked.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": true,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "execution_slippage_fee_impact",
+      "maturity_status": "PAPER_SCORECARD_INPUT_ONLY",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/optimizer_feedback_report.schema.json"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-EXECUTION-FEEDBACK-COST-MODEL-HARDENING"
+      ],
+      "sample_count": 1,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Accumulate expected-vs-realized fee, spread, slippage, impact, and latency feedback.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": true,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "optimizer_objective_net_ev_after_cost",
+      "maturity_status": "PAPER_SCORECARD_INPUT_ONLY",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/candidate_scorecard.schema.json"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-STRATEGY-NET-EV-SCORECARD-SCHEMA-HARDENING"
+      ],
+      "sample_count": 1,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Validate optimizer ranking against net EV after fee, spread, slippage, impact, latency, and drawdown.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": true,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "overfit_oos_walk_forward",
+      "maturity_status": "BLOCKED_LONG_RUN_EVIDENCE",
+      "validator_status": "BLOCKED",
+      "evidence_status": "BLOCKED",
+      "source_artifact_paths": [
+        "contracts/schema/overfit_diagnostic_report.schema.json"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-OOS-ROBUSTNESS-SCHEMA-HARDENING"
+      ],
+      "sample_count": 0,
+      "min_required_sample_count": 30,
+      "freshness_status": "BLOCKED",
+      "dependency_status": "BLOCKED",
+      "next_required_evidence": "Collect OOS, walk-forward, bootstrap, and concentration diagnostics before ranking claims.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "convergence_memory_failure_learning",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/failure_analysis_report.schema.json"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-CONVERGENCE-MEMORY-FAILURE-LEARNING-HARDENING"
+      ],
+      "sample_count": 1,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Append repeated failure root-cause evidence and verify failed candidates remain auditable.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    },
+    {
+      "component_id": "paper_shadow_evidence_accumulation",
+      "maturity_status": "BLOCKED_LONG_RUN_EVIDENCE",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-PAPER-SHADOW-EVIDENCE-IDENTITY-BINDING",
+        "REQ-MVP4-PAPER-SHADOW-LONG-RUN-EVIDENCE-VISIBILITY"
+      ],
+      "sample_count": 2,
+      "min_required_sample_count": 30,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Collect session-hashed PAPER and SHADOW evidence across at least 20 windows and 120 hours; short scorecard input is allowed only for PAPER ranking and is not long-run or LIVE_READY evidence.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": true,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+    },
+    {
+      "component_id": "dashboard_operator_profitability_visibility",
+      "maturity_status": "PARTIAL_PATCHED",
+      "validator_status": "PASS",
+      "evidence_status": "PARTIAL",
+      "source_artifact_paths": [
+        "trader1/dashboard/static/read_only_dashboard.html"
+      ],
+      "source_evidence_ids": [
+        "REQ-MVP4-DASHBOARD-PROFITABILITY-MATURITY-UX-HARDENING"
+      ],
+      "sample_count": 1,
+      "min_required_sample_count": 10,
+      "freshness_status": "PASS",
+      "dependency_status": "PASS",
+      "next_required_evidence": "Keep blocker, next action, PAPER scorecard status, and live blocked wording visible to the operator.",
+      "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_review_eligible": false,
+      "scale_up_allowed": false,
+      "paper_scorecard_input_eligible": false,
+      "long_run_evidence_eligible": false,
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+    }
+  ],
+  "coverage_complete": true,
+  "all_component_ids_present": true,
+  "all_validators_passed": false,
+  "paper_scorecard_input_allowed": true,
+  "live_review_eligible": false,
+  "scale_up_eligible": false,
+  "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+  "next_operator_action": "Collect longer PAPER/SHADOW evidence windows; live remains blocked until long-run and external live-review evidence exist.",
+  "rollup_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+}

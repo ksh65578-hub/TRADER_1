@@ -1,0 +1,86 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T03:09:36Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": null,
+  "market_type": null,
+  "mode": "READ_ONLY",
+  "status": "PASS_WITH_LIVE_BLOCKED",
+  "blockers": [
+    {
+      "code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+      "severity": "HIGH",
+      "message": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+      "source_requirement_id": "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+    },
+    {
+      "code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+      "severity": "HIGH",
+      "message": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+      "source_requirement_id": "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+    },
+    {
+      "code": "LIVE_ENABLING_EVIDENCE_MISSING",
+      "severity": "HIGH",
+      "message": "LIVE_ENABLING_EVIDENCE_MISSING",
+      "source_requirement_id": "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+    },
+    {
+      "code": "API_UNVERIFIED",
+      "severity": "HIGH",
+      "message": "API_UNVERIFIED",
+      "source_requirement_id": "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+    },
+    {
+      "code": "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+      "severity": "HIGH",
+      "message": "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+      "source_requirement_id": "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+    },
+    {
+      "code": "READ_ONLY_BURN_IN_MISSING",
+      "severity": "HIGH",
+      "message": "READ_ONLY_BURN_IN_MISSING",
+      "source_requirement_id": "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+    },
+    {
+      "code": "MANUAL_ORDER_TEST_MISSING",
+      "severity": "HIGH",
+      "message": "MANUAL_ORDER_TEST_MISSING",
+      "source_requirement_id": "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+    },
+    {
+      "code": "OPERATOR_APPROVAL_MISSING",
+      "severity": "HIGH",
+      "message": "OPERATOR_APPROVAL_MISSING",
+      "source_requirement_id": "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+    }
+  ],
+  "notes": "Bytecode-free source syntax validation added; CLI writes through shared atomic writer; all tests and validators passed; live and scale-up remain blocked.",
+  "evidence_manifest_id": "MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY_20260430_001",
+  "artifact_paths": [
+    "system/evidence/runtime_checks/MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.bytecode_free_syntax_report.json",
+    "system/evidence/audit_reports/MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.audit.json",
+    "system/evidence/patch_results/MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.patch_result.json",
+    "system/evidence/validator_runs/MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.stage_gate_result.json",
+    "contracts/generated/context_pack/MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.md"
+  ],
+  "known_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

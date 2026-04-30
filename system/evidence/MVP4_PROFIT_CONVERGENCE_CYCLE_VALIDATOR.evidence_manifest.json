@@ -1,0 +1,47 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T13:34:39Z",
+  "patch_id": "MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR_20260429_001",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_items": [
+    {
+      "artifact_type": "PATCH_RESULT",
+      "path": "system/evidence/patch_results/MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR.patch_result.json",
+      "sha256": "49954F3E0E569FF9D2431FD15ECE62161833E665AAA002B1E110FB69AF816D69"
+    },
+    {
+      "artifact_type": "VALIDATOR_RUN_LOG",
+      "path": "system/evidence/validator_runs/MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR.validator_run_log.json",
+      "sha256": "4F8766FECFB7D618C525E0A708C041D8A78C8B21E8D306DAEC92C7FBB5EE80C8"
+    },
+    {
+      "artifact_type": "STAGE_GATE_RESULT",
+      "path": "system/evidence/stage_gates/MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR.stage_gate_result.json",
+      "sha256": "183A29FD2FE5B135ABEF8A9AFB4D94B0315D5903E45C89269A1578B4EEB55588"
+    },
+    {
+      "artifact_type": "VALIDATOR_DEPTH_AUDIT",
+      "path": "system/evidence/audit_reports/MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR.audit.json",
+      "sha256": "DBCFF8CE3D0E8748B716271E020F4F1BA7D9A372AE99EEA66AEDFEB1DAC9AB56"
+    },
+    {
+      "artifact_type": "SCHEMA",
+      "path": "contracts/schema/profit_convergence_cycle_report.schema.json",
+      "sha256": "B3396DED55C42A7251BE564DBD511117E26A23EF68BFBAC10A4332DED79E48A4"
+    },
+    {
+      "artifact_type": "TEST",
+      "path": "tests/validators/test_profit_convergence_cycle_validator.py",
+      "sha256": "A24D2A9E0B3A8FF70CC50F7AC0340FEBBA386CCC0A846C28F5CF11971C4F18D4"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "manifest_hash": "37B4A4B920736863ED31F758C831321F75B4B8668C3ADEAE554609B0A3FD5C3A"
+}

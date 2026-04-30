@@ -1,0 +1,69 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-29T15:07:01Z",
+  "patch_id": "MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "validators_run": [
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "scale_up_eligibility_validator",
+      "status": "BLOCKED"
+    },
+    {
+      "validator_id": "validator_depth_audit_tool",
+      "status": "PASS"
+    }
+  ],
+  "commands": [
+    "python -m unittest tests.validators.test_paper_shadow_evidence_accumulation_validator -v",
+    "python -m compileall trader1 tests -q",
+    "python tools/run_mvp0_validators.py",
+    "python tools/run_optimizer_convergence_guardrail_validators.py",
+    "python tools/audit_validator_depth.py --output system/evidence/audit_reports/MVP4_PAPER_SHADOW_EVIDENCE_IDENTITY_BINDING.audit.json",
+    "python tools/run_patch_result_runtime_schema_validators.py",
+    "python -m unittest discover -s tests -v"
+  ],
+  "live_flags": {
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "updated_at_utc": "2026-04-29T15:08:49Z",
+  "test_summary": {
+    "targeted_paper_shadow_unittest": "PASS_9_TESTS",
+    "compileall": "PASS",
+    "mvp0_validators": "PASS",
+    "optimizer_convergence_guardrails": "PASS_SCALE_UP_BLOCKED_EXPECTED",
+    "validator_depth_audit": "PASS_89_OF_89_IMPLEMENTED",
+    "patch_result_runtime_schema_validators": "PASS_129_PATCH_RESULTS",
+    "full_unittest_discover": "PASS_566_TESTS"
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "schema_id": "trader1.emergency_flatten_report.v1",
+  "generated_at_utc": "2026-04-28T15:01:03Z",
+  "project_id": "TRADER_1",
+  "emergency_flatten_id": "mvp1-emergency-flatten-report",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp1_emergency_flatten",
+  "emergency_protection_available": false,
+  "emergency_flatten_available": false,
+  "manual_exit_all_positions_available": false,
+  "manual_reduce_position_available": false,
+  "cancel_all_open_orders_available": false,
+  "reduce_only_path_available_for_futures": true,
+  "reconciliation_path_available": false,
+  "operator_alert_available": false,
+  "ledger_recording_available": false,
+  "orphan_position_state": "NONE",
+  "orphan_open_order_state": "NONE",
+  "dry_run": true,
+  "dry_run_status": "BLOCKED",
+  "dry_run_actions": [
+    {
+      "action": "cancel_all_open_orders",
+      "would_call_adapter": false,
+      "would_create_entry_risk": false,
+      "requires_ledger": true,
+      "requires_reconciliation": true
+    },
+    {
+      "action": "manual_exit_all_positions",
+      "would_call_adapter": false,
+      "would_create_entry_risk": false,
+      "requires_ledger": true,
+      "requires_reconciliation": true
+    },
+    {
+      "action": "manual_reduce_position",
+      "would_call_adapter": false,
+      "would_create_entry_risk": false,
+      "requires_ledger": true,
+      "requires_reconciliation": true
+    }
+  ],
+  "component_checks": [
+    {
+      "component": "emergency_flatten",
+      "available": false,
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "session_id": "mvp1_emergency_flatten",
+      "message": "unavailable"
+    },
+    {
+      "component": "manual_exit_all_positions",
+      "available": false,
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "session_id": "mvp1_emergency_flatten",
+      "message": "unavailable"
+    },
+    {
+      "component": "manual_reduce_position",
+      "available": false,
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "session_id": "mvp1_emergency_flatten",
+      "message": "unavailable"
+    },
+    {
+      "component": "cancel_all_open_orders",
+      "available": false,
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "session_id": "mvp1_emergency_flatten",
+      "message": "unavailable"
+    },
+    {
+      "component": "reduce_only_path_for_futures",
+      "available": true,
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "session_id": "mvp1_emergency_flatten",
+      "message": "available"
+    },
+    {
+      "component": "reconciliation_path",
+      "available": false,
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "session_id": "mvp1_emergency_flatten",
+      "message": "unavailable"
+    },
+    {
+      "component": "operator_alert",
+      "available": false,
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "session_id": "mvp1_emergency_flatten",
+      "message": "unavailable"
+    },
+    {
+      "component": "ledger_recording",
+      "available": false,
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "session_id": "mvp1_emergency_flatten",
+      "message": "unavailable"
+    }
+  ],
+  "final_decision": "BLOCKED",
+  "primary_blocker_code": "EMERGENCY_FLATTEN_UNAVAILABLE",
+  "blockers": [
+    {
+      "code": "EMERGENCY_FLATTEN_UNAVAILABLE",
+      "severity": "HIGH",
+      "message": "emergency protection component unavailable: emergency_flatten"
+    },
+    {
+      "code": "EMERGENCY_FLATTEN_UNAVAILABLE",
+      "severity": "HIGH",
+      "message": "emergency protection component unavailable: manual_exit_all_positions"
+    },
+    {
+      "code": "EMERGENCY_FLATTEN_UNAVAILABLE",
+      "severity": "HIGH",
+      "message": "emergency protection component unavailable: manual_reduce_position"
+    },
+    {
+      "code": "EMERGENCY_FLATTEN_UNAVAILABLE",
+      "severity": "HIGH",
+      "message": "emergency protection component unavailable: cancel_all_open_orders"
+    },
+    {
+      "code": "RECONCILIATION_REQUIRED",
+      "severity": "HIGH",
+      "message": "emergency protection requires reconciliation path"
+    },
+    {
+      "code": "EMERGENCY_FLATTEN_UNAVAILABLE",
+      "severity": "HIGH",
+      "message": "emergency protection component unavailable: operator_alert"
+    },
+    {
+      "code": "LEDGER_UNAVAILABLE",
+      "severity": "HIGH",
+      "message": "emergency protection requires ledger recording"
+    }
+  ],
+  "new_entry_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "can_submit_order": false,
+  "order_adapter_called": false,
+  "emergency_flatten_hash": "C4AB56194A9BF83935F6C0A08EB825640AEBDF77E87B548719DBD5CC56560743"
+}

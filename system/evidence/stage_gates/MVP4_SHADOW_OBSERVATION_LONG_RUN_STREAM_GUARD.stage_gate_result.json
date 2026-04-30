@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD_20260430_001",
+  "created_at_utc": "2026-04-29T23:51:33Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_SHADOW_OBSERVATION_LONG_RUN_STREAM_GUARD",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "SHADOW observation stream schema is closed and registered",
+    "stream validator blocks duplicate writers and duplicate source snapshots",
+    "stream validator blocks non-monotonic sequence and source-binding hash drift",
+    "stream remains analysis-only with long_run_evidence_eligible=false and live flags false"
+  ],
+  "blocked_conditions": [
+    "PERSISTENT_SHADOW_STREAM_SCHEDULER_MISSING",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-29T23:55:25Z",
+  "status": "PASS_MVP4_INTERNAL_SCAFFOLD_ONLY",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "C0B0C824541CB616EBCF7C333E690AA52783DB3735DA72DC5A0E6EC047D68EA6"
+}

@@ -1,0 +1,37 @@
+{
+  "schema_id": "trader1.bytecode_free_syntax_report.v1",
+  "generated_at_utc": "2026-04-30T03:07:01Z",
+  "project_id": "TRADER_1",
+  "status": "PASS",
+  "execution_mode": "READ_ONLY_SOURCE_COMPILE_NO_BYTECODE_WRITE",
+  "scan_paths": [
+    "trader1",
+    "tools",
+    "tests"
+  ],
+  "skipped_directory_names": [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "env",
+    "node_modules",
+    "venv"
+  ],
+  "files_checked": 359,
+  "syntax_error_count": 0,
+  "syntax_errors": [],
+  "bytecode_write_attempted": false,
+  "pycache_write_attempted": false,
+  "external_calls_attempted": false,
+  "credential_load_attempted": false,
+  "live_order_api_attempted": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "blocker_code": null,
+  "report_hash": "0C0809658DD8F2BC3EFCDFBA593EECA6B3B489DFEE151759399BEE6326FBB751"
+}

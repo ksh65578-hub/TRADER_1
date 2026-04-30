@@ -1,0 +1,110 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-29T13:46:20Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_CONVERGENCE_CLAIM_VALIDATOR_20260429_001",
+  "validators_run": [
+    {
+      "validator_id": "convergence_claim_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "convergence_assessment_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "profit_convergence_cycle_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "validator_depth_audit_tool",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.validators.test_convergence_claim_validator -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 8
+    },
+    {
+      "command": "python tools/audit_validator_depth.py --output system/evidence/audit_reports/MVP4_CONVERGENCE_CLAIM_VALIDATOR.audit.json",
+      "status": "PASS",
+      "returncode": 0,
+      "implemented_validator_count": 86,
+      "registered_validator_count": 89,
+      "registered_but_unimplemented_validator_count": 3
+    },
+    {
+      "command": "run_validators(['schema_validator','generated_artifact_dirty_validator','convergence_claim_validator','convergence_assessment_validator','profit_convergence_cycle_validator','live_final_guard_validator'])",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_count": 6
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "MVP0_FULL_VALIDATOR_RUN"
+    },
+    {
+      "command": "python -m unittest tests.validators.test_convergence_claim_validator tests.validators.test_convergence_assessment_validator tests.validators.test_profit_convergence_cycle_validator tests.validators.test_validator_depth_audit -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 25
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "FAIL_FIXED_IN_PATCH",
+      "returncode": 1,
+      "tests": 538,
+      "failure": "implementation_patch_ledger latest entry still referenced previous patch while current_implementation_state already referenced this patch"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "FAIL_FIXED_IN_PATCH",
+      "returncode": 1,
+      "tests": 538,
+      "failure": "patch_result validators_required entries were missing from validators_run"
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validator_suite": "PATCH_RESULT_RUNTIME_SCHEMA_VALIDATORS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 538
+    }
+  ],
+  "validator_status": "PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "run_log_hash": "C02245F0EBA6B53891B7342BCDE8BEFEA80C8DABB46F10412BC32B537680FA42"
+}

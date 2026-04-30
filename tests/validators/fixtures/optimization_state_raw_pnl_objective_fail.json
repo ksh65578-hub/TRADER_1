@@ -1,0 +1,52 @@
+{
+  "schema_id": "trader1.optimization_state.v1",
+  "generated_at_utc": "2026-04-29T00:00:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "optimization_state_id": "optimization_state_raw_pnl_objective_fail",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp4_optimization_state_fixture",
+  "state_scope": "PAPER_RANKING_STATE_ONLY",
+  "optimization_state_status": "ACTIVE_ANALYSIS_ONLY",
+  "optimizer_stage": "MVP4_PAPER_RANKING_ONLY",
+  "optimizer_maturity_level": "MVP4_VALIDATED_NON_LIVE_ARTIFACTS",
+  "objective_basis": "RAW_PNL",
+  "source_modes": [
+    "PAPER"
+  ],
+  "active_optimizer_run_id": "optimizer_run_pass",
+  "latest_guardrail_report_id": "optimizer_guardrail_report_pass",
+  "latest_recommendation_id": "optimizer_recommendation_pass",
+  "dependency_summary_status": "PASS",
+  "dependency_results": [
+    {
+      "validator_id": "optimizer_run_report_validator",
+      "status": "PASS"
+    }
+  ],
+  "state_write_policy": "APPEND_AUDIT_ONLY",
+  "live_readiness_status": "NOT_LIVE_READY",
+  "operator_warning": "Optimization state is not LIVE_READY and live orders remain blocked.",
+  "status": "PASS",
+  "blockers": [],
+  "dashboard_display_truth_only": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_permission_created": false,
+  "live_config_mutation_allowed": false,
+  "writes_live_ready_snapshot": false,
+  "active_snapshot_mutation_allowed": false,
+  "optimizer_winner_live_config_allowed": false,
+  "paper_winner_live_config_allowed": false,
+  "order_submission_allowed": false,
+  "exchange_account_call_allowed": false,
+  "scale_up_recommendation_allowed": false,
+  "notes": "Negative fixture: optimization state cannot track raw PnL objective as active ranking state."
+}

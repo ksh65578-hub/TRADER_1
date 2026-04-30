@@ -1,0 +1,109 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "run_id": "MVP4_OPERATIONAL_PAPER_EVIDENCE_COUNT_BINDING_20260430_001",
+  "created_at_utc": "2026-04-29T16:19:53Z",
+  "target_mvp_level": "MVP-4",
+  "execution_mode": "PAPER_READ_ONLY_UNIT_CONTRACT_VALIDATOR_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validators_run": [
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS",
+      "evidence": "operational PAPER gate now requires evidence count to bind to actual paper dry-run hash and block ranking when samples are insufficient"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS",
+      "evidence": "single-cycle PAPER output remains sample-insufficient and optimizer ranking remains blocked"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS",
+      "evidence": "dashboard projects COLLECTING/IN_PROGRESS when operational PAPER evidence is insufficient"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS",
+      "evidence": "runtime dashboard shells and paper operation gate reports remain schema-valid after regeneration"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS",
+      "evidence": "schema bundle parses after runtime evidence binding patch"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS",
+      "evidence": "all live and scale-up flags remain false"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS",
+      "evidence": "post-emission patch_result schema validation reports 134 artifacts schema-valid"
+    },
+    {
+      "validator_id": "profitability_optimizer_evidence_gap_validator",
+      "status": "PASS",
+      "evidence": "profitability maturity gap remains explicit and live-blocking"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.integration.test_upbit_operational_paper_cycle tests.runtime.test_safe_launcher -v",
+      "status": "PASS",
+      "tests": 34
+    },
+    {
+      "command": "python -m unittest tests.dashboard.test_read_only_dashboard -v",
+      "status": "PASS",
+      "tests": 98
+    },
+    {
+      "command": "python -m unittest tests.contract.test_patch_result_runtime_schema_validation tests.contract.test_schema_instance_validation -v",
+      "status": "PASS",
+      "tests": 10
+    },
+    {
+      "command": "python -m compileall trader1 tests -q",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_profitability_optimizer_evidence_gap_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "tests": 575
+    }
+  ],
+  "runtime_artifacts_regenerated": [
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_operation_gate_report.json",
+    "system/runtime/upbit/krw_spot/paper/operational/paper_operation_gate_report.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard_shell.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json"
+  ],
+  "hidden_defect": {
+    "classification": "false_safe_profitability_evidence_claim",
+    "condition": "build_upbit_operational_paper_cycle used default 64/64 PAPER/SHADOW evidence counts for a single operational cycle",
+    "impact": "dashboard and optimizer maturity surfaces could imply scorecard input readiness or ranking eligibility without real long-run scoped PAPER/SHADOW samples",
+    "reproducibility": "reproduced by inspecting the operational cycle report builder and tests that previously expected SCORECARD_INPUT_READY from one generated cycle",
+    "fix": "derive paper_sample_count from actual paper dry-run events/reasons, keep shadow_sample_count at 0 without a shadow artifact, and require BLOCK_RANKING until evidence maturity is real",
+    "live_safety_impact": "prevents false promotion pressure while all live flags remain false",
+    "ux_impact": "dashboard now tells the operator evidence is collecting instead of implying readiness",
+    "profitability_impact": "prevents optimizer/convergence ranking from learning from fabricated sample maturity"
+  }
+}

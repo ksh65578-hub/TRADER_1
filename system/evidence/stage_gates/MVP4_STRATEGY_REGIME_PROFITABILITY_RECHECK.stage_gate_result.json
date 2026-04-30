@@ -1,0 +1,98 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T11:17:12Z",
+  "patch_id": "MVP4_STRATEGY_REGIME_PROFITABILITY_RECHECK_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_MVP4_PAPER_REVIEW_ONLY_LIVE_BLOCKED",
+  "strategy_regime_profitability_recheck_audit": {
+    "audit_schema_id": "trader1.strategy_regime_profitability_recheck_audit.v1",
+    "created_at_utc": "2026-04-29T11:17:12Z",
+    "status": "PATCHED_PASS",
+    "scope": [
+      "symbol_selection",
+      "market_regime_adaptation",
+      "strategy_condition_entry_exit_no_trade",
+      "candidate_scorecard_net_ev",
+      "strategy_performance_memory",
+      "optimizer_run_state",
+      "convergence_assessment"
+    ],
+    "assessment": {
+      "symbol_selection": {
+        "current_level": "MVP4_VALIDATED_SCAFFOLD",
+        "sufficient_for_live": false,
+        "stable_for_paper_review": true,
+        "gap": "No real exchange hard truth or long-run live/paper parity evidence yet.",
+        "patched": "Added high-spread and low-depth fail fixtures to validator execution path."
+      },
+      "regime": {
+        "current_level": "MVP4_VALIDATED_SCAFFOLD",
+        "sufficient_for_live": false,
+        "stable_for_paper_review": true,
+        "gap": "Regime adaptation is paper/shadow/read-only analysis only and cannot consume live observation in MVP-4.",
+        "patched": "Rechecked stale data, risk-off, dependency, and source-role guards."
+      },
+      "entry_exit_no_trade": {
+        "current_level": "MVP4_VALIDATED_SCAFFOLD_PLUS_COST_FRICTION_GUARD",
+        "sufficient_for_live": false,
+        "stable_for_paper_review": true,
+        "gap": "Entry/exit rules are contract-scaffolded; real fills, slippage distribution, and drawdown evidence are still external or later-stage.",
+        "patched": "Entry rows now fail if min_edge_bps does not exceed expected slippage plus spread."
+      },
+      "profitability_loop": {
+        "current_level": "MVP4_ANALYSIS_ONLY_EVIDENCE_LOOP",
+        "sufficient_for_live": false,
+        "stable_for_paper_review": true,
+        "gap": "Optimizer/convergence can rank and assess evidence but cannot create live permission, scale-up, or active config mutation.",
+        "patched": "Revalidated net EV after cost, robustness dependencies, drift, and no-live guard tests."
+      }
+    },
+    "hidden_defects": [
+      {
+        "classification": "entry edge false-positive",
+        "condition": "entry_allowed row has min_edge_bps less than or equal to slippage plus spread allowance",
+        "impact": "candidate can look structurally tradable even when expected friction consumes the edge",
+        "reproducibility": "set min_edge_bps to 9 when max_expected_slippage_bps=6 and max_spread_bps=4 in the strategy condition fixture",
+        "fix": "strategy condition validator now rejects entry rows where min_edge_bps <= slippage + spread",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      },
+      {
+        "classification": "symbol selection fixture gap",
+        "condition": "paper_review_eligible symbol has spread above max_allowed_spread_bps or depth below min_required_depth_score",
+        "impact": "validator logic existed, but fixture execution did not directly prove spread/depth fail-closed behavior",
+        "reproducibility": "run symbol_strategy_regime_fit_validator with the new high-spread and low-depth fixtures",
+        "fix": "added high-spread and low-depth negative fixtures to validator execution path",
+        "patch_status": "PATCHED",
+        "test_status": "PASS"
+      }
+    ],
+    "coverage_counts": {
+      "schemas_checked": 8,
+      "validators_checked": 8,
+      "targeted_tests_run": 68,
+      "live_blocked_tests_run": 11,
+      "mvp_validators_run": "PASS"
+    },
+    "live_flags": {
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    "remaining_blockers": [
+      "LIVE_READY_MISSING",
+      "API_UNVERIFIED",
+      "READ_ONLY_BURN_IN_MISSING",
+      "MANUAL_ORDER_TEST_MISSING",
+      "OPERATOR_APPROVAL_MISSING",
+      "LIVE_ENABLING_EVIDENCE_MISSING"
+    ],
+    "audit_hash": "4D4906EEEF0A01BA0FF6FDF549BA336BBAA149D5C4AFE2F3EF846909BB187D19"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "stage_gate_hash": "C6420C86325EE734C66151636F4960EC25C38F467C77FEDC9BE390CEE2DE7952"
+}

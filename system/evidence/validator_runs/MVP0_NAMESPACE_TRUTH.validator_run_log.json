@@ -1,0 +1,57 @@
+{
+  "validator_run_log_schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-28T12:54:51Z",
+  "patch_id": "MVP0_NAMESPACE_TRUTH_20260428_001",
+  "validators_run": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:54:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "artifact paths are namespace scoped and cross-scope joins are blocked",
+      "validator_id": "path_namespace_validator",
+      "checked_at_utc": "2026-04-28T12:54:51Z",
+      "input_artifact_paths": [
+        "contracts/registry.yaml"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T12:54:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "truth hierarchy blocks dashboard override of execution truth",
+      "validator_id": "truth_hierarchy_validator",
+      "checked_at_utc": "2026-04-28T12:54:51Z",
+      "input_artifact_paths": [],
+      "blocking": false
+    }
+  ],
+  "validators_untested": [
+    "live_ready_snapshot_writer_validator",
+    "optimizer_guardrail_validator",
+    "optimizer_no_live_mutation_validator",
+    "convergence_assessment_validator",
+    "scale_up_eligibility_validator"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

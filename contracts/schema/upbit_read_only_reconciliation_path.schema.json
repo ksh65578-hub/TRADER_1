@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.upbit_read_only_reconciliation_path.v1",
+  "title": "upbit_read_only_reconciliation_path",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "reconciliation_path_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "account_snapshot_id",
+    "private_stream_health_id",
+    "same_identifier_reconciliation_required",
+    "reconciliation_path_status",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "order_adapter_called",
+    "primary_blocker_code",
+    "blockers",
+    "reconciliation_path_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.upbit_read_only_reconciliation_path.v1"
+    },
+    "reconciliation_path_id": {
+      "type": "string"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "const": "READ_ONLY"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "account_snapshot_id": {
+      "type": "string"
+    },
+    "private_stream_health_id": {
+      "type": "string"
+    },
+    "same_identifier_reconciliation_required": {
+      "type": "boolean"
+    },
+    "reconciliation_path_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "UNVERIFIED"
+      ]
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "primary_blocker_code": {
+      "$ref": "common.defs.schema.json#/$defs/live_blocker_code"
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "reconciliation_path_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    }
+  }
+}

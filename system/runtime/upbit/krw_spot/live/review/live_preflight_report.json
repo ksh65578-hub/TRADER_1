@@ -1,0 +1,407 @@
+{
+  "schema_id": "trader1.live_preflight_report.v1",
+  "preflight_id": "mvp4-upbit-live-review-preflight",
+  "generated_at_utc": "2026-04-28T15:55:43Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "LIVE",
+  "session_id": "mvp4_upbit_live_review",
+  "can_live_review": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "can_submit_order": false,
+  "order_adapter_called": false,
+  "live_new_order_blocked": true,
+  "official_api_verification_report": {
+    "schema_id": "trader1.official_api_verification_report.v1",
+    "verification_id": "mvp4-upbit-official-api-unverified",
+    "generated_at_utc": "2026-04-28T15:55:43Z",
+    "verified_at_utc": "2026-04-28T15:55:43Z",
+    "expires_at_utc": null,
+    "project_id": "TRADER_1",
+    "authority": {
+      "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+    },
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "READ_ONLY",
+    "verified_by": "AI_COMPILER_SCAFFOLD",
+    "verification_method": "manual_crosscheck",
+    "official_sources": [],
+    "facts": {
+      "endpoints": {},
+      "rate_limits": {},
+      "symbol_rules": {},
+      "fee_rules": {},
+      "auth_requirements": {},
+      "permission_requirements": {},
+      "order_constraints": {},
+      "margin_rules_if_futures": null
+    },
+    "result": "UNVERIFIED",
+    "primary_blocker_code": "API_UNVERIFIED",
+    "blockers": [
+      {
+        "code": "API_UNVERIFIED",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "exchange official API validation required",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+        "blocks_start": false,
+        "blocks_live_order": true
+      }
+    ],
+    "invalidated_by": [
+      "OFFICIAL_API_VERIFICATION_MISSING"
+    ],
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "report_hash": "BA900B19FB1C8AEC3660217941DCF933A1D5F91AF3DF23ECF20A1004970B9AA8",
+    "signature": null
+  },
+  "account_snapshot": {
+    "schema_id": "trader1.read_only_account_snapshot.v1",
+    "snapshot_id": "mvp4-upbit-read-only-account-snapshot",
+    "generated_at_utc": "2026-04-28T15:55:43Z",
+    "project_id": "TRADER_1",
+    "authority": {
+      "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+    },
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "READ_ONLY",
+    "session_id": "mvp4_upbit_live_review",
+    "account_snapshot_status": "UNVERIFIED",
+    "balance_snapshot_status": "UNVERIFIED",
+    "position_snapshot_status": "UNVERIFIED",
+    "open_order_snapshot_status": "UNVERIFIED",
+    "balances": [],
+    "positions": [],
+    "open_orders": [],
+    "credential_loaded": false,
+    "private_api_called": false,
+    "withdrawal_permission_detected": false,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "can_submit_order": false,
+    "order_adapter_called": false,
+    "primary_blocker_code": "API_UNVERIFIED",
+    "blockers": [
+      {
+        "code": "API_UNVERIFIED",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "exchange official API validation required",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+        "blocks_start": false,
+        "blocks_live_order": true
+      }
+    ],
+    "snapshot_hash": "D9C1AAEB5DE22BD4582FDD6DCE511D2F44405014DB4296125523006D84B7E7FE"
+  },
+  "private_stream_health": {
+    "schema_id": "trader1.private_stream_health.v1",
+    "stream_health_id": "mvp4-upbit-private-stream-health",
+    "generated_at_utc": "2026-04-28T15:55:43Z",
+    "project_id": "TRADER_1",
+    "authority": {
+      "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+    },
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "READ_ONLY",
+    "session_id": "mvp4_upbit_live_review",
+    "private_stream_status": "FALLBACK_RECONCILIATION_REQUIRED",
+    "private_ws_connected": false,
+    "asset_probe_status": "UNVERIFIED",
+    "order_probe_status": "UNVERIFIED",
+    "reconciliation_fallback_available": true,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "order_adapter_called": false,
+    "primary_blocker_code": "PRIVATE_WS_UNHEALTHY",
+    "blockers": [
+      {
+        "code": "PRIVATE_WS_UNHEALTHY",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "unknown blocking condition",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+        "blocks_start": false,
+        "blocks_live_order": true
+      }
+    ],
+    "stream_health_hash": "FE4B7C6D3D7563917C31D845B90453AC079DF3D72876BF9645A181BD633D1A66"
+  },
+  "reconciliation_path": {
+    "schema_id": "trader1.upbit_read_only_reconciliation_path.v1",
+    "reconciliation_path_id": "mvp4-upbit-read-only-reconciliation-path",
+    "generated_at_utc": "2026-04-28T15:55:43Z",
+    "project_id": "TRADER_1",
+    "authority": {
+      "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+    },
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "READ_ONLY",
+    "session_id": "mvp4_upbit_live_review",
+    "account_snapshot_id": "mvp4-upbit-read-only-account-snapshot",
+    "private_stream_health_id": "mvp4-upbit-private-stream-health",
+    "same_identifier_reconciliation_required": true,
+    "reconciliation_path_status": "BLOCKED",
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "order_adapter_called": false,
+    "primary_blocker_code": "RECONCILIATION_REQUIRED",
+    "blockers": [
+      {
+        "code": "RECONCILIATION_REQUIRED",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "account and internal status synchronization required",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+        "blocks_start": false,
+        "blocks_live_order": true
+      }
+    ],
+    "reconciliation_path_hash": "AB37F949ECADD1B4EBFC06D3D8BEB31C4D2D51DE5E61E3EF77F3972357E0B6DE"
+  },
+  "api_key_permission_check": {
+    "schema_id": "trader1.api_key_permission_check_report.v1",
+    "permission_check_id": "mvp4-upbit-api-key-permission-check",
+    "generated_at_utc": "2026-04-28T15:55:43Z",
+    "project_id": "TRADER_1",
+    "authority": {
+      "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+    },
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "READ_ONLY",
+    "api_key_id_hash": null,
+    "api_key_present": false,
+    "read_permission_verified": false,
+    "trade_permission_detected": false,
+    "withdrawal_permission_detected": false,
+    "permission_check_status": "UNVERIFIED",
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "order_adapter_called": false,
+    "primary_blocker_code": "API_UNVERIFIED",
+    "blockers": [
+      {
+        "code": "API_UNVERIFIED",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "exchange official API validation required",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+        "blocks_start": false,
+        "blocks_live_order": true
+      }
+    ],
+    "permission_check_hash": "712C88DA9888E6188D13E02EC752757BE0C2A35F8F8D2ACC9F4E205F3D7441EE"
+  },
+  "readiness_surface": {
+    "schema_id": "trader1.readiness_surface.v1",
+    "generated_at_utc": "2026-04-28T15:55:43Z",
+    "project_id": "TRADER_1",
+    "authority": {
+      "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+    },
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "LIVE",
+    "session_id": "mvp4_upbit_live_review",
+    "build_id": null,
+    "authority_document": "TRADER_1.md",
+    "authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "registry_hash": "00F70A8E8BF9E572F0B36BFBC7048CA4D7D28D36A24A9EB80056AA44F9A8A3A3",
+    "schema_bundle_hash": "4485900B35323E7841B38C88EA6EB8D19F470BEA54EDC3F45D652F2A54DDB6DE",
+    "source_tree_hash": "521414940AF1FE1E53F0A9FE5C1557C3ABF98ADEE4A7EC5D6CAC4E778268F2CE",
+    "release_package_status": "NOT_BUILT",
+    "bundle_readiness_status": "UNKNOWN",
+    "can_start": true,
+    "can_collect_data": true,
+    "can_evaluate_candidates": false,
+    "can_paper_trade": false,
+    "can_shadow_evaluate": false,
+    "can_replay": false,
+    "can_live_review": true,
+    "can_live_trade": false,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "start_gate_status": "PASS",
+    "live_trading_status": "BLOCKED",
+    "primary_blocker_code": "LIVE_READY_MISSING",
+    "primary_blocker_message": "LIVE_READY snapshot missing",
+    "blockers": [
+      {
+        "code": "LIVE_READY_MISSING",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "LIVE_READY snapshot missing",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP0-READINESS-SURFACE",
+        "blocks_start": false,
+        "blocks_live_order": true
+      },
+      {
+        "code": "API_UNVERIFIED",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "exchange official API validation required",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP0-READINESS-SURFACE",
+        "blocks_start": false,
+        "blocks_live_order": true
+      },
+      {
+        "code": "MANUAL_ORDER_TEST_MISSING",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "manual order test evidence required",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP0-READINESS-SURFACE",
+        "blocks_start": false,
+        "blocks_live_order": true
+      },
+      {
+        "code": "OPERATOR_APPROVAL_MISSING",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "operator approval required",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP0-READINESS-SURFACE",
+        "blocks_start": false,
+        "blocks_live_order": true
+      },
+      {
+        "code": "READ_ONLY_BURN_IN_MISSING",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "read-only burn-in evidence required",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP0-READINESS-SURFACE",
+        "blocks_start": false,
+        "blocks_live_order": true
+      },
+      {
+        "code": "RECONCILIATION_REQUIRED",
+        "category": "READINESS",
+        "severity": "HIGH",
+        "message": "account and internal status synchronization required",
+        "detail": null,
+        "evidence_id": null,
+        "source_contract_id": "REQ-MVP0-READINESS-SURFACE",
+        "blocks_start": false,
+        "blocks_live_order": true
+      }
+    ],
+    "surface_hash": "449451BEFCA5B764E5F12BB0F0FF6FB53E6D1E5D6C7A243242B598892A9A4E8B"
+  },
+  "manual_order_test_status": "MISSING",
+  "operator_approval_status": "MISSING",
+  "read_only_burn_in_status": "MISSING",
+  "preflight_status": "BLOCKED",
+  "primary_blocker_code": "LIVE_READY_MISSING",
+  "blockers": [
+    {
+      "code": "LIVE_READY_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "LIVE_READY snapshot missing",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "API_UNVERIFIED",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "exchange official API validation required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "MANUAL_ORDER_TEST_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "manual order test evidence required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "OPERATOR_APPROVAL_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "operator approval required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "READ_ONLY_BURN_IN_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "read-only burn-in evidence required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "RECONCILIATION_REQUIRED",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "account and internal status synchronization required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    }
+  ],
+  "preflight_hash": "ACE7DC4177ED99B243A3B3792F55019EADEF3FA4EE7BAA7D2A47FF568C95831E"
+}

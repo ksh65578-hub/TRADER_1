@@ -1,0 +1,669 @@
+{
+  "validator_registry_schema_id": "trader1.validator_registry.v1",
+  "created_at_utc": "2026-04-28T12:30:42Z",
+  "default_status": "UNTESTED",
+  "groups": [
+    "VALIDATOR_GROUP:MVP0_CORE",
+    "VALIDATOR_GROUP:LIVE_SAFETY_CORE",
+    "VALIDATOR_GROUP:OPTIMIZER_CORE",
+    "VALIDATOR_GROUP:OPTIMIZER_ROBUSTNESS",
+    "VALIDATOR_GROUP:CONVERGENCE_CORE",
+    "VALIDATOR_GROUP:CONVERGENCE_RISK_SCALE"
+  ],
+  "implemented_logic_status": "MVP4_UPBIT_PUBLIC_REST_CONTINUITY_HISTORY_VALIDATOR_ADDED",
+  "live_affecting_untested_blocks_live": true,
+  "updated_at_utc": "2026-04-30T12:18:58Z",
+  "implemented_validators": [
+    {
+      "validator_id": "active_schema_extraction_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "authority_integrity_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "bytecode_free_syntax_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "candidate_cooldown_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "candidate_ranking_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "candidate_scorecard_net_ev_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "candidate_scorecard_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "closed_enum_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "common_defs_drift_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "convergence_assessment_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "convergence_claim_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "convergence_objective_profile_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "dashboard_visual_layout_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "emergency_flatten_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "execution_feedback_loop_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "execution_quality_measurement_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "exploration_exploitation_policy_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "exploration_to_exploitation_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "external_authority_manifest_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "failure_analysis_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "heartbeat_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "ledger_durability_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "ledger_reconciliation_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "live_blocked_negative_matrix_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "live_blocked_scaffold_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "live_burn_in_feedback_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "live_ready_snapshot_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "live_ready_snapshot_writer_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_NEGATIVE_GUARD",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "market_regime_adaptation_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "model_drift_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "objective_function_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "official_api_verification_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "operator_action_audit_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "operator_control_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "optimizer_memory_state_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "optimizer_no_live_mutation_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "order_failure_taxonomy_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "overfit_diagnostic_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "paper_exposure_quality_report_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "paper_live_parity_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "paper_portfolio_snapshot_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "parameter_bound_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "parameter_narrowing_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_AUDIT_PRESERVING",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "path_namespace_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "profit_convergence_cycle_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "profit_optimizer_config_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "profitability_evidence_maturity_rollup_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "profitability_optimizer_evidence_gap_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "promotion_threshold_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "ranking_stability_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "readiness_surface_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "realized_slippage_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "reconciliation_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "registry_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "restart_recovery_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "risk_scaling_decision_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "rolling_window_default_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "root_launcher_guard_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "root_launcher_surface_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "runtime_config_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "runtime_resource_pressure_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "runtime_stability_history_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "safety_control_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "scale_up_eligibility_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "schema_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "shadow_observation_actual_runtime_blocker_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "shadow_observation_actual_runtime_harness_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "shadow_observation_artifact_writer_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "shadow_observation_persistent_runtime_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "shadow_observation_runtime_orchestration_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "shadow_observation_runtime_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "shadow_observation_scheduler_guard_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "shadow_observation_stream_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "single_writer_order_path_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "startup_probe_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "strategy_condition_matrix_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "strategy_direct_order_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "strategy_performance_memory_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "summary_shell_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "survival_layer_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "symbol_strategy_regime_fit_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "truth_hierarchy_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "upbit_live_review_preflight_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "upbit_paper_dry_run_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "upbit_paper_runtime_recovery_guard_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "upbit_public_rest_continuity_history_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "upbit_public_rest_continuity_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    },
+    {
+      "validator_id": "upbit_public_rest_sample_validator",
+      "module_path": "trader1.validation.mvp0_validators",
+      "status": "IMPLEMENTED_FAIL_CLOSED",
+      "live_enabling": false
+    }
+  ],
+  "fixture_catalog_path": "contracts/validators/fixture_catalog.json",
+  "live_blocked_matrix_path": "tests/live_blocked/fixtures/live_blocked_matrix.json",
+  "source_bundle_manifest_path": "contracts/security/source_bundle_manifest.json",
+  "source_bundle_denylist_path": "contracts/security/source_bundle_denylist.json",
+  "namespace_validator_module": "trader1.validation.namespace",
+  "live_order_gateway_module": "trader1.execution.live_order_gateway",
+  "readiness_surface_module": "trader1.runtime.readiness.readiness_surface",
+  "root_launcher_guard_module": "trader1.runtime.boot.launcher_guard",
+  "runtime_config_module": "trader1.config.config_schema",
+  "live_ready_snapshot_module": "trader1.runtime.readiness.live_ready_snapshot",
+  "startup_probe_module": "trader1.runtime.boot.startup_probe",
+  "heartbeat_module": "trader1.runtime.health.heartbeat",
+  "summary_writer_module": "trader1.dashboard.summary_writer",
+  "root_launcher_report_module": "trader1.runtime.boot.safe_launcher",
+  "root_launcher_files": [
+    "UPBIT_PAPER.py",
+    "UPBIT_LIVE.py",
+    "BINANCE_PAPER.py",
+    "BINANCE_LIVE.py"
+  ],
+  "read_only_dashboard_module": "trader1.dashboard.read_only_dashboard",
+  "runtime_stability_history_module": "trader1.runtime.health.stability_history",
+  "runtime_resource_pressure_module": "trader1.runtime.health.runtime_resource_pressure",
+  "paper_portfolio_snapshot_module": "trader1.runtime.portfolio.paper_portfolio",
+  "safety_control_module": "trader1.runtime.resource_guard.safety_control",
+  "execution_ledger_module": "trader1.runtime.ledger.execution_ledger",
+  "operator_control_module": "trader1.runtime.operator_control.operator_control",
+  "reconciliation_module": "trader1.runtime.reconciliation.reconciliation",
+  "emergency_flatten_module": "trader1.runtime.protection.emergency_flatten",
+  "upbit_paper_broker_module": "trader1.adapters.upbit.paper_broker",
+  "upbit_public_market_data_module": "trader1.adapters.upbit.market_data",
+  "intent_wal_module": "trader1.core.events.intent_wal",
+  "restart_recovery_module": "trader1.core.ledger.restart_recovery",
+  "strategy_unit_module": "trader1.core.strategy.strategy_unit",
+  "position_sizing_module": "trader1.core.sizing.position_sizing",
+  "replay_runner_module": "trader1.research.replay.replay_runner",
+  "shadow_runner_module": "trader1.research.shadow.shadow_runner",
+  "shadow_observation_artifact_writer_module": "trader1.research.shadow.shadow_observation_artifact_writer",
+  "shadow_observation_actual_runtime_blocker_module": "trader1.research.shadow.shadow_observation_actual_runtime_blocker",
+  "operational_paper_cycle_module": "trader1.runtime.paper.operational_cycle",
+  "official_api_verification_module": "trader1.runtime.readiness.official_api_verification",
+  "manual_order_test_evidence_module": "trader1.runtime.readiness.manual_order_test_evidence",
+  "upbit_read_only_account_module": "trader1.adapters.upbit.account_readonly",
+  "upbit_private_stream_module": "trader1.adapters.upbit.private_stream",
+  "upbit_read_only_reconciliation_module": "trader1.adapters.upbit.reconciliation",
+  "api_key_permission_check_module": "trader1.security.api_key_permission_check",
+  "live_preflight_module": "trader1.runtime.readiness.live_preflight",
+  "live_review_dashboard_module": "trader1.dashboard.live_review_dashboard",
+  "schema_instance_module": "trader1.validation.schema_instance",
+  "shadow_observation_actual_runtime_harness_module": "trader1.research.shadow.shadow_observation_actual_runtime_harness",
+  "upbit_paper_runtime_recovery_guard_module": "trader1.runtime.paper.upbit_paper_persistent_loop"
+}

@@ -1,0 +1,12 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-28T21:59:35Z",
+  "patch_id": "MVP4_FULL_SYSTEM_UI_SAFETY_AUDIT_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_MVP4_FULL_SYSTEM_UI_SAFETY_AUDIT_NO_LIVE_ENABLEMENT",
+  "external_live_enabling_blocked": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

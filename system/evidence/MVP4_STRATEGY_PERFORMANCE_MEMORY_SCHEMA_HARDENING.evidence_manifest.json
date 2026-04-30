@@ -1,0 +1,46 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T04:42:54Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_STRATEGY_PERFORMANCE_MEMORY_SCHEMA_HARDENING_EVIDENCE",
+  "artifact_paths": [
+    "contracts/generated/context_pack/STRATEGY_PERFORMANCE_MEMORY_SCHEMA.md",
+    "contracts/registry.yaml",
+    "contracts/schema/strategy_performance_memory.schema.json",
+    "contracts/validators/fixture_catalog.json",
+    "system/evidence/audit_reports/MVP4_STRATEGY_PERFORMANCE_MEMORY_SCHEMA_HARDENING_20260429.md",
+    "tests/validators/fixtures/strategy_performance_memory_downtrend_trade_allowed_fail.json",
+    "tests/validators/fixtures/strategy_performance_memory_insufficient_sample_fail.json",
+    "tests/validators/fixtures/strategy_performance_memory_live_flag_fail.json",
+    "tests/validators/fixtures/strategy_performance_memory_live_source_mixing_fail.json",
+    "tests/validators/fixtures/strategy_performance_memory_missing_reason_fail.json",
+    "tests/validators/fixtures/strategy_performance_memory_pass.json",
+    "tests/validators/fixtures/strategy_performance_memory_raw_pnl_positive_net_negative_fail.json",
+    "tests/validators/fixtures/strategy_performance_memory_unscoped_fail.json",
+    "tests/validators/test_strategy_performance_memory_validator.py",
+    "tools/emit_strategy_performance_memory_schema_hardening_patch_evidence.py",
+    "tools/run_strategy_performance_memory_validators.py",
+    "trader1/validation/mvp0_validators.py",
+    "system/evidence/validator_runs/MVP4_STRATEGY_PERFORMANCE_MEMORY_SCHEMA_HARDENING.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_STRATEGY_PERFORMANCE_MEMORY_SCHEMA_HARDENING.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_STRATEGY_PERFORMANCE_MEMORY_SCHEMA_HARDENING.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

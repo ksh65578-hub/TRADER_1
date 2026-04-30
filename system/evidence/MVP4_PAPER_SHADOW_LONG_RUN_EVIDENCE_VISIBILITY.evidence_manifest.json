@@ -1,0 +1,41 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T15:54:53Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER_SHADOW_READ_ONLY_ONLY",
+  "status": "PASS_LIVE_BLOCKED",
+  "blockers": [],
+  "notes": "PAPER/SHADOW scorecard input is now explicitly separated from long-run live-review evidence; false long-run claims are blocked.",
+  "evidence_manifest_id": "MVP4_PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY",
+  "artifact_paths": [
+    "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json",
+    "trader1/research/shadow/shadow_runner.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/validators/test_paper_shadow_evidence_accumulation_validator.py",
+    "tests/validators/fixtures/paper_shadow_evidence_accumulation_false_long_run_claim_fail.json",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+    "system/evidence/audit_reports/MVP4_PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY_20260430.json",
+    "contracts/generated/context_pack/PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY.md",
+    "system/evidence/validator_runs/MVP4_PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_PAPER_SHADOW_LONG_RUN_EVIDENCE_VISIBILITY.patch_result.json"
+  ],
+  "known_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

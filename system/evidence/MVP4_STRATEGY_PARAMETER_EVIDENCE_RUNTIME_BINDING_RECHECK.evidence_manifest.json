@@ -1,0 +1,61 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T11:25:58Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_id": "MVP4_STRATEGY_PARAMETER_EVIDENCE_RUNTIME_BINDING_RECHECK",
+  "target_mvp_level": "MVP-4",
+  "evidence_class": "VALIDATOR_TEST_HARDENING",
+  "artifact_paths": [
+    "trader1/validation/mvp0_validators.py",
+    "tests/validators/test_parameter_narrowing_validator.py",
+    "tests/validators/fixtures/parameter_narrowing_pass.json",
+    "tests/validators/fixtures/parameter_narrowing_missing_binding_fail.json",
+    "system/evidence/contract_gaps/PARAMETER_EVIDENCE_IDENTITY_JOIN_GAP.contract_gap.json",
+    "system/evidence/validator_runs/MVP4_STRATEGY_PARAMETER_EVIDENCE_RUNTIME_BINDING_RECHECK.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_STRATEGY_PARAMETER_EVIDENCE_RUNTIME_BINDING_RECHECK.stage_gate_result.json"
+  ],
+  "validators": [
+    {
+      "validator_id": "parameter_narrowing_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "candidate_scorecard_net_ev_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_recommendation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_run_report_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS_WITH_OPEN_CONTRACT_GAP",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "notes": "Parameter narrowing now fails closed unless PAPER/SHADOW evidence, candidate scorecard, optimizer run, and optimizer recommendation source ids are present. Exact source artifact identity matching remains blocked by missing schema fields."
+}

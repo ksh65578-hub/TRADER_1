@@ -1,0 +1,37 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY_20260430_001",
+  "created_at_utc": "2026-04-30T03:05:24Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "bytecode-free syntax report and validator added",
+    "source syntax check scans trader1/tools/tests without bytecode or pycache writes",
+    "CLI output now uses shared atomic evidence writer and creates no new local direct writer",
+    "MVP0 validators, runtime schema validators, evidence writer coverage tests, and full unittest regression pass",
+    "live, credential, order adapter, optimizer ranking, convergence live permission, and scale-up paths remain blocked"
+  ],
+  "blocked_conditions": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "COMPILEALL_BYTECODE_WRITE_PATH_REMAINS_ENVIRONMENT_SENSITIVE_USE_BYTECODE_FREE_SYNTAX_CHECK_FOR_REPRODUCIBLE_SOURCE_SYNTAX_GATE"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T03:09:36Z",
+  "status": "PASS_MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY_LIVE_BLOCKED",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "0BC936479A448349538EB594D0979B2741D107B64A536C8C4CFE9FCC8B1CDDB1"
+}

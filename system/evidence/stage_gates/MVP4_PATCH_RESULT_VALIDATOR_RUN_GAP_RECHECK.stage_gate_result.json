@@ -1,0 +1,14 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T07:28:58Z",
+  "patch_id": "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_WITH_SEALED_HISTORICAL_PATCH_RESULT_GAP_NO_LIVE_ORDERS",
+  "baseline_gap_count": 9,
+  "current_gap_count": 9,
+  "unbaselined_gap_count": 0,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

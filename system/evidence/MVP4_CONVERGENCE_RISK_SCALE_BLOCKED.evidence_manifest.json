@@ -1,0 +1,37 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T17:30:26Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_CONVERGENCE_RISK_SCALE_BLOCKED_EVIDENCE",
+  "artifact_paths": [
+    "trader1/validation/mvp0_validators.py",
+    "tools/run_convergence_risk_scale_validators.py",
+    "tests/validators/test_convergence_risk_scale_validators.py",
+    "tests/validators/fixtures/convergence_risk_scale_pass.json",
+    "tests/validators/fixtures/convergence_risk_scale_fail.json",
+    "tests/validators/fixtures/convergence_risk_scale_blocked.json",
+    "system/evidence/validator_runs/MVP4_CONVERGENCE_RISK_SCALE_BLOCKED.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_CONVERGENCE_RISK_SCALE_BLOCKED.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_CONVERGENCE_RISK_SCALE_BLOCKED.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "LIVE_BURN_IN_FEEDBACK_MISSING",
+    "RISK_SCALING_UNTESTED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

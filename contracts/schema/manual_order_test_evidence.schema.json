@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.manual_order_test_evidence.v1",
+  "title": "manual_order_test_evidence",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "test_id",
+    "created_at_utc",
+    "expires_at_utc",
+    "project_id",
+    "authority",
+    "exchange",
+    "market_type",
+    "mode",
+    "api_key_id_hash",
+    "symbol",
+    "submit_result",
+    "reconciliation_result",
+    "ledger_recorded",
+    "result",
+    "evidence_manifest_hash",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "order_adapter_called",
+    "evidence_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.manual_order_test_evidence.v1"
+    },
+    "test_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "created_at_utc": {
+      "type": "string"
+    },
+    "expires_at_utc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "const": "LIVE"
+    },
+    "api_key_id_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "symbol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "order_type": {
+      "enum": [
+        "LIMIT",
+        "MARKET",
+        "CANCEL_ONLY",
+        "REDUCE_ONLY",
+        "STOP_MARKET",
+        "TAKE_PROFIT",
+        "TRAILING_STOP",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "notional": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "submit_result": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "SKIPPED"
+      ]
+    },
+    "cancel_result": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "fill_result": {
+      "enum": [
+        "NO_FILL",
+        "PARTIAL",
+        "FILLED",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "ledger_recorded": {
+      "type": "boolean"
+    },
+    "reconciliation_result": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "SKIPPED"
+      ]
+    },
+    "fee_recorded": {
+      "type": "boolean"
+    },
+    "balance_delta_verified": {
+      "type": "boolean"
+    },
+    "order_id_masked": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blocker_codes": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/live_blocker_code"
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "evidence_manifest_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "result": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "PARTIAL",
+        "MISSING"
+      ]
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "evidence_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    }
+  }
+}

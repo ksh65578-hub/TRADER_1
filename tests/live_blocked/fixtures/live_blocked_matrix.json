@@ -1,0 +1,31 @@
+{
+  "fixture_id": "live_blocked_negative_matrix",
+  "expected_order_adapter_called": false,
+  "cases": [
+    {"case_id": "live_ready_missing", "blocker_code": "LIVE_READY_MISSING"},
+    {"case_id": "official_api_stale", "blocker_code": "OFFICIAL_API_VERIFICATION_EXPIRED"},
+    {"case_id": "operator_approval_missing", "blocker_code": "OPERATOR_APPROVAL_MISSING"},
+    {"case_id": "manual_order_test_missing", "blocker_code": "MANUAL_ORDER_TEST_MISSING"},
+    {"case_id": "reconciliation_stale", "blocker_code": "RECONCILIATION_REQUIRED"},
+    {"case_id": "symbol_rule_unknown", "blocker_code": "SYMBOL_RULE_UNVERIFIED"},
+    {"case_id": "risk_veto_active", "blocker_code": "RISK_VETO"},
+    {"case_id": "high_contract_gap", "blocker_code": "CONTRACT_GAP_HIGH"},
+    {"case_id": "critical_contract_gap", "blocker_code": "CONTRACT_GAP_CRITICAL"},
+    {"case_id": "stale_data", "blocker_code": "STALE_ORDERBOOK"},
+    {"case_id": "validator_fail", "blocker_code": "LIVE_FINAL_GUARD_FAILED"},
+    {"case_id": "source_identity_mismatch", "blocker_code": "SOURCE_IDENTITY_MISMATCH"},
+    {"case_id": "emergency_flatten_unavailable", "blocker_code": "EMERGENCY_FLATTEN_UNAVAILABLE"},
+    {"case_id": "final_guard_disabled", "blocker_code": "LIVE_FINAL_GUARD_FAILED"},
+    {"case_id": "local_state_only_protection", "blocker_code": "API_UNVERIFIED"},
+    {"case_id": "artifact_hygiene_fail", "blocker_code": "BUNDLE_HYGIENE_FAIL"},
+    {"case_id": "config_invalid", "blocker_code": "PREFLIGHT_FAILED"},
+    {"case_id": "edge_model_incomplete", "blocker_code": "MEASUREMENT_MISSING"},
+    {"case_id": "sizing_trace_missing", "blocker_code": "MEASUREMENT_MISSING"},
+    {"case_id": "regime_confidence_too_low", "blocker_code": "STRATEGY_CONFIDENCE_LOW"},
+    {"case_id": "strategy_unit_scope_mismatch", "blocker_code": "SNAPSHOT_SCOPE_MISMATCH"},
+    {"case_id": "active_snapshot_invalid", "blocker_code": "SNAPSHOT_SCOPE_MISMATCH"},
+    {"case_id": "unvalidated_strategy_thresholds", "blocker_code": "STRATEGY_NOT_ELIGIBLE"},
+    {"case_id": "spoofed_all_live_flags", "blocker_code": "LIVE_ENABLING_EVIDENCE_MISSING"},
+    {"case_id": "spoofed_live_enabling_patch", "blocker_code": "LIVE_ENABLING_EVIDENCE_MISSING"}
+  ]
+}

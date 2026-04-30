@@ -1,0 +1,37 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T14:06:44Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_CANDIDATE_DECISION_GUARD_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/upbit_paper_runtime_cycle_report.schema.json",
+    "trader1/runtime/paper/upbit_paper_runtime.py",
+    "tests/integration/test_upbit_paper_runtime_cycle.py",
+    "contracts/generated/context_pack/UPBIT_PAPER_CANDIDATE_DECISION_GUARD.md",
+    "tools/emit_upbit_paper_candidate_decision_guard_patch_evidence.py",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_CANDIDATE_DECISION_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_CANDIDATE_DECISION_GUARD.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_CANDIDATE_DECISION_GUARD.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE",
+    "UPBIT_PAPER_LONG_RUN_EVIDENCE_INCOMPLETE",
+    "UPBIT_PAPER_PROFITABILITY_EVIDENCE_INCOMPLETE",
+    "OOS_WALK_FORWARD_EVIDENCE_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

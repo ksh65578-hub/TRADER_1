@@ -1,0 +1,18 @@
+{
+  "audit_schema_id": "trader1.idempotency_reconciliation_edge_recheck_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "same_identifier_primary_blocker": "RECONCILIATION_REQUIRED",
+  "same_identifier_final_decision": "RECONCILE_REQUIRED",
+  "same_identifier_idempotency_action": "RECONCILE_SAME_IDENTIFIER_FIRST",
+  "same_identifier_order_adapter_called": false,
+  "missing_original_primary_blocker": "RECONCILIATION_REQUIRED",
+  "missing_original_final_decision": "RECONCILE_REQUIRED",
+  "missing_original_idempotency_action": "RECONCILE_SAME_IDENTIFIER_FIRST",
+  "missing_original_order_adapter_called": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "next_action": "Continue ledger/reconciliation recovery edge-case hardening."
+}

@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.strategy_condition_matrix.v1",
+  "title": "strategy_condition_matrix",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "condition_matrix_id",
+    "strategy_id",
+    "strategy_build_id",
+    "parameter_hash",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "symbol",
+    "timeframe_scope",
+    "regime_scope",
+    "matrix_status",
+    "objective_basis",
+    "condition_rows",
+    "required_strategy_families",
+    "required_regime_families",
+    "global_no_trade_reasons",
+    "source_evidence_ids",
+    "dashboard_display_truth_only",
+    "promotion_eligible",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "blockers",
+    "condition_matrix_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {"const": "trader1.strategy_condition_matrix.v1"},
+    "generated_at_utc": {"type": "string"},
+    "project_id": {"const": "TRADER_1"},
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "agents_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}
+      }
+    },
+    "condition_matrix_id": {"type": "string", "minLength": 1},
+    "strategy_id": {"type": "string", "minLength": 1},
+    "strategy_build_id": {"type": "string", "minLength": 1},
+    "parameter_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+    "exchange": {"$ref": "common.defs.schema.json#/$defs/exchange"},
+    "market_type": {"$ref": "common.defs.schema.json#/$defs/market_type"},
+    "mode": {"enum": ["REPLAY", "PAPER", "SHADOW", "SAFE", "READ_ONLY"]},
+    "session_id": {"type": "string", "minLength": 1},
+    "symbol": {"type": "string", "minLength": 1},
+    "timeframe_scope": {"type": "string", "minLength": 1},
+    "regime_scope": {"type": "string", "minLength": 1},
+    "matrix_status": {"enum": ["RESEARCH_ONLY", "PAPER_ONLY", "BLOCKED"]},
+    "objective_basis": {"const": "ENTRY_EXIT_NO_TRADE_TRACEABILITY"},
+    "condition_rows": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "condition_id",
+          "strategy_family",
+          "regime_family",
+          "entry_variation",
+          "exit_variation",
+          "entry_allowed",
+          "entry_conditions",
+          "exit_conditions",
+          "no_trade_reasons",
+          "risk_off_blocks_entry",
+          "downtrend_avoidance_required",
+          "min_edge_bps",
+          "max_expected_slippage_bps",
+          "max_spread_bps",
+          "min_liquidity_score",
+          "source_evidence_ids"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "condition_id": {"type": "string", "minLength": 1},
+          "strategy_family": {"enum": ["VWAP_REVERSION", "TREND_PULLBACK", "BREAKOUT_RETEST"]},
+          "regime_family": {"enum": ["TRENDING", "RANGE", "RISK_OFF"]},
+          "entry_variation": {"enum": ["breakout", "retest", "momentum", "mean_reversion", "vwap_reversion", "pullback"]},
+          "exit_variation": {"enum": ["fixed_tp", "trailing_tp", "partial_exit", "time_exit", "volatility_exit", "invalidation_exit", "hard_stop"]},
+          "entry_allowed": {"type": "boolean"},
+          "entry_conditions": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          },
+          "exit_conditions": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          },
+          "no_trade_reasons": {
+            "type": "array",
+            "items": {"$ref": "common.defs.schema.json#/$defs/no_trade_reason"}
+          },
+          "risk_off_blocks_entry": {"type": "boolean"},
+          "downtrend_avoidance_required": {"type": "boolean"},
+          "min_edge_bps": {"type": "number", "minimum": 0},
+          "max_expected_slippage_bps": {"type": "number", "minimum": 0},
+          "max_spread_bps": {"type": "number", "minimum": 0},
+          "min_liquidity_score": {"type": "number", "minimum": 0},
+          "source_evidence_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "required_strategy_families": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"enum": ["VWAP_REVERSION", "TREND_PULLBACK", "BREAKOUT_RETEST"]}
+    },
+    "required_regime_families": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"enum": ["TRENDING", "RANGE", "RISK_OFF"]}
+    },
+    "global_no_trade_reasons": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"$ref": "common.defs.schema.json#/$defs/no_trade_reason"}
+    },
+    "source_evidence_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "dashboard_display_truth_only": {"const": true},
+    "promotion_eligible": {"const": false},
+    "live_order_ready": {"const": false},
+    "live_order_allowed": {"const": false},
+    "can_live_trade": {"const": false},
+    "scale_up_allowed": {"const": false},
+    "blockers": {
+      "type": "array",
+      "items": {"$ref": "common.defs.schema.json#/$defs/blocker_object"}
+    },
+    "condition_matrix_hash": {"type": "string", "minLength": 64, "maxLength": 64}
+  }
+}

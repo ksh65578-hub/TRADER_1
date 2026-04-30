@@ -1,0 +1,25 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "generated_at_utc": "2026-04-30T10:36:35Z",
+  "patch_id": "MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD_20260430_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate": "MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD",
+  "status": "PASS_WITH_LIVE_BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "mvp5_blocked": true,
+  "blockers": [
+    "No LIVE_READY snapshot",
+    "No official API verification",
+    "No operator approval",
+    "No read-only account snapshot evidence",
+    "No read-only burn-in evidence",
+    "No manual order test evidence",
+    "Recovery guard is bounded PAPER evidence, not 24/7 long-run evidence",
+    "Recovery guard dashboard visibility remains a safe UX follow-up",
+    "Binance adapter remains surface-only",
+    "MVP-5 remains blocked by live-enabling evidence requirements"
+  ]
+}

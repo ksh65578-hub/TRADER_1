@@ -1,0 +1,21 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T10:36:35Z",
+  "patch_id": "MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD_20260430_001",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.patch_result.json",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.stage_gate_result.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-recovery-guard-loop-recovery-guard.json"
+  ],
+  "artifact_hashes": {
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.patch_result.json": "3A93BDE499D7F77F02FD47CCB3FC6FEAA3D4405669330489B2535C07014A3B62",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.validator_run_log.json": "A6B96D3345F00C26D453C5D34DEBAE2DECC7E9A67BBD94741840326773FA5FC4",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD.stage_gate_result.json": "33280F9F5CCAEE7EC3855678A3773FC82F95EB5F97F2A2D2E135177A43C3F841",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-recovery-guard-loop-recovery-guard.json": "01ED417A8631EB427BFDA8E79F1F05353222D75FEB0964A8286267060F9FD91F"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.ledger_event.v1",
+  "title": "ledger_event",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "event_id",
+    "event_time_utc",
+    "mode",
+    "exchange",
+    "market_type",
+    "session_id",
+    "event_type",
+    "source",
+    "dedup_key",
+    "event_hash"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "trader1.ledger_event.v1"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_time_utc": {
+      "type": "string"
+    },
+    "exchange_time": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "REPLAY",
+        "PAPER",
+        "SHADOW",
+        "LIVE",
+        "SAFE",
+        "READ_ONLY"
+      ]
+    },
+    "exchange": {
+      "enum": [
+        "UPBIT",
+        "BINANCE"
+      ]
+    },
+    "market_type": {
+      "enum": [
+        "KRW_SPOT",
+        "SPOT",
+        "FUTURES_USDT_M"
+      ]
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "event_type": {
+      "$ref": "#/$defs/ledger_event_type"
+    },
+    "order_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "client_order_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "intent_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "symbol": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "side": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "quantity": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "price": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "fee_amount": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "fee_asset": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "funding_fee_amount": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "realized_pnl": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "unrealized_pnl": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "balance_delta": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "position_delta": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "source": {
+      "enum": [
+        "LOCAL",
+        "EXCHANGE_REST",
+        "EXCHANGE_WS",
+        "RECONCILIATION",
+        "OPERATOR",
+        "SYSTEM"
+      ]
+    },
+    "dedup_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "previous_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "event_hash": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ledger_event_type": {
+      "type": "string",
+      "enum": [
+        "ORDER_INTENT_CREATED",
+        "BUDGET_RESERVED",
+        "ORDER_SUBMIT_STARTED",
+        "ORDER_SUBMITTED",
+        "ORDER_ACK_RECEIVED",
+        "ORDER_OPENED",
+        "PARTIAL_FILL_RECEIVED",
+        "ORDER_FILLED",
+        "ORDER_CANCEL_REQUESTED",
+        "ORDER_CANCELED",
+        "ORDER_REJECTED",
+        "ORDER_EXPIRED",
+        "ORDER_RECONCILE_REQUIRED",
+        "ORDER_RECONCILED",
+        "RESERVATION_RELEASED",
+        "LEDGER_CORRECTION_RECORDED",
+        "RISK_REDUCTION_ACTION_RECORDED"
+      ]
+    }
+  }
+}

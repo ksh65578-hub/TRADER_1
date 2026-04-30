@@ -1,0 +1,46 @@
+{
+  "schema_id": "trader1.contract_gap.v1",
+  "generated_at_utc": "2026-04-30T00:55:45Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "SHADOW",
+  "status": "OPEN",
+  "blockers": [
+    {
+      "code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+      "message": "atomic writer can commit bounded stub artifacts, but actual repeated scheduled runtime execution is still not long-run evidence"
+    },
+    {
+      "code": "LONG_RUN_EVIDENCE_MISSING",
+      "message": "persistent long-run PAPER/SHADOW evidence window is still missing"
+    },
+    {
+      "code": "API_UNVERIFIED",
+      "message": "official API verification is not present"
+    },
+    {
+      "code": "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+      "message": "read-only account snapshot evidence is not present"
+    }
+  ],
+  "notes": "Stub and short-window harness artifacts cannot be mistaken for long-run evidence. Negative runtime measurements, duplicate persistent-runtime cycle identities, and observed-duration claims for bounded stubs fail closed. Actual repeated scheduled runtime evidence, long-run PAPER/SHADOW profitability evidence, and external live-review evidence remain missing; live readiness and scale-up stay blocked.",
+  "contract_gap_id": "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+  "severity": "HIGH",
+  "source_section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
+  "live_affecting": true,
+  "updated_at_utc": "2026-04-30T03:35:39Z",
+  "current_safe_progress": "Persistent SHADOW runtime stubs now require distinct cycle commit identities and explicit duration evidence role. Any observed wall-clock runtime or LONG_RUN_EVIDENCE duration claim blocks as ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "remaining_blockers": [
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+  ]
+}

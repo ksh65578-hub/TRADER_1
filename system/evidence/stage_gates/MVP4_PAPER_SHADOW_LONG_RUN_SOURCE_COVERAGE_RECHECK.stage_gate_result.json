@@ -1,0 +1,37 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_PAPER_SHADOW_LONG_RUN_SOURCE_COVERAGE_RECHECK_20260430_001",
+  "created_at_utc": "2026-04-30T02:53:38Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_PAPER_SHADOW_LONG_RUN_SOURCE_COVERAGE_RECHECK",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "long-run PAPER/SHADOW evidence now requires aggregate window/span coverage and per-window PAPER/SHADOW supporting source ids",
+    "false long-run eligibility without supporting window sources is blocked with MEASUREMENT_MISSING",
+    "short-window false long-run claims still surface SAMPLE_INSUFFICIENT first for operator clarity",
+    "PAPER/SHADOW validators, MVP0 validators, runtime schema validators, and full unittest regression pass",
+    "live, credential, order adapter, optimizer ranking, and scale-up paths remain blocked"
+  ],
+  "blocked_conditions": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "COMPILEALL_BYTECODE_WRITE_BLOCKED_BY_WINDOWS_FILE_LOCK"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T02:54:16Z",
+  "status": "PASS_MVP4_PAPER_SHADOW_LONG_RUN_SOURCE_COVERAGE_RECHECK_LIVE_BLOCKED",
+  "tests_status": "PASS_WITH_COMPILEALL_FILE_LOCK_BLOCKED",
+  "validators_status": "PASS",
+  "stage_gate_hash": "32C37B0C4BCF3D5D125C8A9A958E9982C025BF4C5D81CF6B443672D3D0299D47"
+}

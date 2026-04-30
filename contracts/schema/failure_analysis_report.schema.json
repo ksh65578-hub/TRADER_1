@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.failure_analysis_report.v1",
+  "title": "failure_analysis_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "failure_analysis_id",
+    "candidate_id",
+    "strategy_id",
+    "strategy_build_id",
+    "parameter_hash",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "symbol",
+    "timeframe_scope",
+    "regime_scope",
+    "failure_event_id",
+    "failure_status",
+    "primary_root_cause_code",
+    "secondary_root_cause_codes",
+    "root_cause_status",
+    "live_affecting",
+    "repeated_failure_count",
+    "repeated_failure_same_root_cause",
+    "previous_failure_analysis_ids",
+    "recommended_response",
+    "blocks_promotion",
+    "blocks_live_order",
+    "optimizer_ranking_action",
+    "memory_write_required",
+    "memory_write_status",
+    "source_evidence_ids",
+    "dashboard_display_truth_only",
+    "promotion_eligible",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "blockers",
+    "audit_prev_hash",
+    "audit_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.failure_analysis_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "failure_analysis_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_build_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parameter_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "symbol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timeframe_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "regime_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "failure_event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "failure_status": {
+      "enum": [
+        "ANALYZED",
+        "BLOCKED_UNKNOWN_ROOT_CAUSE",
+        "BLOCKED_REPEATED_FAILURE",
+        "FAIL",
+        "UNTESTED",
+        "STALE"
+      ]
+    },
+    "primary_root_cause_code": {
+      "enum": [
+        "UNKNOWN_ROOT_CAUSE",
+        "DATA_STALENESS",
+        "REGIME_MISMATCH",
+        "EXECUTION_FEEDBACK_DIVERGENT",
+        "SLIPPAGE_DIVERGENCE",
+        "FEE_MODEL_MISMATCH",
+        "OVERFIT_RISK_HIGH",
+        "LIQUIDITY_DEPTH_THIN",
+        "STRATEGY_RULE_GAP",
+        "RISK_EXPOSURE_BREACH",
+        "MODEL_DRIFT_DETECTED"
+      ]
+    },
+    "secondary_root_cause_codes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "UNKNOWN_ROOT_CAUSE",
+          "DATA_STALENESS",
+          "REGIME_MISMATCH",
+          "EXECUTION_FEEDBACK_DIVERGENT",
+          "SLIPPAGE_DIVERGENCE",
+          "FEE_MODEL_MISMATCH",
+          "OVERFIT_RISK_HIGH",
+          "LIQUIDITY_DEPTH_THIN",
+          "STRATEGY_RULE_GAP",
+          "RISK_EXPOSURE_BREACH",
+          "MODEL_DRIFT_DETECTED"
+        ]
+      }
+    },
+    "root_cause_status": {
+      "enum": [
+        "KNOWN",
+        "UNKNOWN",
+        "PARTIAL"
+      ]
+    },
+    "live_affecting": {
+      "type": "boolean"
+    },
+    "repeated_failure_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repeated_failure_same_root_cause": {
+      "type": "boolean"
+    },
+    "previous_failure_analysis_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "recommended_response": {
+      "enum": [
+        "BLOCK_CANDIDATE",
+        "REQUIRE_MORE_EVIDENCE",
+        "PENALIZE_RANKING",
+        "RECHECK_COST_MODEL",
+        "RECHECK_REGIME_FIT",
+        "RETIRE_CANDIDATE",
+        "KEEP_RESEARCH_ONLY"
+      ]
+    },
+    "blocks_promotion": {
+      "type": "boolean"
+    },
+    "blocks_live_order": {
+      "type": "boolean"
+    },
+    "optimizer_ranking_action": {
+      "enum": [
+        "ALLOW_RANKING",
+        "PENALIZE_RANKING",
+        "BLOCK_RANKING"
+      ]
+    },
+    "memory_write_required": {
+      "type": "boolean"
+    },
+    "memory_write_status": {
+      "enum": [
+        "APPEND_ONLY_RECORDED",
+        "REQUIRED_NOT_RECORDED",
+        "NOT_REQUIRED"
+      ]
+    },
+    "source_evidence_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "dashboard_display_truth_only": {
+      "const": true
+    },
+    "promotion_eligible": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "audit_prev_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "audit_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

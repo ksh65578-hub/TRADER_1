@@ -1,0 +1,14 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T03:35:39Z",
+  "project_id": "TRADER_1",
+  "audit_id": "MVP4_PERSISTENT_RUNTIME_DURATION_EVIDENCE_GUARD",
+  "classification": "hidden_false_safe_runtime_duration_evidence",
+  "condition": "bounded SHADOW runtime stub carried heartbeat count and interval without explicit proof that duration was estimate-only",
+  "impact": "operator or later artifact could misread stub duration as observed long-run runtime evidence",
+  "fix": "duration evidence source and role are now strict, observed runtime seconds must remain zero, and observed wall-clock claims block",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

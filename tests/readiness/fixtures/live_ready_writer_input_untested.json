@@ -1,0 +1,11 @@
+{
+  "fixture_id": "live_ready_writer_input_untested",
+  "validator_id": "live_ready_snapshot_writer_validator",
+  "case": "LIVE_READY_CANDIDATE_WRITER_INPUT cannot write snapshot while writer status is UNTESTED",
+  "expected_status": "BLOCKED",
+  "expected_blocker_code": "LIVE_READY_SNAPSHOT_WRITER_UNTESTED",
+  "expected_snapshot_written": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

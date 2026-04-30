@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-28T15:38:59Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP3_OPERATIONAL_UPBIT_PAPER_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/strategy_unit.schema.json",
+    "contracts/schema/position_sizing_decision.schema.json",
+    "contracts/schema/replay_consistency_report.schema.json",
+    "contracts/schema/paper_shadow_separation_report.schema.json",
+    "contracts/schema/paper_operation_gate_report.schema.json",
+    "trader1/runtime/paper/operational_cycle.py",
+    "trader1/validation/mvp0_validators.py",
+    "tools/run_operational_paper_validators.py",
+    "tests/integration/test_upbit_operational_paper_cycle.py",
+    "system/runtime/upbit/krw_spot/paper/operational/paper_operation_gate_report.json",
+    "system/evidence/validator_runs/MVP3_OPERATIONAL_UPBIT_PAPER.validator_run_log.json",
+    "system/evidence/stage_gates/MVP3_OPERATIONAL_UPBIT_PAPER.stage_gate_result.json"
+  ],
+  "known_blockers": [
+    "SNAPSHOT_SCOPE_MISMATCH",
+    "LIVE_FINAL_GUARD_FAILED",
+    "RISK_VETO",
+    "MEASUREMENT_MISSING",
+    "LEDGER_UNAVAILABLE",
+    "RECONCILIATION_REQUIRED"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

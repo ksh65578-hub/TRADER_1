@@ -1,0 +1,598 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.readiness_surface.v1",
+  "title": "readiness_surface",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "can_start",
+    "can_live_trade",
+    "live_order_ready",
+    "live_order_allowed",
+    "live_trading_status",
+    "blockers",
+    "surface_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.readiness_surface.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "exchange": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "UPBIT",
+        "BINANCE",
+        null
+      ]
+    },
+    "market_type": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "KRW_SPOT",
+        "SPOT",
+        "FUTURES_USDT_M",
+        null
+      ]
+    },
+    "mode": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "REPLAY",
+        "PAPER",
+        "SHADOW",
+        "LIVE",
+        "SAFE",
+        "READ_ONLY",
+        null
+      ]
+    },
+    "session_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "build_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "authority_document": {
+      "const": "TRADER_1.md"
+    },
+    "authority_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "registry_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_bundle_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_tree_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "release_package_status": {
+      "enum": [
+        "NOT_BUILT",
+        "STAGING_READY",
+        "BUNDLE_READY",
+        "DIRTY",
+        "BLOCKED"
+      ]
+    },
+    "bundle_readiness_status": {
+      "enum": [
+        "UNKNOWN",
+        "PASS",
+        "WARN",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "can_start": {
+      "type": "boolean"
+    },
+    "can_collect_data": {
+      "type": "boolean"
+    },
+    "can_evaluate_candidates": {
+      "type": "boolean"
+    },
+    "can_paper_trade": {
+      "type": "boolean"
+    },
+    "can_shadow_evaluate": {
+      "type": "boolean"
+    },
+    "can_replay": {
+      "type": "boolean"
+    },
+    "can_live_review": {
+      "type": "boolean"
+    },
+    "can_live_trade": {
+      "type": "boolean"
+    },
+    "live_order_ready": {
+      "type": "boolean"
+    },
+    "live_order_allowed": {
+      "type": "boolean"
+    },
+    "start_gate_status": {
+      "enum": [
+        "PASS",
+        "WARN",
+        "FAIL",
+        "BLOCKED",
+        "UNTESTED"
+      ]
+    },
+    "live_trading_status": {
+      "enum": [
+        "NOT_APPLICABLE",
+        "REVIEW_ONLY",
+        "BLOCKED",
+        "SMALL_LIVE_BURN_IN",
+        "LIVE_ACTIVE"
+      ]
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "MIN_EDGE_FAIL",
+        "EXPECTED_SLIPPAGE_EXCEEDED",
+        "DEPTH_TOO_THIN",
+        "DEPTH_EXCHANGE_REJECT_RISK",
+        "STALE_ORDERBOOK",
+        "STALE_TICKER",
+        "STALE_TRADE_TAPE",
+        "STALE_CANDLE_15M",
+        "STALE_CANDLE_60M",
+        "STALE_BENCHMARK_CONTEXT",
+        "MARKET_CONTEXT_LOAD_TIMEOUT",
+        "API_TIMEOUT",
+        "WEBSOCKET_GAP",
+        "CLOCK_DRIFT",
+        "PRIVATE_WS_UNHEALTHY",
+        "DRIFT_UNRECOVERED",
+        "SESSION_PAUSE",
+        "TICK_SIZE_CLIFF",
+        "BALANCE_MISMATCH",
+        "MARKET_EVENT_RISK",
+        "BREADTH_OFF_BLOCKED",
+        "PENDING_CONFIRM_EXISTS",
+        "COOLDOWN",
+        "CLUSTER_RISK",
+        "UNIVERSE_FILTERED",
+        "POSITION_LIMIT",
+        "TRADE_DISABLED",
+        "COLD_START",
+        "DATA_UNAVAILABLE",
+        "HARD_TRUTH_MISSING",
+        "SOFT_TRUTH_UNREGISTERED_FALLBACK",
+        "RESOURCE_LIMIT",
+        "RESOURCE_LIMIT_BLOCK",
+        "LEDGER_INTEGRITY_FAIL",
+        "LEDGER_UNAVAILABLE",
+        "EXCHANGE_SYNC_REQUIRED",
+        "RECONCILIATION_REQUIRED",
+        "SYMBOL_RULE_BLOCK",
+        "SYMBOL_RULE_UNVERIFIED",
+        "FEE_MODEL_UNVERIFIED",
+        "FEE_EXCEEDS_EDGE",
+        "MARKET_IMPACT_EXCEEDS_EDGE",
+        "LIVE_READY_MISSING",
+        "USER_APPROVAL_MISSING",
+        "PREFLIGHT_FAILED",
+        "SNAPSHOT_SCOPE_MISMATCH",
+        "API_UNVERIFIED",
+        "RISK_VETO",
+        "REGIME_MISMATCH",
+        "EXCHANGE_POLICY_BLOCK",
+        "STRATEGY_NOT_ELIGIBLE",
+        "STRATEGY_CONFIDENCE_LOW",
+        "KILL_SWITCH_ACTIVE",
+        "LATENCY_TTL_EXPIRED",
+        "OFFICIAL_API_VERIFICATION_EXPIRED",
+        "MANUAL_ORDER_TEST_MISSING",
+        "OPERATOR_APPROVAL_MISSING",
+        "EMERGENCY_FLATTEN_UNAVAILABLE",
+        "SOURCE_IDENTITY_MISMATCH",
+        "BUNDLE_HYGIENE_FAIL",
+        "READ_ONLY_BURN_IN_MISSING",
+        "ORPHAN_POSITION_REVIEW_REQUIRED",
+        "ORPHAN_OPEN_ORDER_REVIEW_REQUIRED",
+        "LIVE_FINAL_GUARD_FAILED",
+        "SCHEMA_IDENTITY_MISMATCH",
+        "REGISTRY_DRIFT",
+        "GENERATED_ARTIFACT_DIRTY",
+        "CONTRACT_GAP_HIGH",
+        "CONTRACT_GAP_CRITICAL",
+        "MEASUREMENT_MISSING",
+        "EXECUTION_QUALITY_UNTESTED",
+        "EXPANDED_BOUND_UNVERIFIED",
+        "PROMOTION_INPUT_TYPE_INVALID",
+        "EXPLORATION_STAGE_MISMATCH",
+        "VARIATION_UNREGISTERED",
+        "TIMEFRAME_SCOPE_MISMATCH",
+        "CANDIDATE_BUDGET_EXCEEDED",
+        "DUPLICATE_CANDIDATE",
+        "EXPLORATION_RESOURCE_LIMIT",
+        "LIVE_READY_SNAPSHOT_WRITER_UNTESTED",
+        "LIVE_READY_SNAPSHOT_WRITER_FAILED",
+        "LOW_RR_RATIO_UNVERIFIED",
+        "COST_AFTER_EDGE_UNVERIFIED",
+        "REGIME_SCOPE_MISMATCH",
+        "COMBINATION_COMPLEXITY_EXCEEDED",
+        "UNBOUNDED_CANDIDATE_EXPANSION",
+        "DATA_QUALITY_INSUFFICIENT",
+        "CANDIDATE_DIRECT_LIVE_FORBIDDEN",
+        "PAPER_WINNER_DIRECT_LIVE_FORBIDDEN",
+        "SNAPSHOT_WRITER_INPUT_NOT_SNAPSHOT",
+        "OPTIMIZER_UNTESTED",
+        "OBJECTIVE_FUNCTION_MISSING",
+        "SCORECARD_MISSING",
+        "SCORECARD_SCHEMA_INVALID",
+        "RANKING_UNSTABLE",
+        "SAMPLE_INSUFFICIENT",
+        "HOLDOUT_MISSING",
+        "WALK_FORWARD_MISSING",
+        "OOS_MISSING",
+        "BOOTSTRAP_UNSTABLE",
+        "OVERFIT_RISK_HIGH",
+        "SURVIVORSHIP_BIAS_RISK",
+        "DATA_SNOOPING_RISK",
+        "SYMBOL_SELECTION_BIAS",
+        "REGIME_FIT_UNTESTED",
+        "EXECUTION_FEEDBACK_MISSING",
+        "EXECUTION_FEEDBACK_DIVERGENT",
+        "PARAMETER_NARROWING_UNVERIFIED",
+        "EXPLOITATION_SHIFT_UNVERIFIED",
+        "OPTIMIZER_RESOURCE_LIMIT",
+        "OPTIMIZER_DIRECT_LIVE_FORBIDDEN",
+        "OPTIMIZER_LIVE_MUTATION_FORBIDDEN",
+        "CONVERGENCE_OBJECTIVE_MISSING",
+        "CONVERGENCE_MEMORY_MISSING",
+        "CONVERGENCE_MEMORY_STALE",
+        "CONVERGENCE_STATE_UNTESTED",
+        "CONVERGENCE_CLAIM_UNVERIFIED",
+        "FAILURE_ANALYSIS_MISSING",
+        "ROOT_CAUSE_UNKNOWN_LIVE_AFFECTING",
+        "MODEL_DRIFT_DETECTED",
+        "REGIME_ADAPTATION_UNTESTED",
+        "EXPLORATION_EXPLOITATION_TRANSITION_UNTESTED",
+        "RISK_SCALING_UNTESTED",
+        "RISK_SCALING_UP_FORBIDDEN",
+        "SURVIVAL_LAYER_BLOCKED",
+        "DRAWDOWN_FREEZE_ACTIVE",
+        "LIVE_BURN_IN_FEEDBACK_MISSING",
+        "SCALE_UP_VALIDATOR_MISSING",
+        "SCALE_UP_NOT_ELIGIBLE",
+        "UNKNOWN_BLOCKED",
+        null
+      ]
+    },
+    "primary_blocker_message": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "category",
+          "severity",
+          "message",
+          "blocks_start",
+          "blocks_live_order"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "MIN_EDGE_FAIL",
+              "EXPECTED_SLIPPAGE_EXCEEDED",
+              "DEPTH_TOO_THIN",
+              "DEPTH_EXCHANGE_REJECT_RISK",
+              "STALE_ORDERBOOK",
+              "STALE_TICKER",
+              "STALE_TRADE_TAPE",
+              "STALE_CANDLE_15M",
+              "STALE_CANDLE_60M",
+              "STALE_BENCHMARK_CONTEXT",
+              "MARKET_CONTEXT_LOAD_TIMEOUT",
+              "API_TIMEOUT",
+              "WEBSOCKET_GAP",
+              "CLOCK_DRIFT",
+              "PRIVATE_WS_UNHEALTHY",
+              "DRIFT_UNRECOVERED",
+              "SESSION_PAUSE",
+              "TICK_SIZE_CLIFF",
+              "BALANCE_MISMATCH",
+              "MARKET_EVENT_RISK",
+              "BREADTH_OFF_BLOCKED",
+              "PENDING_CONFIRM_EXISTS",
+              "COOLDOWN",
+              "CLUSTER_RISK",
+              "UNIVERSE_FILTERED",
+              "POSITION_LIMIT",
+              "TRADE_DISABLED",
+              "COLD_START",
+              "DATA_UNAVAILABLE",
+              "HARD_TRUTH_MISSING",
+              "SOFT_TRUTH_UNREGISTERED_FALLBACK",
+              "RESOURCE_LIMIT",
+              "RESOURCE_LIMIT_BLOCK",
+              "LEDGER_INTEGRITY_FAIL",
+              "LEDGER_UNAVAILABLE",
+              "EXCHANGE_SYNC_REQUIRED",
+              "RECONCILIATION_REQUIRED",
+              "SYMBOL_RULE_BLOCK",
+              "SYMBOL_RULE_UNVERIFIED",
+              "FEE_MODEL_UNVERIFIED",
+              "FEE_EXCEEDS_EDGE",
+              "MARKET_IMPACT_EXCEEDS_EDGE",
+              "LIVE_READY_MISSING",
+              "USER_APPROVAL_MISSING",
+              "PREFLIGHT_FAILED",
+              "SNAPSHOT_SCOPE_MISMATCH",
+              "API_UNVERIFIED",
+              "RISK_VETO",
+              "REGIME_MISMATCH",
+              "EXCHANGE_POLICY_BLOCK",
+              "STRATEGY_NOT_ELIGIBLE",
+              "STRATEGY_CONFIDENCE_LOW",
+              "KILL_SWITCH_ACTIVE",
+              "LATENCY_TTL_EXPIRED",
+              "OFFICIAL_API_VERIFICATION_EXPIRED",
+              "MANUAL_ORDER_TEST_MISSING",
+              "OPERATOR_APPROVAL_MISSING",
+              "EMERGENCY_FLATTEN_UNAVAILABLE",
+              "SOURCE_IDENTITY_MISMATCH",
+              "BUNDLE_HYGIENE_FAIL",
+              "READ_ONLY_BURN_IN_MISSING",
+              "ORPHAN_POSITION_REVIEW_REQUIRED",
+              "ORPHAN_OPEN_ORDER_REVIEW_REQUIRED",
+              "LIVE_FINAL_GUARD_FAILED",
+              "SCHEMA_IDENTITY_MISMATCH",
+              "REGISTRY_DRIFT",
+              "GENERATED_ARTIFACT_DIRTY",
+              "CONTRACT_GAP_HIGH",
+              "CONTRACT_GAP_CRITICAL",
+              "MEASUREMENT_MISSING",
+              "EXECUTION_QUALITY_UNTESTED",
+              "EXPANDED_BOUND_UNVERIFIED",
+              "PROMOTION_INPUT_TYPE_INVALID",
+              "EXPLORATION_STAGE_MISMATCH",
+              "VARIATION_UNREGISTERED",
+              "TIMEFRAME_SCOPE_MISMATCH",
+              "CANDIDATE_BUDGET_EXCEEDED",
+              "DUPLICATE_CANDIDATE",
+              "EXPLORATION_RESOURCE_LIMIT",
+              "LIVE_READY_SNAPSHOT_WRITER_UNTESTED",
+              "LIVE_READY_SNAPSHOT_WRITER_FAILED",
+              "LOW_RR_RATIO_UNVERIFIED",
+              "COST_AFTER_EDGE_UNVERIFIED",
+              "REGIME_SCOPE_MISMATCH",
+              "COMBINATION_COMPLEXITY_EXCEEDED",
+              "UNBOUNDED_CANDIDATE_EXPANSION",
+              "DATA_QUALITY_INSUFFICIENT",
+              "CANDIDATE_DIRECT_LIVE_FORBIDDEN",
+              "PAPER_WINNER_DIRECT_LIVE_FORBIDDEN",
+              "SNAPSHOT_WRITER_INPUT_NOT_SNAPSHOT",
+              "OPTIMIZER_UNTESTED",
+              "OBJECTIVE_FUNCTION_MISSING",
+              "SCORECARD_MISSING",
+              "SCORECARD_SCHEMA_INVALID",
+              "RANKING_UNSTABLE",
+              "SAMPLE_INSUFFICIENT",
+              "HOLDOUT_MISSING",
+              "WALK_FORWARD_MISSING",
+              "OOS_MISSING",
+              "BOOTSTRAP_UNSTABLE",
+              "OVERFIT_RISK_HIGH",
+              "SURVIVORSHIP_BIAS_RISK",
+              "DATA_SNOOPING_RISK",
+              "SYMBOL_SELECTION_BIAS",
+              "REGIME_FIT_UNTESTED",
+              "EXECUTION_FEEDBACK_MISSING",
+              "EXECUTION_FEEDBACK_DIVERGENT",
+              "PARAMETER_NARROWING_UNVERIFIED",
+              "EXPLOITATION_SHIFT_UNVERIFIED",
+              "OPTIMIZER_RESOURCE_LIMIT",
+              "OPTIMIZER_DIRECT_LIVE_FORBIDDEN",
+              "OPTIMIZER_LIVE_MUTATION_FORBIDDEN",
+              "CONVERGENCE_OBJECTIVE_MISSING",
+              "CONVERGENCE_MEMORY_MISSING",
+              "CONVERGENCE_MEMORY_STALE",
+              "CONVERGENCE_STATE_UNTESTED",
+              "CONVERGENCE_CLAIM_UNVERIFIED",
+              "FAILURE_ANALYSIS_MISSING",
+              "ROOT_CAUSE_UNKNOWN_LIVE_AFFECTING",
+              "MODEL_DRIFT_DETECTED",
+              "REGIME_ADAPTATION_UNTESTED",
+              "EXPLORATION_EXPLOITATION_TRANSITION_UNTESTED",
+              "RISK_SCALING_UNTESTED",
+              "RISK_SCALING_UP_FORBIDDEN",
+              "SURVIVAL_LAYER_BLOCKED",
+              "DRAWDOWN_FREEZE_ACTIVE",
+              "LIVE_BURN_IN_FEEDBACK_MISSING",
+              "SCALE_UP_VALIDATOR_MISSING",
+              "SCALE_UP_NOT_ELIGIBLE",
+              "UNKNOWN_BLOCKED"
+            ]
+          },
+          "category": {
+            "enum": [
+              "DATA",
+              "LIQUIDITY",
+              "REGIME",
+              "STRATEGY",
+              "RISK",
+              "PORTFOLIO",
+              "EXECUTION",
+              "CONFIG",
+              "READINESS",
+              "OPERATOR",
+              "SECURITY",
+              "BUNDLE"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "INFO",
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_contract_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blocks_start": {
+            "type": "boolean"
+          },
+          "blocks_live_order": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "surface_hash": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "live_order_allowed": {
+            "const": true
+          }
+        },
+        "required": [
+          "live_order_allowed"
+        ]
+      },
+      "then": {
+        "properties": {
+          "live_order_ready": {
+            "const": true
+          },
+          "can_live_trade": {
+            "const": true
+          },
+          "live_trading_status": {
+            "enum": [
+              "SMALL_LIVE_BURN_IN",
+              "LIVE_ACTIVE"
+            ]
+          },
+          "primary_blocker_code": {
+            "type": "null"
+          },
+          "primary_blocker_message": {
+            "type": "null"
+          }
+        },
+        "not": {
+          "properties": {
+            "blockers": {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "blocks_live_order": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "blocks_live_order"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

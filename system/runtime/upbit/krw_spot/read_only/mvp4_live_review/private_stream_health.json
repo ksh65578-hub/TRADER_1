@@ -1,0 +1,38 @@
+{
+  "schema_id": "trader1.private_stream_health.v1",
+  "stream_health_id": "mvp4-upbit-private-stream-health",
+  "generated_at_utc": "2026-04-28T15:55:43Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "READ_ONLY",
+  "session_id": "mvp4_upbit_live_review",
+  "private_stream_status": "FALLBACK_RECONCILIATION_REQUIRED",
+  "private_ws_connected": false,
+  "asset_probe_status": "UNVERIFIED",
+  "order_probe_status": "UNVERIFIED",
+  "reconciliation_fallback_available": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "order_adapter_called": false,
+  "primary_blocker_code": "PRIVATE_WS_UNHEALTHY",
+  "blockers": [
+    {
+      "code": "PRIVATE_WS_UNHEALTHY",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "unknown blocking condition",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    }
+  ],
+  "stream_health_hash": "FE4B7C6D3D7563917C31D845B90453AC079DF3D72876BF9645A181BD633D1A66"
+}

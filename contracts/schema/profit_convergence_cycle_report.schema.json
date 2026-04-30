@@ -1,0 +1,367 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.profit_convergence_cycle_report.v1",
+  "title": "profit_convergence_cycle_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "cycle_id",
+    "cycle_index",
+    "previous_cycle_hash",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "strategy_id",
+    "strategy_build_id",
+    "parameter_hash",
+    "timeframe_scope",
+    "regime_scope",
+    "source_modes",
+    "source_evidence_ids",
+    "convergence_objective_profile_validator_status",
+    "optimizer_memory_state_validator_status",
+    "strategy_performance_memory_validator_status",
+    "failure_analysis_validator_status",
+    "exploration_exploitation_policy_validator_status",
+    "market_regime_adaptation_validator_status",
+    "model_drift_validator_status",
+    "execution_feedback_loop_validator_status",
+    "paper_shadow_evidence_accumulation_validator_status",
+    "coverage_index_validator_status",
+    "required_dependency_count",
+    "dependency_pass_count",
+    "cycle_status",
+    "convergence_claim",
+    "objective_basis",
+    "objective_score_delta_bps",
+    "net_ev_after_cost_delta_bps",
+    "raw_pnl_improved",
+    "net_ev_after_cost_positive",
+    "raw_pnl_positive_net_ev_negative",
+    "data_freshness_status",
+    "data_age_seconds",
+    "max_data_age_seconds",
+    "model_drift_status",
+    "candidate_ranking_allowed_for_paper",
+    "blocks_promotion",
+    "blocks_live_order",
+    "dashboard_display_truth_only",
+    "operator_warning",
+    "next_operator_action",
+    "live_permission_created",
+    "live_config_mutation_allowed",
+    "writes_live_ready_snapshot",
+    "active_snapshot_mutation_allowed",
+    "optimizer_winner_live_config_allowed",
+    "paper_winner_live_config_allowed",
+    "model_promotion_allowed",
+    "scale_up_recommendation_allowed",
+    "order_submission_allowed",
+    "exchange_account_call_allowed",
+    "profitability_guarantee_created",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "blockers",
+    "cycle_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.profit_convergence_cycle_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "cycle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "previous_cycle_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "enum": [
+        "REPLAY",
+        "PAPER",
+        "SHADOW",
+        "SAFE",
+        "READ_ONLY"
+      ]
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_build_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parameter_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "timeframe_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "regime_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "REPLAY",
+          "PAPER",
+          "SHADOW",
+          "READ_ONLY"
+        ]
+      }
+    },
+    "source_evidence_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "convergence_objective_profile_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "optimizer_memory_state_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "strategy_performance_memory_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "failure_analysis_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "exploration_exploitation_policy_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "market_regime_adaptation_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "model_drift_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "execution_feedback_loop_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "paper_shadow_evidence_accumulation_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "coverage_index_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "required_dependency_count": {
+      "const": 10
+    },
+    "dependency_pass_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "cycle_status": {
+      "enum": [
+        "COLLECTING",
+        "LOCAL_IMPROVEMENT_REVIEW",
+        "BLOCKED",
+        "STALE",
+        "UNTESTED"
+      ]
+    },
+    "convergence_claim": {
+      "enum": [
+        "NO_CLAIM",
+        "LOCALLY_IMPROVING",
+        "ROBUSTLY_IMPROVING",
+        "BLOCKED"
+      ]
+    },
+    "objective_basis": {
+      "enum": [
+        "NET_EV_AFTER_COST",
+        "BLOCKED_NO_VALID_OBJECTIVE"
+      ]
+    },
+    "objective_score_delta_bps": {
+      "type": "number"
+    },
+    "net_ev_after_cost_delta_bps": {
+      "type": "number"
+    },
+    "raw_pnl_improved": {
+      "type": "boolean"
+    },
+    "net_ev_after_cost_positive": {
+      "type": "boolean"
+    },
+    "raw_pnl_positive_net_ev_negative": {
+      "type": "boolean"
+    },
+    "data_freshness_status": {
+      "enum": [
+        "FRESH",
+        "STALE",
+        "MISSING"
+      ]
+    },
+    "data_age_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "max_data_age_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "model_drift_status": {
+      "enum": [
+        "NOT_EVALUATED",
+        "NO_DRIFT",
+        "DRIFT_SUSPECTED",
+        "DRIFT_DETECTED",
+        "BLOCKED"
+      ]
+    },
+    "candidate_ranking_allowed_for_paper": {
+      "type": "boolean"
+    },
+    "blocks_promotion": {
+      "type": "boolean"
+    },
+    "blocks_live_order": {
+      "const": true
+    },
+    "dashboard_display_truth_only": {
+      "const": true
+    },
+    "operator_warning": {
+      "type": "string",
+      "minLength": 1
+    },
+    "next_operator_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "live_permission_created": {
+      "const": false
+    },
+    "live_config_mutation_allowed": {
+      "const": false
+    },
+    "writes_live_ready_snapshot": {
+      "const": false
+    },
+    "active_snapshot_mutation_allowed": {
+      "const": false
+    },
+    "optimizer_winner_live_config_allowed": {
+      "const": false
+    },
+    "paper_winner_live_config_allowed": {
+      "const": false
+    },
+    "model_promotion_allowed": {
+      "const": false
+    },
+    "scale_up_recommendation_allowed": {
+      "const": false
+    },
+    "order_submission_allowed": {
+      "const": false
+    },
+    "exchange_account_call_allowed": {
+      "const": false
+    },
+    "profitability_guarantee_created": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "cycle_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "status": {
+      "enum": [
+        "PASS",
+        "BLOCKED",
+        "SAFE_MODE",
+        "FAIL"
+      ]
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

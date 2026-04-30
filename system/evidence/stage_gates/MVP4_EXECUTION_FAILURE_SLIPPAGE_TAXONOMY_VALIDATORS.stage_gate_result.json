@@ -1,0 +1,21 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "generated_at_utc": "2026-04-29T13:16:46Z",
+  "patch_id": "MVP4_EXECUTION_FAILURE_SLIPPAGE_TAXONOMY_VALIDATORS_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_LIVE_BLOCKED_VALIDATED_WITH_FULL_TEST_REPRODUCIBILITY_AND_REMAINING_BACKLOG_5",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "VALIDATOR_REGISTRY_BACKLOG_TRIAGE_REMAINING_5"
+  ],
+  "patch_result_hash": "33B36FEA906314EE1E92C0EF718301B6E4C6038B77DB371E52AC009779E3F9D4"
+}

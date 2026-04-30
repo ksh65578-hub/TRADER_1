@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.live_review_dashboard.v1",
+  "title": "live_review_dashboard",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "dashboard_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "display_only",
+    "first_line",
+    "can_live_review",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "order_controls_present",
+    "forbidden_wording_present",
+    "preflight_status",
+    "primary_blocker_code",
+    "blockers",
+    "dashboard_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.live_review_dashboard.v1"
+    },
+    "dashboard_id": {
+      "type": "string"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "const": "LIVE"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "display_only": {
+      "const": true
+    },
+    "first_line": {
+      "type": "string"
+    },
+    "can_live_review": {
+      "type": "boolean"
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "order_controls_present": {
+      "const": false
+    },
+    "forbidden_wording_present": {
+      "const": false
+    },
+    "preflight_status": {
+      "enum": [
+        "PASS_REVIEW_ONLY",
+        "BLOCKED",
+        "FAIL"
+      ]
+    },
+    "primary_blocker_code": {
+      "$ref": "common.defs.schema.json#/$defs/live_blocker_code"
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "dashboard_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    }
+  }
+}

@@ -1,0 +1,216 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-29T11:43:14Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_RUNTIME_REPRODUCIBILITY_SAFE_SMOKE_20260429_001",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "execution_mode": "TEMP_RUNTIME_BUNDLE_AND_LOCAL_VALIDATORS_ONLY",
+  "commands": [
+    {
+      "command": "python -m py_compile trader1/runtime/smoke.py tools/run_safe_smoke.py tests/runtime/test_safe_smoke.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -m unittest tests.runtime.test_safe_smoke -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 2
+    },
+    {
+      "command": "python tools/run_safe_smoke.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validators": 7,
+      "temporary_runtime_bundles": 4
+    },
+    {
+      "command": "python -m unittest tests.runtime.test_safe_smoke tests.runtime.test_safe_launcher -v",
+      "status": "PASS",
+      "returncode": 0,
+      "tests": 30
+    },
+    {
+      "command": "python tools/run_safe_smoke.py --output system/evidence/validator_runs/MVP4_RUNTIME_REPRODUCIBILITY_SAFE_SMOKE.safe_smoke_report.json",
+      "status": "PASS",
+      "returncode": 0,
+      "validators": 7,
+      "temporary_runtime_bundles": 4
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validators": 34
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "validators": 4
+    },
+    {
+      "command": "python - <<inline>> run_validators(['source_bundle_hygiene_validator','secret_scan_validator'])",
+      "status": "PASS",
+      "returncode": 0,
+      "validators": 2
+    }
+  ],
+  "validators_run": [
+    {
+      "validator_id": "authority_integrity_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "external_authority_manifest_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "closed_enum_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "common_defs_drift_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "active_schema_extraction_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "root_launcher_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "root_launcher_surface_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_config_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_ready_snapshot_writer_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "startup_probe_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "heartbeat_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "summary_shell_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_stability_history_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_resource_pressure_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_portfolio_snapshot_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "safety_control_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "ledger_durability_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "ledger_reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "emergency_flatten_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "operator_action_audit_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "operator_control_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_dry_run_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "restart_recovery_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_live_review_preflight_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

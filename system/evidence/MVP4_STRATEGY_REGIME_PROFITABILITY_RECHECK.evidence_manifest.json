@@ -1,0 +1,29 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "patch_id": "MVP4_STRATEGY_REGIME_PROFITABILITY_RECHECK_20260429_001",
+  "created_at_utc": "2026-04-29T11:17:12Z",
+  "evidence_scope": "MVP4_STRATEGY_REGIME_PROFITABILITY_RECHECK",
+  "authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "source_artifacts": [
+    "trader1/validation/mvp0_validators.py",
+    "tests/validators/test_strategy_condition_matrix_validator.py",
+    "tests/validators/test_symbol_strategy_regime_fit_validator.py",
+    "tests/validators/fixtures/symbol_strategy_regime_fit_high_spread_fail.json",
+    "tests/validators/fixtures/symbol_strategy_regime_fit_low_depth_fail.json",
+    "system/evidence/audit_reports/MVP4_STRATEGY_REGIME_PROFITABILITY_RECHECK.audit.json"
+  ],
+  "tests_run": [
+    "python -m py_compile trader1/validation/mvp0_validators.py tests/validators/test_strategy_condition_matrix_validator.py tests/validators/test_symbol_strategy_regime_fit_validator.py",
+    "python -m unittest targeted strategy/regime/profitability validators -v",
+    "python -m unittest optimizer/convergence live_blocked guard tests -v",
+    "python tools/run_mvp0_validators.py"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "evidence_hash": "CDDE908A75F64474528FBFD1492967ADFBF5CF3440202D6F1681CE78ECA8C496"
+}

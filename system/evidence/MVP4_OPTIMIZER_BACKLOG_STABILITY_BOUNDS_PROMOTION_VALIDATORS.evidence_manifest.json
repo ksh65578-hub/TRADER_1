@@ -1,0 +1,20 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-29T12:57:06Z",
+  "patch_id": "MVP4_OPTIMIZER_BACKLOG_STABILITY_BOUNDS_PROMOTION_VALIDATORS_20260429_001",
+  "evidence_status": "PASS_LIVE_BLOCKED_VALIDATED",
+  "artifact_paths": [
+    "trader1/validation/mvp0_validators.py",
+    "tests/validators/test_optimizer_backlog_validators.py",
+    "system/evidence/validator_runs/MVP4_OPTIMIZER_BACKLOG_STABILITY_BOUNDS_PROMOTION_VALIDATORS.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_OPTIMIZER_BACKLOG_STABILITY_BOUNDS_PROMOTION_VALIDATORS.stage_gate_result.json",
+    "system/evidence/audit_reports/MVP4_OPTIMIZER_BACKLOG_STABILITY_BOUNDS_PROMOTION_VALIDATORS.audit.json",
+    "system/evidence/patch_results/MVP4_OPTIMIZER_BACKLOG_STABILITY_BOUNDS_PROMOTION_VALIDATORS.patch_result.json",
+    "contracts/generated/requirement_artifact_matrix.json",
+    "contracts/generated/current_implementation_state.json"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

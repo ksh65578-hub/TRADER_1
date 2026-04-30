@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_PAPER_SHADOW_SOURCE_BINDING_CLOSURE_20260430_001",
+  "created_at_utc": "2026-04-30T02:12:00Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_PAPER_SHADOW_SOURCE_BINDING_CLOSURE",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "bound source_evidence_ids exactly match source_evidence_bindings",
+    "supporting source_evidence_ids are separated from bound paper/shadow evidence ids",
+    "unbound source evidence ids block scorecard input",
+    "schema allows supporting source ids only as unique optional display/support references",
+    "dashboard remains display truth only and all live/order/scale flags remain false"
+  ],
+  "blocked_conditions": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T02:12:00Z",
+  "status": "PASS_MVP4_SOURCE_BINDING_CLOSED_LONG_RUN_BLOCKED",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "168EAFE2BA48DA7CBCB37FF1141E37A0D5DB18E684E53247264FAA3B09E3D084"
+}

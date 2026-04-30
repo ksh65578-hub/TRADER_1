@@ -1,0 +1,34 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_PAPER_SHADOW_SUPPORTING_WINDOW_PAIRING_EVIDENCE",
+  "created_at_utc": "2026-04-30T08:04:59Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_PAPER_SHADOW_SUPPORTING_WINDOW_PAIRING_20260430_001",
+  "artifact_paths": [
+    "trader1/research/shadow/shadow_runner.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/validators/test_paper_shadow_evidence_accumulation_validator.py",
+    "tools/emit_paper_shadow_supporting_window_pairing_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_PAPER_SHADOW_SUPPORTING_WINDOW_PAIRING.md",
+    "system/evidence/validator_runs/MVP4_PAPER_SHADOW_SUPPORTING_WINDOW_PAIRING.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_PAPER_SHADOW_SUPPORTING_WINDOW_PAIRING.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_PAPER_SHADOW_SUPPORTING_WINDOW_PAIRING.patch_result.json"
+  ],
+  "known_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,36 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T12:42:23Z",
+  "patch_id": "MVP4_OPTIMIZER_CONFIG_OBJECTIVE_RANKING_VALIDATORS_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate": "MVP4_OPTIMIZER_CONFIG_OBJECTIVE_RANKING_VALIDATORS",
+  "status": "PASS_WITH_EXTERNAL_BLOCKERS_REMAINING",
+  "implemented_validators": [
+    "profit_optimizer_config_validator",
+    "objective_function_validator",
+    "candidate_ranking_validator"
+  ],
+  "remaining_registered_but_unimplemented_validator_ids": [
+    "candidate_cooldown_validator",
+    "candidate_scorecard_validator",
+    "convergence_claim_validator",
+    "exploration_to_exploitation_validator",
+    "order_failure_taxonomy_validator",
+    "parameter_bound_validator",
+    "profit_convergence_cycle_validator",
+    "promotion_threshold_validator",
+    "ranking_stability_validator",
+    "realized_slippage_validator",
+    "rolling_window_default_validator"
+  ],
+  "external_blockers": [
+    "REQ-MVP4-OFFICIAL-API-PASS-EVIDENCE",
+    "REQ-MVP4-READ-ONLY-ACCOUNT-SNAPSHOT-EVIDENCE",
+    "REQ-MVP4-OPERATOR-APPROVAL-EVIDENCE",
+    "REQ-MVP4-READ-ONLY-BURN-IN-EVIDENCE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

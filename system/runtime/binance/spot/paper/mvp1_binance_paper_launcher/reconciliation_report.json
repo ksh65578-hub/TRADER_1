@@ -1,0 +1,48 @@
+{
+  "schema_id": "trader1.reconciliation_report.v1",
+  "generated_at_utc": "2026-04-29T09:41:21Z",
+  "project_id": "TRADER_1",
+  "reconciliation_id": "mvp4-dashboard-bound-binance-paper-reconciliation",
+  "exchange": "BINANCE",
+  "market_type": "SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp1_binance_paper_launcher",
+  "account_snapshot_id": "PAPER_PORTFOLIO_SCAFFOLD_NOT_EXCHANGE_TRUTH",
+  "ledger_head_hash": "BINANCE_PAPER_RECONCILIATION_SCAFFOLD_NOT_LIVE_LEDGER",
+  "exchange_snapshot_hash": "CA5C08D0DB017CFFEB95B8E4D964AA0BD9CF6EC83BBFA434E364FD2CB413C90E",
+  "internal_state_hash": "CA5C08D0DB017CFFEB95B8E4D964AA0BD9CF6EC83BBFA434E364FD2CB413C90E",
+  "exchange_snapshot": {
+    "exchange": "BINANCE",
+    "market_type": "SPOT",
+    "mode": "PAPER",
+    "session_id": "mvp1_binance_paper_launcher",
+    "balances": {
+      "USDT": "10000"
+    },
+    "positions": [],
+    "open_orders": []
+  },
+  "internal_state": {
+    "exchange": "BINANCE",
+    "market_type": "SPOT",
+    "mode": "PAPER",
+    "session_id": "mvp1_binance_paper_launcher",
+    "balances": {
+      "USDT": "10000"
+    },
+    "positions": [],
+    "open_orders": []
+  },
+  "reconciliation_status": "PASS",
+  "final_decision": "NO_TRADE",
+  "primary_blocker_code": null,
+  "blockers": [],
+  "mismatches": [],
+  "new_entry_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "can_submit_order": false,
+  "order_adapter_called": false,
+  "reconciliation_hash": "76B59D086C114292487429500E05FF0062EE5E571D4A36C412A0CA9C622C3952"
+}

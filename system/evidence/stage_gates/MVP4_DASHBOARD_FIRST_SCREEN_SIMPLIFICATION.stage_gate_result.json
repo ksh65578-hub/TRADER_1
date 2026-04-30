@@ -1,0 +1,35 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T09:53:31Z",
+  "patch_id": "MVP4_DASHBOARD_FIRST_SCREEN_SIMPLIFICATION_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_DASHBOARD_FIRST_SCREEN_SIMPLIFICATION_NO_LIVE_ORDERS",
+  "dashboard_first_screen_audit": {
+    "audit_schema_id": "trader1.dashboard_first_screen_simplification_audit.v1",
+    "status": "PASS",
+    "blockers": [],
+    "dashboard_count": 2,
+    "checked_items": 5,
+    "snapshots": {
+      "paper": {
+        "summary_grid_index": 15529,
+        "detail_drawer_index": 18690,
+        "has_real_time_portfolio": true,
+        "has_system_status": true,
+        "has_live_readiness": true,
+        "has_collapsed_detail_drawer": true,
+        "has_no_order_controls": true,
+        "live_flags_false": true
+      }
+    },
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false,
+    "next_action": "MVP4_DASHBOARD_RECONCILIATION_STALE_ARTIFACT_RECHECK"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

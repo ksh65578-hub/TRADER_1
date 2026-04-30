@@ -1,0 +1,93 @@
+{
+  "schema_id": "trader1.live_review_dashboard.v1",
+  "dashboard_id": "mvp4-upbit-live-review-dashboard",
+  "generated_at_utc": "2026-04-28T15:55:43Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "LIVE",
+  "session_id": "mvp4_upbit_live_review",
+  "display_only": true,
+  "first_line": "LIVE TRADING: BLOCKED - LIVE_READY snapshot missing",
+  "can_live_review": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "order_controls_present": false,
+  "forbidden_wording_present": false,
+  "preflight_status": "BLOCKED",
+  "primary_blocker_code": "LIVE_READY_MISSING",
+  "blockers": [
+    {
+      "code": "LIVE_READY_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "LIVE_READY snapshot missing",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "API_UNVERIFIED",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "exchange official API validation required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "MANUAL_ORDER_TEST_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "manual order test evidence required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "OPERATOR_APPROVAL_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "operator approval required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "READ_ONLY_BURN_IN_MISSING",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "read-only burn-in evidence required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    },
+    {
+      "code": "RECONCILIATION_REQUIRED",
+      "category": "READINESS",
+      "severity": "HIGH",
+      "message": "account and internal status synchronization required",
+      "detail": null,
+      "evidence_id": null,
+      "source_contract_id": "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
+      "blocks_start": false,
+      "blocks_live_order": true
+    }
+  ],
+  "dashboard_hash": "792DA657ABF7EEF1A4918B5F04E776B14CC635566C9ABB0A92F52E5377B4756F"
+}

@@ -1,0 +1,76 @@
+{
+  "schema_id": "trader1.patch_result_validator_run_gap_audit.v1",
+  "generated_at_utc": "2026-04-29T07:28:58Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "AUDIT_PRESERVED_BASELINE_MATCH_LIVE_BLOCKING",
+  "reason": "Historical patch_result validator-run omissions are sealed in a baseline; new omissions are blocked rather than silently audit-preserved.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "baseline_path": "system/evidence/audit_reports/PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE.json",
+  "baseline_gap_count": 9,
+  "current_gap_count": 9,
+  "unbaselined_gap_count": 0,
+  "unbaselined_gaps": [],
+  "gaps": [
+    {
+      "patch_result_path": "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+      "validator_id": "authority_integrity_validator",
+      "gap_type": "MISSING_VALIDATOR_RUN",
+      "resolution": "AUDIT_PRESERVED_NOT_BACKFILLED"
+    },
+    {
+      "patch_result_path": "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+      "validator_id": "closed_enum_validator",
+      "gap_type": "MISSING_VALIDATOR_RUN",
+      "resolution": "AUDIT_PRESERVED_NOT_BACKFILLED"
+    },
+    {
+      "patch_result_path": "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+      "validator_id": "external_authority_manifest_validator",
+      "gap_type": "MISSING_VALIDATOR_RUN",
+      "resolution": "AUDIT_PRESERVED_NOT_BACKFILLED"
+    },
+    {
+      "patch_result_path": "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+      "validator_id": "generated_artifact_dirty_validator",
+      "gap_type": "MISSING_VALIDATOR_RUN",
+      "resolution": "AUDIT_PRESERVED_NOT_BACKFILLED"
+    },
+    {
+      "patch_result_path": "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+      "validator_id": "live_ready_snapshot_writer_validator",
+      "gap_type": "MISSING_VALIDATOR_RUN",
+      "resolution": "AUDIT_PRESERVED_NOT_BACKFILLED"
+    },
+    {
+      "patch_result_path": "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+      "validator_id": "patch_result_schema_validator",
+      "gap_type": "MISSING_VALIDATOR_RUN",
+      "resolution": "AUDIT_PRESERVED_NOT_BACKFILLED"
+    },
+    {
+      "patch_result_path": "system/evidence/patch_results/MVP0_VALIDATOR_IMPLEMENTATION.patch_result.json",
+      "validator_id": "live_blocked_scaffold_validator",
+      "gap_type": "MISSING_VALIDATOR_RUN",
+      "resolution": "AUDIT_PRESERVED_NOT_BACKFILLED"
+    },
+    {
+      "patch_result_path": "system/evidence/patch_results/MVP4_CONVERGENCE_RISK_SCALE_BLOCKED.patch_result.json",
+      "validator_id": "execution_quality_measurement_validator",
+      "gap_type": "MISSING_VALIDATOR_RUN",
+      "resolution": "AUDIT_PRESERVED_NOT_BACKFILLED"
+    },
+    {
+      "patch_result_path": "system/evidence/patch_results/MVP4_CONVERGENCE_RISK_SCALE_BLOCKED.patch_result.json",
+      "validator_id": "survival_layer_validator",
+      "gap_type": "MISSING_VALIDATOR_RUN",
+      "resolution": "AUDIT_PRESERVED_NOT_BACKFILLED"
+    }
+  ]
+}

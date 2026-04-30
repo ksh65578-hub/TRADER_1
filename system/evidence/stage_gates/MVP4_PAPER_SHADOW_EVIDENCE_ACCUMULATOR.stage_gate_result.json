@@ -1,0 +1,30 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_PAPER_SHADOW_EVIDENCE_ACCUMULATOR_20260430_001",
+  "created_at_utc": "2026-04-29T23:16:06Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_PAPER_SHADOW_EVIDENCE_ACCUMULATOR",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "PAPER-only accumulation blocks optimizer ranking",
+    "mixed candidate or parameter evidence blocks with SNAPSHOT_SCOPE_MISMATCH",
+    "matched PAPER/SHADOW short-window evidence can be PAPER scorecard input only",
+    "long-run evidence and live review remain blocked without full evidence window/span and external proofs"
+  ],
+  "blocked_conditions": [
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false
+}

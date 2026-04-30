@@ -1,0 +1,37 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T03:19:12Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_SHADOW_HARNESS_NEGATIVE_RUNTIME_MEASUREMENT_GUARD_20260430_001",
+  "scope": "MVP-4 PAPER/SHADOW actual runtime harness and dashboard display binding",
+  "hidden_defects": [
+    {
+      "classification": "false-safe runtime measurement",
+      "condition": "measured_runtime_seconds < 0 in short-window harness input",
+      "impact": "module validator could accept an impossible runtime duration and dashboard could clamp it to 0, making invalid source data look normal",
+      "reproducibility": "deterministic unit fixture",
+      "affected_scope": "UPBIT/KRW_SPOT/PAPER->SHADOW read-only harness display",
+      "live_safety_impact": "live remains blocked; patch prevents invalid runtime evidence from improving operator confidence",
+      "ux_impact": "dashboard now shows DATA_QUALITY_INSUFFICIENT error instead of a normal short-window executed panel",
+      "profitability_impact": "prevents invalid runtime windows from contaminating paper/shadow maturity review",
+      "fix": "block negative measured runtime in harness validator and dashboard status binding",
+      "patch_status": "PATCHED",
+      "test_status": "PASS"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "remaining_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "audit_hash": "885AF1F35972C509F300422C120F97B593433BB508F66F7A9C61B908EB40DABB"
+}

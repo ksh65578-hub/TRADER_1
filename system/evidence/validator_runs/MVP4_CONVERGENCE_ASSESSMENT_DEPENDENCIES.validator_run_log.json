@@ -1,0 +1,395 @@
+{
+  "validator_run_log_schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-04-28T17:24:47Z",
+  "patch_id": "MVP4_CONVERGENCE_ASSESSMENT_DEPENDENCIES_20260429_001",
+  "validators_run": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "trader1.overfit_diagnostic_report.v1 scaffold is closed, authority-bound, and non-live",
+      "validator_id": "overfit_diagnostic_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [
+        "contracts/schema/overfit_diagnostic_report.schema.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/registry.yaml"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "trader1.optimizer_feedback_report.v1 scaffold is closed, authority-bound, and non-live",
+      "validator_id": "execution_feedback_loop_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [
+        "contracts/schema/optimizer_feedback_report.schema.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/registry.yaml"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "trader1.model_drift_report.v1 scaffold is closed, authority-bound, and non-live",
+      "validator_id": "model_drift_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [
+        "contracts/schema/model_drift_report.schema.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/registry.yaml"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "mapped requirements have artifact rows and live-affecting entries keep validators/tests",
+      "validator_id": "coverage_index_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [
+        "contracts/generated/requirement_index.json",
+        "contracts/generated/requirement_artifact_matrix.json"
+      ],
+      "blocking": false
+    }
+  ],
+  "optimizer_convergence_guardrail_results": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "optimizer and convergence patch history contains no live config mutation or live order permission",
+      "validator_id": "optimizer_no_live_mutation_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [
+        "contracts/generated/current_implementation_state.json",
+        "system/evidence/patch_results/MVP0_BUNDLE_SECURITY.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONFIG_VALIDATION.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_BLOCKED_TEST.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_READY_SNAPSHOT_WRITER.patch_result.json",
+        "system/evidence/patch_results/MVP0_NAMESPACE_TRUTH.patch_result.json",
+        "system/evidence/patch_results/MVP0_ORDER_PATH_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_READINESS_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP0_ROOT_LAUNCHER_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_VALIDATOR_IMPLEMENTATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_EMERGENCY_FLATTEN.patch_result.json",
+        "system/evidence/patch_results/MVP1_EXECUTION_LEDGER.patch_result.json",
+        "system/evidence/patch_results/MVP1_HEARTBEAT.patch_result.json",
+        "system/evidence/patch_results/MVP1_OPERATOR_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_READ_ONLY_DASHBOARD.patch_result.json",
+        "system/evidence/patch_results/MVP1_RECONCILIATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_ROOT_LAUNCHER_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SAFETY_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_STARTUP_PROBE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SUMMARY_SHELL.patch_result.json",
+        "system/evidence/patch_results/MVP2_RESTART_RECOVERY.patch_result.json",
+        "system/evidence/patch_results/MVP2_UPBIT_PAPER_DRY_RUN.patch_result.json",
+        "system/evidence/patch_results/MVP3_OPERATIONAL_UPBIT_PAPER.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_ASSESSMENT_DEPENDENCIES.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_FOUNDATION.patch_result.json",
+        "system/evidence/patch_results/MVP4_EXTERNAL_BLOCKER.patch_result.json",
+        "system/evidence/patch_results/MVP4_LIVE_FINAL_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_OPTIMIZER_CONVERGENCE_GUARDRAIL.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_LIVE_REVIEW.patch_result.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "optimizer guardrail dependencies passed without live mutation",
+      "validator_id": "optimizer_guardrail_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [
+        "contracts/registry.yaml",
+        "contracts/schema/common.defs.schema.json",
+        "contracts/generated/current_implementation_state.json",
+        "system/evidence/patch_results/MVP0_BUNDLE_SECURITY.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONFIG_VALIDATION.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_BLOCKED_TEST.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_READY_SNAPSHOT_WRITER.patch_result.json",
+        "system/evidence/patch_results/MVP0_NAMESPACE_TRUTH.patch_result.json",
+        "system/evidence/patch_results/MVP0_ORDER_PATH_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_READINESS_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP0_ROOT_LAUNCHER_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_VALIDATOR_IMPLEMENTATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_EMERGENCY_FLATTEN.patch_result.json",
+        "system/evidence/patch_results/MVP1_EXECUTION_LEDGER.patch_result.json",
+        "system/evidence/patch_results/MVP1_HEARTBEAT.patch_result.json",
+        "system/evidence/patch_results/MVP1_OPERATOR_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_READ_ONLY_DASHBOARD.patch_result.json",
+        "system/evidence/patch_results/MVP1_RECONCILIATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_ROOT_LAUNCHER_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SAFETY_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_STARTUP_PROBE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SUMMARY_SHELL.patch_result.json",
+        "system/evidence/patch_results/MVP2_RESTART_RECOVERY.patch_result.json",
+        "system/evidence/patch_results/MVP2_UPBIT_PAPER_DRY_RUN.patch_result.json",
+        "system/evidence/patch_results/MVP3_OPERATIONAL_UPBIT_PAPER.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_ASSESSMENT_DEPENDENCIES.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_FOUNDATION.patch_result.json",
+        "system/evidence/patch_results/MVP4_EXTERNAL_BLOCKER.patch_result.json",
+        "system/evidence/patch_results/MVP4_LIVE_FINAL_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_OPTIMIZER_CONVERGENCE_GUARDRAIL.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_LIVE_REVIEW.patch_result.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "convergence assessment dependencies passed without live mutation",
+      "validator_id": "convergence_assessment_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [
+        "contracts/generated/current_implementation_state.json",
+        "contracts/schema/convergence_assessment_report.schema.json",
+        "contracts/schema/optimizer_memory_state.schema.json",
+        "system/evidence/patch_results/MVP0_BUNDLE_SECURITY.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONFIG_VALIDATION.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_BLOCKED_TEST.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_READY_SNAPSHOT_WRITER.patch_result.json",
+        "system/evidence/patch_results/MVP0_NAMESPACE_TRUTH.patch_result.json",
+        "system/evidence/patch_results/MVP0_ORDER_PATH_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_READINESS_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP0_ROOT_LAUNCHER_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_VALIDATOR_IMPLEMENTATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_EMERGENCY_FLATTEN.patch_result.json",
+        "system/evidence/patch_results/MVP1_EXECUTION_LEDGER.patch_result.json",
+        "system/evidence/patch_results/MVP1_HEARTBEAT.patch_result.json",
+        "system/evidence/patch_results/MVP1_OPERATOR_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_READ_ONLY_DASHBOARD.patch_result.json",
+        "system/evidence/patch_results/MVP1_RECONCILIATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_ROOT_LAUNCHER_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SAFETY_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_STARTUP_PROBE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SUMMARY_SHELL.patch_result.json",
+        "system/evidence/patch_results/MVP2_RESTART_RECOVERY.patch_result.json",
+        "system/evidence/patch_results/MVP2_UPBIT_PAPER_DRY_RUN.patch_result.json",
+        "system/evidence/patch_results/MVP3_OPERATIONAL_UPBIT_PAPER.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_ASSESSMENT_DEPENDENCIES.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_FOUNDATION.patch_result.json",
+        "system/evidence/patch_results/MVP4_EXTERNAL_BLOCKER.patch_result.json",
+        "system/evidence/patch_results/MVP4_LIVE_FINAL_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_OPTIMIZER_CONVERGENCE_GUARDRAIL.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_LIVE_REVIEW.patch_result.json"
+      ],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "BLOCKED",
+      "blockers": [
+        {
+          "code": "SCALE_UP_NOT_ELIGIBLE",
+          "severity": "HIGH",
+          "message": "scale-up is blocked because live permission is false and external live-enabling evidence is missing",
+          "source_requirement_id": null
+        }
+      ],
+      "notes": "scale-up is blocked because live permission is false and external live-enabling evidence is missing",
+      "validator_id": "scale_up_eligibility_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [
+        "contracts/generated/current_implementation_state.json",
+        "contracts/schema/risk_scaling_decision.schema.json",
+        "system/evidence/MVP4_EXTERNAL_BLOCKER.evidence_manifest.json",
+        "system/evidence/patch_results/MVP0_BUNDLE_SECURITY.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONFIG_VALIDATION.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_BLOCKED_TEST.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_READY_SNAPSHOT_WRITER.patch_result.json",
+        "system/evidence/patch_results/MVP0_NAMESPACE_TRUTH.patch_result.json",
+        "system/evidence/patch_results/MVP0_ORDER_PATH_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_READINESS_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP0_ROOT_LAUNCHER_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_VALIDATOR_IMPLEMENTATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_EMERGENCY_FLATTEN.patch_result.json",
+        "system/evidence/patch_results/MVP1_EXECUTION_LEDGER.patch_result.json",
+        "system/evidence/patch_results/MVP1_HEARTBEAT.patch_result.json",
+        "system/evidence/patch_results/MVP1_OPERATOR_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_READ_ONLY_DASHBOARD.patch_result.json",
+        "system/evidence/patch_results/MVP1_RECONCILIATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_ROOT_LAUNCHER_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SAFETY_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_STARTUP_PROBE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SUMMARY_SHELL.patch_result.json",
+        "system/evidence/patch_results/MVP2_RESTART_RECOVERY.patch_result.json",
+        "system/evidence/patch_results/MVP2_UPBIT_PAPER_DRY_RUN.patch_result.json",
+        "system/evidence/patch_results/MVP3_OPERATIONAL_UPBIT_PAPER.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_ASSESSMENT_DEPENDENCIES.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_FOUNDATION.patch_result.json",
+        "system/evidence/patch_results/MVP4_EXTERNAL_BLOCKER.patch_result.json",
+        "system/evidence/patch_results/MVP4_LIVE_FINAL_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_OPTIMIZER_CONVERGENCE_GUARDRAIL.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_LIVE_REVIEW.patch_result.json"
+      ],
+      "blocking": true
+    }
+  ],
+  "fixture_results": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "convergence dependency fixture preserved schema-only non-live state",
+      "validator_id": "overfit_diagnostic_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [],
+      "blocking": false
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "FAIL",
+      "blockers": [
+        {
+          "code": "LIVE_FINAL_GUARD_FAILED",
+          "severity": "HIGH",
+          "message": "convergence dependency fixture attempted live permission without evidence",
+          "source_requirement_id": null
+        }
+      ],
+      "notes": "convergence dependency fixture attempted live permission without evidence",
+      "validator_id": "execution_feedback_loop_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [],
+      "blocking": true
+    },
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T17:24:51Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "BLOCKED",
+      "blockers": [
+        {
+          "code": "CONVERGENCE_STATE_UNTESTED",
+          "severity": "HIGH",
+          "message": "convergence dependency fixture remains blocked before dependency evidence",
+          "source_requirement_id": null
+        }
+      ],
+      "notes": "convergence dependency fixture remains blocked before dependency evidence",
+      "validator_id": "model_drift_validator",
+      "checked_at_utc": "2026-04-28T17:24:51Z",
+      "input_artifact_paths": [],
+      "blocking": true
+    }
+  ],
+  "validators_blocked_by_missing_dependencies": [
+    "risk_scaling_decision_validator",
+    "live_burn_in_feedback_validator",
+    "paper_live_parity_validator"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

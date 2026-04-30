@@ -1,0 +1,336 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.overfit_diagnostic_report.v1",
+  "title": "overfit_diagnostic_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "diagnostic_id",
+    "candidate_id",
+    "strategy_id",
+    "strategy_build_id",
+    "parameter_hash",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "symbol",
+    "timeframe_scope",
+    "regime_scope",
+    "diagnostic_status",
+    "oos_status",
+    "walk_forward_status",
+    "bootstrap_status",
+    "ranking_stability_status",
+    "overfit_status",
+    "sample_count",
+    "min_required_sample_count",
+    "train_window_count",
+    "oos_window_count",
+    "walk_forward_window_count",
+    "bootstrap_iteration_count",
+    "min_required_bootstrap_iterations",
+    "in_sample_net_ev_after_cost_bps",
+    "oos_net_ev_after_cost_bps",
+    "min_required_oos_net_ev_bps",
+    "oos_degradation_bps",
+    "max_allowed_oos_degradation_bps",
+    "walk_forward_pass_rate",
+    "min_required_walk_forward_pass_rate",
+    "bootstrap_confidence_lower_bps",
+    "min_required_bootstrap_confidence_lower_bps",
+    "ranking_stability_score",
+    "min_required_ranking_stability_score",
+    "concentration_risk_status",
+    "survivorship_bias_check",
+    "data_snooping_check",
+    "robustness_eligible",
+    "dashboard_display_truth_only",
+    "promotion_eligible",
+    "source_evidence_ids",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "blockers",
+    "diagnostic_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.overfit_diagnostic_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "diagnostic_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_build_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parameter_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "symbol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timeframe_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "regime_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "diagnostic_status": {
+      "enum": [
+        "ROBUST_FOR_PAPER_REVIEW",
+        "BLOCKED_FOR_ROBUSTNESS",
+        "FAIL",
+        "UNTESTED",
+        "STALE"
+      ]
+    },
+    "oos_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "walk_forward_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "bootstrap_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "ranking_stability_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "overfit_status": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "min_required_sample_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "train_window_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "oos_window_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "walk_forward_window_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "bootstrap_iteration_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "min_required_bootstrap_iterations": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "in_sample_net_ev_after_cost_bps": {
+      "type": "number"
+    },
+    "oos_net_ev_after_cost_bps": {
+      "type": "number"
+    },
+    "min_required_oos_net_ev_bps": {
+      "type": "number"
+    },
+    "oos_degradation_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "max_allowed_oos_degradation_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "walk_forward_pass_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "min_required_walk_forward_pass_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "bootstrap_confidence_lower_bps": {
+      "type": "number"
+    },
+    "min_required_bootstrap_confidence_lower_bps": {
+      "type": "number"
+    },
+    "ranking_stability_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "min_required_ranking_stability_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "concentration_risk_status": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "survivorship_bias_check": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "data_snooping_check": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "robustness_eligible": {
+      "type": "boolean"
+    },
+    "dashboard_display_truth_only": {
+      "const": true
+    },
+    "promotion_eligible": {
+      "const": false
+    },
+    "source_evidence_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "diagnostic_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

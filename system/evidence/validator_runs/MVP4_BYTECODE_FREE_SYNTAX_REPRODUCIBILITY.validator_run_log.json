@@ -1,0 +1,86 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T03:09:36Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY_20260430_001",
+  "status": "PASS",
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "bytecode_free_syntax_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.runtime.test_bytecode_free_syntax_check -v",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.runtime.test_evidence_write_helper_coverage -v",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_bytecode_free_syntax_check.py --output system\\evidence\\runtime_checks\\MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.bytecode_free_syntax_report.json",
+      "status": "PASS",
+      "files_checked": 359
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "validators": 35
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "validators": 6
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest discover -v",
+      "status": "PASS",
+      "tests": 593
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS"
+    },
+    {
+      "command": "$env:PYTHONDONTWRITEBYTECODE='1'; python -m unittest tests.contract.test_patch_result_runtime_schema_validation -v",
+      "status": "PASS"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validator_run_log_hash": "255022E2F4DF8B333CE866BFD4FE177FC96D904B2FF38996E5F7C6BD47E811A6"
+}

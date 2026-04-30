@@ -1,0 +1,35 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "stage_gate_id": "MVP4_SHADOW_OBSERVATION_PERSISTENT_SCHEDULER_GUARD_20260430_001",
+  "created_at_utc": "2026-04-30T00:09:41Z",
+  "target_mvp_level": "MVP-4",
+  "stage": "MVP4_SHADOW_OBSERVATION_PERSISTENT_SCHEDULER_GUARD",
+  "result": "PASS_WITH_LIVE_BLOCKED",
+  "decision": "CONTINUE_MVP4_ONLY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "passed_conditions": [
+    "SHADOW observation scheduler guard schema is closed and registered",
+    "scheduler guard requires exclusive lock and matching active writer",
+    "scheduler guard blocks duplicate writer, partial temp artifacts, sequence gaps, persisted stream hash drift, and live flag drift",
+    "guard output remains analysis-only with no live permission, no scale-up, and no active snapshot mutation"
+  ],
+  "blocked_conditions": [
+    "PERSISTENT_SCHEDULER_RUNTIME_EXECUTION_MISSING",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_enabling_patch": false,
+  "generated_at_utc": "2026-04-30T00:09:41Z",
+  "status": "PASS_MVP4_INTERNAL_SCAFFOLD_ONLY",
+  "tests_status": "PASS",
+  "validators_status": "PASS",
+  "stage_gate_hash": "3F5D48E6156EFA7AD744023F8D19AE83FA02F87ABD0B3EC4AE69336F8CC61BE6"
+}

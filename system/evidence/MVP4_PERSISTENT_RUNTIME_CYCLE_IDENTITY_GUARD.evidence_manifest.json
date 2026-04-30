@@ -1,0 +1,38 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T03:27:34Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_PERSISTENT_RUNTIME_CYCLE_IDENTITY_GUARD_20260430_001",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "target_mvp_level": "MVP-4",
+  "evidence_status": "PASS_WITH_LIVE_BLOCKED",
+  "evidence_items": [
+    {
+      "path": "trader1/research/shadow/shadow_observation_persistent_runtime.py",
+      "role": "runtime_cycle_identity_guard"
+    },
+    {
+      "path": "contracts/schema/shadow_observation_persistent_runtime_report.schema.json",
+      "role": "strict_schema_fields"
+    },
+    {
+      "path": "tests/research/test_shadow_observation_persistent_runtime.py",
+      "role": "negative_fixture_duplicate_cycle_identity"
+    },
+    {
+      "path": "trader1/validation/mvp0_validators.py",
+      "role": "registered_validator_negative_guard"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_PERSISTENT_RUNTIME_CYCLE_IDENTITY_GUARD.patch_result.json",
+      "role": "patch_result"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

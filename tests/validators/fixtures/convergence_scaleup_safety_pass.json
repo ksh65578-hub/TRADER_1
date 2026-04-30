@@ -1,0 +1,11 @@
+{
+  "fixture_id": "convergence_scaleup_safety_schema_only_pass",
+  "validator_id": "execution_quality_measurement_validator",
+  "expected_status": "PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "expected_order_adapter_called": false,
+  "expected_blocker_code": null
+}

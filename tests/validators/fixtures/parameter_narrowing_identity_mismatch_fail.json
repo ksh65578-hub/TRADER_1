@@ -1,0 +1,187 @@
+{
+  "schema_id": "trader1.parameter_narrowing_report.v1",
+  "generated_at_utc": "2026-04-29T06:30:00Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "narrowing_id": "parameter_narrowing_identity_mismatch_fail",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp4_parameter_narrowing_fixture",
+  "strategy_id": "trend_pullback",
+  "previous_parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "proposed_parameter_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+  "timeframe_scope": "15m",
+  "regime_scope": "TRENDING_RANGE_RISK_OFF",
+  "narrowing_scope": "PAPER_PARAMETER_REVIEW_ONLY",
+  "narrowing_status": "PAPER_PARAMETER_REVIEW_ELIGIBLE",
+  "recommendation_scope": "PAPER_PARAMETER_REVIEW_ONLY",
+  "parameter_write_scope": "PROPOSAL_ONLY",
+  "objective_basis": "NET_EV_AFTER_COST",
+  "source_modes": [
+    "PAPER",
+    "SHADOW"
+  ],
+  "source_evidence_ids": [
+    "paper_shadow_evidence_accumulation_pass",
+    "candidate_scorecard_net_ev_pass",
+    "optimizer_run_pass",
+    "optimizer_recommendation_pass",
+    "exploration_policy_fixture_pass"
+  ],
+  "dependency_summary_status": "PASS",
+  "candidate_scorecard_validator_status": "PASS",
+  "optimizer_run_report_validator_status": "PASS",
+  "optimizer_recommendation_validator_status": "PASS",
+  "exploration_exploitation_policy_validator_status": "PASS",
+  "overfit_diagnostic_validator_status": "PASS",
+  "execution_feedback_loop_validator_status": "PASS",
+  "live_final_guard_validator_status": "PASS",
+  "required_dependency_count": 7,
+  "dependency_pass_count": 7,
+  "min_required_sample_count": 300,
+  "paper_sample_count": 360,
+  "shadow_sample_count": 340,
+  "parameter_count_before": 12,
+  "parameter_count_after": 8,
+  "max_narrowing_pct": 40.0,
+  "narrowing_pct": 33.33,
+  "parameter_changes": [
+    {
+      "parameter_name": "pullback_depth_bps",
+      "previous_min": 20.0,
+      "previous_max": 120.0,
+      "proposed_min": 35.0,
+      "proposed_max": 95.0,
+      "direction": "NARROW",
+      "reason_code": "NET_EV_AFTER_COST_STABLE"
+    },
+    {
+      "parameter_name": "trend_strength_min",
+      "previous_min": 0.2,
+      "previous_max": 0.9,
+      "proposed_min": 0.35,
+      "proposed_max": 0.8,
+      "direction": "NARROW",
+      "reason_code": "OOS_ROBUSTNESS_PASS"
+    }
+  ],
+  "narrowing_allowed_for_paper_ranking": true,
+  "blocks_promotion": false,
+  "blocks_live_order": true,
+  "live_readiness_status": "NOT_LIVE_READY",
+  "operator_warning": "Parameter narrowing is proposal-only, not LIVE_READY; live orders blocked and scale-up blocked.",
+  "status": "PASS",
+  "blockers": [],
+  "notes": "Negative fixture: candidate scorecard identity binding has mismatched proposed_parameter_hash.",
+  "dashboard_display_truth_only": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_permission_created": false,
+  "live_config_mutation_allowed": false,
+  "writes_live_ready_snapshot": false,
+  "active_snapshot_mutation_allowed": false,
+  "active_config_mutation_allowed": false,
+  "optimizer_winner_live_config_allowed": false,
+  "paper_winner_live_config_allowed": false,
+  "order_submission_allowed": false,
+  "exchange_account_call_allowed": false,
+  "scale_up_recommendation_allowed": false,
+  "candidate_id": "trend_pullback_candidate_001",
+  "source_evidence_identity_bindings": [
+    {
+      "source_evidence_id": "paper_shadow_evidence_accumulation_pass",
+      "source_role": "PAPER_SHADOW_EVIDENCE",
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "source_modes": [
+        "PAPER",
+        "SHADOW"
+      ],
+      "session_id": "mvp4_parameter_narrowing_fixture",
+      "candidate_id": "trend_pullback_candidate_001",
+      "strategy_id": "trend_pullback",
+      "previous_parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "proposed_parameter_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "timeframe_scope": "15m",
+      "regime_scope": "TRENDING_RANGE_RISK_OFF",
+      "identity_match_status": "PASS"
+    },
+    {
+      "source_evidence_id": "candidate_scorecard_net_ev_pass",
+      "source_role": "CANDIDATE_SCORECARD",
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "source_modes": [
+        "PAPER",
+        "SHADOW"
+      ],
+      "session_id": "mvp4_parameter_narrowing_fixture",
+      "candidate_id": "trend_pullback_candidate_001",
+      "strategy_id": "trend_pullback",
+      "previous_parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "proposed_parameter_hash": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+      "timeframe_scope": "15m",
+      "regime_scope": "TRENDING_RANGE_RISK_OFF",
+      "identity_match_status": "PASS"
+    },
+    {
+      "source_evidence_id": "optimizer_run_pass",
+      "source_role": "OPTIMIZER_RUN",
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "source_modes": [
+        "PAPER",
+        "SHADOW"
+      ],
+      "session_id": "mvp4_parameter_narrowing_fixture",
+      "candidate_id": "trend_pullback_candidate_001",
+      "strategy_id": "trend_pullback",
+      "previous_parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "proposed_parameter_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "timeframe_scope": "15m",
+      "regime_scope": "TRENDING_RANGE_RISK_OFF",
+      "identity_match_status": "PASS"
+    },
+    {
+      "source_evidence_id": "optimizer_recommendation_pass",
+      "source_role": "OPTIMIZER_RECOMMENDATION",
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "source_modes": [
+        "PAPER",
+        "SHADOW"
+      ],
+      "session_id": "mvp4_parameter_narrowing_fixture",
+      "candidate_id": "trend_pullback_candidate_001",
+      "strategy_id": "trend_pullback",
+      "previous_parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "proposed_parameter_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "timeframe_scope": "15m",
+      "regime_scope": "TRENDING_RANGE_RISK_OFF",
+      "identity_match_status": "PASS"
+    },
+    {
+      "source_evidence_id": "exploration_policy_fixture_pass",
+      "source_role": "EXPLORATION_POLICY",
+      "exchange": "UPBIT",
+      "market_type": "KRW_SPOT",
+      "source_modes": [
+        "PAPER"
+      ],
+      "session_id": "mvp4_parameter_narrowing_fixture",
+      "candidate_id": "trend_pullback_candidate_001",
+      "strategy_id": "trend_pullback",
+      "previous_parameter_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "proposed_parameter_hash": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "timeframe_scope": "15m",
+      "regime_scope": "TRENDING_RANGE_RISK_OFF",
+      "identity_match_status": "PASS"
+    }
+  ]
+}

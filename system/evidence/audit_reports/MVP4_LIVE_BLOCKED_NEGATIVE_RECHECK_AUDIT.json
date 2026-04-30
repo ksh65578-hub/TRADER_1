@@ -1,0 +1,16 @@
+{
+  "audit_schema_id": "trader1.live_blocked_negative_recheck_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "blocked_case_count": 25,
+  "matrix_case_count": 25,
+  "missing_from_matrix": [],
+  "extra_in_matrix": [],
+  "mismatched_codes": [],
+  "spoof_cases_present": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "next_action": "Continue live-blocked negative regression monitoring."
+}

@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.optimizer_recommendation_report.v1",
+  "title": "optimizer_recommendation_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "authority",
+    "recommendation_id",
+    "source_scorecard_id",
+    "candidate_id",
+    "strategy_id",
+    "parameter_hash",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "recommendation_scope",
+    "recommendation_action",
+    "optimizer_output_type",
+    "live_readiness_status",
+    "operator_warning",
+    "source_evidence_ids",
+    "blockers",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "live_config_mutation_allowed",
+    "writes_live_ready_snapshot"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.optimizer_recommendation_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "authority": {
+      "type": "object",
+      "required": [
+        "trader1_sha256",
+        "agents_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "agents_sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        }
+      }
+    },
+    "recommendation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "parameter_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recommendation_scope": {
+      "enum": [
+        "PAPER_RANKING_RECOMMENDATION_ONLY",
+        "RESEARCH_ONLY_BLOCKED",
+        "STALE_RESEARCH_ONLY"
+      ]
+    },
+    "recommendation_action": {
+      "enum": [
+        "ALLOW_PAPER_RANKING",
+        "BLOCK_RANKING",
+        "RECOMMEND_SCALE_DOWN_ONLY",
+        "NO_ACTION"
+      ]
+    },
+    "optimizer_output_type": {
+      "enum": [
+        "RANKING_INPUT",
+        "ANALYSIS_ONLY",
+        "RISK_REDUCTION_ONLY"
+      ]
+    },
+    "live_readiness_status": {
+      "const": "NOT_LIVE_READY"
+    },
+    "operator_warning": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_evidence_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "status": {
+      "type": "string"
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "live_config_mutation_allowed": {
+      "const": false
+    },
+    "writes_live_ready_snapshot": {
+      "const": false
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "fixture_id": "optimizer_convergence_guardrail_dependency_blocked",
+  "validator_id": "convergence_assessment_validator",
+  "expected_status": "BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "optimizer_live_mutation_detected": false,
+  "convergence_live_mutation_detected": false,
+  "scale_up_allowed": false,
+  "expected_order_adapter_called": false,
+  "expected_blocker_code": "CONVERGENCE_STATE_UNTESTED"
+}

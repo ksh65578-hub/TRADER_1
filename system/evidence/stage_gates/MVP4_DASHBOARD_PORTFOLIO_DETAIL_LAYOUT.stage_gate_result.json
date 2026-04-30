@@ -1,0 +1,61 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-29T10:09:58Z",
+  "patch_id": "MVP4_DASHBOARD_PORTFOLIO_DETAIL_LAYOUT_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_DASHBOARD_PORTFOLIO_DETAIL_LAYOUT_NO_LIVE_ORDERS",
+  "dashboard_portfolio_layout_audit": {
+    "audit_schema_id": "trader1.dashboard_portfolio_detail_layout_audit.v1",
+    "status": "PASS",
+    "blockers": [],
+    "dashboard_count": 2,
+    "checked_items": 12,
+    "snapshots": {
+      "UPBIT_KRW_SPOT_PAPER": {
+        "portfolio_status": "VERIFIED",
+        "portfolio_fields": [
+          "cash",
+          "entry_candidates",
+          "equity",
+          "locked_cash",
+          "positions",
+          "realized_pnl",
+          "return_pct",
+          "total_pnl",
+          "unrealized_pnl"
+        ],
+        "html_length": 47362,
+        "detail_drawer_open_by_default": false,
+        "has_live_controls": false
+      },
+      "BINANCE_SPOT_PAPER": {
+        "portfolio_status": "VERIFIED",
+        "portfolio_fields": [
+          "cash",
+          "entry_candidates",
+          "equity",
+          "locked_cash",
+          "positions",
+          "realized_pnl",
+          "return_pct",
+          "total_pnl",
+          "unrealized_pnl"
+        ],
+        "html_length": 47304,
+        "detail_drawer_open_by_default": false,
+        "has_live_controls": false
+      }
+    },
+    "browser_visual_check": "PASS_IN_APP_BROWSER_NARROW_VIEW",
+    "playwright_overflow_check": "UNTESTED_PLAYWRIGHT_NOT_AVAILABLE",
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false,
+    "next_action": "MVP4_DASHBOARD_RECONCILIATION_STALE_ARTIFACT_RECHECK"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

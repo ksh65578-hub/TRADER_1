@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.heartbeat.v1",
+  "title": "heartbeat",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "config_hash",
+    "registry_hash",
+    "schema_bundle_hash",
+    "source_tree_hash",
+    "engine_state",
+    "startup_probe_phase",
+    "heartbeat_status",
+    "last_heartbeat_at_utc",
+    "stale_after_seconds",
+    "heartbeat_age_seconds",
+    "dashboard_truth_only",
+    "can_trade",
+    "can_live_trade",
+    "live_order_ready",
+    "live_order_allowed",
+    "components",
+    "primary_blocker_code",
+    "blockers",
+    "final_action",
+    "next_action",
+    "heartbeat_hash"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "component_status": {
+      "type": "object",
+      "required": [
+        "status",
+        "message",
+        "observed_at_utc"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "PASS",
+            "WARN",
+            "FAIL",
+            "STALE",
+            "MISSING"
+          ]
+        },
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_id": {
+      "const": "trader1.heartbeat.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "config_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "registry_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "schema_bundle_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_tree_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "engine_state": {
+      "type": "string"
+    },
+    "startup_probe_phase": {
+      "type": "string"
+    },
+    "heartbeat_status": {
+      "enum": [
+        "PASS",
+        "DEGRADED",
+        "BLOCKED"
+      ]
+    },
+    "last_heartbeat_at_utc": {
+      "type": "string"
+    },
+    "stale_after_seconds": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "heartbeat_age_seconds": {
+      "type": "number",
+      "minimum": 0
+    },
+    "dashboard_truth_only": {
+      "const": true
+    },
+    "can_trade": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "components": {
+      "type": "object",
+      "required": [
+        "cpu",
+        "memory",
+        "disk",
+        "event_latency",
+        "queue_backlog",
+        "rest_health",
+        "websocket_health",
+        "private_stream_health",
+        "rate_limit_pressure",
+        "watchdog_heartbeat"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "cpu": {
+          "$ref": "#/$defs/component_status"
+        },
+        "memory": {
+          "$ref": "#/$defs/component_status"
+        },
+        "disk": {
+          "$ref": "#/$defs/component_status"
+        },
+        "event_latency": {
+          "$ref": "#/$defs/component_status"
+        },
+        "queue_backlog": {
+          "$ref": "#/$defs/component_status"
+        },
+        "rest_health": {
+          "$ref": "#/$defs/component_status"
+        },
+        "websocket_health": {
+          "$ref": "#/$defs/component_status"
+        },
+        "private_stream_health": {
+          "$ref": "#/$defs/component_status"
+        },
+        "rate_limit_pressure": {
+          "$ref": "#/$defs/component_status"
+        },
+        "watchdog_heartbeat": {
+          "$ref": "#/$defs/component_status"
+        }
+      }
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "final_action": {
+      "enum": [
+        "NO_TRADE",
+        "SAFE_MODE"
+      ]
+    },
+    "next_action": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "heartbeat_hash": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
+

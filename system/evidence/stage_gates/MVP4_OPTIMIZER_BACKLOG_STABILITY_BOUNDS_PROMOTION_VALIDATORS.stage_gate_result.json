@@ -1,0 +1,20 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "generated_at_utc": "2026-04-29T12:57:06Z",
+  "patch_id": "MVP4_OPTIMIZER_BACKLOG_STABILITY_BOUNDS_PROMOTION_VALIDATORS_20260429_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_LIVE_BLOCKED_VALIDATED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "blockers": [
+    "API_UNVERIFIED",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "VALIDATOR_REGISTRY_BACKLOG_TRIAGE_REMAINING_7"
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "generated_at_utc": "2026-04-30T01:18:24Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_SHADOW_OBSERVATION_ACTUAL_RUNTIME_HARNESS_20260430_001",
+  "status": "PASS",
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "closed_enum_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "common_defs_drift_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shadow_observation_actual_runtime_blocker_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shadow_observation_actual_runtime_harness_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "optimizer_guardrail_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "convergence_assessment_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m unittest tests.research.test_shadow_observation_actual_runtime_harness -v",
+      "status": "PASS",
+      "tests": 4
+    },
+    {
+      "command": "python -m unittest discover -s tests\\research -v",
+      "status": "PASS",
+      "tests": 30
+    },
+    {
+      "command": "python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "tests": 576
+    },
+    {
+      "command": "python -m compileall trader1 tests tools -q",
+      "status": "PASS"
+    },
+    {
+      "command": "python tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "validators": 4
+    },
+    {
+      "command": "python tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "validators": 34
+    },
+    {
+      "command": "python tools/run_paper_shadow_evidence_validators.py",
+      "status": "PASS"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validator_run_log_hash": "CC4F6965C6D05065FC467BD7D77855FBD8254E2046242F54FF939997782AE1B0"
+}

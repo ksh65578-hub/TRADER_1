@@ -1,0 +1,52 @@
+{
+  "schema_id": "trader1.reproducibility_test_harness_audit.v1",
+  "created_at_utc": "2026-04-29T11:51:59Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_REPRODUCIBILITY_TEST_HARNESS_RECHECK_20260429_001",
+  "findings": [
+    {
+      "classification": "test_reproducibility_gap",
+      "condition": "Full unittest discover had not been re-run after the safe smoke patch.",
+      "impact": "MVP-4 state could look stronger than the locally reproducible package evidence.",
+      "fix": "Ran full unittest discovery and recorded 502/502 PASS.",
+      "patch_status": "PATCHED_AND_VERIFIED"
+    },
+    {
+      "classification": "evidence_writer_regression",
+      "condition": "tools/run_safe_smoke.py used a local atomic writer instead of the shared evidence writer.",
+      "impact": "Evidence writer coverage regression test treated it as a new direct/local writer path.",
+      "fix": "Converted run_safe_smoke output writing to the shared atomic write_json helper.",
+      "patch_status": "PATCHED_AND_VERIFIED"
+    },
+    {
+      "classification": "patch_result_closed_status_drift",
+      "condition": "Three patch_result files used descriptive coverage_index_result values outside the test-enforced closed status set.",
+      "impact": "Patch history failed non-live invariant tests despite schema parse success.",
+      "fix": "Normalized coverage_index_result to PASS and recomputed result hashes plus ledger/state references.",
+      "patch_status": "PATCHED_AND_VERIFIED"
+    },
+    {
+      "classification": "source_bundle_cache_contamination_risk",
+      "condition": "__pycache__ and .pyc files exist in the working tree after test execution.",
+      "impact": "Release/source bundle could be misleading if hygiene logic accidentally included runtime/cache files.",
+      "fix": "Rebuilt source bundle manifest: 546 included, 1089 excluded, forbidden_count=0, contains_secret=false.",
+      "patch_status": "VERIFIED_EXCLUDED"
+    }
+  ],
+  "full_unittest_discover": {
+    "status": "PASS",
+    "tests": 502,
+    "duration_seconds": 28.307
+  },
+  "source_bundle": {
+    "status": "PASS",
+    "included_count": 546,
+    "excluded_count": 1089,
+    "forbidden_count": 0,
+    "contains_secret": false
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

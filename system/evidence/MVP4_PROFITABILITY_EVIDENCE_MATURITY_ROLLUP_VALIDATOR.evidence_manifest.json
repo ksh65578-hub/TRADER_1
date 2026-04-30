@@ -1,0 +1,59 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_id": "MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR",
+  "created_at_utc": "2026-04-29T15:24:30Z",
+  "target_mvp_level": "MVP-4",
+  "patch_id": "MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR_20260429_001",
+  "authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "authority_hashes": {
+    "TRADER_1.md": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "AGENTS.md": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "artifact_paths": [
+    "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
+    "contracts/registry.yaml",
+    "contracts/validators/validator_registry.json",
+    "trader1/validation/mvp0_validators.py",
+    "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+    "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.audit.json",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR_20260429.md",
+    "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json",
+    "contracts/generated/context_pack/PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.md",
+    "system/evidence/validator_runs/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.patch_result.json"
+  ],
+  "artifact_hashes": {
+    "contracts/schema/profitability_evidence_maturity_rollup.schema.json": "D8EFA826B4B968A7511D428E004FBC5E846860644D3178804F8F78A2F01D014A",
+    "contracts/registry.yaml": "681809388927F772D999C9B420C6791D70DA3784F97A80D90172288D8C71581C",
+    "contracts/validators/validator_registry.json": "5D7BA0C99113E1492E0363F7568C34BDED6E38797B775E41007DB490E69006F2",
+    "trader1/validation/mvp0_validators.py": "2608EDDA8CFE6EE7D05DD4D6ED9AA3E5681133ED5B6565EDCB52FB914E3FA4E7",
+    "tests/validators/test_profitability_optimizer_evidence_gap_validator.py": "D9672090E18591D5C25F49284ACD716C1319BD185507C45CA5D768C1C9C91878",
+    "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json": "67812DB67C4A1D1A4F75CE16221AFB51D3107819B3E73C714D09DE20858C85B6",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json": "1B20B9E8AA685A43255757FB53810C35F5CAF05F8A41595D8F991A5041B409A6",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.audit.json": "D93C40044A513974CCF9E0AC24CF93A234E6D47B8637625D783AD257ABDDFD13",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR_20260429.md": "96335A3ABD0B927E431138DDC9B05BE911015601CE4FF03E7A3A4B3E9655568F",
+    "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json": "175B5A0B70F995ACAA7E1126EFE83F409409407CDFDDE15C5C08E5FE38C910AC",
+    "contracts/generated/context_pack/PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.md": "58B2AC8F51D8FBDF419DD27B6859C43F15F3A63A4B277F151B19E7DB0037B0FE",
+    "system/evidence/validator_runs/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.validator_run_log.json": "763BEEE1024461A21307DEFECD3F06A77A6BD7D3605B1C3C0CF80E5BE2ADB06C",
+    "system/evidence/stage_gates/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.stage_gate_result.json": "5B5F89E6B692F2904FFFC5C2C1A467A6B664C62C86E1E648454064622F82720C",
+    "system/evidence/patch_results/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.patch_result.json": "5BF4C926B9CB811952D837844954E52FD8E4CE6955F183D9BE98D8D4873E60A0"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "final_decision": "NO_TRADE",
+  "blocking_reason": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_REMAINS_OPEN",
+  "notes": [
+    "Added schema-backed profitability evidence maturity rollup for all ten required components.",
+    "Rollup and gap validators reject live flag drift, scale-up drift, missing components, stale/untested validator states, and misleading operator wording.",
+    "No live order path, credential use, exchange account call, or live config mutation was introduced."
+  ],
+  "updated_at_utc": "2026-04-29T15:26:31Z"
+}

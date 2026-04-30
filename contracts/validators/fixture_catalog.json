@@ -1,0 +1,557 @@
+{
+  "fixture_catalog_schema_id": "trader1.validator_fixture_catalog.v1",
+  "created_at_utc": "2026-04-28T12:39:15Z",
+  "fixtures": [
+    {
+      "fixture_id": "candidate_cooldown_blocked_pass",
+      "validator_id": "candidate_cooldown_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/candidate_cooldown_blocked_pass.json"
+    },
+    {
+      "fixture_id": "candidate_cooldown_bypass_fail",
+      "validator_id": "candidate_cooldown_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/candidate_cooldown_bypass_fail.json"
+    },
+    {
+      "fixture_id": "candidate_cooldown_false_pass_status_fail",
+      "validator_id": "candidate_cooldown_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/candidate_cooldown_false_pass_status_fail.json"
+    },
+    {
+      "fixture_id": "candidate_cooldown_missing_blocker_fail",
+      "validator_id": "candidate_cooldown_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/candidate_cooldown_missing_blocker_fail.json"
+    },
+    {
+      "fixture_id": "candidate_cooldown_stale_blocker_fail",
+      "validator_id": "candidate_cooldown_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/candidate_cooldown_stale_blocker_fail.json"
+    },
+    {
+      "fixture_id": "candidate_cooldown_zero_pass",
+      "validator_id": "candidate_cooldown_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/exploration_exploitation_policy_pass.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_drift_unblocked_fail",
+      "validator_id": "convergence_assessment_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_assessment_drift_unblocked_fail.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_live_flag_fail",
+      "validator_id": "convergence_assessment_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_assessment_live_flag_fail.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_missing_dependency_fail",
+      "validator_id": "convergence_assessment_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_assessment_missing_dependency_fail.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_pass",
+      "validator_id": "convergence_assessment_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/convergence_assessment_pass.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_scale_up_fail",
+      "validator_id": "convergence_assessment_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_assessment_scale_up_fail.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_untested_dependency_fail",
+      "validator_id": "convergence_assessment_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_assessment_untested_dependency_fail.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_writer_input_fail",
+      "validator_id": "convergence_assessment_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_assessment_writer_input_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_convergence_guardrail_dependency_blocked",
+      "validator_id": "convergence_assessment_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/validators/fixtures/optimizer_convergence_guardrail_blocked.json"
+    },
+    {
+      "fixture_id": "convergence_claim_dependency_fail",
+      "validator_id": "convergence_claim_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_claim_dependency_fail.json"
+    },
+    {
+      "fixture_id": "convergence_claim_drift_fail",
+      "validator_id": "convergence_claim_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_claim_drift_fail.json"
+    },
+    {
+      "fixture_id": "convergence_claim_forbidden_wording_fail",
+      "validator_id": "convergence_claim_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_claim_forbidden_wording_fail.json"
+    },
+    {
+      "fixture_id": "convergence_claim_pass",
+      "validator_id": "convergence_claim_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/convergence_claim_pass.json"
+    },
+    {
+      "fixture_id": "convergence_claim_stale_data_fail",
+      "validator_id": "convergence_claim_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_claim_stale_data_fail.json"
+    },
+    {
+      "fixture_id": "convergence_claim_writer_input_fail",
+      "validator_id": "convergence_claim_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_claim_writer_input_fail.json"
+    },
+    {
+      "fixture_id": "convergence_foundation_schema_only_pass",
+      "validator_id": "convergence_objective_profile_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/convergence_foundation_pass.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_dependencies_live_permission_fail",
+      "validator_id": "execution_feedback_loop_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_assessment_dependencies_fail.json"
+    },
+    {
+      "fixture_id": "convergence_scaleup_safety_live_permission_fail",
+      "validator_id": "execution_quality_measurement_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_scaleup_safety_fail.json"
+    },
+    {
+      "fixture_id": "convergence_scaleup_safety_schema_only_pass",
+      "validator_id": "execution_quality_measurement_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/convergence_scaleup_safety_pass.json"
+    },
+    {
+      "fixture_id": "exploration_to_exploitation_blocker_conflict_fail",
+      "validator_id": "exploration_to_exploitation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/exploration_to_exploitation_blocker_conflict_fail.json"
+    },
+    {
+      "fixture_id": "exploration_to_exploitation_controller_fail",
+      "validator_id": "exploration_to_exploitation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/exploration_to_exploitation_controller_fail.json"
+    },
+    {
+      "fixture_id": "exploration_to_exploitation_cooldown_fail",
+      "validator_id": "exploration_to_exploitation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/exploration_to_exploitation_cooldown_fail.json"
+    },
+    {
+      "fixture_id": "exploration_to_exploitation_missing_shadow_fail",
+      "validator_id": "exploration_to_exploitation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/exploration_to_exploitation_missing_shadow_fail.json"
+    },
+    {
+      "fixture_id": "exploration_to_exploitation_pass",
+      "validator_id": "exploration_to_exploitation_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/exploration_exploitation_policy_pass.json"
+    },
+    {
+      "fixture_id": "exploration_to_exploitation_zero_exploration_floor_fail",
+      "validator_id": "exploration_to_exploitation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/exploration_to_exploitation_zero_exploration_floor_fail.json"
+    },
+    {
+      "fixture_id": "mvp0_core_live_ready_missing_blocked",
+      "validator_id": "live_blocked_scaffold_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/validators/fixtures/mvp0_core_blocked.json"
+    },
+    {
+      "fixture_id": "mvp0_core_safe_blocked_pass",
+      "validator_id": "live_blocked_scaffold_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/mvp0_core_pass.json"
+    },
+    {
+      "fixture_id": "mvp0_core_unsafe_live_attempt_fail",
+      "validator_id": "live_blocked_scaffold_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/mvp0_core_fail.json"
+    },
+    {
+      "fixture_id": "convergence_risk_scale_live_permission_fail",
+      "validator_id": "live_burn_in_feedback_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_risk_scale_fail.json"
+    },
+    {
+      "fixture_id": "live_final_guard_disabled_blocked",
+      "validator_id": "live_final_guard_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/validators/fixtures/live_final_guard_blocked.json"
+    },
+    {
+      "fixture_id": "live_final_guard_live_permission_fail",
+      "validator_id": "live_final_guard_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/live_final_guard_fail.json"
+    },
+    {
+      "fixture_id": "live_final_guard_non_live_blocked_pass",
+      "validator_id": "live_final_guard_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/live_final_guard_pass.json"
+    },
+    {
+      "fixture_id": "live_order_allowed_snapshot_missing_evidence",
+      "validator_id": "live_ready_snapshot_writer_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/readiness/fixtures/live_order_allowed_snapshot_missing_evidence.json"
+    },
+    {
+      "fixture_id": "live_ready_writer_input_untested",
+      "validator_id": "live_ready_snapshot_writer_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/readiness/fixtures/live_ready_writer_input_untested.json"
+    },
+    {
+      "fixture_id": "stage_b_not_live_ready_snapshot",
+      "validator_id": "live_ready_snapshot_writer_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/readiness/fixtures/stage_b_not_live_ready_snapshot.json"
+    },
+    {
+      "fixture_id": "market_regime_adaptation_fresh_dependency_pass",
+      "validator_id": "market_regime_adaptation_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/market_regime_adaptation_pass.json"
+    },
+    {
+      "fixture_id": "market_regime_adaptation_live_flag_fail",
+      "validator_id": "market_regime_adaptation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/market_regime_adaptation_live_flag_fail.json"
+    },
+    {
+      "fixture_id": "market_regime_adaptation_live_observation_fail",
+      "validator_id": "market_regime_adaptation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/market_regime_adaptation_live_observation_fail.json"
+    },
+    {
+      "fixture_id": "market_regime_adaptation_missing_dependency_fail",
+      "validator_id": "market_regime_adaptation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/market_regime_adaptation_missing_dependency_fail.json"
+    },
+    {
+      "fixture_id": "market_regime_adaptation_missing_source_role_fail",
+      "validator_id": "market_regime_adaptation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/market_regime_adaptation_missing_source_role_fail.json"
+    },
+    {
+      "fixture_id": "market_regime_adaptation_risk_off_entry_fail",
+      "validator_id": "market_regime_adaptation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/market_regime_adaptation_risk_off_entry_fail.json"
+    },
+    {
+      "fixture_id": "market_regime_adaptation_stale_data_entry_fail",
+      "validator_id": "market_regime_adaptation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/market_regime_adaptation_stale_data_entry_fail.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_dependencies_blocked_before_evidence",
+      "validator_id": "model_drift_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/validators/fixtures/convergence_assessment_dependencies_blocked.json"
+    },
+    {
+      "fixture_id": "model_drift_detected_claim_fail",
+      "validator_id": "model_drift_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/model_drift_detected_claim_fail.json"
+    },
+    {
+      "fixture_id": "model_drift_fresh_no_drift_pass",
+      "validator_id": "model_drift_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/model_drift_pass.json"
+    },
+    {
+      "fixture_id": "model_drift_live_flag_fail",
+      "validator_id": "model_drift_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/model_drift_live_flag_fail.json"
+    },
+    {
+      "fixture_id": "model_drift_missing_baseline_fail",
+      "validator_id": "model_drift_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/model_drift_missing_baseline_fail.json"
+    },
+    {
+      "fixture_id": "model_drift_scale_up_fail",
+      "validator_id": "model_drift_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/model_drift_scale_up_fail.json"
+    },
+    {
+      "fixture_id": "model_drift_stale_input_fail",
+      "validator_id": "model_drift_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/model_drift_stale_input_fail.json"
+    },
+    {
+      "fixture_id": "model_drift_suspected_unblocked_fail",
+      "validator_id": "model_drift_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/model_drift_suspected_unblocked_fail.json"
+    },
+    {
+      "fixture_id": "convergence_foundation_live_permission_fail",
+      "validator_id": "optimizer_memory_state_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/convergence_foundation_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_memory_state_append_audit_pass",
+      "validator_id": "optimizer_memory_state_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/optimizer_memory_state_pass.json"
+    },
+    {
+      "fixture_id": "optimizer_memory_state_append_without_hash_fail",
+      "validator_id": "optimizer_memory_state_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/optimizer_memory_state_append_without_hash_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_memory_state_cross_scope_reuse_fail",
+      "validator_id": "optimizer_memory_state_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/optimizer_memory_state_cross_scope_reuse_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_memory_state_failed_candidate_unblocked_fail",
+      "validator_id": "optimizer_memory_state_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/optimizer_memory_state_failed_candidate_unblocked_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_memory_state_forget_failed_candidate_fail",
+      "validator_id": "optimizer_memory_state_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/optimizer_memory_state_forget_failed_candidate_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_memory_state_live_flag_fail",
+      "validator_id": "optimizer_memory_state_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/optimizer_memory_state_live_flag_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_memory_state_live_source_mode_fail",
+      "validator_id": "optimizer_memory_state_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/optimizer_memory_state_live_source_mode_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_memory_state_reset_without_audit_fail",
+      "validator_id": "optimizer_memory_state_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/optimizer_memory_state_reset_without_audit_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_convergence_guardrail_live_permission_fail",
+      "validator_id": "optimizer_no_live_mutation_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/optimizer_convergence_guardrail_fail.json"
+    },
+    {
+      "fixture_id": "optimizer_convergence_guardrail_no_live_mutation_pass",
+      "validator_id": "optimizer_no_live_mutation_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/optimizer_convergence_guardrail_pass.json"
+    },
+    {
+      "fixture_id": "convergence_assessment_dependencies_schema_only_pass",
+      "validator_id": "overfit_diagnostic_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/convergence_assessment_dependencies_pass.json"
+    },
+    {
+      "fixture_id": "convergence_risk_scale_blocked_without_burn_in",
+      "validator_id": "paper_live_parity_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/validators/fixtures/convergence_risk_scale_blocked.json"
+    },
+    {
+      "fixture_id": "profit_convergence_cycle_dependency_untested_fail",
+      "validator_id": "profit_convergence_cycle_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/profit_convergence_cycle_dependency_untested_fail.json"
+    },
+    {
+      "fixture_id": "profit_convergence_cycle_drift_unblocked_fail",
+      "validator_id": "profit_convergence_cycle_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/profit_convergence_cycle_drift_unblocked_fail.json"
+    },
+    {
+      "fixture_id": "profit_convergence_cycle_live_flag_fail",
+      "validator_id": "profit_convergence_cycle_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/profit_convergence_cycle_live_flag_fail.json"
+    },
+    {
+      "fixture_id": "profit_convergence_cycle_pass",
+      "validator_id": "profit_convergence_cycle_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/profit_convergence_cycle_pass.json"
+    },
+    {
+      "fixture_id": "profit_convergence_cycle_raw_pnl_net_negative_fail",
+      "validator_id": "profit_convergence_cycle_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/profit_convergence_cycle_raw_pnl_net_negative_fail.json"
+    },
+    {
+      "fixture_id": "convergence_risk_scale_schema_only_pass",
+      "validator_id": "risk_scaling_decision_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/convergence_risk_scale_pass.json"
+    },
+    {
+      "fixture_id": "rolling_window_default_oos_window_fail",
+      "validator_id": "rolling_window_default_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/rolling_window_default_oos_window_fail.json"
+    },
+    {
+      "fixture_id": "rolling_window_default_pass",
+      "validator_id": "rolling_window_default_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/rolling_window_default_pass.json"
+    },
+    {
+      "fixture_id": "rolling_window_default_short_window_fail",
+      "validator_id": "rolling_window_default_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/overfit_diagnostic_short_window_fail.json"
+    },
+    {
+      "fixture_id": "rolling_window_default_source_evidence_fail",
+      "validator_id": "rolling_window_default_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/rolling_window_default_source_evidence_fail.json"
+    },
+    {
+      "fixture_id": "rolling_window_default_stale_status_fail",
+      "validator_id": "rolling_window_default_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/rolling_window_default_stale_status_fail.json"
+    },
+    {
+      "fixture_id": "rolling_window_default_train_window_fail",
+      "validator_id": "rolling_window_default_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/rolling_window_default_train_window_fail.json"
+    },
+    {
+      "fixture_id": "rolling_window_default_walk_forward_fail",
+      "validator_id": "rolling_window_default_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/rolling_window_default_walk_forward_fail.json"
+    },
+    {
+      "fixture_id": "convergence_foundation_dependency_blocked",
+      "validator_id": "strategy_performance_memory_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/validators/fixtures/convergence_foundation_blocked.json"
+    },
+    {
+      "fixture_id": "strategy_performance_memory_downtrend_trade_allowed_fail",
+      "validator_id": "strategy_performance_memory_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/strategy_performance_memory_downtrend_trade_allowed_fail.json"
+    },
+    {
+      "fixture_id": "strategy_performance_memory_insufficient_sample_fail",
+      "validator_id": "strategy_performance_memory_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/strategy_performance_memory_insufficient_sample_fail.json"
+    },
+    {
+      "fixture_id": "strategy_performance_memory_live_flag_fail",
+      "validator_id": "strategy_performance_memory_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/strategy_performance_memory_live_flag_fail.json"
+    },
+    {
+      "fixture_id": "strategy_performance_memory_live_source_mixing_fail",
+      "validator_id": "strategy_performance_memory_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/strategy_performance_memory_live_source_mixing_fail.json"
+    },
+    {
+      "fixture_id": "strategy_performance_memory_missing_reason_fail",
+      "validator_id": "strategy_performance_memory_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/strategy_performance_memory_missing_reason_fail.json"
+    },
+    {
+      "fixture_id": "strategy_performance_memory_net_ev_regime_reason_pass",
+      "validator_id": "strategy_performance_memory_validator",
+      "expected_status": "PASS",
+      "path": "tests/validators/fixtures/strategy_performance_memory_pass.json"
+    },
+    {
+      "fixture_id": "strategy_performance_memory_raw_pnl_positive_net_negative_fail",
+      "validator_id": "strategy_performance_memory_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/strategy_performance_memory_raw_pnl_positive_net_negative_fail.json"
+    },
+    {
+      "fixture_id": "strategy_performance_memory_unscoped_fail",
+      "validator_id": "strategy_performance_memory_validator",
+      "expected_status": "FAIL",
+      "path": "tests/validators/fixtures/strategy_performance_memory_unscoped_fail.json"
+    },
+    {
+      "fixture_id": "convergence_scaleup_safety_survival_blocked",
+      "validator_id": "survival_layer_validator",
+      "expected_status": "BLOCKED",
+      "path": "tests/validators/fixtures/convergence_scaleup_safety_blocked.json"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "updated_at_utc": "2026-04-29T14:34:14Z",
+  "scale_up_allowed": false
+}

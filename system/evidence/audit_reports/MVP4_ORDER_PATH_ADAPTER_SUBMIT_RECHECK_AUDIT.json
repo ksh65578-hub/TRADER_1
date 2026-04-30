@@ -1,0 +1,19 @@
+{
+  "audit_schema_id": "trader1.order_path_adapter_submit_recheck_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "prior_attempt_external_submit_attempted": true,
+  "prior_attempt_order_adapter_called": false,
+  "prior_attempt_blockers": [
+    "LIVE_FINAL_GUARD_FAILED",
+    "LIVE_READY_MISSING"
+  ],
+  "all_green_order_adapter_called": false,
+  "all_green_external_submit_attempted": false,
+  "all_green_primary_blocker_code": "LIVE_ENABLING_EVIDENCE_MISSING",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "next_action": "Continue adapter-submit blocked regression monitoring."
+}

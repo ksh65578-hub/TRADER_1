@@ -1,0 +1,18 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T10:29:39Z",
+  "patch_id": "MVP4_UPBIT_PAPER_RUNTIME_RECOVERY_GUARD_20260430_001",
+  "inspection_summary": "Added bounded Upbit PAPER runtime recovery guard for latest cycle recoverability, canonical JSONL quarantine, and orphan temp-file blocking.",
+  "hidden_defects": [
+    {
+      "classification": "recovery_false_safe",
+      "condition": "bounded PAPER loop had PASS cycles but no explicit resume guard for partial write/orphan tmp/latest cycle recoverability",
+      "impact": "operator could misread bounded loop output as safely resumable after interrupted write",
+      "fix": "added recovery guard schema/runtime/validator/tests and loop report binding"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

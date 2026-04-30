@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.reconciliation_report.v1",
+  "title": "reconciliation_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "reconciliation_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "account_snapshot_id",
+    "ledger_head_hash",
+    "exchange_snapshot_hash",
+    "internal_state_hash",
+    "exchange_snapshot",
+    "internal_state",
+    "reconciliation_status",
+    "final_decision",
+    "primary_blocker_code",
+    "blockers",
+    "mismatches",
+    "new_entry_allowed",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "order_adapter_called",
+    "reconciliation_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.reconciliation_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "reconciliation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "$ref": "common.defs.schema.json#/$defs/exchange"
+    },
+    "market_type": {
+      "$ref": "common.defs.schema.json#/$defs/market_type"
+    },
+    "mode": {
+      "$ref": "common.defs.schema.json#/$defs/mode"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "account_snapshot_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ledger_head_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "exchange_snapshot_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "internal_state_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "exchange_snapshot": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "internal_state": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "reconciliation_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "STALE",
+        "MISMATCH",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "final_decision": {
+      "$ref": "common.defs.schema.json#/$defs/final_decision"
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "common.defs.schema.json#/$defs/blocker_object"
+      }
+    },
+    "mismatches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "field",
+          "exchange_value",
+          "internal_value",
+          "severity",
+          "message"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "exchange_value": {},
+          "internal_value": {},
+          "severity": {
+            "$ref": "common.defs.schema.json#/$defs/severity"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "new_entry_allowed": {
+      "type": "boolean"
+    },
+    "live_order_ready": {
+      "type": "boolean"
+    },
+    "live_order_allowed": {
+      "type": "boolean"
+    },
+    "can_live_trade": {
+      "type": "boolean"
+    },
+    "can_submit_order": {
+      "type": "boolean"
+    },
+    "order_adapter_called": {
+      "type": "boolean"
+    },
+    "reconciliation_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

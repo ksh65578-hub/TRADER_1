@@ -1,0 +1,348 @@
+{
+  "schema_id": "trader1.profitability_optimizer_evidence_gap_audit.v1",
+  "generated_at_utc": "2026-04-29T07:57:29Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY",
+  "scope": {
+    "exchange": "UPBIT_AND_BINANCE",
+    "market_type": "KRW_SPOT_AND_SPOT",
+    "mode": "PAPER_SHADOW_READ_ONLY_ONLY",
+    "max_mvp": "MVP-4"
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_permission_created": false,
+  "profitability_guarantee_created": false,
+  "optimizer_live_mutation_detected": false,
+  "convergence_live_mutation_detected": false,
+  "inspected_components": [
+    {
+      "component_id": "strategy_entry_exit_no_trade",
+      "current_level": "SCAFFOLD",
+      "target_level": "VALIDATED_REPLAY_AND_PAPER_EVIDENCE"
+    },
+    {
+      "component_id": "symbol_selection_regime",
+      "current_level": "SCAFFOLD",
+      "target_level": "LIQUIDITY_VOLATILITY_SPREAD_DEPTH_REGIME_FILTERS"
+    },
+    {
+      "component_id": "vwap_trend_breakout",
+      "current_level": "SCAFFOLD",
+      "target_level": "REGIME_LINKED_STRATEGY_FAMILY_EVIDENCE"
+    },
+    {
+      "component_id": "risk_sizing_exposure",
+      "current_level": "PARTIAL_PATCHED",
+      "target_level": "VALIDATED_CONSERVATIVE_PAPER_RISK_BUDGET_WITH_SCALE_UP_BLOCKED"
+    },
+    {
+      "component_id": "execution_slippage_fee_impact",
+      "current_level": "PARTIAL_PATCHED",
+      "target_level": "REALIZED_AND_EXPECTED_COST_MODEL_EVIDENCE"
+    },
+    {
+      "component_id": "optimizer_objective_net_ev_after_cost",
+      "current_level": "SCAFFOLD",
+      "target_level": "NET_EV_AFTER_FEE_SPREAD_SLIPPAGE_IMPACT"
+    },
+    {
+      "component_id": "overfit_oos_walk_forward",
+      "current_level": "SCAFFOLD",
+      "target_level": "OOS_WALK_FORWARD_BOOTSTRAP_STABILITY"
+    },
+    {
+      "component_id": "convergence_memory_failure_learning",
+      "current_level": "PARTIAL_PATCHED",
+      "target_level": "APPEND_AUDITABLE_FAILURE_MEMORY"
+    },
+    {
+      "component_id": "paper_shadow_evidence_accumulation",
+      "current_level": "PARTIAL_PATCHED",
+      "target_level": "SESSION_HASHED_PAPER_SHADOW_SCORECARD_INPUT"
+    },
+    {
+      "component_id": "dashboard_operator_profitability_visibility",
+      "current_level": "PARTIAL_PATCHED",
+      "target_level": "SUMMARY_FIRST_PROFITABILITY_BLOCKER_VISIBILITY"
+    }
+  ],
+  "gaps": [
+    {
+      "gap_id": "PROFIT-GAP-001",
+      "component": "strategy_entry_exit_no_trade",
+      "severity": "HIGH",
+      "condition": "Strategy unit has a basic signal scaffold but no validated entry, exit, and no-trade condition matrix.",
+      "impact": "A PAPER result could be misread without knowing why entries were taken or blocked.",
+      "live_safety_impact": "LIVE_REVIEW_BLOCKING",
+      "ux_impact": "Operator cannot trace entry and no-trade reasons at a glance.",
+      "profitability_impact": "Weakens diagnosis of missed entries, bad exits, and false positives.",
+      "fix": "strategy_condition_matrix schema and validator now require entry, exit, no-trade, regime, risk-off/downtrend avoidance, evidence ids, false live flags, and negative fixtures; replay/paper outcome evidence remains required.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    },
+    {
+      "gap_id": "PROFIT-GAP-002",
+      "component": "symbol_selection_regime",
+      "severity": "HIGH",
+      "condition": "Symbol selection is not yet tied to liquidity, volatility, spread, depth, and regime evidence.",
+      "impact": "Candidate selection can look complete while market fit is unproven.",
+      "live_safety_impact": "LIVE_REVIEW_BLOCKING",
+      "ux_impact": "Dashboard cannot explain why a symbol is eligible or filtered.",
+      "profitability_impact": "Increases concentration and weak liquidity risk.",
+      "fix": "market_regime_adaptation_report now requires fresh scoped regime data, symbol-regime fit, strategy condition matrix, strategy performance memory, paper/shadow evidence, and fail-closed downtrend/risk-off blocking before any entry review.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    },
+    {
+      "gap_id": "PROFIT-GAP-003",
+      "component": "vwap_trend_breakout",
+      "severity": "HIGH",
+      "condition": "VWAP reversion, trend pullback, and breakout/retest are not yet linked to regime-specific evidence.",
+      "impact": "Different strategy families can be ranked without knowing which regime they were valid in.",
+      "live_safety_impact": "LIVE_REVIEW_BLOCKING",
+      "ux_impact": "Operator sees strategy labels without a clear market context.",
+      "profitability_impact": "Regime mismatch can dominate apparent edge.",
+      "fix": "strategy_condition_matrix now maps VWAP_REVERSION, TREND_PULLBACK, and BREAKOUT_RETEST families to regime-scoped entry, exit, and no-trade guards; runtime performance evidence remains required.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    },
+    {
+      "gap_id": "PROFIT-GAP-004",
+      "component": "risk_sizing_exposure",
+      "severity": "HIGH",
+      "condition": "Risk sizing remains live-blocked, but paper exposure quality now has schema, validator, and negative fixtures; long-run and live-review evidence are still missing.",
+      "impact": "Risk remains disabled safely while the operator can now see whether paper exposure quality is sufficient for review.",
+      "live_safety_impact": "LIVE_BLOCKING",
+      "ux_impact": "Paper exposure quality is now visible in the risk panel with PASS/INSUFFICIENT/BLOCKED status, sample counts, recommendation, and scale-up blocked wording.",
+      "profitability_impact": "Creates a conservative feedback loop for exposure, concentration, drawdown, idempotency, and recovery quality.",
+      "fix": "Added paper_exposure_quality_report schema, validator, PASS fixture, live/scale flag negative fixture, missing-evidence fixture, exposure-breach fixture, and LIVE-mode fixture. Scale-up remains blocked.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    },
+    {
+      "gap_id": "PROFIT-GAP-005",
+      "component": "execution_slippage_fee_impact",
+      "severity": "HIGH",
+      "condition": "Fee, spread, slippage, impact, and latency are schema-scaffolded but not proven in candidate ranking evidence.",
+      "impact": "Raw paper performance could appear better than net tradable performance.",
+      "live_safety_impact": "LIVE_REVIEW_BLOCKING",
+      "ux_impact": "Dashboard cannot separate gross and net expected outcome.",
+      "profitability_impact": "Cost blindness can invert candidate ranking.",
+      "fix": "optimizer_feedback_report schema and execution_feedback_loop_validator now require expected-vs-realized fee, spread, slippage, impact, latency penalty, net EV deviation, ranking action, source evidence ids, false live flags, and negative fixtures; real paper/shadow execution accumulation remains required.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    },
+    {
+      "gap_id": "PROFIT-GAP-006",
+      "component": "optimizer_objective_net_ev_after_cost",
+      "severity": "HIGH",
+      "condition": "Optimizer objective is not yet validated as net EV after all trading costs.",
+      "impact": "Candidate ranking can be mistaken as mature while objective quality is unverified.",
+      "live_safety_impact": "LIVE_REVIEW_BLOCKING",
+      "ux_impact": "Operator cannot tell if a candidate is blocked by cost-adjusted edge.",
+      "profitability_impact": "Ranking by incomplete objective can select fragile candidates.",
+      "fix": "candidate_scorecard schema and validator now require NET_EV_AFTER_COST fields, explicit fee/spread/slippage/impact/latency costs, robustness status, evidence ids, false live flags, and negative fixtures; full strategy/runtime evidence remains required.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    },
+    {
+      "gap_id": "PROFIT-GAP-007",
+      "component": "overfit_oos_walk_forward",
+      "severity": "HIGH",
+      "condition": "OOS, walk-forward, bootstrap, and concentration diagnostics remain scaffold-level.",
+      "impact": "Short-window improvements can look stronger than they are.",
+      "live_safety_impact": "LIVE_REVIEW_BLOCKING",
+      "ux_impact": "Operator cannot see whether a result is robust or only local.",
+      "profitability_impact": "Overfit risk can dominate expected edge.",
+      "fix": "convergence_assessment_report now requires the full parent dependency chain, dependency PASS counts, fresh input, model drift blocking, false live/scale fields, no writer input eligibility, and operator wording that separates display truth from live execution truth.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    },
+    {
+      "gap_id": "PROFIT-GAP-008",
+      "component": "convergence_memory_failure_learning",
+      "severity": "HIGH",
+      "condition": "Failure memory schemas exist but append-auditable failure learning is not yet evidence-backed.",
+      "impact": "Repeated failure patterns may not be visible across cycles.",
+      "live_safety_impact": "LIVE_REVIEW_BLOCKING",
+      "ux_impact": "Operator cannot see if the same candidate failure is repeating.",
+      "profitability_impact": "The system can waste cycles on candidates with unchanged root causes.",
+      "fix": "convergence_assessment_report now requires the full parent dependency chain, dependency PASS counts, fresh input, model drift blocking, false live/scale fields, no writer input eligibility, and operator wording that separates display truth from live execution truth.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    },
+    {
+      "gap_id": "PROFIT-GAP-009",
+      "component": "paper_shadow_evidence_accumulation",
+      "severity": "HIGH",
+      "condition": "Paper and shadow artifacts are separated, but scorecard inputs are not yet fully tied to session-hashed evidence.",
+      "impact": "A candidate can be discussed without a complete evidence chain.",
+      "live_safety_impact": "LIVE_REVIEW_BLOCKING",
+      "ux_impact": "Operator cannot audit which session produced the displayed strategy assessment.",
+      "profitability_impact": "Evidence drift can distort parameter adaptation.",
+      "fix": "convergence_assessment_report now requires the full parent dependency chain, dependency PASS counts, fresh input, model drift blocking, false live/scale fields, no writer input eligibility, and operator wording that separates display truth from live execution truth.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    },
+    {
+      "gap_id": "PROFIT-GAP-010",
+      "component": "dashboard_operator_profitability_visibility",
+      "severity": "MEDIUM",
+      "condition": "Dashboard now projects paper exposure quality into the risk panel, but profitability maturity still requires external and long-run evidence before live review.",
+      "impact": "User may expect smarter trading behavior than the current scaffold supports.",
+      "live_safety_impact": "LIVE_REVIEW_BLOCKING",
+      "ux_impact": "Next improvement step is not obvious from the first screen.",
+      "profitability_impact": "Reduces feedback quality for strategy improvement cycles.",
+      "fix": "Read-only dashboard now shows Strategy Evidence Maturity with paper/shadow sample counts, optimizer ranking action, reason/cost evidence status, blue/yellow/red severity colors, and explicit live/scale-up blocked wording. Longer risk exposure quality and multi-cycle evidence maturity remain open.",
+      "patch_status": "PARTIAL_PATCHED",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false
+    }
+  ],
+  "safe_patch_actions": [
+    "Record high-value profitability evidence gaps as live-review blockers.",
+    "Add validator coverage so a missing or misleading audit fails closed.",
+    "Add negative tests for live flag drift and missing component coverage.",
+    "Keep dashboard and optimizer outputs analysis-only until exact evidence exists.",
+    {
+      "action_id": "MVP4_STRATEGY_NET_EV_SCORECARD_SCHEMA_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Hardened candidate_scorecard schema and validator against raw-edge ranking without cost-adjusted net EV evidence.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_STRATEGY_CONDITION_MATRIX_SCHEMA_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Added strategy condition matrix schema, validator, and negative fixtures for entry/exit/no-trade/regime traceability.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_SYMBOL_REGIME_FIT_SCHEMA_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Hardened symbol-regime fit schema and validator for liquidity, volatility, spread, depth, and regime evidence.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_OOS_ROBUSTNESS_SCHEMA_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Hardened overfit diagnostic schema and validator for OOS, walk-forward, bootstrap, ranking stability, and bias checks.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_EXECUTION_FEEDBACK_COST_MODEL_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Hardened optimizer feedback schema and validator so cost divergence blocks ranking without live permission.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_CONVERGENCE_MEMORY_FAILURE_LEARNING_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Hardened failure analysis so unknown live-affecting root causes and repeated failures block ranking/promotion without live permission.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_PAPER_SHADOW_EVIDENCE_ACCUMULATION_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Hardened paper/shadow evidence accumulation so scorecard input requires session-hashed samples, freshness, reasons, and cost evidence without live permission.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_DASHBOARD_PROFITABILITY_MATURITY_UX_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Added dashboard Strategy Evidence Maturity UX and fail-closed validator/tests for scorecard input visibility without live or scale-up permission.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_MARKET_REGIME_ADAPTATION_SCHEMA_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Hardened market regime adaptation schema and validator with stale data, dependency, risk-off, and live observation negative fixtures.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_MODEL_DRIFT_SCHEMA_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Hardened model drift schema and validator so stale input, detected drift, weak samples, and scale-up attempts fail closed.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_CONVERGENCE_ASSESSMENT_SCHEMA_HARDENING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Hardened convergence assessment schema and validator dependency chain; added negative fixtures for live flag, dependency, drift, writer-input, and scale-up failures.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_PAPER_EXPOSURE_QUALITY_REPORT_20260429_001",
+      "status": "APPLIED",
+      "summary": "Added paper exposure quality report schema, fail-closed validator, and negative fixtures so risk sizing exposure quality is paper-visible while live and scale-up stay blocked.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "action_id": "MVP4_DASHBOARD_PAPER_EXPOSURE_QUALITY_BINDING_20260429_001",
+      "status": "APPLIED",
+      "summary": "Bound paper_exposure_quality_report into the read-only dashboard risk panel and launcher-scoped loader while keeping all live and scale flags false.",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    }
+  ],
+  "coverage_completeness": {
+    "inspected_component_count": 10,
+    "required_component_count": 10,
+    "gap_component_coverage_percent": 100,
+    "live_safety_invariant_percent": 100
+  },
+  "operator_message": "Profitability and optimizer maturity are still evidence-blocked. Continue PAPER or SHADOW evidence collection; do not treat these scaffolds as live readiness."
+}

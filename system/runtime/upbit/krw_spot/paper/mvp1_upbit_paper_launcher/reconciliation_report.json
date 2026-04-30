@@ -1,0 +1,48 @@
+{
+  "schema_id": "trader1.reconciliation_report.v1",
+  "generated_at_utc": "2026-04-29T09:41:21Z",
+  "project_id": "TRADER_1",
+  "reconciliation_id": "mvp4-dashboard-bound-upbit-paper-reconciliation",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "account_snapshot_id": "PAPER_PORTFOLIO_SCAFFOLD_NOT_EXCHANGE_TRUTH",
+  "ledger_head_hash": "CDCDCD9C3D0CFC548F04E32B53C9960FCA341EF3ED8DE57BB17C7E6DE97870D3",
+  "exchange_snapshot_hash": "80EA020C4BD4AC3C2A6B4A465B937C423FBD442173CA755DB90EDBDABCA56BD2",
+  "internal_state_hash": "80EA020C4BD4AC3C2A6B4A465B937C423FBD442173CA755DB90EDBDABCA56BD2",
+  "exchange_snapshot": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER",
+    "session_id": "mvp1_upbit_paper_launcher",
+    "balances": {
+      "KRW": "1000000"
+    },
+    "positions": [],
+    "open_orders": []
+  },
+  "internal_state": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER",
+    "session_id": "mvp1_upbit_paper_launcher",
+    "balances": {
+      "KRW": "1000000"
+    },
+    "positions": [],
+    "open_orders": []
+  },
+  "reconciliation_status": "PASS",
+  "final_decision": "NO_TRADE",
+  "primary_blocker_code": null,
+  "blockers": [],
+  "mismatches": [],
+  "new_entry_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "can_submit_order": false,
+  "order_adapter_called": false,
+  "reconciliation_hash": "3CE4CC6576EDB22866FC2720874C3A34C62F40D92662AECB8ED48454A979D8B2"
+}
