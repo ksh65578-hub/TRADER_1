@@ -10107,7 +10107,62 @@
       "source_text_sha256": "1382D5F0CF61E9733929F93198989B5ABA1A7E0FEBEFDB34B081FD7B00F4765C",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "paper portfolio position rollup guard",
+      "full_text_marker": "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD:paper portfolio position detail must reconcile to top-level PAPER totals",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "PAPER portfolio position detail must reconcile to rollup totals",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
+      "schema_ids": [
+        "trader1.paper_portfolio_snapshot.v1",
+        "trader1.upbit_paper_runtime_cycle_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "paper_portfolio_snapshot_validator",
+        "upbit_paper_runtime_cycle_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/paper_portfolio_snapshot.schema.json",
+        "trader1/runtime/portfolio/paper_portfolio.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_paper_portfolio.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py",
+        "tools/emit_paper_portfolio_position_rollup_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_paper_portfolio.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "SCHEMA_GENERATION",
+        "VALIDATOR_IMPLEMENTATION",
+        "DASHBOARD_UX"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PAPER-PORTFOLIO-PNL-DETAIL",
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-E2E-CONSISTENCY-GUARD"
+      ],
+      "source_text_sha256": "FE5167AC849656AB4A9B998AFB812E5FB15DCFAC80E9564993CAA2F86A72F615",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T18:26:26Z"
+  "updated_at_utc": "2026-04-30T19:22:40Z"
 }

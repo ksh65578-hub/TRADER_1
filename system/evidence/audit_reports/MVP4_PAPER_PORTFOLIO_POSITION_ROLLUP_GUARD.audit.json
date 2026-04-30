@@ -1,0 +1,32 @@
+{
+  "audit_schema_id": "trader1.paper_portfolio_position_rollup_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "schema_stricts_position_items": true,
+    "validator_checks_position_market_value": true,
+    "validator_checks_position_pnl_rollup": true,
+    "validator_blocks_position_side_drift": true,
+    "unit_tests_cover_position_tamper": true,
+    "runtime_tests_cover_nested_position_tamper": true,
+    "validator_registry_covers_position_tamper": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "portfolio_position_false_consistency",
+      "condition": "top-level cash/equity totals could be internally valid while nested position market value or PnL fields were stale or tampered",
+      "impact": "dashboard could show detailed holding values that do not reconcile with PAPER portfolio totals",
+      "fix": "paper portfolio validation now binds each position market value, unrealized PnL, side, source, and rollup totals"
+    },
+    {
+      "classification": "schema_position_shape_too_loose",
+      "condition": "paper_portfolio_snapshot schema accepted arbitrary position item shapes",
+      "impact": "schema checks could pass while UI-critical position detail fields were missing",
+      "fix": "position items now have required fields and additionalProperties=false"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -8,6 +8,7 @@ from trader1.runtime.paper.upbit_paper_runtime import (
     validate_upbit_paper_runtime_cycle_report,
 )
 from trader1.runtime.paper.upbit_public_collector import build_upbit_public_market_data_collection_report
+from trader1.runtime.portfolio.paper_portfolio import paper_portfolio_hash
 from trader1.validation.mvp0_validators import run_validators
 
 
@@ -48,6 +49,17 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["source_public_market_data_hash"], collection["public_market_data_hash"])
         self.assertEqual(report["canonical_event_count"], collection["canonical_event_count"])
         self.assertFalse(report["live_order_allowed"])
+
+    def test_runtime_blocks_tampered_position_detail_rollup(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-position-tamper")
+        report["paper_portfolio_snapshot"]["positions"][0]["market_value"] = "9999"
+        report["paper_portfolio_snapshot"]["snapshot_hash"] = paper_portfolio_hash(report["paper_portfolio_snapshot"])
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_cycle_blocks_collection_payload_mutation_after_source_hash_binding(self):
         collection = build_upbit_public_market_data_collection_report(

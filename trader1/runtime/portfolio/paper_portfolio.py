@@ -262,6 +262,56 @@ def validate_paper_portfolio_snapshot(snapshot: dict[str, Any]) -> PaperPortfoli
     positions = snapshot.get("positions")
     if not isinstance(positions, list) or snapshot.get("open_position_count") != len(positions):
         return PaperPortfolioValidationResult("FAIL", "paper portfolio position count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    position_required = {
+        "symbol",
+        "side",
+        "quantity",
+        "average_entry_price",
+        "mark_price",
+        "cost_basis",
+        "market_value",
+        "unrealized_pnl",
+        "source",
+        "paper_only",
+    }
+    position_value_sum = Decimal("0")
+    position_unrealized_sum = Decimal("0")
+    for position in positions:
+        if not isinstance(position, dict):
+            return PaperPortfolioValidationResult("FAIL", "paper portfolio position must be an object", "SCHEMA_IDENTITY_MISMATCH")
+        missing_position_fields = sorted(position_required - set(position))
+        if missing_position_fields:
+            return PaperPortfolioValidationResult(
+                "FAIL",
+                f"paper portfolio position missing fields: {missing_position_fields}",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if position.get("paper_only") is not True or position.get("source") not in PAPER_PORTFOLIO_SOURCES:
+            return PaperPortfolioValidationResult("BLOCKED", "paper position source cannot claim exchange truth", "LIVE_FINAL_GUARD_FAILED")
+        if position.get("side") != "LONG":
+            return PaperPortfolioValidationResult("BLOCKED", "paper position must remain long spot only", "LIVE_FINAL_GUARD_FAILED")
+        if not isinstance(position.get("symbol"), str) or not position["symbol"]:
+            return PaperPortfolioValidationResult("FAIL", "paper position symbol is missing", "SCHEMA_IDENTITY_MISMATCH")
+        quantity = _decimal(position.get("quantity"))
+        average_entry = _decimal(position.get("average_entry_price"))
+        mark = _decimal(position.get("mark_price"))
+        cost_basis = _decimal(position.get("cost_basis"))
+        market_value = _decimal(position.get("market_value"))
+        position_unrealized = _decimal(position.get("unrealized_pnl"))
+        if min(quantity, average_entry, mark, cost_basis, market_value) < 0 or quantity <= 0 or average_entry <= 0 or mark <= 0:
+            return PaperPortfolioValidationResult("BLOCKED", "paper position values are invalid", "MEASUREMENT_MISSING")
+        if market_value != quantity * mark:
+            return PaperPortfolioValidationResult("FAIL", "paper position market value arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if cost_basis < quantity * average_entry:
+            return PaperPortfolioValidationResult("FAIL", "paper position cost basis is below gross entry cost", "SCHEMA_IDENTITY_MISMATCH")
+        if position_unrealized != market_value - cost_basis:
+            return PaperPortfolioValidationResult("FAIL", "paper position unrealized PnL arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        position_value_sum += market_value
+        position_unrealized_sum += position_unrealized
+    if position_market_value != position_value_sum:
+        return PaperPortfolioValidationResult("FAIL", "paper portfolio position market value rollup mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if unrealized != position_unrealized_sum:
+        return PaperPortfolioValidationResult("FAIL", "paper portfolio unrealized PnL rollup mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if snapshot.get("snapshot_status") == "PASS" and snapshot.get("blockers"):
         return PaperPortfolioValidationResult("BLOCKED", "paper portfolio PASS cannot carry blockers", snapshot["blockers"][0].get("code", "UNKNOWN_BLOCKED"))
     return PaperPortfolioValidationResult("PASS", "paper portfolio snapshot is simulated, scoped, and live-blocked", None)

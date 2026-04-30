@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "18062151BD607672C626C5785A9D23224BD30259EC35DF25D93150CCDDDCC435",
+      "sha256": "891FFBACE4153089E869B2C6FFC2846DBA2AC50230541E1BD5DC2342B079738D",
       "size_bytes": 1096
     },
     {
@@ -220,8 +220,8 @@
     },
     {
       "path": "contracts/schema/paper_portfolio_snapshot.schema.json",
-      "sha256": "47EF6BFEECB3632A8A0DF9A4BB322EA5A05E23CEA7910100695BD692BF0DF245",
-      "size_bytes": 3774
+      "sha256": "F614ABF31BF913BE9B5FB140C94EC819E593D4C6FFDC67404B4CD0A33181774E",
+      "size_bytes": 5010
     },
     {
       "path": "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json",
@@ -630,8 +630,8 @@
     },
     {
       "path": "tests/integration/test_upbit_paper_runtime_cycle.py",
-      "sha256": "B15832E4609025A9CFAD302B5D97399A20DDC2DD0A5A9BD618FA1F1485F5DA3F",
-      "size_bytes": 11840
+      "sha256": "DBD8EC1285F0F968DE146490E2E7EF9FCFC80787893844B585C441D661B365C9",
+      "size_bytes": 12545
     },
     {
       "path": "tests/integration/test_upbit_public_collection_persistent_loop.py",
@@ -860,8 +860,8 @@
     },
     {
       "path": "tests/runtime/test_paper_portfolio.py",
-      "sha256": "8B15F4952D206CAD575AA2613C7C06F8D66E17D9AF1C783073EB389FD0098F0C",
-      "size_bytes": 5995
+      "sha256": "1F49E10858EB481C42398CB9D5046F4D93E5F0AD71F83C667FBE867176C4F8DE",
+      "size_bytes": 8262
     },
     {
       "path": "tests/runtime/test_reconciliation.py",
@@ -2414,6 +2414,11 @@
       "size_bytes": 28625
     },
     {
+      "path": "tools/emit_paper_portfolio_position_rollup_guard_patch_evidence.py",
+      "sha256": "419F48CA25B73C1A6E8B47F1013398E2772C19433468D2402EA1F8FF8A3815A4",
+      "size_bytes": 25270
+    },
+    {
       "path": "tools/emit_paper_reconciliation_artifact_binding_recheck_patch_evidence.py",
       "sha256": "FE6AF0D7853D97A6F0651C5E5F53B1B05788A39C73F60FE52137C116628C67F2",
       "size_bytes": 30708
@@ -3480,8 +3485,8 @@
     },
     {
       "path": "trader1/runtime/portfolio/paper_portfolio.py",
-      "sha256": "24E4491B94728598E35FE11263897B1106325F8ED92442B425631B9892F318E5",
-      "size_bytes": 12440
+      "sha256": "0E8FD5F91858012E0AC7B758D0BE103A62BE17517F739CE85BB8D782D8BAD964",
+      "size_bytes": 15595
     },
     {
       "path": "trader1/runtime/protection/__init__.py",
@@ -3585,8 +3590,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "4A241BD0D2101D13266224D74D34E15DC1E4A797D9F2EE94A4B8C56346548280",
-      "size_bytes": 636093
+      "sha256": "368BFA6E2DF9A4196A998A8BD5BD54D1A844270137421F57561C7F549A349CBC",
+      "size_bytes": 637226
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -3941,6 +3946,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_OPTIMIZER_CONFIG_OBJECTIVE_RANKING_VALIDATORS.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -4829,6 +4838,14 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_PAPER_EXPOSURE_QUALITY_REPORT_20260429.md",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD_20260501.md",
       "reason": "denied:system/"
     },
     {
@@ -5740,6 +5757,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_PAPER_RECONCILIATION_ARTIFACT_BINDING_RECHECK.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6597,6 +6618,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PAPER_EXPOSURE_QUALITY_REPORT.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7465,6 +7490,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_PAPER_EXPOSURE_QUALITY_REPORT.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8345,6 +8374,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_PAPER_EXPOSURE_QUALITY_REPORT.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
