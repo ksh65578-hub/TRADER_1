@@ -235,11 +235,16 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(loop["paper_ledger_rollup_status"], "PASS")
             self.assertIsNone(loop["paper_ledger_rollup_primary_blocker_code"])
             self.assertTrue((root / loop["paper_ledger_rollup_path"]).exists())
+            self.assertEqual(loop["runtime_evidence_role"], "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE")
             self.assertFalse(loop["long_run_evidence_eligible"])
+            self.assertEqual(loop["long_run_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
             self.assertFalse(loop["live_order_allowed"])
             guard_path = root / loop["runtime_recovery_guard_path"]
             guard = json.loads(guard_path.read_text(encoding="utf-8"))
             self.assertEqual(validate_upbit_paper_runtime_recovery_guard_report(guard).status, "PASS")
+            self.assertEqual(guard["runtime_evidence_role"], "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE")
+            self.assertFalse(guard["long_run_evidence_eligible"])
+            self.assertEqual(guard["long_run_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
             latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
             latest = json.loads(latest_path.read_text(encoding="utf-8"))
             self.assertEqual(latest["runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
@@ -357,6 +362,41 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
 
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_recovery_guard_blocks_false_long_run_eligibility(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-false-long-run",
+                requested_cycle_count=1,
+            )
+            guard = build_upbit_paper_runtime_recovery_guard_report(
+                root=root,
+                loop_id="bounded-paper-loop-false-long-run",
+            )
+        guard["long_run_evidence_eligible"] = True
+        guard["guard_hash"] = upbit_paper_runtime_recovery_guard_hash(guard)
+
+        result = validate_upbit_paper_runtime_recovery_guard_report(guard)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_persistent_loop_requires_visible_long_run_evidence_boundary(self):
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="bounded-paper-loop-missing-long-run-boundary",
+                requested_cycle_count=1,
+            )
+        loop["runtime_evidence_role"] = "PAPER_RUNTIME_EVIDENCE"
+        loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
+
+        result = validate_upbit_paper_persistent_loop_report(loop)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
 
     def test_persistent_loop_hash_tamper_fails(self):
         with TemporaryDirectory() as tmp:

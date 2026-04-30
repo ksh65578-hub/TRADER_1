@@ -32,6 +32,12 @@ from trader1.runtime.paper.upbit_public_collector import (
 UPBIT_PAPER_PERSISTENT_LOOP_SCHEMA_ID = "trader1.upbit_paper_persistent_loop_report.v1"
 UPBIT_PAPER_RUNTIME_RECOVERY_GUARD_SCHEMA_ID = "trader1.upbit_paper_runtime_recovery_guard_report.v1"
 DEFAULT_MAX_CYCLE_COUNT = 20
+BOUNDED_LOOP_RUNTIME_EVIDENCE_ROLE = "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"
+RECOVERY_GUARD_RUNTIME_EVIDENCE_ROLE = "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE"
+LONG_RUN_EVIDENCE_BLOCKER_CODE = "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
+LONG_RUN_EVIDENCE_NEXT_ACTION = (
+    "Collect validated long-run PAPER and SHADOW runtime evidence before treating this as live-review or scale-up evidence."
+)
 
 
 @dataclass(frozen=True)
@@ -214,7 +220,11 @@ def build_upbit_paper_runtime_recovery_guard_report(
         "blockers": blockers,
         "resume_action": "RESUME_PAPER_ONLY" if status == "PASS" else "SAFE_MODE_RECONCILE",
         "paper_runtime_resume_allowed": status == "PASS",
+        "runtime_evidence_role": RECOVERY_GUARD_RUNTIME_EVIDENCE_ROLE,
         "actual_long_run_evidence_created": False,
+        "long_run_evidence_eligible": False,
+        "long_run_blocker_code": LONG_RUN_EVIDENCE_BLOCKER_CODE,
+        "long_run_next_action": LONG_RUN_EVIDENCE_NEXT_ACTION,
         "promotion_eligible": False,
         "live_order_ready": False,
         "live_order_allowed": False,
@@ -434,7 +444,10 @@ def run_upbit_paper_persistent_loop(
         "paper_ledger_rollup_path": _relative_posix(ledger_rollup_path, root),
         "paper_runtime_resume_allowed": recovery_guard["paper_runtime_resume_allowed"],
         "partial_write_recovery_required": recovery_guard["recovery_guard_status"] != "PASS",
+        "runtime_evidence_role": BOUNDED_LOOP_RUNTIME_EVIDENCE_ROLE,
         "long_run_evidence_eligible": False,
+        "long_run_blocker_code": LONG_RUN_EVIDENCE_BLOCKER_CODE,
+        "long_run_next_action": LONG_RUN_EVIDENCE_NEXT_ACTION,
         "promotion_eligible": False,
         "data_source_policy": "PUBLIC_OR_STATIC_FIXTURE_ONLY",
         "credential_load_attempted": False,
@@ -484,7 +497,10 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
         "paper_ledger_rollup_path",
         "paper_runtime_resume_allowed",
         "partial_write_recovery_required",
+        "runtime_evidence_role",
         "long_run_evidence_eligible",
+        "long_run_blocker_code",
+        "long_run_next_action",
         "promotion_eligible",
         "data_source_policy",
         "credential_load_attempted",
@@ -548,6 +564,18 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
             return UpbitPaperPersistentLoopValidationResult("FAIL", "blocked recovery guard must expose recovery requirement", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("data_source_policy") != "PUBLIC_OR_STATIC_FIXTURE_ONLY":
         return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop data source policy is unsafe", "LIVE_FINAL_GUARD_FAILED")
+    if report.get("runtime_evidence_role") != BOUNDED_LOOP_RUNTIME_EVIDENCE_ROLE:
+        return UpbitPaperPersistentLoopValidationResult(
+            "BLOCKED",
+            "bounded persistent loop must be marked as not long-run evidence",
+            "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        )
+    if report.get("long_run_blocker_code") != LONG_RUN_EVIDENCE_BLOCKER_CODE or not report.get("long_run_next_action"):
+        return UpbitPaperPersistentLoopValidationResult(
+            "BLOCKED",
+            "bounded persistent loop must expose the long-run evidence blocker and next action",
+            "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        )
     completed_cycle_count = int(report.get("completed_cycle_count", -1))
     requested_cycle_count = int(report.get("requested_cycle_count", -1))
     if report.get("actual_paper_runtime_executed") is not (completed_cycle_count > 0):
@@ -645,7 +673,11 @@ def validate_upbit_paper_runtime_recovery_guard_report(report: dict[str, Any]) -
         "blockers",
         "resume_action",
         "paper_runtime_resume_allowed",
+        "runtime_evidence_role",
         "actual_long_run_evidence_created",
+        "long_run_evidence_eligible",
+        "long_run_blocker_code",
+        "long_run_next_action",
         "promotion_eligible",
         "live_order_ready",
         "live_order_allowed",
@@ -664,6 +696,20 @@ def validate_upbit_paper_runtime_recovery_guard_report(report: dict[str, Any]) -
         return UpbitPaperPersistentLoopValidationResult("BLOCKED", "recovery guard scope must remain UPBIT/KRW_SPOT/PAPER", "SNAPSHOT_SCOPE_MISMATCH")
     if report.get("actual_long_run_evidence_created") or report.get("promotion_eligible"):
         return UpbitPaperPersistentLoopValidationResult("BLOCKED", "recovery guard cannot create long-run or promotion evidence", "LIVE_FINAL_GUARD_FAILED")
+    if report.get("long_run_evidence_eligible"):
+        return UpbitPaperPersistentLoopValidationResult("BLOCKED", "recovery guard cannot create long-run evidence eligibility", "LIVE_FINAL_GUARD_FAILED")
+    if report.get("runtime_evidence_role") != RECOVERY_GUARD_RUNTIME_EVIDENCE_ROLE:
+        return UpbitPaperPersistentLoopValidationResult(
+            "BLOCKED",
+            "recovery guard must be marked as resume-only, not long-run evidence",
+            "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        )
+    if report.get("long_run_blocker_code") != LONG_RUN_EVIDENCE_BLOCKER_CODE or not report.get("long_run_next_action"):
+        return UpbitPaperPersistentLoopValidationResult(
+            "BLOCKED",
+            "recovery guard must expose the long-run evidence blocker and next action",
+            "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        )
     if report.get("live_order_ready") or report.get("live_order_allowed") or report.get("can_live_trade") or report.get("scale_up_allowed"):
         return UpbitPaperPersistentLoopValidationResult("BLOCKED", "recovery guard attempted live or scale-up permission", "LIVE_FINAL_GUARD_FAILED")
     blockers = report.get("blockers")

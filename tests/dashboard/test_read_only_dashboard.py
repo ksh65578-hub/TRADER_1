@@ -253,7 +253,11 @@ def paper_runtime_recovery_guard_fixture(session_id="test_read_only_dashboard", 
         "blockers": blockers,
         "resume_action": "SAFE_MODE_RECONCILE" if blocked else "RESUME_PAPER_ONLY",
         "paper_runtime_resume_allowed": not blocked,
+        "runtime_evidence_role": "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE",
         "actual_long_run_evidence_created": False,
+        "long_run_evidence_eligible": False,
+        "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        "long_run_next_action": "Collect validated long-run PAPER and SHADOW runtime evidence before live review.",
         "promotion_eligible": False,
         "live_order_ready": False,
         "live_order_allowed": False,
@@ -1002,7 +1006,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(recovery["corrupted_ledger_jsonl_quarantined_count"], 0)
         self.assertEqual(recovery["ledger_jsonl_invalid_count"], 0)
         self.assertTrue(recovery["paper_runtime_resume_allowed"])
+        self.assertEqual(recovery["runtime_evidence_role"], "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE")
         self.assertFalse(recovery["actual_long_run_evidence_created"])
+        self.assertFalse(recovery["long_run_evidence_eligible"])
+        self.assertEqual(recovery["long_run_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
         self.assertFalse(recovery["promotion_eligible"])
         self.assertFalse(recovery["live_order_ready"])
         self.assertFalse(recovery["live_order_allowed"])
@@ -1013,7 +1020,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER Runtime Recovery Guard", html)
         self.assertIn("ledger JSONL", html)
         self.assertIn("not LIVE_READY", html)
-        self.assertIn("not long-run evidence", html)
+        self.assertIn("long-run eligible=False", html)
+        self.assertIn("LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT", html)
 
     def test_dashboard_projects_paper_runtime_recovery_guard_partial_write_blocked(self):
         dashboard = build_dashboard_with_paper_runtime_recovery_guard(paper_runtime_recovery_guard_fixture(blocked=True))
@@ -1030,6 +1038,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
     def test_dashboard_blocks_paper_runtime_recovery_guard_live_permission_mutation(self):
         dashboard = build_dashboard_with_paper_runtime_recovery_guard()
         dashboard["paper_runtime_recovery_guard_status"]["live_order_allowed"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_blocks_paper_runtime_recovery_guard_false_long_run_eligibility(self):
+        dashboard = build_dashboard_with_paper_runtime_recovery_guard()
+        dashboard["paper_runtime_recovery_guard_status"]["long_run_evidence_eligible"] = True
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")
