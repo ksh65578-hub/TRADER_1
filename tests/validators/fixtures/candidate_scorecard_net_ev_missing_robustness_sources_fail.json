@@ -8,6 +8,8 @@
   },
   "scorecard_id": "scorecard_net_ev_missing_robustness_sources_fail",
   "candidate_id": "candidate_missing_robustness_sources_fail_001",
+  "source_runtime_cycle_id": "scorecard_missing_robustness_sources",
+  "source_runtime_cycle_hash": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
   "strategy_id": "trend_pullback",
   "strategy_build_id": "strategy_build_mvp4_net_ev_fixture",
   "parameter_hash": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
@@ -37,8 +39,9 @@
   "live_readiness_status": "NOT_LIVE_READY",
   "operator_warning": "PAPER candidate scorecard is ranking input only, not LIVE_READY and cannot place or allow live orders.",
   "source_evidence_ids": [
-    "oos:scorecard_missing_robustness_sources",
-    "walk_forward:scorecard_missing_robustness_sources",
+    "upbit_paper_runtime_cycle:scorecard_missing_robustness_sources:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+    "oos:scorecard_missing_robustness_sources:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+    "walk_forward:scorecard_missing_robustness_sources:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
     "paper_scorecard_without_bootstrap_source"
   ],
   "blockers": [],

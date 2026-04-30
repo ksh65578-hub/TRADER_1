@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "DACB964F56F7CC1C9601442A69D86AB6175AB8F14A22F4963DF02AE0E88AC4EA",
+      "sha256": "90C1794D35C221E58E4952D7EAC102DC730628E1E9F0A2F145A62005D0895CF1",
       "size_bytes": 1096
     },
     {
@@ -50,8 +50,8 @@
     },
     {
       "path": "contracts/schema/candidate_scorecard.schema.json",
-      "sha256": "868049A49916B1B2F3DE4059BF397AE20A050916CD795EA3B299B2F613932C27",
-      "size_bytes": 5076
+      "sha256": "9679C78741F9B5F2705EB738B9F5C6D50C878B0673A0B090B8E2A9A20DABB94A",
+      "size_bytes": 5328
     },
     {
       "path": "contracts/schema/common.defs.schema.json",
@@ -765,8 +765,8 @@
     },
     {
       "path": "tests/research/test_candidate_scorecard_from_runtime.py",
-      "sha256": "02199777569BEC71FA241F3F1E2DA8DD92B5829DEF272F527814384389B02422",
-      "size_bytes": 5992
+      "sha256": "9B8B812610269B3E6DA88223325EB03676F48D3E194BF10A5F43B94484804EC1",
+      "size_bytes": 7525
     },
     {
       "path": "tests/research/test_paper_shadow_evidence_accumulator.py",
@@ -950,33 +950,38 @@
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_live_flag_fail.json",
-      "sha256": "FA8A15696B31003227E966F59F3BBA1AC6AA824EC999BF5DC55FBB63005EE4B6",
-      "size_bytes": 1920
+      "sha256": "05F4516E157B99B7262FCD91BE78BB6C2FE53B3456898D530D3591B45BAB1203",
+      "size_bytes": 2422
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_live_ready_wording_fail.json",
-      "sha256": "32728E0E8B0F580E14C8E80BD1E2FB7C44E2682896F2AE265C36441902F74E0F",
-      "size_bytes": 1973
+      "sha256": "57668948C736CB65CFCE26CADDD954026C382C8444883D370937E9A48B7434E1",
+      "size_bytes": 2493
+    },
+    {
+      "path": "tests/validators/fixtures/candidate_scorecard_net_ev_mismatched_robustness_sources_fail.json",
+      "sha256": "E8B79EF957D0A71044CC3438F7C7BE6251C015494E34B21D8A28647E4C9FE77B",
+      "size_bytes": 2491
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_missing_oos_fail.json",
-      "sha256": "9DA687338D728303B865915E72D62D2CA1D28CBB3C7FA8FC1185C05A869DB46B",
-      "size_bytes": 1940
+      "sha256": "616F728E16F579458C39EEB740A10A8271051CCC6E7859DE06DF1859FB14D9C3",
+      "size_bytes": 2436
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_missing_robustness_sources_fail.json",
-      "sha256": "4696A1477BE0509B2D0987DF02D3C0C80DA95B64B8B7B777978613E77CA9D646",
-      "size_bytes": 1985
+      "sha256": "E5BB7F9CB8E49C8F14BB4DC18BD556CF05AD2726DD6465C969B8C90FBD894EB4",
+      "size_bytes": 2418
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_pass.json",
-      "sha256": "5D656EAD8B5FB85B6B81912A923CB02EF301372D468E8035DDE7F2F9143352BE",
-      "size_bytes": 1912
+      "sha256": "35D3DD303D931CB9EC1B3867CC517FCAB40093E1777EE32CC1D0C412BE684E70",
+      "size_bytes": 2392
     },
     {
       "path": "tests/validators/fixtures/candidate_scorecard_net_ev_raw_cost_fail.json",
-      "sha256": "F4548F635D50DB2F287E051EA1EFDA358CBD7A5BB58882883E905A118288C209",
-      "size_bytes": 1948
+      "sha256": "FC0258740DFADD1E5A0A75B29400715EFCD556702720CAAF1DBF0F5FE51729AC",
+      "size_bytes": 2448
     },
     {
       "path": "tests/validators/fixtures/convergence_assessment_dependencies_blocked.json",
@@ -1805,8 +1810,8 @@
     },
     {
       "path": "tests/validators/test_candidate_scorecard_net_ev_validator.py",
-      "sha256": "D47C8C8E5838D435C51A9E1CC272E6FBCA4C24F5A3C54C44429B604286778DA9",
-      "size_bytes": 3434
+      "sha256": "AA67AA00A9BD86820880ED2CFDE20E7A3AE957A91A231CD5C2CBD6FBEEA2632D",
+      "size_bytes": 3952
     },
     {
       "path": "tests/validators/test_convergence_assessment_dependency_validators.py",
@@ -2012,6 +2017,11 @@
       "path": "tools/emit_candidate_scorecard_live_separation_hardening_patch_evidence.py",
       "sha256": "684602DB9C982EC8270CC5A103F542AFB5F02D9DEDBF5F986AAB9C24627017B5",
       "size_bytes": 22533
+    },
+    {
+      "path": "tools/emit_candidate_scorecard_runtime_linkage_binding_patch_evidence.py",
+      "sha256": "CABCE941B13F1702AED44D37A18E948B448FBCDE13F2194763E7F2571181E993",
+      "size_bytes": 22823
     },
     {
       "path": "tools/emit_config_validation_patch_evidence.py",
@@ -3350,8 +3360,8 @@
     },
     {
       "path": "trader1/research/profitability/candidate_scorecard.py",
-      "sha256": "284CD22A7CD80E4ABC3ADB983E9486C9C810E0BB3A7BCE32E2466A707116FE26",
-      "size_bytes": 8346
+      "sha256": "53F9CEE08DD8E12C476081B962C7CB0B704DFA24CB06CDBDA958CC09A8D00ADA",
+      "size_bytes": 9820
     },
     {
       "path": "trader1/research/replay/__init__.py",
@@ -3645,8 +3655,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "096D34AFA7C32BC9D007DD483A3C031E70222F3135BB03D48FABF71304067E28",
-      "size_bytes": 648224
+      "sha256": "3B32C619BF494CB3B336E8F9BC2CF131C2F44580653271B519DFD9AFB3DC03EA",
+      "size_bytes": 649728
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -3921,6 +3931,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_CANDIDATE_COOLDOWN_VALIDATOR.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5560,6 +5574,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_CONSOLE_HEARTBEAT_VISIBILITY.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -6457,6 +6475,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_CANDIDATE_SCORECARD_LIVE_SEPARATION_HARDENING.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -7365,6 +7387,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_CANDIDATE_SCORECARD_LIVE_SEPARATION_HARDENING.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8285,6 +8311,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_CANDIDATE_SCORECARD_LIVE_SEPARATION_HARDENING.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
@@ -9224,6 +9254,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-candidate-scorecard-runtime-linkage-binding-cycle-1.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-candidate-scorecard-runtime-linkage-binding-cycle-2.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-ledger-jsonl-recovery-ui-refresh-cycle-1.paper_ledger_events.jsonl",
       "reason": "denied:system/"
     },
@@ -9292,6 +9330,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4-candidate-scorecard-runtime-linkage-binding-ledger-rollup.paper_ledger_rollup_report.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4-paper-ledger-rollup-ui-refresh-ledger-rollup.paper_ledger_rollup_report.json",
       "reason": "denied:system/"
     },
@@ -9337,6 +9379,14 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-candidate-linkage-cost-model-collector-2.canonical_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-candidate-scorecard-runtime-linkage-binding-collector-1.canonical_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-candidate-scorecard-runtime-linkage-binding-collector-2.canonical_events.jsonl",
       "reason": "denied:system/"
     },
     {
@@ -9449,6 +9499,22 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-candidate-linkage-cost-model-collector-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-candidate-scorecard-runtime-linkage-binding-collector-1.collection_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-candidate-scorecard-runtime-linkage-binding-collector-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-candidate-scorecard-runtime-linkage-binding-collector-2.collection_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-candidate-scorecard-runtime-linkage-binding-collector-2.writer_report.json",
       "reason": "denied:system/"
     },
     {
@@ -9656,6 +9722,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-candidate-scorecard-runtime-linkage-binding-collector-1.raw_candles.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-candidate-scorecard-runtime-linkage-binding-collector-2.raw_candles.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-ledger-jsonl-recovery-ui-refresh-collector-1.raw_candles.json",
       "reason": "denied:system/"
     },
@@ -9785,6 +9859,22 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-candidate-linkage-cost-model-cycle-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-candidate-scorecard-runtime-linkage-binding-cycle-1.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-candidate-scorecard-runtime-linkage-binding-cycle-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-candidate-scorecard-runtime-linkage-binding-cycle-2.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-candidate-scorecard-runtime-linkage-binding-cycle-2.writer_report.json",
       "reason": "denied:system/"
     },
     {
@@ -9985,6 +10075,14 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-linkage-cost-model.persistent_loop_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-scorecard-runtime-linkage-binding-recovery-guard.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-scorecard-runtime-linkage-binding.persistent_loop_report.json",
       "reason": "denied:system/"
     },
     {

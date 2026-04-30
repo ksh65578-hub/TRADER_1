@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-04-30T22:29:24Z",
+  "updated_at_utc": "2026-04-30T22:55:53Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -45,6 +45,7 @@
     "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY",
     "REQ-MVP4-CANDIDATE-COOLDOWN-VALIDATOR",
     "REQ-MVP4-CANDIDATE-SCORECARD-LIVE-SEPARATION-HARDENING",
+    "REQ-MVP4-CANDIDATE-SCORECARD-RUNTIME-LINKAGE-BINDING",
     "REQ-MVP4-CONVERGENCE-ASSESSMENT-SCHEMA-HARDENING",
     "REQ-MVP4-CONVERGENCE-CLAIM-VALIDATOR",
     "REQ-MVP4-CONVERGENCE-MEMORY-FAILURE-LEARNING-HARDENING",
@@ -392,6 +393,7 @@
     "reconciliation_validator",
     "registry_validator",
     "restart_recovery_validator",
+    "review_plan_reflection_ledger_validator",
     "risk_scaling_decision_validator",
     "rolling_window_default_validator",
     "root_launcher_guard_validator",
@@ -433,8 +435,7 @@
     "upbit_public_market_data_collection_validator",
     "upbit_public_rest_continuity_history_validator",
     "upbit_public_rest_continuity_validator",
-    "upbit_public_rest_sample_validator",
-    "review_plan_reflection_ledger_validator"
+    "upbit_public_rest_sample_validator"
   ],
   "untested_validator_ids": [],
   "blocked_requirement_ids": [
@@ -449,12 +450,12 @@
     "PATCH_RESULT_VALIDATOR_RUN_GAP",
     "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY"
   ],
-  "last_patch_id": "MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE_20260501_001",
-  "last_patch_result_hash": "98A039BC2BF75B765BB85483BDBB6F690EDCC7DE4BDAD8EE21DDCBEAEF69342D",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_RUNTIME_E2E_PROGRESS",
+  "last_patch_id": "MVP4_CANDIDATE_SCORECARD_RUNTIME_LINKAGE_BINDING_20260501_001",
+  "last_patch_result_hash": "5D8E945640CAFCD390AC5E71CC3832A71C3239ADF41374B2511E07E5D80D56FE",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_RUNTIME_LONG_RUN_EVIDENCE_HARDENING",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "7958DBE13A6A7EAF57713603B944863E067D314D631708A199BFC1916D4C6C5F"
+  "state_hash": "26830EB052FAF6E24EE9337C5C76A6D7B852AC31A5CFB0B391CDB83BEB354781"
 }

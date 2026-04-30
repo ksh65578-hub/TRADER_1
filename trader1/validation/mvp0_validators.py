@@ -187,6 +187,8 @@ from trader1.research.profitability.candidate_scorecard import (
     ROBUSTNESS_SOURCE_PREFIXES,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     has_required_robustness_source_ids,
+    runtime_cycle_binding_from_source_ids,
+    runtime_cycle_source_evidence_id,
 )
 from trader1.research.shadow.shadow_runner import (
     build_paper_shadow_evidence_accumulation_report,
@@ -9753,10 +9755,24 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
         min_required = float(scorecard["min_required_edge_bps"])
         if actual_net < min_required:
             errors.append("net_ev_after_cost_bps below min_required_edge_bps while ranking_eligible=true")
-        if len(scorecard.get("source_evidence_ids", [])) < len(ROBUSTNESS_SOURCE_PREFIXES):
-            errors.append("ranking_eligible scorecard requires at least 3 robustness source evidence ids")
-        if not has_required_robustness_source_ids(scorecard.get("source_evidence_ids", [])):
-            errors.append("ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids")
+        source_ids = scorecard.get("source_evidence_ids", [])
+        expected_runtime_source = runtime_cycle_source_evidence_id(
+            str(scorecard.get("source_runtime_cycle_id", "")),
+            str(scorecard.get("source_runtime_cycle_hash", "")),
+        )
+        if expected_runtime_source not in source_ids:
+            errors.append("ranking_eligible scorecard requires source runtime cycle id and hash evidence")
+        binding = runtime_cycle_binding_from_source_ids(source_ids)
+        if binding != (scorecard.get("source_runtime_cycle_id"), scorecard.get("source_runtime_cycle_hash")):
+            errors.append("ranking_eligible scorecard source evidence must match source_runtime_cycle_id and source_runtime_cycle_hash")
+        if len(source_ids) < len(ROBUSTNESS_SOURCE_PREFIXES) + 1:
+            errors.append("ranking_eligible scorecard requires runtime, OOS, walk-forward, and bootstrap source evidence ids")
+        if not has_required_robustness_source_ids(
+            source_ids,
+            cycle_id=str(scorecard.get("source_runtime_cycle_id", "")),
+            cycle_hash=str(scorecard.get("source_runtime_cycle_hash", "")),
+        ):
+            errors.append("ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids linked to the same runtime cycle hash")
         required_statuses = {
             "cost_model_status": "VALIDATED",
             "oos_status": "PASS",
@@ -9781,6 +9797,7 @@ def candidate_scorecard_net_ev_validator() -> ValidatorResult:
     oos_missing_fail_path = fixture_dir / "candidate_scorecard_net_ev_missing_oos_fail.json"
     live_ready_wording_fail_path = fixture_dir / "candidate_scorecard_net_ev_live_ready_wording_fail.json"
     missing_robustness_sources_path = fixture_dir / "candidate_scorecard_net_ev_missing_robustness_sources_fail.json"
+    mismatched_robustness_sources_path = fixture_dir / "candidate_scorecard_net_ev_mismatched_robustness_sources_fail.json"
     paths = [
         schema_path,
         pass_path,
@@ -9789,6 +9806,7 @@ def candidate_scorecard_net_ev_validator() -> ValidatorResult:
         oos_missing_fail_path,
         live_ready_wording_fail_path,
         missing_robustness_sources_path,
+        mismatched_robustness_sources_path,
         state_path,
     ]
 
@@ -9817,6 +9835,7 @@ def candidate_scorecard_net_ev_validator() -> ValidatorResult:
         oos_missing_fail_path: "oos_status must be PASS",
         live_ready_wording_fail_path: "candidate scorecard warning must state not LIVE_READY",
         missing_robustness_sources_path: "requires OOS, walk-forward, and bootstrap source evidence ids",
+        mismatched_robustness_sources_path: "linked to the same runtime cycle hash",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _candidate_scorecard_net_ev_errors(load_json(path))
@@ -9845,6 +9864,7 @@ def candidate_scorecard_validator() -> ValidatorResult:
     live_flag_fail_path = fixture_dir / "candidate_scorecard_net_ev_live_flag_fail.json"
     oos_missing_fail_path = fixture_dir / "candidate_scorecard_net_ev_missing_oos_fail.json"
     missing_robustness_sources_path = fixture_dir / "candidate_scorecard_net_ev_missing_robustness_sources_fail.json"
+    mismatched_robustness_sources_path = fixture_dir / "candidate_scorecard_net_ev_mismatched_robustness_sources_fail.json"
     paths = [
         schema_path,
         builder_path,
@@ -9854,6 +9874,7 @@ def candidate_scorecard_validator() -> ValidatorResult:
         live_flag_fail_path,
         oos_missing_fail_path,
         missing_robustness_sources_path,
+        mismatched_robustness_sources_path,
     ]
 
     pass_scorecard = load_json(pass_path)
@@ -9929,6 +9950,7 @@ def candidate_scorecard_validator() -> ValidatorResult:
         live_flag_fail_path: "expected const False",
         oos_missing_fail_path: "oos_status must be PASS",
         missing_robustness_sources_path: "requires OOS, walk-forward, and bootstrap source evidence ids",
+        mismatched_robustness_sources_path: "linked to the same runtime cycle hash",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _candidate_scorecard_net_ev_errors(load_json(path))

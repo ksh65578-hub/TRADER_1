@@ -8,6 +8,8 @@
   },
   "scorecard_id": "scorecard_net_ev_live_ready_wording_fail",
   "candidate_id": "candidate_live_ready_wording_fail_001",
+  "source_runtime_cycle_id": "paper_scorecard_fixture_live_ready_wording_fail",
+  "source_runtime_cycle_hash": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
   "strategy_id": "trend_pullback",
   "strategy_build_id": "strategy_build_mvp4_net_ev_fixture",
   "parameter_hash": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
@@ -37,9 +39,10 @@
   "live_readiness_status": "NOT_LIVE_READY",
   "operator_warning": "PAPER candidate scorecard is LIVE_READY for live review, but live orders remain blocked.",
   "source_evidence_ids": [
-    "oos:paper_scorecard_fixture_live_ready_wording_fail",
-    "walk_forward:paper_scorecard_fixture_live_ready_wording_fail",
-    "bootstrap:paper_scorecard_fixture_live_ready_wording_fail"
+    "upbit_paper_runtime_cycle:paper_scorecard_fixture_live_ready_wording_fail:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+    "oos:paper_scorecard_fixture_live_ready_wording_fail:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+    "walk_forward:paper_scorecard_fixture_live_ready_wording_fail:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE",
+    "bootstrap:paper_scorecard_fixture_live_ready_wording_fail:EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"
   ],
   "blockers": [],
   "live_order_ready": false,

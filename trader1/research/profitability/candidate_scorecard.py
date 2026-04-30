@@ -25,6 +25,7 @@ ROBUSTNESS_PASS = {
     "overfit_status": "LOW",
 }
 ROBUSTNESS_SOURCE_PREFIXES = ("oos:", "walk_forward:", "bootstrap:")
+RUNTIME_CYCLE_SOURCE_PREFIX = "upbit_paper_runtime_cycle:"
 
 
 def utc_now() -> str:
@@ -61,8 +62,38 @@ def blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
 
 
-def has_required_robustness_source_ids(source_evidence_ids: list[str] | None) -> bool:
+def runtime_cycle_source_evidence_id(cycle_id: str, cycle_hash: str) -> str:
+    return f"{RUNTIME_CYCLE_SOURCE_PREFIX}{cycle_id}:{cycle_hash}"
+
+
+def robustness_source_evidence_id(prefix: str, cycle_id: str, cycle_hash: str) -> str:
+    normalized = prefix[:-1] if prefix.endswith(":") else prefix
+    return f"{normalized}:{cycle_id}:{cycle_hash}"
+
+
+def runtime_cycle_binding_from_source_ids(source_evidence_ids: list[str] | None) -> tuple[str, str] | None:
+    for source_id in source_evidence_ids or []:
+        if not isinstance(source_id, str) or not source_id.startswith(RUNTIME_CYCLE_SOURCE_PREFIX):
+            continue
+        parts = source_id.split(":")
+        if len(parts) == 3 and parts[1] and len(parts[2]) == 64:
+            return parts[1], parts[2]
+    return None
+
+
+def has_required_robustness_source_ids(
+    source_evidence_ids: list[str] | None,
+    *,
+    cycle_id: str | None = None,
+    cycle_hash: str | None = None,
+) -> bool:
     ids = source_evidence_ids or []
+    if cycle_id and cycle_hash:
+        required = {
+            robustness_source_evidence_id(prefix, cycle_id, cycle_hash)
+            for prefix in ROBUSTNESS_SOURCE_PREFIXES
+        }
+        return required.issubset(set(ids))
     return all(any(source_id.startswith(prefix) for source_id in ids) for prefix in ROBUSTNESS_SOURCE_PREFIXES)
 
 
@@ -110,11 +141,15 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
 
     net_ev = number_value(selected["net_ev_after_cost_bps"])
     robustness_ready = all(robustness[field] == expected for field, expected in ROBUSTNESS_PASS.items())
-    source_ids = [
-        f"upbit_paper_runtime_cycle:{runtime_cycle_report['cycle_id']}:{runtime_cycle_report['cycle_hash']}",
-    ]
+    source_runtime_cycle_id = str(runtime_cycle_report["cycle_id"])
+    source_runtime_cycle_hash = str(runtime_cycle_report["cycle_hash"])
+    source_ids = [runtime_cycle_source_evidence_id(source_runtime_cycle_id, source_runtime_cycle_hash)]
     source_ids.extend(robustness_source_evidence_ids or [])
-    enough_robustness_sources = has_required_robustness_source_ids(robustness_source_evidence_ids)
+    enough_robustness_sources = has_required_robustness_source_ids(
+        source_ids,
+        cycle_id=source_runtime_cycle_id,
+        cycle_hash=source_runtime_cycle_hash,
+    )
     ranking_eligible = (
         selected.get("decision") == "PAPER_ENTRY_REVIEW"
         and net_ev >= min_required_edge_bps
@@ -154,6 +189,8 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "authority": authority or current_authority_hashes(),
         "scorecard_id": scorecard_id or f"scorecard:{runtime_cycle_report['cycle_id']}:{selected['candidate_id']}",
         "candidate_id": selected["candidate_id"],
+        "source_runtime_cycle_id": source_runtime_cycle_id,
+        "source_runtime_cycle_hash": source_runtime_cycle_hash,
         "strategy_id": strategy_id_for_family(selected["strategy_family"]),
         "strategy_build_id": "upbit_paper_runtime_cycle_v1",
         "parameter_hash": stable_hash(f"{selected['candidate_id']}:{selected['strategy_family']}:{runtime_cycle_report['symbol']}"),

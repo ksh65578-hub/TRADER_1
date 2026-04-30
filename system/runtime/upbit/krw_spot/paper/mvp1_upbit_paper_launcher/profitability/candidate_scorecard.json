@@ -1,13 +1,15 @@
 {
   "schema_id": "trader1.candidate_scorecard.v1",
-  "generated_at_utc": "2026-04-30T14:37:26Z",
+  "generated_at_utc": "2026-04-30T22:55:54Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
   },
-  "scorecard_id": "scorecard:mvp4_upbit_scorecard_bridge_current_refresh-cycle-2:KRW-BTC-pullback-trend-long",
+  "scorecard_id": "mvp4_upbit_paper_runtime_latest_candidate_scorecard",
   "candidate_id": "KRW-BTC-pullback-trend-long",
+  "source_runtime_cycle_id": "mvp4-candidate-scorecard-runtime-linkage-binding-cycle-2",
+  "source_runtime_cycle_hash": "0F109BCFC644C5D67068C6F314AB87830480E0A149B21F81ED27D59EFB841024",
   "strategy_id": "trend_pullback",
   "strategy_build_id": "upbit_paper_runtime_cycle_v1",
   "parameter_hash": "B579722DD59327143FA7D6E414FC78393F8C6A7543E5ECCF59F688015BC761A6",
@@ -37,7 +39,7 @@
   "live_readiness_status": "NOT_LIVE_READY",
   "operator_warning": "PAPER candidate scorecard is not LIVE_READY and live orders remain blocked.",
   "source_evidence_ids": [
-    "upbit_paper_runtime_cycle:mvp4_upbit_scorecard_bridge_current_refresh-cycle-2:45EE21AFEBE02AFEAADBFE4850FDA659A9510AC12AF38D1DAA15436293C7FEB7"
+    "upbit_paper_runtime_cycle:mvp4-candidate-scorecard-runtime-linkage-binding-cycle-2:0F109BCFC644C5D67068C6F314AB87830480E0A149B21F81ED27D59EFB841024"
   ],
   "blockers": [
     {
