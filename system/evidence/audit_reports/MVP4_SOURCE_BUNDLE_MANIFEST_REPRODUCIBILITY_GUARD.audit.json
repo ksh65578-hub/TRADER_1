@@ -1,0 +1,17 @@
+{
+  "audit_schema_id": "trader1.source_bundle_manifest_reproducibility_guard_audit.v1",
+  "generated_at_utc": "2026-04-30T18:37:15Z",
+  "status": "PASS",
+  "hidden_defects": [
+    {
+      "classification": "source_manifest_worktree_hash_drift",
+      "condition": "post-merge checkout line endings changed source file byte hashes while source_bundle_manifest retained pre-checkout hashes",
+      "impact": "full tests could rewrite the manifest and make generated_artifact_dirty_validator fail",
+      "fix": "regenerated source_bundle_manifest and read_cache_manifest from the current checked-out main state"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,18 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T18:37:15Z",
+  "patch_id": "MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD.patch_result.json",
+    "system/evidence/validator_runs/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD.stage_gate_result.json",
+    "system/evidence/audit_reports/MVP4_SOURCE_BUNDLE_MANIFEST_REPRODUCIBILITY_GUARD.audit.json",
+    "contracts/security/source_bundle_manifest.json",
+    "contracts/generated/read_cache_manifest.json"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
