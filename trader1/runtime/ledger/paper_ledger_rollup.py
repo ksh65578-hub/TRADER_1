@@ -380,6 +380,11 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
         return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup cannot carry blockers", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("rollup_status") == "PASS" and report.get("ledger_jsonl_count") < 1:
         return PaperLedgerRollupValidationResult("BLOCKED", "PASS paper ledger rollup requires ledger JSONL input", "LEDGER_UNAVAILABLE")
+    if report.get("ledger_event_count") < report.get("filled_order_count"):
+        return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup event counts are inconsistent", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("rollup_status") == "PASS" and report.get("ledger_event_count") > 0:
+        if not isinstance(report.get("latest_ledger_head_hash"), str) or len(report["latest_ledger_head_hash"]) != 64:
+            return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup requires latest ledger head hash", "LEDGER_INTEGRITY_FAIL")
     if report.get("duplicate_event_count") or report.get("duplicate_order_count"):
         if report.get("rollup_status") != "BLOCKED":
             return PaperLedgerRollupValidationResult("BLOCKED", "duplicate PAPER ledger rollup must block review", "RECONCILIATION_REQUIRED")
@@ -392,8 +397,26 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
     portfolio_result = validate_paper_portfolio_snapshot(portfolio)
     if report.get("rollup_status") == "PASS" and portfolio_result.status != "PASS":
         return PaperLedgerRollupValidationResult(portfolio_result.status, portfolio_result.message, portfolio_result.blocker_code)
+    if (
+        portfolio.get("exchange") != report.get("exchange")
+        or portfolio.get("market_type") != report.get("market_type")
+        or portfolio.get("mode") != report.get("mode")
+        or portfolio.get("session_id") != report.get("session_id")
+    ):
+        return PaperLedgerRollupValidationResult("BLOCKED", "paper ledger rollup portfolio scope mismatch", "SNAPSHOT_SCOPE_MISMATCH")
     if portfolio.get("source") != "PAPER_LEDGER_ROLLUP":
         return PaperLedgerRollupValidationResult("BLOCKED", "paper ledger rollup portfolio source mismatch", "LIVE_FINAL_GUARD_FAILED")
+    if report.get("rollup_status") == "PASS":
+        position_count = int(portfolio.get("open_position_count", -1))
+        filled_count = int(report.get("filled_order_count", -1))
+        if filled_count > 0 and position_count < 1:
+            return PaperLedgerRollupValidationResult("FAIL", "filled PAPER rollup requires at least one portfolio position", "SCHEMA_IDENTITY_MISMATCH")
+        if position_count > filled_count:
+            return PaperLedgerRollupValidationResult("FAIL", "paper rollup portfolio position count exceeds filled order count", "SCHEMA_IDENTITY_MISMATCH")
+        artifact_prefix = f"system/runtime/upbit/krw_spot/paper/{report.get('session_id')}/ledger/"
+        for artifact_path in report.get("artifact_paths", []):
+            if not isinstance(artifact_path, str) or not artifact_path.startswith(artifact_prefix) or ".." in artifact_path.replace("\\", "/").split("/"):
+                return PaperLedgerRollupValidationResult("BLOCKED", "paper ledger rollup artifact path escaped PAPER ledger namespace", "SNAPSHOT_SCOPE_MISMATCH")
     if report.get("rollup_status") == "PASS":
         return PaperLedgerRollupValidationResult("PASS", "PAPER ledger rollup is cumulative, scoped, and live-blocked", None)
     return PaperLedgerRollupValidationResult("BLOCKED", "PAPER ledger rollup is blocked", report.get("primary_blocker_code") or "UNKNOWN_BLOCKED")

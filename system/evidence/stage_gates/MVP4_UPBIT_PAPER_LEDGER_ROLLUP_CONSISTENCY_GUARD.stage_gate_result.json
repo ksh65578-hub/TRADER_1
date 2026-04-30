@@ -1,0 +1,52 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-04-30T17:17:14Z",
+  "patch_id": "MVP4_UPBIT_PAPER_LEDGER_ROLLUP_CONSISTENCY_GUARD_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_UPBIT_PAPER_LEDGER_ROLLUP_CONSISTENCY_GUARD_NO_LIVE_ORDERS",
+  "ledger_rollup_consistency_guard_audit": {
+    "audit_schema_id": "trader1.upbit_paper_ledger_rollup_consistency_guard_audit.v1",
+    "status": "PASS",
+    "blockers": [],
+    "checks": {
+      "portfolio_scope_guard": true,
+      "filled_count_position_guard": true,
+      "latest_head_hash_guard": true,
+      "artifact_path_namespace_guard": true,
+      "validator_cross_scope_negative": true,
+      "validator_count_mismatch_negative": true,
+      "validator_path_escape_negative": true,
+      "test_cross_scope_portfolio": true,
+      "test_count_mismatch": true,
+      "test_path_escape": true
+    },
+    "hidden_defects": [
+      {
+        "classification": "cross_scope_portfolio_truth_mixing",
+        "condition": "paper ledger rollup could carry a portfolio snapshot from a different supported paper scope after hash recomputation",
+        "impact": "dashboard portfolio truth could show a mismatched exchange/market/session balance",
+        "fix": "rollup validator now requires portfolio scope to match the rollup scope exactly"
+      },
+      {
+        "classification": "rollup_count_false_safe",
+        "condition": "filled_order_count could be changed independently from the portfolio positions after hash recomputation",
+        "impact": "operator could see inconsistent positions/PnL vs execution count",
+        "fix": "rollup validator now checks filled count, position count, and latest ledger head requirements"
+      },
+      {
+        "classification": "cross_namespace_rollup_artifact_path",
+        "condition": "rollup artifact paths could be mutated outside the UPBIT/KRW_SPOT/PAPER ledger namespace",
+        "impact": "dashboard/evidence could reference live or cross-mode artifacts",
+        "fix": "rollup validator now blocks artifact path namespace escape"
+      }
+    ],
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
