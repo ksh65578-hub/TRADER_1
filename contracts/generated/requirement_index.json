@@ -10051,7 +10051,63 @@
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-DASHBOARD-POSITION-DETAIL-TRUTH-GUARD",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "dashboard position detail truth guard",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-POSITION-DETAIL-TRUTH-GUARD:dashboard must display verified PAPER position detail without UNKNOWN field loss",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard position detail must preserve PAPER fill fields",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.paper_portfolio_snapshot.v1"
+      ],
+      "validator_ids": [
+        "registry_validator",
+        "schema_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "runtime_schema_instance_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py",
+        "tools/emit_dashboard_position_detail_truth_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "VALIDATOR_IMPLEMENTATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-PAPER-RUNTIME-PORTFOLIO-BINDING"
+      ],
+      "source_text_sha256": "1382D5F0CF61E9733929F93198989B5ABA1A7E0FEBEFDB34B081FD7B00F4765C",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T17:42:27Z"
+  "updated_at_utc": "2026-04-30T18:26:26Z"
 }

@@ -1,0 +1,17 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "generated_at_utc": "2026-04-30T18:26:26Z",
+  "patch_id": "MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS",
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ]
+}

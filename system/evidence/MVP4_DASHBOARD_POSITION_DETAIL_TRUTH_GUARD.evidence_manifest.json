@@ -1,0 +1,33 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T18:26:26Z",
+  "patch_id": "MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.patch_result.json",
+    "system/evidence/validator_runs/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.stage_gate_result.json",
+    "system/evidence/audit_reports/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.audit.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard/index.html",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard_shell.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/launcher/root_launcher_report.json",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/summary.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard/index.html",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/launcher/root_launcher_report.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/launcher/root_launcher_report.json",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/launcher/root_launcher_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

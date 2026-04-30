@@ -17,7 +17,10 @@ from trader1.research.profitability.candidate_scorecard import candidate_scoreca
 from trader1.runtime.boot.startup_probe import build_startup_probe
 from trader1.runtime.health.heartbeat import build_heartbeat
 from trader1.runtime.health.stability_history import append_stability_history
-from trader1.runtime.portfolio.paper_portfolio import build_initial_paper_portfolio_snapshot
+from trader1.runtime.portfolio.paper_portfolio import (
+    build_initial_paper_portfolio_snapshot,
+    build_paper_portfolio_snapshot_from_fill,
+)
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import upbit_paper_runtime_recovery_guard_hash
@@ -59,7 +62,12 @@ def hashes():
     return registry_hash, schema_bundle_hash, source_tree_hash
 
 
-def build_inputs(session_id="test_read_only_dashboard", with_paper_portfolio=True, heartbeat_component_overrides=None):
+def build_inputs(
+    session_id="test_read_only_dashboard",
+    with_paper_portfolio=True,
+    heartbeat_component_overrides=None,
+    paper_portfolio_snapshot=None,
+):
     registry_hash, schema_bundle_hash, source_tree_hash = hashes()
     config = build_runtime_config(
         exchange="UPBIT",
@@ -100,15 +108,17 @@ def build_inputs(session_id="test_read_only_dashboard", with_paper_portfolio=Tru
         schema_bundle_hash=schema_bundle_hash,
         source_tree_hash=source_tree_hash,
     )
-    paper_portfolio = (
-        build_initial_paper_portfolio_snapshot(
-            exchange="UPBIT",
-            market_type="KRW_SPOT",
-            session_id=session_id,
+    paper_portfolio = paper_portfolio_snapshot
+    if paper_portfolio is None:
+        paper_portfolio = (
+            build_initial_paper_portfolio_snapshot(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                session_id=session_id,
+            )
+            if with_paper_portfolio
+            else None
         )
-        if with_paper_portfolio
-        else None
-    )
     summary = build_summary_shell(
         exchange="UPBIT",
         market_type="KRW_SPOT",
@@ -2427,6 +2437,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
                 "side": "LONG",
                 "quantity": "0.01",
                 "avg_price": "100000000",
+                "mark_price": "99900000",
+                "market_value": "999000",
+                "cost_basis": "1000000",
                 "unrealized_pnl": "-2500 KRW",
             }
         ]
@@ -2454,11 +2467,62 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Portfolio Details", html)
         self.assertIn("portfolio-detail-grid", html)
         self.assertIn("Held Positions", html)
-        self.assertIn("KRW-BTC | LONG | qty 0.01 | PnL -2500 KRW", html)
+        self.assertIn("KRW-BTC | LONG | qty 0.01 | avg 100000000 | mark 99900000 | value 999000 | PnL -2500 KRW", html)
+        self.assertIn("Mark Price", html)
+        self.assertIn("Market Value", html)
+        self.assertIn("Cost Basis", html)
         self.assertIn("Entry Candidates", html)
         self.assertIn("KRW-ETH", html)
         self.assertIn("KRW-XRP", html)
         self.assertIn("table-wrap", html)
+
+    def test_dashboard_position_detail_reads_paper_portfolio_fill_fields(self):
+        session_id = "test_read_only_dashboard_position_fill"
+        paper_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id=session_id,
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        summary, heartbeat, startup_probe = build_inputs(
+            session_id=session_id,
+            paper_portfolio_snapshot=paper_portfolio,
+        )
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(dashboard["portfolio_snapshot"]["positions"]["value_display"], "1")
+        rows = dashboard["position_snapshot"]["rows"]
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["symbol"], "KRW-BTC")
+        self.assertEqual(row["side"], "LONG")
+        self.assertEqual(row["quantity"], "0.01")
+        self.assertEqual(row["avg_price"], "1000500")
+        self.assertEqual(row["mark_price"], "1000000")
+        self.assertEqual(row["market_value"], "10000")
+        self.assertEqual(row["cost_basis"], "10010")
+        self.assertEqual(row["unrealized_pnl"], "-10")
+        self.assertNotIn("UNKNOWN", row.values())
+        html = render_dashboard_html(dashboard)
+        self.assertIn("KRW-BTC | LONG | qty 0.01 | avg 1000500 | mark 1000000 | value 10000 | PnL -10", html)
+        self.assertIn("<td>1000500</td>", html)
+        self.assertIn("<td>1000000</td>", html)
+        self.assertIn("<td>10000</td>", html)
+        self.assertIn("<td>10010</td>", html)
 
     def test_dashboard_projects_paper_exposure_quality_report(self):
         dashboard = build_dashboard_with_paper_exposure_quality()

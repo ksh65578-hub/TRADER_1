@@ -787,13 +787,24 @@ def _context_message(items: Any, fallback: str) -> str:
     return fallback
 
 
+def _position_display_value(position: dict[str, Any], *keys: str, fallback: str = "UNKNOWN") -> str:
+    for key in keys:
+        value = position.get(key)
+        if value is not None and value != "":
+            return str(value)
+    return fallback
+
+
 def _position_row(position: dict[str, Any]) -> dict[str, str]:
     return {
-        "symbol": str(position.get("symbol") or position.get("instrument") or "UNKNOWN"),
-        "side": str(position.get("side") or position.get("direction") or "UNKNOWN"),
-        "quantity": str(position.get("quantity") or position.get("qty") or position.get("size") or "UNKNOWN"),
-        "avg_price": str(position.get("avg_price") or position.get("entry_price") or "UNKNOWN"),
-        "unrealized_pnl": str(position.get("unrealized_pnl") or position.get("pnl") or "UNKNOWN"),
+        "symbol": _position_display_value(position, "symbol", "instrument"),
+        "side": _position_display_value(position, "side", "direction"),
+        "quantity": _position_display_value(position, "quantity", "qty", "size"),
+        "avg_price": _position_display_value(position, "average_entry_price", "avg_price", "entry_price"),
+        "mark_price": _position_display_value(position, "mark_price", "last_price"),
+        "market_value": _position_display_value(position, "market_value", "position_market_value", "notional"),
+        "cost_basis": _position_display_value(position, "cost_basis", "cost"),
+        "unrealized_pnl": _position_display_value(position, "unrealized_pnl", "pnl"),
     }
 
 
@@ -842,7 +853,13 @@ def _position_snapshot(summary: dict[str, Any] | None, summary_freshness: str) -
 
 def _position_notional(position: dict[str, Any]) -> Decimal | None:
     quantity = _decimal(position.get("quantity") or position.get("qty") or position.get("size"))
-    price = _decimal(position.get("avg_price") or position.get("entry_price") or position.get("mark_price") or position.get("last_price"))
+    price = _decimal(
+        position.get("mark_price")
+        or position.get("last_price")
+        or position.get("average_entry_price")
+        or position.get("avg_price")
+        or position.get("entry_price")
+    )
     if quantity is None or price is None or quantity < 0 or price < 0:
         return None
     return abs(quantity * price)
@@ -5655,7 +5672,19 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
         values.extend(str(positions.get(key, "")) for key in ("title", "status", "empty_message"))
         for row in positions.get("rows", []):
             if isinstance(row, dict):
-                values.extend(str(row.get(key, "")) for key in ("symbol", "side", "quantity", "avg_price", "unrealized_pnl"))
+                values.extend(
+                    str(row.get(key, ""))
+                    for key in (
+                        "symbol",
+                        "side",
+                        "quantity",
+                        "avg_price",
+                        "mark_price",
+                        "market_value",
+                        "cost_basis",
+                        "unrealized_pnl",
+                    )
+                )
     portfolio = shell.get("portfolio_snapshot", {})
     if isinstance(portfolio, dict):
         values.extend(
@@ -7148,7 +7177,17 @@ def validate_read_only_dashboard_shell(
     if positions.get("status") == "OPEN" and shell.get("mode") != "PAPER":
         return DashboardValidationResult("BLOCKED", "open dashboard positions are PAPER-only without live evidence", "LIVE_FINAL_GUARD_FAILED")
     for row in rows:
-        if not isinstance(row, dict) or set(row) != {"symbol", "side", "quantity", "avg_price", "unrealized_pnl"}:
+        expected_row_keys = {
+            "symbol",
+            "side",
+            "quantity",
+            "avg_price",
+            "mark_price",
+            "market_value",
+            "cost_basis",
+            "unrealized_pnl",
+        }
+        if not isinstance(row, dict) or set(row) != expected_row_keys:
             return DashboardValidationResult("FAIL", "position row shape mismatch", "SCHEMA_IDENTITY_MISMATCH")
 
     risk = shell.get("risk_exposure_snapshot")
@@ -8129,7 +8168,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         position_preview_items = [
             (
                 f"{row.get('symbol', 'UNKNOWN')} | {row.get('side', 'UNKNOWN')} | "
-                f"qty {row.get('quantity', 'UNKNOWN')} | PnL {row.get('unrealized_pnl', 'UNKNOWN')}"
+                f"qty {row.get('quantity', 'UNKNOWN')} | avg {row.get('avg_price', 'UNKNOWN')} | "
+                f"mark {row.get('mark_price', 'UNKNOWN')} | value {row.get('market_value', 'UNKNOWN')} | "
+                f"PnL {row.get('unrealized_pnl', 'UNKNOWN')}"
             )
             for row in position_rows[:4]
             if isinstance(row, dict)
@@ -8169,6 +8210,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             f"<td>{safe_text(row.get('side', 'UNKNOWN'))}</td>"
             f"<td>{safe_text(row.get('quantity', 'UNKNOWN'))}</td>"
             f"<td>{safe_text(row.get('avg_price', 'UNKNOWN'))}</td>"
+            f"<td>{safe_text(row.get('mark_price', 'UNKNOWN'))}</td>"
+            f"<td>{safe_text(row.get('market_value', 'UNKNOWN'))}</td>"
+            f"<td>{safe_text(row.get('cost_basis', 'UNKNOWN'))}</td>"
             f"<td>{safe_text(row.get('unrealized_pnl', 'UNKNOWN'))}</td>"
             "</tr>"
             for row in position_rows
@@ -8176,7 +8220,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         )
     else:
         rows_html = (
-            "<tr><td colspan=\"5\" class=\"empty-row\">"
+            "<tr><td colspan=\"8\" class=\"empty-row\">"
             + safe_text(positions.get("empty_message", "No open PAPER positions"))
             + "</td></tr>"
         )
@@ -8187,7 +8231,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p>Status: {safe_text(positions.get('status', 'NONE'))} | Count: {safe_text(positions.get('open_position_count', 0))}</p>"
         "</div>"
         "<div class=\"table-wrap\"><table>"
-        "<thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Avg Price</th><th>Unrealized PnL</th></tr></thead>"
+        "<thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Avg Price</th><th>Mark Price</th><th>Market Value</th><th>Cost Basis</th><th>Unrealized PnL</th></tr></thead>"
         f"<tbody>{rows_html}</tbody>"
         "</table></div>"
         "<small>Display-only PAPER position view. Ledger and reconciliation remain separate execution truth.</small>"
@@ -8441,7 +8485,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     details.detail-drawer > summary { font-size: 16px; }
     summary { cursor: pointer; font-weight: 700; }
     .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 860px; }
     th, td { border-bottom: 1px solid #e2e6eb; padding: 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
     .empty-row { color: var(--muted); text-align: center; }
     h1, h2, p { margin: 0; }
@@ -8678,11 +8722,15 @@ def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationR
         "detail_status_key": 'data-detail-key="status-panels"',
         "detail_source_key": 'data-detail-key="source-artifacts"',
         "paper_scorecard_quicklook": "PAPER Scorecard",
+        "position_mark_price_column": "Mark Price",
+        "position_market_value_column": "Market Value",
+        "position_cost_basis_column": "Cost Basis",
         "market_data_continuity": "Market Data Continuity",
         "market_data_color_class": ".market-data-blue",
         "detail_state_storage": "trader1.dashboard.detailsOpen.",
         "no_horizontal_body_scroll": "overflow-x: hidden",
         "table_scroll_wrapper": ".table-wrap { width: 100%; max-width: 100%; overflow-x: auto; }",
+        "position_table_width": "min-width: 860px;",
         "no_default_open_details": '<details class="detail-drawer" data-detail-key="main-detail-drawer">',
     }
     missing = [name for name, fragment in required_fragments.items() if fragment not in html]
