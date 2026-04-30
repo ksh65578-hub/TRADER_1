@@ -548,22 +548,69 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
             return UpbitPaperPersistentLoopValidationResult("FAIL", "blocked recovery guard must expose recovery requirement", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("data_source_policy") != "PUBLIC_OR_STATIC_FIXTURE_ONLY":
         return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop data source policy is unsafe", "LIVE_FINAL_GUARD_FAILED")
+    completed_cycle_count = int(report.get("completed_cycle_count", -1))
+    requested_cycle_count = int(report.get("requested_cycle_count", -1))
+    if report.get("actual_paper_runtime_executed") is not (completed_cycle_count > 0):
+        return UpbitPaperPersistentLoopValidationResult(
+            "BLOCKED",
+            "persistent loop runtime execution flag does not match completed cycle count",
+            "MEASUREMENT_MISSING",
+        )
     cycle_results = report.get("cycle_results")
     if not isinstance(cycle_results, list) or len(cycle_results) != report.get("requested_cycle_count"):
         return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle result count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    seen_collector_ids: set[str] = set()
+    seen_cycle_ids: set[str] = set()
+    seen_collection_hashes: set[str] = set()
+    seen_runtime_hashes: set[str] = set()
     pass_count = 0
-    for item in cycle_results:
+    artifact_prefix = f"system/runtime/upbit/krw_spot/paper/{report.get('session_id')}/"
+    for expected_index, item in enumerate(cycle_results, start=1):
+        if not isinstance(item, dict):
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle result must be an object", "SCHEMA_IDENTITY_MISMATCH")
+        if item.get("cycle_index") != expected_index:
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle index sequence mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        collector_id = item.get("collector_id")
+        cycle_id = item.get("cycle_id")
+        collection_hash = item.get("collection_hash")
+        runtime_hash = item.get("runtime_cycle_hash")
+        for field_name, field_value in (
+            ("collector_id", collector_id),
+            ("cycle_id", cycle_id),
+            ("collection_hash", collection_hash),
+            ("runtime_cycle_hash", runtime_hash),
+        ):
+            if not isinstance(field_value, str) or not field_value:
+                return UpbitPaperPersistentLoopValidationResult("FAIL", f"persistent loop missing cycle result field: {field_name}", "SCHEMA_IDENTITY_MISMATCH")
+        if collector_id in seen_collector_ids or cycle_id in seen_cycle_ids:
+            return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop duplicate cycle identity requires reconciliation", "RECONCILIATION_REQUIRED")
+        if collection_hash in seen_collection_hashes or runtime_hash in seen_runtime_hashes:
+            return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop duplicate source/runtime hash requires reconciliation", "RECONCILIATION_REQUIRED")
+        seen_collector_ids.add(str(collector_id))
+        seen_cycle_ids.add(str(cycle_id))
+        seen_collection_hashes.add(str(collection_hash))
+        seen_runtime_hashes.add(str(runtime_hash))
+        artifact_paths = item.get("artifact_paths")
+        if not isinstance(artifact_paths, list):
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle artifact paths must be an array", "SCHEMA_IDENTITY_MISMATCH")
+        for artifact_path in artifact_paths:
+            if not isinstance(artifact_path, str) or not artifact_path.startswith(artifact_prefix) or ".." in artifact_path.replace("\\", "/").split("/"):
+                return UpbitPaperPersistentLoopValidationResult(
+                    "BLOCKED",
+                    "persistent loop cycle artifact path escaped PAPER namespace",
+                    "SNAPSHOT_SCOPE_MISMATCH",
+                )
         if item.get("collection_status") != "PASS" or item.get("collection_writer_status") != "PASS":
             return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop collection did not pass", "DATA_UNAVAILABLE")
         if item.get("runtime_status") != "PASS" or item.get("runtime_writer_status") != "PASS":
             return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop runtime cycle did not pass", "RECONCILIATION_REQUIRED")
-        if not item.get("collection_hash") or not item.get("runtime_cycle_hash"):
-            return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop missing source hashes", "SCHEMA_IDENTITY_MISMATCH")
         if item.get("live_order_ready") or item.get("live_order_allowed") or item.get("can_live_trade") or item.get("scale_up_allowed"):
             return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop cycle result attempted live or scale-up permission", "LIVE_FINAL_GUARD_FAILED")
         pass_count += 1
     if report.get("completed_cycle_count") != pass_count:
         return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop completed count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("loop_status") == "PASS" and completed_cycle_count != requested_cycle_count:
+        return UpbitPaperPersistentLoopValidationResult("BLOCKED", "PASS persistent loop must complete every requested cycle", "MEASUREMENT_MISSING")
     if report.get("loop_status") == "PASS" and report.get("primary_blocker_code") is not None:
         return UpbitPaperPersistentLoopValidationResult("FAIL", "PASS persistent loop cannot carry primary blocker", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("loop_status") == "PASS":

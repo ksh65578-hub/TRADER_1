@@ -364,10 +364,59 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
                 requested_cycle_count=1,
             )
             loop["completed_cycle_count"] = 0
+            loop["actual_paper_runtime_executed"] = False
             loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
             result = validate_upbit_paper_persistent_loop_report(loop)
             self.assertEqual(result.status, "FAIL")
             self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_persistent_loop_blocks_false_runtime_execution_flag(self):
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="bounded-paper-loop-false-runtime-flag",
+                requested_cycle_count=1,
+            )
+            loop["actual_paper_runtime_executed"] = False
+            loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
+
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "MEASUREMENT_MISSING")
+
+    def test_persistent_loop_blocks_duplicate_cycle_identity(self):
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="bounded-paper-loop-duplicate-cycle",
+                requested_cycle_count=2,
+            )
+            loop["cycle_results"][1] = dict(loop["cycle_results"][0])
+            loop["cycle_results"][1]["cycle_index"] = 2
+            loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
+
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "RECONCILIATION_REQUIRED")
+
+    def test_persistent_loop_blocks_cross_namespace_artifact_path(self):
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="bounded-paper-loop-path-escape",
+                requested_cycle_count=1,
+            )
+            loop["cycle_results"][0]["artifact_paths"].append(
+                "system/runtime/upbit/krw_spot/live/mvp1_upbit_paper_launcher/unsafe.json"
+            )
+            loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
+
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
 
     def test_new_validators_pass_current_contract(self):
         results = run_validators(

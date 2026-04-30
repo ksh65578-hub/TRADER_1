@@ -1,0 +1,43 @@
+{
+  "audit_schema_id": "trader1.upbit_paper_runtime_e2e_consistency_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "cycle_result_schema_strict": true,
+    "cycle_result_schema_requires_identity": true,
+    "runtime_execution_flag_consistency_guard": true,
+    "cycle_identity_uniqueness_guard": true,
+    "source_hash_uniqueness_guard": true,
+    "artifact_namespace_guard": true,
+    "validator_negative_false_runtime_flag": true,
+    "validator_negative_duplicate_cycle": true,
+    "validator_negative_path_escape": true,
+    "tests_cover_false_runtime_flag": true,
+    "tests_cover_duplicate_cycle": true,
+    "tests_cover_path_escape": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "false_safe_runtime_execution_status",
+      "condition": "completed_cycle_count was positive while actual_paper_runtime_executed was mutated false",
+      "impact": "operator UI could understate or misrepresent whether PAPER runtime actually executed",
+      "fix": "validator now blocks execution flag/count mismatch"
+    },
+    {
+      "classification": "duplicate_cycle_evidence_reuse",
+      "condition": "persistent loop cycle_results could repeat collector/cycle ids or hashes",
+      "impact": "duplicate cycle evidence could look like multiple independent PAPER cycles",
+      "fix": "validator now blocks duplicate cycle ids, collection hashes, and runtime hashes"
+    },
+    {
+      "classification": "cross_namespace_artifact_path_mixing",
+      "condition": "cycle artifact paths could be mutated outside UPBIT/KRW_SPOT/PAPER session namespace",
+      "impact": "dashboard/evidence could point at cross-mode artifacts",
+      "fix": "validator now blocks artifact path namespace escape"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
