@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-04-30T18:13:36Z",
+  "generated_at_utc": "2026-04-30T18:26:26Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -65,7 +65,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-04-30T18:13:36Z",
+    "generated_at_utc": "2026-04-30T18:26:26Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -130,7 +130,7 @@
     "history_window": "CURRENT_SNAPSHOT_ONLY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 843,
+    "observed_span_seconds": 1553,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "INSUFFICIENT_SPAN",
     "degraded_sample_count": 60,
@@ -169,7 +169,7 @@
         "label": "Runtime artifact pressure",
         "status": "WARN",
         "value_display": "WARN",
-        "detail": "Runtime artifact pressure WARN: files=231, bytes=1734016, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
+        "detail": "Runtime artifact pressure WARN: files=231, bytes=1734012, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -217,7 +217,7 @@
     "source": "heartbeat.json",
     "history_window": "CURRENT_SNAPSHOT_ONLY",
     "history_sample_count": 60,
-    "observed_span_seconds": 843,
+    "observed_span_seconds": 1553,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "INSUFFICIENT_SPAN",
     "stable_sample_count": 0,
@@ -1436,5 +1436,5 @@
   "blocking_reason": "HARD_TRUTH_MISSING",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "0722EC669117F947728DAF229F29FD93F8DC15726E335A6C71829C02D7B2A128"
+  "dashboard_hash": "22709A5D44067FC7756014C098035074311BE3FF84B06AD7CF8E6384B326325E"
 }

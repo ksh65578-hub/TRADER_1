@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-04-30T18:12:54Z",
+  "generated_at_utc": "2026-04-30T18:26:27Z",
   "exchange": "BINANCE",
   "market_type": "SPOT",
   "mode": "PAPER",
@@ -47,7 +47,7 @@
   "portfolio": {
     "source": "LEDGER",
     "freshness_status": "PASS",
-    "source_snapshot_hash": "7DD425BCD14E12906CD673E8AC592071D33BF903E7E804FFA7D9D8586E20AC93",
+    "source_snapshot_hash": "E92B51E89640B36094DF4161D849201FFE7B32D2B3C5AC72200573FFBFBAB5F0",
     "source_snapshot_status": "PASS",
     "source_balance_kind": "SIMULATED_PAPER_LEDGER",
     "equity": 10000.0,

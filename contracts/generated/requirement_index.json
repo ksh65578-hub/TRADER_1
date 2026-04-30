@@ -10082,13 +10082,16 @@
       "artifact_ids": [
         "contracts/schema/read_only_dashboard_shell.schema.json",
         "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
         "trader1/validation/mvp0_validators.py",
         "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py",
         "tools/emit_dashboard_position_detail_truth_guard_patch_evidence.py",
         "contracts/generated/context_pack/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.md"
       ],
       "test_ids": [
-        "tests/dashboard/test_read_only_dashboard.py"
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py"
       ],
       "mvp_stage": "MVP-4",
       "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
@@ -10106,5 +10109,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T18:12:54Z"
+  "updated_at_utc": "2026-04-30T18:26:26Z"
 }

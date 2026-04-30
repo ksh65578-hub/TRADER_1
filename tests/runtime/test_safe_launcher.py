@@ -755,13 +755,15 @@ class SafeLauncherTest(unittest.TestCase):
 
     def test_refresh_launcher_monitor_artifacts_writes_fresh_heartbeat(self):
         report = build_launcher_report("UPBIT_PAPER")
-        heartbeat = refresh_launcher_monitor_artifacts(report)
-        self.assertEqual(heartbeat["heartbeat_status"], "PASS")
-        self.assertFalse(heartbeat["live_order_allowed"])
-        self.assertFalse(heartbeat["can_live_trade"])
-        paths = launcher_dashboard_paths(report)
-        self.assertTrue(paths["heartbeat"].exists())
-        self.assertTrue(paths["dashboard_html"].exists())
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            heartbeat = refresh_launcher_monitor_artifacts(report, root)
+            self.assertEqual(heartbeat["heartbeat_status"], "PASS")
+            self.assertFalse(heartbeat["live_order_allowed"])
+            self.assertFalse(heartbeat["can_live_trade"])
+            paths = launcher_dashboard_paths(report, root)
+            self.assertTrue(paths["heartbeat"].exists())
+            self.assertTrue(paths["dashboard_html"].exists())
 
     def test_refresh_launcher_monitor_artifacts_blocks_stale_source_writer(self):
         report = build_launcher_report("UPBIT_PAPER")
@@ -788,20 +790,21 @@ class SafeLauncherTest(unittest.TestCase):
     def test_launcher_main_can_run_non_interactive_without_pause(self):
         self.assertFalse(should_pause_for_operator(False))
         buffer = StringIO()
-        with redirect_stdout(buffer):
-            result = launcher_main("UPBIT_PAPER", pause=False, open_dashboard=False)
+        with TemporaryDirectory() as tmp, redirect_stdout(buffer):
+            result = launcher_main("UPBIT_PAPER", pause=False, open_dashboard=False, root=Path(tmp))
         self.assertEqual(result, 0)
         self.assertIn("HEARTBEAT 1/1 PASS", buffer.getvalue())
 
     def test_launcher_main_operator_monitor_can_be_bounded_for_tests(self):
         buffer = StringIO()
-        with redirect_stdout(buffer):
+        with TemporaryDirectory() as tmp, redirect_stdout(buffer):
             result = launcher_main(
                 "UPBIT_PAPER",
                 pause=True,
                 open_dashboard=False,
                 console_heartbeat_ticks=2,
                 console_heartbeat_interval_seconds=0.0,
+                root=Path(tmp),
             )
         output = buffer.getvalue()
         self.assertEqual(result, 0)
@@ -811,8 +814,14 @@ class SafeLauncherTest(unittest.TestCase):
 
     def test_launcher_main_operator_pause_defaults_to_one_shot_safe_boot(self):
         buffer = StringIO()
-        with redirect_stdout(buffer):
-            result = launcher_main("UPBIT_PAPER", pause=True, open_dashboard=False, console_heartbeat_interval_seconds=0.0)
+        with TemporaryDirectory() as tmp, redirect_stdout(buffer):
+            result = launcher_main(
+                "UPBIT_PAPER",
+                pause=True,
+                open_dashboard=False,
+                console_heartbeat_interval_seconds=0.0,
+                root=Path(tmp),
+            )
         output = buffer.getvalue()
         self.assertEqual(result, 0)
         self.assertIn("HEARTBEAT 1/1 PASS", output)

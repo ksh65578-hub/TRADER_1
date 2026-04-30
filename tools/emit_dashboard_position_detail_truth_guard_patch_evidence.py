@@ -37,8 +37,10 @@ from trader1.validation.mvp0_validators import run_validators  # noqa: E402
 CHANGED_ARTIFACTS = [
     "contracts/schema/read_only_dashboard_shell.schema.json",
     "trader1/dashboard/read_only_dashboard.py",
+    "trader1/runtime/boot/safe_launcher.py",
     "trader1/validation/mvp0_validators.py",
     "tests/dashboard/test_read_only_dashboard.py",
+    "tests/runtime/test_safe_launcher.py",
     "tools/emit_dashboard_position_detail_truth_guard_patch_evidence.py",
     "contracts/generated/context_pack/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.md",
 ]
@@ -115,6 +117,8 @@ def build_audit() -> dict[str, Any]:
     module_text = (ROOT / "trader1" / "dashboard" / "read_only_dashboard.py").read_text(encoding="utf-8")
     schema_text = (ROOT / "contracts" / "schema" / "read_only_dashboard_shell.schema.json").read_text(encoding="utf-8")
     test_text = (ROOT / "tests" / "dashboard" / "test_read_only_dashboard.py").read_text(encoding="utf-8")
+    launcher_test_text = (ROOT / "tests" / "runtime" / "test_safe_launcher.py").read_text(encoding="utf-8")
+    launcher_text = (ROOT / "trader1" / "runtime" / "boot" / "safe_launcher.py").read_text(encoding="utf-8")
     validator_text = (ROOT / "trader1" / "validation" / "mvp0_validators.py").read_text(encoding="utf-8")
     checks = {
         "average_entry_price_mapped": '"average_entry_price", "avg_price", "entry_price"' in module_text,
@@ -123,6 +127,9 @@ def build_audit() -> dict[str, Any]:
         "dashboard_table_has_operator_columns": all(label in module_text for label in ("Mark Price", "Market Value", "Cost Basis")),
         "unit_tests_cover_fill_fields": "test_dashboard_position_detail_reads_paper_portfolio_fill_fields" in test_text,
         "validator_covers_fill_fields": "filled paper position dashboard lost source position detail fields" in validator_text,
+        "launcher_main_accepts_test_runtime_root": "root: Path = ROOT" in launcher_text and "write_launcher_runtime_bundle(report, root)" in launcher_text,
+        "launcher_tests_isolate_runtime_writes": "refresh_launcher_monitor_artifacts(report, root)" in launcher_test_text
+        and "launcher_main(\"UPBIT_PAPER\", pause=False, open_dashboard=False, root=Path(tmp))" in launcher_test_text,
     }
     blockers = [name for name, passed in checks.items() if not passed]
     return {
@@ -142,6 +149,12 @@ def build_audit() -> dict[str, Any]:
                 "condition": "position values were selected through truthiness checks",
                 "impact": "valid numeric zero values could be displayed as UNKNOWN",
                 "fix": "position display extraction now preserves zero values and only falls back on missing or empty values",
+            },
+            {
+                "classification": "test_dirty_runtime_artifacts",
+                "condition": "launcher_main and refresh monitor tests wrote to the tracked runtime directory by default",
+                "impact": "full test runs could pass while leaving dashboard runtime artifacts dirty, weakening reproducibility",
+                "fix": "launcher_main now accepts an explicit runtime root for tests and launcher tests use TemporaryDirectory paths",
             },
         ],
         "live_order_ready": False,
@@ -171,6 +184,7 @@ acceptance_checklist:
 - Dashboard position rows must preserve verified PAPER fill detail fields.
 - average_entry_price must display as Avg Price instead of UNKNOWN.
 - Mark price, market value, cost basis, and unrealized PnL must be operator-visible.
+- Launcher monitor tests must not rewrite tracked runtime dashboard artifacts.
 - Dashboard remains display truth only and cannot create live, order, or scale-up permission.
 
 audit_status: {audit["status"]}
@@ -207,7 +221,7 @@ generated_at_utc: {now}
             "schema_ids": ["trader1.read_only_dashboard_shell.v1", "trader1.paper_portfolio_snapshot.v1"],
             "validator_ids": VALIDATORS_REQUIRED,
             "artifact_ids": CHANGED_ARTIFACTS,
-            "test_ids": ["tests/dashboard/test_read_only_dashboard.py"],
+            "test_ids": ["tests/dashboard/test_read_only_dashboard.py", "tests/runtime/test_safe_launcher.py"],
             "mvp_stage": "MVP-4",
             "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
             "blocking_level": "HIGH",
@@ -226,9 +240,9 @@ generated_at_utc: {now}
             "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
             "schema_files": ["contracts/schema/read_only_dashboard_shell.schema.json"],
             "validator_files": ["trader1/validation/mvp0_validators.py"],
-            "test_files": ["tests/dashboard/test_read_only_dashboard.py"],
+            "test_files": ["tests/dashboard/test_read_only_dashboard.py", "tests/runtime/test_safe_launcher.py"],
             "fixture_files": [],
-            "runtime_modules": ["trader1/dashboard/read_only_dashboard.py"],
+            "runtime_modules": ["trader1/dashboard/read_only_dashboard.py", "trader1/runtime/boot/safe_launcher.py"],
             "evidence_artifacts": [
                 f"system/evidence/{PATCH_BASENAME}.evidence_manifest.json",
                 f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
@@ -260,6 +274,7 @@ scale_up_allowed: false
 ## Current Safe State
 
 Dashboard position detail now preserves PAPER fill fields for average entry, mark price, market value, cost basis, and unrealized PnL.
+Launcher runtime tests now use temporary runtime roots so full test runs do not rewrite tracked dashboard artifacts.
 
 ## Next Safe Task
 
@@ -331,7 +346,11 @@ def build_patch_result(
             "created_at_utc": now,
             "target_mvp_level": "MVP-4",
             "patch_class": "RUNTIME_SAFETY_PATCH",
-            "affected_contract_ids": [REQUIREMENT_ID, "REQ-MVP4-DASHBOARD-PAPER-RUNTIME-PORTFOLIO-BINDING"],
+            "affected_contract_ids": [
+                REQUIREMENT_ID,
+                "REQ-MVP4-DASHBOARD-PAPER-RUNTIME-PORTFOLIO-BINDING",
+                "REQ-MVP4-LAUNCHER-TEST-RUNTIME-WRITE-ISOLATION",
+            ],
             "affected_exchange": "UPBIT",
             "affected_market_type": "KRW_SPOT",
             "affected_mode": "PAPER",
@@ -419,6 +438,7 @@ def main() -> int:
     tests_run = [
         run_command([sys.executable, "-B", "-m", "unittest", "tests.dashboard.test_read_only_dashboard", "-q"], timeout_seconds=300),
         run_command([sys.executable, "-B", "-m", "unittest", "tests.runtime.test_paper_portfolio", "-q"], timeout_seconds=120),
+        run_command([sys.executable, "-B", "-m", "unittest", "tests.runtime.test_safe_launcher", "-q"], timeout_seconds=300),
     ]
     bootstrap_validator_results = run_validators(BOOTSTRAP_VALIDATORS)
     validators_run = [
@@ -536,6 +556,7 @@ def main() -> int:
                 "- Dashboard position rows now read average_entry_price instead of showing UNKNOWN.",
                 "- Position rows now expose mark price, market value, cost basis, and unrealized PnL.",
                 "- Zero numeric values are preserved instead of being treated as missing.",
+                "- Launcher tests now write to temporary runtime roots instead of tracked dashboard runtime artifacts.",
                 "",
                 "Safety:",
                 "- live_order_ready=false",

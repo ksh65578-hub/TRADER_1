@@ -1230,10 +1230,11 @@ def launcher_main(
     open_dashboard: bool | None = None,
     console_heartbeat_ticks: int | None = None,
     console_heartbeat_interval_seconds: float | None = None,
+    root: Path = ROOT,
 ) -> int:
     report = build_launcher_report(launcher_name)
     result = validate_launcher_report(report)
-    report_path, dashboard_paths = write_launcher_runtime_bundle(report)
+    report_path, dashboard_paths = write_launcher_runtime_bundle(report, root)
     dashboard_opened = open_dashboard_for_operator(dashboard_paths["dashboard_html"], open_dashboard)
     heartbeat = load_json(dashboard_paths["heartbeat"])
     operator_pause = should_pause_for_operator(pause)
@@ -1260,6 +1261,6 @@ def launcher_main(
         heartbeat,
         ticks=heartbeat_ticks,
         interval_seconds=heartbeat_interval_seconds,
-        refresh_heartbeat=lambda: refresh_launcher_monitor_artifacts(report) if operator_pause else heartbeat,
+        refresh_heartbeat=lambda: refresh_launcher_monitor_artifacts(report, root) if operator_pause else heartbeat,
     )
     return 0 if result.status == "PASS" else 1

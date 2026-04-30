@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.stage_gate_result.v1",
-  "generated_at_utc": "2026-04-30T18:12:54Z",
+  "generated_at_utc": "2026-04-30T18:26:26Z",
   "patch_id": "MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD_20260501_001",
   "target_mvp_level": "MVP-4",
   "stage_gate_status": "PASS",

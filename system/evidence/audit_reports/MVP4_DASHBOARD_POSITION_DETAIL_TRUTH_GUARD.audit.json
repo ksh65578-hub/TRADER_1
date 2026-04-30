@@ -8,7 +8,9 @@
     "position_schema_has_mark_market_cost": true,
     "dashboard_table_has_operator_columns": true,
     "unit_tests_cover_fill_fields": true,
-    "validator_covers_fill_fields": true
+    "validator_covers_fill_fields": true,
+    "launcher_main_accepts_test_runtime_root": true,
+    "launcher_tests_isolate_runtime_writes": true
   },
   "hidden_defects": [
     {
@@ -22,6 +24,12 @@
       "condition": "position values were selected through truthiness checks",
       "impact": "valid numeric zero values could be displayed as UNKNOWN",
       "fix": "position display extraction now preserves zero values and only falls back on missing or empty values"
+    },
+    {
+      "classification": "test_dirty_runtime_artifacts",
+      "condition": "launcher_main and refresh monitor tests wrote to the tracked runtime directory by default",
+      "impact": "full test runs could pass while leaving dashboard runtime artifacts dirty, weakening reproducibility",
+      "fix": "launcher_main now accepts an explicit runtime root for tests and launcher tests use TemporaryDirectory paths"
     }
   ],
   "live_order_ready": false,

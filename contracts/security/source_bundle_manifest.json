@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "C3F386736CB6322CDA7707635EDC3C71FB9F614623AAB3F2FD12C488FCE026CD",
+      "sha256": "18062151BD607672C626C5785A9D23224BD30259EC35DF25D93150CCDDDCC435",
       "size_bytes": 1096
     },
     {
@@ -880,8 +880,8 @@
     },
     {
       "path": "tests/runtime/test_safe_launcher.py",
-      "sha256": "7CC8A14FE8CA9CBF80C07F8D2EA97D6CD4B8DBC4CBD111CC1E0387CC86330613",
-      "size_bytes": 46268
+      "sha256": "9997D0E2943BBCFEA047D395CB47D92716D774E168C5083E822BAF2A149A798B",
+      "size_bytes": 46625
     },
     {
       "path": "tests/runtime/test_safe_smoke.py",
@@ -2140,8 +2140,8 @@
     },
     {
       "path": "tools/emit_dashboard_position_detail_truth_guard_patch_evidence.py",
-      "sha256": "EC2AD9B790C07BCEA796BAF48F8411FE03C01C7EB2F2936A51292C0519355306",
-      "size_bytes": 25712
+      "sha256": "5E9ACCEA52C8E81E28BEC4D71AC8834AF0E59B8D91D5B6356786C723FBF683E5",
+      "size_bytes": 27571
     },
     {
       "path": "tools/emit_dashboard_position_reason_ux_patch_evidence.py",
@@ -3380,8 +3380,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "276C3E2A510C47589780A6A26844DB75E00418F338B120DD05B272939C3A59DF",
-      "size_bytes": 55120
+      "sha256": "A09797AD8D78E20807117F8D47D66B7801B459EB13D9294B5EB860399D0792EA",
+      "size_bytes": 55137
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
