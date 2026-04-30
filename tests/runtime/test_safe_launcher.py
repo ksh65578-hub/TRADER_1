@@ -675,6 +675,8 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertIn("heartbeat_age=", line)
             self.assertIn("stale_after=", line)
             self.assertIn("recovery=none", line)
+            self.assertIn("launcher_mode=SAFE_BOOT_OR_EXPLICIT_MONITOR", line)
+            self.assertIn("runtime_presence=DASHBOARD_HEARTBEAT_ONLY", line)
             self.assertIn("final_action=NO_TRADE", line)
             self.assertIn("live_order_allowed=false", line)
             self.assertIn("can_live_trade=false", line)
@@ -721,6 +723,7 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertIn("program_status=STALE_HEARTBEAT", line)
             self.assertIn("blocker=LATENCY_TTL_EXPIRED", line)
             self.assertIn("recovery=rerun_paper_launcher_if_stale", line)
+            self.assertIn("runtime_presence=HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED", line)
             self.assertIn("live_order_allowed=false", line)
 
     def test_emit_console_heartbeats_is_bounded_for_automation(self):

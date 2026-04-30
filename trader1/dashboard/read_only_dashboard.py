@@ -4786,6 +4786,9 @@ def _operation_status(
                 "label": "Running with stale portfolio",
                 "message": "Program heartbeat is fresh, but portfolio cash, equity, positions, or PnL are stale.",
                 "recovery_hint": portfolio_next_action_text,
+                "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+                "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
+                "operator_meaning": "The dashboard heartbeat is fresh, but it does not prove a continuous PAPER engine is updating portfolio values.",
                 "source": "summary.json",
                 "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
                 "heartbeat_status": "PASS",
@@ -4805,6 +4808,9 @@ def _operation_status(
                 "label": "Running without verified portfolio",
                 "message": "Program heartbeat is fresh, but portfolio cash, equity, positions, and PnL are not verified yet.",
                 "recovery_hint": portfolio_next_action_text,
+                "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+                "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
+                "operator_meaning": "The dashboard heartbeat is fresh, but it does not prove a continuous PAPER engine is updating portfolio values.",
                 "source": "summary.json",
                 "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
                 "heartbeat_status": "PASS",
@@ -4821,8 +4827,11 @@ def _operation_status(
             "severity": "NORMAL",
             "color_token": "green",
             "label": "Running safely",
-            "message": "Program heartbeat is fresh; SAFE_MODE is active and live orders remain blocked.",
-            "recovery_hint": "No recovery needed. Keep monitoring PAPER output; live orders remain blocked.",
+            "message": "Program heartbeat is fresh for this safe boot; SAFE_MODE is active and live orders remain blocked.",
+            "recovery_hint": "No recovery needed for the latest safe boot. Use explicit PAPER runtime evidence before treating portfolio or strategy output as continuously updated.",
+            "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+            "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
+            "operator_meaning": "This status means the latest launcher/dashboard heartbeat is fresh. It is not live readiness and it is not proof that a continuous PAPER engine is running.",
             "source": "heartbeat.json",
             "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
             "heartbeat_status": "PASS",
@@ -4851,6 +4860,9 @@ def _operation_status(
         "label": label,
         "message": message,
         "recovery_hint": recovery_hint,
+        "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+        "runtime_presence": "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED",
+        "operator_meaning": "The dashboard cannot prove current operation until the heartbeat and source artifacts are refreshed; it does not prove a continuous PAPER engine is running.",
         "source": "heartbeat.json",
         "engine_state": engine_state or "UNKNOWN",
         "heartbeat_status": heartbeat_status or "STALE",
@@ -5417,7 +5429,19 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
     values = [str(shell.get("primary_status_text", "")), str(shell.get("next_action", ""))]
     operation = shell.get("operation_status", {})
     if isinstance(operation, dict):
-        values.extend(str(operation.get(key, "")) for key in ("status", "severity", "label", "message", "primary_blocker"))
+        values.extend(
+            str(operation.get(key, ""))
+            for key in (
+                "status",
+                "severity",
+                "label",
+                "message",
+                "primary_blocker",
+                "launcher_execution_mode",
+                "runtime_presence",
+                "operator_meaning",
+            )
+        )
     shadow_harness = shell.get("shadow_runtime_harness_status", {})
     if isinstance(shadow_harness, dict):
         values.extend(
@@ -5856,6 +5880,12 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("BLOCKED", "operation status must keep live orders blocked", "LIVE_FINAL_GUARD_FAILED")
     if not isinstance(operation.get("recovery_hint"), str) or not operation.get("recovery_hint", "").strip():
         return DashboardValidationResult("FAIL", "operation status must expose recovery guidance", "SCHEMA_IDENTITY_MISMATCH")
+    if operation.get("launcher_execution_mode") != "SAFE_BOOT_OR_EXPLICIT_MONITOR":
+        return DashboardValidationResult("FAIL", "operation status must distinguish safe boot from runtime execution", "SCHEMA_IDENTITY_MISMATCH")
+    if operation.get("runtime_presence") not in {"DASHBOARD_HEARTBEAT_ONLY", "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED"}:
+        return DashboardValidationResult("FAIL", "operation status runtime presence is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(operation.get("operator_meaning"), str) or "continuous PAPER engine" not in operation.get("operator_meaning", ""):
+        return DashboardValidationResult("FAIL", "operation status must prevent continuous-runtime misunderstanding", "SCHEMA_IDENTITY_MISMATCH")
     if operation.get("severity") == "NORMAL" and operation.get("color_token") not in {"green", "blue"}:
         return DashboardValidationResult("FAIL", "normal operation must use green or blue status color", "SCHEMA_IDENTITY_MISMATCH")
     if operation.get("severity") == "WARNING" and operation.get("color_token") != "yellow":
@@ -7576,11 +7606,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "<span class=\"eyebrow\">System Status</span>"
         f"<h2>{safe_text(operation.get('label', 'Needs attention'))}</h2>"
         f"<p>{safe_text(operation.get('message', 'Dashboard source needs attention'))}</p>"
+        f"<p>{safe_text(operation.get('operator_meaning', 'This status is dashboard display truth only.'))}</p>"
         f"<p class=\"recovery\"><strong>Recovery:</strong> {safe_text(operation.get('recovery_hint', 'Rerun PAPER if dashboard sources are stale.'))}</p>"
         "</div>"
         "<dl>"
         f"<div><dt>Heartbeat</dt><dd class=\"pill {status_class(operation.get('heartbeat_status'))}\">{safe_text(operation.get('heartbeat_status', 'STALE'))}</dd></div>"
         f"<div><dt>Engine</dt><dd>{safe_text(operation.get('engine_state', 'UNKNOWN'))}</dd></div>"
+        f"<div><dt>Launcher mode</dt><dd>{safe_text(operation.get('launcher_execution_mode', 'SAFE_BOOT_OR_EXPLICIT_MONITOR'))}</dd></div>"
+        f"<div><dt>Runtime presence</dt><dd>{safe_text(operation.get('runtime_presence', 'DASHBOARD_HEARTBEAT_ONLY'))}</dd></div>"
         f"<div><dt>Market data</dt><dd class=\"pill {status_class(market_data.get('status'))}\">{safe_text(market_data_status_display)}</dd></div>"
         f"<div><dt>PAPER/SHADOW check</dt><dd class=\"pill {status_class(shadow_harness.get('status'))}\">{safe_text(shadow_harness_status_display)}</dd></div>"
         f"<div><dt>Persistent runtime</dt><dd class=\"pill {status_class(shadow_persistent.get('status'))}\">{safe_text(shadow_persistent_status_display)}</dd></div>"

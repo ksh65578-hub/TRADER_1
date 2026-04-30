@@ -1,0 +1,297 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE_20260501_001",
+  "created_at_utc": "2026-04-30T22:29:24Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "PASS",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-DASHBOARD-SAFE-BOOT-RUNTIME-PRESENCE"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER",
+  "removed_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "REQ-MVP4-DASHBOARD-SAFE-BOOT-RUNTIME-PRESENCE",
+    "contracts/generated/context_pack/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.md"
+  ],
+  "new_or_changed_schema_ids": [
+    "trader1.read_only_dashboard_shell.v1"
+  ],
+  "validators_required": [
+    "registry_validator",
+    "schema_validator",
+    "read_only_dashboard_validator",
+    "dashboard_visual_layout_validator",
+    "root_launcher_guard_validator",
+    "root_launcher_surface_validator",
+    "runtime_schema_instance_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator",
+    "source_bundle_hygiene_validator",
+    "shipped_package_hygiene_validator",
+    "secret_scan_validator",
+    "live_final_guard_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "dashboard_visual_layout_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "root_launcher_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "root_launcher_surface_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m unittest tests.dashboard.test_read_only_dashboard tests.runtime.test_safe_launcher -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m unittest tests.security.test_source_bundle_security -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED",
+  "read_cache_update_required": true,
+  "context_pack_update_required": true,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_UPBIT_PAPER_RUNTIME_E2E_PROGRESS",
+  "next_required_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_RUNTIME_RECOVERY_RTO_ACTIVE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_MVP3_OPERATIONAL_PAPER",
+    "SECTION_PROFIT_CONVERGENCE_REINFORCEMENT"
+  ],
+  "next_forbidden_default_sections": [
+    "LIVE_ENABLING_PATCH",
+    "LIVE_CONFIG_MUTATION",
+    "RISK_SCALE_UP"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_ROOT_LAUNCHER_SAFETY",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "task_class": "MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE",
+  "required_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_ROOT_LAUNCHER_SAFETY",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_ROOT_LAUNCHER_SAFETY",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "CURRENT",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "UPDATED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": true,
+  "optimizer_patch": "false",
+  "optimizer_stage": "MVP-4_AUDIT_ONLY",
+  "optimizer_status_before": "LIVE_MUTATION_BLOCKED",
+  "optimizer_status_after": "LIVE_MUTATION_BLOCKED",
+  "optimizer_maturity_level_before": "MVP4_GUARDRAIL",
+  "optimizer_maturity_level_after": "MVP4_GUARDRAIL",
+  "optimizer_output_type": "NO_CHANGE",
+  "optimizer_validators_required": [
+    "optimizer_no_live_mutation_validator"
+  ],
+  "optimizer_validators_run": [
+    {
+      "schema_id": "trader1.validator_result.v1",
+      "generated_at_utc": "2026-04-28T22:47:26Z",
+      "project_id": "TRADER_1",
+      "authority": {
+        "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+        "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+      },
+      "exchange": null,
+      "market_type": null,
+      "mode": null,
+      "status": "PASS",
+      "blockers": [],
+      "notes": "optimizer and convergence patch history contains no live config mutation or live order permission",
+      "validator_id": "optimizer_no_live_mutation_validator",
+      "checked_at_utc": "2026-04-28T22:47:26Z",
+      "input_artifact_paths": [
+        "contracts/generated/current_implementation_state.json",
+        "system/evidence/patch_results/MVP0_BUNDLE_SECURITY.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONFIG_VALIDATION.patch_result.json",
+        "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_BLOCKED_TEST.patch_result.json",
+        "system/evidence/patch_results/MVP0_LIVE_READY_SNAPSHOT_WRITER.patch_result.json",
+        "system/evidence/patch_results/MVP0_NAMESPACE_TRUTH.patch_result.json",
+        "system/evidence/patch_results/MVP0_ORDER_PATH_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_READINESS_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP0_ROOT_LAUNCHER_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP0_VALIDATOR_IMPLEMENTATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_EMERGENCY_FLATTEN.patch_result.json",
+        "system/evidence/patch_results/MVP1_EXECUTION_LEDGER.patch_result.json",
+        "system/evidence/patch_results/MVP1_HEARTBEAT.patch_result.json",
+        "system/evidence/patch_results/MVP1_OPERATOR_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_READ_ONLY_DASHBOARD.patch_result.json",
+        "system/evidence/patch_results/MVP1_RECONCILIATION.patch_result.json",
+        "system/evidence/patch_results/MVP1_ROOT_LAUNCHER_SURFACE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SAFETY_CONTROL.patch_result.json",
+        "system/evidence/patch_results/MVP1_STARTUP_PROBE.patch_result.json",
+        "system/evidence/patch_results/MVP1_SUMMARY_SHELL.patch_result.json",
+        "system/evidence/patch_results/MVP2_RESTART_RECOVERY.patch_result.json",
+        "system/evidence/patch_results/MVP2_UPBIT_PAPER_DRY_RUN.patch_result.json",
+        "system/evidence/patch_results/MVP3_OPERATIONAL_UPBIT_PAPER.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONSOLE_HEARTBEAT_VISIBILITY.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONSOLE_MONITOR_FRESH_HEARTBEAT.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONSOLE_SAFE_MONITOR_HEARTBEAT.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_ASSESSMENT_DEPENDENCIES.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_FOUNDATION.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_RISK_SCALE_BLOCKED.patch_result.json",
+        "system/evidence/patch_results/MVP4_DASHBOARD_LAUNCH_VISIBILITY.patch_result.json",
+        "system/evidence/patch_results/MVP4_DASHBOARD_PAPER_PORTFOLIO_VALUES.patch_result.json",
+        "system/evidence/patch_results/MVP4_DASHBOARD_PORTFOLIO_SNAPSHOT_UX.patch_result.json",
+        "system/evidence/patch_results/MVP4_DASHBOARD_STALE_PORTFOLIO_UX.patch_result.json",
+        "system/evidence/patch_results/MVP4_EXTERNAL_BLOCKER.patch_result.json",
+        "system/evidence/patch_results/MVP4_FULL_SAFETY_AUDIT.patch_result.json",
+        "system/evidence/patch_results/MVP4_FULL_SYSTEM_UI_SAFETY_AUDIT.patch_result.json",
+        "system/evidence/patch_results/MVP4_LIVE_FINAL_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_LIVE_REVIEW_DISPLAY_TRUTH_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_OPTIMIZER_CONVERGENCE_GUARDRAIL.patch_result.json",
+        "system/evidence/patch_results/MVP4_PATCH_RESULT_SCHEMA_STRICTNESS.patch_result.json",
+        "system/evidence/patch_results/MVP4_ROOT_LAUNCHER_OPERATOR_VISIBILITY.patch_result.json",
+        "system/evidence/patch_results/MVP4_SCALEUP_SAFETY_BLOCKED.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_LIVE_REVIEW.patch_result.json"
+      ],
+      "blocking": false
+    }
+  ],
+  "optimizer_guardrail_result": "PASS_LIVE_MUTATION_BLOCKED",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "false",
+  "convergence_layer_changed": false,
+  "convergence_state_before": "MVP4_AUDITED_LIVE_AND_SCALE_UP_BLOCKED",
+  "convergence_state_after": "MVP4_AUDITED_LIVE_AND_SCALE_UP_BLOCKED",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_REQUIRED_FOR_SAFE_BOOT_UX_PATCH",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [],
+  "convergence_validators_run": [],
+  "convergence_guardrail_result": "NO_CHANGE_LIVE_AND_SCALE_UP_BLOCKED",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "scale_up_allowed_after": false,
+  "result_hash": "98A039BC2BF75B765BB85483BDBB6F690EDCC7DE4BDAD8EE21DDCBEAEF69342D",
+  "merged_requirements": [],
+  "coverage_index_result": "UPDATED_PASS",
+  "scale_up_allowed_before": false
+}

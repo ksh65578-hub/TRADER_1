@@ -2448,6 +2448,113 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-OPERATION-FRESHNESS-BINDING",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "dashboard operation portfolio freshness binding",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-OPERATION-FRESHNESS-BINDING:normal dashboard operation requires verified portfolio display truth",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard normal operation must require verified portfolio truth",
+      "requirement_kind": "VALIDATOR_TEST_RUNTIME_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.summary.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "summary_shell_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_dashboard_operation_freshness_binding_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "VALIDATOR_IMPLEMENTATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-SUMMARY-PORTFOLIO-FRESHNESS-GUARD"
+      ],
+      "source_text_sha256": "F51182EAC8CBAC20F4C9705254CD7C6F3F6F10836D0E3B4AAC6DA3755768B33C",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-DASHBOARD-OPERATION-PORTFOLIO-STATUS-FIELDS",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "dashboard operation portfolio status fields",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-OPERATION-PORTFOLIO-STATUS-FIELDS:operation status must expose portfolio display-truth status",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Operation status must expose portfolio trust status",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_RUNTIME_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "summary_shell_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_bytecode_free_syntax_check.py",
+        "tests/runtime/test_safe_smoke.py",
+        "tools/emit_dashboard_operation_portfolio_status_fields_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATION_PORTFOLIO_STATUS_FIELDS.md",
+        "system/runtime/*/*/*/mvp1_*_launcher/dashboard_shell.json",
+        "system/runtime/*/*/*/mvp1_*_launcher/dashboard/index.html"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "SCHEMA_GENERATION",
+        "VALIDATOR_IMPLEMENTATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-OPERATION-FRESHNESS-BINDING"
+      ],
+      "source_text_sha256": "1333861D8CE9761D1A2064BBD245BBC9C5F27478142A05440BEA71B9113AE350",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-PAPER-EXPOSURE-QUALITY-BINDING",
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
@@ -2675,6 +2782,115 @@
       ],
       "source_text_sha256": "251D9184A2D10BAE30FF625841D1C4FA7F48065FC6D8310C6A283EED718BED99",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-DASHBOARD-PORTFOLIO-SOURCE-FRESHNESS",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard operator UX portfolio source freshness",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-PORTFOLIO-SOURCE-FRESHNESS:portfolio source age and stale threshold visible",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard portfolio values must expose source freshness",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_DASHBOARD_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_dashboard_portfolio_source_freshness_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_PORTFOLIO_SOURCE_FRESHNESS.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_schema_instance_validation.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "UPBIT_PAPER_RUNTIME",
+        "LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH"
+      ],
+      "source_text_sha256": "D0957E3BA60BA8885572F3B3C9DDD6CD9B5C406C5582D69FAF46126B3463FE35",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-DASHBOARD-POSITION-DETAIL-TRUTH-GUARD",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "dashboard position detail truth guard",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-POSITION-DETAIL-TRUTH-GUARD:dashboard must display verified PAPER position detail without UNKNOWN field loss",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard position detail must preserve PAPER fill fields",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.paper_portfolio_snapshot.v1"
+      ],
+      "validator_ids": [
+        "registry_validator",
+        "schema_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "runtime_schema_instance_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py",
+        "tools/emit_dashboard_position_detail_truth_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "VALIDATOR_IMPLEMENTATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-PAPER-RUNTIME-PORTFOLIO-BINDING"
+      ],
+      "source_text_sha256": "1382D5F0CF61E9733929F93198989B5ABA1A7E0FEBEFDB34B081FD7B00F4765C",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
     },
@@ -3139,6 +3355,65 @@
       "source_text_sha256": "6D65AD18E95C03DB2D9E3E46D5FB9DFC94AD2DE08CB50BB76C6EB7F4D63DD1DB",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-DASHBOARD-SAFE-BOOT-RUNTIME-PRESENCE",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard operator status must not imply continuous runtime",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-SAFE-BOOT-RUNTIME-PRESENCE: dashboard and console must distinguish safe boot heartbeat from continuous PAPER runtime evidence",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard safe boot runtime presence clarity",
+      "requirement_kind": "DASHBOARD_UX_RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "registry_validator",
+        "schema_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "root_launcher_guard_validator",
+        "root_launcher_surface_validator",
+        "runtime_schema_instance_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py",
+        "tools/emit_dashboard_safe_boot_runtime_presence_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_SAFE_BOOT_RUNTIME_PRESENCE.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_ROOT_LAUNCHER_SAFETY",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-OPERATION-STATUS-UX",
+        "REQ-MVP4-ROOT-LAUNCHER-OPERATOR-VISIBILITY"
+      ],
+      "source_text_sha256": "D0EC22A23BB0949C6609B3E0C6E489839F7E6230374422CC1D1EF430CE16C878",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
       "test_status": "PASS"
     },
     {
@@ -5285,6 +5560,61 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "paper portfolio position rollup guard",
+      "full_text_marker": "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD:paper portfolio position detail must reconcile to top-level PAPER totals",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "PAPER portfolio position detail must reconcile to rollup totals",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
+      "schema_ids": [
+        "trader1.paper_portfolio_snapshot.v1",
+        "trader1.upbit_paper_runtime_cycle_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "paper_portfolio_snapshot_validator",
+        "upbit_paper_runtime_cycle_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/paper_portfolio_snapshot.schema.json",
+        "trader1/runtime/portfolio/paper_portfolio.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_paper_portfolio.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py",
+        "tools/emit_paper_portfolio_position_rollup_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_paper_portfolio.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "SCHEMA_GENERATION",
+        "VALIDATOR_IMPLEMENTATION",
+        "DASHBOARD_UX"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PAPER-PORTFOLIO-PNL-DETAIL",
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-E2E-CONSISTENCY-GUARD"
+      ],
+      "source_text_sha256": "FE5167AC849656AB4A9B998AFB812E5FB15DCFAC80E9564993CAA2F86A72F615",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PAPER-RECONCILIATION-ARTIFACT-BINDING-RECHECK",
       "source_section_id": "SECTION_RUNTIME_ARTIFACT_BINDING",
       "source_file": "TRADER_1.md",
@@ -7062,6 +7392,93 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-REVIEW-PLAN-DELETE-POLICY",
+      "source_section_id": "USER_REVIEW_PLAN_DELETE_POLICY",
+      "source_file": "user_prompt",
+      "source_heading": "Reflected \uac80\ud1a0\uc548 originals may be deleted",
+      "full_text_marker": "REQ-MVP4-REVIEW-PLAN-DELETE-POLICY: reflected review-plan files can be deleted without preserving the original",
+      "authority_level": "USER_OPERATION_POLICY_WITH_ACTIVE_AUTHORITY_SAFETY",
+      "requirement_title": "Delete reflected review plan originals after evidence",
+      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.review_plan_reflection_ledger.v1"
+      ],
+      "validator_ids": [
+        "review_plan_reflection_ledger_validator"
+      ],
+      "artifact_ids": [
+        "tools/review_plan_reflection_status.py",
+        "tools/emit_review_plan_delete_policy_patch_evidence.py",
+        "tests/contract/test_review_plan_reflection_status.py",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/context_pack/MVP4_REVIEW_PLAN_DELETE_POLICY.md"
+      ],
+      "test_ids": [
+        "tests/contract/test_review_plan_reflection_status.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DOCUMENT_NORMALIZATION",
+        "BUNDLE_SECURITY"
+      ],
+      "depends_on": [
+        "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "C7C97FC21B7744D053E27EA6A252711DF591E2C85297DC9EAB809C9E29BC086B",
+      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER",
+      "source_section_id": "AGENTS_0G.16",
+      "source_file": "AGENTS.md",
+      "source_heading": "Exact expansion trigger and review addendum preservation",
+      "full_text_marker": "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER: review plan addendum files must remain tracked until reflected and individually deleted",
+      "authority_level": "ACTIVE_IMPLEMENTATION_GUIDE_AND_REVIEW_ADDENDUM",
+      "requirement_title": "Review plan reflection ledger before one-by-one cleanup",
+      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.review_plan_reflection_ledger.v1"
+      ],
+      "validator_ids": [
+        "review_plan_reflection_ledger_validator"
+      ],
+      "artifact_ids": [
+        "tools/review_plan_reflection_status.py",
+        "tools/emit_review_plan_reflection_ledger_patch_evidence.py",
+        "tests/contract/test_review_plan_reflection_status.py",
+        "trader1/validation/mvp0_validators.py",
+        "contracts/registry.yaml",
+        "contracts/validators/validator_registry.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/context_pack/MVP4_REVIEW_PLAN_REFLECTION_LEDGER.md"
+      ],
+      "test_ids": [
+        "tests/contract/test_review_plan_reflection_status.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "RETAINED_ARCHIVE_COVERAGE",
+        "DOCUMENT_NORMALIZATION",
+        "BUNDLE_SECURITY"
+      ],
+      "depends_on": [
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "1CB428E35374984CBEE57E0A759551B992EA876A499AC5250F5F4724A85D33B3",
+      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-RISK-EXPOSURE-DRAWDOWN-UX-HARDENING",
       "source_section_id": "SECTION_DASHBOARD_SHELL",
       "source_file": "TRADER_1.md",
@@ -8772,6 +9189,168 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-SUMMARY-PORTFOLIO-FRESHNESS-GUARD",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "dashboard summary portfolio freshness guard",
+      "full_text_marker": "REQ-MVP4-SUMMARY-PORTFOLIO-FRESHNESS-GUARD:dashboard summary portfolio source freshness must block stale PAPER values",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard portfolio freshness must be explicit before display",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
+      "schema_ids": [
+        "trader1.summary.v1",
+        "trader1.paper_portfolio_snapshot.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "summary_shell_validator",
+        "read_only_dashboard_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/summary.schema.json",
+        "trader1/dashboard/summary_writer.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_summary_writer.py",
+        "tools/emit_summary_portfolio_freshness_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_summary_writer.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "VALIDATOR_IMPLEMENTATION",
+        "SCHEMA_GENERATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-SUMMARY-POSITION-ROLLUP-GUARD",
+        "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD"
+      ],
+      "source_text_sha256": "C2087CF7D0FCC8AB89F92266275449605504D94E1872009DC6D3ECE66C048A93",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SUMMARY-PORTFOLIO-PROVENANCE-GUARD",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "summary portfolio provenance guard",
+      "full_text_marker": "REQ-MVP4-SUMMARY-PORTFOLIO-PROVENANCE-GUARD:dashboard summary portfolio verified truth must be bound to PAPER snapshot provenance",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Summary portfolio verified truth must carry PAPER snapshot provenance",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
+      "schema_ids": [
+        "trader1.summary.v1",
+        "trader1.paper_portfolio_snapshot.v1"
+      ],
+      "validator_ids": [
+        "registry_validator",
+        "schema_validator",
+        "summary_shell_validator",
+        "read_only_dashboard_validator",
+        "runtime_schema_instance_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/summary.schema.json",
+        "trader1/dashboard/summary_writer.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_summary_writer.py",
+        "tools/emit_summary_portfolio_provenance_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_summary_writer.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-PAPER-RUNTIME-PORTFOLIO-BINDING",
+        "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP-CONSISTENCY-GUARD"
+      ],
+      "source_text_sha256": "AE6FB28E8902FD15892E5650F5291BB26BED0C58A24FEDF51C788ED329272A8E",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SUMMARY-POSITION-ROLLUP-GUARD",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "dashboard summary position rollup guard",
+      "full_text_marker": "REQ-MVP4-SUMMARY-POSITION-ROLLUP-GUARD:dashboard summary positions must reconcile to PAPER portfolio rollups",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard summary positions must reconcile before display",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
+      "schema_ids": [
+        "trader1.summary.v1",
+        "trader1.paper_portfolio_snapshot.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "summary_shell_validator",
+        "read_only_dashboard_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/summary.schema.json",
+        "trader1/dashboard/summary_writer.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_summary_writer.py",
+        "tools/emit_summary_position_rollup_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_summary_writer.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "VALIDATOR_IMPLEMENTATION",
+        "SCHEMA_GENERATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD"
+      ],
+      "source_text_sha256": "1735A7734B7ADBD1F909D7AEC319282ED04E4D06070E91147DC3570FC9F44F67",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-SYMBOL-REGIME-FIT-SCHEMA-HARDENING",
       "source_section_id": "SECTION_SYMBOL_SELECTION_REGIME",
       "source_file": "TRADER_1.md",
@@ -9237,6 +9816,84 @@
       "source_text_sha256": "6A8176A60CAB39BA06CD15CAD8D9B90C95B17224D0745696B6ACB34D14E4B84C",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "IMPLEMENTED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER runtime portfolio source truth",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH:portfolio snapshot source cycle and ledger head provenance",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "PAPER portfolio values must carry runtime and ledger provenance",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_RUNTIME_PATCH",
+      "schema_ids": [
+        "trader1.paper_portfolio_snapshot.v1",
+        "trader1.paper_ledger_rollup_report.v1",
+        "trader1.summary.v1",
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "summary_shell_validator",
+        "paper_portfolio_snapshot_validator",
+        "paper_ledger_rollup_validator",
+        "upbit_paper_runtime_cycle_validator",
+        "upbit_paper_persistent_loop_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/paper_portfolio_snapshot.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "contracts/schema/summary.schema.json",
+        "trader1/runtime/ledger/paper_ledger_rollup.py",
+        "trader1/runtime/portfolio/paper_portfolio.py",
+        "trader1/runtime/paper/upbit_paper_runtime.py",
+        "trader1/dashboard/summary_writer.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_paper_portfolio.py",
+        "tests/runtime/test_paper_ledger_rollup.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py",
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/runtime/test_safe_launcher.py",
+        "tests/dashboard/test_summary_writer.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_upbit_paper_portfolio_source_truth_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_paper_portfolio.py",
+        "tests/runtime/test_paper_ledger_rollup.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py",
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/runtime/test_safe_launcher.py",
+        "tests/dashboard/test_summary_writer.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "UPBIT_PAPER_RUNTIME",
+        "DASHBOARD_UX",
+        "LEDGER_RECONCILIATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-E2E-CONSISTENCY-GUARD"
+      ],
+      "source_text_sha256": "427AFAB50D675CF765244B09E4EC7DEDA5EFB56946080E94DB94D5E2F21C567E",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
     },
     {
@@ -9994,605 +10651,7 @@
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "SCAFFOLD_IMPLEMENTED",
       "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-SUMMARY-PORTFOLIO-PROVENANCE-GUARD",
-      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
-      "source_file": "TRADER_1.md",
-      "source_heading": "summary portfolio provenance guard",
-      "full_text_marker": "REQ-MVP4-SUMMARY-PORTFOLIO-PROVENANCE-GUARD:dashboard summary portfolio verified truth must be bound to PAPER snapshot provenance",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Summary portfolio verified truth must carry PAPER snapshot provenance",
-      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
-      "schema_ids": [
-        "trader1.summary.v1",
-        "trader1.paper_portfolio_snapshot.v1"
-      ],
-      "validator_ids": [
-        "registry_validator",
-        "schema_validator",
-        "summary_shell_validator",
-        "read_only_dashboard_validator",
-        "runtime_schema_instance_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
-        "secret_scan_validator",
-        "live_final_guard_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "generated_artifact_dirty_validator"
-      ],
-      "artifact_ids": [
-        "contracts/schema/summary.schema.json",
-        "trader1/dashboard/summary_writer.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/dashboard/test_summary_writer.py",
-        "tools/emit_summary_portfolio_provenance_guard_patch_evidence.py",
-        "contracts/generated/context_pack/MVP4_SUMMARY_PORTFOLIO_PROVENANCE_GUARD.md"
-      ],
-      "test_ids": [
-        "tests/dashboard/test_summary_writer.py",
-        "tests/validators/test_mvp0_validators.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "SECTION_DASHBOARD_OPERATOR_UX",
-        "SECTION_LEDGER_RECONCILIATION",
-        "SECTION_LIVE_FINAL_GUARD"
-      ],
-      "depends_on": [
-        "REQ-MVP4-DASHBOARD-PAPER-RUNTIME-PORTFOLIO-BINDING",
-        "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP-CONSISTENCY-GUARD"
-      ],
-      "source_text_sha256": "AE6FB28E8902FD15892E5650F5291BB26BED0C58A24FEDF51C788ED329272A8E",
-      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-DASHBOARD-POSITION-DETAIL-TRUTH-GUARD",
-      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
-      "source_file": "TRADER_1.md",
-      "source_heading": "dashboard position detail truth guard",
-      "full_text_marker": "REQ-MVP4-DASHBOARD-POSITION-DETAIL-TRUTH-GUARD:dashboard must display verified PAPER position detail without UNKNOWN field loss",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Dashboard position detail must preserve PAPER fill fields",
-      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
-      "schema_ids": [
-        "trader1.read_only_dashboard_shell.v1",
-        "trader1.paper_portfolio_snapshot.v1"
-      ],
-      "validator_ids": [
-        "registry_validator",
-        "schema_validator",
-        "read_only_dashboard_validator",
-        "dashboard_visual_layout_validator",
-        "runtime_schema_instance_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
-        "secret_scan_validator",
-        "live_final_guard_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "generated_artifact_dirty_validator"
-      ],
-      "artifact_ids": [
-        "contracts/schema/read_only_dashboard_shell.schema.json",
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/runtime/boot/safe_launcher.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/runtime/test_safe_launcher.py",
-        "tools/emit_dashboard_position_detail_truth_guard_patch_evidence.py",
-        "contracts/generated/context_pack/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.md"
-      ],
-      "test_ids": [
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/runtime/test_safe_launcher.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "blocking_level": "HIGH",
-      "live_affecting": true,
-      "read_when": [
-        "DASHBOARD_UX",
-        "VALIDATOR_IMPLEMENTATION"
-      ],
-      "depends_on": [
-        "REQ-MVP4-DASHBOARD-PAPER-RUNTIME-PORTFOLIO-BINDING"
-      ],
-      "source_text_sha256": "1382D5F0CF61E9733929F93198989B5ABA1A7E0FEBEFDB34B081FD7B00F4765C",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD",
-      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
-      "source_file": "TRADER_1.md",
-      "source_heading": "paper portfolio position rollup guard",
-      "full_text_marker": "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD:paper portfolio position detail must reconcile to top-level PAPER totals",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "PAPER portfolio position detail must reconcile to rollup totals",
-      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
-      "schema_ids": [
-        "trader1.paper_portfolio_snapshot.v1",
-        "trader1.upbit_paper_runtime_cycle_report.v1"
-      ],
-      "validator_ids": [
-        "schema_validator",
-        "runtime_schema_instance_validator",
-        "paper_portfolio_snapshot_validator",
-        "upbit_paper_runtime_cycle_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
-        "live_final_guard_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "generated_artifact_dirty_validator"
-      ],
-      "artifact_ids": [
-        "contracts/schema/paper_portfolio_snapshot.schema.json",
-        "trader1/runtime/portfolio/paper_portfolio.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/runtime/test_paper_portfolio.py",
-        "tests/integration/test_upbit_paper_runtime_cycle.py",
-        "tools/emit_paper_portfolio_position_rollup_guard_patch_evidence.py",
-        "contracts/generated/context_pack/MVP4_PAPER_PORTFOLIO_POSITION_ROLLUP_GUARD.md"
-      ],
-      "test_ids": [
-        "tests/runtime/test_paper_portfolio.py",
-        "tests/integration/test_upbit_paper_runtime_cycle.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
-      "blocking_level": "HIGH",
-      "live_affecting": true,
-      "read_when": [
-        "SCHEMA_GENERATION",
-        "VALIDATOR_IMPLEMENTATION",
-        "DASHBOARD_UX"
-      ],
-      "depends_on": [
-        "REQ-MVP4-PAPER-PORTFOLIO-PNL-DETAIL",
-        "REQ-MVP4-UPBIT-PAPER-RUNTIME-E2E-CONSISTENCY-GUARD"
-      ],
-      "source_text_sha256": "FE5167AC849656AB4A9B998AFB812E5FB15DCFAC80E9564993CAA2F86A72F615",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-SUMMARY-POSITION-ROLLUP-GUARD",
-      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
-      "source_file": "TRADER_1.md",
-      "source_heading": "dashboard summary position rollup guard",
-      "full_text_marker": "REQ-MVP4-SUMMARY-POSITION-ROLLUP-GUARD:dashboard summary positions must reconcile to PAPER portfolio rollups",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Dashboard summary positions must reconcile before display",
-      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
-      "schema_ids": [
-        "trader1.summary.v1",
-        "trader1.paper_portfolio_snapshot.v1"
-      ],
-      "validator_ids": [
-        "schema_validator",
-        "runtime_schema_instance_validator",
-        "summary_shell_validator",
-        "read_only_dashboard_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
-        "live_final_guard_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "generated_artifact_dirty_validator"
-      ],
-      "artifact_ids": [
-        "contracts/schema/summary.schema.json",
-        "trader1/dashboard/summary_writer.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/dashboard/test_summary_writer.py",
-        "tools/emit_summary_position_rollup_guard_patch_evidence.py",
-        "contracts/generated/context_pack/MVP4_SUMMARY_POSITION_ROLLUP_GUARD.md"
-      ],
-      "test_ids": [
-        "tests/dashboard/test_summary_writer.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "blocking_level": "HIGH",
-      "live_affecting": true,
-      "read_when": [
-        "DASHBOARD_UX",
-        "VALIDATOR_IMPLEMENTATION",
-        "SCHEMA_GENERATION"
-      ],
-      "depends_on": [
-        "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD"
-      ],
-      "source_text_sha256": "1735A7734B7ADBD1F909D7AEC319282ED04E4D06070E91147DC3570FC9F44F67",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-SUMMARY-PORTFOLIO-FRESHNESS-GUARD",
-      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
-      "source_file": "TRADER_1.md",
-      "source_heading": "dashboard summary portfolio freshness guard",
-      "full_text_marker": "REQ-MVP4-SUMMARY-PORTFOLIO-FRESHNESS-GUARD:dashboard summary portfolio source freshness must block stale PAPER values",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Dashboard portfolio freshness must be explicit before display",
-      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
-      "schema_ids": [
-        "trader1.summary.v1",
-        "trader1.paper_portfolio_snapshot.v1"
-      ],
-      "validator_ids": [
-        "schema_validator",
-        "runtime_schema_instance_validator",
-        "summary_shell_validator",
-        "read_only_dashboard_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
-        "live_final_guard_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "generated_artifact_dirty_validator"
-      ],
-      "artifact_ids": [
-        "contracts/schema/summary.schema.json",
-        "trader1/dashboard/summary_writer.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/dashboard/test_summary_writer.py",
-        "tools/emit_summary_portfolio_freshness_guard_patch_evidence.py",
-        "contracts/generated/context_pack/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD.md"
-      ],
-      "test_ids": [
-        "tests/dashboard/test_summary_writer.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "blocking_level": "HIGH",
-      "live_affecting": true,
-      "read_when": [
-        "DASHBOARD_UX",
-        "VALIDATOR_IMPLEMENTATION",
-        "SCHEMA_GENERATION"
-      ],
-      "depends_on": [
-        "REQ-MVP4-SUMMARY-POSITION-ROLLUP-GUARD",
-        "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD"
-      ],
-      "source_text_sha256": "C2087CF7D0FCC8AB89F92266275449605504D94E1872009DC6D3ECE66C048A93",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-DASHBOARD-OPERATION-FRESHNESS-BINDING",
-      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
-      "source_file": "TRADER_1.md",
-      "source_heading": "dashboard operation portfolio freshness binding",
-      "full_text_marker": "REQ-MVP4-DASHBOARD-OPERATION-FRESHNESS-BINDING:normal dashboard operation requires verified portfolio display truth",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Dashboard normal operation must require verified portfolio truth",
-      "requirement_kind": "VALIDATOR_TEST_RUNTIME_PATCH",
-      "schema_ids": [
-        "trader1.read_only_dashboard_shell.v1",
-        "trader1.summary.v1"
-      ],
-      "validator_ids": [
-        "schema_validator",
-        "runtime_schema_instance_validator",
-        "summary_shell_validator",
-        "read_only_dashboard_validator",
-        "dashboard_visual_layout_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
-        "live_final_guard_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "generated_artifact_dirty_validator"
-      ],
-      "artifact_ids": [
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tools/emit_dashboard_operation_freshness_binding_patch_evidence.py",
-        "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATION_FRESHNESS_BINDING.md"
-      ],
-      "test_ids": [
-        "tests/dashboard/test_read_only_dashboard.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "blocking_level": "HIGH",
-      "live_affecting": true,
-      "read_when": [
-        "DASHBOARD_UX",
-        "VALIDATOR_IMPLEMENTATION"
-      ],
-      "depends_on": [
-        "REQ-MVP4-SUMMARY-PORTFOLIO-FRESHNESS-GUARD"
-      ],
-      "source_text_sha256": "F51182EAC8CBAC20F4C9705254CD7C6F3F6F10836D0E3B4AAC6DA3755768B33C",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-DASHBOARD-OPERATION-PORTFOLIO-STATUS-FIELDS",
-      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
-      "source_file": "TRADER_1.md",
-      "source_heading": "dashboard operation portfolio status fields",
-      "full_text_marker": "REQ-MVP4-DASHBOARD-OPERATION-PORTFOLIO-STATUS-FIELDS:operation status must expose portfolio display-truth status",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Operation status must expose portfolio trust status",
-      "requirement_kind": "SCHEMA_VALIDATOR_TEST_RUNTIME_PATCH",
-      "schema_ids": [
-        "trader1.read_only_dashboard_shell.v1"
-      ],
-      "validator_ids": [
-        "schema_validator",
-        "runtime_schema_instance_validator",
-        "summary_shell_validator",
-        "read_only_dashboard_validator",
-        "dashboard_visual_layout_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
-        "live_final_guard_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "generated_artifact_dirty_validator"
-      ],
-      "artifact_ids": [
-        "contracts/schema/read_only_dashboard_shell.schema.json",
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/runtime/test_bytecode_free_syntax_check.py",
-        "tests/runtime/test_safe_smoke.py",
-        "tools/emit_dashboard_operation_portfolio_status_fields_patch_evidence.py",
-        "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATION_PORTFOLIO_STATUS_FIELDS.md",
-        "system/runtime/*/*/*/mvp1_*_launcher/dashboard_shell.json",
-        "system/runtime/*/*/*/mvp1_*_launcher/dashboard/index.html"
-      ],
-      "test_ids": [
-        "tests/dashboard/test_read_only_dashboard.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "blocking_level": "HIGH",
-      "live_affecting": true,
-      "read_when": [
-        "DASHBOARD_UX",
-        "SCHEMA_GENERATION",
-        "VALIDATOR_IMPLEMENTATION"
-      ],
-      "depends_on": [
-        "REQ-MVP4-DASHBOARD-OPERATION-FRESHNESS-BINDING"
-      ],
-      "source_text_sha256": "1333861D8CE9761D1A2064BBD245BBC9C5F27478142A05440BEA71B9113AE350",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH",
-      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
-      "source_file": "TRADER_1.md",
-      "source_heading": "Upbit PAPER runtime portfolio source truth",
-      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH:portfolio snapshot source cycle and ledger head provenance",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "PAPER portfolio values must carry runtime and ledger provenance",
-      "requirement_kind": "SCHEMA_VALIDATOR_TEST_RUNTIME_PATCH",
-      "schema_ids": [
-        "trader1.paper_portfolio_snapshot.v1",
-        "trader1.paper_ledger_rollup_report.v1",
-        "trader1.summary.v1",
-        "trader1.read_only_dashboard_shell.v1"
-      ],
-      "validator_ids": [
-        "schema_validator",
-        "runtime_schema_instance_validator",
-        "summary_shell_validator",
-        "paper_portfolio_snapshot_validator",
-        "paper_ledger_rollup_validator",
-        "upbit_paper_runtime_cycle_validator",
-        "upbit_paper_persistent_loop_validator",
-        "read_only_dashboard_validator",
-        "dashboard_visual_layout_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
-        "secret_scan_validator",
-        "live_final_guard_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "generated_artifact_dirty_validator"
-      ],
-      "artifact_ids": [
-        "contracts/schema/paper_portfolio_snapshot.schema.json",
-        "contracts/schema/read_only_dashboard_shell.schema.json",
-        "contracts/schema/summary.schema.json",
-        "trader1/runtime/ledger/paper_ledger_rollup.py",
-        "trader1/runtime/portfolio/paper_portfolio.py",
-        "trader1/runtime/paper/upbit_paper_runtime.py",
-        "trader1/dashboard/summary_writer.py",
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/runtime/test_paper_portfolio.py",
-        "tests/runtime/test_paper_ledger_rollup.py",
-        "tests/integration/test_upbit_paper_runtime_cycle.py",
-        "tests/integration/test_upbit_public_collection_persistent_loop.py",
-        "tests/runtime/test_safe_launcher.py",
-        "tests/dashboard/test_summary_writer.py",
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tools/emit_upbit_paper_portfolio_source_truth_patch_evidence.py",
-        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.md"
-      ],
-      "test_ids": [
-        "tests/runtime/test_paper_portfolio.py",
-        "tests/runtime/test_paper_ledger_rollup.py",
-        "tests/integration/test_upbit_paper_runtime_cycle.py",
-        "tests/integration/test_upbit_public_collection_persistent_loop.py",
-        "tests/runtime/test_safe_launcher.py",
-        "tests/dashboard/test_summary_writer.py",
-        "tests/dashboard/test_read_only_dashboard.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
-      "blocking_level": "HIGH",
-      "live_affecting": true,
-      "read_when": [
-        "UPBIT_PAPER_RUNTIME",
-        "DASHBOARD_UX",
-        "LEDGER_RECONCILIATION"
-      ],
-      "depends_on": [
-        "REQ-MVP4-UPBIT-PAPER-RUNTIME-E2E-CONSISTENCY-GUARD"
-      ],
-      "source_text_sha256": "427AFAB50D675CF765244B09E4EC7DEDA5EFB56946080E94DB94D5E2F21C567E",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-DASHBOARD-PORTFOLIO-SOURCE-FRESHNESS",
-      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
-      "source_file": "TRADER_1.md",
-      "source_heading": "Dashboard operator UX portfolio source freshness",
-      "full_text_marker": "REQ-MVP4-DASHBOARD-PORTFOLIO-SOURCE-FRESHNESS:portfolio source age and stale threshold visible",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Dashboard portfolio values must expose source freshness",
-      "requirement_kind": "SCHEMA_VALIDATOR_TEST_DASHBOARD_PATCH",
-      "schema_ids": [
-        "trader1.read_only_dashboard_shell.v1"
-      ],
-      "validator_ids": [
-        "schema_validator",
-        "runtime_schema_instance_validator",
-        "read_only_dashboard_validator",
-        "dashboard_visual_layout_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
-        "secret_scan_validator",
-        "live_final_guard_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "generated_artifact_dirty_validator"
-      ],
-      "artifact_ids": [
-        "contracts/schema/read_only_dashboard_shell.schema.json",
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/validation/mvp0_validators.py",
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tools/emit_dashboard_portfolio_source_freshness_patch_evidence.py",
-        "contracts/generated/context_pack/MVP4_DASHBOARD_PORTFOLIO_SOURCE_FRESHNESS.md"
-      ],
-      "test_ids": [
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/contract/test_schema_instance_validation.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "blocking_level": "HIGH",
-      "live_affecting": true,
-      "read_when": [
-        "DASHBOARD_UX",
-        "UPBIT_PAPER_RUNTIME",
-        "LIVE_FINAL_GUARD"
-      ],
-      "depends_on": [
-        "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH"
-      ],
-      "source_text_sha256": "D0957E3BA60BA8885572F3B3C9DDD6CD9B5C406C5582D69FAF46126B3463FE35",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER",
-      "source_section_id": "AGENTS_0G.16",
-      "source_file": "AGENTS.md",
-      "source_heading": "Exact expansion trigger and review addendum preservation",
-      "full_text_marker": "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER: review plan addendum files must remain tracked until reflected and individually deleted",
-      "authority_level": "ACTIVE_IMPLEMENTATION_GUIDE_AND_REVIEW_ADDENDUM",
-      "requirement_title": "Review plan reflection ledger before one-by-one cleanup",
-      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
-      "schema_ids": [
-        "trader1.review_plan_reflection_ledger.v1"
-      ],
-      "validator_ids": [
-        "review_plan_reflection_ledger_validator"
-      ],
-      "artifact_ids": [
-        "tools/review_plan_reflection_status.py",
-        "tools/emit_review_plan_reflection_ledger_patch_evidence.py",
-        "tests/contract/test_review_plan_reflection_status.py",
-        "trader1/validation/mvp0_validators.py",
-        "contracts/registry.yaml",
-        "contracts/validators/validator_registry.json",
-        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
-        "contracts/generated/context_pack/MVP4_REVIEW_PLAN_REFLECTION_LEDGER.md"
-      ],
-      "test_ids": [
-        "tests/contract/test_review_plan_reflection_status.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "RETAINED_ARCHIVE_COVERAGE",
-        "DOCUMENT_NORMALIZATION",
-        "BUNDLE_SECURITY"
-      ],
-      "depends_on": [
-        "REQ-MVP4-LIVE-FINAL-GUARD"
-      ],
-      "source_text_sha256": "1CB428E35374984CBEE57E0A759551B992EA876A499AC5250F5F4724A85D33B3",
-      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-REVIEW-PLAN-DELETE-POLICY",
-      "source_section_id": "USER_REVIEW_PLAN_DELETE_POLICY",
-      "source_file": "user_prompt",
-      "source_heading": "Reflected \uac80\ud1a0\uc548 originals may be deleted",
-      "full_text_marker": "REQ-MVP4-REVIEW-PLAN-DELETE-POLICY: reflected review-plan files can be deleted without preserving the original",
-      "authority_level": "USER_OPERATION_POLICY_WITH_ACTIVE_AUTHORITY_SAFETY",
-      "requirement_title": "Delete reflected review plan originals after evidence",
-      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
-      "schema_ids": [
-        "trader1.review_plan_reflection_ledger.v1"
-      ],
-      "validator_ids": [
-        "review_plan_reflection_ledger_validator"
-      ],
-      "artifact_ids": [
-        "tools/review_plan_reflection_status.py",
-        "tools/emit_review_plan_delete_policy_patch_evidence.py",
-        "tests/contract/test_review_plan_reflection_status.py",
-        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
-        "contracts/generated/context_pack/MVP4_REVIEW_PLAN_DELETE_POLICY.md"
-      ],
-      "test_ids": [
-        "tests/contract/test_review_plan_reflection_status.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "DOCUMENT_NORMALIZATION",
-        "BUNDLE_SECURITY"
-      ],
-      "depends_on": [
-        "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER",
-        "REQ-MVP4-LIVE-FINAL-GUARD"
-      ],
-      "source_text_sha256": "C7C97FC21B7744D053E27EA6A252711DF591E2C85297DC9EAB809C9E29BC086B",
-      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T22:10:29Z"
+  "updated_at_utc": "2026-04-30T22:29:24Z"
 }
