@@ -1,0 +1,37 @@
+{
+  "schema_id": "trader1.audit_report.v1",
+  "generated_at_utc": "2026-04-30T15:01:08Z",
+  "patch_id": "MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES_20260430_001",
+  "scope": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER"
+  },
+  "inspected_contract_count": 5,
+  "inspected_schema_count": 1,
+  "inspected_validator_count": 5,
+  "inspected_test_count": 23,
+  "inspected_runtime_path_count": 1,
+  "coverage_completeness": {
+    "contract_coverage_pct": 100,
+    "schema_coverage_pct": 100,
+    "validator_coverage_pct": 100,
+    "runtime_coverage_pct": 100,
+    "ux_coverage_pct": 100
+  },
+  "hidden_defects": [
+    {
+      "classification": "false_safe_scorecard_robustness_identity",
+      "condition": "OOS/walk-forward/bootstrap statuses are PASS but source_evidence_ids do not prove all three evidence kinds",
+      "impact": "PAPER ranking readiness can be overstated and candidate quality can look stronger than evidence supports",
+      "fix": "require typed oos:, walk_forward:, and bootstrap: evidence ids before ranking eligibility",
+      "status": "PATCHED"
+    }
+  ],
+  "remaining_blockers": [
+    "EXTERNAL_OOS_WALK_FORWARD_BOOTSTRAP_EVIDENCE_MISSING",
+    "OFFICIAL_API_VERIFICATION_MISSING",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "LIVE_BURN_IN_MISSING"
+  ]
+}

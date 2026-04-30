@@ -4,6 +4,7 @@ import unittest
 from trader1.research.profitability.candidate_scorecard import (
     ROBUSTNESS_PASS,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
+    has_required_robustness_source_ids,
 )
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report, upbit_paper_runtime_cycle_hash
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors
@@ -56,6 +57,26 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
 
         self.assertEqual(errors, [])
         self.assertFalse(scorecard["ranking_eligible"])
+        self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
+
+    def test_robustness_source_evidence_must_cover_required_kinds(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-partial-source")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                "oos:scorecard-runtime-robust-partial-source",
+                "walk_forward:scorecard-runtime-robust-partial-source",
+                "paper:missing-bootstrap-source",
+            ],
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertFalse(has_required_robustness_source_ids(scorecard["source_evidence_ids"]))
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertEqual(scorecard["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
         self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
 
     def test_robust_paper_scorecard_can_be_paper_ranking_input_only(self):

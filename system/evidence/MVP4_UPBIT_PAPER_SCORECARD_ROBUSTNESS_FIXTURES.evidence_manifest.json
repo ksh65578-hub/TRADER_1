@@ -1,0 +1,58 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-04-30T15:01:08Z",
+  "project_id": "TRADER_1",
+  "patch_id": "MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES_20260430_001",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "scope": {
+    "exchange": "UPBIT",
+    "market_type": "KRW_SPOT",
+    "mode": "PAPER"
+  },
+  "artifacts": [
+    {
+      "artifact_id": "PATCH_RESULT",
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.patch_result.json",
+      "sha256": "29A66C3854A6F5AF06CCB9A393BC0CD976625579E1253480BDB43C4592F7806E",
+      "truth_role": "evidence_truth"
+    },
+    {
+      "artifact_id": "VALIDATOR_RUN_LOG",
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.validator_run_log.json",
+      "sha256": "EFE1A3ACFA28F831A7AA553445DCD741FC8826BCDACB2C6DAA7A37FFB44171BF",
+      "truth_role": "validator_truth"
+    },
+    {
+      "artifact_id": "STAGE_GATE_RESULT",
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.stage_gate_result.json",
+      "sha256": "F7E672DF83D305319F8CBC304EA10F449BB8008498BF5FEC18BD1C1A73A103C8",
+      "truth_role": "stage_gate_truth"
+    },
+    {
+      "artifact_id": "AUDIT_REPORT",
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.audit.json",
+      "sha256": "D7E9B9D9CD6C3FA36ABAEE8F120C7280F562B4567CCC47FB1F62FA4EBBD805AC",
+      "truth_role": "audit_truth"
+    },
+    {
+      "artifact_id": "CONTEXT_PACK",
+      "path": "contracts/generated/context_pack/UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.md",
+      "sha256": "46071B8C4742465C53D7DCB52190D54D72B20FB08CE7935B2DC2A69E9BF23F5B",
+      "truth_role": "read_cache_not_authority"
+    },
+    {
+      "artifact_id": "NEGATIVE_FIXTURE",
+      "path": "tests/validators/fixtures/candidate_scorecard_net_ev_missing_robustness_sources_fail.json",
+      "sha256": "4696A1477BE0509B2D0987DF02D3C0C80DA95B64B8B7B777978613E77CA9D646",
+      "truth_role": "test_fixture_truth"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "updated_at_utc": "2026-04-30T15:03:15Z"
+}

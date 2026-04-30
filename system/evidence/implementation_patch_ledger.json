@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-04-30T14:06:44Z",
+  "updated_at_utc": "2026-04-30T15:03:15Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -2223,7 +2223,44 @@
       "live_order_allowed_after": false,
       "can_live_trade_after": false,
       "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE_20260430_001",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_SCORECARD_BRIDGE.patch_result.json",
+      "patch_result_hash": "5C2EC52F4C94865AAA3EDB4D6BECFEF3B64E0F159156BC408396952BBABC2CD0",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY_20260430_001",
+      "created_at_utc": "2026-04-30T14:44:41Z",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_SCORECARD_DASHBOARD_VISIBILITY.patch_result.json",
+      "patch_result_hash": "807D82A239F0C6DC57EC26677F2D034A56FA6A70291D33BE59E941681B69BA1A",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false,
+      "status": "PASS_WITH_LIVE_BLOCKED"
+    },
+    {
+      "patch_id": "MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES_20260430_001",
+      "created_at_utc": "2026-04-30T15:01:08Z",
+      "patch_class": "VALIDATOR_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_SCORECARD_ROBUSTNESS_FIXTURES.patch_result.json",
+      "patch_result_hash": "29A66C3854A6F5AF06CCB9A393BC0CD976625579E1253480BDB43C4592F7806E",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false,
+      "status": "PASS_WITH_LIVE_BLOCKED"
     }
   ],
-  "ledger_hash": "045CBCAD6A3D97A3BFFB3673202E0BF36BA2FA9E5E5AE0F9DADCFA2EF202E059"
+  "ledger_hash": "4B96EF76E9DF1DCB6D387505BA350D3A5B983F2ACEE06CFA1271CE52A4874772"
 }

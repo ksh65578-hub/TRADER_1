@@ -13,11 +13,13 @@ from trader1.dashboard.read_only_dashboard import (
 )
 from trader1.dashboard.summary_writer import build_summary_shell
 from trader1.core.ledger.restart_recovery import build_restart_recovery_report
+from trader1.research.profitability.candidate_scorecard import candidate_scorecard_from_upbit_paper_runtime_cycle
 from trader1.runtime.boot.startup_probe import build_startup_probe
 from trader1.runtime.health.heartbeat import build_heartbeat
 from trader1.runtime.health.stability_history import append_stability_history
 from trader1.runtime.portfolio.paper_portfolio import build_initial_paper_portfolio_snapshot
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
+from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import upbit_paper_runtime_recovery_guard_hash
 from trader1.runtime.paper.upbit_public_rest_continuity_history import (
     build_upbit_public_rest_continuity_history_report,
@@ -148,6 +150,14 @@ def profitability_maturity_rollup_fixture():
     )
 
 
+def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
+    runtime = build_upbit_paper_runtime_cycle_report(
+        cycle_id=f"dashboard-scorecard-{session_id}",
+        session_id=session_id,
+    )
+    return candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+
+
 def build_dashboard(
     with_paper_portfolio=True,
     heartbeat_component_overrides=None,
@@ -160,6 +170,7 @@ def build_dashboard(
     parameter_narrowing_report=None,
     paper_exposure_quality_report=None,
     profitability_maturity_rollup_report=None,
+    candidate_scorecard=None,
     upbit_public_rest_continuity_history=None,
     shadow_runtime_harness_report=None,
     shadow_persistent_runtime_report=None,
@@ -185,6 +196,7 @@ def build_dashboard(
         parameter_narrowing_report=parameter_narrowing_report,
         paper_exposure_quality_report=paper_exposure_quality_report,
         profitability_maturity_rollup_report=profitability_maturity_rollup_report,
+        candidate_scorecard=candidate_scorecard,
         upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
         shadow_runtime_harness_report=shadow_runtime_harness_report,
         shadow_persistent_runtime_report=shadow_persistent_runtime_report,
@@ -1064,6 +1076,56 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["rollup_source_status"], "BLOCKED")
         self.assertEqual(maturity["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
         self.assertEqual(maturity["maturity_gap_count"], 10)
+
+    def test_dashboard_projects_candidate_scorecard_as_display_only(self):
+        scorecard = candidate_scorecard_fixture()
+        dashboard = build_dashboard(candidate_scorecard=scorecard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        maturity = dashboard["profitability_maturity"]
+        self.assertEqual(maturity["evidence_source"], "candidate_scorecard.json")
+        self.assertEqual(maturity["candidate_scorecard_source"], "candidate_scorecard.json")
+        self.assertEqual(maturity["candidate_scorecard_status"], "PAPER_RANKING_BLOCKED")
+        self.assertEqual(maturity["candidate_scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
+        self.assertEqual(maturity["candidate_scorecard_objective_basis"], "NET_EV_AFTER_COST")
+        self.assertEqual(maturity["candidate_scorecard_net_ev_after_cost_bps"], scorecard["net_ev_after_cost_bps"])
+        self.assertEqual(maturity["candidate_scorecard_candidate_id"], scorecard["candidate_id"])
+        self.assertFalse(maturity["candidate_scorecard_ranking_eligible"])
+        self.assertFalse(maturity["scorecard_input_eligible"])
+        self.assertFalse(maturity["live_order_allowed"])
+        sources = [source for source in dashboard["source_artifacts"] if source["artifact_id"] == "CANDIDATE_SCORECARD"]
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(sources[0]["filename"], "candidate_scorecard.json")
+
+        html = render_dashboard_html(dashboard)
+        self.assertIn("PAPER Scorecard", html)
+        self.assertIn(scorecard["candidate_id"], html)
+        self.assertIn("Net EV after cost", html)
+        self.assertEqual(validate_dashboard_visual_layout_contract(html).status, "PASS")
+
+    def test_dashboard_blocks_candidate_scorecard_live_flag_drift(self):
+        scorecard = candidate_scorecard_fixture()
+        scorecard["live_order_allowed"] = True
+        dashboard = build_dashboard(candidate_scorecard=scorecard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        maturity = dashboard["profitability_maturity"]
+        self.assertEqual(maturity["candidate_scorecard_status"], "BLOCKED")
+        self.assertEqual(maturity["candidate_scorecard_scope"], "BLOCKED_DISPLAY_ONLY")
+        self.assertEqual(maturity["candidate_scorecard_primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(maturity["candidate_scorecard_ranking_eligible"])
+        self.assertFalse(maturity["live_order_allowed"])
+
+    def test_dashboard_blocks_candidate_scorecard_cross_scope(self):
+        scorecard = candidate_scorecard_fixture()
+        scorecard["session_id"] = "wrong_session"
+        dashboard = build_dashboard(candidate_scorecard=scorecard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        maturity = dashboard["profitability_maturity"]
+        self.assertEqual(maturity["candidate_scorecard_status"], "BLOCKED")
+        self.assertEqual(maturity["candidate_scorecard_primary_blocker_code"], "SNAPSHOT_SCOPE_MISMATCH")
+        self.assertFalse(maturity["candidate_scorecard_ranking_eligible"])
 
     def test_dashboard_blocks_live_permission_mutation(self):
         dashboard = build_dashboard()

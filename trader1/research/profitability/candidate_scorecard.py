@@ -24,6 +24,7 @@ ROBUSTNESS_PASS = {
     "bootstrap_status": "PASS",
     "overfit_status": "LOW",
 }
+ROBUSTNESS_SOURCE_PREFIXES = ("oos:", "walk_forward:", "bootstrap:")
 
 
 def utc_now() -> str:
@@ -58,6 +59,11 @@ def number_value(value: Any) -> float:
 
 def blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
+
+
+def has_required_robustness_source_ids(source_evidence_ids: list[str] | None) -> bool:
+    ids = source_evidence_ids or []
+    return all(any(source_id.startswith(prefix) for source_id in ids) for prefix in ROBUSTNESS_SOURCE_PREFIXES)
 
 
 def strategy_id_for_family(strategy_family: str) -> str:
@@ -108,7 +114,7 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         f"upbit_paper_runtime_cycle:{runtime_cycle_report['cycle_id']}:{runtime_cycle_report['cycle_hash']}",
     ]
     source_ids.extend(robustness_source_evidence_ids or [])
-    enough_robustness_sources = len(robustness_source_evidence_ids or []) >= 3
+    enough_robustness_sources = has_required_robustness_source_ids(robustness_source_evidence_ids)
     ranking_eligible = (
         selected.get("decision") == "PAPER_ENTRY_REVIEW"
         and net_ev >= min_required_edge_bps
@@ -131,7 +137,12 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         if robustness["overfit_status"] != "LOW":
             blockers.append(blocker("OVERFIT_RISK_HIGH", "overfit risk must be LOW before PAPER scorecard ranking"))
     if robustness_ready and not enough_robustness_sources:
-        blockers.append(blocker("SCORECARD_MISSING", "robustness source evidence ids are required before PAPER scorecard ranking"))
+        blockers.append(
+            blocker(
+                "SCORECARD_MISSING",
+                "OOS, walk-forward, and bootstrap source evidence ids are required before PAPER scorecard ranking",
+            )
+        )
 
     if ranking_eligible:
         blockers = []

@@ -1,0 +1,69 @@
+{
+  "schema_id": "trader1.candidate_scorecard.v1",
+  "generated_at_utc": "2026-04-30T14:37:26Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "scorecard_id": "scorecard:mvp4_upbit_scorecard_bridge_current_refresh-cycle-2:KRW-BTC-pullback-trend-long",
+  "candidate_id": "KRW-BTC-pullback-trend-long",
+  "strategy_id": "trend_pullback",
+  "strategy_build_id": "upbit_paper_runtime_cycle_v1",
+  "parameter_hash": "B579722DD59327143FA7D6E414FC78393F8C6A7543E5ECCF59F688015BC761A6",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "symbol": "KRW-BTC",
+  "timeframe_scope": "runtime_cycle_fixture_or_public_collection",
+  "regime_scope": "TRENDING",
+  "objective_basis": "NET_EV_AFTER_COST",
+  "gross_expected_edge_bps": 42.0,
+  "expected_fee_bps": 5.0,
+  "expected_spread_bps": 1.0,
+  "expected_slippage_bps": 5.0,
+  "expected_impact_bps": 0.0,
+  "expected_latency_penalty_bps": 0.0,
+  "net_ev_after_cost_bps": 31.0,
+  "min_required_edge_bps": 10.0,
+  "cost_model_status": "VALIDATED",
+  "oos_status": "UNTESTED",
+  "walk_forward_status": "UNTESTED",
+  "bootstrap_status": "UNTESTED",
+  "overfit_status": "UNTESTED",
+  "ranking_eligible": false,
+  "scorecard_scope": "PAPER_EVIDENCE_COLLECTION_ONLY",
+  "live_readiness_status": "NOT_LIVE_READY",
+  "operator_warning": "PAPER candidate scorecard is not LIVE_READY and live orders remain blocked.",
+  "source_evidence_ids": [
+    "upbit_paper_runtime_cycle:mvp4_upbit_scorecard_bridge_current_refresh-cycle-2:45EE21AFEBE02AFEAADBFE4850FDA659A9510AC12AF38D1DAA15436293C7FEB7"
+  ],
+  "blockers": [
+    {
+      "code": "OOS_MISSING",
+      "severity": "HIGH",
+      "message": "OOS evidence is required before PAPER scorecard ranking"
+    },
+    {
+      "code": "WALK_FORWARD_MISSING",
+      "severity": "HIGH",
+      "message": "walk-forward evidence is required before PAPER scorecard ranking"
+    },
+    {
+      "code": "BOOTSTRAP_UNSTABLE",
+      "severity": "HIGH",
+      "message": "bootstrap robustness evidence is required before PAPER scorecard ranking"
+    },
+    {
+      "code": "OVERFIT_RISK_HIGH",
+      "severity": "HIGH",
+      "message": "overfit risk must be LOW before PAPER scorecard ranking"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "notes": "Generated from Upbit PAPER runtime cycle. It is PAPER scorecard evidence only and cannot create live permission."
+}
