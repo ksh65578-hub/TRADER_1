@@ -461,6 +461,12 @@ def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
+def sha256_text_file_canonical(path: Path) -> str:
+    text = path.read_text(encoding="utf-8")
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    return sha256_bytes(normalized.encode("utf-8"))
+
+
 def sha256_json(value: Any) -> str:
     return sha256_bytes(json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8"))
 
@@ -969,11 +975,12 @@ def generated_artifact_dirty_validator() -> ValidatorResult:
         "current_implementation_state_sha256": ROOT / "contracts" / "generated" / "current_implementation_state.json",
     }
     for key, path in checks.items():
-        if manifest.get(key) != sha256_file(path):
+        current_hash = sha256_file(path) if key == "registry_yaml_sha256_when_generated" else sha256_text_file_canonical(path)
+        if manifest.get(key) != current_hash:
             return fail_result("generated_artifact_dirty_validator", f"read cache hash mismatch: {key}", [manifest_path, path], "GENERATED_ARTIFACT_DIRTY")
     for pack_path, expected_hash in manifest.get("context_pack_hashes", {}).items():
         path = ROOT / pack_path
-        if expected_hash != sha256_file(path):
+        if expected_hash != sha256_text_file_canonical(path):
             return fail_result("generated_artifact_dirty_validator", f"context pack hash mismatch: {pack_path}", [manifest_path, path], "GENERATED_ARTIFACT_DIRTY")
     return pass_result("generated_artifact_dirty_validator", "generated read cache hashes match current artifacts", [manifest_path])
 

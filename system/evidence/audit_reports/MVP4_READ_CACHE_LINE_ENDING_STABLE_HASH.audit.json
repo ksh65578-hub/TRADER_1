@@ -1,0 +1,17 @@
+{
+  "audit_schema_id": "trader1.read_cache_line_ending_stable_hash_audit.v1",
+  "generated_at_utc": "2026-04-30T18:50:02Z",
+  "status": "PASS",
+  "hidden_defects": [
+    {
+      "classification": "read_cache_byte_hash_line_ending_drift",
+      "condition": "read_cache_manifest stored byte hashes for generated text files that can change after Git checkout newline conversion",
+      "impact": "generated_artifact_dirty_validator could fail on clean main with no git diff",
+      "fix": "read cache generation and validation now use canonical LF text hashes for generated text artifacts while registry byte hashing remains unchanged"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
