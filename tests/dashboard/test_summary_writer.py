@@ -1,5 +1,6 @@
 import json
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from trader1.config.config_schema import build_runtime_config
@@ -9,6 +10,7 @@ from trader1.runtime.health.heartbeat import build_heartbeat
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
     build_paper_portfolio_snapshot_from_fill,
+    paper_portfolio_hash,
 )
 from trader1.runtime.readiness.readiness_surface import build_readiness_surface
 from trader1.validation.mvp0_validators import current_authority_hashes, run_validators, sha256_file, sha256_json
@@ -93,6 +95,14 @@ def build_summary(with_paper_portfolio=False, paper_portfolio_snapshot=None):
     )
 
 
+def stale_paper_portfolio(snapshot, seconds_old=3600):
+    stale = json.loads(json.dumps(snapshot))
+    generated_at = datetime.now(timezone.utc) - timedelta(seconds=seconds_old)
+    stale["generated_at_utc"] = generated_at.replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    stale["snapshot_hash"] = paper_portfolio_hash(stale)
+    return stale
+
+
 class SummaryWriterTest(unittest.TestCase):
     def test_summary_shell_is_dashboard_only_and_live_blocked(self):
         summary = build_summary()
@@ -134,6 +144,9 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertEqual(summary["portfolio"]["source_snapshot_status"], "PASS")
         self.assertEqual(len(summary["portfolio"]["source_snapshot_hash"]), 64)
         self.assertEqual(summary["portfolio"]["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
+        self.assertIsInstance(summary["portfolio"]["source_snapshot_generated_at_utc"], str)
+        self.assertGreaterEqual(summary["portfolio"]["source_snapshot_age_seconds"], 0)
+        self.assertEqual(summary["portfolio"]["source_snapshot_stale_after_seconds"], 300)
         self.assertEqual(summary["portfolio"]["cash_available"], 1000000.0)
         self.assertEqual(summary["portfolio"]["equity"], 1000000.0)
         self.assertEqual(summary["positions"], [])
@@ -230,6 +243,41 @@ class SummaryWriterTest(unittest.TestCase):
         result = validate_summary_shell(summary)
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_summary_downgrades_stale_paper_portfolio_snapshot(self):
+        paper_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test_summary_shell",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        summary = build_summary(with_paper_portfolio=True, paper_portfolio_snapshot=stale_paper_portfolio(paper_portfolio))
+        result = validate_summary_shell(summary, set(registry()["enums"]["live_blocker_code"]["values"]))
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(summary["portfolio"]["source"], "SUMMARY_BUILDER")
+        self.assertEqual(summary["portfolio"]["freshness_status"], "UNTESTED")
+        self.assertIsNone(summary["portfolio"]["equity"])
+        self.assertEqual(summary["positions"], [])
+        self.assertIn("stale", summary["portfolio"]["source_snapshot_freshness_message"])
+
+    def test_summary_blocks_verified_portfolio_missing_snapshot_time(self):
+        summary = build_summary(with_paper_portfolio=True)
+        summary["portfolio"]["source_snapshot_generated_at_utc"] = None
+        result = validate_summary_shell(summary)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_summary_blocks_verified_portfolio_stale_age_claim(self):
+        summary = build_summary(with_paper_portfolio=True)
+        summary["portfolio"]["source_snapshot_age_seconds"] = summary["portfolio"]["source_snapshot_stale_after_seconds"] + 1
+        result = validate_summary_shell(summary)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LATENCY_TTL_EXPIRED")
 
     def test_summary_blocks_verified_portfolio_outside_paper(self):
         summary = build_summary(with_paper_portfolio=True)

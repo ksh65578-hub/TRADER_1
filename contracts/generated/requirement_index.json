@@ -10214,7 +10214,60 @@
       "source_text_sha256": "1735A7734B7ADBD1F909D7AEC319282ED04E4D06070E91147DC3570FC9F44F67",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SUMMARY-PORTFOLIO-FRESHNESS-GUARD",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "dashboard summary portfolio freshness guard",
+      "full_text_marker": "REQ-MVP4-SUMMARY-PORTFOLIO-FRESHNESS-GUARD:dashboard summary portfolio source freshness must block stale PAPER values",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard portfolio freshness must be explicit before display",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_PATCH",
+      "schema_ids": [
+        "trader1.summary.v1",
+        "trader1.paper_portfolio_snapshot.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "summary_shell_validator",
+        "read_only_dashboard_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/summary.schema.json",
+        "trader1/dashboard/summary_writer.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_summary_writer.py",
+        "tools/emit_summary_portfolio_freshness_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_SUMMARY_PORTFOLIO_FRESHNESS_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_summary_writer.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "VALIDATOR_IMPLEMENTATION",
+        "SCHEMA_GENERATION"
+      ],
+      "depends_on": [
+        "REQ-MVP4-SUMMARY-POSITION-ROLLUP-GUARD",
+        "REQ-MVP4-PAPER-PORTFOLIO-POSITION-ROLLUP-GUARD"
+      ],
+      "source_text_sha256": "C2087CF7D0FCC8AB89F92266275449605504D94E1872009DC6D3ECE66C048A93",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-04-30T19:45:36Z"
+  "updated_at_utc": "2026-04-30T19:59:36Z"
 }

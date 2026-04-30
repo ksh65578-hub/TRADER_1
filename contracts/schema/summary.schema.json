@@ -119,6 +119,32 @@
             "UNTESTED"
           ]
         },
+        "source_snapshot_generated_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_snapshot_age_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_snapshot_stale_after_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "source_snapshot_freshness_message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "source_balance_kind": {
           "type": [
             "string",
@@ -178,6 +204,12 @@
         "mdd": {
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "next_action": {
+          "type": [
+            "string",
             "null"
           ]
         }

@@ -1887,6 +1887,8 @@ def summary_shell_validator() -> ValidatorResult:
     ledger_result = validate_summary_shell(ledger_summary, allowed_blockers)
     if ledger_result.status != "PASS":
         return fail_result("summary_shell_validator", ledger_result.message, paths, ledger_result.blocker_code or "UNKNOWN_BLOCKED")
+    if ledger_summary["portfolio"].get("source_snapshot_generated_at_utc") is None:
+        return fail_result("summary_shell_validator", "verified portfolio snapshot time provenance is missing", paths, "HARD_TRUTH_MISSING")
 
     filled_portfolio = build_paper_portfolio_snapshot_from_fill(
         exchange="UPBIT",
@@ -1932,6 +1934,29 @@ def summary_shell_validator() -> ValidatorResult:
     position_rollup_result = validate_summary_shell(position_rollup_summary, allowed_blockers)
     if position_rollup_result.status != "FAIL" or position_rollup_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
         return fail_result("summary_shell_validator", "summary position rollup mismatch was not detected", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    stale_portfolio = dict(filled_portfolio)
+    stale_portfolio["generated_at_utc"] = "2020-01-01T00:00:00Z"
+    stale_portfolio["snapshot_hash"] = paper_portfolio_hash(stale_portfolio)
+    stale_summary = build_summary_shell(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id="mvp1_summary_shell",
+        startup_probe=startup_probe,
+        heartbeat=heartbeat,
+        readiness_surface=readiness_surface,
+        paper_portfolio_snapshot=stale_portfolio,
+    )
+    stale_result = validate_summary_shell(stale_summary, allowed_blockers)
+    if stale_result.status != "PASS" or stale_summary["portfolio"]["source"] != "SUMMARY_BUILDER":
+        return fail_result("summary_shell_validator", "stale paper portfolio snapshot was not downgraded before dashboard display", paths, "LATENCY_TTL_EXPIRED")
+
+    stale_claim_summary = json.loads(json.dumps(ledger_summary))
+    stale_claim_summary["portfolio"]["source_snapshot_age_seconds"] = stale_claim_summary["portfolio"]["source_snapshot_stale_after_seconds"] + 1
+    stale_claim_result = validate_summary_shell(stale_claim_summary, allowed_blockers)
+    if stale_claim_result.status != "BLOCKED" or stale_claim_result.blocker_code != "LATENCY_TTL_EXPIRED":
+        return fail_result("summary_shell_validator", "verified portfolio stale age claim was not blocked", paths, "LATENCY_TTL_EXPIRED")
 
     unbound_summary = dict(ledger_summary)
     unbound_summary["portfolio"] = dict(ledger_summary["portfolio"])

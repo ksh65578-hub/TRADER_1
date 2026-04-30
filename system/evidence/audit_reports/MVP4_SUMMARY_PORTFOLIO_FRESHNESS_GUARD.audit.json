@@ -1,0 +1,30 @@
+{
+  "audit_schema_id": "trader1.summary_portfolio_freshness_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "summary_schema_carries_snapshot_freshness": true,
+    "summary_builder_downgrades_stale_snapshot": true,
+    "summary_validator_blocks_stale_age_claim": true,
+    "unit_tests_cover_stale_snapshot": true,
+    "validator_registry_covers_stale_snapshot": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "dashboard_summary_stale_portfolio_false_fresh",
+      "condition": "A hash-valid PAPER portfolio snapshot could be old while summary still copied it as PASS display truth",
+      "impact": "dashboard could show stale cash, equity, positions, or PnL as if they were current",
+      "fix": "summary now carries source snapshot generated_at, age, stale threshold, and downgrades stale snapshots before values are trusted"
+    },
+    {
+      "classification": "dashboard_summary_missing_source_time_provenance",
+      "condition": "verified summary portfolio rows did not require source timestamp provenance",
+      "impact": "operator could not tell whether dashboard portfolio values were fresh or stale",
+      "fix": "verified summary portfolio validation now requires timestamp and age fields and blocks stale age claims"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
