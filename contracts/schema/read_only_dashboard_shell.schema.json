@@ -87,6 +87,7 @@
             "POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE",
             "POST_RERUN_OPERATOR_RESOLUTION_AUDIT",
             "POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE",
+            "POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD"
@@ -110,6 +111,7 @@
             "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
             "upbit_paper_post_rerun_operator_resolution_audit_report.json",
             "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+            "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json"
@@ -479,6 +481,7 @@
             "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
             "upbit_paper_post_rerun_operator_resolution_audit_report.json",
             "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+            "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
           ]
         },
@@ -815,6 +818,107 @@
         "post_rerun_resolution_closure_candidate_current_evidence_usable_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "post_rerun_current_evidence_closure_recheck_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED",
+            "BLOCKED_CURRENT_LEDGER_IDEMPOTENCY_RECHECK_REQUIRED",
+            "INVALID"
+          ]
+        },
+        "post_rerun_current_evidence_closure_recheck_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "post_rerun_current_evidence_bridge_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_BY_POST_RERUN_CLOSURE",
+            "INVALID"
+          ]
+        },
+        "post_rerun_current_evidence_portfolio_recheck_status": {
+          "enum": [
+            "NOT_LOADED",
+            "LEDGER_PROVENANCE_PASS_BUT_OPERATOR_CURRENT_EVIDENCE_BLOCKED",
+            "LEDGER_PROVENANCE_NOT_VERIFIED_FOR_OPERATOR_CURRENT_EVIDENCE",
+            "INVALID"
+          ]
+        },
+        "post_rerun_current_evidence_closure_recheck_source_closure_file_load_status": {
+          "enum": [
+            "PASS",
+            "MISSING",
+            "INVALID_UTF8",
+            "INVALID_JSON",
+            "NOT_OBJECT",
+            "HASH_MISMATCH",
+            "SCOPE_MISMATCH",
+            "UNKNOWN",
+            "NOT_LOADED"
+          ]
+        },
+        "post_rerun_current_evidence_closure_recheck_source_closure_file_hash_match": {
+          "type": "boolean"
+        },
+        "post_rerun_current_evidence_closure_recheck_source_ledger_file_load_status": {
+          "enum": [
+            "PASS",
+            "MISSING",
+            "INVALID_UTF8",
+            "INVALID_JSON",
+            "NOT_OBJECT",
+            "HASH_MISMATCH",
+            "SCOPE_MISMATCH",
+            "UNKNOWN",
+            "NOT_LOADED"
+          ]
+        },
+        "post_rerun_current_evidence_closure_recheck_source_ledger_file_hash_match": {
+          "type": "boolean"
+        },
+        "post_rerun_current_evidence_closure_recheck_ledger_runtime_evidence_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "FAIL",
+            "INVALID"
+          ]
+        },
+        "post_rerun_current_evidence_closure_recheck_ledger_reconciliation_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "FAIL",
+            "INVALID"
+          ]
+        },
+        "post_rerun_current_evidence_closure_recheck_ledger_idempotency_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "FAIL",
+            "INVALID"
+          ]
+        },
+        "post_rerun_current_evidence_closure_recheck_ledger_portfolio_provenance_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "FAIL",
+            "INVALID"
+          ]
+        },
+        "post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed": {
+          "const": false
         },
         "post_rerun_blocker_codes": {
           "type": "array",
@@ -5011,7 +5115,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 12,
+      "maxItems": 13,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
