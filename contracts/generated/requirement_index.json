@@ -13215,6 +13215,92 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-VERIFIED-PORTFOLIO-LEDGER-BOOTSTRAP",
+      "source_section_id": "SECTION_PORTFOLIO_TRUTH",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER verified portfolio ledger bootstrap",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-VERIFIED-PORTFOLIO-LEDGER-BOOTSTRAP: PAPER portfolio truth must come from a fresh ledger rollup whose latest head binding is PASS",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER verified portfolio ledger bootstrap",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.paper_ledger_rollup_report.v1",
+        "trader1.paper_portfolio_snapshot.v1",
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "paper_ledger_rollup_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_VERIFIED_PORTFOLIO_LEDGER_BOOTSTRAP.md",
+        "contracts/security/source_bundle_manifest.json",
+        "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/heartbeat.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/launcher/root_launcher_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4-upbit-paper-verified-portfolio-ledger-bootstrap-ledger-rollup.paper_ledger_rollup_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/paper_ledger_rollup_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/rest_continuity_history.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_exposure_quality_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_operation_gate_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_portfolio_snapshot.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/reconciliation_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/restart_recovery_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/stability_history.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/startup_probe.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json",
+        "system/runtime/upbit/krw_spot/shadow/mvp1_upbit_paper_launcher/actual_runtime_harness_report.json",
+        "system/runtime/upbit/krw_spot/shadow/mvp1_upbit_paper_launcher/runtime_orchestration_report.json",
+        "system/runtime/upbit/krw_spot/shadow/mvp1_upbit_paper_launcher/shadow_observation/shadow_observation_persistent_runtime_report.json",
+        "tests/runtime/test_paper_ledger_rollup.py",
+        "tools/emit_upbit_paper_verified_portfolio_ledger_bootstrap_patch_evidence.py",
+        "trader1/runtime/ledger/paper_ledger_rollup.py"
+      ],
+      "test_ids": [
+        "tests/runtime/test_paper_ledger_rollup.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_PORTFOLIO_TRUTH",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-PORTFOLIO-TRUTH-RUNTIME-EVIDENCE",
+        "REQ-MVP4-UPBIT-PAPER-LEDGER-HEAD-BINDING-GUARD",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "45315558468325309845EE4E4AB5963FE94D5627D5A249EA5C40796FB48CA5A9",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_VERIFIED_PAPER_LEDGER_PORTFOLIO_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PUBLIC-DATA-SEQUENCE-REGIME-GUARD",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -13636,5 +13722,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T21:27:53Z"
+  "updated_at_utc": "2026-05-01T21:41:16Z"
 }
