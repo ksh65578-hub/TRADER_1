@@ -185,6 +185,12 @@ from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     validate_upbit_paper_runtime_sample_history,
     write_upbit_paper_runtime_sample_history,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation import (
+    build_upbit_paper_stale_loop_reconciliation_report,
+    stale_loop_reconciliation_hash,
+    validate_upbit_paper_stale_loop_reconciliation_report,
+    write_upbit_paper_stale_loop_reconciliation_report,
+)
 from trader1.research.replay.replay_runner import (
     build_replay_consistency_report,
     replay_consistency_hash,
@@ -340,6 +346,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_public_rest_continuity_history_validator",
     "upbit_paper_persistent_loop_validator",
     "upbit_paper_runtime_sample_history_validator",
+    "upbit_paper_stale_loop_reconciliation_validator",
     "upbit_paper_runtime_recovery_guard_validator",
     "restart_recovery_validator",
     "upbit_operational_paper_gate_validator",
@@ -2607,11 +2614,13 @@ def runtime_schema_instance_validator() -> ValidatorResult:
         latest_pointer = load_json(Path(tmp) / collection_writer["artifact_paths"][3])
         run_upbit_paper_persistent_loop(root=Path(tmp), loop_id="runtime-schema-instance-sample-history", requested_cycle_count=1)
         sample_history = build_upbit_paper_runtime_sample_history(root=Path(tmp), session_id="mvp1_upbit_paper_launcher")
+        stale_reconciliation = build_upbit_paper_stale_loop_reconciliation_report(root=Path(tmp), session_id="mvp1_upbit_paper_launcher")
         instances.extend(
             [
                 ("write_upbit_public_market_data_collection_artifacts:writer", collection_writer),
                 ("write_upbit_public_market_data_collection_artifacts:latest_pointer", latest_pointer),
                 ("build_upbit_paper_runtime_sample_history", sample_history),
+                ("build_upbit_paper_stale_loop_reconciliation_report", stale_reconciliation),
             ]
         )
 
@@ -4630,6 +4639,123 @@ def upbit_paper_runtime_sample_history_validator() -> ValidatorResult:
             )
 
     return pass_result("upbit_paper_runtime_sample_history_validator", "Upbit PAPER runtime sample history binds actual cycle files, blocks duplicate/source drift, and cannot create live or long-run evidence", paths)
+
+
+def upbit_paper_stale_loop_reconciliation_validator() -> ValidatorResult:
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_stale_loop_reconciliation_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_reconciliation.py"
+    loop_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_persistent_loop.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_stale_loop_reconciliation.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob("*/paper_runtime/upbit_paper_stale_loop_reconciliation_report.json")
+    )
+    paths = [schema_path, module_path, loop_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_stale_loop_reconciliation_report.v1":
+        return fail_result("upbit_paper_stale_loop_reconciliation_validator", "stale loop reconciliation schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result("upbit_paper_stale_loop_reconciliation_validator", "stale loop reconciliation schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "evidence_use_policy",
+        "current_accepted_count",
+        "legacy_schema_drift_count",
+        "unsafe_blocked_count",
+        "invalid_json_count",
+        "duplicate_runtime_cycle_hash_count",
+        "current_evidence_usable_count",
+        "legacy_reference_retained_count",
+        "delete_performed",
+        "safe_delete_allowed",
+        "actual_long_run_evidence_created",
+        "long_run_evidence_eligible",
+        "promotion_eligible",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", f"stale loop reconciliation schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+    item_schema = schema.get("$defs", {}).get("reconciliation_item", {})
+    if item_schema.get("additionalProperties") is not False:
+        return fail_result("upbit_paper_stale_loop_reconciliation_validator", "stale loop reconciliation item schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        current = run_upbit_paper_persistent_loop(root=root, loop_id="validator-current-loop", requested_cycle_count=1)
+        clean_report = build_upbit_paper_stale_loop_reconciliation_report(root=root, session_id="mvp1_upbit_paper_launcher")
+        clean_result = validate_upbit_paper_stale_loop_reconciliation_report(clean_report)
+        if clean_result.status != "PASS":
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", f"clean reconciliation report failed: {clean_result.message}", paths, clean_result.blocker_code or "UNKNOWN_BLOCKED")
+        if clean_report.get("reconciliation_status") != "PASS" or clean_report.get("current_evidence_usable_count") != 1:
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", "clean reconciliation did not accept the current loop source", paths, "MEASUREMENT_MISSING")
+
+        legacy = json.loads(json.dumps(current))
+        legacy["loop_id"] = "validator-legacy-loop"
+        legacy.pop("paper_ledger_rollup_hash", None)
+        legacy["loop_hash"] = upbit_paper_persistent_loop_hash(legacy)
+        legacy_path = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "paper_runtime" / "validator-legacy-loop.persistent_loop_report.json"
+        legacy_path.write_text(json.dumps(legacy, indent=2), encoding="utf-8")
+
+        unsafe = json.loads(json.dumps(current))
+        unsafe["loop_id"] = "validator-unsafe-loop"
+        unsafe["live_order_allowed"] = True
+        unsafe["loop_hash"] = upbit_paper_persistent_loop_hash(unsafe)
+        unsafe_path = legacy_path.with_name("validator-unsafe-loop.persistent_loop_report.json")
+        unsafe_path.write_text(json.dumps(unsafe, indent=2), encoding="utf-8")
+
+        invalid_path = legacy_path.with_name("validator-invalid-loop.persistent_loop_report.json")
+        invalid_path.write_text("{not-json", encoding="utf-8")
+
+        blocked_report = build_upbit_paper_stale_loop_reconciliation_report(root=root, session_id="mvp1_upbit_paper_launcher")
+        blocked_result = validate_upbit_paper_stale_loop_reconciliation_report(blocked_report)
+        if blocked_result.status != "PASS":
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", f"blocked reconciliation structure failed: {blocked_result.message}", paths, blocked_result.blocker_code or "UNKNOWN_BLOCKED")
+        if blocked_report.get("reconciliation_status") != "BLOCKED" or blocked_report.get("primary_blocker_code") != "STALE_PERSISTENT_LOOP_REPORTS_REQUIRE_RECONCILIATION":
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", "stale or unsafe loop sources did not block reconciliation", paths, "STALE_PERSISTENT_LOOP_REPORTS_REQUIRE_RECONCILIATION")
+        if blocked_report.get("legacy_schema_drift_count") < 1 or blocked_report.get("invalid_json_count") < 1 or blocked_report.get("unsafe_blocked_count") < 1:
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", "stale loop reconciliation did not classify legacy, invalid, and unsafe sources", paths, "MEASUREMENT_MISSING")
+
+        deletion_mutation = json.loads(json.dumps(blocked_report))
+        deletion_mutation["delete_performed"] = True
+        deletion_mutation["reconciliation_hash"] = stale_loop_reconciliation_hash(deletion_mutation)
+        deletion_result = validate_upbit_paper_stale_loop_reconciliation_report(deletion_mutation)
+        if deletion_result.status != "BLOCKED" or deletion_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", "stale loop reconciliation allowed deletion or live mutation", paths, deletion_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+        false_usable = json.loads(json.dumps(blocked_report))
+        legacy_item = next(item for item in false_usable["items"] if item["classification"] == "LEGACY_SCHEMA_DRIFT")
+        legacy_item["evidence_usable_current"] = True
+        false_usable["current_evidence_usable_count"] += 1
+        false_usable["excluded_from_current_evidence_count"] -= 1
+        false_usable["reconciliation_hash"] = stale_loop_reconciliation_hash(false_usable)
+        false_usable_result = validate_upbit_paper_stale_loop_reconciliation_report(false_usable)
+        if false_usable_result.status != "BLOCKED" or false_usable_result.blocker_code != "STALE_PERSISTENT_LOOP_REPORTS_REQUIRE_RECONCILIATION":
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", "legacy schema drift source was allowed as current evidence", paths, false_usable_result.blocker_code or "STALE_PERSISTENT_LOOP_REPORTS_REQUIRE_RECONCILIATION")
+
+        written_path = write_upbit_paper_stale_loop_reconciliation_report(root=root, report=blocked_report)
+        if not written_path.exists():
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", "stale loop reconciliation writer did not create artifact", paths, "MEASUREMENT_MISSING")
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result("upbit_paper_stale_loop_reconciliation_validator", f"runtime stale loop reconciliation artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_stale_loop_reconciliation_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                "upbit_paper_stale_loop_reconciliation_validator",
+                f"runtime stale loop reconciliation artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        "upbit_paper_stale_loop_reconciliation_validator",
+        "Upbit PAPER stale loop reconciliation excludes legacy/unsafe/corrupt reports, blocks deletion/live permission, and keeps only current schema PASS sources usable",
+        paths,
+    )
 
 
 def upbit_paper_runtime_recovery_guard_validator() -> ValidatorResult:
@@ -12305,6 +12431,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_public_rest_continuity_history_validator": upbit_public_rest_continuity_history_validator,
     "upbit_paper_persistent_loop_validator": upbit_paper_persistent_loop_validator,
     "upbit_paper_runtime_sample_history_validator": upbit_paper_runtime_sample_history_validator,
+    "upbit_paper_stale_loop_reconciliation_validator": upbit_paper_stale_loop_reconciliation_validator,
     "upbit_paper_runtime_recovery_guard_validator": upbit_paper_runtime_recovery_guard_validator,
     "restart_recovery_validator": restart_recovery_validator,
     "upbit_operational_paper_gate_validator": upbit_operational_paper_gate_validator,
