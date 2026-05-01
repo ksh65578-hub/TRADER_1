@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.review_plan_reflection_ledger.v1",
-  "generated_at_utc": "2026-05-01T06:17:20Z",
+  "generated_at_utc": "2026-05-01T06:28:38Z",
   "review_directory": "\uac80\ud1a0\uc548",
   "authority_files": [
     "TRADER_1.md",
@@ -70,10 +70,12 @@
     "strategy_profitability_loop",
     "upbit_paper_runtime"
   ],
-  "delete_ready_count": 0,
+  "delete_ready_count": 1,
   "deleted_after_reflection_count": 44,
-  "pending_reflection_count": 1,
-  "delete_ready_files": [],
+  "pending_reflection_count": 0,
+  "delete_ready_files": [
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md"
+  ],
   "deleted_after_reflection_files": [
     "\uac80\ud1a0\uc548/1.md",
     "\uac80\ud1a0\uc548/10.md",
@@ -124,8 +126,8 @@
     {
       "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
       "review_number": null,
-      "sha256": "7EB3001B5C66E02540288845AFA8ECD19E8DD54CFDA8C852A6C7AE0551F23D3A",
-      "bytes": 44424,
+      "sha256": "F26437F57AC6BA34ED6ECE94754E886F6FCBD56D4F788EC40E88E1482FDC1B76",
+      "bytes": 45457,
       "first_line": "# TRADER_1.zip Full Re-Audit \u2014 Session 2",
       "theme_ids": [
         "source_package_hygiene",
@@ -142,12 +144,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_SESSION2_REAUDIT_REFLECTION_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_SESSION2_REAUDIT_REFLECTION.patch_result.json",
+        "system/evidence/audit_reports/MVP4_SESSION2_REAUDIT_REFLECTION.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1759,6 +1769,6 @@
   "can_live_trade": false,
   "scale_up_allowed": false,
   "deleted_files_this_run": [
-    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md"
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md"
   ]
 }
