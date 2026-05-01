@@ -1,0 +1,11 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-01T12:13:57Z",
+  "patch_id": "MVP4_STRATEGY_REGIME_COST_RUNTIME_LINKAGE_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_UPBIT_PAPER_RUNTIME_LINKAGE_NO_LIVE_ORDERS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
