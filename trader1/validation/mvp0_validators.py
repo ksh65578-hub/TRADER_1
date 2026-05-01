@@ -256,6 +256,13 @@ from trader1.runtime.paper.upbit_paper_bounded_rerun_staging_executor import (
     validate_upbit_paper_bounded_rerun_staging_executor_report,
     write_upbit_paper_bounded_rerun_staging_executor_report,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation import (
+    POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+    build_upbit_paper_post_rerun_ledger_rollup_reconciliation_report,
+    upbit_paper_post_rerun_ledger_rollup_reconciliation_hash,
+    validate_upbit_paper_post_rerun_ledger_rollup_reconciliation_report,
+    write_upbit_paper_post_rerun_ledger_rollup_reconciliation_report,
+)
 from trader1.research.replay.replay_runner import (
     build_replay_consistency_report,
     replay_consistency_hash,
@@ -422,6 +429,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_repair_operator_queue_validator",
     "upbit_paper_missing_cycle_rerun_guard_validator",
     "upbit_paper_bounded_rerun_staging_executor_validator",
+    "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
     "upbit_paper_runtime_recovery_guard_validator",
     "restart_recovery_validator",
     "upbit_operational_paper_gate_validator",
@@ -6372,6 +6380,169 @@ def upbit_paper_bounded_rerun_staging_executor_validator() -> ValidatorResult:
     return pass_result(
         "upbit_paper_bounded_rerun_staging_executor_validator",
         "Upbit PAPER bounded rerun staging executor writes isolated rerun candidates without mutating current evidence",
+        paths,
+    )
+
+
+def upbit_paper_post_rerun_ledger_rollup_reconciliation_validator() -> ValidatorResult:
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_post_rerun_ledger_rollup_reconciliation_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_post_rerun_ledger_rollup_reconciliation.py"
+    staging_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_bounded_rerun_staging_executor.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_post_rerun_ledger_rollup_reconciliation.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob("*/paper_runtime/upbit_paper_post_rerun_ledger_rollup_reconciliation_report.json")
+    )
+    paths = [schema_path, module_path, staging_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_post_rerun_ledger_rollup_reconciliation_report.v1":
+        return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", "post-rerun reconciliation schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", "post-rerun reconciliation schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "source_staging_executor_hash",
+        "source_staging_status",
+        "candidate_item_count",
+        "candidate_rollup_pass_count",
+        "candidate_rollup_artifact_ready_count",
+        "candidate_current_evidence_usable_count",
+        "post_rerun_ledger_rollup_status",
+        "post_rerun_reconciliation_status",
+        "current_ledger_jsonl_write_allowed",
+        "latest_runtime_pointer_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", f"post-rerun reconciliation schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        current = run_upbit_paper_persistent_loop(root=root, loop_id="validator-post-rerun-current", requested_cycle_count=1)
+        legacy = json.loads(json.dumps(current))
+        legacy["loop_id"] = "validator-post-rerun-legacy"
+        for field in (
+            "paper_ledger_rollup_status",
+            "paper_ledger_rollup_hash",
+            "paper_ledger_rollup_primary_blocker_code",
+            "paper_ledger_rollup_path",
+        ):
+            legacy.pop(field, None)
+        legacy["loop_hash"] = upbit_paper_persistent_loop_hash(legacy)
+        loop_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "validator-post-rerun-legacy.persistent_loop_report.json"
+        )
+        loop_path.write_text(json.dumps(legacy, indent=2), encoding="utf-8")
+        reconciliation = build_upbit_paper_stale_loop_reconciliation_report(root=root)
+        plan = build_upbit_paper_stale_loop_regeneration_plan(root=root, reconciliation_report=reconciliation)
+        guard = build_upbit_paper_stale_loop_execution_guard(root=root, plan=plan)
+        executor = build_upbit_paper_stale_loop_safe_regeneration_executor_report(root=root, guard=guard)
+        post_regeneration = build_upbit_paper_stale_loop_post_regeneration_reconciliation_report(root=root, executor_report=executor)
+        source_item = post_regeneration["items"][0]
+        replacement_path = root.joinpath(*source_item["replacement_path"].split("/"))
+        replacement = load_json(replacement_path)
+        cycle_id = replacement["cycle_results"][0]["cycle_id"]
+        current_ledger_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "ledger"
+            / "cycles"
+            / f"{cycle_id}.paper_ledger_events.jsonl"
+        )
+        current_ledger_path.unlink()
+        repair_plan = build_upbit_paper_blocked_repair_plan_report(root=root, post_reconciliation_report=post_regeneration)
+        ledger_repair = build_upbit_paper_ledger_rollup_repair_report(root=root, repair_plan_report=repair_plan)
+        post_repair = build_upbit_paper_post_repair_reconciliation_report(ledger_rollup_repair_report=ledger_repair)
+        queue = build_upbit_paper_repair_operator_queue_report(
+            blocked_repair_plan_report=repair_plan,
+            ledger_rollup_repair_report=ledger_repair,
+            post_repair_reconciliation_report=post_repair,
+        )
+        missing_guard = build_upbit_paper_missing_cycle_rerun_guard_report(root=root, repair_operator_queue_report=queue)
+        staging = build_upbit_paper_bounded_rerun_staging_executor_report(
+            root=root,
+            missing_cycle_rerun_guard_report=missing_guard,
+        )
+        report = build_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(
+            root=root,
+            staging_executor_report=staging,
+        )
+        result = validate_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(report)
+        if result.status != "PASS":
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", f"valid post-rerun reconciliation failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
+        if (
+            report.get("post_rerun_ledger_rollup_status") != "PASS"
+            or report.get("post_rerun_reconciliation_status") != "BLOCKED"
+            or report.get("primary_blocker_code") != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
+            or report.get("candidate_item_count") != 1
+            or report.get("candidate_rollup_pass_count") != 1
+            or report.get("candidate_rollup_artifact_ready_count") != 1
+            or report.get("candidate_current_evidence_usable_count") != 0
+            or report.get("current_ledger_jsonl_write_allowed")
+            or report.get("latest_runtime_pointer_write_allowed")
+            or report.get("live_order_allowed")
+            or report.get("scale_up_allowed")
+        ):
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", "post-rerun reconciliation did not produce staged-only candidate rollup while staying live-blocked", paths, "MEASUREMENT_MISSING")
+        if current_ledger_path.exists():
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", "post-rerun reconciliation wrote current ledger JSONL", paths, "LIVE_FINAL_GUARD_FAILED")
+        candidate_path = root.joinpath(*report["items"][0]["candidate_rollup_artifact_path"].split("/"))
+        if "/rerun_candidates_post_rollup/" not in report["items"][0]["candidate_rollup_artifact_path"] or not candidate_path.exists():
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", "post-rerun candidate rollup artifact missing or outside post-rollup namespace", paths, "SNAPSHOT_SCOPE_MISMATCH")
+        second = build_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(root=root, staging_executor_report=staging)
+        second_result = validate_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(second)
+        if second_result.status != "PASS" or second.get("candidate_rollup_reused_existing_count") != 1:
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", "post-rerun candidate rollup is not idempotent for matching artifacts", paths, second_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+        written_path = write_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(root=root, report=report)
+        if not written_path.exists():
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", "post-rerun reconciliation writer did not create report", paths, "MEASUREMENT_MISSING")
+
+        count_tamper = json.loads(json.dumps(report))
+        count_tamper["candidate_rollup_pass_count"] = 0
+        count_tamper["post_rerun_reconciliation_hash"] = upbit_paper_post_rerun_ledger_rollup_reconciliation_hash(count_tamper)
+        count_result = validate_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(count_tamper)
+        if count_result.status != "FAIL" or count_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", "post-rerun count tamper was not rejected", paths, count_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+
+        live_mutation = json.loads(json.dumps(report))
+        live_mutation["live_order_allowed"] = True
+        live_mutation["post_rerun_reconciliation_hash"] = upbit_paper_post_rerun_ledger_rollup_reconciliation_hash(live_mutation)
+        live_result = validate_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(live_mutation)
+        if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", "post-rerun live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result("upbit_paper_post_rerun_ledger_rollup_reconciliation_validator", f"runtime post-rerun reconciliation artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
+                f"runtime post-rerun reconciliation artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
+        "Upbit PAPER post-rerun ledger rollup reconciliation writes staged-only candidate rollups and blocks current evidence mutation",
         paths,
     )
 
@@ -14165,6 +14336,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_repair_operator_queue_validator": upbit_paper_repair_operator_queue_validator,
     "upbit_paper_missing_cycle_rerun_guard_validator": upbit_paper_missing_cycle_rerun_guard_validator,
     "upbit_paper_bounded_rerun_staging_executor_validator": upbit_paper_bounded_rerun_staging_executor_validator,
+    "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator": upbit_paper_post_rerun_ledger_rollup_reconciliation_validator,
     "upbit_paper_runtime_recovery_guard_validator": upbit_paper_runtime_recovery_guard_validator,
     "restart_recovery_validator": restart_recovery_validator,
     "upbit_operational_paper_gate_validator": upbit_operational_paper_gate_validator,

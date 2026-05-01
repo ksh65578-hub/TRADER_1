@@ -327,6 +327,28 @@
     "post_staging_reconciliation_required": {
       "type": "boolean"
     },
+    "post_rerun_ledger_rollup_status": {
+      "type": "string"
+    },
+    "post_rerun_reconciliation_status": {
+      "type": "string"
+    },
+    "post_rerun_candidate_rollup_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_candidate_rollup_written_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_candidate_rollup_reused_existing_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_current_evidence_usable_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "authority_hash_checked": {
       "type": "boolean"
     },

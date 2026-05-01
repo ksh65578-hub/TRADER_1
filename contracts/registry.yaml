@@ -920,6 +920,10 @@
       "schema_id": "trader1.upbit_paper_bounded_rerun_staging_executor_report.v1",
       "path": "contracts/schema/upbit_paper_bounded_rerun_staging_executor_report.schema.json"
     },
+    "upbit_paper_post_rerun_ledger_rollup_reconciliation_report": {
+      "schema_id": "trader1.upbit_paper_post_rerun_ledger_rollup_reconciliation_report.v1",
+      "path": "contracts/schema/upbit_paper_post_rerun_ledger_rollup_reconciliation_report.schema.json"
+    },
     "evidence_manifest": {
       "schema_id": "trader1.evidence_manifest.v1",
       "path": "contracts/schema/evidence_manifest.schema.json"
@@ -1321,6 +1325,7 @@
       "upbit_paper_repair_operator_queue_validator",
       "upbit_paper_missing_cycle_rerun_guard_validator",
       "upbit_paper_bounded_rerun_staging_executor_validator",
+      "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "restart_recovery_validator",
       "upbit_operational_paper_gate_validator",
@@ -1389,6 +1394,7 @@
       "upbit_paper_repair_operator_queue_validator",
       "upbit_paper_missing_cycle_rerun_guard_validator",
       "upbit_paper_bounded_rerun_staging_executor_validator",
+      "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "restart_recovery_validator",
       "upbit_operational_paper_gate_validator",
@@ -1557,6 +1563,7 @@
       "upbit_paper_repair_operator_queue_validator",
       "upbit_paper_missing_cycle_rerun_guard_validator",
       "upbit_paper_bounded_rerun_staging_executor_validator",
+      "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "paper_ledger_rollup_validator",
       "upbit_live_review_preflight_validator",
