@@ -4626,6 +4626,13 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         "requested_cycle_count",
         "completed_cycle_count",
         "cycle_results",
+        "preflight_existing_runtime_state_detected",
+        "preflight_recovery_guard_status",
+        "preflight_recovery_guard_hash",
+        "preflight_recovery_guard_primary_blocker_code",
+        "preflight_runtime_recovery_guard_path",
+        "preflight_paper_runtime_resume_allowed",
+        "current_evidence_write_allowed",
         "recovery_guard_status",
         "recovery_guard_hash",
         "runtime_recovery_guard_path",
@@ -4702,6 +4709,8 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
             return fail_result("upbit_paper_persistent_loop_validator", f"valid persistent PAPER loop failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
         if loop.get("completed_cycle_count") != 2 or not loop.get("actual_paper_runtime_executed"):
             return fail_result("upbit_paper_persistent_loop_validator", "persistent loop did not execute requested PAPER cycles", paths, "MEASUREMENT_MISSING")
+        if loop.get("preflight_recovery_guard_status") != "SKIPPED" or not loop.get("current_evidence_write_allowed"):
+            return fail_result("upbit_paper_persistent_loop_validator", "initial persistent loop did not skip clean preflight safely", paths, "SCHEMA_IDENTITY_MISMATCH")
         if loop.get("long_run_evidence_eligible") or loop.get("promotion_eligible") or loop.get("live_order_allowed"):
             return fail_result("upbit_paper_persistent_loop_validator", "bounded persistent loop created promotion or live permission", paths, "LIVE_FINAL_GUARD_FAILED")
         if (
@@ -4741,6 +4750,45 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
             return fail_result("upbit_paper_persistent_loop_validator", "latest cycle is not bound to public collection input", paths, "SCHEMA_IDENTITY_MISMATCH")
         if latest_cycle.get("live_order_allowed") or latest_cycle.get("can_live_trade") or latest_cycle.get("scale_up_allowed"):
             return fail_result("upbit_paper_persistent_loop_validator", "latest cycle drifted into live or scale-up permission", paths, "LIVE_FINAL_GUARD_FAILED")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        run_upbit_paper_persistent_loop(root=root, loop_id="validator-upbit-paper-loop-preflight-clean-a", requested_cycle_count=1)
+        clean_resume = run_upbit_paper_persistent_loop(root=root, loop_id="validator-upbit-paper-loop-preflight-clean-b", requested_cycle_count=1)
+        clean_resume_result = validate_upbit_paper_persistent_loop_report(clean_resume)
+        if clean_resume_result.status != "PASS":
+            return fail_result("upbit_paper_persistent_loop_validator", f"clean preflight resume failed: {clean_resume_result.message}", paths, clean_resume_result.blocker_code or "UNKNOWN_BLOCKED")
+        if (
+            clean_resume.get("preflight_recovery_guard_status") != "PASS"
+            or not clean_resume.get("preflight_paper_runtime_resume_allowed")
+            or not clean_resume.get("current_evidence_write_allowed")
+        ):
+            return fail_result("upbit_paper_persistent_loop_validator", "clean preflight did not allow PAPER-only current evidence writes", paths, "RECONCILIATION_REQUIRED")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        tmp_path = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "paper_runtime" / ".orphan.tmp"
+        tmp_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path.write_text("partial", encoding="utf-8")
+        blocked_preflight = run_upbit_paper_persistent_loop(root=root, loop_id="validator-upbit-paper-loop-preflight-block", requested_cycle_count=1)
+        blocked_preflight_result = validate_upbit_paper_persistent_loop_report(blocked_preflight)
+        if blocked_preflight_result.status != "BLOCKED":
+            return fail_result(
+                "upbit_paper_persistent_loop_validator",
+                "preflight-blocked persistent loop did not fail closed",
+                paths,
+                blocked_preflight_result.blocker_code or "RECONCILIATION_REQUIRED",
+            )
+        if (
+            blocked_preflight.get("preflight_recovery_guard_status") != "BLOCKED"
+            or blocked_preflight.get("current_evidence_write_allowed")
+            or blocked_preflight.get("completed_cycle_count") != 0
+            or blocked_preflight.get("cycle_results")
+        ):
+            return fail_result("upbit_paper_persistent_loop_validator", "blocked preflight wrote or allowed current PAPER evidence", paths, "RECONCILIATION_REQUIRED")
+        latest_path = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "upbit_paper_runtime_cycle_report.json"
+        if latest_path.exists():
+            return fail_result("upbit_paper_persistent_loop_validator", "blocked preflight wrote latest PAPER runtime cycle", paths, "RECONCILIATION_REQUIRED")
 
     with TemporaryDirectory() as tmp:
         mutated = run_upbit_paper_persistent_loop(

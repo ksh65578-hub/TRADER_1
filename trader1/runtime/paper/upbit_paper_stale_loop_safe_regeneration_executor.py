@@ -45,6 +45,13 @@ PERSISTENT_LOOP_REQUIRED_FIELDS = {
     "primary_blocker_code",
     "blockers",
     "actual_paper_runtime_executed",
+    "preflight_existing_runtime_state_detected",
+    "preflight_recovery_guard_status",
+    "preflight_recovery_guard_hash",
+    "preflight_recovery_guard_primary_blocker_code",
+    "preflight_runtime_recovery_guard_path",
+    "preflight_paper_runtime_resume_allowed",
+    "current_evidence_write_allowed",
     "recovery_guard_status",
     "recovery_guard_hash",
     "recovery_guard_primary_blocker_code",
@@ -198,6 +205,13 @@ def _normalized_persistent_loop_report(
     report.setdefault("completed_cycle_count", len(report["cycle_results"]))
     report.setdefault("max_cycle_count", max(1, int(report["requested_cycle_count"])))
     report.setdefault("blockers", [])
+    report.setdefault("preflight_existing_runtime_state_detected", False)
+    report.setdefault("preflight_recovery_guard_status", "SKIPPED")
+    report.setdefault("preflight_recovery_guard_hash", None)
+    report.setdefault("preflight_recovery_guard_primary_blocker_code", None)
+    report.setdefault("preflight_runtime_recovery_guard_path", None)
+    report.setdefault("preflight_paper_runtime_resume_allowed", True)
+    report.setdefault("current_evidence_write_allowed", True)
     report["runtime_evidence_role"] = BOUNDED_LOOP_RUNTIME_EVIDENCE_ROLE
     report["long_run_evidence_eligible"] = False
     report["long_run_blocker_code"] = LONG_RUN_EVIDENCE_BLOCKER_CODE

@@ -10648,6 +10648,72 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-PERSISTENT-RUNTIME-RECOVERY-PREFLIGHT",
+      "source_section_id": "SECTION_RUNTIME_RECOVERY",
+      "source_file": "TRADER_1.md",
+      "source_heading": "PAPER persistent runtime recovery preflight",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-PERSISTENT-RUNTIME-RECOVERY-PREFLIGHT: preflight recovery guard must block current PAPER evidence writes before rerun when prior runtime state is unreconciled",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER persistent runtime recovery preflight",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_persistent_loop_report.v1",
+        "trader1.upbit_paper_runtime_recovery_guard_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "upbit_paper_persistent_loop_validator",
+        "upbit_paper_runtime_recovery_guard_validator",
+        "upbit_paper_stale_loop_safe_regeneration_executor_validator",
+        "upbit_paper_missing_cycle_rerun_guard_validator",
+        "upbit_paper_bounded_rerun_staging_executor_validator",
+        "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
+        "upbit_paper_post_rerun_current_evidence_promotion_guard_validator",
+        "runtime_schema_instance_validator",
+        "ledger_durability_validator",
+        "ledger_reconciliation_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "trader1/runtime/paper/upbit_paper_persistent_loop.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_safe_regeneration_executor.py",
+        "contracts/schema/upbit_paper_persistent_loop_report.schema.json",
+        "trader1/validation/mvp0_validators.py",
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tools/emit_upbit_paper_persistent_runtime_recovery_preflight_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_PERSISTENT_RUNTIME_RECOVERY_PREFLIGHT.md"
+      ],
+      "test_ids": [
+        "tests/integration/test_upbit_public_collection_persistent_loop.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_RUNTIME_RECOVERY",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-RECOVERY-GUARD",
+        "REQ-MVP4-UPBIT-PAPER-LEDGER-JSONL-RECOVERY",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "A131C4C26BAD2110E98931767E50D68DA80D74002751E39F4EDB8B89C1393F32",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -12797,5 +12863,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T18:15:02Z"
+  "updated_at_utc": "2026-05-01T18:58:32Z"
 }

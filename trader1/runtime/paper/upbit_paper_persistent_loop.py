@@ -78,6 +78,25 @@ def _runtime_base_dir(root: Path, session_id: str) -> Path:
     return root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
 
+def _existing_runtime_state_detected(root: Path, session_id: str) -> bool:
+    base = _runtime_base_dir(root, session_id)
+    if not base.exists():
+        return False
+    direct_paths = (
+        base / "upbit_paper_runtime_cycle_report.json",
+        base / "ledger" / "latest_paper_ledger_head.json",
+    )
+    if any(path.exists() for path in direct_paths):
+        return True
+    patterns = (
+        "**/*.tmp",
+        "paper_runtime/cycles/*.json",
+        "market_data/public/canonical/*.canonical_events.jsonl",
+        "ledger/cycles/*.paper_ledger_events.jsonl",
+    )
+    return any(next(base.glob(pattern), None) is not None for pattern in patterns)
+
+
 def _safe_read_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -340,62 +359,85 @@ def run_upbit_paper_persistent_loop(
     root = Path(root).resolve()
     blockers: list[dict[str, str]] = []
     cycle_results: list[dict[str, Any]] = []
+    preflight_existing_runtime_state = _existing_runtime_state_detected(root, session_id)
+    preflight_recovery_guard: dict[str, Any] | None = None
+    preflight_recovery_guard_path: Path | None = None
+    current_evidence_write_allowed = True
     if requested_cycle_count < 1 or requested_cycle_count > max_cycle_count or max_cycle_count > DEFAULT_MAX_CYCLE_COUNT:
         blockers.append({"code": "RUNTIME_BUDGET_EXCEEDED", "severity": "HIGH", "message": "requested PAPER loop cycles exceed bounded MVP-4 budget"})
         requested_cycle_count = max(0, min(requested_cycle_count, max_cycle_count, DEFAULT_MAX_CYCLE_COUNT))
-    for index in range(requested_cycle_count):
-        collector_id = f"{loop_id}-collector-{index + 1}"
-        cycle_id = f"{loop_id}-cycle-{index + 1}"
-        supplied_market_data = market_data_sequence[index] if market_data_sequence and index < len(market_data_sequence) else None
-        collection = build_upbit_public_market_data_collection_report(
-            collector_id=collector_id,
-            session_id=session_id,
-            symbol=symbol,
-            market_data=supplied_market_data,
-        )
-        collection_result = validate_upbit_public_market_data_collection_report(collection)
-        collection_writer = write_upbit_public_market_data_collection_artifacts(root=root, report=collection)
-        cycle: dict[str, Any] | None = None
-        cycle_writer: dict[str, Any] | None = None
-        cycle_result_status = "BLOCKED"
-        cycle_result_blocker = collection_result.blocker_code
-        if collection_result.status == "PASS" and collection_writer.get("writer_status") == "PASS":
-            cycle = build_upbit_paper_runtime_cycle_report(
-                cycle_id=cycle_id,
+
+    if preflight_existing_runtime_state:
+        preflight_recovery_guard = build_upbit_paper_runtime_recovery_guard_report(root=root, session_id=session_id, loop_id=f"{loop_id}-preflight")
+        preflight_recovery_guard_path = write_upbit_paper_runtime_recovery_guard_report(root=root, report=preflight_recovery_guard)
+        current_evidence_write_allowed = preflight_recovery_guard.get("recovery_guard_status") == "PASS"
+        if not current_evidence_write_allowed:
+            blockers.append(
+                {
+                    "code": preflight_recovery_guard.get("primary_blocker_code") or "RECONCILIATION_REQUIRED",
+                    "severity": "HIGH",
+                    "message": "PAPER runtime preflight recovery guard blocked current evidence writes",
+                }
+            )
+
+    if current_evidence_write_allowed:
+        for index in range(requested_cycle_count):
+            collector_id = f"{loop_id}-collector-{index + 1}"
+            cycle_id = f"{loop_id}-cycle-{index + 1}"
+            supplied_market_data = market_data_sequence[index] if market_data_sequence and index < len(market_data_sequence) else None
+            collection = build_upbit_public_market_data_collection_report(
+                collector_id=collector_id,
                 session_id=session_id,
                 symbol=symbol,
-                source_collection_report=collection,
+                market_data=supplied_market_data,
             )
-            runtime_result = validate_upbit_paper_runtime_cycle_report(cycle)
-            cycle_result_status = runtime_result.status
-            cycle_result_blocker = runtime_result.blocker_code
-            cycle_writer = _write_runtime_cycle_artifacts(root=root, cycle=cycle)
-        else:
-            blockers.append({"code": collection_result.blocker_code or "DATA_UNAVAILABLE", "severity": "HIGH", "message": collection_result.message})
-        if cycle_result_status != "PASS":
-            blockers.append({"code": cycle_result_blocker or "UNKNOWN_BLOCKED", "severity": "HIGH", "message": "PAPER runtime cycle did not pass"})
-        cycle_results.append(
-            {
-                "cycle_index": index + 1,
-                "collector_id": collector_id,
-                "cycle_id": cycle_id,
-                "collection_status": collection_result.status,
-                "collection_hash": collection.get("collection_hash"),
-                "collection_writer_status": collection_writer.get("writer_status"),
-                "runtime_status": cycle_result_status,
-                "runtime_cycle_hash": cycle.get("cycle_hash") if isinstance(cycle, dict) else None,
-                "runtime_writer_status": cycle_writer.get("writer_status") if isinstance(cycle_writer, dict) else "NOT_WRITTEN",
-                "final_decision": cycle.get("final_decision") if isinstance(cycle, dict) else "BLOCKED",
-                "artifact_paths": [*(collection_writer.get("artifact_paths") or []), *(cycle_writer.get("artifact_paths") if isinstance(cycle_writer, dict) else [])],
-                "live_order_ready": False,
-                "live_order_allowed": False,
-                "can_live_trade": False,
-                "scale_up_allowed": False,
-            }
-        )
+            collection_result = validate_upbit_public_market_data_collection_report(collection)
+            collection_writer = write_upbit_public_market_data_collection_artifacts(root=root, report=collection)
+            cycle: dict[str, Any] | None = None
+            cycle_writer: dict[str, Any] | None = None
+            cycle_result_status = "BLOCKED"
+            cycle_result_blocker = collection_result.blocker_code
+            if collection_result.status == "PASS" and collection_writer.get("writer_status") == "PASS":
+                cycle = build_upbit_paper_runtime_cycle_report(
+                    cycle_id=cycle_id,
+                    session_id=session_id,
+                    symbol=symbol,
+                    source_collection_report=collection,
+                )
+                runtime_result = validate_upbit_paper_runtime_cycle_report(cycle)
+                cycle_result_status = runtime_result.status
+                cycle_result_blocker = runtime_result.blocker_code
+                cycle_writer = _write_runtime_cycle_artifacts(root=root, cycle=cycle)
+            else:
+                blockers.append({"code": collection_result.blocker_code or "DATA_UNAVAILABLE", "severity": "HIGH", "message": collection_result.message})
+            if cycle_result_status != "PASS":
+                blockers.append({"code": cycle_result_blocker or "UNKNOWN_BLOCKED", "severity": "HIGH", "message": "PAPER runtime cycle did not pass"})
+            cycle_results.append(
+                {
+                    "cycle_index": index + 1,
+                    "collector_id": collector_id,
+                    "cycle_id": cycle_id,
+                    "collection_status": collection_result.status,
+                    "collection_hash": collection.get("collection_hash"),
+                    "collection_writer_status": collection_writer.get("writer_status"),
+                    "runtime_status": cycle_result_status,
+                    "runtime_cycle_hash": cycle.get("cycle_hash") if isinstance(cycle, dict) else None,
+                    "runtime_writer_status": cycle_writer.get("writer_status") if isinstance(cycle_writer, dict) else "NOT_WRITTEN",
+                    "final_decision": cycle.get("final_decision") if isinstance(cycle, dict) else "BLOCKED",
+                    "artifact_paths": [*(collection_writer.get("artifact_paths") or []), *(cycle_writer.get("artifact_paths") if isinstance(cycle_writer, dict) else [])],
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                }
+            )
     completed_count = sum(1 for item in cycle_results if item.get("runtime_status") == "PASS")
-    recovery_guard = build_upbit_paper_runtime_recovery_guard_report(root=root, session_id=session_id, loop_id=loop_id)
-    recovery_guard_path = write_upbit_paper_runtime_recovery_guard_report(root=root, report=recovery_guard)
+    if current_evidence_write_allowed:
+        recovery_guard = build_upbit_paper_runtime_recovery_guard_report(root=root, session_id=session_id, loop_id=loop_id)
+        recovery_guard_path = write_upbit_paper_runtime_recovery_guard_report(root=root, report=recovery_guard)
+    else:
+        recovery_guard = preflight_recovery_guard or build_upbit_paper_runtime_recovery_guard_report(root=root, session_id=session_id, loop_id=loop_id)
+        recovery_guard_path = preflight_recovery_guard_path or write_upbit_paper_runtime_recovery_guard_report(root=root, report=recovery_guard)
     if recovery_guard.get("recovery_guard_status") != "PASS":
         blockers.append(
             {
@@ -434,6 +476,13 @@ def run_upbit_paper_persistent_loop(
         "primary_blocker_code": blockers[0]["code"] if blockers else None,
         "blockers": blockers,
         "actual_paper_runtime_executed": completed_count > 0,
+        "preflight_existing_runtime_state_detected": preflight_existing_runtime_state,
+        "preflight_recovery_guard_status": preflight_recovery_guard["recovery_guard_status"] if preflight_recovery_guard else "SKIPPED",
+        "preflight_recovery_guard_hash": preflight_recovery_guard["guard_hash"] if preflight_recovery_guard else None,
+        "preflight_recovery_guard_primary_blocker_code": preflight_recovery_guard["primary_blocker_code"] if preflight_recovery_guard else None,
+        "preflight_runtime_recovery_guard_path": _relative_posix(preflight_recovery_guard_path, root) if preflight_recovery_guard_path else None,
+        "preflight_paper_runtime_resume_allowed": preflight_recovery_guard["paper_runtime_resume_allowed"] if preflight_recovery_guard else True,
+        "current_evidence_write_allowed": current_evidence_write_allowed,
         "recovery_guard_status": recovery_guard["recovery_guard_status"],
         "recovery_guard_hash": recovery_guard["guard_hash"],
         "recovery_guard_primary_blocker_code": recovery_guard["primary_blocker_code"],
@@ -487,6 +536,13 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
         "primary_blocker_code",
         "blockers",
         "actual_paper_runtime_executed",
+        "preflight_existing_runtime_state_detected",
+        "preflight_recovery_guard_status",
+        "preflight_recovery_guard_hash",
+        "preflight_recovery_guard_primary_blocker_code",
+        "preflight_runtime_recovery_guard_path",
+        "preflight_paper_runtime_resume_allowed",
+        "current_evidence_write_allowed",
         "recovery_guard_status",
         "recovery_guard_hash",
         "recovery_guard_primary_blocker_code",
@@ -540,6 +596,29 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
     )
     if any(report.get(field) for field in forbidden_fields):
         return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop attempted live, private, order, promotion, or scale-up behavior", "LIVE_FINAL_GUARD_FAILED")
+    preflight_status = report.get("preflight_recovery_guard_status")
+    if preflight_status not in {"SKIPPED", "PASS", "BLOCKED"}:
+        return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop preflight status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("preflight_existing_runtime_state_detected") is False and preflight_status != "SKIPPED":
+        return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop preflight must be skipped when no prior runtime state exists", "SCHEMA_IDENTITY_MISMATCH")
+    if preflight_status == "SKIPPED":
+        if report.get("preflight_recovery_guard_hash") is not None or report.get("preflight_runtime_recovery_guard_path") is not None:
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "skipped preflight cannot expose recovery guard artifacts", "SCHEMA_IDENTITY_MISMATCH")
+        if report.get("preflight_paper_runtime_resume_allowed") is not True:
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "skipped preflight must allow initial PAPER runtime writes", "SCHEMA_IDENTITY_MISMATCH")
+    else:
+        if report.get("preflight_recovery_guard_hash") in {None, ""} or report.get("preflight_runtime_recovery_guard_path") in {None, ""}:
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop preflight recovery guard artifact is missing", "SCHEMA_IDENTITY_MISMATCH")
+        if preflight_status == "PASS":
+            if report.get("preflight_recovery_guard_primary_blocker_code") is not None or report.get("preflight_paper_runtime_resume_allowed") is not True:
+                return UpbitPaperPersistentLoopValidationResult("FAIL", "PASS preflight cannot carry blockers", "SCHEMA_IDENTITY_MISMATCH")
+            if report.get("current_evidence_write_allowed") is not True:
+                return UpbitPaperPersistentLoopValidationResult("FAIL", "PASS preflight must allow current PAPER evidence writes", "SCHEMA_IDENTITY_MISMATCH")
+        if preflight_status == "BLOCKED":
+            if report.get("preflight_paper_runtime_resume_allowed") or report.get("current_evidence_write_allowed"):
+                return UpbitPaperPersistentLoopValidationResult("BLOCKED", "blocked preflight cannot allow current PAPER evidence writes", "RECONCILIATION_REQUIRED")
+            if report.get("preflight_recovery_guard_primary_blocker_code") is None:
+                return UpbitPaperPersistentLoopValidationResult("BLOCKED", "blocked preflight must expose primary blocker", "RECONCILIATION_REQUIRED")
     if report.get("recovery_guard_status") not in {"PASS", "BLOCKED"}:
         return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop recovery guard status is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("recovery_guard_hash") in {None, ""}:
@@ -585,7 +664,12 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
             "MEASUREMENT_MISSING",
         )
     cycle_results = report.get("cycle_results")
-    if not isinstance(cycle_results, list) or len(cycle_results) != report.get("requested_cycle_count"):
+    if not isinstance(cycle_results, list):
+        return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle results must be an array", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("current_evidence_write_allowed") is False:
+        if cycle_results or completed_cycle_count != 0:
+            return UpbitPaperPersistentLoopValidationResult("BLOCKED", "preflight-blocked loop cannot write current cycle evidence", "RECONCILIATION_REQUIRED")
+    elif len(cycle_results) != report.get("requested_cycle_count"):
         return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle result count mismatch", "SCHEMA_IDENTITY_MISMATCH")
     seen_collector_ids: set[str] = set()
     seen_cycle_ids: set[str] = set()
