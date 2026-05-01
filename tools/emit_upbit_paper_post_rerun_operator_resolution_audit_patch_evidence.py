@@ -116,6 +116,7 @@ def write_runtime_report() -> dict[str, Any]:
             f"{decision_result.status} {decision_result.blocker_code} {decision_result.message}"
         )
     report = build_upbit_paper_post_rerun_operator_resolution_audit_report(
+        root=ROOT,
         review_guidance_report=guidance,
         decision_audit_report=decision,
         source_review_guidance_path=base.rel(guidance_path),
@@ -148,10 +149,10 @@ def referenced_runtime_paths(report: dict[str, Any]) -> list[str]:
 
 def write_context(now: str, trader_hash: str, agents_hash: str, report: dict[str, Any]) -> None:
     base.write_text(
-        ROOT / "contracts" / "generated" / "context_pack" / "MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT.md",
-        f"""# MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT
+        ROOT / "contracts" / "generated" / "context_pack" / f"{PATCH_BASENAME}.md",
+        f"""# {PATCH_BASENAME}
 
-context_pack_id: MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT
+context_pack_id: {PATCH_BASENAME}
 task_class: MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT_REVIEW_ONLY
 source_trader1_sha256: {trader_hash}
 source_agents_sha256: {agents_hash}
@@ -303,6 +304,10 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             "dashboard_artifacts": [],
             "patch_result_fields": [
                 "post_rerun_operator_resolution_audit_status",
+                "post_rerun_operator_resolution_source_review_guidance_file_load_status",
+                "post_rerun_operator_resolution_source_review_guidance_file_hash_match",
+                "post_rerun_operator_resolution_source_decision_audit_file_load_status",
+                "post_rerun_operator_resolution_source_decision_audit_file_hash_match",
                 "post_rerun_operator_resolution_unresolved_item_count",
                 "post_rerun_operator_resolution_resolved_item_count",
                 "post_rerun_operator_resolution_control_count",
@@ -437,6 +442,10 @@ def build_patch_result(
             "convergence_validators_run": validators_run,
             "scale_up_eligibility_changed": False,
             "post_rerun_operator_resolution_audit_status": report["resolution_audit_status"],
+            "post_rerun_operator_resolution_source_review_guidance_file_load_status": report["source_review_guidance_file_load_status"],
+            "post_rerun_operator_resolution_source_review_guidance_file_hash_match": report["source_review_guidance_file_hash_match"],
+            "post_rerun_operator_resolution_source_decision_audit_file_load_status": report["source_decision_audit_file_load_status"],
+            "post_rerun_operator_resolution_source_decision_audit_file_hash_match": report["source_decision_audit_file_hash_match"],
             "post_rerun_operator_resolution_unresolved_item_count": report["unresolved_item_count"],
             "post_rerun_operator_resolution_resolved_item_count": report["resolved_item_count"],
             "post_rerun_operator_resolution_control_count": report["resolution_control_count"],
@@ -480,6 +489,10 @@ def write_evidence(
             "target_mvp_level": "MVP-4",
             "stage_gate_status": "PASS_REVIEW_ONLY_OPERATOR_RESOLUTION_AUDIT_CURRENT_EVIDENCE_BLOCKED",
             "resolution_audit_status": report["resolution_audit_status"],
+            "source_review_guidance_file_load_status": report["source_review_guidance_file_load_status"],
+            "source_review_guidance_file_hash_match": report["source_review_guidance_file_hash_match"],
+            "source_decision_audit_file_load_status": report["source_decision_audit_file_load_status"],
+            "source_decision_audit_file_hash_match": report["source_decision_audit_file_hash_match"],
             "primary_blocker_code": report["primary_blocker_code"],
             "unresolved_item_count": report["unresolved_item_count"],
             "resolved_item_count": report["resolved_item_count"],
@@ -513,6 +526,10 @@ def write_evidence(
             ],
             "known_blockers": patch_result["remaining_blockers"],
             "resolution_audit_status": report["resolution_audit_status"],
+            "source_review_guidance_file_load_status": report["source_review_guidance_file_load_status"],
+            "source_review_guidance_file_hash_match": report["source_review_guidance_file_hash_match"],
+            "source_decision_audit_file_load_status": report["source_decision_audit_file_load_status"],
+            "source_decision_audit_file_hash_match": report["source_decision_audit_file_hash_match"],
             "primary_blocker_code": report["primary_blocker_code"],
             "unresolved_item_count": report["unresolved_item_count"],
             "resolved_item_count": report["resolved_item_count"],
@@ -547,6 +564,10 @@ Patch:
 Runtime summary:
 - resolution_audit_status: {report["resolution_audit_status"]}
 - primary_blocker_code: {report["primary_blocker_code"]}
+- source_review_guidance_file_load_status: {report["source_review_guidance_file_load_status"]}
+- source_review_guidance_file_hash_match: {report["source_review_guidance_file_hash_match"]}
+- source_decision_audit_file_load_status: {report["source_decision_audit_file_load_status"]}
+- source_decision_audit_file_hash_match: {report["source_decision_audit_file_hash_match"]}
 - unresolved_item_count: {report["unresolved_item_count"]}
 - resolved_item_count: {report["resolved_item_count"]}
 - resolution_control_count: {report["resolution_control_count"]}
@@ -678,6 +699,10 @@ def main() -> int:
                 "patch_result_path": base.rel(patch_path),
                 "result_hash": patch_result["result_hash"],
                 "resolution_audit_status": report["resolution_audit_status"],
+                "source_review_guidance_file_load_status": report["source_review_guidance_file_load_status"],
+                "source_review_guidance_file_hash_match": report["source_review_guidance_file_hash_match"],
+                "source_decision_audit_file_load_status": report["source_decision_audit_file_load_status"],
+                "source_decision_audit_file_hash_match": report["source_decision_audit_file_hash_match"],
                 "primary_blocker_code": report["primary_blocker_code"],
                 "unresolved_item_count": report["unresolved_item_count"],
                 "resolved_item_count": report["resolved_item_count"],

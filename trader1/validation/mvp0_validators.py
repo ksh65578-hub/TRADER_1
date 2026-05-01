@@ -297,6 +297,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review
     write_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_resolution_audit import (
+    POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_REQUIRED,
     build_upbit_paper_post_rerun_operator_resolution_audit_report,
     upbit_paper_post_rerun_operator_resolution_audit_hash,
     validate_upbit_paper_post_rerun_operator_resolution_audit_report,
@@ -8261,8 +8262,12 @@ def upbit_paper_post_rerun_operator_resolution_audit_validator() -> ValidatorRes
     required = set(schema.get("required", []))
     for field in (
         "source_review_guidance_hash",
+        "source_review_guidance_file_load_status",
+        "source_review_guidance_file_hash_match",
         "source_review_guidance_status",
         "source_decision_audit_hash",
+        "source_decision_audit_file_load_status",
+        "source_decision_audit_file_hash_match",
         "source_decision_audit_status",
         "resolution_audit_status",
         "resolution_outcome",
@@ -8338,6 +8343,7 @@ def upbit_paper_post_rerun_operator_resolution_audit_validator() -> ValidatorRes
             decision_result.blocker_code or "UNKNOWN_BLOCKED",
         )
     report = build_upbit_paper_post_rerun_operator_resolution_audit_report(
+        root=ROOT,
         review_guidance_report=guidance,
         decision_audit_report=decision,
         source_review_guidance_path=rel(guidance_path),
@@ -8354,6 +8360,10 @@ def upbit_paper_post_rerun_operator_resolution_audit_validator() -> ValidatorRes
     if (
         report.get("resolution_audit_status") != "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
         or report.get("primary_blocker_code") != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
+        or report.get("source_review_guidance_file_load_status") != "PASS"
+        or report.get("source_review_guidance_file_hash_match") is not True
+        or report.get("source_decision_audit_file_load_status") != "PASS"
+        or report.get("source_decision_audit_file_hash_match") is not True
         or report.get("reviewed_guidance_item_count") != guidance.get("guidance_item_count")
         or report.get("reviewed_decision_item_count") != decision.get("decision_item_count")
         or report.get("unresolved_item_count") != report.get("reviewed_guidance_item_count")
@@ -8402,6 +8412,37 @@ def upbit_paper_post_rerun_operator_resolution_audit_validator() -> ValidatorRes
                 paths,
                 "MEASUREMENT_MISSING",
             )
+
+    for missing_relative_path, expected_status_key in (
+        (rel(guidance_path), "source_review_guidance_file_load_status"),
+        (rel(decision_path), "source_decision_audit_file_load_status"),
+    ):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for relative_path, payload in ((rel(guidance_path), guidance), (rel(decision_path), decision)):
+                target = root / relative_path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+            (root / missing_relative_path).unlink()
+            missing_report = build_upbit_paper_post_rerun_operator_resolution_audit_report(
+                root=root,
+                review_guidance_report=guidance,
+                decision_audit_report=decision,
+                source_review_guidance_path=rel(guidance_path),
+                source_decision_audit_path=rel(decision_path),
+            )
+            missing_result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(missing_report)
+            if (
+                missing_report.get(expected_status_key) != "MISSING"
+                or missing_result.status != "BLOCKED"
+                or missing_result.blocker_code != POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_REQUIRED
+            ):
+                return fail_result(
+                    validator_id,
+                    "post-rerun operator resolution audit missing source file was not blocked",
+                    paths,
+                    missing_result.blocker_code or POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_REQUIRED,
+                )
 
     count_tamper = json.loads(json.dumps(report))
     count_tamper["resolved_item_count"] = 1

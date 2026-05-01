@@ -5,7 +5,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from trader1.runtime.paper.upbit_paper_post_rerun_current_evidence_promotion_guard import (
     POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_CODE,
@@ -16,10 +16,12 @@ from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation i
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review_guidance import (
     POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE_STATUS,
     POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_ITEM_STATUS,
+    upbit_paper_post_rerun_operator_reconciliation_review_guidance_hash,
     validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_decision_audit import (
     POST_RERUN_RECONCILIATION_WRITE_DENIED_STATUS,
+    upbit_paper_post_rerun_reconciliation_decision_audit_hash,
     validate_upbit_paper_post_rerun_reconciliation_decision_audit_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -39,6 +41,9 @@ POST_RERUN_OPERATOR_RESOLUTION_AUDIT_OUTCOME = (
     "OPERATOR_RESOLUTION_NOT_ACCEPTED_CURRENT_EVIDENCE_BLOCKED"
 )
 POST_RERUN_OPERATOR_RESOLUTION_ITEM_STATUS = "UNRESOLVED_CURRENT_EVIDENCE_BLOCKED"
+POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_REQUIRED = (
+    "POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_REQUIRED"
+)
 
 
 @dataclass(frozen=True)
@@ -68,6 +73,11 @@ def _runtime_base(root: Path, session_id: str) -> Path:
     return Path(root).resolve() / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
 
+def _rooted(root: Path, relative_path: str) -> Path:
+    parts = [part for part in relative_path.replace("\\", "/").split("/") if part]
+    return Path(root).resolve().joinpath(*parts)
+
+
 def _artifact_path_allowed(path: str, session_id: str) -> bool:
     normalized = path.replace("\\", "/")
     parts = normalized.split("/")
@@ -91,6 +101,56 @@ def _current_ledger_path_allowed(path: str, session_id: str) -> bool:
 def _source_path_allowed(path: str, session_id: str) -> bool:
     normalized = path.replace("\\", "/")
     return _artifact_path_allowed(normalized, session_id) and normalized.endswith(".json")
+
+
+def _safe_load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None, "MISSING"
+    except UnicodeDecodeError:
+        return None, "INVALID_UTF8"
+    except json.JSONDecodeError:
+        return None, "INVALID_JSON"
+    if not isinstance(value, dict):
+        return None, "NOT_OBJECT"
+    return value, None
+
+
+def _source_file_binding(
+    *,
+    root: Path,
+    relative_path: str,
+    expected_hash: Any,
+    session_id: str,
+    hash_field: str,
+    recompute_hash: Callable[[dict[str, Any]], str],
+    field_prefix: str,
+) -> dict[str, Any]:
+    if not _source_path_allowed(relative_path, session_id):
+        return {
+            f"{field_prefix}_file_load_status": "SCOPE_MISMATCH",
+            f"{field_prefix}_file_hash": None,
+            f"{field_prefix}_file_recomputed_hash": None,
+            f"{field_prefix}_file_hash_match": False,
+        }
+    source, source_error = _safe_load_json(_rooted(root, relative_path))
+    if source is None:
+        return {
+            f"{field_prefix}_file_load_status": str(source_error or "UNKNOWN"),
+            f"{field_prefix}_file_hash": None,
+            f"{field_prefix}_file_recomputed_hash": None,
+            f"{field_prefix}_file_hash_match": False,
+        }
+    file_hash = source.get(hash_field)
+    recomputed_hash = recompute_hash(source)
+    hash_match = bool(file_hash == expected_hash == recomputed_hash)
+    return {
+        f"{field_prefix}_file_load_status": "PASS" if hash_match else "HASH_MISMATCH",
+        f"{field_prefix}_file_hash": file_hash,
+        f"{field_prefix}_file_recomputed_hash": recomputed_hash,
+        f"{field_prefix}_file_hash_match": hash_match,
+    }
 
 
 def _join_key(item: dict[str, Any]) -> tuple[str, str]:
@@ -205,12 +265,14 @@ def _build_resolution_item(
 
 def build_upbit_paper_post_rerun_operator_resolution_audit_report(
     *,
+    root: Path,
     review_guidance_report: dict[str, Any],
     decision_audit_report: dict[str, Any],
     source_review_guidance_path: str = "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
     source_decision_audit_path: str = "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_decision_audit_report.json",
     resolution_audit_id: str = "upbit-paper-post-rerun-operator-resolution-audit",
 ) -> dict[str, Any]:
+    root = Path(root).resolve()
     guidance_result = validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(review_guidance_report)
     decision_result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(decision_audit_report)
     session_id = str(review_guidance_report.get("session_id") or decision_audit_report.get("session_id") or "UNKNOWN")
@@ -241,6 +303,31 @@ def build_upbit_paper_post_rerun_operator_resolution_audit_report(
         blockers.add(decision_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
     for item in items:
         blockers.update(str(code) for code in item.get("blocking_codes", []) if code)
+    source_review_guidance_hash = review_guidance_report.get("guidance_hash")
+    source_decision_audit_hash = decision_audit_report.get("decision_audit_hash")
+    review_guidance_file_binding = _source_file_binding(
+        root=root,
+        relative_path=source_review_guidance_path,
+        expected_hash=source_review_guidance_hash,
+        session_id=session_id,
+        hash_field="guidance_hash",
+        recompute_hash=upbit_paper_post_rerun_operator_reconciliation_review_guidance_hash,
+        field_prefix="source_review_guidance",
+    )
+    decision_audit_file_binding = _source_file_binding(
+        root=root,
+        relative_path=source_decision_audit_path,
+        expected_hash=source_decision_audit_hash,
+        session_id=session_id,
+        hash_field="decision_audit_hash",
+        recompute_hash=upbit_paper_post_rerun_reconciliation_decision_audit_hash,
+        field_prefix="source_decision_audit",
+    )
+    if (
+        review_guidance_file_binding["source_review_guidance_file_load_status"] != "PASS"
+        or decision_audit_file_binding["source_decision_audit_file_load_status"] != "PASS"
+    ):
+        blockers.add(POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_REQUIRED)
     controls = _resolution_controls()
     report = {
         "schema_id": UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT_SCHEMA_ID,
@@ -254,12 +341,14 @@ def build_upbit_paper_post_rerun_operator_resolution_audit_report(
         "truth_role": POST_RERUN_OPERATOR_RESOLUTION_AUDIT_TRUTH_ROLE,
         "resolution_audit_role": POST_RERUN_OPERATOR_RESOLUTION_AUDIT_ROLE,
         "source_review_guidance_path": source_review_guidance_path,
-        "source_review_guidance_hash": review_guidance_report.get("guidance_hash"),
+        "source_review_guidance_hash": source_review_guidance_hash,
+        **review_guidance_file_binding,
         "source_review_guidance_status": review_guidance_report.get("review_guidance_status"),
         "source_review_guidance_primary_blocker_code": review_guidance_report.get("primary_blocker_code"),
         "source_review_guidance_item_count": int(review_guidance_report.get("guidance_item_count") or 0),
         "source_decision_audit_path": source_decision_audit_path,
-        "source_decision_audit_hash": decision_audit_report.get("decision_audit_hash"),
+        "source_decision_audit_hash": source_decision_audit_hash,
+        **decision_audit_file_binding,
         "source_decision_audit_status": decision_audit_report.get("decision_audit_status"),
         "source_decision_audit_primary_blocker_code": decision_audit_report.get("primary_blocker_code"),
         "source_decision_item_count": int(decision_audit_report.get("decision_item_count") or 0),
@@ -327,11 +416,19 @@ def validate_upbit_paper_post_rerun_operator_resolution_audit_report(
         "resolution_audit_role",
         "source_review_guidance_path",
         "source_review_guidance_hash",
+        "source_review_guidance_file_load_status",
+        "source_review_guidance_file_hash",
+        "source_review_guidance_file_recomputed_hash",
+        "source_review_guidance_file_hash_match",
         "source_review_guidance_status",
         "source_review_guidance_primary_blocker_code",
         "source_review_guidance_item_count",
         "source_decision_audit_path",
         "source_decision_audit_hash",
+        "source_decision_audit_file_load_status",
+        "source_decision_audit_file_hash",
+        "source_decision_audit_file_recomputed_hash",
+        "source_decision_audit_file_hash_match",
         "source_decision_audit_status",
         "source_decision_audit_primary_blocker_code",
         "source_decision_item_count",
@@ -431,6 +528,28 @@ def validate_upbit_paper_post_rerun_operator_resolution_audit_report(
         return UpbitPaperPostRerunOperatorResolutionAuditValidationResult("BLOCKED", "source review guidance path escaped PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
     if not _source_path_allowed(str(report.get("source_decision_audit_path") or ""), session_id):
         return UpbitPaperPostRerunOperatorResolutionAuditValidationResult("BLOCKED", "source decision audit path escaped PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
+    if (
+        report.get("source_review_guidance_file_load_status") != "PASS"
+        or report.get("source_review_guidance_file_hash_match") is not True
+        or report.get("source_decision_audit_file_load_status") != "PASS"
+        or report.get("source_decision_audit_file_hash_match") is not True
+    ):
+        return UpbitPaperPostRerunOperatorResolutionAuditValidationResult(
+            "BLOCKED",
+            "source review guidance or decision audit file binding is missing or mismatched",
+            POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_REQUIRED,
+        )
+    if (
+        report.get("source_review_guidance_file_hash") != report.get("source_review_guidance_hash")
+        or report.get("source_review_guidance_file_recomputed_hash") != report.get("source_review_guidance_hash")
+        or report.get("source_decision_audit_file_hash") != report.get("source_decision_audit_hash")
+        or report.get("source_decision_audit_file_recomputed_hash") != report.get("source_decision_audit_hash")
+    ):
+        return UpbitPaperPostRerunOperatorResolutionAuditValidationResult(
+            "FAIL",
+            "source review guidance or decision audit file hash does not match source report hash",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
     if POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE not in set(report.get("blocker_codes") or []):
         return UpbitPaperPostRerunOperatorResolutionAuditValidationResult("BLOCKED", "post-rerun operator resolution audit missing reconciliation blocker", POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
     controls = report.get("resolution_controls")
