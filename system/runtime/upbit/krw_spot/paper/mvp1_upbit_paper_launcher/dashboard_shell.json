@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-05-01T21:18:56Z",
+  "generated_at_utc": "2026-05-01T21:27:59Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -97,7 +97,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-05-01T21:18:56Z",
+    "generated_at_utc": "2026-05-01T21:27:59Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -116,7 +116,7 @@
     "color_token": "yellow",
     "label": "Running without verified portfolio",
     "message": "Program heartbeat is fresh, but portfolio cash, equity, positions, and PnL are not verified yet.",
-    "recovery_hint": "Run PAPER with a verified paper portfolio ledger",
+    "recovery_hint": "Run PAPER with a fresh verified simulated ledger; configured PAPER capital is not exchange balance.",
     "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
     "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
     "operator_meaning": "The dashboard heartbeat is fresh, but it does not prove a continuous PAPER engine is updating portfolio values.",
@@ -127,7 +127,7 @@
     "startup_freshness_status": "PASS",
     "portfolio_status": "UNVERIFIED",
     "portfolio_blocking_reason": "HARD_TRUTH_MISSING",
-    "portfolio_next_action": "Run PAPER with a verified paper portfolio ledger",
+    "portfolio_next_action": "Run PAPER with a fresh verified simulated ledger; configured PAPER capital is not exchange balance.",
     "primary_blocker": "HARD_TRUTH_MISSING",
     "live_orders_blocked": true
   },
@@ -220,7 +220,7 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 89551,
+    "observed_span_seconds": 89778,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 60,
@@ -259,7 +259,7 @@
         "label": "Runtime artifact pressure",
         "status": "WARN",
         "value_display": "WARN",
-        "detail": "Runtime artifact pressure WARN: files=403, bytes=3463859, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
+        "detail": "Runtime artifact pressure WARN: files=403, bytes=3464678, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -307,7 +307,7 @@
     "source": "heartbeat.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 89551,
+    "observed_span_seconds": 89778,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 0,
@@ -1408,7 +1408,7 @@
     "source_snapshot_generated_at_utc": null,
     "source_snapshot_age_seconds": null,
     "source_snapshot_stale_after_seconds": null,
-    "source_snapshot_freshness_message": "No verified paper portfolio snapshot loaded",
+    "source_snapshot_freshness_message": "Configured PAPER capital is 1,000,000 KRW; current cash and equity require a fresh verified simulated ledger snapshot.",
     "source_balance_kind": null,
     "configured_paper_capital": {
       "card_id": "configured_paper_capital",
@@ -1421,14 +1421,14 @@
       "card_id": "cash",
       "label": "Cash",
       "value_display": "UNVERIFIED",
-      "detail": "No verified cash source loaded",
+      "detail": "Configured PAPER capital is 1,000,000 KRW; cash remains unverified until a fresh PAPER ledger snapshot is loaded.",
       "freshness_status": "UNTESTED"
     },
     "equity": {
       "card_id": "equity",
       "label": "Equity",
       "value_display": "UNVERIFIED",
-      "detail": "No verified equity source loaded",
+      "detail": "Configured PAPER capital is 1,000,000 KRW; equity remains unverified until a fresh PAPER ledger snapshot is loaded.",
       "freshness_status": "UNTESTED"
     },
     "locked_cash": {
@@ -1481,7 +1481,7 @@
       "freshness_status": "UNTESTED"
     },
     "blocking_reason": "HARD_TRUTH_MISSING",
-    "next_action": "Run PAPER with a verified paper portfolio ledger",
+    "next_action": "Run PAPER with a fresh verified simulated ledger; configured PAPER capital is not exchange balance.",
     "display_only": true,
     "dashboard_truth_only": true,
     "live_order_ready": false,
@@ -1546,5 +1546,5 @@
   "blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "C69E6A2EAC55197043DCF65B098047CF8AC6E7B205EE550CD9165B09E60028B7"
+  "dashboard_hash": "BC6D6F548A4D9FF849B2D6858B1C22A1C3229BAC1FF6DE46C188DC0EA615B60A"
 }
