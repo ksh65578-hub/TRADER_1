@@ -325,6 +325,14 @@ from trader1.runtime.paper.upbit_paper_post_rerun_current_evidence_closure_reche
     validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report,
     write_upbit_paper_post_rerun_current_evidence_closure_recheck_report,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_repair_path import (
+    POST_RERUN_RECONCILIATION_REPAIR_PATH_SOURCE_BINDING_REQUIRED,
+    POST_RERUN_RECONCILIATION_REPAIR_PATH_STATUS,
+    build_upbit_paper_post_rerun_reconciliation_repair_path_report,
+    upbit_paper_post_rerun_reconciliation_repair_path_hash,
+    validate_upbit_paper_post_rerun_reconciliation_repair_path_report,
+    write_upbit_paper_post_rerun_reconciliation_repair_path_report,
+)
 from trader1.research.replay.replay_runner import (
     build_replay_consistency_report,
     replay_consistency_hash,
@@ -501,6 +509,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_post_rerun_operator_resolution_audit_validator",
     "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
     "upbit_paper_post_rerun_current_evidence_closure_recheck_validator",
+    "upbit_paper_post_rerun_reconciliation_repair_path_validator",
     "upbit_paper_runtime_recovery_guard_validator",
     "restart_recovery_validator",
     "upbit_operational_paper_gate_validator",
@@ -9150,6 +9159,229 @@ def upbit_paper_post_rerun_current_evidence_closure_recheck_validator() -> Valid
     )
 
 
+def upbit_paper_post_rerun_reconciliation_repair_path_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_post_rerun_reconciliation_repair_path_validator"
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_post_rerun_reconciliation_repair_path_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_post_rerun_reconciliation_repair_path.py"
+    closure_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_post_rerun_resolution_current_evidence_closure.py"
+    recheck_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_post_rerun_current_evidence_closure_recheck.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_post_rerun_reconciliation_repair_path.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_post_rerun_reconciliation_repair_path_report.json"
+        )
+    )
+    paths = [schema_path, module_path, closure_module_path, recheck_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_post_rerun_reconciliation_repair_path_report.v1":
+        return fail_result(validator_id, "post-rerun reconciliation repair path schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "post-rerun reconciliation repair path schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "source_closure_path",
+        "source_closure_file_load_status",
+        "source_recheck_path",
+        "source_recheck_file_load_status",
+        "repair_path_status",
+        "repair_gate_count",
+        "satisfied_repair_gate_count",
+        "blocked_repair_gate_count",
+        "current_evidence_write_authorized_count",
+        "current_evidence_write_allowed_count",
+        "candidate_current_evidence_usable_count",
+        "repair_gates",
+        "current_evidence_write_allowed",
+        "current_ledger_jsonl_write_allowed",
+        "latest_runtime_pointer_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result(
+                validator_id,
+                f"post-rerun reconciliation repair path schema missing required field: {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+
+    report = build_upbit_paper_post_rerun_reconciliation_repair_path_report(
+        root=ROOT,
+        session_id="mvp1_upbit_paper_launcher",
+    )
+    result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(report)
+    if result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"valid post-rerun reconciliation repair path failed: {result.message}",
+            paths,
+            result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    if (
+        report.get("repair_path_status") != POST_RERUN_RECONCILIATION_REPAIR_PATH_STATUS
+        or report.get("primary_blocker_code") != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
+        or report.get("source_closure_file_load_status") != "PASS"
+        or report.get("source_closure_file_hash_match") is not True
+        or report.get("source_recheck_file_load_status") != "PASS"
+        or report.get("source_recheck_file_hash_match") is not True
+        or report.get("source_closure_validation_status") != "PASS"
+        or report.get("source_recheck_validation_status") != "PASS"
+        or report.get("source_closure_status") != "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED"
+        or report.get("source_recheck_status") != POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_STATUS
+        or report.get("source_recheck_bridge_status") != "BLOCKED_BY_POST_RERUN_CLOSURE"
+        or report.get("repair_gate_count") != 4
+        or report.get("satisfied_repair_gate_count") != 0
+        or report.get("blocked_repair_gate_count") != 4
+        or report.get("current_evidence_write_authorized_count") != 0
+        or report.get("current_evidence_write_allowed_count") != 0
+        or report.get("candidate_current_evidence_usable_count") != 0
+        or report.get("current_evidence_write_allowed")
+        or report.get("current_ledger_jsonl_write_allowed")
+        or report.get("latest_runtime_pointer_write_allowed")
+        or report.get("live_order_allowed")
+        or report.get("can_live_trade")
+        or report.get("scale_up_allowed")
+    ):
+        return fail_result(
+            validator_id,
+            "post-rerun reconciliation repair path did not preserve blocked gate state",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    expected_gate_ids = [
+        "VALIDATED_OPERATOR_RESOLUTION_ACCEPTANCE",
+        "VALIDATED_CURRENT_LEDGER_REBUILD",
+        "VALIDATED_SOURCE_HASH_RECONCILIATION",
+        "VALIDATED_NO_LIVE_OR_SCALE_MUTATION",
+    ]
+    gates = report.get("repair_gates")
+    if not isinstance(gates, list) or [gate.get("gate_id") for gate in gates if isinstance(gate, dict)] != expected_gate_ids:
+        return fail_result(
+            validator_id,
+            "post-rerun reconciliation repair path did not expose the exact repair gates",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    for gate in gates:
+        if (
+            gate.get("gate_status") != "BLOCKED"
+            or gate.get("required") is not True
+            or gate.get("satisfied")
+            or gate.get("current_evidence_write_allowed")
+            or gate.get("live_order_allowed")
+            or gate.get("can_live_trade")
+            or gate.get("scale_up_allowed")
+        ):
+            return fail_result(
+                validator_id,
+                "post-rerun reconciliation repair path gate did not remain blocked",
+                paths,
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+    required_blockers = {
+        POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+        POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE_REQUIRED,
+        "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+        "LIVE_READY_MISSING",
+        "SCALE_UP_NOT_ELIGIBLE",
+    }
+    if not required_blockers.issubset(set(report.get("blocker_codes") or [])):
+        return fail_result(
+            validator_id,
+            "post-rerun reconciliation repair path omitted required blockers",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_post_rerun_reconciliation_repair_path_report(root=Path(tmp), report=report)
+        if not written_path.exists():
+            return fail_result(
+                validator_id,
+                "post-rerun reconciliation repair path writer did not create report",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        closure_source_path = ROOT / str(report["source_closure_path"])
+        closure_target_path = root / str(report["source_closure_path"])
+        closure_target_path.parent.mkdir(parents=True, exist_ok=True)
+        closure_target_path.write_text(closure_source_path.read_text(encoding="utf-8"), encoding="utf-8")
+        missing_recheck = build_upbit_paper_post_rerun_reconciliation_repair_path_report(
+            root=root,
+            session_id="mvp1_upbit_paper_launcher",
+        )
+    missing_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(missing_recheck)
+    if (
+        missing_recheck.get("source_recheck_file_load_status") != "MISSING"
+        or missing_result.status != "BLOCKED"
+        or missing_result.blocker_code != POST_RERUN_RECONCILIATION_REPAIR_PATH_SOURCE_BINDING_REQUIRED
+    ):
+        return fail_result(
+            validator_id,
+            "post-rerun reconciliation repair path missing recheck source was not blocked",
+            paths,
+            missing_result.blocker_code or POST_RERUN_RECONCILIATION_REPAIR_PATH_SOURCE_BINDING_REQUIRED,
+        )
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["repair_gates"][0]["satisfied"] = True
+    live_mutation["repair_gates"][0]["live_order_allowed"] = True
+    live_mutation["live_order_allowed"] = True
+    live_mutation["repair_path_hash"] = upbit_paper_post_rerun_reconciliation_repair_path_hash(live_mutation)
+    live_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "post-rerun reconciliation repair path live/gate mutation was not blocked",
+            paths,
+            live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    path_escape = json.loads(json.dumps(report))
+    path_escape["source_recheck_path"] = (
+        "system/runtime/upbit/krw_spot/live/mvp1_upbit_paper_launcher/paper_runtime/"
+        "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json"
+    )
+    path_escape["repair_path_hash"] = upbit_paper_post_rerun_reconciliation_repair_path_hash(path_escape)
+    path_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(path_escape)
+    if path_result.status != "BLOCKED" or path_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+        return fail_result(
+            validator_id,
+            "post-rerun reconciliation repair path escape was not blocked",
+            paths,
+            path_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH",
+        )
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(
+                validator_id,
+                f"runtime post-rerun reconciliation repair path artifact is not valid json: {rel(runtime_path)}: {exc}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        runtime_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime post-rerun reconciliation repair path artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER post-rerun reconciliation repair path exposes exact blocked repair gates while preserving live/scale blocks",
+        paths,
+    )
+
+
 def upbit_paper_runtime_recovery_guard_validator() -> ValidatorResult:
     schema_path = ROOT / "contracts" / "schema" / "upbit_paper_runtime_recovery_guard_report.schema.json"
     loop_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_persistent_loop.py"
@@ -16949,6 +17181,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_post_rerun_operator_resolution_audit_validator": upbit_paper_post_rerun_operator_resolution_audit_validator,
     "upbit_paper_post_rerun_resolution_current_evidence_closure_validator": upbit_paper_post_rerun_resolution_current_evidence_closure_validator,
     "upbit_paper_post_rerun_current_evidence_closure_recheck_validator": upbit_paper_post_rerun_current_evidence_closure_recheck_validator,
+    "upbit_paper_post_rerun_reconciliation_repair_path_validator": upbit_paper_post_rerun_reconciliation_repair_path_validator,
     "upbit_paper_runtime_recovery_guard_validator": upbit_paper_runtime_recovery_guard_validator,
     "restart_recovery_validator": restart_recovery_validator,
     "upbit_operational_paper_gate_validator": upbit_operational_paper_gate_validator,

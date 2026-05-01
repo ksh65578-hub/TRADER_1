@@ -12391,6 +12391,71 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-REPAIR-PATH",
+      "source_section_id": "SECTION_LEDGER_RECONCILIATION",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER post-rerun reconciliation repair path",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-REPAIR-PATH: unresolved post-rerun reconciliation requires explicit repair gates before current-evidence writes",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER post-rerun reconciliation repair path",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_post_rerun_reconciliation_repair_path_report.v1",
+        "trader1.upbit_paper_post_rerun_resolution_current_evidence_closure_report.v1",
+        "trader1.upbit_paper_post_rerun_current_evidence_closure_recheck_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
+        "upbit_paper_post_rerun_current_evidence_closure_recheck_validator",
+        "upbit_paper_post_rerun_reconciliation_repair_path_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH.md",
+        "contracts/registry.yaml",
+        "contracts/schema/upbit_paper_post_rerun_reconciliation_repair_path_report.schema.json",
+        "contracts/security/source_bundle_manifest.json",
+        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_repair_path_report.json",
+        "tests/runtime/test_upbit_paper_post_rerun_reconciliation_repair_path.py",
+        "tools/emit_upbit_paper_post_rerun_reconciliation_repair_path_patch_evidence.py",
+        "trader1/runtime/paper/upbit_paper_post_rerun_reconciliation_repair_path.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_post_rerun_reconciliation_repair_path.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_IDEMPOTENCY",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RESOLUTION-CURRENT-EVIDENCE-CLOSURE",
+        "REQ-MVP4-UPBIT-PAPER-POST-RERUN-CURRENT-EVIDENCE-CLOSURE-RECHECK",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "47E2F1CDBDA7A9110C1810CA2C27B6FFB55E4007FE6C107FC23759316F5B5482",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_REPAIR_PATH_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RESOLUTION-AUDIT-SOURCE-BINDING-GUARD",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -14223,5 +14288,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T23:04:14Z"
+  "updated_at_utc": "2026-05-01T23:27:51Z"
 }
