@@ -11880,7 +11880,61 @@
       "source_text_sha256": "D0DD292916AF6C359DC98DF8BD35AA3F722E41E3B76E2A6771D32E10D2D5F09D",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SOURCE-RELEASE-BUNDLE-PATH-SECRET-GUARD",
+      "source_section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Source release bundle path and secret guard",
+      "full_text_marker": "REQ-MVP4-SOURCE-RELEASE-BUNDLE-PATH-SECRET-GUARD:release bundle path strings and excluded secrets must fail closed",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Source release bundle rejects unsafe paths and excluded credential material",
+      "requirement_kind": "BUNDLE_SECURITY_TEST_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.evidence_manifest.v1",
+        "trader1.validator_result.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "trader1/security/source_bundle.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/security/test_source_bundle_security.py",
+        "contracts/security/source_bundle_manifest.json",
+        "tools/emit_source_release_bundle_path_secret_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/security/test_source_bundle_security.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_SOURCE_BUNDLE_HYGIENE",
+        "SECTION_SECRET_HYGIENE",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP0-BUNDLE-SECURITY",
+        "REQ-MVP4-SOURCE-BUNDLE-HYGIENE-RECHECK"
+      ],
+      "source_text_sha256": "D4A91C3611B16D3D281C1AD331ED4702218308B201B1E96EF1F1FF99FF7456A6",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T12:45:22Z"
+  "updated_at_utc": "2026-05-01T13:08:15Z"
 }

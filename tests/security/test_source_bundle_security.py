@@ -26,6 +26,10 @@ class SourceBundleSecurityTest(unittest.TestCase):
             "tests/.pytest_cache/CACHEDIR.TAG",
             "tools/.mypy_cache/meta.json",
             "trader1/.ruff_cache/state.json",
+            "contracts/../system/evidence.json",
+            "contracts\\..\\system\\evidence.json",
+            "/contracts/schema/common.defs.schema.json",
+            "C:/TRADER_1/contracts/schema/common.defs.schema.json",
             ".env",
             "config/private.key",
             "contracts/security/token_dump.txt",
@@ -59,6 +63,10 @@ class SourceBundleSecurityTest(unittest.TestCase):
         self.assertIsNotNone(classify_shipped_forbidden_path("trader1/__pycache__/module.cpython-314.pyc", denylist))
         self.assertIsNotNone(classify_shipped_forbidden_path("trader1/__pycache__/CACHEDIR.TAG", denylist))
         self.assertIsNotNone(classify_shipped_forbidden_path("tests/.pytest_cache/CACHEDIR.TAG", denylist))
+        self.assertIsNotNone(classify_shipped_forbidden_path("contracts/../system/evidence.json", denylist))
+        self.assertIsNotNone(classify_shipped_forbidden_path("contracts\\..\\system\\evidence.json", denylist))
+        self.assertIsNotNone(classify_shipped_forbidden_path("/contracts/schema/common.defs.schema.json", denylist))
+        self.assertIsNotNone(classify_shipped_forbidden_path("C:/TRADER_1/contracts/schema/common.defs.schema.json", denylist))
         with TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "trader1" / "__pycache__").mkdir(parents=True)
@@ -70,6 +78,23 @@ class SourceBundleSecurityTest(unittest.TestCase):
             self.assertEqual(manifest["shipped_forbidden_count"], 2)
             self.assertIn("trader1/__pycache__/module.cpython-314.pyc", forbidden_paths)
             self.assertIn("trader1/__pycache__/CACHEDIR.TAG", forbidden_paths)
+
+    def test_manifest_detects_secrets_in_excluded_paths(self):
+        denylist = load_denylist()
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".env").write_text("API_KEY=" + ("A" * 32) + "\n", encoding="utf-8")
+            (root / "trader1").mkdir()
+            (root / "trader1" / "module.py").write_text("VALUE = 1\n", encoding="utf-8")
+            manifest = build_source_bundle_manifest(root=root, denylist=denylist)
+            included_paths = {item["path"] for item in manifest["included_files"]}
+            excluded_secret_paths = {item["path"] for item in manifest["excluded_secret_findings"]}
+
+            self.assertNotIn(".env", included_paths)
+            self.assertIn(".env", excluded_secret_paths)
+            self.assertTrue(manifest["excluded_contains_secret"])
+            self.assertTrue(manifest["contains_secret"])
+            self.assertEqual(manifest["repo_secret_findings_count"], 1)
 
     def test_manifest_does_not_include_self_referential_generated_artifacts(self):
         manifest = build_source_bundle_manifest()
