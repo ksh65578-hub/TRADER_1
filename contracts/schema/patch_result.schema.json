@@ -369,6 +369,12 @@
     "post_rerun_operator_reconciliation_queue_status": {
       "type": "string"
     },
+    "post_rerun_operator_source_promotion_guard_file_load_status": {
+      "type": "string"
+    },
+    "post_rerun_operator_source_promotion_guard_file_hash_match": {
+      "type": "boolean"
+    },
     "post_rerun_operator_reconciliation_queue_item_count": {
       "type": "integer",
       "minimum": 0

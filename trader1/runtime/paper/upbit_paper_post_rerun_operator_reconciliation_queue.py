@@ -9,6 +9,7 @@ from typing import Any
 
 from trader1.runtime.paper.upbit_paper_post_rerun_current_evidence_promotion_guard import (
     POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_CODE,
+    upbit_paper_post_rerun_current_evidence_promotion_guard_hash,
     validate_upbit_paper_post_rerun_current_evidence_promotion_guard_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation import (
@@ -61,6 +62,11 @@ def _runtime_base(root: Path, session_id: str) -> Path:
     return Path(root).resolve() / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
 
+def _rooted(root: Path, relative_path: str) -> Path:
+    parts = [part for part in relative_path.replace("\\", "/").split("/") if part]
+    return Path(root).resolve().joinpath(*parts)
+
+
 def _artifact_path_allowed(path: str, session_id: str) -> bool:
     normalized = path.replace("\\", "/")
     parts = normalized.split("/")
@@ -84,6 +90,53 @@ def _current_ledger_path_allowed(path: str, session_id: str) -> bool:
         and normalized.startswith(f"system/runtime/upbit/krw_spot/paper/{session_id}/ledger/cycles/")
         and normalized.endswith(".paper_ledger_events.jsonl")
     )
+
+
+def _safe_load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None, "MISSING"
+    except UnicodeDecodeError:
+        return None, "INVALID_UTF8"
+    except json.JSONDecodeError:
+        return None, "INVALID_JSON"
+    if not isinstance(value, dict):
+        return None, "NOT_OBJECT"
+    return value, None
+
+
+def _source_promotion_guard_file_binding(
+    *,
+    root: Path,
+    relative_path: str,
+    expected_hash: Any,
+    session_id: str,
+) -> dict[str, Any]:
+    if not _artifact_path_allowed(relative_path, session_id):
+        return {
+            "source_promotion_guard_file_load_status": "SCOPE_MISMATCH",
+            "source_promotion_guard_file_hash": None,
+            "source_promotion_guard_file_recomputed_hash": None,
+            "source_promotion_guard_file_hash_match": False,
+        }
+    source, source_error = _safe_load_json(_rooted(root, relative_path))
+    if source is None:
+        return {
+            "source_promotion_guard_file_load_status": str(source_error or "UNKNOWN"),
+            "source_promotion_guard_file_hash": None,
+            "source_promotion_guard_file_recomputed_hash": None,
+            "source_promotion_guard_file_hash_match": False,
+        }
+    file_hash = source.get("promotion_guard_hash")
+    recomputed_hash = upbit_paper_post_rerun_current_evidence_promotion_guard_hash(source)
+    hash_match = bool(file_hash == expected_hash == recomputed_hash)
+    return {
+        "source_promotion_guard_file_load_status": "PASS" if hash_match else "HASH_MISMATCH",
+        "source_promotion_guard_file_hash": file_hash,
+        "source_promotion_guard_file_recomputed_hash": recomputed_hash,
+        "source_promotion_guard_file_hash_match": hash_match,
+    }
 
 
 def _build_queue_item(*, priority_order: int, session_id: str, guard_item: dict[str, Any]) -> dict[str, Any]:
@@ -159,10 +212,12 @@ def _build_queue_item(*, priority_order: int, session_id: str, guard_item: dict[
 
 def build_upbit_paper_post_rerun_operator_reconciliation_queue_report(
     *,
+    root: Path,
     promotion_guard_report: dict[str, Any],
     source_promotion_guard_path: str = "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_current_evidence_promotion_guard_report.json",
     queue_id: str = "upbit-paper-post-rerun-operator-reconciliation-queue",
 ) -> dict[str, Any]:
+    root = Path(root).resolve()
     guard_result = validate_upbit_paper_post_rerun_current_evidence_promotion_guard_report(promotion_guard_report)
     session_id = str(promotion_guard_report.get("session_id") or "UNKNOWN")
     guard_items = [
@@ -185,6 +240,15 @@ def build_upbit_paper_post_rerun_operator_reconciliation_queue_report(
         blockers.add(guard_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
     for item in items:
         blockers.update(str(code) for code in item.get("blocking_codes", []))
+    source_hash = promotion_guard_report.get("promotion_guard_hash")
+    source_file_binding = _source_promotion_guard_file_binding(
+        root=root,
+        relative_path=source_promotion_guard_path,
+        expected_hash=source_hash,
+        session_id=session_id,
+    )
+    if source_file_binding["source_promotion_guard_file_load_status"] != "PASS":
+        blockers.add("POST_RERUN_OPERATOR_SOURCE_PROMOTION_GUARD_BINDING_REQUIRED")
     report = {
         "schema_id": UPBIT_PAPER_POST_RERUN_OPERATOR_RECONCILIATION_QUEUE_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -197,7 +261,8 @@ def build_upbit_paper_post_rerun_operator_reconciliation_queue_report(
         "truth_role": POST_RERUN_OPERATOR_RECONCILIATION_QUEUE_TRUTH_ROLE,
         "queue_role": POST_RERUN_OPERATOR_RECONCILIATION_QUEUE_ROLE,
         "source_promotion_guard_path": source_promotion_guard_path,
-        "source_promotion_guard_hash": promotion_guard_report.get("promotion_guard_hash"),
+        "source_promotion_guard_hash": source_hash,
+        **source_file_binding,
         "source_promotion_guard_status": promotion_guard_report.get("promotion_guard_status"),
         "source_promotion_guard_primary_blocker_code": promotion_guard_report.get("primary_blocker_code"),
         "source_promotion_review_ready_count": int(promotion_guard_report.get("promotion_review_ready_count") or 0),
@@ -260,6 +325,10 @@ def validate_upbit_paper_post_rerun_operator_reconciliation_queue_report(
         "queue_role",
         "source_promotion_guard_path",
         "source_promotion_guard_hash",
+        "source_promotion_guard_file_load_status",
+        "source_promotion_guard_file_hash",
+        "source_promotion_guard_file_recomputed_hash",
+        "source_promotion_guard_file_hash_match",
         "source_promotion_guard_status",
         "source_promotion_guard_primary_blocker_code",
         "source_promotion_review_ready_count",
@@ -336,6 +405,24 @@ def validate_upbit_paper_post_rerun_operator_reconciliation_queue_report(
     session_id = str(report.get("session_id"))
     if not _artifact_path_allowed(str(report.get("source_promotion_guard_path") or ""), session_id):
         return UpbitPaperPostRerunOperatorReconciliationQueueValidationResult("BLOCKED", "source promotion guard path escaped PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
+    if (
+        report.get("source_promotion_guard_file_load_status") != "PASS"
+        or report.get("source_promotion_guard_file_hash_match") is not True
+    ):
+        return UpbitPaperPostRerunOperatorReconciliationQueueValidationResult(
+            "BLOCKED",
+            "source promotion guard file binding is missing or mismatched",
+            POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+        )
+    if (
+        report.get("source_promotion_guard_file_hash") != report.get("source_promotion_guard_hash")
+        or report.get("source_promotion_guard_file_recomputed_hash") != report.get("source_promotion_guard_hash")
+    ):
+        return UpbitPaperPostRerunOperatorReconciliationQueueValidationResult(
+            "FAIL",
+            "source promotion guard file hash does not match source report hash",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
     items = report.get("items")
     if not isinstance(items, list) or report.get("queue_item_count") != len(items):
         return UpbitPaperPostRerunOperatorReconciliationQueueValidationResult("FAIL", "post-rerun operator queue item count mismatch", "SCHEMA_IDENTITY_MISMATCH")
