@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "73EA971B804294C4F1CA788E43AB8E1DF9673FB6522FFD3C8D56CFDDB5E299FE",
+      "sha256": "5BA04714031A5CDFDEBA04D3E3A3FEC62DD71255E9418DB2C8B217D6268CC81C",
       "size_bytes": 1096
     },
     {
@@ -2759,6 +2759,11 @@
       "size_bytes": 23508
     },
     {
+      "path": "tools/emit_session2_reaudit_reflection_patch_evidence.py",
+      "sha256": "A500A399BED3AD6F67E1C94F06A6F1B705B1B90B09E32259B3DE611B053DDF82",
+      "size_bytes": 23583
+    },
+    {
       "path": "tools/emit_shadow_harness_measurement_source_guard_patch_evidence.py",
       "sha256": "1BCDB0E99CA72B98E3FF0BF79222D7BB3F07583BA7A919CD788E93CD4932A750",
       "size_bytes": 25276
@@ -4331,6 +4336,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_SESSION2_REAUDIT_REFLECTION.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_SHADOW_HARNESS_EXECUTION_SUMMARY_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
@@ -5463,6 +5472,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_SESSION2_REAUDIT_REFLECTION.audit.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_SHADOW_HARNESS_MEASUREMENT_SOURCE_GUARD_20260430.md",
       "reason": "denied:system/"
     },
@@ -6459,6 +6472,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_SESSION2_REAUDIT_REFLECTION.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_SHADOW_HARNESS_EXECUTION_SUMMARY_RECHECK.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -7416,6 +7433,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_SESSION1_REAUDIT_REFLECTION.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_SESSION2_REAUDIT_REFLECTION.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8384,6 +8405,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_SESSION1_REAUDIT_REFLECTION.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_SESSION2_REAUDIT_REFLECTION.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9368,6 +9393,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_SESSION1_REAUDIT_REFLECTION.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_SESSION2_REAUDIT_REFLECTION.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
@@ -10981,10 +11010,6 @@
     {
       "path": "system/runtime/upbit/krw_spot/read_only/mvp4_live_review/reconciliation_path.json",
       "reason": "denied:system/"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
-      "reason": "not_in_allow_roots"
     }
   ],
   "forbidden_count": 0,

@@ -1,0 +1,18 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-05-01T06:28:38Z",
+  "patch_id": "MVP4_SESSION2_REAUDIT_REFLECTION_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_SESSION2_REAUDIT_REFLECTION.patch_result.json",
+    "system/evidence/validator_runs/MVP4_SESSION2_REAUDIT_REFLECTION.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SESSION2_REAUDIT_REFLECTION.stage_gate_result.json",
+    "system/evidence/audit_reports/MVP4_SESSION2_REAUDIT_REFLECTION.audit.json",
+    "contracts/generated/context_pack/MVP4_SESSION2_REAUDIT_REFLECTION.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

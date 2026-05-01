@@ -1,0 +1,60 @@
+{
+  "audit_schema_id": "trader1.session2_reaudit_reflection_audit.v1",
+  "generated_at_utc": "2026-05-01T06:28:38Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "PASS",
+  "session2_review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
+  "session2_sha256": "F26437F57AC6BA34ED6ECE94754E886F6FCBD56D4F788EC40E88E1482FDC1B76",
+  "session2_reflection_status": "DELETED_AFTER_REFLECTION",
+  "session2_deleted_after_reflection": true,
+  "stale_findings_resolved_or_regression_guarded": [
+    "TRADER_1.md exists in current repo",
+    "AGENTS.md exists in current repo",
+    "trader1 package exists in current repo",
+    "tests directory exists in current repo",
+    "UPBIT and BINANCE paper/live root launchers exist and are smoke-tested",
+    "validator registry resolves to current trader1.validation.mvp0_validators implementation",
+    "fixture catalog is present and tracked in current repo",
+    "source bundle manifest is regenerated after reflection",
+    "pytest is executable in current repo"
+  ],
+  "current_defects_or_open_gaps_from_session2": [
+    "Upbit paper repair hash reconciliation remains the next safe task",
+    "PAPER runtime depth and long-run evidence still require continued validation",
+    "ledger/order/reconciliation/idempotency runtime evidence remains a priority",
+    "strategy/regime/cost model runtime linkage remains a priority",
+    "source package and release bundle boundary must continue to be verified",
+    "validator depth must continue to be checked against real negative fixtures",
+    "MICRO_LIVE is not enabled and remains out of scope before external evidence"
+  ],
+  "external_blockers_from_session2": [
+    "official API verification",
+    "read-only account snapshot",
+    "manual order test evidence",
+    "operator approval",
+    "read-only burn-in evidence"
+  ],
+  "deleted_files": [
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md"
+  ],
+  "validation": {
+    "schema_id": "trader1.review_plan_reflection_validation_result.v1",
+    "status": "PASS",
+    "blockers": [],
+    "review_files_count": 45,
+    "delete_ready_count": 0,
+    "deleted_after_reflection_count": 45,
+    "pending_reflection_count": 0,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
