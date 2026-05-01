@@ -5234,6 +5234,7 @@ def upbit_paper_stale_loop_post_regeneration_reconciliation_validator() -> Valid
         "replacement_found_count",
         "regenerated_current_accepted_count",
         "regenerated_current_blocked_reconciliation_count",
+        "blocked_repair_reason_counts",
         "current_evidence_usable_count",
         "excluded_from_current_evidence_count",
         "unpaired_regenerated_artifact_count",
@@ -5272,6 +5273,8 @@ def upbit_paper_stale_loop_post_regeneration_reconciliation_validator() -> Valid
             return fail_result("upbit_paper_stale_loop_post_regeneration_reconciliation_validator", f"valid post-regeneration reconciliation failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
         if report.get("post_reconciliation_status") != "PASS" or report.get("regenerated_current_accepted_count") != 1 or report.get("current_evidence_usable_count") != 1:
             return fail_result("upbit_paper_stale_loop_post_regeneration_reconciliation_validator", "post-regeneration reconciliation did not accept the PASS replacement", paths, "MEASUREMENT_MISSING")
+        if report.get("blocked_repair_reason_counts") != [] or report.get("items", [{}])[0].get("blocked_repair_reason_codes") != []:
+            return fail_result("upbit_paper_stale_loop_post_regeneration_reconciliation_validator", "accepted replacement carried blocked repair reasons", paths, "SCHEMA_IDENTITY_MISMATCH")
         if report.get("delete_source_allowed") or report.get("overwrite_source_allowed") or report.get("actual_long_run_evidence_created") or report.get("long_run_evidence_eligible"):
             return fail_result("upbit_paper_stale_loop_post_regeneration_reconciliation_validator", "post-regeneration reconciliation created delete, overwrite, or long-run permission", paths, "LIVE_FINAL_GUARD_FAILED")
         if report.get("live_order_ready") or report.get("live_order_allowed") or report.get("can_live_trade") or report.get("scale_up_allowed"):
@@ -5310,6 +5313,13 @@ def upbit_paper_stale_loop_post_regeneration_reconciliation_validator() -> Valid
             or "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED" not in blocked_report.get("blocker_codes", [])
         ):
             return fail_result("upbit_paper_stale_loop_post_regeneration_reconciliation_validator", "post-regeneration reconciliation did not block a schema-repaired ledger/recovery gap", paths, "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
+        blocked_item = blocked_report.get("items", [{}])[0]
+        if (
+            "LEDGER_ROLLUP_BLOCKED" not in blocked_item.get("blocked_repair_reason_codes", [])
+            or blocked_item.get("ledger_reconciliation_status") != "BLOCKED"
+            or {"reason_code": "LEDGER_ROLLUP_BLOCKED", "count": 1} not in blocked_report.get("blocked_repair_reason_counts", [])
+        ):
+            return fail_result("upbit_paper_stale_loop_post_regeneration_reconciliation_validator", "blocked repair reason rollup did not expose the ledger reconciliation gap", paths, "MEASUREMENT_MISSING")
 
         false_usable = json.loads(json.dumps(blocked_report))
         false_usable["items"][0]["evidence_usable_current"] = True

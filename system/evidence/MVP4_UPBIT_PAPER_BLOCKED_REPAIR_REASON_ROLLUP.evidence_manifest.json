@@ -1,0 +1,74 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP_EVIDENCE",
+  "created_at_utc": "2026-05-01T02:04:38Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP_20260501_001",
+  "artifact_paths": [
+    "contracts/schema/upbit_paper_stale_loop_post_regeneration_reconciliation_report.schema.json",
+    "trader1/runtime/paper/upbit_paper_stale_loop_post_regeneration_reconciliation.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/runtime/test_upbit_paper_stale_loop_post_regeneration_reconciliation.py",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+    "contracts/security/source_bundle_manifest.json",
+    "tools/emit_upbit_paper_blocked_repair_reason_rollup_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP.md",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP.patch_result.json"
+  ],
+  "known_blockers": [
+    "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "post_reconciliation_status": "BLOCKED",
+  "blocked_repair_reason_counts": [
+    {
+      "reason_code": "LEDGER_ROLLUP_BLOCKED",
+      "count": 6
+    },
+    {
+      "reason_code": "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+      "count": 6
+    },
+    {
+      "reason_code": "LOOP_RECONCILIATION_REQUIRED",
+      "count": 6
+    },
+    {
+      "reason_code": "LOOP_STATUS_BLOCKED",
+      "count": 6
+    },
+    {
+      "reason_code": "PAPER_RUNTIME_RESUME_BLOCKED",
+      "count": 1
+    },
+    {
+      "reason_code": "PARTIAL_WRITE_RECOVERY_REQUIRED",
+      "count": 1
+    },
+    {
+      "reason_code": "RECOVERY_GUARD_BLOCKED",
+      "count": 1
+    }
+  ],
+  "current_evidence_usable_count": 10,
+  "actual_long_run_evidence_created": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
