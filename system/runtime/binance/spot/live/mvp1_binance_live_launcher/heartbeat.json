@@ -1,19 +1,19 @@
 {
   "schema_id": "trader1.heartbeat.v1",
-  "generated_at_utc": "2026-05-01T12:45:23Z",
+  "generated_at_utc": "2026-05-01T18:30:29Z",
   "project_id": "TRADER_1",
   "exchange": "BINANCE",
   "market_type": "SPOT",
   "mode": "LIVE",
   "session_id": "mvp1_binance_live_launcher",
-  "config_hash": "0F2D870FA4A6079E49BDD84EBC23ECA7264C51B6E17EDA32E4516B6C656BE2E1",
-  "registry_hash": "35CC58E56CB67CE0627A9F5232364B3395D899B9DB55ACAFC0F6605F33A8DCE8",
-  "schema_bundle_hash": "03569D39A19409D688B7ACF8BBF1D70C1C52CBF1F2AF41838E50E36F85A8896D",
-  "source_tree_hash": "4160721289A8DD3A8EBA259C547B2D77284DFA0AE594861155F2C7ED66F21E31",
+  "config_hash": "D165289DF09C067734D01CEB1443740AED112A3205A16B3FDB9F6BDF8FACB1BE",
+  "registry_hash": "8EA2496CEDAD8103663FBF83B36AB405BDD5468577F4D6E2B9724FEA041B3C6E",
+  "schema_bundle_hash": "CE9C4ADDCCC6798232A3C6EA1C53EAA6D5CA72B10E216397E56D478AAA9B8E15",
+  "source_tree_hash": "DE29FBC53487C36A22DCDC5BF5DD63EF10FDD7DA1C56B0671D6764246D85B000",
   "engine_state": "BOOTSTRAP_READ_ONLY",
   "startup_probe_phase": "STARTUP_PROBE_GATE_BLOCKED",
   "heartbeat_status": "PASS",
-  "last_heartbeat_at_utc": "2026-05-01T12:45:23Z",
+  "last_heartbeat_at_utc": "2026-05-01T18:30:29Z",
   "stale_after_seconds": 30,
   "heartbeat_age_seconds": 0.0,
   "dashboard_truth_only": true,
@@ -25,57 +25,57 @@
     "cpu": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     },
     "memory": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     },
     "disk": {
       "status": "PASS",
-      "message": "Runtime artifact pressure PASS: files=8, bytes=259256, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "message": "Runtime artifact pressure PASS: files=8, bytes=261478, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     },
     "event_latency": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     },
     "queue_backlog": {
       "status": "PASS",
       "message": "Runtime writer lock is clear; no partial write pressure detected",
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     },
     "rest_health": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     },
     "websocket_health": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     },
     "private_stream_health": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     },
     "rate_limit_pressure": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     },
     "watchdog_heartbeat": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-05-01T12:45:23Z"
+      "observed_at_utc": "2026-05-01T18:30:29Z"
     }
   },
   "primary_blocker_code": null,
   "blockers": [],
   "final_action": "SAFE_MODE",
   "next_action": "continue read-only monitoring",
-  "heartbeat_hash": "8B4968AAC41867A54E2DBE01938A1AE28E06C6FD3CF3BA49437E523A089E01B0"
+  "heartbeat_hash": "992661D2C8D8A377D54BBD7FB8394AC674DEEB8799463D8A5CB9C2BDEF0270FE"
 }

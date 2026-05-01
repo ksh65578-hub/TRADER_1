@@ -135,6 +135,36 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
+    def test_summary_shows_configured_paper_capital_without_verifying_portfolio(self):
+        summary = build_summary()
+        result = validate_summary_shell(summary, set(registry()["enums"]["live_blocker_code"]["values"]))
+        portfolio = summary["portfolio"]
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(portfolio["source"], "SUMMARY_BUILDER")
+        self.assertEqual(portfolio["freshness_status"], "UNTESTED")
+        self.assertIsNone(portfolio["cash_available"])
+        self.assertIsNone(portfolio["equity"])
+        self.assertEqual(portfolio["configured_paper_starting_cash"], 1000000.0)
+        self.assertEqual(portfolio["configured_paper_starting_cash_currency"], "KRW")
+        self.assertEqual(portfolio["configured_paper_starting_cash_source"], "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT")
+        self.assertEqual(portfolio["configured_paper_starting_cash_status"], "CONFIGURED_NOT_VERIFIED")
+        self.assertFalse(summary["live_ready"]["live_order_ready"])
+        self.assertFalse(summary["live_ready"]["live_order_allowed"])
+
+    def test_summary_blocks_configured_paper_capital_exchange_source_claim(self):
+        summary = build_summary()
+        summary["portfolio"]["configured_paper_starting_cash_source"] = "EXCHANGE_BALANCE"
+        result = validate_summary_shell(summary)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_summary_blocks_verified_configured_capital_label_without_ledger_source(self):
+        summary = build_summary()
+        summary["portfolio"]["configured_paper_starting_cash_status"] = "VERIFIED_SOURCE_PRESENT"
+        result = validate_summary_shell(summary)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
     def test_summary_accepts_scoped_paper_portfolio_snapshot(self):
         summary = build_summary(with_paper_portfolio=True)
         result = validate_summary_shell(summary, set(registry()["enums"]["live_blocker_code"]["values"]))
@@ -151,6 +181,8 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertEqual(summary["portfolio"]["source_snapshot_stale_after_seconds"], 300)
         self.assertEqual(summary["portfolio"]["cash_available"], 1000000.0)
         self.assertEqual(summary["portfolio"]["equity"], 1000000.0)
+        self.assertEqual(summary["portfolio"]["configured_paper_starting_cash"], 1000000.0)
+        self.assertEqual(summary["portfolio"]["configured_paper_starting_cash_status"], "VERIFIED_SOURCE_PRESENT")
         self.assertEqual(summary["positions"], [])
 
     def test_summary_accepts_filled_paper_position_detail(self):
@@ -268,6 +300,8 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertEqual(summary["portfolio"]["source"], "SUMMARY_BUILDER")
         self.assertEqual(summary["portfolio"]["freshness_status"], "UNTESTED")
         self.assertIsNone(summary["portfolio"]["equity"])
+        self.assertEqual(summary["portfolio"]["configured_paper_starting_cash"], 1000000.0)
+        self.assertEqual(summary["portfolio"]["configured_paper_starting_cash_status"], "CONFIGURED_NOT_VERIFIED")
         self.assertEqual(summary["positions"], [])
         self.assertIn("stale", summary["portfolio"]["source_snapshot_freshness_message"])
 

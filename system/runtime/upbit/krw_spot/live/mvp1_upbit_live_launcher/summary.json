@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-05-01T12:45:23Z",
+  "generated_at_utc": "2026-05-01T18:30:30Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "LIVE",
@@ -65,7 +65,12 @@
     "unrealized_pnl": null,
     "total_pnl": null,
     "mdd": null,
-    "next_action": "Run PAPER with a fresh verified paper portfolio ledger before trusting portfolio values"
+    "next_action": "Run PAPER with a fresh verified paper portfolio ledger before trusting portfolio values",
+    "configured_paper_starting_cash": 1000000.0,
+    "configured_paper_starting_cash_currency": "KRW",
+    "configured_paper_starting_cash_source": "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT",
+    "configured_paper_starting_cash_status": "CONFIGURED_NOT_VERIFIED",
+    "configured_paper_starting_cash_message": "Configured PAPER starting capital only; verified portfolio ledger is not loaded."
   },
   "orders": {
     "source": "SUMMARY_BUILDER",

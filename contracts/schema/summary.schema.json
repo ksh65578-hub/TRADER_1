@@ -170,6 +170,49 @@
             null
           ]
         },
+        "configured_paper_starting_cash": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "configured_paper_starting_cash_currency": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "configured_paper_starting_cash_source": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT",
+            null
+          ]
+        },
+        "configured_paper_starting_cash_status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "CONFIGURED_NOT_VERIFIED",
+            "VERIFIED_SOURCE_PRESENT",
+            "UNSUPPORTED_SCOPE",
+            null
+          ]
+        },
+        "configured_paper_starting_cash_message": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
         "equity": {
           "type": [
             "number",

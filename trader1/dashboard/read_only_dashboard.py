@@ -14,6 +14,7 @@ from trader1.runtime.health.stability_history import (
     DEFAULT_MIN_VALIDATED_SAMPLE_COUNT,
     DEFAULT_MIN_VALIDATED_SPAN_SECONDS,
 )
+from trader1.runtime.portfolio.paper_portfolio import PAPER_STARTING_CASH_BY_SCOPE
 from trader1.runtime.paper.upbit_paper_persistent_loop import validate_upbit_paper_runtime_recovery_guard_report
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
     validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
@@ -74,6 +75,7 @@ FORBIDDEN_SOURCE_ROLES = {
 }
 SAFE_FINAL_ACTIONS = {"NO_TRADE", "SAFE_MODE", "TRADE_DISABLED", "BLOCKED", "RECONCILE_REQUIRED"}
 PORTFOLIO_CARD_IDS = (
+    "configured_paper_capital",
     "cash",
     "equity",
     "locked_cash",
@@ -470,6 +472,44 @@ def _format_money(value: Any, currency: str) -> str:
     return f"{amount:,.2f} {currency}"
 
 
+def _configured_paper_capital_card(
+    exchange: str,
+    market_type: str,
+    summary: dict[str, Any] | None,
+    *,
+    portfolio_status: str,
+) -> dict[str, Any]:
+    portfolio = summary.get("portfolio") if isinstance(summary, dict) else None
+    amount = portfolio.get("configured_paper_starting_cash") if isinstance(portfolio, dict) else None
+    currency = portfolio.get("configured_paper_starting_cash_currency") if isinstance(portfolio, dict) else None
+    if amount is None or not isinstance(currency, str) or not currency:
+        configured = PAPER_STARTING_CASH_BY_SCOPE.get((exchange, market_type))
+        if configured is not None:
+            currency, amount = configured
+
+    if amount is None or not isinstance(currency, str) or not currency:
+        card = _portfolio_card(
+            "configured_paper_capital",
+            "Configured PAPER Capital",
+            "UNVERIFIED",
+            "No configured PAPER starting capital for this scope",
+        )
+    else:
+        detail = "Configured PAPER default only; not verified cash or equity."
+        if portfolio_status == "VERIFIED":
+            detail = "Configured PAPER starting capital; current cash and equity come from the verified simulated ledger."
+        elif portfolio_status == "STALE":
+            detail = "Configured PAPER default only; dashboard summary is stale and current cash/equity are unverified."
+        card = _portfolio_card(
+            "configured_paper_capital",
+            "Configured PAPER Capital",
+            _format_money(amount, currency),
+            detail,
+        )
+    card["freshness_status"] = "PASS" if portfolio_status == "VERIFIED" else ("STALE" if portfolio_status == "STALE" else "UNTESTED")
+    return card
+
+
 def _format_signed_money(value: Any, currency: str) -> str:
     amount = _decimal(value)
     if amount is None:
@@ -673,6 +713,12 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         "source_snapshot_stale_after_seconds": portfolio.get("source_snapshot_stale_after_seconds"),
         "source_snapshot_freshness_message": portfolio.get("source_snapshot_freshness_message"),
         "source_balance_kind": portfolio.get("source_balance_kind"),
+        "configured_paper_capital": _configured_paper_capital_card(
+            exchange,
+            market_type,
+            summary,
+            portfolio_status="VERIFIED",
+        ),
         "cash": _portfolio_card(
             "cash",
             "Cash",
@@ -741,7 +787,7 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
     return snapshot
 
 
-def _stale_portfolio_snapshot() -> dict[str, Any]:
+def _stale_portfolio_snapshot(exchange: str, market_type: str, summary: dict[str, Any] | None) -> dict[str, Any]:
     snapshot = {
         "title": "Portfolio Snapshot",
         "status": "STALE",
@@ -756,6 +802,12 @@ def _stale_portfolio_snapshot() -> dict[str, Any]:
         "source_snapshot_stale_after_seconds": None,
         "source_snapshot_freshness_message": "Stale summary; rerun PAPER launcher",
         "source_balance_kind": None,
+        "configured_paper_capital": _configured_paper_capital_card(
+            exchange,
+            market_type,
+            summary,
+            portfolio_status="STALE",
+        ),
         "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
@@ -781,7 +833,7 @@ def _stale_portfolio_snapshot() -> dict[str, Any]:
 
 def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dict[str, Any] | None, summary_freshness: str) -> dict[str, Any]:
     if summary is not None and summary_freshness != "PASS":
-        return _stale_portfolio_snapshot()
+        return _stale_portfolio_snapshot(exchange, market_type, summary)
     if mode == "PAPER" and isinstance(summary, dict):
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
         if verified is not None:
@@ -800,6 +852,12 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
         "source_snapshot_stale_after_seconds": None,
         "source_snapshot_freshness_message": "No verified paper portfolio snapshot loaded",
         "source_balance_kind": None,
+        "configured_paper_capital": _configured_paper_capital_card(
+            exchange,
+            market_type,
+            summary,
+            portfolio_status="UNVERIFIED",
+        ),
         "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "No verified cash source loaded"),
         "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "No verified equity source loaded"),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "No verified locked-cash source loaded"),
@@ -8742,7 +8800,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         portfolio_status = "PAPER LEDGER VERIFIED (SIMULATED)"
     elif portfolio_status == "STALE":
         portfolio_status = "STALE - RERUN PAPER"
-    portfolio_kpi_ids = ("cash", "equity", "total_pnl", "return_pct")
+    portfolio_kpi_ids = ("configured_paper_capital", "cash", "equity", "total_pnl", "return_pct")
     portfolio_detail_ids = ("locked_cash", "realized_pnl", "unrealized_pnl", "positions", "entry_candidates")
     portfolio_kpi_cards = []
     portfolio_detail_cards = []

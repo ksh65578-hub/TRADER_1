@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-05-01T18:14:40Z",
+  "generated_at_utc": "2026-05-01T18:32:16Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -81,7 +81,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-05-01T18:14:40Z",
+    "generated_at_utc": "2026-05-01T18:32:16Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -175,7 +175,7 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 86585,
+    "observed_span_seconds": 87562,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 60,
@@ -214,7 +214,7 @@
         "label": "Runtime artifact pressure",
         "status": "WARN",
         "value_display": "WARN",
-        "detail": "Runtime artifact pressure WARN: files=384, bytes=3288368, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
+        "detail": "Runtime artifact pressure WARN: files=384, bytes=3289702, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -262,7 +262,7 @@
     "source": "heartbeat.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 86585,
+    "observed_span_seconds": 87562,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 0,
@@ -1365,6 +1365,13 @@
     "source_snapshot_stale_after_seconds": null,
     "source_snapshot_freshness_message": "No verified paper portfolio snapshot loaded",
     "source_balance_kind": null,
+    "configured_paper_capital": {
+      "card_id": "configured_paper_capital",
+      "label": "Configured PAPER Capital",
+      "value_display": "1,000,000 KRW",
+      "detail": "Configured PAPER default only; not verified cash or equity.",
+      "freshness_status": "UNTESTED"
+    },
     "cash": {
       "card_id": "cash",
       "label": "Cash",
@@ -1494,5 +1501,5 @@
   "blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "6C3C0CC17923E36869A54FB794A89269921AD5E6EC9D46EFB6310F4857FA7BC3"
+  "dashboard_hash": "FDEFAEFFB71B81E837BD481A512FDFA0C44975F07F4591FE25E4B9E74ACD0FC0"
 }
