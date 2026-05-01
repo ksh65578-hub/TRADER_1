@@ -22,6 +22,10 @@ from trader1.runtime.portfolio.paper_portfolio import (
     build_paper_portfolio_snapshot_from_fill,
 )
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
+from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
+    build_upbit_paper_ledger_idempotency_runtime_evidence_report,
+    upbit_paper_ledger_idempotency_runtime_evidence_hash,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import upbit_paper_runtime_recovery_guard_hash
 from trader1.runtime.paper.upbit_public_rest_continuity_history import (
@@ -188,6 +192,7 @@ def build_dashboard(
     shadow_persistent_runtime_report=None,
     upbit_paper_post_rerun_operator_resolution_audit_report=None,
     upbit_paper_post_rerun_resolution_current_evidence_closure_report=None,
+    upbit_paper_ledger_idempotency_runtime_evidence_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
@@ -207,6 +212,7 @@ def build_dashboard(
         upbit_paper_post_rerun_reconciliation_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
         upbit_paper_post_rerun_operator_resolution_audit_report=upbit_paper_post_rerun_operator_resolution_audit_report,
         upbit_paper_post_rerun_resolution_current_evidence_closure_report=upbit_paper_post_rerun_resolution_current_evidence_closure_report,
+        upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         optimizer_feedback_report=optimizer_feedback_report,
         convergence_assessment_report=convergence_assessment_report,
@@ -347,6 +353,26 @@ def build_dashboard_with_reconciliation(reconciliation_report=None, restart_reco
         startup_probe=startup_probe,
         reconciliation_report=reconciliation_report,
         restart_recovery_report=restart_recovery_report,
+    )
+
+
+def build_dashboard_with_ledger_idempotency_runtime_evidence(report=None):
+    report = report or build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+        root=ROOT,
+        session_id="mvp1_upbit_paper_launcher",
+        evidence_id="test-dashboard-ledger-idempotency-runtime-evidence",
+    )
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_ledger_idempotency_runtime_evidence_report=report,
     )
 
 
@@ -1379,6 +1405,52 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER_LEDGER_MATCHED", html)
         self.assertIn("single-writer=RECOVERED", html)
         self.assertIn("Display-only ledger safety", html)
+
+    def test_dashboard_projects_ledger_idempotency_runtime_evidence(self):
+        dashboard = build_dashboard_with_ledger_idempotency_runtime_evidence()
+        result = validate_read_only_dashboard_shell(dashboard, set(registry()["enums"]["live_blocker_code"]["values"]))
+        self.assertEqual(result.status, "PASS")
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_evidence_status"], "PASS")
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_validation_status"], "PASS")
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_reconciliation_status"], "PASS")
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_portfolio_provenance_status"], "PASS")
+        self.assertGreater(reconciliation["ledger_idempotency_runtime_source_ledger_jsonl_count"], 0)
+        self.assertGreater(reconciliation["ledger_idempotency_runtime_recomputed_ledger_event_count"], 0)
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_duplicate_event_id_count"], 0)
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_duplicate_dedup_key_count"], 0)
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_duplicate_semantic_event_count"], 0)
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_duplicate_filled_order_key_count"], 0)
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_source_count_mismatch_count"], 0)
+        self.assertFalse(reconciliation["live_order_allowed"])
+        source = {
+            item["artifact_id"]: item for item in dashboard["source_artifacts"]
+        }["PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE"]
+        self.assertEqual(source["filename"], "upbit_paper_ledger_idempotency_runtime_evidence_report.json")
+        self.assertEqual(source["freshness_status"], "PASS")
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Current Ledger Evidence", html)
+        self.assertIn("ledger-files=", html)
+        self.assertIn("count-mismatch=0", html)
+
+    def test_dashboard_blocks_ledger_idempotency_runtime_evidence_live_mutation(self):
+        report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            root=ROOT,
+            session_id="mvp1_upbit_paper_launcher",
+            evidence_id="test-dashboard-ledger-idempotency-live-mutation",
+        )
+        report["live_order_allowed"] = True
+        report["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(report)
+        dashboard = build_dashboard_with_ledger_idempotency_runtime_evidence(report)
+        result = validate_read_only_dashboard_shell(dashboard, set(registry()["enums"]["live_blocker_code"]["values"]))
+        self.assertEqual(result.status, "PASS")
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_evidence_status"], "BLOCKED")
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_validation_status"], "BLOCKED")
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(reconciliation["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
 
     def test_dashboard_blocks_reconciliation_mismatch_display(self):
         session_id = "test_read_only_dashboard_reconciliation"
