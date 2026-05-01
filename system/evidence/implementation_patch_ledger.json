@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-01T13:08:15Z",
+  "updated_at_utc": "2026-05-01T13:28:16Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -2783,9 +2783,20 @@
       "live_order_allowed_after": false,
       "can_live_trade_after": false,
       "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD_20260501_001",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.patch_result.json",
+      "patch_result_hash": "9C726C781FED0F2CF562CE94EC5BD62EC1E8EDC3516367F590A21C454FABB7EC",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
     }
   ],
   "ledger_hash": "067FB982B43B786993456C0240A89C947E7E82D02DD4EAE883E17C264EDF0B4A",
-  "last_patch_id": "MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD_20260501_001",
-  "last_patch_result_hash": "77611C979D7452F541DE7503ADC7703C9B4580FE7F0B824A96E92A8CB376F23B"
+  "last_patch_id": "MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD_20260501_001",
+  "last_patch_result_hash": "9C726C781FED0F2CF562CE94EC5BD62EC1E8EDC3516367F590A21C454FABB7EC"
 }

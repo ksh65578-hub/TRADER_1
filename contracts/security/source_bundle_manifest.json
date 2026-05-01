@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "D5CD5580D8CEDF7EECD1CF8EF954D2604ED9F9C21A5B0855701D6C687F0B6C1D",
+      "sha256": "1E0DECF4958CA3002D07E8057262C60ADAD0347F935A893FD6CF3681B80F125E",
       "size_bytes": 1096
     },
     {
@@ -300,8 +300,8 @@
     },
     {
       "path": "contracts/schema/restart_recovery_report.schema.json",
-      "sha256": "CF5D07CAFFF6F92F8D88CFBE5C74233984B80A960EC3D82E94FEE0296AD8D553",
-      "size_bytes": 3384
+      "sha256": "146FC78C3BA2BA30CCAFA57E3116CDB6FA5F8C45ECAC7F7261F2F9AE29EF0280",
+      "size_bytes": 4094
     },
     {
       "path": "contracts/schema/risk_scaling_decision.schema.json",
@@ -920,8 +920,8 @@
     },
     {
       "path": "tests/runtime/test_restart_recovery.py",
-      "sha256": "0676979C930E5E8D4F3CDD69E749236E6987A7F4CD8C0323A139F20579D1EA35",
-      "size_bytes": 8631
+      "sha256": "80FD887683F323193083B3FDA31E9603DE4C1520385DFA796982035DA23D0923",
+      "size_bytes": 11168
     },
     {
       "path": "tests/runtime/test_runtime_resource_pressure.py",
@@ -3034,6 +3034,11 @@
       "size_bytes": 24853
     },
     {
+      "path": "tools/emit_windows_restart_recovery_artifact_path_guard_patch_evidence.py",
+      "sha256": "CAFD53F7AE79D541DDC9CD6408A76BD321BA3C06E3DBB3FD05EE61CD929B360F",
+      "size_bytes": 31341
+    },
+    {
       "path": "tools/evidence_write_helper_coverage.py",
       "sha256": "9B8181FF33186156477203A3E3B415FE46B690C646B4163EBBAB53C8D000E2A4",
       "size_bytes": 9346
@@ -3450,8 +3455,8 @@
     },
     {
       "path": "trader1/core/ledger/restart_recovery.py",
-      "sha256": "F420FFC1AED3677B812083841670DADDC7621641366072CB29404FC6DD144023",
-      "size_bytes": 11573
+      "sha256": "2C937622BE7D26BA1D3F18C085DFD7411DE89D197488359C0E7DFEFA3B21EBD2",
+      "size_bytes": 15006
     },
     {
       "path": "trader1/core/risk/__init__.py",
@@ -3900,8 +3905,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "D9536430BD55A8DBE78B940EC8B39971D7724828762481CF8834DF1A4C90AE6D",
-      "size_bytes": 756688
+      "sha256": "631766AA5C09C1A62AC7E842B9B2903BFACC22D62A0DA08C249C3AFEBB3D88CC",
+      "size_bytes": 759088
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4556,6 +4561,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5815,6 +5824,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/PATCH_RESULT_VALIDATOR_RUN_GAP_AUDIT.json",
       "reason": "denied:system/"
     },
@@ -6851,6 +6868,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/patch_results/MVP0_BUNDLE_SECURITY.patch_result.json",
       "reason": "denied:system/"
     },
@@ -7836,6 +7857,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8832,6 +8857,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9844,6 +9873,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.restart_recovery_report.v1",
-  "generated_at_utc": "2026-04-28T15:23:47Z",
+  "generated_at_utc": "2026-05-01T13:28:16Z",
   "project_id": "TRADER_1",
   "restart_id": "mvp2-restart-recovery",
   "exchange": "UPBIT",
@@ -13,8 +13,8 @@
   "ledger_events": [
     {
       "schema_id": "trader1.ledger_event.v1",
-      "event_id": "mvp2_restart_recovery-intent",
-      "event_time_utc": "2026-04-28T15:23:47Z",
+      "event_id": "mvp2_restart_recovery-mvp2-restart-recovery-intent-intent",
+      "event_time_utc": "2026-05-01T13:28:16Z",
       "exchange_time": null,
       "mode": "PAPER",
       "exchange": "UPBIT",
@@ -38,12 +38,12 @@
       "source": "LOCAL",
       "dedup_key": "intent:mvp2-restart-recovery-intent",
       "previous_hash": null,
-      "event_hash": "981B6758EA935191313BB9263D2DB3C60FCC0575218EB4F5F3F9854BBDE9EFC3"
+      "event_hash": "43D59058AEC73ECC91F3F0C7CB1EF5D7F8AC81D23A51780356FBD98FE15FC558"
     },
     {
       "schema_id": "trader1.ledger_event.v1",
-      "event_id": "mvp2_restart_recovery-reserve",
-      "event_time_utc": "2026-04-28T15:23:47Z",
+      "event_id": "mvp2_restart_recovery-mvp2-restart-recovery-intent-reserve",
+      "event_time_utc": "2026-05-01T13:28:16Z",
       "exchange_time": null,
       "mode": "PAPER",
       "exchange": "UPBIT",
@@ -66,17 +66,17 @@
       "position_delta": null,
       "source": "LOCAL",
       "dedup_key": "reserve:mvp2-restart-recovery-intent",
-      "previous_hash": "981B6758EA935191313BB9263D2DB3C60FCC0575218EB4F5F3F9854BBDE9EFC3",
-      "event_hash": "5266BFBFB028D3A696D4946B9B2935D96B863C8A9FABC6B6631A2FF535B6ECB7"
+      "previous_hash": "43D59058AEC73ECC91F3F0C7CB1EF5D7F8AC81D23A51780356FBD98FE15FC558",
+      "event_hash": "291A7A93D459B404B7C3ED841D3BA9B8E875C67BAC75632D7AAB387C4BF70D50"
     }
   ],
   "ledger_recovered": true,
-  "ledger_head_hash": "5266BFBFB028D3A696D4946B9B2935D96B863C8A9FABC6B6631A2FF535B6ECB7",
+  "ledger_head_hash": "291A7A93D459B404B7C3ED841D3BA9B8E875C67BAC75632D7AAB387C4BF70D50",
   "intent_wal_events": [
     {
       "schema_id": "trader1.intent_wal_event.v1",
       "wal_event_id": "mvp2_restart_recovery-wal-1",
-      "created_at_utc": "2026-04-28T15:23:47Z",
+      "created_at_utc": "2026-05-01T13:28:16Z",
       "exchange": "UPBIT",
       "market_type": "KRW_SPOT",
       "mode": "PAPER",
@@ -85,7 +85,7 @@
       "client_order_id": "mvp2-restart-recovery-client",
       "symbol": "KRW-BTC",
       "side": "BUY",
-      "source_ledger_event_hash": "981B6758EA935191313BB9263D2DB3C60FCC0575218EB4F5F3F9854BBDE9EFC3",
+      "source_ledger_event_hash": "43D59058AEC73ECC91F3F0C7CB1EF5D7F8AC81D23A51780356FBD98FE15FC558",
       "previous_wal_hash": null,
       "paper_live_namespace_separated": true,
       "live_key_loaded": false,
@@ -94,12 +94,12 @@
       "can_live_trade": false,
       "can_submit_order": false,
       "order_adapter_called": false,
-      "wal_event_hash": "3D9881E0CEBEDD6B41408985351088422CAC4395DFD7945FF2C06234E42C0EE8"
+      "wal_event_hash": "72CE32C7D6573001488A7D864DDEC69BA8B423CE98F95D45238806F5AF88194C"
     },
     {
       "schema_id": "trader1.intent_wal_event.v1",
       "wal_event_id": "mvp2_restart_recovery-wal-2",
-      "created_at_utc": "2026-04-28T15:23:47Z",
+      "created_at_utc": "2026-05-01T13:28:16Z",
       "exchange": "UPBIT",
       "market_type": "KRW_SPOT",
       "mode": "PAPER",
@@ -108,8 +108,8 @@
       "client_order_id": "mvp2-restart-recovery-client",
       "symbol": "KRW-BTC",
       "side": "BUY",
-      "source_ledger_event_hash": "5266BFBFB028D3A696D4946B9B2935D96B863C8A9FABC6B6631A2FF535B6ECB7",
-      "previous_wal_hash": "3D9881E0CEBEDD6B41408985351088422CAC4395DFD7945FF2C06234E42C0EE8",
+      "source_ledger_event_hash": "291A7A93D459B404B7C3ED841D3BA9B8E875C67BAC75632D7AAB387C4BF70D50",
+      "previous_wal_hash": "72CE32C7D6573001488A7D864DDEC69BA8B423CE98F95D45238806F5AF88194C",
       "paper_live_namespace_separated": true,
       "live_key_loaded": false,
       "live_order_ready": false,
@@ -117,12 +117,21 @@
       "can_live_trade": false,
       "can_submit_order": false,
       "order_adapter_called": false,
-      "wal_event_hash": "7200B7D5C2D4E9FFAF1F89A8EBA9F61A357CA8E0B0652768B22F8EBFF83CA207"
+      "wal_event_hash": "3FF151B664AC89834483248489A8ACF6E305701719F375205F193DA7D7F031B2"
     }
   ],
   "intent_wal_recovered": true,
-  "intent_wal_head_hash": "7200B7D5C2D4E9FFAF1F89A8EBA9F61A357CA8E0B0652768B22F8EBFF83CA207",
+  "intent_wal_head_hash": "3FF151B664AC89834483248489A8ACF6E305701719F375205F193DA7D7F031B2",
   "single_writer_recovered": true,
+  "windows_path_recovery_checked": true,
+  "atomic_write_recovery_checked": true,
+  "partial_write_recovery_checked": true,
+  "stale_lock_recovery_checked": true,
+  "recovery_artifact_paths": [
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/heartbeat.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/launcher/root_launcher_report.json"
+  ],
   "paper_live_namespace_separated": true,
   "recovery_action": "RESUME_PAPER_ONLY",
   "restart_recovery_status": "PASS",
@@ -134,5 +143,5 @@
   "order_adapter_called": false,
   "primary_blocker_code": null,
   "blockers": [],
-  "restart_recovery_hash": "D472772F6FC351F54B7F6A1EE48C91C7DB3AEC3B635A22422F0F1CAB05DA3F1D"
+  "restart_recovery_hash": "E4C4E430B87E589C713EA41C3205A5F32AB37C29FA6E218B647246164FF5A733"
 }

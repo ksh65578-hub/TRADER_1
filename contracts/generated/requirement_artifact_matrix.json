@@ -9014,9 +9014,49 @@
       "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
       "live_affecting": true,
       "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
+      "requirement_id": "REQ-MVP4-WINDOWS-RESTART-RECOVERY-ARTIFACT-PATH-GUARD",
+      "section_id": "SECTION_RUNTIME_RECOVERY_RTO_ACTIVE",
+      "schema_files": [
+        "contracts/schema/restart_recovery_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/core/ledger/restart_recovery.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_restart_recovery.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/core/ledger/restart_recovery.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.patch_result.json",
+        "system/evidence/audit_reports/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.audit.json",
+        "system/runtime/upbit/krw_spot/paper/recovery/restart_recovery_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/restart_recovery_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/repairs/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.ledger_rollup_candidate.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_ledger_rollup_repair_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_repair_reconciliation_report.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_4_RUNTIME_INTEGRATION",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
     }
   ],
-  "updated_at_utc": "2026-05-01T13:08:15Z",
+  "updated_at_utc": "2026-05-01T13:28:16Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

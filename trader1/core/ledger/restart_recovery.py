@@ -11,6 +11,11 @@ from trader1.runtime.ledger.execution_ledger import build_minimal_intent_chain, 
 
 
 RESTART_RECOVERY_SCHEMA_ID = "trader1.restart_recovery_report.v1"
+DEFAULT_RECOVERY_ARTIFACT_PATHS = (
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/heartbeat.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/launcher/root_launcher_report.json",
+)
 
 
 @dataclass(frozen=True)
@@ -34,6 +39,17 @@ def _blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
 
 
+def _is_safe_relative_artifact_path(path: Any) -> bool:
+    if not isinstance(path, str) or not path:
+        return False
+    if "\\" in path or path.startswith("/") or path.startswith("//") or path.startswith("~"):
+        return False
+    if len(path) >= 2 and path[1] == ":" and path[0].isalpha():
+        return False
+    parts = path.split("/")
+    return all(part not in {"", ".", ".."} for part in parts)
+
+
 def build_restart_recovery_report(
     *,
     restart_id: str,
@@ -46,6 +62,11 @@ def build_restart_recovery_report(
     startup_recovery_rto_ms: int = 0,
     snapshot_recovery_rpo_events: int = 0,
     single_writer_recovered: bool = True,
+    windows_path_recovery_checked: bool = True,
+    atomic_write_recovery_checked: bool = True,
+    partial_write_recovery_checked: bool = True,
+    stale_lock_recovery_checked: bool = True,
+    recovery_artifact_paths: list[str] | None = None,
 ) -> dict[str, Any]:
     if ledger_events is None:
         ledger_events = build_minimal_intent_chain(
@@ -73,6 +94,18 @@ def build_restart_recovery_report(
         blockers.append(_blocker(wal_result.blocker_code or "LEDGER_UNAVAILABLE", wal_result.message))
     if not single_writer_recovered:
         blockers.append(_blocker("RECONCILIATION_REQUIRED", "single-writer recovery is unavailable"))
+    if not windows_path_recovery_checked:
+        blockers.append(_blocker("RECONCILIATION_REQUIRED", "Windows recovery path evidence is unavailable"))
+    if not atomic_write_recovery_checked:
+        blockers.append(_blocker("RECONCILIATION_REQUIRED", "atomic write recovery evidence is unavailable"))
+    if not partial_write_recovery_checked:
+        blockers.append(_blocker("RECONCILIATION_REQUIRED", "partial-write recovery evidence is unavailable"))
+    if not stale_lock_recovery_checked:
+        blockers.append(_blocker("RECONCILIATION_REQUIRED", "stale lock recovery evidence is unavailable"))
+    if recovery_artifact_paths is None:
+        recovery_artifact_paths = list(DEFAULT_RECOVERY_ARTIFACT_PATHS)
+    if not recovery_artifact_paths or not all(_is_safe_relative_artifact_path(path) for path in recovery_artifact_paths):
+        blockers.append(_blocker("SNAPSHOT_SCOPE_MISMATCH", "recovery artifact paths must be safe relative POSIX paths"))
 
     report = {
         "schema_id": RESTART_RECOVERY_SCHEMA_ID,
@@ -93,6 +126,11 @@ def build_restart_recovery_report(
         "intent_wal_recovered": wal_result.status == "PASS",
         "intent_wal_head_hash": intent_wal_events[-1]["wal_event_hash"] if intent_wal_events else None,
         "single_writer_recovered": single_writer_recovered,
+        "windows_path_recovery_checked": windows_path_recovery_checked,
+        "atomic_write_recovery_checked": atomic_write_recovery_checked,
+        "partial_write_recovery_checked": partial_write_recovery_checked,
+        "stale_lock_recovery_checked": stale_lock_recovery_checked,
+        "recovery_artifact_paths": recovery_artifact_paths,
         "paper_live_namespace_separated": mode == "PAPER",
         "recovery_action": "RESUME_PAPER_ONLY" if not blockers else "SAFE_MODE_RECONCILE",
         "restart_recovery_status": "PASS" if not blockers else "BLOCKED",
@@ -133,6 +171,11 @@ def validate_restart_recovery_report(
         "intent_wal_recovered",
         "intent_wal_head_hash",
         "single_writer_recovered",
+        "windows_path_recovery_checked",
+        "atomic_write_recovery_checked",
+        "partial_write_recovery_checked",
+        "stale_lock_recovery_checked",
+        "recovery_artifact_paths",
         "paper_live_namespace_separated",
         "recovery_action",
         "restart_recovery_status",
@@ -163,6 +206,24 @@ def validate_restart_recovery_report(
         return RestartRecoveryValidationResult("BLOCKED", "restart recovery cannot call an order adapter", "LIVE_FINAL_GUARD_FAILED")
     if report.get("paper_live_namespace_separated") is not True:
         return RestartRecoveryValidationResult("BLOCKED", "restart recovery lacks paper/live namespace separation", "SNAPSHOT_SCOPE_MISMATCH")
+    for field in (
+        "windows_path_recovery_checked",
+        "atomic_write_recovery_checked",
+        "partial_write_recovery_checked",
+        "stale_lock_recovery_checked",
+    ):
+        if report.get(field) is not True:
+            return RestartRecoveryValidationResult("BLOCKED", f"restart recovery missing required evidence: {field}", "RECONCILIATION_REQUIRED")
+    artifact_paths = report.get("recovery_artifact_paths")
+    if not isinstance(artifact_paths, list) or not artifact_paths:
+        return RestartRecoveryValidationResult("BLOCKED", "restart recovery artifact paths are missing", "RECONCILIATION_REQUIRED")
+    for artifact_path in artifact_paths:
+        if not _is_safe_relative_artifact_path(artifact_path):
+            return RestartRecoveryValidationResult(
+                "BLOCKED",
+                "restart recovery artifact paths must be safe relative POSIX paths",
+                "SNAPSHOT_SCOPE_MISMATCH",
+            )
 
     blockers = report.get("blockers")
     if not isinstance(blockers, list):
