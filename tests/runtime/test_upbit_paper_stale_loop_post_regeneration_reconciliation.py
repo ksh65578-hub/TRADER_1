@@ -90,11 +90,15 @@ class UpbitPaperStaleLoopPostRegenerationReconciliationTest(unittest.TestCase):
         self.assertEqual(report["regenerated_current_accepted_count"], 1)
         self.assertEqual(report["current_evidence_usable_count"], 1)
         self.assertEqual(report["excluded_from_current_evidence_count"], 0)
+        self.assertEqual(report["blocked_repair_reason_counts"], [])
         self.assertFalse(report["actual_long_run_evidence_created"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])
         self.assertTrue(report["items"][0]["source_excluded_from_current_evidence"])
+        self.assertEqual(report["items"][0]["blocked_repair_reason_codes"], [])
+        self.assertEqual(report["items"][0]["blocked_repair_reason_summary"], "NOT_BLOCKED")
+        self.assertEqual(report["items"][0]["operator_repair_action"], "No blocked repair action required.")
 
         written_path = write_upbit_paper_stale_loop_post_regeneration_reconciliation_report(root=root, report=report)
         written = json.loads(written_path.read_text(encoding="utf-8"))
@@ -120,6 +124,14 @@ class UpbitPaperStaleLoopPostRegenerationReconciliationTest(unittest.TestCase):
             report["items"][0]["recommended_action"],
             "RECONCILE_LEDGER_AND_RECOVERY_BEFORE_EVIDENCE_USE",
         )
+        self.assertIn("LEDGER_ROLLUP_BLOCKED", report["items"][0]["blocked_repair_reason_codes"])
+        self.assertIn("LEDGER_ROLLUP_RECONCILIATION_REQUIRED", report["items"][0]["blocked_repair_reason_codes"])
+        self.assertEqual(report["items"][0]["ledger_reconciliation_status"], "BLOCKED")
+        self.assertIn(
+            {"reason_code": "LEDGER_ROLLUP_BLOCKED", "count": 1},
+            report["blocked_repair_reason_counts"],
+        )
+        self.assertIn("ledger", report["items"][0]["operator_repair_action"])
 
     def test_post_reconciliation_blocks_source_hash_mutation_after_executor(self):
         root, executor = self._executor_with_legacy()
@@ -182,6 +194,21 @@ class UpbitPaperStaleLoopPostRegenerationReconciliationTest(unittest.TestCase):
 
         self.assertEqual(usable_result.status, "BLOCKED")
         self.assertEqual(usable_result.blocker_code, "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
+
+    def test_post_reconciliation_validator_blocks_reason_rollup_tamper(self):
+        root, executor = self._executor_with_legacy(missing_recovery_and_ledger=True)
+        report = build_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
+            root=root,
+            executor_report=executor,
+        )
+        tampered = json.loads(json.dumps(report))
+        tampered["blocked_repair_reason_counts"] = []
+        tampered["post_reconciliation_hash"] = stale_loop_post_regeneration_reconciliation_hash(tampered)
+
+        result = validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(tampered)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
 
 if __name__ == "__main__":

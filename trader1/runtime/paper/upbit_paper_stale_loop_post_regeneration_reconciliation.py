@@ -28,6 +28,8 @@ POST_REGENERATION_EVIDENCE_USE_POLICY = (
 POST_REGENERATION_RECONCILIATION_BLOCKER_CODE = (
     "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
 )
+BLOCKED_REPAIR_NOT_APPLICABLE = "NOT_BLOCKED"
+
 
 
 @dataclass(frozen=True)
@@ -134,6 +136,91 @@ def _runtime_cycle_hashes(report: dict[str, Any] | None) -> list[str]:
     ]
 
 
+def _status_or_unknown(report: dict[str, Any] | None, field: str) -> str:
+    if not isinstance(report, dict):
+        return "UNKNOWN"
+    value = report.get(field)
+    return str(value) if value in {"PASS", "BLOCKED"} else "UNKNOWN"
+
+
+def _cycle_reconciliation_status(report: dict[str, Any] | None) -> str:
+    if not isinstance(report, dict):
+        return "UNKNOWN"
+    cycle_results = report.get("cycle_results")
+    if not isinstance(cycle_results, list) or not cycle_results:
+        return "UNKNOWN"
+    for item in cycle_results:
+        if not isinstance(item, dict):
+            return "BLOCKED"
+        if item.get("runtime_status") != "PASS" or item.get("runtime_writer_status") != "PASS":
+            return "BLOCKED"
+    return "PASS"
+
+
+def _blocked_repair_reason_codes(report: dict[str, Any] | None, validation_status: str, blocker_code: str | None) -> list[str]:
+    if validation_status != "BLOCKED" or blocker_code != "RECONCILIATION_REQUIRED":
+        return []
+    if not isinstance(report, dict):
+        return ["PERSISTENT_LOOP_REPORT_NOT_LOADED"]
+    reason_codes: list[str] = []
+    if report.get("loop_status") == "BLOCKED":
+        reason_codes.append("LOOP_STATUS_BLOCKED")
+    if report.get("primary_blocker_code") == "RECONCILIATION_REQUIRED":
+        reason_codes.append("LOOP_RECONCILIATION_REQUIRED")
+    if report.get("recovery_guard_status") == "BLOCKED":
+        reason_codes.append("RECOVERY_GUARD_BLOCKED")
+    if report.get("partial_write_recovery_required"):
+        reason_codes.append("PARTIAL_WRITE_RECOVERY_REQUIRED")
+    if report.get("paper_runtime_resume_allowed") is False:
+        reason_codes.append("PAPER_RUNTIME_RESUME_BLOCKED")
+    if report.get("paper_ledger_rollup_status") == "BLOCKED":
+        reason_codes.append("LEDGER_ROLLUP_BLOCKED")
+    if report.get("paper_ledger_rollup_primary_blocker_code") == "RECONCILIATION_REQUIRED":
+        reason_codes.append("LEDGER_ROLLUP_RECONCILIATION_REQUIRED")
+    if _cycle_reconciliation_status(report) == "BLOCKED":
+        reason_codes.append("RUNTIME_CYCLE_RECONCILIATION_REQUIRED")
+    if not reason_codes:
+        reason_codes.append("PERSISTENT_LOOP_VALIDATOR_RECONCILIATION_REQUIRED")
+    return sorted(set(reason_codes))
+
+
+def _blocked_repair_reason_summary(reason_codes: list[str]) -> str:
+    if not reason_codes:
+        return BLOCKED_REPAIR_NOT_APPLICABLE
+    if "RECOVERY_GUARD_BLOCKED" in reason_codes and "LEDGER_ROLLUP_BLOCKED" in reason_codes:
+        return "Recovery guard and paper ledger rollup are both blocked; keep this replacement out of current evidence until both reconcile."
+    if "LEDGER_ROLLUP_BLOCKED" in reason_codes:
+        return "Paper ledger rollup is blocked; keep this replacement out of current evidence until ledger reconciliation passes."
+    if "RECOVERY_GUARD_BLOCKED" in reason_codes:
+        return "Recovery guard is blocked; keep this replacement out of current evidence until safe resume/recovery passes."
+    if "RUNTIME_CYCLE_RECONCILIATION_REQUIRED" in reason_codes:
+        return "At least one runtime cycle is not fully pass/written; keep this replacement out of current evidence until cycle reconciliation passes."
+    return "Persistent loop validator requires reconciliation; keep this replacement out of current evidence."
+
+
+def _operator_repair_action(reason_codes: list[str]) -> str:
+    if not reason_codes:
+        return "No blocked repair action required."
+    actions = []
+    if "LEDGER_ROLLUP_BLOCKED" in reason_codes:
+        actions.append("rebuild or reconcile the PAPER ledger rollup")
+    if "RECOVERY_GUARD_BLOCKED" in reason_codes or "PARTIAL_WRITE_RECOVERY_REQUIRED" in reason_codes:
+        actions.append("rerun the recovery guard and resolve partial-write recovery")
+    if "RUNTIME_CYCLE_RECONCILIATION_REQUIRED" in reason_codes:
+        actions.append("replay the affected runtime cycle with a valid writer result")
+    if not actions:
+        actions.append("rerun validator-backed post-regeneration reconciliation")
+    return "Before evidence use, " + "; ".join(actions) + "."
+
+
+def _reason_count_rollup(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for item in items:
+        for code in item.get("blocked_repair_reason_codes") or []:
+            counts[str(code)] = counts.get(str(code), 0) + 1
+    return [{"reason_code": code, "count": counts[code]} for code in sorted(counts)]
+
+
 def _classify_replacement(
     *,
     source_hash_match: bool,
@@ -194,6 +281,11 @@ def _build_post_item(*, root: Path, session_id: str, executor_item: dict[str, An
     source_path_allowed = _artifact_path_allowed(source_path, session_id)
     replacement_path_allowed = _artifact_path_allowed(replacement_path, session_id)
     unsafe = _unsafe_live_or_order_flag_detected(replacement)
+    blocked_repair_reason_codes = _blocked_repair_reason_codes(
+        replacement,
+        replacement_validation_status,
+        replacement_validation_blocker_code,
+    )
     classification, usable, action, blocker_code = _classify_replacement(
         source_hash_match=source_hash_match,
         source_retained=source_retained,
@@ -232,6 +324,12 @@ def _build_post_item(*, root: Path, session_id: str, executor_item: dict[str, An
         "evidence_usable_current": usable,
         "recommended_action": action,
         "item_blocker_code": blocker_code,
+        "blocked_repair_reason_codes": blocked_repair_reason_codes,
+        "blocked_repair_reason_summary": _blocked_repair_reason_summary(blocked_repair_reason_codes),
+        "recovery_reconciliation_status": _status_or_unknown(replacement, "recovery_guard_status"),
+        "ledger_reconciliation_status": _status_or_unknown(replacement, "paper_ledger_rollup_status"),
+        "cycle_reconciliation_status": _cycle_reconciliation_status(replacement),
+        "operator_repair_action": _operator_repair_action(blocked_repair_reason_codes),
         "runtime_cycle_hashes": _runtime_cycle_hashes(replacement),
         "unsafe_live_or_order_flag_detected": unsafe,
         "source_excluded_from_current_evidence": True,
@@ -315,6 +413,7 @@ def build_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
     if unpaired_paths:
         blockers.append("UNPAIRED_REGENERATED_ARTIFACT")
     unique_blockers = sorted({blocker for blocker in blockers if blocker})
+    blocked_repair_reason_counts = _reason_count_rollup(items)
     status = "PASS" if not unique_blockers and accepted_count > 0 else "BLOCKED"
     next_action = (
         "Use only PASS regenerated current-schema PAPER replacements as current evidence; originals remain audit references."
@@ -345,6 +444,7 @@ def build_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
         "replacement_hash_mismatch_count": replacement_hash_mismatch_count,
         "regenerated_current_accepted_count": accepted_count,
         "regenerated_current_blocked_reconciliation_count": blocked_reconciliation_count,
+        "blocked_repair_reason_counts": blocked_repair_reason_counts,
         "regenerated_current_invalid_count": invalid_count,
         "current_evidence_usable_count": evidence_usable_count,
         "excluded_from_current_evidence_count": excluded_count,
@@ -413,6 +513,7 @@ def validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
         "replacement_hash_mismatch_count",
         "regenerated_current_accepted_count",
         "regenerated_current_blocked_reconciliation_count",
+        "blocked_repair_reason_counts",
         "regenerated_current_invalid_count",
         "current_evidence_usable_count",
         "excluded_from_current_evidence_count",
@@ -517,6 +618,12 @@ def validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
             "evidence_usable_current",
             "recommended_action",
             "item_blocker_code",
+            "blocked_repair_reason_codes",
+            "blocked_repair_reason_summary",
+            "recovery_reconciliation_status",
+            "ledger_reconciliation_status",
+            "cycle_reconciliation_status",
+            "operator_repair_action",
             "runtime_cycle_hashes",
             "unsafe_live_or_order_flag_detected",
             "source_excluded_from_current_evidence",
@@ -561,7 +668,12 @@ def validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
         classification = item.get("classification")
         if classification == "REGENERATED_CURRENT_ACCEPTED":
             accepted_count += 1
-            if item.get("replacement_validation_status") != "PASS" or item.get("evidence_usable_current") is not True:
+            if (
+                item.get("replacement_validation_status") != "PASS"
+                or item.get("evidence_usable_current") is not True
+                or item.get("blocked_repair_reason_codes")
+                or item.get("blocked_repair_reason_summary") != BLOCKED_REPAIR_NOT_APPLICABLE
+            ):
                 return UpbitPaperStaleLoopPostRegenerationReconciliationValidationResult("FAIL", "accepted replacement must validate PASS and be current usable", "SCHEMA_IDENTITY_MISMATCH")
         elif classification == "REGENERATED_CURRENT_BLOCKED_RECONCILIATION_REQUIRED":
             blocked_reconciliation_count += 1
@@ -570,6 +682,8 @@ def validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
                 item.get("replacement_validation_status") != "BLOCKED"
                 or item.get("replacement_validation_blocker_code") != "RECONCILIATION_REQUIRED"
                 or item.get("evidence_usable_current")
+                or not item.get("blocked_repair_reason_codes")
+                or item.get("blocked_repair_reason_summary") == BLOCKED_REPAIR_NOT_APPLICABLE
             ):
                 return UpbitPaperStaleLoopPostRegenerationReconciliationValidationResult("BLOCKED", "blocked replacement must remain excluded until ledger/recovery reconciliation", POST_REGENERATION_RECONCILIATION_BLOCKER_CODE)
         else:
@@ -579,6 +693,7 @@ def validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
             if item.get("item_blocker_code"):
                 item_blockers.append(str(item["item_blocker_code"]))
     duplicate_usable_hash_count = len(usable_hashes) - len(set(usable_hashes))
+    expected_reason_counts = _reason_count_rollup(items)
     if (
         report.get("source_retained_count") != source_retained_count
         or report.get("source_hash_mismatch_count") != source_hash_mismatch_count
@@ -590,6 +705,7 @@ def validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
         or report.get("current_evidence_usable_count") != usable_count
         or report.get("excluded_from_current_evidence_count") != len(items) - usable_count
         or report.get("usable_runtime_cycle_hash_duplicate_count") != duplicate_usable_hash_count
+        or report.get("blocked_repair_reason_counts") != expected_reason_counts
     ):
         return UpbitPaperStaleLoopPostRegenerationReconciliationValidationResult("FAIL", "post-regeneration rollup count mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if not isinstance(report.get("unpaired_regenerated_artifact_paths"), list) or report.get("unpaired_regenerated_artifact_count") != len(report.get("unpaired_regenerated_artifact_paths")):

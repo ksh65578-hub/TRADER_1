@@ -27,6 +27,7 @@
     "replacement_hash_mismatch_count",
     "regenerated_current_accepted_count",
     "regenerated_current_blocked_reconciliation_count",
+    "blocked_repair_reason_counts",
     "regenerated_current_invalid_count",
     "current_evidence_usable_count",
     "excluded_from_current_evidence_count",
@@ -79,6 +80,12 @@
         "evidence_usable_current",
         "recommended_action",
         "item_blocker_code",
+        "blocked_repair_reason_codes",
+        "blocked_repair_reason_summary",
+        "recovery_reconciliation_status",
+        "ledger_reconciliation_status",
+        "cycle_reconciliation_status",
+        "operator_repair_action",
         "runtime_cycle_hashes",
         "unsafe_live_or_order_flag_detected",
         "source_excluded_from_current_evidence",
@@ -129,6 +136,29 @@
           ]
         },
         "item_blocker_code": {"type": ["string", "null"]},
+        "blocked_repair_reason_codes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "LOOP_STATUS_BLOCKED",
+              "LOOP_RECONCILIATION_REQUIRED",
+              "RECOVERY_GUARD_BLOCKED",
+              "PARTIAL_WRITE_RECOVERY_REQUIRED",
+              "PAPER_RUNTIME_RESUME_BLOCKED",
+              "LEDGER_ROLLUP_BLOCKED",
+              "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+              "RUNTIME_CYCLE_RECONCILIATION_REQUIRED",
+              "PERSISTENT_LOOP_REPORT_NOT_LOADED",
+              "PERSISTENT_LOOP_VALIDATOR_RECONCILIATION_REQUIRED"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "blocked_repair_reason_summary": {"type": "string", "minLength": 1},
+        "recovery_reconciliation_status": {"enum": ["PASS", "BLOCKED", "UNKNOWN"]},
+        "ledger_reconciliation_status": {"enum": ["PASS", "BLOCKED", "UNKNOWN"]},
+        "cycle_reconciliation_status": {"enum": ["PASS", "BLOCKED", "UNKNOWN"]},
+        "operator_repair_action": {"type": "string", "minLength": 1},
         "runtime_cycle_hashes": {
           "type": "array",
           "items": {"type": "string", "minLength": 64, "maxLength": 64}
@@ -167,8 +197,33 @@
     "source_hash_mismatch_count": {"type": "integer", "minimum": 0},
     "replacement_found_count": {"type": "integer", "minimum": 0},
     "replacement_hash_mismatch_count": {"type": "integer", "minimum": 0},
-    "regenerated_current_accepted_count": {"type": "integer", "minimum": 0},
+        "regenerated_current_accepted_count": {"type": "integer", "minimum": 0},
     "regenerated_current_blocked_reconciliation_count": {"type": "integer", "minimum": 0},
+    "blocked_repair_reason_counts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reason_code", "count"],
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {
+            "enum": [
+              "LOOP_STATUS_BLOCKED",
+              "LOOP_RECONCILIATION_REQUIRED",
+              "RECOVERY_GUARD_BLOCKED",
+              "PARTIAL_WRITE_RECOVERY_REQUIRED",
+              "PAPER_RUNTIME_RESUME_BLOCKED",
+              "LEDGER_ROLLUP_BLOCKED",
+              "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+              "RUNTIME_CYCLE_RECONCILIATION_REQUIRED",
+              "PERSISTENT_LOOP_REPORT_NOT_LOADED",
+              "PERSISTENT_LOOP_VALIDATOR_RECONCILIATION_REQUIRED"
+            ]
+          },
+          "count": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
     "regenerated_current_invalid_count": {"type": "integer", "minimum": 0},
     "current_evidence_usable_count": {"type": "integer", "minimum": 0},
     "excluded_from_current_evidence_count": {"type": "integer", "minimum": 0},
