@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from trader1.runtime.portfolio.paper_portfolio import validate_paper_portfolio_snapshot
+from trader1.runtime.portfolio.paper_portfolio import PAPER_STARTING_CASH_BY_SCOPE, validate_paper_portfolio_snapshot
 
 
 SUMMARY_SCHEMA_ID = "trader1.summary.v1"
@@ -18,6 +18,12 @@ ORDER_AFFECTING_FINAL_ACTIONS = {
     "REDUCE_POSITION",
     "CANCEL_ORDER",
     "HOLD_POSITION",
+}
+CONFIGURED_PAPER_STARTING_CASH_SOURCE = "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT"
+CONFIGURED_PAPER_STARTING_CASH_STATUSES = {
+    "CONFIGURED_NOT_VERIFIED",
+    "VERIFIED_SOURCE_PRESENT",
+    "UNSUPPORTED_SCOPE",
 }
 
 
@@ -56,7 +62,51 @@ def _first_blocker(*codes: str | None) -> str | None:
     return None
 
 
-def _empty_portfolio(message: str = "No verified paper portfolio snapshot loaded") -> dict[str, Any]:
+def _configured_paper_capital_fields(
+    *,
+    exchange: str,
+    market_type: str,
+    snapshot: dict[str, Any] | None = None,
+    verified_source: bool = False,
+) -> dict[str, Any]:
+    if verified_source and isinstance(snapshot, dict):
+        starting_cash = _decimal(snapshot.get("starting_cash"))
+        currency = snapshot.get("currency")
+        source = snapshot.get("starting_cash_source")
+        if starting_cash is not None and starting_cash > 0 and isinstance(currency, str) and currency:
+            return {
+                "configured_paper_starting_cash": float(starting_cash),
+                "configured_paper_starting_cash_currency": currency,
+                "configured_paper_starting_cash_source": source or CONFIGURED_PAPER_STARTING_CASH_SOURCE,
+                "configured_paper_starting_cash_status": "VERIFIED_SOURCE_PRESENT",
+                "configured_paper_starting_cash_message": "PAPER starting capital from the verified simulated ledger snapshot.",
+            }
+
+    configured = PAPER_STARTING_CASH_BY_SCOPE.get((exchange, market_type))
+    if configured is None:
+        return {
+            "configured_paper_starting_cash": None,
+            "configured_paper_starting_cash_currency": None,
+            "configured_paper_starting_cash_source": None,
+            "configured_paper_starting_cash_status": "UNSUPPORTED_SCOPE",
+            "configured_paper_starting_cash_message": "No configured PAPER starting capital exists for this exchange and market.",
+        }
+    currency, amount = configured
+    return {
+        "configured_paper_starting_cash": float(amount),
+        "configured_paper_starting_cash_currency": currency,
+        "configured_paper_starting_cash_source": CONFIGURED_PAPER_STARTING_CASH_SOURCE,
+        "configured_paper_starting_cash_status": "CONFIGURED_NOT_VERIFIED",
+        "configured_paper_starting_cash_message": "Configured PAPER starting capital only; verified portfolio ledger is not loaded.",
+    }
+
+
+def _empty_portfolio(
+    *,
+    exchange: str,
+    market_type: str,
+    message: str = "No verified paper portfolio snapshot loaded",
+) -> dict[str, Any]:
     return {
         "source": "SUMMARY_BUILDER",
         "freshness_status": "UNTESTED",
@@ -79,6 +129,7 @@ def _empty_portfolio(message: str = "No verified paper portfolio snapshot loaded
         "total_pnl": None,
         "mdd": None,
         "next_action": "Run PAPER with a fresh verified paper portfolio ledger before trusting portfolio values",
+        **_configured_paper_capital_fields(exchange=exchange, market_type=market_type),
     }
 
 
@@ -114,7 +165,7 @@ def _portfolio_from_paper_snapshot(
     session_id: str,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     if not isinstance(snapshot, dict):
-        return _empty_portfolio(), []
+        return _empty_portfolio(exchange=exchange, market_type=market_type), []
     result = validate_paper_portfolio_snapshot(snapshot)
     scope_matches = (
         snapshot.get("exchange") == exchange
@@ -123,12 +174,20 @@ def _portfolio_from_paper_snapshot(
         and snapshot.get("session_id") == session_id
     )
     if result.status != "PASS" or not scope_matches:
-        return _empty_portfolio(), []
+        return _empty_portfolio(exchange=exchange, market_type=market_type), []
     source_age_seconds = _source_age_seconds(snapshot.get("generated_at_utc"))
     if source_age_seconds is None:
-        return _empty_portfolio("PAPER portfolio snapshot timestamp is invalid; rerun PAPER before trusting portfolio values"), []
+        return _empty_portfolio(
+            exchange=exchange,
+            market_type=market_type,
+            message="PAPER portfolio snapshot timestamp is invalid; rerun PAPER before trusting portfolio values",
+        ), []
     if source_age_seconds > PAPER_PORTFOLIO_SNAPSHOT_STALE_AFTER_SECONDS:
-        return _empty_portfolio("PAPER portfolio snapshot is stale; rerun PAPER before trusting portfolio values"), []
+        return _empty_portfolio(
+            exchange=exchange,
+            market_type=market_type,
+            message="PAPER portfolio snapshot is stale; rerun PAPER before trusting portfolio values",
+        ), []
     return (
         {
             "source": "LEDGER",
@@ -152,6 +211,7 @@ def _portfolio_from_paper_snapshot(
             "total_pnl": float(snapshot.get("total_pnl", 0)),
             "mdd": 0.0,
             "next_action": "Continue PAPER monitoring; portfolio values are display truth only",
+            **_configured_paper_capital_fields(exchange=exchange, market_type=market_type, snapshot=snapshot, verified_source=True),
         },
         list(snapshot.get("positions", [])),
     )
@@ -170,6 +230,38 @@ def _is_hash64(value: Any) -> bool:
 
 def _nearly_equal(left: Decimal, right: Decimal, tolerance: Decimal = Decimal("0.000001")) -> bool:
     return abs(left - right) <= tolerance
+
+
+def _validate_configured_paper_capital(portfolio: dict[str, Any]) -> SummaryValidationResult | None:
+    keys = (
+        "configured_paper_starting_cash",
+        "configured_paper_starting_cash_currency",
+        "configured_paper_starting_cash_source",
+        "configured_paper_starting_cash_status",
+        "configured_paper_starting_cash_message",
+    )
+    if not any(key in portfolio for key in keys):
+        return None
+
+    status = portfolio.get("configured_paper_starting_cash_status")
+    if status not in CONFIGURED_PAPER_STARTING_CASH_STATUSES:
+        return SummaryValidationResult("FAIL", "configured PAPER capital status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    amount = _decimal(portfolio.get("configured_paper_starting_cash"))
+    currency = portfolio.get("configured_paper_starting_cash_currency")
+    source = portfolio.get("configured_paper_starting_cash_source")
+    message = portfolio.get("configured_paper_starting_cash_message")
+    if status == "UNSUPPORTED_SCOPE":
+        if any(portfolio.get(key) is not None for key in ("configured_paper_starting_cash", "configured_paper_starting_cash_currency", "configured_paper_starting_cash_source")):
+            return SummaryValidationResult("FAIL", "unsupported PAPER capital scope cannot carry configured value", "SCHEMA_IDENTITY_MISMATCH")
+    elif status == "VERIFIED_SOURCE_PRESENT" and portfolio.get("source") not in {"LEDGER", "RECONCILIATION"}:
+        return SummaryValidationResult("BLOCKED", "verified PAPER capital label requires verified portfolio source", "HARD_TRUTH_MISSING")
+    elif amount is None or amount <= 0 or not isinstance(currency, str) or not currency:
+        return SummaryValidationResult("FAIL", "configured PAPER capital amount or currency is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    elif source != CONFIGURED_PAPER_STARTING_CASH_SOURCE:
+        return SummaryValidationResult("BLOCKED", "configured PAPER capital cannot claim exchange or live account source", "LIVE_FINAL_GUARD_FAILED")
+    if not isinstance(message, str) or not message:
+        return SummaryValidationResult("FAIL", "configured PAPER capital message is missing", "SCHEMA_IDENTITY_MISMATCH")
+    return None
 
 
 def _validate_summary_positions(positions: Any) -> tuple[SummaryValidationResult | None, Decimal, Decimal]:
@@ -381,6 +473,9 @@ def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] |
     portfolio = summary.get("portfolio")
     if not isinstance(portfolio, dict):
         return SummaryValidationResult("FAIL", "summary portfolio must be an object", "SCHEMA_IDENTITY_MISMATCH")
+    configured_capital_result = _validate_configured_paper_capital(portfolio)
+    if configured_capital_result is not None:
+        return configured_capital_result
     if portfolio.get("source") == "SUMMARY_BUILDER" and any(portfolio.get(key) is not None for key in ("equity", "cash_available", "locked_balance")):
         return SummaryValidationResult("BLOCKED", "summary builder cannot invent portfolio execution truth", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("source") == "SUMMARY_BUILDER" and any(

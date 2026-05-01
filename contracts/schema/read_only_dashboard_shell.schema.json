@@ -3529,6 +3529,7 @@
       "properties": {
         "card_id": {
           "enum": [
+            "configured_paper_capital",
             "cash",
             "equity",
             "locked_cash",
@@ -3573,6 +3574,7 @@
         "source_snapshot_stale_after_seconds",
         "source_snapshot_freshness_message",
         "source_balance_kind",
+        "configured_paper_capital",
         "cash",
         "equity",
         "locked_cash",
@@ -3675,6 +3677,9 @@
             "SIMULATED_PAPER_LEDGER",
             null
           ]
+        },
+        "configured_paper_capital": {
+          "$ref": "#/$defs/portfolio_card"
         },
         "cash": {
           "$ref": "#/$defs/portfolio_card"
