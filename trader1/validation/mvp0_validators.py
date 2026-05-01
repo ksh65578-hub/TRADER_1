@@ -197,6 +197,12 @@ from trader1.runtime.paper.upbit_paper_stale_loop_regeneration import (
     validate_upbit_paper_stale_loop_regeneration_plan,
     write_upbit_paper_stale_loop_regeneration_plan,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_execution_guard import (
+    build_upbit_paper_stale_loop_execution_guard,
+    stale_loop_execution_guard_hash,
+    validate_upbit_paper_stale_loop_execution_guard,
+    write_upbit_paper_stale_loop_execution_guard,
+)
 from trader1.research.replay.replay_runner import (
     build_replay_consistency_report,
     replay_consistency_hash,
@@ -354,6 +360,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_runtime_sample_history_validator",
     "upbit_paper_stale_loop_reconciliation_validator",
     "upbit_paper_stale_loop_regeneration_plan_validator",
+    "upbit_paper_stale_loop_execution_guard_validator",
     "upbit_paper_runtime_recovery_guard_validator",
     "restart_recovery_validator",
     "upbit_operational_paper_gate_validator",
@@ -2623,6 +2630,7 @@ def runtime_schema_instance_validator() -> ValidatorResult:
         sample_history = build_upbit_paper_runtime_sample_history(root=Path(tmp), session_id="mvp1_upbit_paper_launcher")
         stale_reconciliation = build_upbit_paper_stale_loop_reconciliation_report(root=Path(tmp), session_id="mvp1_upbit_paper_launcher")
         stale_regeneration_plan = build_upbit_paper_stale_loop_regeneration_plan(root=Path(tmp), reconciliation_report=stale_reconciliation)
+        stale_execution_guard = build_upbit_paper_stale_loop_execution_guard(root=Path(tmp), plan=stale_regeneration_plan)
         instances.extend(
             [
                 ("write_upbit_public_market_data_collection_artifacts:writer", collection_writer),
@@ -2630,6 +2638,7 @@ def runtime_schema_instance_validator() -> ValidatorResult:
                 ("build_upbit_paper_runtime_sample_history", sample_history),
                 ("build_upbit_paper_stale_loop_reconciliation_report", stale_reconciliation),
                 ("build_upbit_paper_stale_loop_regeneration_plan", stale_regeneration_plan),
+                ("build_upbit_paper_stale_loop_execution_guard", stale_execution_guard),
             ]
         )
 
@@ -4898,6 +4907,157 @@ def upbit_paper_stale_loop_regeneration_plan_validator() -> ValidatorResult:
     return pass_result(
         "upbit_paper_stale_loop_regeneration_plan_validator",
         "Upbit PAPER stale loop regeneration plan maps legacy drift sources to new PAPER-only replacements without deleting, overwriting, executing, or creating live/long-run permission",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_execution_guard_validator() -> ValidatorResult:
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_stale_loop_regeneration_execution_guard.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_execution_guard.py"
+    plan_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_regeneration.py"
+    reconciliation_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_reconciliation.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_stale_loop_execution_guard.py"
+    runtime_guard_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob("*/paper_runtime/upbit_paper_stale_loop_regeneration_execution_guard.json")
+    )
+    paths = [schema_path, module_path, plan_module_path, reconciliation_module_path, test_path, *runtime_guard_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_stale_loop_regeneration_execution_guard.v1":
+        return fail_result("upbit_paper_stale_loop_execution_guard_validator", "stale loop execution guard schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result("upbit_paper_stale_loop_execution_guard_validator", "stale loop execution guard schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "guard_role",
+        "source_plan_hash",
+        "source_plan_status",
+        "planned_regeneration_item_count",
+        "guard_status",
+        "paper_regeneration_preconditions_passed",
+        "separate_safe_executor_required",
+        "replacement_write_mode",
+        "source_retention_required",
+        "delete_source_allowed",
+        "overwrite_source_allowed",
+        "execution_performed",
+        "actual_regeneration_performed",
+        "actual_long_run_evidence_created",
+        "long_run_evidence_eligible",
+        "promotion_eligible",
+        "credential_load_attempted",
+        "private_endpoint_called",
+        "order_endpoint_called",
+        "order_adapter_called",
+        "live_key_loaded",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", f"stale loop execution guard schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+    item_schema = schema.get("$defs", {}).get("guard_item", {})
+    if item_schema.get("additionalProperties") is not False:
+        return fail_result("upbit_paper_stale_loop_execution_guard_validator", "stale loop execution guard item schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        current = run_upbit_paper_persistent_loop(root=root, loop_id="validator-execution-guard-current", requested_cycle_count=1)
+        legacy = json.loads(json.dumps(current))
+        legacy["loop_id"] = "validator-execution-guard-legacy"
+        legacy.pop("paper_ledger_rollup_hash", None)
+        legacy["loop_hash"] = upbit_paper_persistent_loop_hash(legacy)
+        legacy_path = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "paper_runtime" / "validator-execution-guard-legacy.persistent_loop_report.json"
+        legacy_path.write_text(json.dumps(legacy, indent=2), encoding="utf-8")
+        reconciliation = build_upbit_paper_stale_loop_reconciliation_report(root=root, session_id="mvp1_upbit_paper_launcher")
+        plan = build_upbit_paper_stale_loop_regeneration_plan(root=root, reconciliation_report=reconciliation)
+        guard = build_upbit_paper_stale_loop_execution_guard(root=root, plan=plan)
+        result = validate_upbit_paper_stale_loop_execution_guard(guard)
+        if result.status != "PASS":
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", f"valid execution guard failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
+        if guard.get("guard_status") != "PASS" or not guard.get("paper_regeneration_preconditions_passed"):
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", "clean regeneration plan did not pass execution preconditions", paths, "STALE_LOOP_REGENERATION_REQUIRED")
+        if guard.get("execution_performed") or guard.get("actual_regeneration_performed") or guard.get("delete_source_allowed") or guard.get("overwrite_source_allowed"):
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", "execution guard created execution, delete, or overwrite permission", paths, "LIVE_FINAL_GUARD_FAILED")
+        if guard.get("live_order_ready") or guard.get("live_order_allowed") or guard.get("can_live_trade") or guard.get("scale_up_allowed"):
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", "execution guard created live/order/scale permission", paths, "LIVE_FINAL_GUARD_FAILED")
+
+        replacement_path = root.joinpath(*plan["items"][0]["planned_replacement_path"].split("/"))
+        replacement_path.parent.mkdir(parents=True, exist_ok=True)
+        replacement_path.write_text("{}", encoding="utf-8")
+        replacement_guard = build_upbit_paper_stale_loop_execution_guard(root=root, plan=plan)
+        replacement_result = validate_upbit_paper_stale_loop_execution_guard(replacement_guard)
+        if (
+            replacement_result.status != "PASS"
+            or replacement_guard.get("guard_status") != "BLOCKED"
+            or "STALE_LOOP_REPLACEMENT_ALREADY_EXISTS" not in replacement_guard.get("blocker_codes", [])
+        ):
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", "existing replacement path did not block stale loop regeneration execution preconditions", paths, "STALE_LOOP_REPLACEMENT_ALREADY_EXISTS")
+        replacement_path.unlink()
+
+        source_hash_mismatch = json.loads(json.dumps(plan))
+        source_hash_mismatch["items"][0]["source_hash"] = "0" * 64
+        source_hash_mismatch["plan_hash"] = stale_loop_regeneration_plan_hash(source_hash_mismatch)
+        mismatch_guard = build_upbit_paper_stale_loop_execution_guard(root=root, plan=source_hash_mismatch)
+        mismatch_result = validate_upbit_paper_stale_loop_execution_guard(mismatch_guard)
+        if (
+            mismatch_result.status != "PASS"
+            or mismatch_guard.get("guard_status") != "BLOCKED"
+            or "STALE_LOOP_SOURCE_HASH_MISMATCH" not in mismatch_guard.get("blocker_codes", [])
+        ):
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", "source hash mismatch did not block stale loop execution preconditions", paths, "STALE_LOOP_SOURCE_HASH_MISMATCH")
+
+        scope_escape = json.loads(json.dumps(plan))
+        scope_escape["items"][0]["planned_replacement_path"] = "system/runtime/upbit/krw_spot/live/mvp1/paper_runtime/escape.json"
+        scope_escape["plan_hash"] = stale_loop_regeneration_plan_hash(scope_escape)
+        scope_guard = build_upbit_paper_stale_loop_execution_guard(root=root, plan=scope_escape)
+        scope_result = validate_upbit_paper_stale_loop_execution_guard(scope_guard)
+        if scope_result.status != "PASS" or scope_guard.get("guard_status") != "BLOCKED" or "SNAPSHOT_SCOPE_MISMATCH" not in scope_guard.get("blocker_codes", []):
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", "replacement scope escape did not block stale loop execution preconditions", paths, "SNAPSHOT_SCOPE_MISMATCH")
+
+        live_mutation = json.loads(json.dumps(guard))
+        live_mutation["execution_performed"] = True
+        live_mutation["guard_hash"] = stale_loop_execution_guard_hash(live_mutation)
+        live_result = validate_upbit_paper_stale_loop_execution_guard(live_mutation)
+        if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", "execution mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+        operator_plan = json.loads(json.dumps(plan))
+        operator_plan["plan_status"] = "BLOCKED"
+        operator_plan["primary_blocker_code"] = "STALE_LOOP_REGENERATION_OPERATOR_REVIEW_REQUIRED"
+        operator_plan["operator_review_item_count"] = 1
+        operator_plan["regeneration_item_count"] = 0
+        operator_plan["plan_hash"] = stale_loop_regeneration_plan_hash(operator_plan)
+        operator_guard = build_upbit_paper_stale_loop_execution_guard(root=root, plan=operator_plan)
+        operator_result = validate_upbit_paper_stale_loop_execution_guard(operator_guard)
+        if (
+            operator_result.status != "PASS"
+            or operator_guard.get("guard_status") != "BLOCKED"
+            or "STALE_LOOP_REGENERATION_OPERATOR_REVIEW_REQUIRED" not in operator_guard.get("blocker_codes", [])
+        ):
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", "operator-review plan did not block execution preconditions", paths, "STALE_LOOP_REGENERATION_OPERATOR_REVIEW_REQUIRED")
+
+        written_path = write_upbit_paper_stale_loop_execution_guard(root=root, report=guard)
+        if not written_path.exists():
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", "stale loop execution guard writer did not create artifact", paths, "MEASUREMENT_MISSING")
+
+    for runtime_path in runtime_guard_paths:
+        try:
+            runtime_guard = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result("upbit_paper_stale_loop_execution_guard_validator", f"runtime stale loop execution guard artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_stale_loop_execution_guard(runtime_guard)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                "upbit_paper_stale_loop_execution_guard_validator",
+                f"runtime stale loop execution guard artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        "upbit_paper_stale_loop_execution_guard_validator",
+        "Upbit PAPER stale loop execution guard verifies source hashes, scoped create-new replacement paths, and blocks execution/live/long-run/scale mutations before any regeneration executor exists",
         paths,
     )
 
@@ -12577,6 +12737,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_runtime_sample_history_validator": upbit_paper_runtime_sample_history_validator,
     "upbit_paper_stale_loop_reconciliation_validator": upbit_paper_stale_loop_reconciliation_validator,
     "upbit_paper_stale_loop_regeneration_plan_validator": upbit_paper_stale_loop_regeneration_plan_validator,
+    "upbit_paper_stale_loop_execution_guard_validator": upbit_paper_stale_loop_execution_guard_validator,
     "upbit_paper_runtime_recovery_guard_validator": upbit_paper_runtime_recovery_guard_validator,
     "restart_recovery_validator": restart_recovery_validator,
     "upbit_operational_paper_gate_validator": upbit_operational_paper_gate_validator,

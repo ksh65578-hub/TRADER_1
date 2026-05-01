@@ -1,0 +1,45 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_EXECUTION_GUARD_EVIDENCE",
+  "created_at_utc": "2026-05-01T01:00:00Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_EXECUTION_GUARD_20260501_001",
+  "artifact_paths": [
+    "contracts/schema/upbit_paper_stale_loop_regeneration_execution_guard.schema.json",
+    "contracts/registry.yaml",
+    "trader1/runtime/paper/upbit_paper_stale_loop_execution_guard.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/runtime/test_upbit_paper_stale_loop_execution_guard.py",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_regeneration_execution_guard.json",
+    "contracts/security/source_bundle_manifest.json",
+    "tools/emit_upbit_paper_stale_loop_execution_guard_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_EXECUTION_GUARD.md",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_EXECUTION_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_EXECUTION_GUARD.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_EXECUTION_GUARD.patch_result.json"
+  ],
+  "known_blockers": [
+    "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "STALE_LOOP_SAFE_REGENERATION_EXECUTOR_REQUIRED",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "guard_status": "PASS",
+  "source_plan_status": "READY_FOR_SAFE_PAPER_REGENERATION",
+  "planned_regeneration_item_count": 16,
+  "actual_regeneration_performed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

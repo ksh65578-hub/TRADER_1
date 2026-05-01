@@ -9,7 +9,7 @@
   "evidence_use_policy": "CURRENT_SCHEMA_PASS_ONLY",
   "exchange": "UPBIT",
   "excluded_from_current_evidence_count": 16,
-  "generated_at_utc": "2026-05-01T00:40:59Z",
+  "generated_at_utc": "2026-05-01T01:00:02Z",
   "invalid_json_count": 0,
   "items": [
     {
@@ -509,7 +509,7 @@
   "private_endpoint_called": false,
   "project_id": "TRADER_1",
   "promotion_eligible": false,
-  "reconciliation_hash": "188F105731AC82F315645B0E48F0FA01092B305364B8D43754ED1B8BD192FE77",
+  "reconciliation_hash": "1D2C8740825D0DD8F8E3F0A8A2975362ED23E12B2FCE548861331CC1325992CD",
   "reconciliation_id": "mvp4-upbit-paper-stale-loop-reconciliation",
   "reconciliation_role": "PAPER_RUNTIME_STALE_LOOP_RECONCILIATION_NOT_LONG_RUN_EVIDENCE",
   "reconciliation_status": "BLOCKED",
