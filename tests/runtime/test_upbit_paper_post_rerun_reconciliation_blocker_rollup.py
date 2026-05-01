@@ -20,6 +20,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_current_evidence_promotion_gua
 from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation import (
     POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
     build_upbit_paper_post_rerun_ledger_rollup_reconciliation_report,
+    write_upbit_paper_post_rerun_ledger_rollup_reconciliation_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_queue import (
     build_upbit_paper_post_rerun_operator_reconciliation_queue_report,
@@ -129,6 +130,7 @@ class UpbitPaperPostRerunReconciliationBlockerRollupTest(unittest.TestCase):
             root=root,
             staging_executor_report=staging,
         )
+        write_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(root=root, report=source_report)
         promotion_guard = build_upbit_paper_post_rerun_current_evidence_promotion_guard_report(
             root=root,
             post_rerun_reconciliation_report=source_report,

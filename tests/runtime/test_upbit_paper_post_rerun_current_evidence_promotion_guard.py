@@ -24,6 +24,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation i
     POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
     build_upbit_paper_post_rerun_ledger_rollup_reconciliation_report,
     validate_upbit_paper_post_rerun_ledger_rollup_reconciliation_report,
+    write_upbit_paper_post_rerun_ledger_rollup_reconciliation_report,
 )
 from trader1.runtime.paper.upbit_paper_repair_operator_queue import build_upbit_paper_repair_operator_queue_report
 from trader1.runtime.paper.upbit_paper_stale_loop_execution_guard import build_upbit_paper_stale_loop_execution_guard
@@ -121,6 +122,7 @@ class UpbitPaperPostRerunCurrentEvidencePromotionGuardTest(unittest.TestCase):
             staging_executor_report=staging,
         )
         self.assertEqual(validate_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(source_report).status, "PASS")
+        write_upbit_paper_post_rerun_ledger_rollup_reconciliation_report(root=root, report=source_report)
         return root, source_report, current_ledger_path
 
     def test_builds_review_ready_guard_without_current_evidence_mutation(self):
@@ -135,6 +137,13 @@ class UpbitPaperPostRerunCurrentEvidencePromotionGuardTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["promotion_guard_status"], "BLOCKED")
         self.assertEqual(report["primary_blocker_code"], POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
+        self.assertEqual(report["source_post_rerun_reconciliation_file_load_status"], "PASS")
+        self.assertEqual(report["source_post_rerun_reconciliation_file_hash"], report["source_post_rerun_reconciliation_hash"])
+        self.assertEqual(
+            report["source_post_rerun_reconciliation_file_recomputed_hash"],
+            report["source_post_rerun_reconciliation_hash"],
+        )
+        self.assertTrue(report["source_post_rerun_reconciliation_file_hash_match"])
         self.assertEqual(report["candidate_item_count"], 1)
         self.assertEqual(report["candidate_rollup_verified_count"], 1)
         self.assertEqual(report["promotion_review_ready_count"], 1)
@@ -212,6 +221,32 @@ class UpbitPaperPostRerunCurrentEvidencePromotionGuardTest(unittest.TestCase):
         planned_result = validate_upbit_paper_post_rerun_current_evidence_promotion_guard_report(planned_escape)
         self.assertEqual(planned_result.status, "BLOCKED")
         self.assertEqual(planned_result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_blocks_missing_source_reconciliation_file_binding(self):
+        root, source_report, _current_ledger_path = self._source_report_with_missing_current_ledger()
+        source_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_ledger_rollup_reconciliation_report.json"
+        )
+        source_path.unlink()
+
+        report = build_upbit_paper_post_rerun_current_evidence_promotion_guard_report(
+            root=root,
+            post_rerun_reconciliation_report=source_report,
+        )
+        result = validate_upbit_paper_post_rerun_current_evidence_promotion_guard_report(report)
+
+        self.assertEqual(report["source_post_rerun_reconciliation_file_load_status"], "MISSING")
+        self.assertFalse(report["source_post_rerun_reconciliation_file_hash_match"])
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
 
 
 if __name__ == "__main__":

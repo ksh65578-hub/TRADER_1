@@ -16,6 +16,10 @@
     "truth_role",
     "source_post_rerun_reconciliation_path",
     "source_post_rerun_reconciliation_hash",
+    "source_post_rerun_reconciliation_file_load_status",
+    "source_post_rerun_reconciliation_file_hash",
+    "source_post_rerun_reconciliation_file_recomputed_hash",
+    "source_post_rerun_reconciliation_file_hash_match",
     "source_post_rerun_ledger_rollup_status",
     "source_post_rerun_reconciliation_status",
     "source_primary_blocker_code",
@@ -68,6 +72,12 @@
     "truth_role": {"const": "PAPER_RUNTIME_POST_RERUN_CURRENT_EVIDENCE_PROMOTION_GUARD_REVIEW_ONLY_NOT_WRITER"},
     "source_post_rerun_reconciliation_path": {"type": "string", "minLength": 1},
     "source_post_rerun_reconciliation_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+    "source_post_rerun_reconciliation_file_load_status": {
+      "enum": ["PASS", "MISSING", "INVALID_UTF8", "INVALID_JSON", "NOT_OBJECT", "HASH_MISMATCH", "UNKNOWN"]
+    },
+    "source_post_rerun_reconciliation_file_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+    "source_post_rerun_reconciliation_file_recomputed_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+    "source_post_rerun_reconciliation_file_hash_match": {"type": "boolean"},
     "source_post_rerun_ledger_rollup_status": {"const": "PASS"},
     "source_post_rerun_reconciliation_status": {"const": "BLOCKED"},
     "source_primary_blocker_code": {"const": "POST_RERUN_RECONCILIATION_REQUIRED"},
