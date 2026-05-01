@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from trader1.core.ledger.paper_ledger import build_upbit_paper_fill_chain
 from trader1.runtime.ledger.execution_ledger import build_ledger_event
 from trader1.runtime.ledger.paper_ledger_rollup import (
     build_paper_ledger_rollup_report,
@@ -16,6 +17,56 @@ from trader1.validation.mvp0_validators import run_validators
 
 
 class PaperLedgerRollupTest(unittest.TestCase):
+    def _write_cycle_ledger(self, root: Path, cycle_id: str, client_order_id: str, price: str) -> tuple[Path, list[dict]]:
+        ledger_dir = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "ledger"
+            / "cycles"
+        )
+        ledger_dir.mkdir(parents=True, exist_ok=True)
+        events = build_upbit_paper_fill_chain(
+            session_id="mvp1_upbit_paper_launcher",
+            symbol="KRW-BTC",
+            intent_id=f"{cycle_id}-intent",
+            client_order_id=client_order_id,
+            side="BUY",
+            quantity="0.001",
+            price=price,
+            fee_amount="1",
+        )
+        ledger_path = ledger_dir / f"{cycle_id}.paper_ledger_events.jsonl"
+        ledger_path.write_text("\n".join(json.dumps(event, sort_keys=True) for event in events) + "\n", encoding="utf-8")
+        return ledger_path, events
+
+    def _write_latest_head(self, root: Path, cycle_id: str, ledger_path: Path, events: list[dict]) -> None:
+        ledger_head = {
+            "schema_id": "trader1.paper_ledger_head.v1",
+            "generated_at_utc": "2026-05-01T00:00:00Z",
+            "project_id": "TRADER_1",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": "mvp1_upbit_paper_launcher",
+            "cycle_id": cycle_id,
+            "ledger_event_count": len(events),
+            "ledger_events_path": ledger_path.relative_to(root).as_posix(),
+            "ledger_head_hash": events[-1]["event_hash"],
+            "display_only": True,
+            "dashboard_truth_only": True,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        ledger_head["head_report_hash"] = paper_ledger_head_report_hash(ledger_head)
+        (ledger_path.parents[1] / "latest_paper_ledger_head.json").write_text(json.dumps(ledger_head, indent=2), encoding="utf-8")
+
     def test_rollup_aggregates_multiple_cycle_ledgers_and_remains_live_blocked(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -56,6 +107,40 @@ class PaperLedgerRollupTest(unittest.TestCase):
             self.assertFalse(rollup["live_order_allowed"])
             self.assertFalse(rollup["can_live_trade"])
             self.assertFalse(rollup["scale_up_allowed"])
+
+    def test_session_glob_binds_portfolio_to_latest_head_when_filename_sort_differs(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            current_path, current_events = self._write_cycle_ledger(
+                root,
+                "aaa-current-head-cycle",
+                "client-current-head",
+                "1000000",
+            )
+            self._write_cycle_ledger(
+                root,
+                "zzz-older-lexicographic-tail-cycle",
+                "client-older-tail",
+                "1000100",
+            )
+            self._write_latest_head(root, "aaa-current-head-cycle", current_path, current_events)
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-head-order",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(rollup["ledger_jsonl_count"], 2)
+            self.assertEqual(rollup["filled_order_count"], 2)
+            self.assertEqual(rollup["ledger_head_match_status"], "PASS")
+            self.assertEqual(rollup["ledger_head_cycle_id"], "aaa-current-head-cycle")
+            self.assertEqual(rollup["latest_ledger_head_hash"], current_events[-1]["event_hash"])
+            self.assertEqual(rollup["portfolio_snapshot"]["source_runtime_cycle_id"], "aaa-current-head-cycle")
+            self.assertEqual(rollup["portfolio_snapshot"]["source_paper_ledger_head_hash"], current_events[-1]["event_hash"])
+            self.assertFalse(rollup["live_order_allowed"])
 
     def test_rollup_blocks_duplicate_cross_cycle_ledger_events(self):
         with TemporaryDirectory() as tmp:

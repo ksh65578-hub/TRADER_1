@@ -78,6 +78,46 @@ def _runtime_base_dir(root: Path, session_id: str) -> Path:
     return root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
 
+def _latest_head_ledger_path(*, root: Path, ledger_dir: Path, cycle_dir: Path, session_id: str) -> Path | None:
+    ledger_head_path = ledger_dir / "latest_paper_ledger_head.json"
+    try:
+        ledger_head = json.loads(ledger_head_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        return None
+    if (
+        ledger_head.get("schema_id") != PAPER_LEDGER_HEAD_SCHEMA_ID
+        or ledger_head.get("project_id") != "TRADER_1"
+        or ledger_head.get("exchange") != "UPBIT"
+        or ledger_head.get("market_type") != "KRW_SPOT"
+        or ledger_head.get("mode") != "PAPER"
+        or ledger_head.get("session_id") != session_id
+    ):
+        return None
+    ledger_events_path = ledger_head.get("ledger_events_path")
+    if not isinstance(ledger_events_path, str) or not ledger_events_path:
+        return None
+    candidate = (root / ledger_events_path).resolve()
+    try:
+        candidate.relative_to(cycle_dir.resolve())
+    except ValueError:
+        return None
+    if not candidate.name.endswith(".paper_ledger_events.jsonl"):
+        return None
+    return candidate
+
+
+def _order_session_cycle_ledger_paths(*, root: Path, ledger_dir: Path, cycle_dir: Path, session_id: str, ledger_paths: list[Path]) -> list[Path]:
+    ordered_paths = sorted(ledger_paths)
+    latest_head_path = _latest_head_ledger_path(root=root, ledger_dir=ledger_dir, cycle_dir=cycle_dir, session_id=session_id)
+    if latest_head_path is None:
+        return ordered_paths
+    latest_head_path = latest_head_path.resolve()
+    head_matches = [path for path in ordered_paths if path.resolve() == latest_head_path]
+    if not head_matches:
+        return ordered_paths
+    return [path for path in ordered_paths if path.resolve() != latest_head_path] + head_matches
+
+
 def _build_ledger_head_binding(
     *,
     root: Path,
@@ -302,7 +342,17 @@ def build_paper_ledger_rollup_report(
     blockers: list[dict[str, str]] = []
     if ledger_paths is None:
         ledger_input_scope = "SESSION_CYCLE_GLOB"
-        ledger_paths = sorted(cycle_dir.glob("*.paper_ledger_events.jsonl")) if cycle_dir.exists() else []
+        ledger_paths = (
+            _order_session_cycle_ledger_paths(
+                root=root,
+                ledger_dir=ledger_dir,
+                cycle_dir=cycle_dir,
+                session_id=session_id,
+                ledger_paths=list(cycle_dir.glob("*.paper_ledger_events.jsonl")),
+            )
+            if cycle_dir.exists()
+            else []
+        )
         duplicate_ledger_path_count = 0
     else:
         ledger_input_scope = "EXPLICIT_SCOPED_PATHS"
