@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-01T12:29:13Z",
+  "generated_at_utc": "2026-05-01T23:27:51Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -275,14 +275,14 @@
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
   "next_operator_action": "Use PAPER runtime-linked strategy/regime/cost evidence only as PAPER scorecard input; collect longer PAPER/SHADOW windows, OOS, walk-forward, bootstrap, read-only burn-in, manual order evidence, and operator approval while live remains blocked.",
-  "rollup_hash": "48AAB38A53B4757EAA2E2225EA1FFA8829D7347DBF65666B366C4CD95B694E00",
+  "rollup_hash": "DC90A611F6AE4157768C1BD9DBA8203D7099F98549427054251B0D9EB612D3BF",
   "runtime_linkage_evidence": {
     "status": "PASS",
     "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json",
-    "source_runtime_cycle_id": "mvp4-profitability-evidence-runtime-linkage-cycle-2",
-    "source_runtime_cycle_hash": "CBF66B499A0DCEAC12D2A9E47994BC0C82E621F14C71E715E2C36468EEFABD42",
+    "source_runtime_cycle_id": "mvp4-upbit-paper-ledger-head-binding-guard-cycle-2",
+    "source_runtime_cycle_hash": "3541E6B1858DA72F83381254312D93187E565BE05C6096C9F231E8A8F974A9D8",
     "runtime_input_role": "PUBLIC_MARKET_DATA_COLLECTION",
-    "runtime_public_market_data_hash": "57D082D6DBB02832DB1F6A0CF70FF015CF0FC9B02D3082839D44ACEE6716113F",
+    "runtime_public_market_data_hash": "D254B1EA8A8E1FA5ABE2A6A9EDB511128336146F18DDD324436C620B2F1519B6",
     "feature_snapshot_hash": "B457209029201C9DF5B28BDC631838A6F06AC8854E75D1A7742CBFBBE5A5BE2E",
     "strategy_regime_cost_linkage_status": "PASS",
     "selected_candidate_id": "KRW-BTC-pullback-trend-long",
