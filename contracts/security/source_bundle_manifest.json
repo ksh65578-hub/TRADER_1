@@ -20,13 +20,13 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "41932769B8201CD81F62AE0B8140779B529ABE2B8380501FF5AC6CEA16511312",
+      "sha256": "FD3AAACAA4625F52BB2496BE94D0AAF61F1CDE17787E80EF0C28D98DEB7FF00E",
       "size_bytes": 1096
     },
     {
       "path": "contracts/registry.yaml",
-      "sha256": "0738711A64D4DFEBA38A282FAA0004881B1B45116D70B4F07BFBBC4603DB2853",
-      "size_bytes": 53354
+      "sha256": "F6ADAF2DB26B8C6B8EAB82810F187A853F39AD2941A080EB0D40FF351DC6767D",
+      "size_bytes": 53784
     },
     {
       "path": "contracts/schema/api_key_permission_check_report.schema.json",
@@ -240,8 +240,8 @@
     },
     {
       "path": "contracts/schema/patch_result.schema.json",
-      "sha256": "01D189D562A09A93987CAF7F4731C43DF7F69631AD1B67B9951A0DEC87863678",
-      "size_bytes": 9108
+      "sha256": "D69A79DD066C0189E7499FD50DC826FA18A388A4C5CB0FCF90360537099C2877",
+      "size_bytes": 9640
     },
     {
       "path": "contracts/schema/position_sizing_decision.schema.json",
@@ -427,6 +427,11 @@
       "path": "contracts/schema/upbit_paper_blocked_repair_plan_report.schema.json",
       "sha256": "959BC13451B8C4598DAF991E2B943DF33D34F241BF47A66D1E3745537B584626",
       "size_bytes": 8407
+    },
+    {
+      "path": "contracts/schema/upbit_paper_bounded_rerun_staging_executor_report.schema.json",
+      "sha256": "7C3481010B9775BDE6B4BE3EF997DF5600B466AB22066F62A3196D5DE56E421C",
+      "size_bytes": 10738
     },
     {
       "path": "contracts/schema/upbit_paper_dry_run_report.schema.json",
@@ -967,6 +972,11 @@
       "path": "tests/runtime/test_upbit_paper_blocked_repair_plan.py",
       "sha256": "52E70DFC9FCA4BB4C266ED5710EEA5309313B68ED10FE5BF6511A703E6D3DFA8",
       "size_bytes": 7442
+    },
+    {
+      "path": "tests/runtime/test_upbit_paper_bounded_rerun_staging_executor.py",
+      "sha256": "A52D0D266B204731BC7750FADE643CE87349154D9C4F05174A829389EAFE20F0",
+      "size_bytes": 15202
     },
     {
       "path": "tests/runtime/test_upbit_paper_ledger_rollup_repair.py",
@@ -2914,6 +2924,11 @@
       "size_bytes": 24148
     },
     {
+      "path": "tools/emit_upbit_paper_bounded_rerun_staging_executor_patch_evidence.py",
+      "sha256": "3FCB29ED3BB073A4DB6E721484CD1F6FD196F1CD5AC312BAC50AC45937494FFC",
+      "size_bytes": 31216
+    },
+    {
       "path": "tools/emit_upbit_paper_candidate_decision_guard_patch_evidence.py",
       "sha256": "B763D3F8D5D909A39AC730607E3183A0250F134EFA4B469C8AB1BEB798058126",
       "size_bytes": 24649
@@ -3754,6 +3769,11 @@
       "size_bytes": 21850
     },
     {
+      "path": "trader1/runtime/paper/upbit_paper_bounded_rerun_staging_executor.py",
+      "sha256": "FFF64248616DA4029AD7732F3BBB0862200FFD0C5CBC57B198B265AD15299740",
+      "size_bytes": 43598
+    },
+    {
       "path": "trader1/runtime/paper/upbit_paper_ledger_rollup_repair.py",
       "sha256": "E9285168D6746AC6210A655FB0C2FCDD48B34DBEE879E26E3D2C61B50FD4C182",
       "size_bytes": 26137
@@ -3945,8 +3965,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "BDFF7EC58059C2D9EE631924AAD97FBCBA170094EE9715A0309AFC2C98187ACD",
-      "size_bytes": 777264
+      "sha256": "C9360EDD3D115C56D0C5377C48A753513EFE0B513FF0DD20DFA42F4DB8284980",
+      "size_bytes": 789097
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4497,6 +4517,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_BOUNDED_RERUN_STAGING_EXECUTOR.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5736,6 +5760,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_BOUNDED_RERUN_STAGING_EXECUTOR_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_CANDIDATE_DECISION_GUARD_20260430.md",
       "reason": "denied:system/"
     },
@@ -6796,6 +6824,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_BOUNDED_RERUN_STAGING_EXECUTOR.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_CANDIDATE_DECISION_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -7793,6 +7825,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_BOUNDED_RERUN_STAGING_EXECUTOR.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8801,6 +8837,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_BOUNDED_RERUN_STAGING_EXECUTOR.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9825,6 +9865,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_BOUNDED_RERUN_STAGING_EXECUTOR.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
@@ -11400,7 +11444,107 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-candidate-linkage-cost-model-regenerated-current-schema/mvp4-candidate-linkage-cost-model-cycle-1.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-candidate-linkage-cost-model-regenerated-current-schema/mvp4-candidate-linkage-cost-model-cycle-1.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-candidate-linkage-cost-model-regenerated-current-schema/mvp4-candidate-linkage-cost-model-cycle-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-candidate-linkage-cost-model-regenerated-current-schema/mvp4-candidate-linkage-cost-model-cycle-2.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-candidate-linkage-cost-model-regenerated-current-schema/mvp4-candidate-linkage-cost-model-cycle-2.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-candidate-linkage-cost-model-regenerated-current-schema/mvp4-candidate-linkage-cost-model-cycle-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-public-rest-transform-loop-regenerated-current-schema/mvp4-public-rest-transform-loop-cycle-1.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-public-rest-transform-loop-regenerated-current-schema/mvp4-public-rest-transform-loop-cycle-1.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-public-rest-transform-loop-regenerated-current-schema/mvp4-public-rest-transform-loop-cycle-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-public-rest-transform-loop-regenerated-current-schema/mvp4-public-rest-transform-loop-cycle-2.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-public-rest-transform-loop-regenerated-current-schema/mvp4-public-rest-transform-loop-cycle-2.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-public-rest-transform-loop-regenerated-current-schema/mvp4-public-rest-transform-loop-cycle-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-sequence-regime-guard-loop-regenerated-current-schema/mvp4-sequence-regime-guard-loop-cycle-1.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-sequence-regime-guard-loop-regenerated-current-schema/mvp4-sequence-regime-guard-loop-cycle-1.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-sequence-regime-guard-loop-regenerated-current-schema/mvp4-sequence-regime-guard-loop-cycle-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-sequence-regime-guard-loop-regenerated-current-schema/mvp4-sequence-regime-guard-loop-cycle-2.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-sequence-regime-guard-loop-regenerated-current-schema/mvp4-sequence-regime-guard-loop-cycle-2.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-sequence-regime-guard-loop-regenerated-current-schema/mvp4-sequence-regime-guard-loop-cycle-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-upbit-recovery-guard-loop-regenerated-current-schema/mvp4-upbit-recovery-guard-loop-cycle-1.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-upbit-recovery-guard-loop-regenerated-current-schema/mvp4-upbit-recovery-guard-loop-cycle-1.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-upbit-recovery-guard-loop-regenerated-current-schema/mvp4-upbit-recovery-guard-loop-cycle-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-upbit-recovery-guard-loop-regenerated-current-schema/mvp4-upbit-recovery-guard-loop-cycle-2.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-upbit-recovery-guard-loop-regenerated-current-schema/mvp4-upbit-recovery-guard-loop-cycle-2.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/rerun_candidates/mvp4-upbit-recovery-guard-loop-regenerated-current-schema/mvp4-upbit-recovery-guard-loop-cycle-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_blocked_repair_plan_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_bounded_rerun_staging_executor_report.json",
       "reason": "denied:system/"
     },
     {
