@@ -11,11 +11,11 @@
   "duplicate_event_id_count": 0,
   "duplicate_filled_order_key_count": 0,
   "duplicate_semantic_event_count": 0,
-  "evidence_hash": "7CCDB5B5D942D6B722C1B24DBC36848F2314D2D4C4F4FE5BE63B261C7129EE3C",
-  "evidence_id": "mvp4-upbit-paper-ledger-idempotency-runtime-evidence",
+  "evidence_hash": "B886335C40C257E5D8A5A45F34F4D0B48CAEFD34039E486FE5C04CD55FD509B4",
+  "evidence_id": "mvp4-upbit-paper-post-rerun-current-evidence-closure-recheck-ledger",
   "evidence_role": "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_CURRENT_ROLLUP_ONLY",
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-01T22:15:29Z",
+  "generated_at_utc": "2026-05-01T22:34:37Z",
   "idempotency_status": "PASS",
   "ledger_head_binding_status": "PASS",
   "ledger_validation_fail_count": 0,
@@ -90,10 +90,10 @@
     "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4_upbit_scorecard_bridge_current_refresh-cycle-2.paper_ledger_events.jsonl"
   ],
   "source_rollup_blocker_code": null,
-  "source_rollup_hash": "2620471F4B2134F4A0E3AEDBE66047164023FCBD433FD7BF3813511374137825",
+  "source_rollup_hash": "EE22FBDB5E5CF02689C688A2B34FFD47BAE17222EBA9194DBBE13B343ADD8A48",
   "source_rollup_hash_self_check": "PASS",
   "source_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/paper_ledger_rollup_report.json",
-  "source_rollup_recomputed_hash": "2620471F4B2134F4A0E3AEDBE66047164023FCBD433FD7BF3813511374137825",
+  "source_rollup_recomputed_hash": "EE22FBDB5E5CF02689C688A2B34FFD47BAE17222EBA9194DBBE13B343ADD8A48",
   "source_rollup_status": "PASS",
   "source_rollup_validation_status": "PASS"
 }

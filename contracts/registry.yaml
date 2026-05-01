@@ -956,6 +956,10 @@
       "schema_id": "trader1.upbit_paper_post_rerun_resolution_current_evidence_closure_report.v1",
       "path": "contracts/schema/upbit_paper_post_rerun_resolution_current_evidence_closure_report.schema.json"
     },
+    "upbit_paper_post_rerun_current_evidence_closure_recheck_report": {
+      "schema_id": "trader1.upbit_paper_post_rerun_current_evidence_closure_recheck_report.v1",
+      "path": "contracts/schema/upbit_paper_post_rerun_current_evidence_closure_recheck_report.schema.json"
+    },
     "evidence_manifest": {
       "schema_id": "trader1.evidence_manifest.v1",
       "path": "contracts/schema/evidence_manifest.schema.json"
@@ -1366,6 +1370,7 @@
       "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
       "upbit_paper_post_rerun_operator_resolution_audit_validator",
       "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
+      "upbit_paper_post_rerun_current_evidence_closure_recheck_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "restart_recovery_validator",
       "upbit_operational_paper_gate_validator",
@@ -1443,6 +1448,7 @@
       "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
       "upbit_paper_post_rerun_operator_resolution_audit_validator",
       "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
+      "upbit_paper_post_rerun_current_evidence_closure_recheck_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "restart_recovery_validator",
       "upbit_operational_paper_gate_validator",
@@ -1619,6 +1625,7 @@
       "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
       "upbit_paper_post_rerun_operator_resolution_audit_validator",
       "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
+      "upbit_paper_post_rerun_current_evidence_closure_recheck_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "paper_ledger_rollup_validator",
       "upbit_paper_ledger_idempotency_runtime_evidence_validator",

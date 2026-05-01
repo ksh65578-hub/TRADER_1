@@ -317,6 +317,14 @@ from trader1.runtime.paper.upbit_paper_post_rerun_resolution_current_evidence_cl
     validate_upbit_paper_post_rerun_resolution_current_evidence_closure_report,
     write_upbit_paper_post_rerun_resolution_current_evidence_closure_report,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_current_evidence_closure_recheck import (
+    POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_STATUS,
+    POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_SOURCE_BINDING_REQUIRED,
+    build_upbit_paper_post_rerun_current_evidence_closure_recheck_report,
+    upbit_paper_post_rerun_current_evidence_closure_recheck_hash,
+    validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report,
+    write_upbit_paper_post_rerun_current_evidence_closure_recheck_report,
+)
 from trader1.research.replay.replay_runner import (
     build_replay_consistency_report,
     replay_consistency_hash,
@@ -492,6 +500,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
     "upbit_paper_post_rerun_operator_resolution_audit_validator",
     "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
+    "upbit_paper_post_rerun_current_evidence_closure_recheck_validator",
     "upbit_paper_runtime_recovery_guard_validator",
     "restart_recovery_validator",
     "upbit_operational_paper_gate_validator",
@@ -8949,6 +8958,198 @@ def upbit_paper_post_rerun_resolution_current_evidence_closure_validator() -> Va
     )
 
 
+def upbit_paper_post_rerun_current_evidence_closure_recheck_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_post_rerun_current_evidence_closure_recheck_validator"
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_post_rerun_current_evidence_closure_recheck_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_post_rerun_current_evidence_closure_recheck.py"
+    closure_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_post_rerun_resolution_current_evidence_closure.py"
+    ledger_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_ledger_idempotency_runtime_evidence.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_post_rerun_current_evidence_closure_recheck.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_post_rerun_current_evidence_closure_recheck_report.json"
+        )
+    )
+    paths = [schema_path, module_path, closure_module_path, ledger_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_post_rerun_current_evidence_closure_recheck_report.v1":
+        return fail_result(validator_id, "post-rerun current-evidence closure recheck schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "post-rerun current-evidence closure recheck schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "source_closure_path",
+        "source_closure_file_load_status",
+        "source_closure_file_hash_match",
+        "source_ledger_idempotency_path",
+        "source_ledger_idempotency_file_load_status",
+        "source_ledger_idempotency_file_hash_match",
+        "closure_status",
+        "closure_primary_blocker_code",
+        "ledger_runtime_evidence_status",
+        "ledger_reconciliation_status",
+        "ledger_idempotency_status",
+        "ledger_portfolio_provenance_status",
+        "recheck_status",
+        "current_evidence_bridge_status",
+        "portfolio_truth_recheck_status",
+        "post_rerun_override_allowed",
+        "current_evidence_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result(
+                validator_id,
+                f"post-rerun current-evidence closure recheck schema missing required field: {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+
+    report = build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
+        root=ROOT,
+        session_id="mvp1_upbit_paper_launcher",
+    )
+    result = validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(report)
+    if result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"valid post-rerun current-evidence closure recheck failed: {result.message}",
+            paths,
+            result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    if (
+        report.get("recheck_status") != POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_STATUS
+        or report.get("primary_blocker_code") != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
+        or report.get("source_closure_file_load_status") != "PASS"
+        or report.get("source_closure_file_hash_match") is not True
+        or report.get("source_ledger_idempotency_file_load_status") != "PASS"
+        or report.get("source_ledger_idempotency_file_hash_match") is not True
+        or report.get("source_closure_validation_status") != "PASS"
+        or report.get("source_ledger_idempotency_validation_status") != "PASS"
+        or report.get("closure_status") != "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED"
+        or report.get("closure_current_evidence_write_allowed_count") != 0
+        or report.get("ledger_runtime_evidence_status") != "PASS"
+        or report.get("ledger_reconciliation_status") != "PASS"
+        or report.get("ledger_idempotency_status") != "PASS"
+        or report.get("ledger_portfolio_provenance_status") != "PASS"
+        or report.get("ledger_duplicate_total_count") != 0
+        or report.get("ledger_mismatch_count") != 0
+        or report.get("current_evidence_bridge_status") != "BLOCKED_BY_POST_RERUN_CLOSURE"
+        or report.get("portfolio_truth_recheck_status") != "LEDGER_PROVENANCE_PASS_BUT_OPERATOR_CURRENT_EVIDENCE_BLOCKED"
+        or report.get("post_rerun_override_allowed")
+        or report.get("current_evidence_write_allowed")
+        or report.get("live_order_allowed")
+        or report.get("scale_up_allowed")
+    ):
+        return fail_result(
+            validator_id,
+            "post-rerun current-evidence closure recheck did not preserve blocked bridge state",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    required_blockers = {
+        POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+        POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE_REQUIRED,
+        "LIVE_READY_MISSING",
+        "SCALE_UP_NOT_ELIGIBLE",
+    }
+    if not required_blockers.issubset(set(report.get("blocker_codes") or [])):
+        return fail_result(
+            validator_id,
+            "post-rerun current-evidence closure recheck omitted required blockers",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_post_rerun_current_evidence_closure_recheck_report(root=Path(tmp), report=report)
+        if not written_path.exists():
+            return fail_result(
+                validator_id,
+                "post-rerun current-evidence closure recheck writer did not create report",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        closure_source_path = ROOT / str(report["source_closure_path"])
+        closure_target_path = root / str(report["source_closure_path"])
+        closure_target_path.parent.mkdir(parents=True, exist_ok=True)
+        closure_target_path.write_text(closure_source_path.read_text(encoding="utf-8"), encoding="utf-8")
+        missing_ledger = build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
+            root=root,
+            session_id="mvp1_upbit_paper_launcher",
+        )
+    missing_result = validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(missing_ledger)
+    if (
+        missing_ledger.get("source_ledger_idempotency_file_load_status") != "MISSING"
+        or missing_result.status != "BLOCKED"
+        or missing_result.blocker_code != POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_SOURCE_BINDING_REQUIRED
+    ):
+        return fail_result(
+            validator_id,
+            "post-rerun current-evidence closure recheck missing ledger source was not blocked",
+            paths,
+            missing_result.blocker_code or POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_SOURCE_BINDING_REQUIRED,
+        )
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["post_rerun_override_allowed"] = True
+    live_mutation["live_order_allowed"] = True
+    live_mutation["recheck_hash"] = upbit_paper_post_rerun_current_evidence_closure_recheck_hash(live_mutation)
+    live_result = validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "post-rerun current-evidence closure recheck live/override mutation was not blocked",
+            paths,
+            live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    path_escape = json.loads(json.dumps(report))
+    path_escape["source_ledger_idempotency_path"] = (
+        "system/runtime/upbit/krw_spot/live/mvp1_upbit_paper_launcher/ledger/"
+        "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
+    )
+    path_escape["recheck_hash"] = upbit_paper_post_rerun_current_evidence_closure_recheck_hash(path_escape)
+    path_result = validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(path_escape)
+    if path_result.status != "BLOCKED" or path_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+        return fail_result(
+            validator_id,
+            "post-rerun current-evidence closure recheck path escape was not blocked",
+            paths,
+            path_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH",
+        )
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(
+                validator_id,
+                f"runtime post-rerun current-evidence closure recheck artifact is not valid json: {rel(runtime_path)}: {exc}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        runtime_result = validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime post-rerun current-evidence closure recheck artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER post-rerun closure recheck confirms ledger idempotency PASS cannot override current-evidence closure",
+        paths,
+    )
+
+
 def upbit_paper_runtime_recovery_guard_validator() -> ValidatorResult:
     schema_path = ROOT / "contracts" / "schema" / "upbit_paper_runtime_recovery_guard_report.schema.json"
     loop_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_persistent_loop.py"
@@ -16747,6 +16948,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator": upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator,
     "upbit_paper_post_rerun_operator_resolution_audit_validator": upbit_paper_post_rerun_operator_resolution_audit_validator,
     "upbit_paper_post_rerun_resolution_current_evidence_closure_validator": upbit_paper_post_rerun_resolution_current_evidence_closure_validator,
+    "upbit_paper_post_rerun_current_evidence_closure_recheck_validator": upbit_paper_post_rerun_current_evidence_closure_recheck_validator,
     "upbit_paper_runtime_recovery_guard_validator": upbit_paper_runtime_recovery_guard_validator,
     "restart_recovery_validator": restart_recovery_validator,
     "upbit_operational_paper_gate_validator": upbit_operational_paper_gate_validator,
