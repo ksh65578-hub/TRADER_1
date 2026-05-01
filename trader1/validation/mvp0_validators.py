@@ -293,6 +293,12 @@ from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review
     validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
     write_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_operator_resolution_audit import (
+    build_upbit_paper_post_rerun_operator_resolution_audit_report,
+    upbit_paper_post_rerun_operator_resolution_audit_hash,
+    validate_upbit_paper_post_rerun_operator_resolution_audit_report,
+    write_upbit_paper_post_rerun_operator_resolution_audit_report,
+)
 from trader1.research.replay.replay_runner import (
     build_replay_consistency_report,
     replay_consistency_hash,
@@ -465,6 +471,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_post_rerun_reconciliation_decision_audit_validator",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_validator",
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
+    "upbit_paper_post_rerun_operator_resolution_audit_validator",
     "upbit_paper_runtime_recovery_guard_validator",
     "restart_recovery_validator",
     "upbit_operational_paper_gate_validator",
@@ -7910,6 +7917,243 @@ def upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator() -
     return pass_result(
         validator_id,
         "Upbit PAPER post-rerun operator reconciliation review guidance remains review-only without enabling current evidence or live/scale",
+        paths,
+    )
+
+
+def upbit_paper_post_rerun_operator_resolution_audit_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_post_rerun_operator_resolution_audit_validator"
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_post_rerun_operator_resolution_audit_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_post_rerun_operator_resolution_audit.py"
+    guidance_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_post_rerun_operator_reconciliation_review_guidance.py"
+    decision_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_post_rerun_reconciliation_decision_audit.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_post_rerun_operator_resolution_audit.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json"
+        )
+    )
+    paths = [schema_path, module_path, guidance_module_path, decision_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_post_rerun_operator_resolution_audit_report.v1":
+        return fail_result(validator_id, "post-rerun operator resolution audit schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "post-rerun operator resolution audit schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "source_review_guidance_hash",
+        "source_review_guidance_status",
+        "source_decision_audit_hash",
+        "source_decision_audit_status",
+        "resolution_audit_status",
+        "resolution_outcome",
+        "resolution_control_count",
+        "resolution_controls_satisfied_count",
+        "unresolved_item_count",
+        "resolved_item_count",
+        "current_evidence_write_authorized_count",
+        "current_evidence_write_allowed_count",
+        "candidate_current_evidence_usable_count",
+        "current_evidence_write_allowed",
+        "current_ledger_jsonl_write_allowed",
+        "latest_runtime_pointer_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result(
+                validator_id,
+                f"post-rerun operator resolution audit schema missing required field: {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+
+    guidance_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"
+    )
+    decision_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_post_rerun_reconciliation_decision_audit_report.json"
+    )
+    paths.extend([guidance_path, decision_path])
+    if not guidance_path.exists() or not decision_path.exists():
+        return blocked_result(
+            validator_id,
+            "post-rerun operator resolution audit source reports are missing",
+            paths,
+            "POST_RERUN_RECONCILIATION_REQUIRED",
+        )
+    guidance = load_json(guidance_path)
+    decision = load_json(decision_path)
+    guidance_result = validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(guidance)
+    if guidance_result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"source review guidance failed validation: {guidance_result.message}",
+            paths,
+            guidance_result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    decision_result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(decision)
+    if decision_result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"source decision audit failed validation: {decision_result.message}",
+            paths,
+            decision_result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    report = build_upbit_paper_post_rerun_operator_resolution_audit_report(
+        review_guidance_report=guidance,
+        decision_audit_report=decision,
+        source_review_guidance_path=rel(guidance_path),
+        source_decision_audit_path=rel(decision_path),
+    )
+    result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(report)
+    if result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"valid post-rerun operator resolution audit failed: {result.message}",
+            paths,
+            result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    if (
+        report.get("resolution_audit_status") != "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
+        or report.get("primary_blocker_code") != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
+        or report.get("reviewed_guidance_item_count") != guidance.get("guidance_item_count")
+        or report.get("reviewed_decision_item_count") != decision.get("decision_item_count")
+        or report.get("unresolved_item_count") != report.get("reviewed_guidance_item_count")
+        or report.get("resolved_item_count") != 0
+        or report.get("resolution_controls_satisfied_count") != 0
+        or report.get("current_evidence_write_authorized_count") != 0
+        or report.get("current_evidence_write_allowed_count") != 0
+        or report.get("candidate_current_evidence_usable_count") != 0
+        or report.get("current_evidence_write_allowed")
+        or report.get("current_ledger_jsonl_write_allowed")
+        or report.get("latest_runtime_pointer_write_allowed")
+        or report.get("live_order_allowed")
+        or report.get("scale_up_allowed")
+    ):
+        return fail_result(
+            validator_id,
+            "post-rerun operator resolution audit did not preserve unresolved blocked state",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if not report.get("items"):
+        return fail_result(validator_id, "post-rerun operator resolution audit produced no items", paths, "MEASUREMENT_MISSING")
+    item = report["items"][0]
+    if (
+        item.get("resolution_status") != "UNRESOLVED_CURRENT_EVIDENCE_BLOCKED"
+        or item.get("resolution_evidence_present")
+        or item.get("resolution_evidence_accepted")
+        or item.get("current_evidence_write_allowed")
+        or item.get("candidate_current_evidence_usable")
+        or item.get("live_order_allowed")
+        or item.get("scale_up_allowed")
+    ):
+        return fail_result(
+            validator_id,
+            "post-rerun operator resolution audit item did not remain unresolved and blocked",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_post_rerun_operator_resolution_audit_report(root=Path(tmp), report=report)
+        if not written_path.exists():
+            return fail_result(
+                validator_id,
+                "post-rerun operator resolution audit writer did not create report",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+
+    count_tamper = json.loads(json.dumps(report))
+    count_tamper["resolved_item_count"] = 1
+    count_tamper["resolution_audit_hash"] = upbit_paper_post_rerun_operator_resolution_audit_hash(count_tamper)
+    count_result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(count_tamper)
+    if count_result.status != "FAIL" or count_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result(
+            validator_id,
+            "post-rerun operator resolution count tamper was not rejected",
+            paths,
+            count_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["live_order_allowed"] = True
+    live_mutation["resolution_audit_hash"] = upbit_paper_post_rerun_operator_resolution_audit_hash(live_mutation)
+    live_result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "post-rerun operator resolution audit live mutation was not blocked",
+            paths,
+            live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    resolution_drift = json.loads(json.dumps(report))
+    resolution_drift["items"][0]["resolution_evidence_present"] = True
+    resolution_drift["resolution_audit_hash"] = upbit_paper_post_rerun_operator_resolution_audit_hash(resolution_drift)
+    drift_result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(resolution_drift)
+    if drift_result.status != "BLOCKED" or drift_result.blocker_code != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE:
+        return fail_result(
+            validator_id,
+            "post-rerun operator resolution evidence drift was not blocked",
+            paths,
+            drift_result.blocker_code or POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+        )
+
+    path_escape = json.loads(json.dumps(report))
+    path_escape["items"][0]["planned_current_ledger_jsonl_path"] = "system/runtime/upbit/krw_spot/live/bad.paper_ledger_events.jsonl"
+    path_escape["resolution_audit_hash"] = upbit_paper_post_rerun_operator_resolution_audit_hash(path_escape)
+    path_result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(path_escape)
+    if path_result.status != "BLOCKED" or path_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+        return fail_result(
+            validator_id,
+            "post-rerun operator resolution audit path escape was not blocked",
+            paths,
+            path_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH",
+        )
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(
+                validator_id,
+                f"runtime post-rerun operator resolution audit artifact is not valid json: {rel(runtime_path)}: {exc}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        runtime_result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime post-rerun operator resolution audit artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER post-rerun operator resolution audit remains review-only and blocks current evidence/live/scale",
         paths,
     )
 
@@ -15709,6 +15953,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_post_rerun_reconciliation_decision_audit_validator": upbit_paper_post_rerun_reconciliation_decision_audit_validator,
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_validator": upbit_paper_post_rerun_reconciliation_blocker_rollup_validator,
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator": upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator,
+    "upbit_paper_post_rerun_operator_resolution_audit_validator": upbit_paper_post_rerun_operator_resolution_audit_validator,
     "upbit_paper_runtime_recovery_guard_validator": upbit_paper_runtime_recovery_guard_validator,
     "restart_recovery_validator": restart_recovery_validator,
     "upbit_operational_paper_gate_validator": upbit_operational_paper_gate_validator,
