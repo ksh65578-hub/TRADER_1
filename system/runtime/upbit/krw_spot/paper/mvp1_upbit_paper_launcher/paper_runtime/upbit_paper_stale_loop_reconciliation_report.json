@@ -1,0 +1,523 @@
+{
+  "actual_long_run_evidence_created": false,
+  "can_live_trade": false,
+  "credential_load_attempted": false,
+  "current_accepted_count": 1,
+  "current_evidence_usable_count": 1,
+  "delete_performed": false,
+  "duplicate_runtime_cycle_hash_count": 0,
+  "evidence_use_policy": "CURRENT_SCHEMA_PASS_ONLY",
+  "exchange": "UPBIT",
+  "excluded_from_current_evidence_count": 16,
+  "generated_at_utc": "2026-05-01T00:24:17Z",
+  "invalid_json_count": 0,
+  "items": [
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'paper_ledger_rollup_hash', 'paper_ledger_rollup_path', 'paper_ledger_rollup_primary_blocker_code', 'paper_ledger_rollup_status', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T11:31:51Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-candidate-linkage-cost-model",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "paper_ledger_rollup_hash",
+        "paper_ledger_rollup_path",
+        "paper_ledger_rollup_primary_blocker_code",
+        "paper_ledger_rollup_status",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "6D7BEF012E15AB764A142C166932C7F75F80E0FB4C2EC597B80DF8B2BA8FAA7D",
+        "0AEC286917527BA7A47AB65890524BB43921A85AE8FBA1BBBAE8D3E8E846921A"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "8ADE4E35575D3798E28C8D40B43A2A7C7991D9FD2B56A4397C1A62EAC996D16E",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-linkage-cost-model.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T22:55:54Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-candidate-scorecard-runtime-linkage-binding",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "A301084AE780B0D9D7AD7250AAB701862CB9E08F448DA9C7F871FE8031DFD80F",
+        "0F109BCFC644C5D67068C6F314AB87830480E0A149B21F81ED27D59EFB841024"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "D4C0FFC8826B8980E2FC4306EFAF7EC12E2A3E258717AAB3388AE60AABDA9D26",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-scorecard-runtime-linkage-binding.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'paper_ledger_rollup_hash', 'paper_ledger_rollup_path', 'paper_ledger_rollup_primary_blocker_code', 'paper_ledger_rollup_status', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T13:01:35Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-ledger-jsonl-recovery-ui-refresh",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "paper_ledger_rollup_hash",
+        "paper_ledger_rollup_path",
+        "paper_ledger_rollup_primary_blocker_code",
+        "paper_ledger_rollup_status",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "155702BABC5C862906581C15BF897819E973335B81FEE2664D2307375A0E0ED2"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "A4F32EEB3F3B52F0DB03A29832FC310C4B56F0940AFBA5CE3F96079488C350BF",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-ledger-jsonl-recovery-ui-refresh.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T13:23:32Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-paper-ledger-rollup-ui-refresh",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "03FA0BC6AEDC5557B824DD37A385FA49B82B056C2F5EAE35E779713E6B64B1FF",
+        "C9588B1DFB73A00F6A02CFE7B4F847A854C3874D38BE9A7009410464424E8A7D"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "3EF1652D2952E9049588C2F27C5193052A2D33A1A3A673A7159D2E8FE5B24BE3",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-paper-ledger-rollup-ui-refresh.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'paper_ledger_rollup_hash', 'paper_ledger_rollup_path', 'paper_ledger_rollup_primary_blocker_code', 'paper_ledger_rollup_status', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T11:39:52Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-public-rest-transform-loop",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "paper_ledger_rollup_hash",
+        "paper_ledger_rollup_path",
+        "paper_ledger_rollup_primary_blocker_code",
+        "paper_ledger_rollup_status",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "A2DC76659882797DCA4A22ACC449BE2DE2D24509AAC925CEBB282776EE609B96",
+        "DA98BA61F8574DCF98AEBE61F4556A796DD6A14E0F1183B0455C2C23D0CF52D6"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "371E2CD9301C48141909D111D54063E154050EDF42D21110ABF71767FDBCF716",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-public-rest-transform-loop.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'paper_ledger_rollup_hash', 'paper_ledger_rollup_path', 'paper_ledger_rollup_primary_blocker_code', 'paper_ledger_rollup_status', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T11:46:36Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-sequence-regime-guard-loop",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "paper_ledger_rollup_hash",
+        "paper_ledger_rollup_path",
+        "paper_ledger_rollup_primary_blocker_code",
+        "paper_ledger_rollup_status",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "F90BB0A5EA5FA50F82EDBC5F48CA1B4B19228BF338A08206175C5F6D8FA25C11",
+        "016E4ED1E1355EA9481836F4CBBE82DB246D8875AF648A2064CB84CB32133FC8"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "DCCA67067A9F050FC1BA7A4C67188A16053F46831DA7D65B92C0DD64CBD90943",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-sequence-regime-guard-loop.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T17:42:27Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-summary-portfolio-provenance-guard",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "973841B4DF796D25D15D1A6C020BF04F3C3A72480BE71A45591C8E11491C7A3F"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "03B8D4B3CC2A5D5A10398346501317A2D7406A436D41DC7D88D8F181A271AD1B",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-summary-portfolio-provenance-guard.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T16:48:55Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-upbit-market-data-pointer-schema-guard",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "82056433155561593AE698CBE4EC5A7E6448640958C3021640818C57082B2B88"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "D2549626E14A8C7F553FD32F9F0234B3FA650A066C227BCF602DB3CE9B12E33C",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-market-data-pointer-schema-guard.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T17:17:15Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-upbit-paper-ledger-rollup-consistency-guard",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "537D0B528759D544D9ADB8014E60B3150309B14AD17F91FB0CD00471C2FB8551",
+        "FFC10A43244DA45D905095E32539E1CDA3DE88DF5522F1EA428495B791D839CF"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "5B9F678D83AE4AD1D0CBB0116CA160CDD94B73CAEFCEC9B5C69C9241C0E0D815",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-paper-ledger-rollup-consistency-guard.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "CURRENT_ACCEPTED",
+      "current_validator_blocker_code": null,
+      "current_validator_message": "Upbit PAPER persistent loop is bounded, public-data backed, and live-blocked",
+      "current_validator_status": "PASS",
+      "evidence_usable_current": true,
+      "generated_at_utc": "2026-04-30T23:25:58Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-upbit-paper-long-run-evidence-boundary",
+      "missing_current_required_fields": [],
+      "recommended_action": "ACCEPT_CURRENT_SOURCE",
+      "runtime_cycle_hashes": [
+        "7E4ED257DA255EA959C602945B2BE621FD812EBFFFB8CC66AD890D72E910AD4C",
+        "925BFEF05F4171C0E2F3444F3D7687B854546BF54A2E7C73AB6D41286D622613"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "449762F1A023FA8D5180A86BCC599B070DA14CE98F616268B823D476EAD428E2",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-paper-long-run-evidence-boundary.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T17:05:01Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-upbit-paper-runtime-e2e-consistency-guard",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "1972EEDAD4476A12C19054B6161266E0B14EF0B5C06BFDA16E379F1392589C56",
+        "9E81F92E1BEA54092FB0A5826CC4A1CAD4F4538853655E644A00C1226C384F3D"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "D9E2E25F0886A5500D085B9AA1ED91FF1C73F82645117829FE555DB93E3C6836",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-paper-runtime-e2e-consistency-guard.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'paper_ledger_rollup_hash', 'paper_ledger_rollup_path', 'paper_ledger_rollup_primary_blocker_code', 'paper_ledger_rollup_status', 'paper_runtime_resume_allowed', 'partial_write_recovery_required', 'recovery_guard_hash', 'recovery_guard_primary_blocker_code', 'recovery_guard_status', 'runtime_evidence_role', 'runtime_recovery_guard_path']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T10:08:06Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-upbit-public-loop-dashboard",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "paper_ledger_rollup_hash",
+        "paper_ledger_rollup_path",
+        "paper_ledger_rollup_primary_blocker_code",
+        "paper_ledger_rollup_status",
+        "paper_runtime_resume_allowed",
+        "partial_write_recovery_required",
+        "recovery_guard_hash",
+        "recovery_guard_primary_blocker_code",
+        "recovery_guard_status",
+        "runtime_evidence_role",
+        "runtime_recovery_guard_path"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "50032616F1B07DF805E6C29D9046EAB9207EE1CE6A0CD236F8852578B27829C2",
+        "733A65E745CB38FB5416F14218E45BEE9C13C11134ABFD6A7628720B05C917A6"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "B20828F05866EF51ECF610A6FA6CB9A6A83AD01E4796D4914414B390560D67A1",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-public-loop-dashboard.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'paper_ledger_rollup_hash', 'paper_ledger_rollup_path', 'paper_ledger_rollup_primary_blocker_code', 'paper_ledger_rollup_status', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T10:27:14Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-upbit-recovery-guard-loop",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "paper_ledger_rollup_hash",
+        "paper_ledger_rollup_path",
+        "paper_ledger_rollup_primary_blocker_code",
+        "paper_ledger_rollup_status",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "6246F1B0A1B3752087C0EF1C38A59EA2EB3D6587E26F490E3CEE106DFCAE63CF",
+        "66D2CE330B698B465C7C60F9944C6BF0BE2DF841A17B2132465FDE862404F2DD"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "35257775A10A6946994070CB907FB57DD640B5AE0DAE6056B93C3FF9118DEE9B",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-recovery-guard-loop.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T16:30:07Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-upbit-runtime-source-hash-guard",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "9D4C231E069564BD4535BBC99CAF75F15C69CCC963A9B6ACCA91985B422A5452"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "3D6C412DA7022CDC36DC4175C17B2BAC90906294D92487501DF54E7D76AAE850",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-runtime-source-hash-guard.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T13:58:44Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4_dashboard_stale_rollup_truth_guard_current_refresh",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "0E5AFBA76F4707C95A88ED6FE25B82E9EE32C5A55CC5055A0E45C078AF019DB9",
+        "EAFE63D6407CFA17A191C7C89ABE67A9D23B564562AF4A038E1331BD3592C1E8"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "6D87373996AF2BDDD6B33F4FCF30A0AF2BA84CDDF02F34F4F705462327C41050",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4_dashboard_stale_rollup_truth_guard_current_refresh.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T14:06:45Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4_upbit_candidate_decision_guard_current_refresh",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "D104007E1D4D1A6E5AF82EBF0B4DF438D7942C72C4B5076FDC381D5C1767B5AD",
+        "A3959910FEADBBD7755017ABB6A8D5DE6FA876454768927E1B6B2E66EE0D256F"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "D4B629FCF1DF5CA758314E440835A7B159C5742B9E2DD47BE571C66A04C9148A",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4_upbit_candidate_decision_guard_current_refresh.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    },
+    {
+      "can_live_trade": false,
+      "classification": "LEGACY_SCHEMA_DRIFT",
+      "current_validator_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+      "current_validator_message": "persistent loop report missing fields: ['long_run_blocker_code', 'long_run_next_action', 'runtime_evidence_role']",
+      "current_validator_status": "FAIL",
+      "evidence_usable_current": false,
+      "generated_at_utc": "2026-04-30T14:18:58Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4_upbit_scorecard_bridge_current_refresh",
+      "missing_current_required_fields": [
+        "long_run_blocker_code",
+        "long_run_next_action",
+        "runtime_evidence_role"
+      ],
+      "recommended_action": "RETAIN_LEGACY_REFERENCE_EXCLUDE_FROM_CURRENT_EVIDENCE",
+      "runtime_cycle_hashes": [
+        "494CEFB1DCD6E69C1132EDC655E03A1DB08EC7C7A7EADD66F4AF4489D1586C95",
+        "45EE21AFEBE02AFEAADBFE4850FDA659A9510AC12AF38D1DAA15436293C7FEB7"
+      ],
+      "scale_up_allowed": false,
+      "scope_status": "MATCH",
+      "source_hash": "D97D2631E982AB5DD4C0BC303E75470B3C8232EBFF1A6C41763FFDF6C43477BF",
+      "source_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4_upbit_scorecard_bridge_current_refresh.persistent_loop_report.json",
+      "unsafe_live_or_order_flag_detected": false
+    }
+  ],
+  "legacy_reference_retained_count": 16,
+  "legacy_schema_drift_count": 16,
+  "live_key_loaded": false,
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "long_run_evidence_eligible": false,
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "operator_next_action": "Regenerate stale PAPER loop reports with the current schema or retain them as legacy references excluded from current evidence.",
+  "order_adapter_called": false,
+  "order_endpoint_called": false,
+  "primary_blocker_code": "STALE_PERSISTENT_LOOP_REPORTS_REQUIRE_RECONCILIATION",
+  "private_endpoint_called": false,
+  "project_id": "TRADER_1",
+  "promotion_eligible": false,
+  "reconciliation_hash": "74A2662D91FBDC50E91CDD68BE0A5BD6F7B22A80DEBD1684EAEE0275EE61F076",
+  "reconciliation_id": "mvp4-upbit-paper-stale-loop-reconciliation",
+  "reconciliation_role": "PAPER_RUNTIME_STALE_LOOP_RECONCILIATION_NOT_LONG_RUN_EVIDENCE",
+  "reconciliation_status": "BLOCKED",
+  "safe_delete_allowed": false,
+  "scale_up_allowed": false,
+  "schema_id": "trader1.upbit_paper_stale_loop_reconciliation_report.v1",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source_loop_report_count": 17,
+  "truth_role": "paper_runtime_reconciliation_truth",
+  "unsafe_blocked_count": 0
+}

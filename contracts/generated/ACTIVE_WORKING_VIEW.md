@@ -1,11 +1,11 @@
 # ACTIVE_WORKING_VIEW
 
-generated_at_utc: 2026-05-01T00:05:56Z
+generated_at_utc: 2026-05-01T00:24:15Z
 source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
 source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
 authority_status: READ_CACHE_NOT_AUTHORITY
 current_mvp: MVP-4
-last_patch_id: MVP4_UPBIT_PAPER_RUNTIME_SAMPLE_HISTORY_20260501_001
+last_patch_id: MVP4_UPBIT_PAPER_STALE_LOOP_RECONCILIATION_20260501_001
 live_order_ready: false
 live_order_allowed: false
 can_live_trade: false
@@ -13,8 +13,15 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Upbit PAPER runtime sample history now binds persistent loop reports to actual runtime cycle files. The current history remains BLOCKED because invalid or stale loop reports require reconciliation and the observed span/cycle count is not long-run evidence.
+Upbit PAPER stale loop reconciliation is now explicit. The runtime report keeps stale/legacy/corrupt/duplicate loop artifacts out of current evidence and preserves all live blockers.
+
+## Current Reconciliation
+
+- status: BLOCKED
+- current accepted reports: 1
+- excluded reports: 16
+- duplicate runtime cycle hashes: 0
 
 ## Next Safe Task
 
-MVP4_UPBIT_PAPER_STALE_LOOP_REPORT_RECONCILIATION
+MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_POLICY
