@@ -22,6 +22,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup 
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review_guidance import (
     validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_operator_resolution_audit import (
+    validate_upbit_paper_post_rerun_operator_resolution_audit_report,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
 
@@ -36,6 +39,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_runtime_recovery_guard_report.json",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+    "upbit_paper_post_rerun_operator_resolution_audit_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
 }
@@ -46,6 +50,7 @@ RECONCILIATION_RECOVERY_SOURCES = {
     "restart_recovery_report.json",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+    "upbit_paper_post_rerun_operator_resolution_audit_report.json",
 }
 ORDER_AFFECTING_FINAL_ACTIONS = {
     "ENTER_LONG",
@@ -160,6 +165,19 @@ POST_RERUN_BLOCKER_ROLLUP_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
 POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_RERUN_REVIEW_GUIDANCE_STATUSES = {"NOT_LOADED", "BLOCKED_RECONCILIATION_REVIEW_REQUIRED", "INVALID"}
 POST_RERUN_REVIEW_GUIDANCE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+POST_RERUN_RESOLUTION_AUDIT_STATUSES = {"NOT_LOADED", "UNRESOLVED_RECONCILIATION_REVIEW_ONLY", "INVALID"}
+POST_RERUN_RESOLUTION_AUDIT_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+POST_RERUN_SOURCE_BINDING_STATUSES = {
+    "PASS",
+    "MISSING",
+    "INVALID_UTF8",
+    "INVALID_JSON",
+    "NOT_OBJECT",
+    "HASH_MISMATCH",
+    "SCOPE_MISMATCH",
+    "UNKNOWN",
+    "NOT_LOADED",
+}
 OPERATOR_ACTION_STATUSES = {"PAPER_MONITORING", "PAPER_REVIEW_READY", "REFRESH_REQUIRED", "ACTION_REQUIRED", "BLOCKED"}
 OPERATOR_ACTION_KINDS = {"CONTINUE_PAPER", "REFRESH_DASHBOARD", "REVIEW_PAPER_EVIDENCE", "RESOLVE_BLOCKER", "STOP_AND_INSPECT"}
 OPERATOR_WORKFLOW_STEPS = {"RUN_PAPER", "INSPECT_DASHBOARD", "COLLECT_EVIDENCE", "LIVE_REVIEW_BLOCKED"}
@@ -5015,19 +5033,23 @@ def _reconciliation_recovery_summary(
     restart_recovery_report: dict[str, Any] | None,
     post_rerun_blocker_rollup_report: dict[str, Any] | None,
     post_rerun_review_guidance_report: dict[str, Any] | None,
+    post_rerun_resolution_audit_report: dict[str, Any] | None,
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
     restart_loaded = isinstance(restart_recovery_report, dict)
     post_rerun_rollup_loaded = isinstance(post_rerun_blocker_rollup_report, dict)
     post_rerun_guidance_loaded = isinstance(post_rerun_review_guidance_report, dict)
+    post_rerun_resolution_loaded = isinstance(post_rerun_resolution_audit_report, dict)
     reconciliation_status = "NOT_LOADED"
     restart_status = "NOT_LOADED"
     post_rerun_rollup_status = "NOT_LOADED"
     post_rerun_review_guidance_status = "NOT_LOADED"
+    post_rerun_resolution_audit_status = "NOT_LOADED"
     reconciliation_validation_status = "UNTESTED"
     restart_validation_status = "UNTESTED"
     post_rerun_rollup_validation_status = "UNTESTED"
     post_rerun_review_guidance_validation_status = "UNTESTED"
+    post_rerun_resolution_audit_validation_status = "UNTESTED"
     ledger_state = "NOT_LOADED"
     single_writer_state = "NOT_LOADED"
     idempotency_state = "NOT_LOADED"
@@ -5044,6 +5066,17 @@ def _reconciliation_recovery_summary(
     post_rerun_guidance_current_evidence_write_authorized_count = 0
     post_rerun_guidance_current_evidence_write_allowed_count = 0
     post_rerun_guidance_candidate_current_evidence_usable_count = 0
+    post_rerun_resolution_unresolved_item_count = 0
+    post_rerun_resolution_resolved_item_count = 0
+    post_rerun_resolution_control_count = 0
+    post_rerun_resolution_controls_satisfied_count = 0
+    post_rerun_resolution_current_evidence_write_authorized_count = 0
+    post_rerun_resolution_current_evidence_write_allowed_count = 0
+    post_rerun_resolution_candidate_current_evidence_usable_count = 0
+    post_rerun_resolution_source_review_guidance_file_load_status = "NOT_LOADED"
+    post_rerun_resolution_source_review_guidance_file_hash_match = False
+    post_rerun_resolution_source_decision_audit_file_load_status = "NOT_LOADED"
+    post_rerun_resolution_source_decision_audit_file_hash_match = False
     post_rerun_blocker_codes: list[str] = []
     primary_blocker = "RECONCILIATION_REQUIRED"
     source = "summary.json"
@@ -5223,13 +5256,118 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Post-rerun review guidance status is unknown.")
 
-    if not reconciliation_loaded and not restart_loaded and not post_rerun_rollup_loaded and not post_rerun_guidance_loaded:
+    if post_rerun_resolution_loaded:
+        source = "upbit_paper_post_rerun_operator_resolution_audit_report.json"
+        post_rerun_resolution_audit_status = str(
+            post_rerun_resolution_audit_report.get("resolution_audit_status", "INVALID")
+        )
+        resolution_result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(
+            post_rerun_resolution_audit_report
+        )
+        post_rerun_resolution_audit_validation_status = resolution_result.status
+        if resolution_result.status != "PASS":
+            post_rerun_resolution_audit_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = resolution_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(f"Post-rerun resolution audit invalid: {resolution_result.message}")
+        elif not _scope_matches(post_rerun_resolution_audit_report, exchange=exchange, market_type=market_type, mode=mode, session_id=session_id):
+            post_rerun_resolution_audit_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Post-rerun resolution audit scope does not match this dashboard.")
+        elif post_rerun_resolution_audit_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
+            post_rerun_resolution_unresolved_item_count = _safe_count(
+                post_rerun_resolution_audit_report.get("unresolved_item_count")
+            )
+            post_rerun_resolution_resolved_item_count = _safe_count(
+                post_rerun_resolution_audit_report.get("resolved_item_count")
+            )
+            post_rerun_resolution_control_count = _safe_count(
+                post_rerun_resolution_audit_report.get("resolution_control_count")
+            )
+            post_rerun_resolution_controls_satisfied_count = _safe_count(
+                post_rerun_resolution_audit_report.get("resolution_controls_satisfied_count")
+            )
+            post_rerun_resolution_current_evidence_write_authorized_count = _safe_count(
+                post_rerun_resolution_audit_report.get("current_evidence_write_authorized_count")
+            )
+            post_rerun_resolution_current_evidence_write_allowed_count = _safe_count(
+                post_rerun_resolution_audit_report.get("current_evidence_write_allowed_count")
+            )
+            post_rerun_resolution_candidate_current_evidence_usable_count = _safe_count(
+                post_rerun_resolution_audit_report.get("candidate_current_evidence_usable_count")
+            )
+            post_rerun_resolution_source_review_guidance_file_load_status = str(
+                post_rerun_resolution_audit_report.get("source_review_guidance_file_load_status") or "UNKNOWN"
+            )
+            post_rerun_resolution_source_review_guidance_file_hash_match = bool(
+                post_rerun_resolution_audit_report.get("source_review_guidance_file_hash_match") is True
+            )
+            post_rerun_resolution_source_decision_audit_file_load_status = str(
+                post_rerun_resolution_audit_report.get("source_decision_audit_file_load_status") or "UNKNOWN"
+            )
+            post_rerun_resolution_source_decision_audit_file_hash_match = bool(
+                post_rerun_resolution_audit_report.get("source_decision_audit_file_hash_match") is True
+            )
+            raw_codes = post_rerun_resolution_audit_report.get("blocker_codes", [])
+            resolution_codes = [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            post_rerun_blocker_codes = sorted({*post_rerun_blocker_codes, *resolution_codes})
+            ledger_state = "RECONCILE_REQUIRED"
+            single_writer_state = "RECONCILE_REQUIRED"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = str(
+                post_rerun_resolution_audit_report.get("primary_blocker_code")
+                or "POST_RERUN_RECONCILIATION_REQUIRED"
+            )
+            issue_messages.append(
+                "Post-rerun operator resolution audit remains unresolved and keeps current evidence blocked."
+            )
+        else:
+            post_rerun_resolution_audit_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Post-rerun resolution audit status is unknown.")
+
+    if (
+        not reconciliation_loaded
+        and not restart_loaded
+        and not post_rerun_rollup_loaded
+        and not post_rerun_guidance_loaded
+        and not post_rerun_resolution_loaded
+    ):
         status = "NOT_LOADED"
         severity = "WARNING"
         color_token = "yellow"
         one_line_blocker = "RECONCILIATION_REQUIRED: ledger/reconciliation and restart recovery evidence are not loaded."
         next_action = "Run PAPER with reconciliation and restart recovery artifacts, then review this panel before live review."
         message = "Ledger/reconciliation evidence is not loaded; portfolio values remain display-only."
+    elif post_rerun_resolution_audit_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = (
+            f"{primary_blocker}: post-rerun operator resolution audit has "
+            f"{post_rerun_resolution_unresolved_item_count} unresolved item(s)."
+        )
+        next_action = (
+            "Keep post-rerun resolution review-only and block current evidence writes until a validated "
+            "reconciliation writer path exists."
+        )
+        message = (
+            f"Post-rerun resolution audit is active: {post_rerun_resolution_control_count} control(s), "
+            f"{post_rerun_resolution_controls_satisfied_count} satisfied, "
+            f"{post_rerun_resolution_current_evidence_write_allowed_count} current-evidence writes allowed; "
+            f"source bindings review={post_rerun_resolution_source_review_guidance_file_load_status}/"
+            f"{post_rerun_resolution_source_review_guidance_file_hash_match}, "
+            f"decision={post_rerun_resolution_source_decision_audit_file_load_status}/"
+            f"{post_rerun_resolution_source_decision_audit_file_hash_match}."
+        )
     elif post_rerun_review_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
         status = "BLOCKED"
         severity = "ERROR"
@@ -5269,13 +5407,20 @@ def _reconciliation_recovery_summary(
         next_action = "Continue PAPER monitoring; keep live blocked until external live-review evidence exists."
         message = "PAPER ledger, reconciliation, restart recovery, and idempotency checks are aligned for display review."
     elif (
-        "INVALID" in {reconciliation_status, restart_status, post_rerun_rollup_status, post_rerun_review_guidance_status}
+        "INVALID" in {
+            reconciliation_status,
+            restart_status,
+            post_rerun_rollup_status,
+            post_rerun_review_guidance_status,
+            post_rerun_resolution_audit_status,
+        }
         or "FAIL"
         in {
             reconciliation_validation_status,
             restart_validation_status,
             post_rerun_rollup_validation_status,
             post_rerun_review_guidance_validation_status,
+            post_rerun_resolution_audit_validation_status,
         }
         or "BLOCKED"
         in {
@@ -5283,6 +5428,7 @@ def _reconciliation_recovery_summary(
             restart_validation_status,
             post_rerun_rollup_validation_status,
             post_rerun_review_guidance_validation_status,
+            post_rerun_resolution_audit_validation_status,
         }
     ):
         status = "INVALID"
@@ -5333,6 +5479,19 @@ def _reconciliation_recovery_summary(
         "post_rerun_guidance_current_evidence_write_authorized_count": post_rerun_guidance_current_evidence_write_authorized_count,
         "post_rerun_guidance_current_evidence_write_allowed_count": post_rerun_guidance_current_evidence_write_allowed_count,
         "post_rerun_guidance_candidate_current_evidence_usable_count": post_rerun_guidance_candidate_current_evidence_usable_count,
+        "post_rerun_resolution_audit_status": post_rerun_resolution_audit_status,
+        "post_rerun_resolution_audit_validation_status": post_rerun_resolution_audit_validation_status,
+        "post_rerun_resolution_unresolved_item_count": post_rerun_resolution_unresolved_item_count,
+        "post_rerun_resolution_resolved_item_count": post_rerun_resolution_resolved_item_count,
+        "post_rerun_resolution_control_count": post_rerun_resolution_control_count,
+        "post_rerun_resolution_controls_satisfied_count": post_rerun_resolution_controls_satisfied_count,
+        "post_rerun_resolution_current_evidence_write_authorized_count": post_rerun_resolution_current_evidence_write_authorized_count,
+        "post_rerun_resolution_current_evidence_write_allowed_count": post_rerun_resolution_current_evidence_write_allowed_count,
+        "post_rerun_resolution_candidate_current_evidence_usable_count": post_rerun_resolution_candidate_current_evidence_usable_count,
+        "post_rerun_resolution_source_review_guidance_file_load_status": post_rerun_resolution_source_review_guidance_file_load_status,
+        "post_rerun_resolution_source_review_guidance_file_hash_match": post_rerun_resolution_source_review_guidance_file_hash_match,
+        "post_rerun_resolution_source_decision_audit_file_load_status": post_rerun_resolution_source_decision_audit_file_load_status,
+        "post_rerun_resolution_source_decision_audit_file_hash_match": post_rerun_resolution_source_decision_audit_file_hash_match,
         "post_rerun_blocker_codes": post_rerun_blocker_codes,
         "ledger_state": ledger_state,
         "single_writer_state": single_writer_state,
@@ -5375,6 +5534,7 @@ def build_read_only_dashboard_shell(
     restart_recovery_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_reconciliation_blocker_rollup_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_operator_reconciliation_review_guidance_report: dict[str, Any] | None = None,
+    upbit_paper_post_rerun_operator_resolution_audit_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
     optimizer_feedback_report: dict[str, Any] | None = None,
@@ -5401,6 +5561,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_runtime_recovery_guard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
         "upbit_paper_post_rerun_reconciliation_blocker_rollup": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
         "upbit_paper_post_rerun_operator_reconciliation_review_guidance": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+        "upbit_paper_post_rerun_operator_resolution_audit": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
     }
@@ -5572,6 +5733,31 @@ def build_read_only_dashboard_shell(
                 guidance_freshness,
             )
         )
+    if isinstance(upbit_paper_post_rerun_operator_resolution_audit_report, dict):
+        resolution_result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(
+            upbit_paper_post_rerun_operator_resolution_audit_report
+        )
+        resolution_freshness = (
+            "PASS"
+            if resolution_result.status == "PASS"
+            and upbit_paper_post_rerun_operator_resolution_audit_report.get("resolution_audit_status")
+            == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
+            and upbit_paper_post_rerun_operator_resolution_audit_report.get("current_evidence_write_allowed") is False
+            and upbit_paper_post_rerun_operator_resolution_audit_report.get("live_order_allowed") is False
+            and upbit_paper_post_rerun_operator_resolution_audit_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "POST_RERUN_OPERATOR_RESOLUTION_AUDIT",
+                paths.get(
+                    "upbit_paper_post_rerun_operator_resolution_audit",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
+                ),
+                True,
+                resolution_freshness,
+            )
+        )
     market_data_continuity_status = _market_data_continuity_status(
         report=upbit_public_rest_continuity_history,
         exchange=exchange,
@@ -5617,6 +5803,7 @@ def build_read_only_dashboard_shell(
         restart_recovery_report=restart_recovery_report,
         post_rerun_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
         post_rerun_review_guidance_report=upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
+        post_rerun_resolution_audit_report=upbit_paper_post_rerun_operator_resolution_audit_report,
     )
     stability_trends = _stability_trends(
         exchange=exchange,
@@ -5898,6 +6085,17 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "post_rerun_review_step_count",
                 "post_rerun_forbidden_output_count",
                 "post_rerun_guidance_current_evidence_write_allowed_count",
+                "post_rerun_resolution_audit_status",
+                "post_rerun_resolution_audit_validation_status",
+                "post_rerun_resolution_unresolved_item_count",
+                "post_rerun_resolution_resolved_item_count",
+                "post_rerun_resolution_control_count",
+                "post_rerun_resolution_controls_satisfied_count",
+                "post_rerun_resolution_current_evidence_write_allowed_count",
+                "post_rerun_resolution_source_review_guidance_file_load_status",
+                "post_rerun_resolution_source_review_guidance_file_hash_match",
+                "post_rerun_resolution_source_decision_audit_file_load_status",
+                "post_rerun_resolution_source_decision_audit_file_hash_match",
             )
         )
         for code in reconciliation.get("post_rerun_blocker_codes", []):
@@ -6339,6 +6537,11 @@ def validate_read_only_dashboard_shell(
     post_rerun_rollup_validation_status = reconciliation.get("post_rerun_blocker_rollup_validation_status", "UNTESTED")
     post_rerun_guidance_status = reconciliation.get("post_rerun_review_guidance_status", "NOT_LOADED")
     post_rerun_guidance_validation_status = reconciliation.get("post_rerun_review_guidance_validation_status", "UNTESTED")
+    post_rerun_resolution_status = reconciliation.get("post_rerun_resolution_audit_status", "NOT_LOADED")
+    post_rerun_resolution_validation_status = reconciliation.get(
+        "post_rerun_resolution_audit_validation_status",
+        "UNTESTED",
+    )
     if post_rerun_rollup_status not in POST_RERUN_BLOCKER_ROLLUP_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun blocker rollup status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_rollup_validation_status not in POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES:
@@ -6347,6 +6550,22 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "post-rerun review guidance status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_guidance_validation_status not in POST_RERUN_REVIEW_GUIDANCE_VALIDATION_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun review guidance validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_resolution_status not in POST_RERUN_RESOLUTION_AUDIT_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun resolution audit status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_resolution_validation_status not in POST_RERUN_RESOLUTION_AUDIT_VALIDATION_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun resolution audit validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    for field in (
+        "post_rerun_resolution_source_review_guidance_file_load_status",
+        "post_rerun_resolution_source_decision_audit_file_load_status",
+    ):
+        if reconciliation.get(field, "NOT_LOADED") not in POST_RERUN_SOURCE_BINDING_STATUSES:
+            return DashboardValidationResult("FAIL", f"post-rerun resolution source binding status is unknown: {field}", "SCHEMA_IDENTITY_MISMATCH")
+    for field in (
+        "post_rerun_resolution_source_review_guidance_file_hash_match",
+        "post_rerun_resolution_source_decision_audit_file_hash_match",
+    ):
+        if not isinstance(reconciliation.get(field, False), bool):
+            return DashboardValidationResult("FAIL", f"post-rerun resolution source binding match is invalid: {field}", "SCHEMA_IDENTITY_MISMATCH")
     post_rerun_count_fields = (
         "post_rerun_blocker_rollup_item_count",
         "post_rerun_unique_blocker_count",
@@ -6360,6 +6579,13 @@ def validate_read_only_dashboard_shell(
         "post_rerun_guidance_current_evidence_write_authorized_count",
         "post_rerun_guidance_current_evidence_write_allowed_count",
         "post_rerun_guidance_candidate_current_evidence_usable_count",
+        "post_rerun_resolution_unresolved_item_count",
+        "post_rerun_resolution_resolved_item_count",
+        "post_rerun_resolution_control_count",
+        "post_rerun_resolution_controls_satisfied_count",
+        "post_rerun_resolution_current_evidence_write_authorized_count",
+        "post_rerun_resolution_current_evidence_write_allowed_count",
+        "post_rerun_resolution_candidate_current_evidence_usable_count",
     )
     for field in post_rerun_count_fields:
         value = reconciliation.get(field, 0)
@@ -6374,6 +6600,8 @@ def validate_read_only_dashboard_shell(
         allowed_rollup_sources = {"upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"}
         if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
             allowed_rollup_sources.add("upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json")
+        if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
+            allowed_rollup_sources.add("upbit_paper_post_rerun_operator_resolution_audit_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -6394,11 +6622,14 @@ def validate_read_only_dashboard_shell(
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun blocker rollup cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
     if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
+        allowed_guidance_sources = {"upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"}
+        if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
+            allowed_guidance_sources.add("upbit_paper_post_rerun_operator_resolution_audit_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
             or reconciliation.get("color_token") != "red"
-            or reconciliation.get("source") != "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"
+            or reconciliation.get("source") not in allowed_guidance_sources
             or reconciliation.get("primary_blocker_code") != "POST_RERUN_RECONCILIATION_REQUIRED"
             or reconciliation.get("post_rerun_review_guidance_validation_status") != "PASS"
             or reconciliation.get("post_rerun_review_guidance_item_count", 0) <= 0
@@ -6413,6 +6644,34 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_guidance_candidate_current_evidence_usable_count", 0) != 0
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun review guidance cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
+    if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source") != "upbit_paper_post_rerun_operator_resolution_audit_report.json"
+            or reconciliation.get("primary_blocker_code") != "POST_RERUN_RECONCILIATION_REQUIRED"
+            or reconciliation.get("post_rerun_resolution_audit_validation_status") != "PASS"
+            or reconciliation.get("post_rerun_resolution_unresolved_item_count", 0) <= 0
+            or reconciliation.get("post_rerun_resolution_resolved_item_count", 0) != 0
+            or reconciliation.get("post_rerun_resolution_control_count", 0) < 4
+            or reconciliation.get("post_rerun_resolution_controls_satisfied_count", 0) != 0
+            or "POST_RERUN_RECONCILIATION_REQUIRED" not in set(post_rerun_blocker_codes)
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun resolution audit must render as a red unresolved reconciliation blocker", "LIVE_FINAL_GUARD_FAILED")
+        if (
+            reconciliation.get("post_rerun_resolution_current_evidence_write_authorized_count", 0) != 0
+            or reconciliation.get("post_rerun_resolution_current_evidence_write_allowed_count", 0) != 0
+            or reconciliation.get("post_rerun_resolution_candidate_current_evidence_usable_count", 0) != 0
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun resolution audit cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
+        if (
+            reconciliation.get("post_rerun_resolution_source_review_guidance_file_load_status") != "PASS"
+            or reconciliation.get("post_rerun_resolution_source_review_guidance_file_hash_match") is not True
+            or reconciliation.get("post_rerun_resolution_source_decision_audit_file_load_status") != "PASS"
+            or reconciliation.get("post_rerun_resolution_source_decision_audit_file_hash_match") is not True
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun resolution audit must keep source guidance and decision bindings verified", "LIVE_FINAL_GUARD_FAILED")
     if reconciliation.get("ledger_state") not in RECONCILIATION_RECOVERY_LEDGER_STATES:
         return DashboardValidationResult("FAIL", "ledger state display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("single_writer_state") not in RECONCILIATION_RECOVERY_WRITER_STATES:
@@ -8184,7 +8443,16 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<br>guidance={safe_text(reconciliation.get('post_rerun_review_guidance_status', 'NOT_LOADED'))}"
         f"<br>steps={safe_text(reconciliation.get('post_rerun_review_step_count', 0))}"
         f"<br>forbidden={safe_text(reconciliation.get('post_rerun_forbidden_output_count', 0))}"
-        f"<br>guidance-writes={safe_text(reconciliation.get('post_rerun_guidance_current_evidence_write_allowed_count', 0))}</p></div>"
+        f"<br>guidance-writes={safe_text(reconciliation.get('post_rerun_guidance_current_evidence_write_allowed_count', 0))}"
+        "<br><strong>Post-Rerun Resolution</strong>"
+        f"<br>resolution={safe_text(reconciliation.get('post_rerun_resolution_audit_status', 'NOT_LOADED'))}"
+        f"<br>unresolved={safe_text(reconciliation.get('post_rerun_resolution_unresolved_item_count', 0))}"
+        f"<br>resolved={safe_text(reconciliation.get('post_rerun_resolution_resolved_item_count', 0))}"
+        f"<br>controls={safe_text(reconciliation.get('post_rerun_resolution_control_count', 0))}"
+        f"<br>satisfied={safe_text(reconciliation.get('post_rerun_resolution_controls_satisfied_count', 0))}"
+        f"<br>resolution-writes={safe_text(reconciliation.get('post_rerun_resolution_current_evidence_write_allowed_count', 0))}"
+        f"<br>source-bindings={safe_text(reconciliation.get('post_rerun_resolution_source_review_guidance_file_load_status', 'NOT_LOADED'))}/"
+        f"{safe_text(reconciliation.get('post_rerun_resolution_source_decision_audit_file_load_status', 'NOT_LOADED'))}</p></div>"
         "<div><strong>Live Boundary</strong>"
         "<p><span class=\"pill safe-lock\">live_order_allowed=false</span><br><span class=\"pill safe-lock\">can_live_trade=false</span><br><span class=\"pill safe-lock\">scale_up_allowed=false</span></p></div>"
         "</section>"

@@ -85,6 +85,7 @@
             "PAPER_RUNTIME_RECOVERY_GUARD",
             "POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP",
             "POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE",
+            "POST_RERUN_OPERATOR_RESOLUTION_AUDIT",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD"
           ]
@@ -105,6 +106,7 @@
             "upbit_paper_runtime_recovery_guard_report.json",
             "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
             "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+            "upbit_paper_post_rerun_operator_resolution_audit_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json"
           ]
@@ -458,7 +460,8 @@
             "reconciliation_report.json",
             "restart_recovery_report.json",
             "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
-            "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"
+            "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+            "upbit_paper_post_rerun_operator_resolution_audit_report.json"
           ]
         },
         "reconciliation_status": {
@@ -578,6 +581,81 @@
         "post_rerun_guidance_candidate_current_evidence_usable_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "post_rerun_resolution_audit_status": {
+          "enum": [
+            "NOT_LOADED",
+            "UNRESOLVED_RECONCILIATION_REVIEW_ONLY",
+            "INVALID"
+          ]
+        },
+        "post_rerun_resolution_audit_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "post_rerun_resolution_unresolved_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_resolution_resolved_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_resolution_control_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_resolution_controls_satisfied_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_resolution_current_evidence_write_authorized_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_resolution_current_evidence_write_allowed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_resolution_candidate_current_evidence_usable_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_resolution_source_review_guidance_file_load_status": {
+          "enum": [
+            "PASS",
+            "MISSING",
+            "INVALID_UTF8",
+            "INVALID_JSON",
+            "NOT_OBJECT",
+            "HASH_MISMATCH",
+            "SCOPE_MISMATCH",
+            "UNKNOWN",
+            "NOT_LOADED"
+          ]
+        },
+        "post_rerun_resolution_source_review_guidance_file_hash_match": {
+          "type": "boolean"
+        },
+        "post_rerun_resolution_source_decision_audit_file_load_status": {
+          "enum": [
+            "PASS",
+            "MISSING",
+            "INVALID_UTF8",
+            "INVALID_JSON",
+            "NOT_OBJECT",
+            "HASH_MISMATCH",
+            "SCOPE_MISMATCH",
+            "UNKNOWN",
+            "NOT_LOADED"
+          ]
+        },
+        "post_rerun_resolution_source_decision_audit_file_hash_match": {
+          "type": "boolean"
         },
         "post_rerun_blocker_codes": {
           "type": "array",
