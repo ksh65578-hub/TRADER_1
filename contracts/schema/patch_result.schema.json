@@ -390,6 +390,21 @@
       "type": "integer",
       "minimum": 0
     },
+    "post_rerun_reconciliation_blocker_rollup_status": {
+      "type": "string"
+    },
+    "post_rerun_reconciliation_blocker_rollup_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_reconciliation_unique_blocker_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_reconciliation_primary_blocker_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
