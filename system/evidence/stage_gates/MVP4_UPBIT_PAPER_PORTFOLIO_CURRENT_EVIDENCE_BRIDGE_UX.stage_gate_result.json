@@ -1,0 +1,18 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-01T23:04:14Z",
+  "patch_id": "MVP4_UPBIT_PAPER_PORTFOLIO_CURRENT_EVIDENCE_BRIDGE_UX_20260502_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_PORTFOLIO_CURRENT_EVIDENCE_BRIDGE_VISIBLE_LIVE_BLOCKED",
+  "dashboard_blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
+  "portfolio_status": "UNVERIFIED",
+  "portfolio_source_snapshot_status": "BLOCKED",
+  "portfolio_blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
+  "recheck_status": "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED",
+  "current_evidence_bridge_status": "BLOCKED_BY_POST_RERUN_CLOSURE",
+  "current_evidence_mutation_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

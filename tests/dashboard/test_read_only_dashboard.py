@@ -540,10 +540,14 @@ def build_dashboard_with_post_rerun_current_evidence_closure_recheck(
     report=None,
     closure_report=None,
     ledger_idempotency_report=None,
+    with_paper_portfolio=True,
 ):
     report = report or post_rerun_current_evidence_closure_recheck_fixture()
     session_id = report["session_id"]
-    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    summary, heartbeat, startup_probe = build_inputs(
+        session_id=session_id,
+        with_paper_portfolio=with_paper_portfolio,
+    )
     return build_read_only_dashboard_shell(
         exchange=report["exchange"],
         market_type=report["market_type"],
@@ -1835,6 +1839,33 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Closure Recheck", html)
         self.assertIn("bridge=BLOCKED_BY_POST_RERUN_CLOSURE", html)
         self.assertIn("recheck-writes=False", html)
+
+    def test_dashboard_explains_unverified_portfolio_when_recheck_blocks_current_evidence(self):
+        dashboard = build_dashboard_with_post_rerun_current_evidence_closure_recheck(
+            closure_report=post_rerun_resolution_current_evidence_closure_fixture(),
+            ledger_idempotency_report=build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+                root=ROOT,
+                session_id="mvp1_upbit_paper_launcher",
+                evidence_id="test-dashboard-post-rerun-closure-recheck-ledger-unverified-portfolio",
+            ),
+            with_paper_portfolio=False,
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["blocking_reason"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        self.assertIn("Configured PAPER capital is 1,000,000 KRW", portfolio["source_snapshot_freshness_message"])
+        self.assertIn("ledger provenance recheck is PASS", portfolio["source_snapshot_freshness_message"])
+        self.assertIn("current evidence remains blocked", portfolio["source_snapshot_freshness_message"])
+        self.assertIn("portfolio recheck status", portfolio["cash"]["detail"])
+        self.assertIn("Resolve post-rerun reconciliation", portfolio["next_action"])
+        self.assertEqual(dashboard["operation_status"]["portfolio_status"], "UNVERIFIED")
+        self.assertEqual(
+            dashboard["operation_status"]["portfolio_blocking_reason"],
+            "POST_RERUN_RECONCILIATION_REQUIRED",
+        )
 
     def test_dashboard_blocks_post_rerun_closure_recheck_live_or_write_drift(self):
         report = post_rerun_current_evidence_closure_recheck_fixture()

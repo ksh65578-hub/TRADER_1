@@ -882,7 +882,14 @@ def _stale_portfolio_snapshot(exchange: str, market_type: str, summary: dict[str
     return snapshot
 
 
-def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dict[str, Any] | None, summary_freshness: str) -> dict[str, Any]:
+def _portfolio_snapshot(
+    exchange: str,
+    market_type: str,
+    mode: str,
+    summary: dict[str, Any] | None,
+    summary_freshness: str,
+    reconciliation_recovery_summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     if summary is not None and summary_freshness != "PASS":
         return _stale_portfolio_snapshot(exchange, market_type, summary)
     if mode == "PAPER" and isinstance(summary, dict):
@@ -921,6 +928,48 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
             if mode == "PAPER"
             else "Provide read-only account snapshot evidence before portfolio values can be trusted"
         )
+    source_snapshot_status = "UNTESTED"
+    blocking_reason = "HARD_TRUTH_MISSING"
+    if (
+        isinstance(reconciliation_recovery_summary, dict)
+        and reconciliation_recovery_summary.get("post_rerun_current_evidence_closure_recheck_status")
+        == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED"
+    ):
+        source_snapshot_status = "BLOCKED"
+        blocking_reason = "POST_RERUN_RECONCILIATION_REQUIRED"
+        bridge_status = reconciliation_recovery_summary.get("post_rerun_current_evidence_bridge_status", "NOT_LOADED")
+        portfolio_recheck_status = reconciliation_recovery_summary.get(
+            "post_rerun_current_evidence_portfolio_recheck_status",
+            "NOT_LOADED",
+        )
+        ledger_status = reconciliation_recovery_summary.get(
+            "post_rerun_current_evidence_closure_recheck_ledger_portfolio_provenance_status",
+            "NOT_LOADED",
+        )
+        if isinstance(configured_display, str) and configured_display != "UNVERIFIED":
+            unverified_message = (
+                f"Configured PAPER capital is {configured_display}; ledger provenance recheck is {ledger_status}, "
+                f"but portfolio current evidence remains blocked by {bridge_status}."
+            )
+            cash_detail = (
+                f"Configured PAPER capital is {configured_display}; cash is not promoted to current evidence because "
+                f"portfolio recheck status is {portfolio_recheck_status}."
+            )
+            equity_detail = (
+                f"Configured PAPER capital is {configured_display}; equity is not promoted to current evidence because "
+                f"portfolio recheck status is {portfolio_recheck_status}."
+            )
+        else:
+            unverified_message = (
+                f"Portfolio current evidence remains blocked by {bridge_status}; ledger provenance recheck is "
+                f"{ledger_status}."
+            )
+            cash_detail = f"Cash remains unverified because portfolio recheck status is {portfolio_recheck_status}."
+            equity_detail = f"Equity remains unverified because portfolio recheck status is {portfolio_recheck_status}."
+        next_action = (
+            "Resolve post-rerun reconciliation before treating configured PAPER capital or ledger provenance as "
+            "current portfolio cash/equity."
+        )
     return {
         "title": "Portfolio Snapshot",
         "status": "UNVERIFIED",
@@ -929,7 +978,7 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
         "source_runtime_cycle_id": None,
         "source_paper_ledger_head_hash": None,
         "source_snapshot_hash": None,
-        "source_snapshot_status": "UNTESTED",
+        "source_snapshot_status": source_snapshot_status,
         "source_snapshot_generated_at_utc": None,
         "source_snapshot_age_seconds": None,
         "source_snapshot_stale_after_seconds": None,
@@ -945,7 +994,7 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
         "positions": _portfolio_card("positions", "Open Positions", "UNVERIFIED", "No verified position source loaded"),
         "entry_candidates": _portfolio_card("entry_candidates", "Entry Candidates", "UNVERIFIED", "No verified candidate source loaded"),
         "return_pct": _portfolio_card("return_pct", "Return", "UNVERIFIED", "No verified return source loaded"),
-        "blocking_reason": "HARD_TRUTH_MISSING",
+        "blocking_reason": blocking_reason,
         "next_action": next_action,
         "display_only": True,
         "dashboard_truth_only": True,
@@ -6328,17 +6377,6 @@ def build_read_only_dashboard_shell(
                 continuity_freshness,
             )
         )
-    position_snapshot = _position_snapshot(summary, summary_freshness)
-    portfolio_snapshot = _portfolio_snapshot(exchange, market_type, mode, summary, summary_freshness)
-    decision_trace = _decision_trace(summary, primary_blocker, position_snapshot)
-    operation_status = _operation_status(
-        heartbeat=heartbeat,
-        summary_freshness=summary_freshness,
-        heartbeat_freshness=heartbeat_freshness,
-        startup_freshness=startup_freshness,
-        portfolio_snapshot=portfolio_snapshot,
-        primary_blocker=primary_blocker,
-    )
     reconciliation_recovery_summary = _reconciliation_recovery_summary(
         exchange=exchange,
         market_type=market_type,
@@ -6352,6 +6390,24 @@ def build_read_only_dashboard_shell(
         post_rerun_resolution_audit_report=upbit_paper_post_rerun_operator_resolution_audit_report,
         post_rerun_resolution_closure_report=upbit_paper_post_rerun_resolution_current_evidence_closure_report,
         post_rerun_current_evidence_closure_recheck_report=upbit_paper_post_rerun_current_evidence_closure_recheck_report,
+    )
+    position_snapshot = _position_snapshot(summary, summary_freshness)
+    portfolio_snapshot = _portfolio_snapshot(
+        exchange,
+        market_type,
+        mode,
+        summary,
+        summary_freshness,
+        reconciliation_recovery_summary=reconciliation_recovery_summary,
+    )
+    decision_trace = _decision_trace(summary, primary_blocker, position_snapshot)
+    operation_status = _operation_status(
+        heartbeat=heartbeat,
+        summary_freshness=summary_freshness,
+        heartbeat_freshness=heartbeat_freshness,
+        startup_freshness=startup_freshness,
+        portfolio_snapshot=portfolio_snapshot,
+        primary_blocker=primary_blocker,
     )
     stability_trends = _stability_trends(
         exchange=exchange,
