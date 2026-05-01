@@ -8085,6 +8085,45 @@
       "status": "IMPLEMENTED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-RUNTIME-LEDGER-RECONCILIATION-EVIDENCE",
+      "section_id": "SECTION_LEDGER_RECONCILIATION",
+      "schema_files": [
+        "contracts/schema/paper_ledger_rollup_report.schema.json",
+        "contracts/schema/ledger_event.schema.json"
+      ],
+      "validator_files": [
+        "trader1/core/ledger/paper_ledger.py",
+        "trader1/runtime/ledger/paper_ledger_rollup.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_paper_ledger_rollup.py",
+        "tests/runtime/test_execution_ledger.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/core/ledger/paper_ledger.py",
+        "trader1/runtime/ledger/paper_ledger_rollup.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_4_RUNTIME_INTEGRATION",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-RUNTIME-RECOVERY-GUARD",
       "section_id": "SECTION_LONG_RUN_OPERATION",
       "schema_files": [
@@ -8830,7 +8869,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-01T11:34:43Z",
+  "updated_at_utc": "2026-05-01T12:03:06Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

@@ -1,13 +1,13 @@
 {
   "schema_id": "trader1.review_plan_reflection_ledger.v1",
-  "generated_at_utc": "2026-05-01T06:28:38Z",
+  "generated_at_utc": "2026-05-01T12:03:06Z",
   "review_directory": "\uac80\ud1a0\uc548",
   "authority_files": [
     "TRADER_1.md",
     "AGENTS.md"
   ],
   "authority_priority": "TRADER_1.md > AGENTS.md > review plan addendum > repository code > runtime artifacts",
-  "review_files_count": 45,
+  "review_files_count": 63,
   "expected_review_numbers": [
     1,
     2,
@@ -70,12 +70,10 @@
     "strategy_profitability_loop",
     "upbit_paper_runtime"
   ],
-  "delete_ready_count": 1,
-  "deleted_after_reflection_count": 44,
+  "delete_ready_count": 0,
+  "deleted_after_reflection_count": 63,
   "pending_reflection_count": 0,
-  "delete_ready_files": [
-    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md"
-  ],
+  "delete_ready_files": [],
   "deleted_after_reflection_files": [
     "\uac80\ud1a0\uc548/1.md",
     "\uac80\ud1a0\uc548/10.md",
@@ -120,50 +118,28 @@
     "\uac80\ud1a0\uc548/7.md",
     "\uac80\ud1a0\uc548/8.md",
     "\uac80\ud1a0\uc548/9.md",
-    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md"
+    "\uac80\ud1a0\uc548/TRADER_1_FINAL_FULL_REAUDIT_INTEGRATED.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_10.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_11.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_12.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_13.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_14.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_15.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_16.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_17.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_18.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_19.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_3.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_4.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_5.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_6.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_7.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_8.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_9.md"
   ],
   "review_files": [
-    {
-      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
-      "review_number": null,
-      "sha256": "F26437F57AC6BA34ED6ECE94754E886F6FCBD56D4F788EC40E88E1482FDC1B76",
-      "bytes": 45457,
-      "first_line": "# TRADER_1.zip Full Re-Audit \u2014 Session 2",
-      "theme_ids": [
-        "source_package_hygiene",
-        "binance_spot_futures_scope",
-        "runtime_termination_reproducibility",
-        "upbit_paper_runtime",
-        "dashboard_operator_ux",
-        "portfolio_pnl_truth",
-        "placeholder_readiness_block",
-        "authority_manifest_identity",
-        "ledger_reconciliation_idempotency",
-        "strategy_profitability_loop",
-        "optimizer_convergence_guardrail",
-        "operations_recovery_24x7",
-        "live_safety_external_blocker"
-      ],
-      "reflection_status": "DELETED_AFTER_REFLECTION",
-      "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [
-        "MVP4_SESSION2_REAUDIT_REFLECTION_20260501_001"
-      ],
-      "reflection_evidence_paths": [
-        "system/evidence/patch_results/MVP4_SESSION2_REAUDIT_REFLECTION.patch_result.json",
-        "system/evidence/audit_reports/MVP4_SESSION2_REAUDIT_REFLECTION.audit.json",
-        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
-        "contracts/generated/current_implementation_state.json",
-        "contracts/generated/requirement_index.json"
-      ],
-      "deletion_allowed": false,
-      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
-      "original_review_file_preservation_required_after_reflection": false,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false
-    },
     {
       "review_file": "\uac80\ud1a0\uc548/1.md",
       "review_number": 1,
@@ -1713,6 +1689,48 @@
       "scale_up_allowed": false
     },
     {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_FINAL_FULL_REAUDIT_INTEGRATED.md",
+      "review_number": null,
+      "sha256": "D8A9289E2970BAFC58E5F2BDB2A8639648CF745B4473999B504E2DF8217BC2C6",
+      "bytes": 30120,
+      "first_line": "# TRADER_1.zip Final Integrated Full Re-audit",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
       "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md",
       "review_number": null,
       "sha256": "A027FE0F2CC165DB4D5ED0558C4F54D8CE0183C5F31F22B82AF0E1C130392F06",
@@ -1736,11 +1754,771 @@
       "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
       "reflected_by_patch_ids": [
-        "MVP4_SESSION1_REAUDIT_REFLECTION_20260501_001"
+        "MVP4_SESSION1_REAUDIT_REFLECTION_20260501_001",
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
       ],
       "reflection_evidence_paths": [
         "system/evidence/patch_results/MVP4_SESSION1_REAUDIT_REFLECTION.patch_result.json",
         "system/evidence/audit_reports/MVP4_SESSION1_REAUDIT_REFLECTION.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_10.md",
+      "review_number": null,
+      "sha256": "2A842E04C069ADBB47139719C08E0F572436E48697509A57EBD77C591BB3C744",
+      "bytes": 39923,
+      "first_line": "# TRADER_1.zip Full Re-Audit Session 10",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_11.md",
+      "review_number": null,
+      "sha256": "901BE025C59C3ED3D859A3D320A1671AC254DF2704C76F5C2D8F357ADD956AFD",
+      "bytes": 21754,
+      "first_line": "# TRADER_1 Full Re-audit Session 11",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_12.md",
+      "review_number": null,
+      "sha256": "BA28CF8D3247F0F4E92654A3AC86E23CE563B82D46C1748BF4B8E2E497F12787",
+      "bytes": 28636,
+      "first_line": "# TRADER_1.zip Full Re-Audit - Session 12",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_13.md",
+      "review_number": null,
+      "sha256": "8DC48490996C39A7746B7001D3107B6FEA1095814C52819B37583552860DE3C7",
+      "bytes": 24911,
+      "first_line": "# TRADER_1 Full Reaudit \u2014 Session 13",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_14.md",
+      "review_number": null,
+      "sha256": "DBB6AE92E132D3AB58079854D32A2173A74164423C339BA52E87CE15C907B5EF",
+      "bytes": 40747,
+      "first_line": "# TRADER_1 package full reaudit session 14",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_15.md",
+      "review_number": null,
+      "sha256": "745585523980669222972488DE98693FCF034710FB0F9EE6F4865075A1E597D8",
+      "bytes": 33734,
+      "first_line": "# TRADER_1.zip Full Re-Audit \u2014 Session 15",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_16.md",
+      "review_number": null,
+      "sha256": "2BF87FA412D41D4DFDBF59290E19A06DD3E4377952315C08C7718AA13705AC18",
+      "bytes": 38513,
+      "first_line": "# TRADER_1 Full Re-Audit - Session 16",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_17.md",
+      "review_number": null,
+      "sha256": "431E0A8839551DC9099871114D860408FA54E5C73C2FC9E4158369CFCC07164B",
+      "bytes": 33960,
+      "first_line": "# TRADER_1.zip Full Re-audit Session 17",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_18.md",
+      "review_number": null,
+      "sha256": "5CAB5413D5A224D70D8E107E827544C979DA91500B0A9F70D22DCD81F8DEAF05",
+      "bytes": 29025,
+      "first_line": "# TRADER_1.zip Full Re-audit - Session 18",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_19.md",
+      "review_number": null,
+      "sha256": "20B112C57A278E003A584D74BCF700B0D2D814325CC794BC6C01D39716410D84",
+      "bytes": 27023,
+      "first_line": "# TRADER_1.zip Full Re-audit \u2014 Session 19",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
+      "review_number": null,
+      "sha256": "7EB3001B5C66E02540288845AFA8ECD19E8DD54CFDA8C852A6C7AE0551F23D3A",
+      "bytes": 44424,
+      "first_line": "# TRADER_1.zip Full Re-Audit \u2014 Session 2",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_3.md",
+      "review_number": null,
+      "sha256": "35D2209F64D1E99F2BD01D236B8380DECE326C24C8FC049B563542978957FC70",
+      "bytes": 39916,
+      "first_line": "# TRADER_1.zip Full Re-audit \u2014 Session 3",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_4.md",
+      "review_number": null,
+      "sha256": "AB09F4446396DB059E5F234C8BADFFB0721AFB65A2C14BAF508AE237449BB8BF",
+      "bytes": 27968,
+      "first_line": "# TRADER_1.zip Full Re-audit Session 4",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_5.md",
+      "review_number": null,
+      "sha256": "03CB014B84FEFD6A28E877D514606C997A3DF25AC7B28016E978E4BF08C5FEF0",
+      "bytes": 19515,
+      "first_line": "# TRADER_1.zip Full Re-Audit Session 5",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_6.md",
+      "review_number": null,
+      "sha256": "54338298C5705E46CF06C7EC788125F1F2333C24EE1AB0A50BFB9FD3313CB480",
+      "bytes": 29339,
+      "first_line": "# TRADER_1.zip Full Re-Audit \u2014 Session 6",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_7.md",
+      "review_number": null,
+      "sha256": "3855EDD92D1C64C1FE928E308F70A879E9303669DC683D7A602AEFCEDD383647",
+      "bytes": 29675,
+      "first_line": "# TRADER_1.zip Full Re-audit - Session 7",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_8.md",
+      "review_number": null,
+      "sha256": "AFA1BBAEE0A476FB50501D872F93BD6B054DFFE5444FAC62A36DC1897E7AF8B1",
+      "bytes": 37301,
+      "first_line": "# TRADER_1.zip Full Re-Audit \u2014 Session 8",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_9.md",
+      "review_number": null,
+      "sha256": "9D4092C4D1F8B9CC0EE3335891512A78EFA31D2979E5AA9186858C8F4284AB38",
+      "bytes": 33214,
+      "first_line": "# TRADER_1.zip Full Re-Audit \u2014 Session 9",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
+        "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.review_reflection.audit.json",
         "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
         "contracts/generated/current_implementation_state.json",
         "contracts/generated/requirement_index.json"
@@ -1768,7 +2546,5 @@
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "deleted_files_this_run": [
-    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md"
-  ]
+  "deleted_files_this_run": []
 }

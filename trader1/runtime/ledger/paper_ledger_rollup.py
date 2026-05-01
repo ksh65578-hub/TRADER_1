@@ -8,7 +8,10 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
-from trader1.core.ledger.paper_ledger import validate_upbit_paper_ledger
+from trader1.core.ledger.paper_ledger import (
+    count_incomplete_upbit_paper_order_lifecycles,
+    validate_upbit_paper_ledger,
+)
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json, recover_jsonl_records
 from trader1.runtime.portfolio.paper_portfolio import (
     PAPER_PORTFOLIO_SCHEMA_ID,
@@ -210,6 +213,7 @@ def build_paper_ledger_rollup_report(
     fill_events: list[dict[str, Any]] = []
     duplicate_event_count = 0
     duplicate_order_count = 0
+    lifecycle_incomplete_order_count = 0
     corrupted_ledger_jsonl_quarantined_count = 0
     invalid_ledger_jsonl_count = 0
     seen_event_ids: set[str] = set()
@@ -232,6 +236,7 @@ def build_paper_ledger_rollup_report(
             blockers.append(_blocker("PARTIAL_WRITE_RECOVERY_REQUIRED", "corrupted PAPER ledger JSONL was quarantined during rollup"))
         if not records:
             continue
+        lifecycle_incomplete_order_count += count_incomplete_upbit_paper_order_lifecycles(records)
         ledger_status, ledger_blocker, ledger_message = validate_upbit_paper_ledger(records)
         if ledger_status != "PASS":
             invalid_ledger_jsonl_count += 1
@@ -301,6 +306,7 @@ def build_paper_ledger_rollup_report(
         "filled_order_count": len(fill_events),
         "duplicate_event_count": duplicate_event_count,
         "duplicate_order_count": duplicate_order_count,
+        "lifecycle_incomplete_order_count": lifecycle_incomplete_order_count,
         "corrupted_ledger_jsonl_quarantined_count": corrupted_ledger_jsonl_quarantined_count,
         "invalid_ledger_jsonl_count": invalid_ledger_jsonl_count,
         "latest_ledger_head_hash": latest_ledger_head_hash,
@@ -350,6 +356,7 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
         "filled_order_count",
         "duplicate_event_count",
         "duplicate_order_count",
+        "lifecycle_incomplete_order_count",
         "corrupted_ledger_jsonl_quarantined_count",
         "invalid_ledger_jsonl_count",
         "latest_ledger_head_hash",
@@ -393,6 +400,7 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
         "filled_order_count",
         "duplicate_event_count",
         "duplicate_order_count",
+        "lifecycle_incomplete_order_count",
         "corrupted_ledger_jsonl_quarantined_count",
         "invalid_ledger_jsonl_count",
     ):
@@ -418,6 +426,9 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
     if report.get("duplicate_event_count") or report.get("duplicate_order_count"):
         if report.get("rollup_status") != "BLOCKED":
             return PaperLedgerRollupValidationResult("BLOCKED", "duplicate PAPER ledger rollup must block review", "RECONCILIATION_REQUIRED")
+    if report.get("lifecycle_incomplete_order_count"):
+        if report.get("rollup_status") != "BLOCKED":
+            return PaperLedgerRollupValidationResult("BLOCKED", "incomplete PAPER order lifecycle must block rollup review", "RECONCILIATION_REQUIRED")
     if report.get("corrupted_ledger_jsonl_quarantined_count") or report.get("invalid_ledger_jsonl_count"):
         if report.get("rollup_status") != "BLOCKED":
             return PaperLedgerRollupValidationResult("BLOCKED", "corrupted or invalid PAPER ledger rollup must block review", "PARTIAL_WRITE_RECOVERY_REQUIRED")

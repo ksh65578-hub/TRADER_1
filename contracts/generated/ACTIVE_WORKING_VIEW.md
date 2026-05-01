@@ -1,11 +1,11 @@
 # ACTIVE_WORKING_VIEW
 
-generated_at_utc: 2026-05-01T11:34:43Z
+generated_at_utc: 2026-05-01T12:03:06Z
 source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
 source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
 authority_status: READ_CACHE_NOT_AUTHORITY
 current_mvp: MVP-4
-last_patch_id: MVP4_UPBIT_PAPER_REPAIR_HASH_RECONCILIATION_POLICY_20260501_001
+last_patch_id: MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE_20260501_001
 live_order_ready: false
 live_order_allowed: false
 can_live_trade: false
@@ -13,8 +13,8 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Upbit PAPER repair candidates now carry hash reconciliation details. The current candidate remains BLOCKED because the source loop expected rollup artifact is unavailable/mismatched, so it cannot become current evidence.
+Upbit PAPER ledger rollup now blocks filled-order evidence when the lifecycle lacks intent/reserve/submit/submitted/ack/fill completeness. The current review addendum files were reflected into audit evidence and deleted after reflection. This remains PAPER-only and live-blocked.
 
 ## Next Safe Task
 
-MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE
+MVP4_STRATEGY_REGIME_COST_RUNTIME_LINKAGE
