@@ -900,6 +900,10 @@
       "schema_id": "trader1.paper_ledger_rollup_report.v1",
       "path": "contracts/schema/paper_ledger_rollup_report.schema.json"
     },
+    "upbit_paper_ledger_idempotency_runtime_evidence_report": {
+      "schema_id": "trader1.upbit_paper_ledger_idempotency_runtime_evidence_report.v1",
+      "path": "contracts/schema/upbit_paper_ledger_idempotency_runtime_evidence_report.schema.json"
+    },
     "upbit_paper_ledger_rollup_repair_report": {
       "schema_id": "trader1.upbit_paper_ledger_rollup_repair_report.v1",
       "path": "contracts/schema/upbit_paper_ledger_rollup_repair_report.schema.json"
@@ -1329,6 +1333,7 @@
       "safety_control_validator",
       "ledger_durability_validator",
       "paper_ledger_rollup_validator",
+      "upbit_paper_ledger_idempotency_runtime_evidence_validator",
       "operator_action_audit_validator",
       "operator_control_validator",
       "reconciliation_validator",
@@ -1407,6 +1412,7 @@
       "safety_control_validator",
       "ledger_durability_validator",
       "paper_ledger_rollup_validator",
+      "upbit_paper_ledger_idempotency_runtime_evidence_validator",
       "operator_action_audit_validator",
       "operator_control_validator",
       "reconciliation_validator",
@@ -1615,6 +1621,7 @@
       "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "paper_ledger_rollup_validator",
+      "upbit_paper_ledger_idempotency_runtime_evidence_validator",
       "upbit_live_review_preflight_validator",
       "shadow_observation_runtime_validator",
       "shadow_observation_stream_validator",
