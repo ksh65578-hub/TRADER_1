@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-01T00:24:15Z",
+  "updated_at_utc": "2026-05-01T00:40:57Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -224,6 +224,7 @@
     "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY",
     "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION",
+    "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-REGENERATION-POLICY",
     "REQ-MVP4-UPBIT-PUBLIC-DATA-SEQUENCE-REGIME-GUARD",
     "REQ-MVP4-UPBIT-PUBLIC-MARKET-DATA-COLLECTOR",
     "REQ-MVP4-UPBIT-PUBLIC-REST-CONTINUITY-EVIDENCE",
@@ -320,6 +321,7 @@
     "trader1.upbit_paper_runtime_recovery_guard_report.v1",
     "trader1.upbit_paper_runtime_sample_history.v1",
     "trader1.upbit_paper_stale_loop_reconciliation_report.v1",
+    "trader1.upbit_paper_stale_loop_regeneration_plan.v1",
     "trader1.upbit_public_market_data_collection_report.v1",
     "trader1.upbit_public_market_data_collection_writer_report.v1",
     "trader1.upbit_public_market_data_latest_pointer.v1",
@@ -441,6 +443,7 @@
     "upbit_paper_runtime_recovery_guard_validator",
     "upbit_paper_runtime_sample_history_validator",
     "upbit_paper_stale_loop_reconciliation_validator",
+    "upbit_paper_stale_loop_regeneration_plan_validator",
     "upbit_public_market_data_collection_validator",
     "upbit_public_rest_continuity_history_validator",
     "upbit_public_rest_continuity_validator",
@@ -458,14 +461,15 @@
     "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
     "PATCH_RESULT_VALIDATOR_RUN_GAP",
     "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_RECONCILIATION_20260501_001",
-  "last_patch_result_hash": "9707FD88A1AA11716A3CDAD40DC7C84A69F4D6F4F842F585DC6199FC27D49C60",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_POLICY",
+  "last_patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_POLICY_20260501_001",
+  "last_patch_result_hash": "FC53585C3F20B38AC7435066373E74FED10313CE8724F710DDBE39ED4421C834",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_EXECUTION_GUARD",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "F85B32600B0F809E95A1A5584AA0A86FC27DDAB61527C75D9267B5B0FC735322"
+  "state_hash": "924669819EDDC837D8CB6836FD84D80CD593BCFE4D8DFC4E46E15EE892AFF3D4"
 }

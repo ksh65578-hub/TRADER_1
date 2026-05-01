@@ -10606,6 +10606,66 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-REGENERATION-POLICY",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER stale loop regeneration policy",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-REGENERATION-POLICY: stale loop regeneration must be planned as source-preserving PAPER-only replacement intent before any safe execution patch",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER stale loop regeneration policy",
+      "requirement_kind": "SCHEMA_VALIDATOR_RUNTIME_ARTIFACT_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_stale_loop_regeneration_plan.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_stale_loop_reconciliation_validator",
+        "upbit_paper_stale_loop_regeneration_plan_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_stale_loop_regeneration_plan.schema.json",
+        "contracts/registry.yaml",
+        "trader1/runtime/paper/upbit_paper_stale_loop_regeneration.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_upbit_paper_stale_loop_regeneration.py",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_regeneration_plan.json",
+        "contracts/security/source_bundle_manifest.json",
+        "tools/emit_upbit_paper_stale_loop_regeneration_policy_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_POLICY.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_stale_loop_regeneration.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_RUNTIME_RECOVERY",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION",
+        "REQ-MVP4-UPBIT-PAPER-LONG-RUN-EVIDENCE-BOUNDARY",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "E1620D6CB809DA13121FDF3AD3E48F20B6DC6CAC8E895ECAEA1DAB546CC1EAFD",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_PLAN_ONLY_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PUBLIC-DATA-SEQUENCE-REGIME-GUARD",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -10965,5 +11025,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T00:24:15Z"
+  "updated_at_utc": "2026-05-01T00:40:57Z"
 }
