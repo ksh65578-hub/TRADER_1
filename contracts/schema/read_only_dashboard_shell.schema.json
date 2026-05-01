@@ -84,6 +84,7 @@
             "SHADOW_RUNTIME_ORCHESTRATION",
             "PAPER_RUNTIME_RECOVERY_GUARD",
             "POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP",
+            "POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD"
           ]
@@ -103,6 +104,7 @@
             "runtime_orchestration_report.json",
             "upbit_paper_runtime_recovery_guard_report.json",
             "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+            "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json"
           ]
@@ -455,7 +457,8 @@
             "summary.json",
             "reconciliation_report.json",
             "restart_recovery_report.json",
-            "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"
+            "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+            "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"
           ]
         },
         "reconciliation_status": {
@@ -534,6 +537,45 @@
           "minimum": 0
         },
         "post_rerun_candidate_current_evidence_usable_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_review_guidance_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_RECONCILIATION_REVIEW_REQUIRED",
+            "INVALID"
+          ]
+        },
+        "post_rerun_review_guidance_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "post_rerun_review_guidance_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_review_step_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_forbidden_output_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_guidance_current_evidence_write_authorized_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_guidance_current_evidence_write_allowed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_guidance_candidate_current_evidence_usable_count": {
           "type": "integer",
           "minimum": 0
         },
@@ -4727,7 +4769,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 11,
+      "maxItems": 12,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
