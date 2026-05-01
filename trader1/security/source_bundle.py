@@ -57,6 +57,15 @@ def is_under_allowed_root(relative_path: str, allow_roots: list[str]) -> bool:
     return any(relative_path == root.rstrip("/") or relative_path.startswith(root.rstrip("/") + "/") for root in allow_roots)
 
 
+def is_safe_relative_path(relative_path: str) -> bool:
+    normalized = relative_path.replace("\\", "/")
+    if not normalized or normalized.startswith("/") or normalized.startswith("//"):
+        return False
+    if re.match(r"^[A-Za-z]:", normalized):
+        return False
+    return all(part not in {"", ".", ".."} for part in normalized.split("/"))
+
+
 def matches_pattern(relative_path: str, pattern: str) -> bool:
     normalized = relative_path.replace("\\", "/")
     if pattern.endswith("/"):
@@ -68,6 +77,8 @@ def matches_pattern(relative_path: str, pattern: str) -> bool:
 def classify_path(relative_path: str, denylist: dict[str, Any]) -> BundlePathDecision:
     allow_roots = denylist.get("allow_roots", [])
     deny_paths = denylist.get("deny_paths", [])
+    if not is_safe_relative_path(relative_path):
+        return BundlePathDecision(relative_path, False, "unsafe_relative_path")
     for pattern in deny_paths:
         if matches_pattern(relative_path, pattern):
             return BundlePathDecision(relative_path, False, f"denied:{pattern}")
@@ -97,6 +108,8 @@ def shipped_forbidden_patterns(denylist: dict[str, Any]) -> list[str]:
 
 
 def classify_shipped_forbidden_path(relative_path: str, denylist: dict[str, Any]) -> str | None:
+    if not is_safe_relative_path(relative_path):
+        return "shipped_forbidden:unsafe_relative_path"
     for pattern in shipped_forbidden_patterns(denylist):
         if matches_pattern(relative_path, pattern):
             return f"shipped_forbidden:{pattern}"
@@ -133,18 +146,21 @@ def build_source_bundle_manifest(root: Path = ROOT, denylist: dict[str, Any] | N
     excluded = []
     shipped_forbidden_files = []
     secret_findings = []
+    excluded_secret_findings = []
     for path in iter_repo_files(root):
         relative = normalize_path(path, root)
         shipped_forbidden_reason = classify_shipped_forbidden_path(relative, denylist)
         if shipped_forbidden_reason is not None:
             shipped_forbidden_files.append({"path": relative, "reason": shipped_forbidden_reason})
         decision = classify_path(relative, denylist)
+        findings = detect_credential_material(path)
         if decision.include:
-            findings = detect_credential_material(path)
             if findings:
                 secret_findings.append({"path": relative, "patterns": findings})
             included.append({"path": relative, **source_bundle_file_fingerprint(path)})
         else:
+            if findings:
+                excluded_secret_findings.append({"path": relative, "reason": decision.reason, "patterns": findings})
             excluded.append({"path": relative, "reason": decision.reason})
     return {
         "schema_id": "trader1.source_bundle_manifest.v1",
@@ -156,7 +172,10 @@ def build_source_bundle_manifest(root: Path = ROOT, denylist: dict[str, Any] | N
         "shipped_forbidden_files": shipped_forbidden_files,
         "shipped_forbidden_count": len(shipped_forbidden_files),
         "secret_findings": secret_findings,
-        "contains_secret": bool(secret_findings),
+        "excluded_secret_findings": excluded_secret_findings,
+        "excluded_contains_secret": bool(excluded_secret_findings),
+        "repo_secret_findings_count": len(secret_findings) + len(excluded_secret_findings),
+        "contains_secret": bool(secret_findings or excluded_secret_findings),
         "live_order_ready": False,
         "live_order_allowed": False,
         "can_live_trade": False,

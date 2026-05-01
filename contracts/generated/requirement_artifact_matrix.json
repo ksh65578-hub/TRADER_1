@@ -8980,9 +8980,43 @@
       "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
       "live_affecting": true,
       "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SOURCE-RELEASE-BUNDLE-PATH-SECRET-GUARD",
+      "section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
+      "schema_files": [],
+      "validator_files": [
+        "trader1/security/source_bundle.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/security/test_source_bundle_security.py"
+      ],
+      "fixture_files": [
+        "contracts/security/source_bundle_denylist.json"
+      ],
+      "runtime_modules": [],
+      "evidence_artifacts": [
+        "contracts/security/source_bundle_manifest.json",
+        "system/evidence/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.patch_result.json",
+        "system/evidence/audit_reports/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.audit.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
     }
   ],
-  "updated_at_utc": "2026-05-01T12:45:22Z",
+  "updated_at_utc": "2026-05-01T13:08:15Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

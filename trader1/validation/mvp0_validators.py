@@ -1148,11 +1148,11 @@ def shipped_package_hygiene_validator() -> ValidatorResult:
 
 
 def secret_scan_validator() -> ValidatorResult:
-    manifest = load_source_bundle_manifest()
+    manifest = write_source_bundle_manifest()
     path = ROOT / "contracts" / "security" / "source_bundle_manifest.json"
-    if manifest.get("contains_secret") or manifest.get("secret_findings"):
-        return fail_result("secret_scan_validator", "source bundle candidate contains credential-like material", [path], "BUNDLE_HYGIENE_FAIL")
-    return pass_result("secret_scan_validator", "source bundle candidate has no credential-like findings", [path])
+    if manifest.get("contains_secret") or manifest.get("secret_findings") or manifest.get("excluded_secret_findings"):
+        return fail_result("secret_scan_validator", "repository source or excluded package candidate contains credential-like material", [path], "BUNDLE_HYGIENE_FAIL")
+    return pass_result("secret_scan_validator", "repository source and excluded package candidate have no credential-like findings", [path])
 
 
 def bytecode_free_syntax_validator() -> ValidatorResult:

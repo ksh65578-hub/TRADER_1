@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "864BAFF89FAC1F8AF72F429872FEC2D96AC778FCFC06717AFD3741D9936A58D7",
+      "sha256": "D5CD5580D8CEDF7EECD1CF8EF954D2604ED9F9C21A5B0855701D6C687F0B6C1D",
       "size_bytes": 1096
     },
     {
@@ -1005,8 +1005,8 @@
     },
     {
       "path": "tests/security/test_source_bundle_security.py",
-      "sha256": "9A1BB9A2F00755F2E09541EAD991AE526FF7041719B1789C3A4D2057BBD3647F",
-      "size_bytes": 6006
+      "sha256": "691EE4ED051961709F81FD2CD0FA5C0E62FCCEDB6F91F4D90A168F1DF43BBF44",
+      "size_bytes": 7668
     },
     {
       "path": "tests/validators/__init__.py",
@@ -2804,6 +2804,11 @@
       "size_bytes": 23741
     },
     {
+      "path": "tools/emit_source_release_bundle_path_secret_guard_patch_evidence.py",
+      "sha256": "A0080241CB7FF74BD068EE3424345DB4970406F221C9765CDB6745C9A940737D",
+      "size_bytes": 25164
+    },
+    {
       "path": "tools/emit_stale_heartbeat_recovery_guidance_patch_evidence.py",
       "sha256": "AFF69D6A5F0157F6A52D1AE6EE5FB80ECE1AF6DF450677923D8E802F62FD3D64",
       "size_bytes": 20847
@@ -3880,8 +3885,8 @@
     },
     {
       "path": "trader1/security/source_bundle.py",
-      "sha256": "EE1A15821DE70D4AA3A30EC0F6AA42638E6973EACC712D517166DC84B7450A94",
-      "size_bytes": 6320
+      "sha256": "FCE5E9BCFC87AF21104A053F4C287119F79112328F9F3038049BE220B0AD6D90",
+      "size_bytes": 7331
     },
     {
       "path": "trader1/validation/__init__.py",
@@ -3895,8 +3900,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "F61FCDBC5D4C249148C58EA337A63CCA2631F9117B8C3AF15AF33688FB6002EC",
-      "size_bytes": 756593
+      "sha256": "D9536430BD55A8DBE78B940EC8B39971D7724828762481CF8834DF1A4C90AE6D",
+      "size_bytes": 756688
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4407,6 +4412,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_SOURCE_PACKAGE_HYGIENE_CACHE_DIR_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5582,6 +5591,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.audit.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD.audit_report.json",
       "reason": "denied:system/"
     },
@@ -6630,6 +6643,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_STABILITY_HISTORY_DISTINCT_SNAPSHOT_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -7611,6 +7628,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_SOURCE_PACKAGE_HYGIENE_RUNTIME_TERMINATION_RECONCILIATION_FIX.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8603,6 +8624,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_SOURCE_PACKAGE_HYGIENE_RUNTIME_TERMINATION_RECONCILIATION_FIX.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9611,6 +9636,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_SOURCE_PACKAGE_HYGIENE_RUNTIME_TERMINATION_RECONCILIATION_FIX.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
@@ -11370,6 +11399,9 @@
   "shipped_forbidden_files": [],
   "shipped_forbidden_count": 0,
   "secret_findings": [],
+  "excluded_secret_findings": [],
+  "excluded_contains_secret": false,
+  "repo_secret_findings_count": 0,
   "contains_secret": false,
   "live_order_ready": false,
   "live_order_allowed": false,
