@@ -10,6 +10,7 @@ from typing import Any
 from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation import (
     POST_RERUN_LEDGER_ROLLUP_CANDIDATE_ROLE,
     POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+    upbit_paper_post_rerun_ledger_rollup_reconciliation_hash,
     validate_upbit_paper_post_rerun_ledger_rollup_reconciliation_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -108,6 +109,31 @@ def _safe_load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     if not isinstance(value, dict):
         return None, "NOT_OBJECT"
     return value, None
+
+
+def _source_reconciliation_file_binding(
+    *,
+    root: Path,
+    relative_path: str,
+    expected_hash: Any,
+) -> dict[str, Any]:
+    source, source_error = _safe_load_json(_rooted(root, relative_path))
+    if source is None:
+        return {
+            "source_post_rerun_reconciliation_file_load_status": str(source_error or "UNKNOWN"),
+            "source_post_rerun_reconciliation_file_hash": None,
+            "source_post_rerun_reconciliation_file_recomputed_hash": None,
+            "source_post_rerun_reconciliation_file_hash_match": False,
+        }
+    file_hash = source.get("post_rerun_reconciliation_hash")
+    recomputed_hash = upbit_paper_post_rerun_ledger_rollup_reconciliation_hash(source)
+    hash_match = bool(file_hash == expected_hash == recomputed_hash)
+    return {
+        "source_post_rerun_reconciliation_file_load_status": "PASS" if hash_match else "HASH_MISMATCH",
+        "source_post_rerun_reconciliation_file_hash": file_hash,
+        "source_post_rerun_reconciliation_file_recomputed_hash": recomputed_hash,
+        "source_post_rerun_reconciliation_file_hash_match": hash_match,
+    }
 
 
 def _build_item(*, root: Path, session_id: str, source_item: dict[str, Any]) -> dict[str, Any]:
@@ -240,6 +266,14 @@ def build_upbit_paper_post_rerun_current_evidence_promotion_guard_report(
         blockers.add(source_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
     for item in items:
         blockers.add(str(item.get("item_blocker_code") or "UNKNOWN_BLOCKED"))
+    source_hash = post_rerun_reconciliation_report.get("post_rerun_reconciliation_hash")
+    source_file_binding = _source_reconciliation_file_binding(
+        root=root,
+        relative_path=source_post_rerun_reconciliation_path,
+        expected_hash=source_hash,
+    )
+    if source_file_binding["source_post_rerun_reconciliation_file_load_status"] != "PASS":
+        blockers.add("POST_RERUN_SOURCE_RECONCILIATION_FILE_BINDING_REQUIRED")
     report = {
         "schema_id": UPBIT_PAPER_POST_RERUN_CURRENT_EVIDENCE_PROMOTION_GUARD_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -251,7 +285,8 @@ def build_upbit_paper_post_rerun_current_evidence_promotion_guard_report(
         "session_id": session_id,
         "truth_role": POST_RERUN_CURRENT_EVIDENCE_PROMOTION_GUARD_TRUTH_ROLE,
         "source_post_rerun_reconciliation_path": source_post_rerun_reconciliation_path,
-        "source_post_rerun_reconciliation_hash": post_rerun_reconciliation_report.get("post_rerun_reconciliation_hash"),
+        "source_post_rerun_reconciliation_hash": source_hash,
+        **source_file_binding,
         "source_post_rerun_ledger_rollup_status": post_rerun_reconciliation_report.get("post_rerun_ledger_rollup_status"),
         "source_post_rerun_reconciliation_status": post_rerun_reconciliation_report.get("post_rerun_reconciliation_status"),
         "source_primary_blocker_code": post_rerun_reconciliation_report.get("primary_blocker_code"),
@@ -317,6 +352,10 @@ def validate_upbit_paper_post_rerun_current_evidence_promotion_guard_report(
         "truth_role",
         "source_post_rerun_reconciliation_path",
         "source_post_rerun_reconciliation_hash",
+        "source_post_rerun_reconciliation_file_load_status",
+        "source_post_rerun_reconciliation_file_hash",
+        "source_post_rerun_reconciliation_file_recomputed_hash",
+        "source_post_rerun_reconciliation_file_hash_match",
         "source_post_rerun_ledger_rollup_status",
         "source_post_rerun_reconciliation_status",
         "source_primary_blocker_code",
@@ -405,6 +444,24 @@ def validate_upbit_paper_post_rerun_current_evidence_promotion_guard_report(
     session_id = str(report.get("session_id"))
     if not _artifact_path_allowed(str(report.get("source_post_rerun_reconciliation_path") or ""), session_id):
         return UpbitPaperPostRerunCurrentEvidencePromotionGuardValidationResult("BLOCKED", "source post-rerun reconciliation path escaped PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
+    if (
+        report.get("source_post_rerun_reconciliation_file_load_status") != "PASS"
+        or report.get("source_post_rerun_reconciliation_file_hash_match") is not True
+    ):
+        return UpbitPaperPostRerunCurrentEvidencePromotionGuardValidationResult(
+            "BLOCKED",
+            "source post-rerun reconciliation file binding is missing or mismatched",
+            POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+        )
+    if (
+        report.get("source_post_rerun_reconciliation_file_hash") != report.get("source_post_rerun_reconciliation_hash")
+        or report.get("source_post_rerun_reconciliation_file_recomputed_hash") != report.get("source_post_rerun_reconciliation_hash")
+    ):
+        return UpbitPaperPostRerunCurrentEvidencePromotionGuardValidationResult(
+            "FAIL",
+            "source post-rerun reconciliation file hash does not match source report hash",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
     items = report.get("items")
     if not isinstance(items, list) or report.get("candidate_item_count") != len(items):
         return UpbitPaperPostRerunCurrentEvidencePromotionGuardValidationResult("FAIL", "post-rerun promotion guard item count mismatch", "SCHEMA_IDENTITY_MISMATCH")

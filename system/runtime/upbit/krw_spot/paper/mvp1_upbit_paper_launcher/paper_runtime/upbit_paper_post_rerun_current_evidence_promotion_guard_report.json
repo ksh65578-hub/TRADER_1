@@ -21,7 +21,7 @@
   "current_evidence_write_allowed_count": 0,
   "current_ledger_jsonl_write_allowed": false,
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-01T15:40:53Z",
+  "generated_at_utc": "2026-05-01T19:39:14Z",
   "items": [
     {
       "actual_long_run_evidence_created": false,
@@ -751,7 +751,7 @@
   "private_endpoint_called": false,
   "project_id": "TRADER_1",
   "promotion_eligible": false,
-  "promotion_guard_hash": "9CBAD179A410789E6101F23C4FAB755683055421F94EDAF4CE2857C567DE0CD2",
+  "promotion_guard_hash": "3278029B58710652BC46DFFCAAC1B03F66FEE769672DC61B7467F72A606CA84E",
   "promotion_guard_id": "mvp4-upbit-paper-post-rerun-current-evidence-promotion-guard",
   "promotion_guard_status": "BLOCKED",
   "promotion_review_blocked_count": 8,
@@ -763,6 +763,10 @@
   "source_candidate_rollup_pass_count": 8,
   "source_delete_allowed": false,
   "source_post_rerun_ledger_rollup_status": "PASS",
+  "source_post_rerun_reconciliation_file_hash": "27774F80D5A2AE07398870B1292E7E0F9C2895C306964CFAB6278FDB1517B9B7",
+  "source_post_rerun_reconciliation_file_hash_match": true,
+  "source_post_rerun_reconciliation_file_load_status": "PASS",
+  "source_post_rerun_reconciliation_file_recomputed_hash": "27774F80D5A2AE07398870B1292E7E0F9C2895C306964CFAB6278FDB1517B9B7",
   "source_post_rerun_reconciliation_hash": "27774F80D5A2AE07398870B1292E7E0F9C2895C306964CFAB6278FDB1517B9B7",
   "source_post_rerun_reconciliation_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_ledger_rollup_reconciliation_report.json",
   "source_post_rerun_reconciliation_status": "BLOCKED",
