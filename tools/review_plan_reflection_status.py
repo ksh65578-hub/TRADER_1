@@ -3,12 +3,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in __import__("sys").path:
-    __import__("sys").path.insert(0, str(ROOT))
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools.emit_root_launcher_operator_visibility_patch_evidence import write_json
 
@@ -325,10 +326,14 @@ def mark_current_files_reflected(
     *,
     patch_id: str,
     evidence_paths: list[str],
+    review_files: list[str] | None = None,
     root: Path = ROOT,
 ) -> list[str]:
     marked: list[str] = []
+    target_files = set(review_files or [])
     for entry in ledger.get("review_files", []):
+        if target_files and entry.get("review_file") not in target_files:
+            continue
         if entry.get("reflection_status") == REVIEW_STATUS_DELETED:
             continue
         review_path = root / str(entry.get("review_file", ""))
@@ -367,6 +372,15 @@ def mark_current_files_reflected(
     return marked
 
 
+def _configure_stdout_utf8() -> None:
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if callable(reconfigure):
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true", help="write reflection ledger")
@@ -375,6 +389,7 @@ def main() -> int:
     parser.add_argument("--mark-current-reflected", action="store_true", help="mark currently present review files as reflected")
     parser.add_argument("--reflection-patch-id", default="MANUAL_REVIEW_PLAN_REFLECTION", help="patch id used when marking current files reflected")
     parser.add_argument("--reflection-evidence-path", action="append", default=[], help="evidence path required before reflected files can be deleted")
+    parser.add_argument("--review-file", action="append", default=[], help="specific review file to mark reflected; defaults to all current review files")
     parser.add_argument("--max-delete-count", type=int, default=DEFAULT_MAX_DELETE_COUNT, help="maximum reflected files to delete in one run")
     args = parser.parse_args()
 
@@ -385,6 +400,7 @@ def main() -> int:
             ledger,
             patch_id=args.reflection_patch_id,
             evidence_paths=args.reflection_evidence_path,
+            review_files=args.review_file or None,
         )
     if args.delete_reflected:
         deleted = delete_reflected_files(ledger, max_delete_count=args.max_delete_count)
@@ -393,6 +409,7 @@ def main() -> int:
     if args.write or args.delete_reflected:
         write_json(LEDGER_PATH, ledger)
     output = {"ledger": ledger, "validation": validation}
+    _configure_stdout_utf8()
     print(json.dumps(output, indent=2, ensure_ascii=False))
     if args.validate and validation["status"] != "PASS":
         return 1
