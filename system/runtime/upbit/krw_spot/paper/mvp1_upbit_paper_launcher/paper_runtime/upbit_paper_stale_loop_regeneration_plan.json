@@ -8,7 +8,7 @@
   "duplicate_replacement_path_count": 0,
   "duplicate_runtime_cycle_hash_count": 0,
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-01T01:00:02Z",
+  "generated_at_utc": "2026-05-01T01:22:07Z",
   "invalid_json_count": 0,
   "items": [
     {
@@ -345,7 +345,7 @@
   "order_endpoint_called": false,
   "overwrite_or_delete_count": 0,
   "overwrite_source_allowed": false,
-  "plan_hash": "D2E11DFA14D26E9928356FCA097DD9BF433E4F5D6A4040F71BB773C392F28977",
+  "plan_hash": "208167FD8471818A102F362C3807CE995C1CEECF3F1B4DEC1526F84D23FD59F8",
   "plan_id": "mvp4-upbit-paper-stale-loop-regeneration-policy",
   "plan_role": "PAPER_RUNTIME_STALE_LOOP_REGENERATION_PLAN_NOT_EXECUTION",
   "plan_status": "READY_FOR_SAFE_PAPER_REGENERATION",
@@ -361,7 +361,7 @@
   "source_current_accepted_count": 1,
   "source_excluded_count": 16,
   "source_loop_report_count": 17,
-  "source_reconciliation_hash": "1D2C8740825D0DD8F8E3F0A8A2975362ED23E12B2FCE548861331CC1325992CD",
+  "source_reconciliation_hash": "A12A8C2D4646CCB829CC3A1AFBD6568BFBE83572A012211E6E9409A9607EE5AF",
   "source_reconciliation_status": "BLOCKED",
   "stale_loop_blocker_code": "STALE_PERSISTENT_LOOP_REPORTS_REQUIRE_RECONCILIATION",
   "unsafe_blocked_count": 0
