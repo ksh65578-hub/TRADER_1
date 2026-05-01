@@ -272,6 +272,94 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(rollup["portfolio_snapshot"]["source_paper_ledger_head_hash"], rollup["latest_ledger_head_hash"])
             self.assertFalse(rollup["live_order_allowed"])
 
+    def test_bounded_paper_loop_allows_clean_preflight_resume(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-clean-preflight-a",
+                requested_cycle_count=1,
+            )
+            second = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-clean-preflight-b",
+                requested_cycle_count=1,
+            )
+
+            self.assertEqual(validate_upbit_paper_persistent_loop_report(first).status, "PASS")
+            self.assertEqual(validate_upbit_paper_persistent_loop_report(second).status, "PASS")
+            self.assertTrue(second["preflight_existing_runtime_state_detected"])
+            self.assertEqual(second["preflight_recovery_guard_status"], "PASS")
+            self.assertTrue(second["preflight_paper_runtime_resume_allowed"])
+            self.assertTrue(second["current_evidence_write_allowed"])
+            self.assertEqual(second["completed_cycle_count"], 1)
+            self.assertFalse(second["live_order_allowed"])
+
+    def test_bounded_paper_loop_preflight_blocks_orphan_tmp_before_cycle_write(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            tmp_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/.orphan.tmp"
+            tmp_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path.write_text("partial", encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-preflight-orphan-tmp",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertTrue(loop["preflight_existing_runtime_state_detected"])
+            self.assertEqual(loop["preflight_recovery_guard_status"], "BLOCKED")
+            self.assertEqual(loop["preflight_recovery_guard_primary_blocker_code"], "PARTIAL_WRITE_RECOVERY_REQUIRED")
+            self.assertFalse(loop["preflight_paper_runtime_resume_allowed"])
+            self.assertFalse(loop["current_evidence_write_allowed"])
+            self.assertEqual(loop["completed_cycle_count"], 0)
+            self.assertEqual(loop["cycle_results"], [])
+            latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            self.assertFalse(latest_path.exists())
+            cycle_dir = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles"
+            self.assertFalse(any(cycle_dir.glob("*.runtime_cycle.json")) if cycle_dir.exists() else False)
+            self.assertFalse(loop["live_order_allowed"])
+
+    def test_bounded_paper_loop_preflight_blocks_corrupt_ledger_before_new_cycle_write(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-preflight-corrupt-ledger-a",
+                requested_cycle_count=1,
+            )
+            ledger_path = None
+            for artifact_path in first["cycle_results"][0]["artifact_paths"]:
+                if artifact_path.endswith(".paper_ledger_events.jsonl"):
+                    ledger_path = root / artifact_path
+                    break
+            self.assertIsNotNone(ledger_path)
+            with ledger_path.open("a", encoding="utf-8", newline="") as handle:
+                handle.write('{"partial":')
+
+            second = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-preflight-corrupt-ledger-b",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(second)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(second["preflight_recovery_guard_status"], "BLOCKED")
+            self.assertEqual(second["preflight_recovery_guard_primary_blocker_code"], "PARTIAL_WRITE_RECOVERY_REQUIRED")
+            self.assertFalse(second["current_evidence_write_allowed"])
+            self.assertEqual(second["completed_cycle_count"], 0)
+            new_cycle_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles"
+                / "bounded-paper-loop-preflight-corrupt-ledger-b-cycle-1.runtime_cycle.json"
+            )
+            self.assertFalse(new_cycle_path.exists())
+            self.assertFalse(second["live_order_allowed"])
+
     def test_recovery_guard_blocks_orphan_tmp_file_before_resume(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

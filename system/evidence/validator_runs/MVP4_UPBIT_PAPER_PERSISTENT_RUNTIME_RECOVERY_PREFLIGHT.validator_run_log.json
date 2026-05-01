@@ -1,0 +1,88 @@
+{
+  "validator_run_log_schema_id": "trader1.validator_run_log.v1",
+  "created_at_utc": "2026-05-01T18:58:32Z",
+  "patch_id": "MVP4_UPBIT_PAPER_PERSISTENT_RUNTIME_RECOVERY_PREFLIGHT_20260502_001",
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_persistent_loop_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_runtime_recovery_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_stale_loop_safe_regeneration_executor_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_missing_cycle_rerun_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_bounded_rerun_staging_executor_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_current_evidence_promotion_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "ledger_durability_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "ledger_reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    }
+  ],
+  "validators_untested": [],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

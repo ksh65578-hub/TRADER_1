@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "882EED9E86F3044B0D0F068EC94EB018920B8A86827DF25682A02940B4F71417",
+      "sha256": "98EC35397AFA972A7F37757C71C0B92EE4CDA91AAF4ACDFFE0B4E60ACE9C8A33",
       "size_bytes": 1096
     },
     {
@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "8F16D021C26F18415D024F95B8B0BA8CA7886170F1D16B4C30392103E116ACD7",
-      "size_bytes": 118447
+      "sha256": "8CA36086CA74FECABB3B17F4697D24FB21352D3E6451E4C0B4D2F3AC513A51B8",
+      "size_bytes": 118615
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -410,8 +410,8 @@
     },
     {
       "path": "contracts/schema/summary.schema.json",
-      "sha256": "7B7F93107EBE182828D882EC35EC724CA36B4C305BF869CFAE8D3E1E27086876",
-      "size_bytes": 11361
+      "sha256": "3EED37C3625C3E2CA94A230B4B067D4CE598748D7B8B25C6FB2634C13BBACB20",
+      "size_bytes": 12369
     },
     {
       "path": "contracts/schema/survival_layer_report.schema.json",
@@ -450,8 +450,8 @@
     },
     {
       "path": "contracts/schema/upbit_paper_persistent_loop_report.schema.json",
-      "sha256": "0C38899FDAA2026C789C77F7864B9FE49E51816B00C2A4F037D5260E0D4DFDCB",
-      "size_bytes": 5725
+      "sha256": "31D6C43737778B5FA5831CDFADDA29F905846CD0F21FB34C19F8066F8D9600A6",
+      "size_bytes": 6584
     },
     {
       "path": "contracts/schema/upbit_paper_post_repair_reconciliation_report.schema.json",
@@ -700,13 +700,13 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "A1974D81F6C59BE45D2AE462E4CC43AAAFA0F36BD79BD890551E3930B3436705",
-      "size_bytes": 202047
+      "sha256": "E2A0BE760728BDF0D4ED92A4FCE89036ABD9265DD8997E1E9951EEBBFB53D0B3",
+      "size_bytes": 203033
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
-      "sha256": "52F95DA26C94307CBA83F06698E98FB7AFCE2B11DDEDECBBC3E16C692E8D4B03",
-      "size_bytes": 13837
+      "sha256": "E9408089F7C3C5F4F27BD1D61DAE0511F8A8E2D870D7B6F5037DAB6440369941",
+      "size_bytes": 16100
     },
     {
       "path": "tests/emergency/__init__.py",
@@ -735,8 +735,8 @@
     },
     {
       "path": "tests/integration/test_upbit_public_collection_persistent_loop.py",
-      "sha256": "75E2AB369CAC160D8EF8B58A61444F6ED4348200208BD95FBC962BAD88C3F09B",
-      "size_bytes": 23542
+      "sha256": "A6F0C4C9561EDD0907931704B357F79A5997931ED55EEBB95CA29A95723C154B",
+      "size_bytes": 28311
     },
     {
       "path": "tests/integration/test_upbit_public_rest_continuity.py",
@@ -980,8 +980,8 @@
     },
     {
       "path": "tests/runtime/test_safe_launcher.py",
-      "sha256": "777724FBC3D63EC80AA8D9B74024BDDFE28E3EF25A90A311A4DFE751EA2453DA",
-      "size_bytes": 49668
+      "sha256": "7B166432125FFB10CD27B82EE3F55D2F5ABF31D6610B312ABB25F4E68AD7947C",
+      "size_bytes": 50911
     },
     {
       "path": "tests/runtime/test_safe_smoke.py",
@@ -2334,6 +2334,11 @@
       "size_bytes": 16571
     },
     {
+      "path": "tools/emit_dashboard_paper_configured_capital_ux_patch_evidence.py",
+      "sha256": "E07C66634D488EFEA7621E4C91E408838C42BFB3744D968CDDA26E0F31669516",
+      "size_bytes": 17388
+    },
+    {
       "path": "tools/emit_dashboard_paper_exposure_quality_binding_patch_evidence.py",
       "sha256": "3DFF5479511FC1F9DF3C923D0E9F20E7B4812CECF256EF43BB306AF3BD0D5432",
       "size_bytes": 27571
@@ -3044,6 +3049,11 @@
       "size_bytes": 31687
     },
     {
+      "path": "tools/emit_upbit_paper_persistent_runtime_recovery_preflight_patch_evidence.py",
+      "sha256": "3D112CF6F9B0FC61A8C321EE9166E33C4F7925CF366E00996BBB74345AF2FC67",
+      "size_bytes": 23585
+    },
+    {
       "path": "tools/emit_upbit_paper_portfolio_source_truth_patch_evidence.py",
       "sha256": "C53D37C5299CE7735D8C4FED0BF5220C684C511D965294ABA894B121F11C97A1",
       "size_bytes": 32383
@@ -3192,6 +3202,11 @@
       "path": "tools/emit_validator_patch_evidence.py",
       "sha256": "A393D0452274B8A12507EDA0C0998F9909492194747896A4A07D61AEC0729E5F",
       "size_bytes": 24853
+    },
+    {
+      "path": "tools/emit_windows_console_safe_monitor_default_patch_evidence.py",
+      "sha256": "18B120E0F2BC480E4035AFAD120D9E2A0EC2484941929E091E570AD2CBC54B56",
+      "size_bytes": 16913
     },
     {
       "path": "tools/emit_windows_restart_recovery_artifact_path_guard_patch_evidence.py",
@@ -3685,13 +3700,13 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "6BF51D6BFCBFD68109B0BECF075FAB88D1543C3D32B03B69F0921B9234EBD4A7",
-      "size_bytes": 555749
+      "sha256": "52AEFCB6539B34CFB233721D591E25F78FC166F68DC8E9D186C847A05303B6D3",
+      "size_bytes": 558284
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
-      "sha256": "A2AFDC26AAF401479D4429E811451C2015ADD3AD858A72A9280DB56B9690EC2D",
-      "size_bytes": 22927
+      "sha256": "7D00EC8F93EE9F3CF5C95E7C8C5EF1066539B036D6ADA5A2B96AF0C73526368C",
+      "size_bytes": 28064
     },
     {
       "path": "trader1/execution/__init__.py",
@@ -3815,8 +3830,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "2CEC600A4D98231A42B71954DC11ACC91D00B191C7978CF68759E34314371199",
-      "size_bytes": 57204
+      "sha256": "7391CBD84770BEDDC6D8C6EF77E80C6AA8197D25064FE499AF9B04FC38A580E4",
+      "size_bytes": 57207
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -3900,8 +3915,8 @@
     },
     {
       "path": "trader1/runtime/paper/upbit_paper_persistent_loop.py",
-      "sha256": "B316AACC9597EFCBF906C79B430D30333E59EAA8ABCB7B168FA75673EFC79554",
-      "size_bytes": 39915
+      "sha256": "DBCCC8FECE0BA42F7036A302EC83120F1906DF6D6DEC6AFF670D7CDF1BFE6F70",
+      "size_bytes": 46397
     },
     {
       "path": "trader1/runtime/paper/upbit_paper_post_repair_reconciliation.py",
@@ -3980,8 +3995,8 @@
     },
     {
       "path": "trader1/runtime/paper/upbit_paper_stale_loop_safe_regeneration_executor.py",
-      "sha256": "824D28F5DE04603D470D33D9472E5DA4CE81D363F7C43891CC80565C250D7FC1",
-      "size_bytes": 27134
+      "sha256": "ACF4AEE110B1A74412E666B2249D8B0295DF2F302C8A5DB5E89BEBE319E43735",
+      "size_bytes": 27922
     },
     {
       "path": "trader1/runtime/paper/upbit_public_collector.py",
@@ -4115,8 +4130,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "51A0D2FC0FEEE7DEB75BCF9C175B3DB4B9AD62AB398DA4B62B66369E14D5A2AA",
-      "size_bytes": 881130
+      "sha256": "780A19BB748ACCCEBD41EF9CF72AD6785B5BFAA3C59A3BF9A7AF894D7B6CB899",
+      "size_bytes": 884578
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4207,6 +4222,10 @@
     },
     {
       "path": "contracts/generated/context_pack/DASHBOARD_OPERATION_STATUS_UX.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/DASHBOARD_PAPER_CONFIGURED_CAPITAL_UX.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -4694,6 +4713,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_PERSISTENT_RUNTIME_RECOVERY_PREFLIGHT.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.md",
       "reason": "denied:contracts/generated/"
     },
@@ -5138,6 +5161,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/current_implementation_state.json",
       "reason": "denied:contracts/generated/"
     },
@@ -5283,6 +5310,10 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_DASHBOARD_OPERATION_STATUS_UX_20260429.md",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_DASHBOARD_PAPER_CONFIGURED_CAPITAL_UX_20260502.md",
       "reason": "denied:system/"
     },
     {
@@ -5982,6 +6013,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_PERSISTENT_RUNTIME_RECOVERY_PREFLIGHT_20260502.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.audit.json",
       "reason": "denied:system/"
     },
@@ -6127,6 +6162,10 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT_20260502.md",
       "reason": "denied:system/"
     },
     {
@@ -6399,6 +6438,10 @@
     },
     {
       "path": "system/evidence/MVP4_DASHBOARD_OPERATION_STATUS_UX.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_DASHBOARD_PAPER_CONFIGURED_CAPITAL_UX.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -7082,6 +7125,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_PERSISTENT_RUNTIME_RECOVERY_PREFLIGHT.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -7219,6 +7266,10 @@
     },
     {
       "path": "system/evidence/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -7439,6 +7490,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_DASHBOARD_OPERATION_STATUS_UX.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_DASHBOARD_PAPER_CONFIGURED_CAPITAL_UX.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8122,6 +8177,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_PERSISTENT_RUNTIME_RECOVERY_PREFLIGHT.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.patch_result.json",
       "reason": "denied:system/"
     },
@@ -8259,6 +8318,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8487,6 +8550,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_DASHBOARD_OPERATION_STATUS_UX.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_DASHBOARD_PAPER_CONFIGURED_CAPITAL_UX.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9170,6 +9237,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_PERSISTENT_RUNTIME_RECOVERY_PREFLIGHT.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -9307,6 +9378,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9547,6 +9622,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_DASHBOARD_OPERATION_STATUS_UX.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_DASHBOARD_PAPER_CONFIGURED_CAPITAL_UX.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
@@ -10234,6 +10313,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_PERSISTENT_RUNTIME_RECOVERY_PREFLIGHT.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_PORTFOLIO_SOURCE_TRUTH.validator_run_log.json",
       "reason": "denied:system/"
     },
@@ -10371,6 +10454,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
