@@ -13,6 +13,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation i
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
     POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_ITEM_STATUS,
     POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_OUTCOME,
+    upbit_paper_post_rerun_reconciliation_blocker_rollup_hash,
     validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -35,6 +36,9 @@ POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE_OUTCOME = (
 )
 POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_ITEM_STATUS = (
     "PENDING_OPERATOR_REVIEW_CURRENT_EVIDENCE_BLOCKED"
+)
+POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED = (
+    "POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED"
 )
 
 
@@ -63,6 +67,11 @@ def _runtime_base(root: Path, session_id: str) -> Path:
     return Path(root).resolve() / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
 
+def _rooted(root: Path, relative_path: str) -> Path:
+    parts = [part for part in relative_path.replace("\\", "/").split("/") if part]
+    return Path(root).resolve().joinpath(*parts)
+
+
 def _artifact_path_allowed(path: str, session_id: str) -> bool:
     normalized = path.replace("\\", "/")
     parts = normalized.split("/")
@@ -81,6 +90,53 @@ def _current_ledger_path_allowed(path: str, session_id: str) -> bool:
         and normalized.startswith(f"system/runtime/upbit/krw_spot/paper/{session_id}/ledger/cycles/")
         and normalized.endswith(".paper_ledger_events.jsonl")
     )
+
+
+def _safe_load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None, "MISSING"
+    except UnicodeDecodeError:
+        return None, "INVALID_UTF8"
+    except json.JSONDecodeError:
+        return None, "INVALID_JSON"
+    if not isinstance(value, dict):
+        return None, "NOT_OBJECT"
+    return value, None
+
+
+def _source_blocker_rollup_file_binding(
+    *,
+    root: Path,
+    relative_path: str,
+    expected_hash: Any,
+    session_id: str,
+) -> dict[str, Any]:
+    if not _artifact_path_allowed(relative_path, session_id):
+        return {
+            "source_blocker_rollup_file_load_status": "SCOPE_MISMATCH",
+            "source_blocker_rollup_file_hash": None,
+            "source_blocker_rollup_file_recomputed_hash": None,
+            "source_blocker_rollup_file_hash_match": False,
+        }
+    source, source_error = _safe_load_json(_rooted(root, relative_path))
+    if source is None:
+        return {
+            "source_blocker_rollup_file_load_status": str(source_error or "UNKNOWN"),
+            "source_blocker_rollup_file_hash": None,
+            "source_blocker_rollup_file_recomputed_hash": None,
+            "source_blocker_rollup_file_hash_match": False,
+        }
+    file_hash = source.get("blocker_rollup_hash")
+    recomputed_hash = upbit_paper_post_rerun_reconciliation_blocker_rollup_hash(source)
+    hash_match = bool(file_hash == expected_hash == recomputed_hash)
+    return {
+        "source_blocker_rollup_file_load_status": "PASS" if hash_match else "HASH_MISMATCH",
+        "source_blocker_rollup_file_hash": file_hash,
+        "source_blocker_rollup_file_recomputed_hash": recomputed_hash,
+        "source_blocker_rollup_file_hash_match": hash_match,
+    }
 
 
 def _build_review_steps(blocker_codes: list[str]) -> list[dict[str, Any]]:
@@ -199,10 +255,12 @@ def _build_guidance_item(*, source_item: dict[str, Any]) -> dict[str, Any]:
 
 def build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
     *,
+    root: Path,
     blocker_rollup_report: dict[str, Any],
     source_blocker_rollup_path: str = "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
     guidance_id: str = "upbit-paper-post-rerun-operator-reconciliation-review-guidance",
 ) -> dict[str, Any]:
+    root = Path(root).resolve()
     source_result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(blocker_rollup_report)
     session_id = str(blocker_rollup_report.get("session_id") or "UNKNOWN")
     blocker_codes = sorted({str(code) for code in blocker_rollup_report.get("blocker_codes", []) if code})
@@ -212,6 +270,15 @@ def build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
     guidance_items = [_build_guidance_item(source_item=item) for item in source_items] if source_result.status == "PASS" else []
     review_steps = _build_review_steps(blocker_codes)
     forbidden_outputs = _build_forbidden_outputs()
+    source_hash = blocker_rollup_report.get("blocker_rollup_hash")
+    source_file_binding = _source_blocker_rollup_file_binding(
+        root=root,
+        relative_path=source_blocker_rollup_path,
+        expected_hash=source_hash,
+        session_id=session_id,
+    )
+    if source_file_binding["source_blocker_rollup_file_load_status"] != "PASS":
+        blocker_codes = sorted({*blocker_codes, POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED})
     report = {
         "schema_id": UPBIT_PAPER_POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -224,7 +291,8 @@ def build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
         "truth_role": POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE_TRUTH_ROLE,
         "guidance_role": POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE_ROLE,
         "source_blocker_rollup_path": source_blocker_rollup_path,
-        "source_blocker_rollup_hash": blocker_rollup_report.get("blocker_rollup_hash"),
+        "source_blocker_rollup_hash": source_hash,
+        **source_file_binding,
         "source_blocker_rollup_status": blocker_rollup_report.get("blocker_rollup_status"),
         "source_blocker_rollup_primary_blocker_code": blocker_rollup_report.get("primary_blocker_code"),
         "source_blocker_rollup_outcome": blocker_rollup_report.get("rollup_outcome"),
@@ -293,6 +361,10 @@ def validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_repo
         "guidance_role",
         "source_blocker_rollup_path",
         "source_blocker_rollup_hash",
+        "source_blocker_rollup_file_load_status",
+        "source_blocker_rollup_file_hash",
+        "source_blocker_rollup_file_recomputed_hash",
+        "source_blocker_rollup_file_hash_match",
         "source_blocker_rollup_status",
         "source_blocker_rollup_primary_blocker_code",
         "source_blocker_rollup_outcome",
@@ -390,6 +462,24 @@ def validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_repo
     session_id = str(report.get("session_id"))
     if not _artifact_path_allowed(str(report.get("source_blocker_rollup_path") or ""), session_id):
         return UpbitPaperPostRerunOperatorReconciliationReviewGuidanceValidationResult("BLOCKED", "source blocker rollup path escaped PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
+    if (
+        report.get("source_blocker_rollup_file_load_status") != "PASS"
+        or report.get("source_blocker_rollup_file_hash_match") is not True
+    ):
+        return UpbitPaperPostRerunOperatorReconciliationReviewGuidanceValidationResult(
+            "BLOCKED",
+            "source blocker rollup file binding is missing or mismatched",
+            POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED,
+        )
+    if (
+        report.get("source_blocker_rollup_file_hash") != report.get("source_blocker_rollup_hash")
+        or report.get("source_blocker_rollup_file_recomputed_hash") != report.get("source_blocker_rollup_hash")
+    ):
+        return UpbitPaperPostRerunOperatorReconciliationReviewGuidanceValidationResult(
+            "FAIL",
+            "source blocker rollup file hash does not match source report hash",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
     blocker_codes = report.get("blocker_codes")
     if not isinstance(blocker_codes, list) or POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE not in set(blocker_codes):
         return UpbitPaperPostRerunOperatorReconciliationReviewGuidanceValidationResult("BLOCKED", "post-rerun review guidance missing reconciliation blocker", POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
