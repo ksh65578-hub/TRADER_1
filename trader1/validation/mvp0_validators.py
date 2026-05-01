@@ -283,6 +283,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_decision_audit 
     write_upbit_paper_post_rerun_reconciliation_decision_audit_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
+    POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED,
     build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
     upbit_paper_post_rerun_reconciliation_blocker_rollup_hash,
     validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
@@ -7623,6 +7624,10 @@ def upbit_paper_post_rerun_reconciliation_blocker_rollup_validator() -> Validato
     required = set(schema.get("required", []))
     for field in (
         "source_decision_audit_hash",
+        "source_decision_audit_file_load_status",
+        "source_decision_audit_file_hash",
+        "source_decision_audit_file_recomputed_hash",
+        "source_decision_audit_file_hash_match",
         "source_decision_audit_status",
         "rollup_item_count",
         "primary_blocker_item_count",
@@ -7741,6 +7746,7 @@ def upbit_paper_post_rerun_reconciliation_blocker_rollup_validator() -> Validato
             root=root,
             operator_queue_report=operator_queue,
         )
+        write_upbit_paper_post_rerun_reconciliation_decision_audit_report(root=root, report=decision_audit)
         decision_result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(decision_audit)
         if decision_result.status != "PASS":
             return fail_result(
@@ -7750,6 +7756,7 @@ def upbit_paper_post_rerun_reconciliation_blocker_rollup_validator() -> Validato
                 decision_result.blocker_code or "UNKNOWN_BLOCKED",
             )
         report = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+            root=root,
             decision_audit_report=decision_audit,
         )
         result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(report)
@@ -7762,6 +7769,8 @@ def upbit_paper_post_rerun_reconciliation_blocker_rollup_validator() -> Validato
             )
         if (
             report.get("blocker_rollup_status") != "BLOCKED"
+            or report.get("source_decision_audit_file_load_status") != "PASS"
+            or report.get("source_decision_audit_file_hash_match") is not True
             or report.get("primary_blocker_code") != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
             or report.get("rollup_item_count") != 1
             or report.get("primary_blocker_item_count") != 1
@@ -7845,6 +7854,36 @@ def upbit_paper_post_rerun_reconciliation_blocker_rollup_validator() -> Validato
                 "post-rerun reconciliation blocker rollup path escape was not blocked",
                 paths,
                 path_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH",
+            )
+
+        source_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_reconciliation_decision_audit_report.json"
+        )
+        source_path.unlink()
+        missing_source = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+            root=root,
+            decision_audit_report=decision_audit,
+        )
+        missing_result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(missing_source)
+        if (
+            missing_source.get("source_decision_audit_file_load_status") != "MISSING"
+            or missing_source.get("source_decision_audit_file_hash_match") is not False
+            or missing_result.status != "BLOCKED"
+            or missing_result.blocker_code != POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED
+        ):
+            return fail_result(
+                validator_id,
+                "post-rerun blocker rollup missing source decision audit file was not blocked",
+                paths,
+                missing_result.blocker_code or POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED,
             )
 
     for runtime_path in runtime_report_paths:
@@ -8012,7 +8051,9 @@ def upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator() -
             root=root,
             operator_queue_report=operator_queue,
         )
+        write_upbit_paper_post_rerun_reconciliation_decision_audit_report(root=root, report=decision_audit)
         blocker_rollup = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+            root=root,
             decision_audit_report=decision_audit,
         )
         source_result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(blocker_rollup)

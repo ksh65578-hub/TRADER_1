@@ -16,6 +16,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation i
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_decision_audit import (
     POST_RERUN_RECONCILIATION_WRITE_DENIED_OUTCOME,
     POST_RERUN_RECONCILIATION_WRITE_DENIED_STATUS,
+    upbit_paper_post_rerun_reconciliation_decision_audit_hash,
     validate_upbit_paper_post_rerun_reconciliation_decision_audit_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -34,6 +35,9 @@ POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_OUTCOME = (
     "POST_RERUN_RECONCILIATION_BLOCKERS_ROLLED_UP_CURRENT_EVIDENCE_BLOCKED"
 )
 POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_ITEM_STATUS = "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED = (
+    "POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED"
+)
 
 
 @dataclass(frozen=True)
@@ -61,6 +65,11 @@ def _runtime_base(root: Path, session_id: str) -> Path:
     return Path(root).resolve() / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
 
+def _rooted(root: Path, relative_path: str) -> Path:
+    parts = [part for part in relative_path.replace("\\", "/").split("/") if part]
+    return Path(root).resolve().joinpath(*parts)
+
+
 def _artifact_path_allowed(path: str, session_id: str) -> bool:
     normalized = path.replace("\\", "/")
     parts = normalized.split("/")
@@ -79,6 +88,53 @@ def _current_ledger_path_allowed(path: str, session_id: str) -> bool:
         and normalized.startswith(f"system/runtime/upbit/krw_spot/paper/{session_id}/ledger/cycles/")
         and normalized.endswith(".paper_ledger_events.jsonl")
     )
+
+
+def _safe_load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None, "MISSING"
+    except UnicodeDecodeError:
+        return None, "INVALID_UTF8"
+    except json.JSONDecodeError:
+        return None, "INVALID_JSON"
+    if not isinstance(value, dict):
+        return None, "NOT_OBJECT"
+    return value, None
+
+
+def _source_decision_audit_file_binding(
+    *,
+    root: Path,
+    relative_path: str,
+    expected_hash: Any,
+    session_id: str,
+) -> dict[str, Any]:
+    if not _artifact_path_allowed(relative_path, session_id):
+        return {
+            "source_decision_audit_file_load_status": "SCOPE_MISMATCH",
+            "source_decision_audit_file_hash": None,
+            "source_decision_audit_file_recomputed_hash": None,
+            "source_decision_audit_file_hash_match": False,
+        }
+    source, source_error = _safe_load_json(_rooted(root, relative_path))
+    if source is None:
+        return {
+            "source_decision_audit_file_load_status": str(source_error or "UNKNOWN"),
+            "source_decision_audit_file_hash": None,
+            "source_decision_audit_file_recomputed_hash": None,
+            "source_decision_audit_file_hash_match": False,
+        }
+    file_hash = source.get("decision_audit_hash")
+    recomputed_hash = upbit_paper_post_rerun_reconciliation_decision_audit_hash(source)
+    hash_match = bool(file_hash == expected_hash == recomputed_hash)
+    return {
+        "source_decision_audit_file_load_status": "PASS" if hash_match else "HASH_MISMATCH",
+        "source_decision_audit_file_hash": file_hash,
+        "source_decision_audit_file_recomputed_hash": recomputed_hash,
+        "source_decision_audit_file_hash_match": hash_match,
+    }
 
 
 def _build_rollup_item(*, priority_order: int, session_id: str, decision_item: dict[str, Any]) -> dict[str, Any]:
@@ -151,10 +207,12 @@ def _blocker_counts(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
     *,
+    root: Path,
     decision_audit_report: dict[str, Any],
     source_decision_audit_path: str = "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_decision_audit_report.json",
     rollup_id: str = "upbit-paper-post-rerun-reconciliation-blocker-rollup",
 ) -> dict[str, Any]:
+    root = Path(root).resolve()
     decision_result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(decision_audit_report)
     session_id = str(decision_audit_report.get("session_id") or "UNKNOWN")
     decision_items = [item for item in decision_audit_report.get("items", []) if isinstance(item, dict)]
@@ -175,6 +233,15 @@ def build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
     )
     if decision_result.status != "PASS":
         blockers.add(decision_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+    source_hash = decision_audit_report.get("decision_audit_hash")
+    source_file_binding = _source_decision_audit_file_binding(
+        root=root,
+        relative_path=source_decision_audit_path,
+        expected_hash=source_hash,
+        session_id=session_id,
+    )
+    if source_file_binding["source_decision_audit_file_load_status"] != "PASS":
+        blockers.add(POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED)
     report = {
         "schema_id": UPBIT_PAPER_POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -187,7 +254,8 @@ def build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
         "truth_role": POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_TRUTH_ROLE,
         "blocker_rollup_role": POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_ROLE,
         "source_decision_audit_path": source_decision_audit_path,
-        "source_decision_audit_hash": decision_audit_report.get("decision_audit_hash"),
+        "source_decision_audit_hash": source_hash,
+        **source_file_binding,
         "source_decision_audit_status": decision_audit_report.get("decision_audit_status"),
         "source_decision_audit_primary_blocker_code": decision_audit_report.get("primary_blocker_code"),
         "source_decision_item_count": int(decision_audit_report.get("decision_item_count") or 0),
@@ -253,6 +321,10 @@ def validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
         "blocker_rollup_role",
         "source_decision_audit_path",
         "source_decision_audit_hash",
+        "source_decision_audit_file_load_status",
+        "source_decision_audit_file_hash",
+        "source_decision_audit_file_recomputed_hash",
+        "source_decision_audit_file_hash_match",
         "source_decision_audit_status",
         "source_decision_audit_primary_blocker_code",
         "source_decision_item_count",
@@ -342,6 +414,24 @@ def validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
     session_id = str(report.get("session_id"))
     if not _artifact_path_allowed(str(report.get("source_decision_audit_path") or ""), session_id):
         return UpbitPaperPostRerunReconciliationBlockerRollupValidationResult("BLOCKED", "source decision audit path escaped PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
+    if (
+        report.get("source_decision_audit_file_load_status") != "PASS"
+        or report.get("source_decision_audit_file_hash_match") is not True
+    ):
+        return UpbitPaperPostRerunReconciliationBlockerRollupValidationResult(
+            "BLOCKED",
+            "source decision audit file binding is missing or mismatched",
+            POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED,
+        )
+    if (
+        report.get("source_decision_audit_file_hash") != report.get("source_decision_audit_hash")
+        or report.get("source_decision_audit_file_recomputed_hash") != report.get("source_decision_audit_hash")
+    ):
+        return UpbitPaperPostRerunReconciliationBlockerRollupValidationResult(
+            "FAIL",
+            "source decision audit file hash does not match source report hash",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
     if POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE not in set(report.get("blocker_codes") or []):
         return UpbitPaperPostRerunReconciliationBlockerRollupValidationResult("BLOCKED", "post-rerun blocker rollup missing reconciliation blocker", POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
     items = report.get("items")

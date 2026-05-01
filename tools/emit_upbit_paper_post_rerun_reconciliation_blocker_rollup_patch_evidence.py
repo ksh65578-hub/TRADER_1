@@ -104,6 +104,7 @@ def write_runtime_report() -> dict[str, Any]:
             f"{decision_result.status} {decision_result.blocker_code} {decision_result.message}"
         )
     report = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+        root=ROOT,
         decision_audit_report=decision_audit,
         source_decision_audit_path=base.rel(source_path),
         rollup_id="mvp4-upbit-paper-post-rerun-reconciliation-blocker-rollup",
