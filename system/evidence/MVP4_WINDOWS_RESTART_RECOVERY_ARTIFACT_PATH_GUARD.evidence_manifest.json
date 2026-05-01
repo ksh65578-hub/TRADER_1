@@ -1,0 +1,41 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-05-01T13:28:16Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD_EVIDENCE",
+  "artifact_paths": [
+    "trader1/core/ledger/restart_recovery.py",
+    "contracts/schema/restart_recovery_report.schema.json",
+    "trader1/validation/mvp0_validators.py",
+    "tests/runtime/test_restart_recovery.py",
+    "tools/emit_windows_restart_recovery_artifact_path_guard_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.md",
+    "system/runtime/upbit/krw_spot/paper/recovery/restart_recovery_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/restart_recovery_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_ledger_rollup_repair_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_repair_reconciliation_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/repairs/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.ledger_rollup_candidate.json",
+    "system/evidence/validator_runs/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.patch_result.json",
+    "system/evidence/audit_reports/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.audit.json",
+    "system/evidence/audit_reports/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD_20260501.md"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

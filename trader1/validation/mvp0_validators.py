@@ -5999,7 +5999,19 @@ def restart_recovery_validator() -> ValidatorResult:
     for field in ("source_ledger_event_hash", "previous_wal_hash", "paper_live_namespace_separated", "live_order_allowed", "order_adapter_called"):
         if field not in intent_required:
             return fail_result("restart_recovery_validator", f"intent WAL schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
-    for field in ("ledger_events", "intent_wal_events", "single_writer_recovered", "recovery_action", "live_order_allowed", "order_adapter_called"):
+    for field in (
+        "ledger_events",
+        "intent_wal_events",
+        "single_writer_recovered",
+        "windows_path_recovery_checked",
+        "atomic_write_recovery_checked",
+        "partial_write_recovery_checked",
+        "stale_lock_recovery_checked",
+        "recovery_artifact_paths",
+        "recovery_action",
+        "live_order_allowed",
+        "order_adapter_called",
+    ):
         if field not in restart_required:
             return fail_result("restart_recovery_validator", f"restart recovery schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
 
@@ -6016,6 +6028,16 @@ def restart_recovery_validator() -> ValidatorResult:
         return fail_result("restart_recovery_validator", "restart recovery created forbidden live/order permission", paths, "LIVE_FINAL_GUARD_FAILED")
     if not report.get("ledger_recovered") or not report.get("intent_wal_recovered"):
         return fail_result("restart_recovery_validator", "restart recovery did not recover ledger and intent WAL", paths, "LEDGER_UNAVAILABLE")
+    for field in (
+        "windows_path_recovery_checked",
+        "atomic_write_recovery_checked",
+        "partial_write_recovery_checked",
+        "stale_lock_recovery_checked",
+    ):
+        if report.get(field) is not True:
+            return fail_result("restart_recovery_validator", f"valid paper restart recovery missing {field}", paths, "RECONCILIATION_REQUIRED")
+    if not report.get("recovery_artifact_paths"):
+        return fail_result("restart_recovery_validator", "valid paper restart recovery missing artifact paths", paths, "RECONCILIATION_REQUIRED")
 
     missing_wal = build_restart_recovery_report(restart_id="validator-restart-missing-wal", intent_wal_events=[])
     missing_wal_result = validate_restart_recovery_report(missing_wal, allowed_blockers)
@@ -6065,6 +6087,37 @@ def restart_recovery_validator() -> ValidatorResult:
     cross_scope_result = validate_restart_recovery_report(cross_scope, allowed_blockers)
     if cross_scope_result.status != "BLOCKED" or cross_scope_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
         return fail_result("restart_recovery_validator", "cross-scope intent WAL was not blocked", paths, cross_scope_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH")
+
+    for unsafe_path in (
+        "C:/TRADER_1/system/runtime/restart_recovery_report.json",
+        "system\\runtime\\restart_recovery_report.json",
+        "system/runtime/../restart_recovery_report.json",
+    ):
+        unsafe_artifact = build_restart_recovery_report(
+            restart_id="validator-restart-unsafe-artifact-path",
+            recovery_artifact_paths=[unsafe_path],
+        )
+        unsafe_artifact_result = validate_restart_recovery_report(unsafe_artifact, allowed_blockers)
+        if unsafe_artifact_result.status != "BLOCKED" or unsafe_artifact_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+            return fail_result(
+                "restart_recovery_validator",
+                f"unsafe restart recovery artifact path was not blocked: {unsafe_path}",
+                paths,
+                unsafe_artifact_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH",
+            )
+
+    missing_partial_write = build_restart_recovery_report(
+        restart_id="validator-restart-missing-partial-write",
+        partial_write_recovery_checked=False,
+    )
+    missing_partial_write_result = validate_restart_recovery_report(missing_partial_write, allowed_blockers)
+    if missing_partial_write_result.status != "BLOCKED" or missing_partial_write_result.blocker_code != "RECONCILIATION_REQUIRED":
+        return fail_result(
+            "restart_recovery_validator",
+            "missing partial-write recovery evidence was not blocked",
+            paths,
+            missing_partial_write_result.blocker_code or "RECONCILIATION_REQUIRED",
+        )
 
     for field in ("live_order_allowed", "can_live_trade", "can_submit_order", "order_adapter_called"):
         mutated = build_restart_recovery_report(restart_id=f"validator-restart-mutated-{field}")

@@ -1,0 +1,56 @@
+{
+  "audit_schema_id": "trader1.windows_restart_recovery_artifact_path_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "pass_report_has_windows_path_evidence": true,
+    "pass_report_has_safe_relative_artifacts": true,
+    "drive_path_blocks": true,
+    "backslash_path_blocks": true,
+    "traversal_path_blocks": true,
+    "missing_partial_write_blocks": true,
+    "empty_artifact_paths_block": true,
+    "live_flags_remain_false": true
+  },
+  "case_results": {
+    "pass_report": {
+      "status": "PASS",
+      "blocker_code": null,
+      "message": "paper restart recovery is WAL-backed, ledger-checked, and live-blocked"
+    },
+    "drive_path": {
+      "status": "BLOCKED",
+      "blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+      "message": "restart recovery artifact paths must be safe relative POSIX paths"
+    },
+    "backslash_path": {
+      "status": "BLOCKED",
+      "blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+      "message": "restart recovery artifact paths must be safe relative POSIX paths"
+    },
+    "traversal_path": {
+      "status": "BLOCKED",
+      "blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+      "message": "restart recovery artifact paths must be safe relative POSIX paths"
+    },
+    "missing_partial_write": {
+      "status": "BLOCKED",
+      "blocker_code": "RECONCILIATION_REQUIRED",
+      "message": "restart recovery missing required evidence: partial_write_recovery_checked"
+    },
+    "empty_paths": {
+      "status": "BLOCKED",
+      "blocker_code": "RECONCILIATION_REQUIRED",
+      "message": "restart recovery artifact paths are missing"
+    }
+  },
+  "recovery_artifact_paths": [
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/heartbeat.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/launcher/root_launcher_report.json"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

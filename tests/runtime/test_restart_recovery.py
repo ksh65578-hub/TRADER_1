@@ -22,6 +22,12 @@ class RestartRecoveryTest(unittest.TestCase):
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["can_submit_order"])
         self.assertFalse(report["order_adapter_called"])
+        self.assertTrue(report["windows_path_recovery_checked"])
+        self.assertTrue(report["atomic_write_recovery_checked"])
+        self.assertTrue(report["partial_write_recovery_checked"])
+        self.assertTrue(report["stale_lock_recovery_checked"])
+        self.assertTrue(report["recovery_artifact_paths"])
+        self.assertTrue(all("\\" not in path and not path.startswith("/") for path in report["recovery_artifact_paths"]))
 
     def test_intent_wal_chain_is_hash_linked(self):
         report = build_restart_recovery_report(restart_id="restart-wal")
@@ -141,6 +147,48 @@ class RestartRecoveryTest(unittest.TestCase):
         result = validate_restart_recovery_report(report)
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_windows_drive_artifact_path_blocks_recovery(self):
+        report = build_restart_recovery_report(
+            restart_id="restart-drive-path",
+            recovery_artifact_paths=["C:/TRADER_1/system/runtime/restart_recovery_report.json"],
+        )
+        result = validate_restart_recovery_report(report)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_backslash_artifact_path_blocks_recovery(self):
+        report = build_restart_recovery_report(
+            restart_id="restart-backslash-path",
+            recovery_artifact_paths=["system\\runtime\\restart_recovery_report.json"],
+        )
+        result = validate_restart_recovery_report(report)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_parent_traversal_artifact_path_blocks_recovery(self):
+        report = build_restart_recovery_report(
+            restart_id="restart-traversal-path",
+            recovery_artifact_paths=["system/runtime/../restart_recovery_report.json"],
+        )
+        result = validate_restart_recovery_report(report)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_partial_write_recovery_missing_blocks_pass(self):
+        report = build_restart_recovery_report(
+            restart_id="restart-partial-write-missing",
+            partial_write_recovery_checked=False,
+        )
+        result = validate_restart_recovery_report(report)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "RECONCILIATION_REQUIRED")
+
+    def test_empty_recovery_artifact_paths_blocks_recovery(self):
+        report = build_restart_recovery_report(restart_id="restart-empty-paths", recovery_artifact_paths=[])
+        result = validate_restart_recovery_report(report)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "RECONCILIATION_REQUIRED")
 
     def test_restart_recovery_validator_passes_current_contract(self):
         results = run_validators(["restart_recovery_validator"])
