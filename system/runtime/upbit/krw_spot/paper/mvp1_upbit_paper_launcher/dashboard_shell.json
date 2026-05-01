@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-05-01T21:41:21Z",
+  "generated_at_utc": "2026-05-01T21:57:27Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -97,7 +97,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-05-01T21:41:21Z",
+    "generated_at_utc": "2026-05-01T21:57:27Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -220,7 +220,7 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 89895,
+    "observed_span_seconds": 89707,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 60,
@@ -259,7 +259,7 @@
         "label": "Runtime artifact pressure",
         "status": "WARN",
         "value_display": "WARN",
-        "detail": "Runtime artifact pressure WARN: files=404, bytes=3474675, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
+        "detail": "Runtime artifact pressure WARN: files=406, bytes=3490605, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -307,7 +307,7 @@
     "source": "heartbeat.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 89895,
+    "observed_span_seconds": 89707,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 0,
@@ -1410,9 +1410,9 @@
     "source": "summary.json",
     "source_runtime_cycle_id": "mvp4-upbit-paper-ledger-head-binding-guard-cycle-2",
     "source_paper_ledger_head_hash": "2035343349418DA2D17D531C6D7BDA74CC50C4C902563974485395D8E98F45CD",
-    "source_snapshot_hash": "224DE35556CABC7C53C033B27E4F2BD674B8BA1A83F0B28E96226C546A710AFF",
+    "source_snapshot_hash": "8A5770528E4FCEE82056CD42D1200D129DA794BDC2157D03B016D61D474E698C",
     "source_snapshot_status": "PASS",
-    "source_snapshot_generated_at_utc": "2026-05-01T21:41:21Z",
+    "source_snapshot_generated_at_utc": "2026-05-01T21:57:27Z",
     "source_snapshot_age_seconds": 0,
     "source_snapshot_stale_after_seconds": 300,
     "source_snapshot_freshness_message": "PAPER portfolio snapshot is fresh and display-only",
@@ -1564,5 +1564,5 @@
   "blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "D033E2B1C70D4F0E064F94D92E1E5E0D93F59E0C8A527CF7B8388DE636FBA506"
+  "dashboard_hash": "B4A3215446078198CC4BB97B018F2F4B9EA13F0FE30D858DB7F0A6A85EE3A6E2"
 }

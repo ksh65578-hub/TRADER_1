@@ -127,6 +127,12 @@ from trader1.runtime.ledger.paper_ledger_rollup import (
     paper_ledger_head_report_hash,
     paper_ledger_rollup_hash,
     validate_paper_ledger_rollup_report,
+    write_paper_ledger_rollup_report,
+)
+from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
+    build_upbit_paper_ledger_idempotency_runtime_evidence_report,
+    upbit_paper_ledger_idempotency_runtime_evidence_hash,
+    validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
 from trader1.runtime.operator_control.operator_control import (
     build_operator_action_audit,
@@ -453,6 +459,7 @@ MVP0_CORE_VALIDATORS = [
     "safety_control_validator",
     "ledger_durability_validator",
     "paper_ledger_rollup_validator",
+    "upbit_paper_ledger_idempotency_runtime_evidence_validator",
     "reconciliation_validator",
     "ledger_reconciliation_validator",
     "emergency_flatten_validator",
@@ -3478,6 +3485,177 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
     if path_escape_result.status != "BLOCKED" or path_escape_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
         return fail_result("paper_ledger_rollup_validator", "paper ledger rollup artifact path escape was not blocked", paths, "SNAPSHOT_SCOPE_MISMATCH")
     return pass_result("paper_ledger_rollup_validator", "PAPER ledger rollup aggregates cycle ledgers, blocks duplicates, and stays live-blocked", paths)
+
+
+def upbit_paper_ledger_idempotency_runtime_evidence_validator() -> ValidatorResult:
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_ledger_idempotency_runtime_evidence_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_ledger_idempotency_runtime_evidence.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_ledger_idempotency_runtime_evidence.py"
+    paths = [schema_path, module_path, test_path]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_ledger_idempotency_runtime_evidence_report.v1":
+        return fail_result(
+            "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+            "Upbit PAPER ledger idempotency evidence schema_id mismatch",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if schema.get("additionalProperties") is not False:
+        return fail_result(
+            "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+            "Upbit PAPER ledger idempotency evidence schema must reject unknown fields",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    required = set(schema.get("required", []))
+    for field in (
+        "source_rollup_path",
+        "source_rollup_hash_self_check",
+        "source_ledger_paths",
+        "recomputed_ledger_event_count",
+        "duplicate_event_id_count",
+        "duplicate_dedup_key_count",
+        "duplicate_semantic_event_count",
+        "duplicate_filled_order_key_count",
+        "idempotency_status",
+        "reconciliation_status",
+        "portfolio_provenance_status",
+        "runtime_evidence_status",
+        "current_evidence_write_allowed",
+        "long_run_evidence_eligible",
+        "promotion_eligible",
+        "credential_load_attempted",
+        "private_endpoint_called",
+        "order_endpoint_called",
+        "order_adapter_called",
+        "live_key_loaded",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "can_submit_order",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result(
+                "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+                f"Upbit PAPER ledger idempotency evidence schema missing required field: {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="validator-upbit-paper-ledger-idempotency-evidence",
+            requested_cycle_count=2,
+        )
+        report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root)
+        result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(report)
+        if result.status != "PASS":
+            return fail_result(
+                "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+                f"valid Upbit PAPER ledger idempotency evidence failed: {result.message}",
+                paths,
+                result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+        if (
+            report.get("runtime_evidence_status") != "PASS"
+            or report.get("source_rollup_validation_status") != "PASS"
+            or report.get("idempotency_status") != "PASS"
+            or report.get("reconciliation_status") != "PASS"
+            or report.get("portfolio_provenance_status") != "PASS"
+            or report.get("source_ledger_jsonl_count") != 2
+            or report.get("recomputed_filled_order_count") != 2
+        ):
+            return fail_result(
+                "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+                "valid Upbit PAPER ledger idempotency evidence did not close expected PASS fields",
+                paths,
+                "LEDGER_INTEGRITY_FAIL",
+            )
+        if any(report.get(field) for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "can_submit_order", "scale_up_allowed")):
+            return fail_result(
+                "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+                "Upbit PAPER ledger idempotency evidence created live or scale-up permission",
+                paths,
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        loop = run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="validator-upbit-paper-ledger-idempotency-duplicate",
+            requested_cycle_count=1,
+        )
+        first_path = None
+        for artifact_path in loop["cycle_results"][0]["artifact_paths"]:
+            if str(artifact_path).endswith(".paper_ledger_events.jsonl"):
+                first_path = root / str(artifact_path)
+                break
+        if first_path is None:
+            return fail_result(
+                "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+                "test loop did not write ledger JSONL for duplicate evidence guard",
+                paths,
+                "LEDGER_UNAVAILABLE",
+            )
+        duplicate_path = first_path.with_name("duplicate-idempotency-validator.paper_ledger_events.jsonl")
+        duplicate_path.write_text(first_path.read_text(encoding="utf-8"), encoding="utf-8")
+        duplicate_rollup = build_paper_ledger_rollup_report(
+            root=root,
+            session_id="mvp1_upbit_paper_launcher",
+            rollup_id="validator-upbit-paper-ledger-idempotency-duplicate",
+        )
+        write_paper_ledger_rollup_report(root=root, report=duplicate_rollup)
+        duplicate_report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root)
+        duplicate_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(duplicate_report)
+        if (
+            duplicate_result.status != "BLOCKED"
+            or duplicate_result.blocker_code != "RECONCILIATION_REQUIRED"
+            or duplicate_report.get("idempotency_status") != "BLOCKED"
+            or duplicate_report.get("duplicate_event_id_count", 0) <= 0
+        ):
+            return fail_result(
+                "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+                "duplicate Upbit PAPER ledger events were not blocked by idempotency evidence",
+                paths,
+                "RECONCILIATION_REQUIRED",
+            )
+
+    live_mutation = dict(report)
+    live_mutation["live_order_allowed"] = True
+    live_mutation["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(live_mutation)
+    live_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+            "Upbit PAPER ledger idempotency evidence live mutation was not blocked",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    path_escape = dict(report)
+    path_escape["source_ledger_paths"] = list(path_escape["source_ledger_paths"]) + [
+        "system/runtime/upbit/krw_spot/live/mvp1_upbit_paper_launcher/ledger/unsafe.paper_ledger_events.jsonl"
+    ]
+    path_escape["recomputed_ledger_jsonl_count"] = len(path_escape["source_ledger_paths"])
+    path_escape["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(path_escape)
+    path_escape_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(path_escape)
+    if path_escape_result.status != "BLOCKED" or path_escape_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+        return fail_result(
+            "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+            "Upbit PAPER ledger idempotency evidence path escape was not blocked",
+            paths,
+            "SNAPSHOT_SCOPE_MISMATCH",
+        )
+
+    return pass_result(
+        "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+        "Upbit PAPER ledger idempotency runtime evidence recomputes counts, blocks duplicates, and stays live-blocked",
+        paths,
+    )
 
 
 def reconciliation_validator() -> ValidatorResult:
@@ -16536,6 +16714,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "safety_control_validator": safety_control_validator,
     "ledger_durability_validator": ledger_durability_validator,
     "paper_ledger_rollup_validator": paper_ledger_rollup_validator,
+    "upbit_paper_ledger_idempotency_runtime_evidence_validator": upbit_paper_ledger_idempotency_runtime_evidence_validator,
     "reconciliation_validator": reconciliation_validator,
     "ledger_reconciliation_validator": ledger_reconciliation_validator,
     "emergency_flatten_validator": emergency_flatten_validator,

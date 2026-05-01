@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-05-01T21:41:21Z",
+  "generated_at_utc": "2026-05-01T21:57:27Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -47,11 +47,11 @@
   "portfolio": {
     "source": "LEDGER",
     "freshness_status": "PASS",
-    "source_snapshot_hash": "224DE35556CABC7C53C033B27E4F2BD674B8BA1A83F0B28E96226C546A710AFF",
+    "source_snapshot_hash": "8A5770528E4FCEE82056CD42D1200D129DA794BDC2157D03B016D61D474E698C",
     "source_runtime_cycle_id": "mvp4-upbit-paper-ledger-head-binding-guard-cycle-2",
     "source_paper_ledger_head_hash": "2035343349418DA2D17D531C6D7BDA74CC50C4C902563974485395D8E98F45CD",
     "source_snapshot_status": "PASS",
-    "source_snapshot_generated_at_utc": "2026-05-01T21:41:21Z",
+    "source_snapshot_generated_at_utc": "2026-05-01T21:57:27Z",
     "source_snapshot_age_seconds": 0,
     "source_snapshot_stale_after_seconds": 300,
     "source_snapshot_freshness_message": "PAPER portfolio snapshot is fresh and display-only",
