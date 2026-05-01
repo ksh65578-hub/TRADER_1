@@ -1,0 +1,20 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-01T01:23:06Z",
+  "patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_SAFE_REGENERATION_EXECUTOR_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_SAFE_REGENERATION_COMPLETED_RECONCILIATION_REQUIRED",
+  "executor_status": "PASS",
+  "planned_regeneration_item_count": 16,
+  "regenerated_item_count": 16,
+  "skipped_item_count": 0,
+  "replacement_artifact_count": 16,
+  "source_retention_required": true,
+  "actual_regeneration_performed": true,
+  "actual_long_run_evidence_created": false,
+  "long_run_evidence_eligible": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
