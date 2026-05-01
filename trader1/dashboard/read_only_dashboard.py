@@ -15,6 +15,9 @@ from trader1.runtime.health.stability_history import (
     DEFAULT_MIN_VALIDATED_SPAN_SECONDS,
 )
 from trader1.runtime.paper.upbit_paper_persistent_loop import validate_upbit_paper_runtime_recovery_guard_report
+from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
+    validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
 
@@ -27,11 +30,17 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "shadow_observation_persistent_runtime_report.json",
     "runtime_orchestration_report.json",
     "upbit_paper_runtime_recovery_guard_report.json",
+    "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
-RECONCILIATION_RECOVERY_SOURCES = {"summary.json", "reconciliation_report.json", "restart_recovery_report.json"}
+RECONCILIATION_RECOVERY_SOURCES = {
+    "summary.json",
+    "reconciliation_report.json",
+    "restart_recovery_report.json",
+    "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+}
 ORDER_AFFECTING_FINAL_ACTIONS = {
     "ENTER_LONG",
     "ENTER_SHORT",
@@ -140,6 +149,8 @@ RECONCILIATION_RECOVERY_REPORT_STATUSES = {
 RECONCILIATION_RECOVERY_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 RECONCILIATION_RECOVERY_LEDGER_STATES = {"NOT_LOADED", "PAPER_LEDGER_MATCHED", "RECONCILE_REQUIRED", "INVALID"}
 RECONCILIATION_RECOVERY_WRITER_STATES = {"NOT_LOADED", "RECOVERED", "RECONCILE_REQUIRED", "INVALID"}
+POST_RERUN_BLOCKER_ROLLUP_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
+POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 OPERATOR_ACTION_STATUSES = {"PAPER_MONITORING", "PAPER_REVIEW_READY", "REFRESH_REQUIRED", "ACTION_REQUIRED", "BLOCKED"}
 OPERATOR_ACTION_KINDS = {"CONTINUE_PAPER", "REFRESH_DASHBOARD", "REVIEW_PAPER_EVIDENCE", "RESOLVE_BLOCKER", "STOP_AND_INSPECT"}
 OPERATOR_WORKFLOW_STEPS = {"RUN_PAPER", "INSPECT_DASHBOARD", "COLLECT_EVIDENCE", "LIVE_REVIEW_BLOCKED"}
@@ -2563,6 +2574,7 @@ def _operator_action_summary(
     *,
     primary_blocker: str | None,
     operation_status: dict[str, Any],
+    reconciliation_recovery_summary: dict[str, Any],
     long_run_operator_summary: dict[str, Any],
     profitability_maturity: dict[str, Any],
     risk_exposure_snapshot: dict[str, Any],
@@ -2575,15 +2587,25 @@ def _operator_action_summary(
     risk_status = risk_exposure_snapshot.get("status")
     maturity_status = profitability_maturity.get("status")
     feedback_status = execution_feedback_snapshot.get("status")
+    reconciliation_status = reconciliation_recovery_summary.get("status")
 
-    if operation_severity == "ERROR" or risk_status == "BLOCKED" or feedback_status == "BLOCKED":
+    if (
+        operation_severity == "ERROR"
+        or reconciliation_status in {"BLOCKED", "INVALID"}
+        or risk_status == "BLOCKED"
+        or feedback_status == "BLOCKED"
+    ):
         status = "BLOCKED"
         severity = "ERROR"
         color_token = "red"
         primary_action = "STOP_AND_INSPECT"
         workflow_step = "INSPECT_DASHBOARD"
         label = "Stop review and inspect the blocker"
-        next_operator_action = "Keep trading disabled and inspect the red blocker before continuing PAPER review."
+        next_operator_action = (
+            reconciliation_recovery_summary.get("next_operator_action")
+            if reconciliation_status in {"BLOCKED", "INVALID"}
+            else "Keep trading disabled and inspect the red blocker before continuing PAPER review."
+        )
     elif long_run_status == "STALE" or risk_status == "STALE" or feedback_status == "STALE":
         status = "REFRESH_REQUIRED"
         severity = "WARNING"
@@ -4910,6 +4932,14 @@ def _scope_matches(report: dict[str, Any], *, exchange: str, market_type: str, m
     )
 
 
+def _safe_count(value: Any) -> int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return value if value >= 0 else 0
+    return 0
+
+
 def _reconciliation_recovery_summary(
     *,
     exchange: str,
@@ -4918,17 +4948,28 @@ def _reconciliation_recovery_summary(
     session_id: str,
     reconciliation_report: dict[str, Any] | None,
     restart_recovery_report: dict[str, Any] | None,
+    post_rerun_blocker_rollup_report: dict[str, Any] | None,
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
     restart_loaded = isinstance(restart_recovery_report, dict)
+    post_rerun_rollup_loaded = isinstance(post_rerun_blocker_rollup_report, dict)
     reconciliation_status = "NOT_LOADED"
     restart_status = "NOT_LOADED"
+    post_rerun_rollup_status = "NOT_LOADED"
     reconciliation_validation_status = "UNTESTED"
     restart_validation_status = "UNTESTED"
+    post_rerun_rollup_validation_status = "UNTESTED"
     ledger_state = "NOT_LOADED"
     single_writer_state = "NOT_LOADED"
     idempotency_state = "NOT_LOADED"
     mismatch_count = 0
+    post_rerun_rollup_item_count = 0
+    post_rerun_unique_blocker_count = 0
+    post_rerun_primary_blocker_item_count = 0
+    post_rerun_current_evidence_write_authorized_count = 0
+    post_rerun_current_evidence_write_allowed_count = 0
+    post_rerun_candidate_current_evidence_usable_count = 0
+    post_rerun_blocker_codes: list[str] = []
     primary_blocker = "RECONCILIATION_REQUIRED"
     source = "summary.json"
     issue_messages: list[str] = []
@@ -4995,13 +5036,72 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Restart recovery status is unknown.")
 
-    if not reconciliation_loaded and not restart_loaded:
+    if post_rerun_rollup_loaded:
+        source = "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"
+        post_rerun_rollup_status = str(post_rerun_blocker_rollup_report.get("blocker_rollup_status", "INVALID"))
+        rollup_result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(post_rerun_blocker_rollup_report)
+        post_rerun_rollup_validation_status = rollup_result.status
+        if rollup_result.status != "PASS":
+            post_rerun_rollup_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = rollup_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(f"Post-rerun blocker rollup invalid: {rollup_result.message}")
+        elif not _scope_matches(post_rerun_blocker_rollup_report, exchange=exchange, market_type=market_type, mode=mode, session_id=session_id):
+            post_rerun_rollup_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Post-rerun blocker rollup scope does not match this dashboard.")
+        elif post_rerun_rollup_status == "BLOCKED":
+            post_rerun_rollup_item_count = _safe_count(post_rerun_blocker_rollup_report.get("rollup_item_count"))
+            post_rerun_unique_blocker_count = _safe_count(post_rerun_blocker_rollup_report.get("unique_blocker_count"))
+            post_rerun_primary_blocker_item_count = _safe_count(post_rerun_blocker_rollup_report.get("primary_blocker_item_count"))
+            post_rerun_current_evidence_write_authorized_count = _safe_count(
+                post_rerun_blocker_rollup_report.get("current_evidence_write_authorized_count")
+            )
+            post_rerun_current_evidence_write_allowed_count = _safe_count(
+                post_rerun_blocker_rollup_report.get("current_evidence_write_allowed_count")
+            )
+            post_rerun_candidate_current_evidence_usable_count = _safe_count(
+                post_rerun_blocker_rollup_report.get("candidate_current_evidence_usable_count")
+            )
+            raw_codes = post_rerun_blocker_rollup_report.get("blocker_codes", [])
+            post_rerun_blocker_codes = [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            ledger_state = "RECONCILE_REQUIRED"
+            single_writer_state = "RECONCILE_REQUIRED"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = str(post_rerun_blocker_rollup_report.get("primary_blocker_code") or "POST_RERUN_RECONCILIATION_REQUIRED")
+            issue_messages.append(
+                "Post-rerun blocker rollup requires operator reconciliation before current evidence can be considered."
+            )
+        else:
+            post_rerun_rollup_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Post-rerun blocker rollup status is unknown.")
+
+    if not reconciliation_loaded and not restart_loaded and not post_rerun_rollup_loaded:
         status = "NOT_LOADED"
         severity = "WARNING"
         color_token = "yellow"
         one_line_blocker = "RECONCILIATION_REQUIRED: ledger/reconciliation and restart recovery evidence are not loaded."
         next_action = "Run PAPER with reconciliation and restart recovery artifacts, then review this panel before live review."
         message = "Ledger/reconciliation evidence is not loaded; portfolio values remain display-only."
+    elif post_rerun_rollup_status == "BLOCKED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = f"{primary_blocker}: {post_rerun_rollup_item_count} post-rerun item(s) remain blocked from current evidence."
+        next_action = "Inspect the post-rerun blocker rollup and resolve operator reconciliation before any current evidence review."
+        message = (
+            f"Post-rerun reconciliation remains blocked: {post_rerun_unique_blocker_count} unresolved blocker code(s), "
+            f"{post_rerun_current_evidence_write_allowed_count} current-evidence writes allowed."
+        )
     elif (
         reconciliation_status == "PASS"
         and restart_status == "PASS"
@@ -5049,6 +5149,15 @@ def _reconciliation_recovery_summary(
         "reconciliation_validation_status": reconciliation_validation_status,
         "restart_recovery_status": restart_status,
         "restart_recovery_validation_status": restart_validation_status,
+        "post_rerun_blocker_rollup_status": post_rerun_rollup_status,
+        "post_rerun_blocker_rollup_validation_status": post_rerun_rollup_validation_status,
+        "post_rerun_blocker_rollup_item_count": post_rerun_rollup_item_count,
+        "post_rerun_unique_blocker_count": post_rerun_unique_blocker_count,
+        "post_rerun_primary_blocker_item_count": post_rerun_primary_blocker_item_count,
+        "post_rerun_current_evidence_write_authorized_count": post_rerun_current_evidence_write_authorized_count,
+        "post_rerun_current_evidence_write_allowed_count": post_rerun_current_evidence_write_allowed_count,
+        "post_rerun_candidate_current_evidence_usable_count": post_rerun_candidate_current_evidence_usable_count,
+        "post_rerun_blocker_codes": post_rerun_blocker_codes,
         "ledger_state": ledger_state,
         "single_writer_state": single_writer_state,
         "idempotency_state": idempotency_state,
@@ -5088,6 +5197,7 @@ def build_read_only_dashboard_shell(
     paper_exposure_quality_report: dict[str, Any] | None = None,
     reconciliation_report: dict[str, Any] | None = None,
     restart_recovery_report: dict[str, Any] | None = None,
+    upbit_paper_post_rerun_reconciliation_blocker_rollup_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
     optimizer_feedback_report: dict[str, Any] | None = None,
@@ -5112,6 +5222,7 @@ def build_read_only_dashboard_shell(
         "shadow_persistent_runtime": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/shadow_observation_persistent_runtime_report.json",
         "shadow_runtime_orchestration": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/runtime_orchestration_report.json",
         "upbit_paper_runtime_recovery_guard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
+        "upbit_paper_post_rerun_reconciliation_blocker_rollup": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
     }
@@ -5234,6 +5345,30 @@ def build_read_only_dashboard_shell(
                 recovery_guard_freshness,
             )
         )
+    if isinstance(upbit_paper_post_rerun_reconciliation_blocker_rollup_report, dict):
+        rollup_result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+            upbit_paper_post_rerun_reconciliation_blocker_rollup_report
+        )
+        rollup_freshness = (
+            "PASS"
+            if rollup_result.status == "PASS"
+            and upbit_paper_post_rerun_reconciliation_blocker_rollup_report.get("blocker_rollup_status") == "BLOCKED"
+            and upbit_paper_post_rerun_reconciliation_blocker_rollup_report.get("current_evidence_write_allowed") is False
+            and upbit_paper_post_rerun_reconciliation_blocker_rollup_report.get("live_order_allowed") is False
+            and upbit_paper_post_rerun_reconciliation_blocker_rollup_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP",
+                paths.get(
+                    "upbit_paper_post_rerun_reconciliation_blocker_rollup",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+                ),
+                True,
+                rollup_freshness,
+            )
+        )
     market_data_continuity_status = _market_data_continuity_status(
         report=upbit_public_rest_continuity_history,
         exchange=exchange,
@@ -5277,8 +5412,8 @@ def build_read_only_dashboard_shell(
         session_id=session_id,
         reconciliation_report=reconciliation_report,
         restart_recovery_report=restart_recovery_report,
+        post_rerun_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
     )
-    recent_events = _recent_events(summary, summary_freshness, decision_trace, position_snapshot, operation_status)
     stability_trends = _stability_trends(
         exchange=exchange,
         market_type=market_type,
@@ -5353,9 +5488,18 @@ def build_read_only_dashboard_shell(
         optimizer_feedback_report=optimizer_feedback_report,
         summary_freshness=summary_freshness,
     )
+    dashboard_primary_blocker = (
+        reconciliation_recovery_summary.get("primary_blocker_code")
+        if reconciliation_recovery_summary.get("status") in {"BLOCKED", "INVALID"}
+        else primary_blocker
+    )
+    if dashboard_primary_blocker != primary_blocker:
+        decision_trace = _decision_trace(summary, dashboard_primary_blocker, position_snapshot)
+    recent_events = _recent_events(summary, summary_freshness, decision_trace, position_snapshot, operation_status)
     operator_action_summary = _operator_action_summary(
-        primary_blocker=primary_blocker,
+        primary_blocker=dashboard_primary_blocker,
         operation_status=operation_status,
+        reconciliation_recovery_summary=reconciliation_recovery_summary,
         long_run_operator_summary=long_run_operator_summary,
         profitability_maturity=profitability_maturity,
         risk_exposure_snapshot=risk_exposure_snapshot,
@@ -5440,8 +5584,8 @@ def build_read_only_dashboard_shell(
         "can_live_trade": False,
         "scale_up_allowed": False,
         "can_submit_order": False,
-        "final_action": "NO_TRADE" if primary_blocker else "SAFE_MODE",
-        "blocking_reason": primary_blocker,
+        "final_action": "NO_TRADE" if dashboard_primary_blocker else "SAFE_MODE",
+        "blocking_reason": dashboard_primary_blocker,
         "next_action": "continue read-only monitoring; resolve blockers before any trading review",
         "forbidden_wording_detected": False,
         "dashboard_hash": "",
@@ -5538,8 +5682,16 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "next_operator_action",
                 "reconciliation_status",
                 "restart_recovery_status",
+                "post_rerun_blocker_rollup_status",
+                "post_rerun_blocker_rollup_validation_status",
+                "post_rerun_blocker_rollup_item_count",
+                "post_rerun_unique_blocker_count",
+                "post_rerun_primary_blocker_item_count",
+                "post_rerun_current_evidence_write_allowed_count",
             )
         )
+        for code in reconciliation.get("post_rerun_blocker_codes", []):
+            values.append(str(code))
     stability = shell.get("stability_trends", {})
     if isinstance(stability, dict):
         values.extend(str(stability.get(key, "")) for key in ("title", "status", "severity", "summary", "history_window"))
@@ -5973,6 +6125,49 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "reconciliation validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("restart_recovery_validation_status") not in RECONCILIATION_RECOVERY_VALIDATION_STATUSES:
         return DashboardValidationResult("FAIL", "restart recovery validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    post_rerun_rollup_status = reconciliation.get("post_rerun_blocker_rollup_status", "NOT_LOADED")
+    post_rerun_rollup_validation_status = reconciliation.get("post_rerun_blocker_rollup_validation_status", "UNTESTED")
+    if post_rerun_rollup_status not in POST_RERUN_BLOCKER_ROLLUP_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun blocker rollup status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_rollup_validation_status not in POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun blocker rollup validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    post_rerun_count_fields = (
+        "post_rerun_blocker_rollup_item_count",
+        "post_rerun_unique_blocker_count",
+        "post_rerun_primary_blocker_item_count",
+        "post_rerun_current_evidence_write_authorized_count",
+        "post_rerun_current_evidence_write_allowed_count",
+        "post_rerun_candidate_current_evidence_usable_count",
+    )
+    for field in post_rerun_count_fields:
+        value = reconciliation.get(field, 0)
+        if not isinstance(value, int) or value < 0:
+            return DashboardValidationResult("FAIL", f"post-rerun blocker rollup count is invalid: {field}", "SCHEMA_IDENTITY_MISMATCH")
+    post_rerun_blocker_codes = reconciliation.get("post_rerun_blocker_codes", [])
+    if post_rerun_blocker_codes is None:
+        post_rerun_blocker_codes = []
+    if not isinstance(post_rerun_blocker_codes, list) or any(not isinstance(code, str) or not code for code in post_rerun_blocker_codes):
+        return DashboardValidationResult("FAIL", "post-rerun blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_rollup_status == "BLOCKED":
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source") != "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"
+            or reconciliation.get("primary_blocker_code") != "POST_RERUN_RECONCILIATION_REQUIRED"
+            or reconciliation.get("post_rerun_blocker_rollup_validation_status") != "PASS"
+            or reconciliation.get("post_rerun_blocker_rollup_item_count", 0) <= 0
+            or reconciliation.get("post_rerun_primary_blocker_item_count", 0) <= 0
+            or reconciliation.get("post_rerun_unique_blocker_count", 0) <= 0
+            or "POST_RERUN_RECONCILIATION_REQUIRED" not in set(post_rerun_blocker_codes)
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun blocker rollup must render as a red reconciliation blocker", "LIVE_FINAL_GUARD_FAILED")
+        if (
+            reconciliation.get("post_rerun_current_evidence_write_authorized_count", 0) != 0
+            or reconciliation.get("post_rerun_current_evidence_write_allowed_count", 0) != 0
+            or reconciliation.get("post_rerun_candidate_current_evidence_usable_count", 0) != 0
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun blocker rollup cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
     if reconciliation.get("ledger_state") not in RECONCILIATION_RECOVERY_LEDGER_STATES:
         return DashboardValidationResult("FAIL", "ledger state display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("single_writer_state") not in RECONCILIATION_RECOVERY_WRITER_STATES:
@@ -6682,6 +6877,12 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("BLOCKED", "operator action summary must keep live review blocked and paper-only", "LIVE_FINAL_GUARD_FAILED")
     if operator_action.get("safe_to_continue_paper") is True and operator_action.get("status") not in {"PAPER_MONITORING", "PAPER_REVIEW_READY"}:
         return DashboardValidationResult("BLOCKED", "safe-to-continue flag is inconsistent with operator action status", "HARD_TRUTH_MISSING")
+    if reconciliation.get("status") in {"BLOCKED", "INVALID"} and (
+        operator_action.get("status") != "BLOCKED"
+        or operator_action.get("primary_blocker_code") != reconciliation.get("primary_blocker_code")
+        or operator_action.get("safe_to_continue_paper") is not False
+    ):
+        return DashboardValidationResult("BLOCKED", "operator action must surface blocked reconciliation or post-rerun blocker rollup", "HARD_TRUTH_MISSING")
     risk_for_operator = shell.get("risk_exposure_snapshot") if isinstance(shell.get("risk_exposure_snapshot"), dict) else {}
     if operator_action.get("status") == "PAPER_MONITORING" and (
         operation.get("severity") != "NORMAL"
@@ -7730,6 +7931,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p>report={safe_text(reconciliation.get('restart_recovery_status', 'NOT_LOADED'))}<br>validator={safe_text(reconciliation.get('restart_recovery_validation_status', 'UNTESTED'))}</p></div>"
         "<div><strong>Ledger / Writer</strong>"
         f"<p>ledger={safe_text(reconciliation.get('ledger_state', 'NOT_LOADED'))}<br>single-writer={safe_text(reconciliation.get('single_writer_state', 'NOT_LOADED'))}<br>idempotency={safe_text(reconciliation.get('idempotency_state', 'NOT_LOADED'))}</p></div>"
+        "<div><strong>Post-Rerun Blockers</strong>"
+        f"<p>rollup={safe_text(reconciliation.get('post_rerun_blocker_rollup_status', 'NOT_LOADED'))}"
+        f"<br>items={safe_text(reconciliation.get('post_rerun_blocker_rollup_item_count', 0))}"
+        f"<br>unique={safe_text(reconciliation.get('post_rerun_unique_blocker_count', 0))}"
+        f"<br>current-writes={safe_text(reconciliation.get('post_rerun_current_evidence_write_allowed_count', 0))}</p></div>"
         "<div><strong>Live Boundary</strong>"
         "<p><span class=\"pill safe-lock\">live_order_allowed=false</span><br><span class=\"pill safe-lock\">can_live_trade=false</span><br><span class=\"pill safe-lock\">scale_up_allowed=false</span></p></div>"
         "</section>"
