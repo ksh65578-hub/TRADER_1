@@ -7945,6 +7945,48 @@
       "status": "IMPLEMENTED_LIVE_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-MISSING-CYCLE-RERUN-GUARD",
+      "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_missing_cycle_rerun_guard_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/runtime/paper/upbit_paper_missing_cycle_rerun_guard.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_upbit_paper_missing_cycle_rerun_guard.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_missing_cycle_rerun_guard.py",
+        "trader1/runtime/paper/upbit_paper_repair_operator_queue.py"
+      ],
+      "evidence_artifacts": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_missing_cycle_rerun_guard_report.json",
+        "system/evidence/MVP4_UPBIT_PAPER_MISSING_CYCLE_RERUN_GUARD.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_MISSING_CYCLE_RERUN_GUARD.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_MISSING_CYCLE_RERUN_GUARD.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_MISSING_CYCLE_RERUN_GUARD.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_missing_cycle_rerun_guard_report.json"
+      ],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RERUN_GUARDED_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-PERSISTENT-LOOP-BOUNDED",
       "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "schema_files": [
@@ -9099,7 +9141,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-01T14:01:15Z",
+  "updated_at_utc": "2026-05-01T14:22:36Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
