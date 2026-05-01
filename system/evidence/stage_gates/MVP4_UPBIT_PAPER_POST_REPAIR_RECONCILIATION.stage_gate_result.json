@@ -1,0 +1,16 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-01T04:26:34Z",
+  "patch_id": "MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "BLOCKED_POST_REPAIR_HASH_MISMATCH_CURRENT_EVIDENCE_NOT_ALLOWED",
+  "post_repair_reconciliation_status": "BLOCKED",
+  "repair_candidate_count": 1,
+  "candidate_rollup_pass_count": 1,
+  "source_loop_expected_rollup_hash_mismatch_count": 1,
+  "candidate_current_evidence_usable_count": 0,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
