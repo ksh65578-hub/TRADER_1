@@ -1,0 +1,30 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-01T03:41:17Z",
+  "patch_id": "MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN_20260501_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_REPAIR_PLAN_VISIBLE_LIVE_BLOCKED",
+  "repair_plan_status": "BLOCKED",
+  "repair_lane_counts": [
+    {
+      "safe_repair_lane": "LEDGER_ROLLUP_REBUILD_READY",
+      "count": 1
+    },
+    {
+      "safe_repair_lane": "RECOVERY_GUARD_THEN_LEDGER_ROLLUP",
+      "count": 1
+    },
+    {
+      "safe_repair_lane": "RERUN_RUNTIME_CYCLES_THEN_LEDGER_ROLLUP",
+      "count": 4
+    }
+  ],
+  "ledger_rollup_rebuild_ready_count": 1,
+  "runtime_cycle_rerun_required_count": 5,
+  "recovery_guard_rerun_required_count": 1,
+  "actual_long_run_evidence_created": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

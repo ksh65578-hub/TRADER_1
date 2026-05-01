@@ -1,0 +1,411 @@
+{
+  "actual_long_run_evidence_created": false,
+  "blocker_codes": [
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION"
+  ],
+  "can_live_trade": false,
+  "credential_load_attempted": false,
+  "current_evidence_mutation_allowed": false,
+  "exchange": "UPBIT",
+  "generated_artifact_mutation_allowed": false,
+  "generated_at_utc": "2026-05-01T03:41:17Z",
+  "items": [
+    {
+      "blocked_repair_reason_codes": [
+        "LEDGER_ROLLUP_BLOCKED",
+        "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+        "LOOP_RECONCILIATION_REQUIRED",
+        "LOOP_STATUS_BLOCKED"
+      ],
+      "can_rebuild_ledger_rollup_without_rerun": false,
+      "current_evidence_mutation_allowed": false,
+      "cycle_count": 2,
+      "cycle_ledger_jsonl_missing_count": 2,
+      "cycle_ledger_jsonl_missing_paths": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-candidate-linkage-cost-model-cycle-1.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-candidate-linkage-cost-model-cycle-2.paper_ledger_events.jsonl"
+      ],
+      "cycle_ledger_jsonl_present_count": 0,
+      "cycle_reconciliation_status": "PASS",
+      "ledger_reconciliation_status": "BLOCKED",
+      "live_permission_created": false,
+      "paper_ledger_rollup_artifact_exists": false,
+      "paper_ledger_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-linkage-cost-model-regenerated-current-schema.synthetic_ledger_rollup_missing.json",
+      "recovery_reconciliation_status": "PASS",
+      "repair_steps": [
+        {
+          "action_code": "RERUN_MISSING_PAPER_RUNTIME_CYCLES",
+          "action_status": "BLOCKED",
+          "evidence_required": "one or more referenced PAPER cycle ledger JSONL files are missing",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 1
+        },
+        {
+          "action_code": "REBUILD_LEDGER_ROLLUP_FROM_CYCLE_JSONL",
+          "action_status": "BLOCKED",
+          "evidence_required": "ledger rollup cannot be rebuilt until missing cycle ledgers exist",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 2
+        },
+        {
+          "action_code": "RERUN_POST_REGENERATION_RECONCILIATION",
+          "action_status": "BLOCKED",
+          "evidence_required": "replacement remains excluded from current evidence",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 3
+        }
+      ],
+      "replacement_load_status": "PASS",
+      "replacement_loop_id": "mvp4-candidate-linkage-cost-model-regenerated-current-schema",
+      "replacement_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-linkage-cost-model-regenerated-current-schema.persistent_loop_report.json",
+      "replacement_path_scope_status": "MATCH",
+      "requires_recovery_guard_rerun": false,
+      "requires_runtime_cycle_rerun": true,
+      "safe_repair_lane": "RERUN_RUNTIME_CYCLES_THEN_LEDGER_ROLLUP",
+      "source_delete_allowed": false
+    },
+    {
+      "blocked_repair_reason_codes": [
+        "LEDGER_ROLLUP_BLOCKED",
+        "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+        "LOOP_RECONCILIATION_REQUIRED",
+        "LOOP_STATUS_BLOCKED"
+      ],
+      "can_rebuild_ledger_rollup_without_rerun": true,
+      "current_evidence_mutation_allowed": false,
+      "cycle_count": 1,
+      "cycle_ledger_jsonl_missing_count": 0,
+      "cycle_ledger_jsonl_missing_paths": [],
+      "cycle_ledger_jsonl_present_count": 1,
+      "cycle_reconciliation_status": "PASS",
+      "ledger_reconciliation_status": "BLOCKED",
+      "live_permission_created": false,
+      "paper_ledger_rollup_artifact_exists": false,
+      "paper_ledger_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.synthetic_ledger_rollup_missing.json",
+      "recovery_reconciliation_status": "PASS",
+      "repair_steps": [
+        {
+          "action_code": "VERIFY_REPLACEMENT_LOOP_HASH",
+          "action_status": "READY",
+          "evidence_required": "replacement loop hash matches post-regeneration plan",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 1
+        },
+        {
+          "action_code": "REBUILD_LEDGER_ROLLUP_FROM_EXISTING_CYCLE_JSONL",
+          "action_status": "READY",
+          "evidence_required": "all referenced PAPER cycle ledger JSONL files are present",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 2
+        },
+        {
+          "action_code": "RERUN_POST_REGENERATION_RECONCILIATION",
+          "action_status": "READY",
+          "evidence_required": "replacement remains blocked until validator-backed reconciliation passes",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 3
+        }
+      ],
+      "replacement_load_status": "PASS",
+      "replacement_loop_id": "mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema",
+      "replacement_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.persistent_loop_report.json",
+      "replacement_path_scope_status": "MATCH",
+      "requires_recovery_guard_rerun": false,
+      "requires_runtime_cycle_rerun": false,
+      "safe_repair_lane": "LEDGER_ROLLUP_REBUILD_READY",
+      "source_delete_allowed": false
+    },
+    {
+      "blocked_repair_reason_codes": [
+        "LEDGER_ROLLUP_BLOCKED",
+        "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+        "LOOP_RECONCILIATION_REQUIRED",
+        "LOOP_STATUS_BLOCKED"
+      ],
+      "can_rebuild_ledger_rollup_without_rerun": false,
+      "current_evidence_mutation_allowed": false,
+      "cycle_count": 2,
+      "cycle_ledger_jsonl_missing_count": 2,
+      "cycle_ledger_jsonl_missing_paths": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-public-rest-transform-loop-cycle-1.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-public-rest-transform-loop-cycle-2.paper_ledger_events.jsonl"
+      ],
+      "cycle_ledger_jsonl_present_count": 0,
+      "cycle_reconciliation_status": "PASS",
+      "ledger_reconciliation_status": "BLOCKED",
+      "live_permission_created": false,
+      "paper_ledger_rollup_artifact_exists": false,
+      "paper_ledger_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-public-rest-transform-loop-regenerated-current-schema.synthetic_ledger_rollup_missing.json",
+      "recovery_reconciliation_status": "PASS",
+      "repair_steps": [
+        {
+          "action_code": "RERUN_MISSING_PAPER_RUNTIME_CYCLES",
+          "action_status": "BLOCKED",
+          "evidence_required": "one or more referenced PAPER cycle ledger JSONL files are missing",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 1
+        },
+        {
+          "action_code": "REBUILD_LEDGER_ROLLUP_FROM_CYCLE_JSONL",
+          "action_status": "BLOCKED",
+          "evidence_required": "ledger rollup cannot be rebuilt until missing cycle ledgers exist",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 2
+        },
+        {
+          "action_code": "RERUN_POST_REGENERATION_RECONCILIATION",
+          "action_status": "BLOCKED",
+          "evidence_required": "replacement remains excluded from current evidence",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 3
+        }
+      ],
+      "replacement_load_status": "PASS",
+      "replacement_loop_id": "mvp4-public-rest-transform-loop-regenerated-current-schema",
+      "replacement_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-public-rest-transform-loop-regenerated-current-schema.persistent_loop_report.json",
+      "replacement_path_scope_status": "MATCH",
+      "requires_recovery_guard_rerun": false,
+      "requires_runtime_cycle_rerun": true,
+      "safe_repair_lane": "RERUN_RUNTIME_CYCLES_THEN_LEDGER_ROLLUP",
+      "source_delete_allowed": false
+    },
+    {
+      "blocked_repair_reason_codes": [
+        "LEDGER_ROLLUP_BLOCKED",
+        "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+        "LOOP_RECONCILIATION_REQUIRED",
+        "LOOP_STATUS_BLOCKED"
+      ],
+      "can_rebuild_ledger_rollup_without_rerun": false,
+      "current_evidence_mutation_allowed": false,
+      "cycle_count": 2,
+      "cycle_ledger_jsonl_missing_count": 2,
+      "cycle_ledger_jsonl_missing_paths": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-sequence-regime-guard-loop-cycle-1.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-sequence-regime-guard-loop-cycle-2.paper_ledger_events.jsonl"
+      ],
+      "cycle_ledger_jsonl_present_count": 0,
+      "cycle_reconciliation_status": "PASS",
+      "ledger_reconciliation_status": "BLOCKED",
+      "live_permission_created": false,
+      "paper_ledger_rollup_artifact_exists": false,
+      "paper_ledger_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-sequence-regime-guard-loop-regenerated-current-schema.synthetic_ledger_rollup_missing.json",
+      "recovery_reconciliation_status": "PASS",
+      "repair_steps": [
+        {
+          "action_code": "RERUN_MISSING_PAPER_RUNTIME_CYCLES",
+          "action_status": "BLOCKED",
+          "evidence_required": "one or more referenced PAPER cycle ledger JSONL files are missing",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 1
+        },
+        {
+          "action_code": "REBUILD_LEDGER_ROLLUP_FROM_CYCLE_JSONL",
+          "action_status": "BLOCKED",
+          "evidence_required": "ledger rollup cannot be rebuilt until missing cycle ledgers exist",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 2
+        },
+        {
+          "action_code": "RERUN_POST_REGENERATION_RECONCILIATION",
+          "action_status": "BLOCKED",
+          "evidence_required": "replacement remains excluded from current evidence",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 3
+        }
+      ],
+      "replacement_load_status": "PASS",
+      "replacement_loop_id": "mvp4-sequence-regime-guard-loop-regenerated-current-schema",
+      "replacement_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-sequence-regime-guard-loop-regenerated-current-schema.persistent_loop_report.json",
+      "replacement_path_scope_status": "MATCH",
+      "requires_recovery_guard_rerun": false,
+      "requires_runtime_cycle_rerun": true,
+      "safe_repair_lane": "RERUN_RUNTIME_CYCLES_THEN_LEDGER_ROLLUP",
+      "source_delete_allowed": false
+    },
+    {
+      "blocked_repair_reason_codes": [
+        "LEDGER_ROLLUP_BLOCKED",
+        "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+        "LOOP_RECONCILIATION_REQUIRED",
+        "LOOP_STATUS_BLOCKED",
+        "PAPER_RUNTIME_RESUME_BLOCKED",
+        "PARTIAL_WRITE_RECOVERY_REQUIRED",
+        "RECOVERY_GUARD_BLOCKED"
+      ],
+      "can_rebuild_ledger_rollup_without_rerun": false,
+      "current_evidence_mutation_allowed": false,
+      "cycle_count": 2,
+      "cycle_ledger_jsonl_missing_count": 2,
+      "cycle_ledger_jsonl_missing_paths": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-upbit-public-loop-dashboard-cycle-1.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-upbit-public-loop-dashboard-cycle-2.paper_ledger_events.jsonl"
+      ],
+      "cycle_ledger_jsonl_present_count": 0,
+      "cycle_reconciliation_status": "PASS",
+      "ledger_reconciliation_status": "BLOCKED",
+      "live_permission_created": false,
+      "paper_ledger_rollup_artifact_exists": false,
+      "paper_ledger_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-public-loop-dashboard-regenerated-current-schema.synthetic_ledger_rollup_missing.json",
+      "recovery_reconciliation_status": "BLOCKED",
+      "repair_steps": [
+        {
+          "action_code": "RERUN_RECOVERY_GUARD",
+          "action_status": "BLOCKED",
+          "evidence_required": "partial-write or safe-resume blocker must be cleared first",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 1
+        },
+        {
+          "action_code": "RERUN_MISSING_PAPER_RUNTIME_CYCLES",
+          "action_status": "BLOCKED",
+          "evidence_required": "cycle ledgers must be present before ledger rollup rebuild",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 2
+        },
+        {
+          "action_code": "REBUILD_LEDGER_ROLLUP_FROM_CYCLE_JSONL",
+          "action_status": "BLOCKED",
+          "evidence_required": "ledger rollup cannot be rebuilt until recovery and cycle ledgers pass",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 3
+        },
+        {
+          "action_code": "RERUN_POST_REGENERATION_RECONCILIATION",
+          "action_status": "BLOCKED",
+          "evidence_required": "replacement remains excluded from current evidence",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 4
+        }
+      ],
+      "replacement_load_status": "PASS",
+      "replacement_loop_id": "mvp4-upbit-public-loop-dashboard-regenerated-current-schema",
+      "replacement_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-public-loop-dashboard-regenerated-current-schema.persistent_loop_report.json",
+      "replacement_path_scope_status": "MATCH",
+      "requires_recovery_guard_rerun": true,
+      "requires_runtime_cycle_rerun": true,
+      "safe_repair_lane": "RECOVERY_GUARD_THEN_LEDGER_ROLLUP",
+      "source_delete_allowed": false
+    },
+    {
+      "blocked_repair_reason_codes": [
+        "LEDGER_ROLLUP_BLOCKED",
+        "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+        "LOOP_RECONCILIATION_REQUIRED",
+        "LOOP_STATUS_BLOCKED"
+      ],
+      "can_rebuild_ledger_rollup_without_rerun": false,
+      "current_evidence_mutation_allowed": false,
+      "cycle_count": 2,
+      "cycle_ledger_jsonl_missing_count": 2,
+      "cycle_ledger_jsonl_missing_paths": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-upbit-recovery-guard-loop-cycle-1.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-upbit-recovery-guard-loop-cycle-2.paper_ledger_events.jsonl"
+      ],
+      "cycle_ledger_jsonl_present_count": 0,
+      "cycle_reconciliation_status": "PASS",
+      "ledger_reconciliation_status": "BLOCKED",
+      "live_permission_created": false,
+      "paper_ledger_rollup_artifact_exists": false,
+      "paper_ledger_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-recovery-guard-loop-regenerated-current-schema.synthetic_ledger_rollup_missing.json",
+      "recovery_reconciliation_status": "PASS",
+      "repair_steps": [
+        {
+          "action_code": "RERUN_MISSING_PAPER_RUNTIME_CYCLES",
+          "action_status": "BLOCKED",
+          "evidence_required": "one or more referenced PAPER cycle ledger JSONL files are missing",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 1
+        },
+        {
+          "action_code": "REBUILD_LEDGER_ROLLUP_FROM_CYCLE_JSONL",
+          "action_status": "BLOCKED",
+          "evidence_required": "ledger rollup cannot be rebuilt until missing cycle ledgers exist",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 2
+        },
+        {
+          "action_code": "RERUN_POST_REGENERATION_RECONCILIATION",
+          "action_status": "BLOCKED",
+          "evidence_required": "replacement remains excluded from current evidence",
+          "live_permission_created": false,
+          "mutates_current_evidence": false,
+          "step_order": 3
+        }
+      ],
+      "replacement_load_status": "PASS",
+      "replacement_loop_id": "mvp4-upbit-recovery-guard-loop-regenerated-current-schema",
+      "replacement_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-recovery-guard-loop-regenerated-current-schema.persistent_loop_report.json",
+      "replacement_path_scope_status": "MATCH",
+      "requires_recovery_guard_rerun": false,
+      "requires_runtime_cycle_rerun": true,
+      "safe_repair_lane": "RERUN_RUNTIME_CYCLES_THEN_LEDGER_ROLLUP",
+      "source_delete_allowed": false
+    }
+  ],
+  "ledger_rollup_rebuild_ready_count": 1,
+  "live_key_loaded": false,
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "long_run_evidence_eligible": false,
+  "market_type": "KRW_SPOT",
+  "missing_cycle_ledger_jsonl_item_count": 5,
+  "missing_cycle_ledger_jsonl_total_count": 10,
+  "missing_paper_ledger_rollup_artifact_count": 6,
+  "mode": "PAPER",
+  "operator_next_action": "Repair only the LEDGER_ROLLUP_REBUILD_READY item first; rerun missing PAPER cycles before using other blocked replacements.",
+  "order_adapter_called": false,
+  "order_endpoint_called": false,
+  "primary_blocker_code": "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+  "private_endpoint_called": false,
+  "project_id": "TRADER_1",
+  "promotion_eligible": false,
+  "recovery_guard_rerun_required_count": 1,
+  "repair_item_count": 6,
+  "repair_lane_counts": [
+    {
+      "count": 1,
+      "safe_repair_lane": "LEDGER_ROLLUP_REBUILD_READY"
+    },
+    {
+      "count": 1,
+      "safe_repair_lane": "RECOVERY_GUARD_THEN_LEDGER_ROLLUP"
+    },
+    {
+      "count": 4,
+      "safe_repair_lane": "RERUN_RUNTIME_CYCLES_THEN_LEDGER_ROLLUP"
+    }
+  ],
+  "repair_plan_hash": "625C5B01CD85B3AC56C978A6FD3B520F9F4BB3651756590711E7B10C264DE46C",
+  "repair_plan_id": "upbit-paper-blocked-repair-plan",
+  "repair_plan_role": "PAPER_RUNTIME_BLOCKED_REPAIR_PLAN_NOT_EVIDENCE",
+  "repair_plan_status": "BLOCKED",
+  "runtime_cycle_rerun_required_count": 5,
+  "scale_up_allowed": false,
+  "schema_id": "trader1.upbit_paper_blocked_repair_plan_report.v1",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source_blocked_reconciliation_count": 6,
+  "source_delete_allowed": false,
+  "source_post_reconciliation_hash": "C3F8EC1AC50EE9DB6AA4D58865B1DD433038475D86142F2918052841EDB22C61",
+  "source_post_reconciliation_status": "BLOCKED",
+  "source_report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+  "truth_role": "paper_runtime_blocked_repair_plan_truth"
+}

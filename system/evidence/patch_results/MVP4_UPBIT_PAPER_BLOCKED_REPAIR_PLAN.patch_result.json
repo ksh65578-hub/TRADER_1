@@ -1,0 +1,330 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN_20260501_001",
+  "created_at_utc": "2026-05-01T03:41:17Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "PASS",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-UPBIT-PAPER-BLOCKED-REPAIR-PLAN",
+    "REQ-MVP4-UPBIT-PAPER-BLOCKED-REPAIR-REASON-ROLLUP",
+    "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-POST-REGENERATION-RECONCILIATION",
+    "REQ-MVP4-LIVE-FINAL-GUARD"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER",
+  "removed_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "REQ-MVP4-UPBIT-PAPER-BLOCKED-REPAIR-PLAN",
+    "upbit_paper_blocked_repair_plan_validator"
+  ],
+  "new_or_changed_schema_ids": [
+    "trader1.upbit_paper_blocked_repair_plan_report.v1"
+  ],
+  "validators_required": [
+    "schema_validator",
+    "registry_validator",
+    "runtime_schema_instance_validator",
+    "upbit_paper_stale_loop_post_regeneration_reconciliation_validator",
+    "upbit_paper_blocked_repair_plan_validator",
+    "paper_ledger_rollup_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator",
+    "source_bundle_hygiene_validator",
+    "shipped_package_hygiene_validator",
+    "secret_scan_validator",
+    "coverage_index_validator",
+    "live_final_guard_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_stale_loop_post_regeneration_reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_blocked_repair_plan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_ledger_rollup_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/runtime/test_upbit_paper_blocked_repair_plan.py tests/runtime/test_upbit_paper_stale_loop_post_regeneration_reconciliation.py tests/runtime/test_upbit_paper_stale_loop_safe_regeneration_executor.py tests/runtime/test_upbit_paper_stale_loop_execution_guard.py tests/runtime/test_upbit_paper_stale_loop_regeneration.py tests/runtime/test_upbit_paper_stale_loop_reconciliation.py -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "UNCHANGED_NOT_READ",
+  "read_cache_update_required": true,
+  "context_pack_update_required": true,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_UPBIT_PAPER_LEDGER_ROLLUP_REBUILD_READY_REPAIR",
+  "next_required_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_RUNTIME_RECOVERY",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX"
+  ],
+  "next_forbidden_default_sections": [
+    "LIVE_ENABLING_PATCH",
+    "BINANCE_FUTURES_LIVE",
+    "RETAINED_ARCHIVE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "remaining_blockers": [
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+    "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "current_implementation_state",
+    "post-regeneration reconciliation report",
+    "blocked repair reason rollup context pack",
+    "PAPER ledger rollup runtime artifacts"
+  ],
+  "task_class": "MVP4_UPBIT_PAPER_REGENERATED_BLOCKED_REPAIR_REPAIR_PLAN",
+  "required_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_RUNTIME_RECOVERY",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_RUNTIME_RECOVERY",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "UNCHANGED",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED_PASS",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "UPDATED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "NOT_OPTIMIZER_PATCH",
+  "optimizer_stage": "MVP-4_PAPER_SCORECARD_INPUT_ONLY",
+  "optimizer_status_before": "PAPER_SCORECARD_INPUT_ONLY_STALE_LOOP_EXECUTION_GUARDED_BLOCKED",
+  "optimizer_status_after": "PAPER_SCORECARD_INPUT_ONLY_BLOCKED_REPAIR_PLAN_VISIBLE_NOT_LIVE_READY",
+  "optimizer_maturity_level_before": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_maturity_level_after": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_output_type": "PAPER_SCORECARD_INPUT_ONLY",
+  "optimizer_validators_required": [
+    "candidate_scorecard_validator",
+    "candidate_scorecard_net_ev_validator"
+  ],
+  "optimizer_validators_run": [
+    {
+      "validator_id": "candidate_scorecard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "candidate_scorecard_net_ev_validator",
+      "status": "PASS"
+    }
+  ],
+  "optimizer_guardrail_result": "PASS_REPAIR_PLAN_EXCLUDES_BLOCKED_REPLACEMENTS_FROM_EVIDENCE",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "true",
+  "convergence_layer_changed": true,
+  "convergence_state_before": "STALE_RUNTIME_LOOP_EXECUTION_GUARDED_EXECUTOR_BLOCKED",
+  "convergence_state_after": "STALE_RUNTIME_LOOP_BLOCKED_REPAIR_PLAN_VISIBLE_LIVE_BLOCKED",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_REQUIRED_FOR_PAPER_SCHEMA_REPAIR",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "schema_validator",
+    "registry_validator",
+    "runtime_schema_instance_validator",
+    "upbit_paper_stale_loop_reconciliation_validator",
+    "upbit_paper_stale_loop_regeneration_plan_validator",
+    "upbit_paper_stale_loop_execution_guard_validator",
+    "upbit_paper_stale_loop_safe_regeneration_executor_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator",
+    "source_bundle_hygiene_validator",
+    "shipped_package_hygiene_validator",
+    "secret_scan_validator",
+    "coverage_index_validator",
+    "live_final_guard_validator"
+  ],
+  "convergence_validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_stale_loop_reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_stale_loop_regeneration_plan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_stale_loop_execution_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_stale_loop_safe_regeneration_executor_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "convergence_guardrail_result": "PASS_NO_LIVE_PERMISSION_OR_LONG_RUN_EVIDENCE_CREATED",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "scale_up_allowed_after": false,
+  "result_hash": "D2F60CD12E4A231BFD137A79E6F1738100FE1C0D15DBC9D5E784709ACF2AB7F7",
+  "merged_requirements": [],
+  "coverage_index_result": "UPDATED_PASS",
+  "scale_up_allowed_before": false
+}

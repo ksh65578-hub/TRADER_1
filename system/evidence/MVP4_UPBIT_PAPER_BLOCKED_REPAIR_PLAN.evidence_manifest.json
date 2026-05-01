@@ -1,0 +1,62 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN_EVIDENCE",
+  "created_at_utc": "2026-05-01T03:41:17Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN_20260501_001",
+  "artifact_paths": [
+    "contracts/registry.yaml",
+    "contracts/schema/upbit_paper_blocked_repair_plan_report.schema.json",
+    "trader1/runtime/paper/upbit_paper_blocked_repair_plan.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/runtime/test_upbit_paper_blocked_repair_plan.py",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_blocked_repair_plan_report.json",
+    "contracts/security/source_bundle_manifest.json",
+    "tools/emit_upbit_paper_blocked_repair_plan_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN.md",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN.patch_result.json"
+  ],
+  "known_blockers": [
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+    "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "repair_plan_status": "BLOCKED",
+  "repair_lane_counts": [
+    {
+      "safe_repair_lane": "LEDGER_ROLLUP_REBUILD_READY",
+      "count": 1
+    },
+    {
+      "safe_repair_lane": "RECOVERY_GUARD_THEN_LEDGER_ROLLUP",
+      "count": 1
+    },
+    {
+      "safe_repair_lane": "RERUN_RUNTIME_CYCLES_THEN_LEDGER_ROLLUP",
+      "count": 4
+    }
+  ],
+  "ledger_rollup_rebuild_ready_count": 1,
+  "runtime_cycle_rerun_required_count": 5,
+  "recovery_guard_rerun_required_count": 1,
+  "actual_long_run_evidence_created": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
