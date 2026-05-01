@@ -274,6 +274,35 @@
     "convergence_guardrail_result": {
       "type": "string"
     },
+    "guard_status": {
+      "type": "string"
+    },
+    "guard_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "rerun_ready_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recovery_guard_blocked_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "missing_cycle_ledger_jsonl_total_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "planned_staging_artifact_total_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "actual_rerun_executed": {
+      "type": "boolean"
+    },
+    "rerun_executor_created": {
+      "type": "boolean"
+    },
     "authority_hash_checked": {
       "type": "boolean"
     },
