@@ -8293,6 +8293,47 @@
       "status": "IMPLEMENTED_REVIEW_ONLY_OPERATOR_QUEUE_CURRENT_EVIDENCE_WRITE_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-DECISION-AUDIT",
+      "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_post_rerun_reconciliation_decision_audit_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/runtime/paper/upbit_paper_post_rerun_reconciliation_decision_audit.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_upbit_paper_post_rerun_reconciliation_decision_audit.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_post_rerun_reconciliation_decision_audit.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_DECISION_AUDIT.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_DECISION_AUDIT.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_DECISION_AUDIT.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_DECISION_AUDIT.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "post_rerun_reconciliation_decision_audit_status",
+        "post_rerun_reconciliation_decision_item_count",
+        "post_rerun_reconciliation_write_denied_count",
+        "post_rerun_current_evidence_write_authorized_count",
+        "post_rerun_current_evidence_write_allowed_count",
+        "candidate_current_evidence_usable_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_REVIEW_ONLY_DECISION_AUDIT_CURRENT_EVIDENCE_WRITE_DENIED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-REPAIR-HASH-RECONCILIATION-POLICY",
       "section_id": "SECTION_LEDGER_RECONCILIATION",
       "schema_files": [
@@ -9318,7 +9359,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-01T15:56:06Z",
+  "updated_at_utc": "2026-05-01T16:13:38Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
