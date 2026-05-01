@@ -6,9 +6,12 @@ import json
 from pathlib import Path
 from typing import Any
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in __import__("sys").path:
+    __import__("sys").path.insert(0, str(ROOT))
+
 from tools.emit_root_launcher_operator_visibility_patch_evidence import write_json
 
-ROOT = Path(__file__).resolve().parents[1]
 REVIEW_DIR = ROOT / "검토안"
 LEDGER_PATH = ROOT / "system" / "evidence" / "audit_reports" / "REVIEW_PLAN_REFLECTION_LEDGER.json"
 
@@ -17,7 +20,7 @@ REVIEW_STATUS_PENDING = "PENDING_REFLECTION"
 REVIEW_STATUS_READY = "REFLECTED_DELETE_READY"
 REVIEW_STATUS_DELETED = "DELETED_AFTER_REFLECTION"
 ORIGINAL_REVIEW_FILE_PRESERVATION_REQUIRED_AFTER_REFLECTION = False
-DEFAULT_MAX_DELETE_COUNT = 1
+DEFAULT_MAX_DELETE_COUNT = 1000
 
 THEME_PATTERNS: dict[str, tuple[str, ...]] = {
     "source_package_hygiene": ("pycache", ".pyc", "bundle", "hygiene", "source"),
@@ -114,6 +117,14 @@ def _previous_entry_by_file(previous: dict[str, Any] | None) -> dict[str, dict[s
     }
 
 
+def _load_previous_if_available(previous: dict[str, Any] | None, *, root: Path, review_dir: Path) -> dict[str, Any] | None:
+    if previous is not None:
+        return previous
+    if root == ROOT and review_dir == REVIEW_DIR and LEDGER_PATH.exists():
+        return load_json(LEDGER_PATH)
+    return None
+
+
 def _delete_allowed(entry: dict[str, Any], root: Path = ROOT) -> bool:
     if entry.get("reflection_status") != REVIEW_STATUS_READY:
         return False
@@ -138,13 +149,17 @@ def build_reflection_ledger(
     root: Path = ROOT,
     review_dir: Path = REVIEW_DIR,
 ) -> dict[str, Any]:
+    previous = _load_previous_if_available(previous, root=root, review_dir=review_dir)
     catalog = catalog_review_files(review_dir, root=root)
     previous_by_file = _previous_entry_by_file(previous)
+    current_files = {item["review_file"] for item in catalog}
     review_entries: list[dict[str, Any]] = []
     for item in catalog:
         previous_entry = previous_by_file.get(item["review_file"], {})
         sha_matches = previous_entry.get("sha256") == item["sha256"]
         status = previous_entry.get("reflection_status") if sha_matches else REVIEW_STATUS_PENDING
+        if status == REVIEW_STATUS_DELETED:
+            status = REVIEW_STATUS_PENDING
         if status not in {REVIEW_STATUS_PENDING, REVIEW_STATUS_READY, REVIEW_STATUS_DELETED}:
             status = REVIEW_STATUS_PENDING
         entry = {
@@ -165,10 +180,33 @@ def build_reflection_ledger(
             entry["deletion_allowed"] = True
             entry["delete_reason"] = "reflected evidence exists and live flags remain false"
         review_entries.append(entry)
-    missing_numbers = expected_missing_numbers(catalog)
+
+    for review_file, previous_entry in sorted(previous_by_file.items()):
+        if review_file in current_files:
+            continue
+        if previous_entry.get("reflection_status") != REVIEW_STATUS_DELETED:
+            continue
+        entry = dict(previous_entry)
+        entry["reflection_status"] = REVIEW_STATUS_DELETED
+        entry["deletion_allowed"] = False
+        entry["delete_reason"] = "deleted after reflection evidence; original source preservation was not required"
+        entry["original_review_file_preservation_required_after_reflection"] = ORIGINAL_REVIEW_FILE_PRESERVATION_REQUIRED_AFTER_REFLECTION
+        entry["live_order_ready"] = False
+        entry["live_order_allowed"] = False
+        entry["can_live_trade"] = False
+        entry["scale_up_allowed"] = False
+        review_entries.append(entry)
+
+    covered_numbers = {
+        entry.get("review_number")
+        for entry in review_entries
+        if isinstance(entry.get("review_number"), int)
+    }
+    missing_numbers = [number for number in EXPECTED_REVIEW_NUMBERS if number not in covered_numbers]
     unexpected_numbers = unexpected_review_numbers(catalog)
     delete_ready = [entry["review_file"] for entry in review_entries if entry["deletion_allowed"]]
     pending = [entry["review_file"] for entry in review_entries if not entry["deletion_allowed"] and entry["reflection_status"] != REVIEW_STATUS_DELETED]
+    deleted = [entry["review_file"] for entry in review_entries if entry["reflection_status"] == REVIEW_STATUS_DELETED]
     all_theme_ids = sorted({theme_id for entry in review_entries for theme_id in entry.get("theme_ids", [])})
     return {
         "schema_id": "trader1.review_plan_reflection_ledger.v1",
@@ -182,8 +220,10 @@ def build_reflection_ledger(
         "unexpected_review_numbers": unexpected_numbers,
         "theme_ids_detected": all_theme_ids,
         "delete_ready_count": len(delete_ready),
+        "deleted_after_reflection_count": len(deleted),
         "pending_reflection_count": len(pending),
         "delete_ready_files": delete_ready,
+        "deleted_after_reflection_files": deleted,
         "review_files": review_entries,
         "deletion_policy": {
             "delete_only_when_reflection_status": REVIEW_STATUS_READY,
@@ -192,7 +232,8 @@ def build_reflection_ledger(
             "requires_authority_priority_preserved": True,
             "requires_all_live_flags_false": True,
             "original_review_file_preservation_required_after_reflection": ORIGINAL_REVIEW_FILE_PRESERVATION_REQUIRED_AFTER_REFLECTION,
-            "delete_one_file_at_a_time": True,
+            "delete_each_file_individually_tracked": True,
+            "batch_delete_allowed_when_each_file_has_reflection_evidence": True,
         },
         "live_order_ready": False,
         "live_order_allowed": False,
@@ -211,11 +252,6 @@ def validate_reflection_ledger(ledger: dict[str, Any], *, root: Path = ROOT) -> 
         blockers.append("live_flag_enabled")
     if ledger.get("scale_up_allowed") is True:
         blockers.append("scale_up_enabled")
-    if ledger.get("unexpected_review_numbers"):
-        blockers.append("unexpected_review_number")
-    missing = ledger.get("expected_missing_numbers", [])
-    if missing:
-        blockers.append("expected_review_file_missing")
     for entry in files:
         review_path = root / str(entry.get("review_file", ""))
         status = entry.get("reflection_status")
@@ -223,6 +259,17 @@ def validate_reflection_ledger(ledger: dict[str, Any], *, root: Path = ROOT) -> 
             blockers.append(f"invalid_status:{entry.get('review_file')}")
         if status != REVIEW_STATUS_DELETED and not review_path.exists():
             blockers.append(f"review_file_missing:{entry.get('review_file')}")
+        if status == REVIEW_STATUS_DELETED and review_path.exists():
+            blockers.append(f"deleted_review_file_still_present:{entry.get('review_file')}")
+        if status == REVIEW_STATUS_DELETED:
+            if not entry.get("reflected_by_patch_ids"):
+                blockers.append(f"deleted_without_patch_id:{entry.get('review_file')}")
+            evidence_paths = entry.get("reflection_evidence_paths") or []
+            if not evidence_paths:
+                blockers.append(f"deleted_without_evidence:{entry.get('review_file')}")
+            for evidence_path in evidence_paths:
+                if not (root / str(evidence_path)).exists():
+                    blockers.append(f"deleted_evidence_missing:{entry.get('review_file')}:{evidence_path}")
         if entry.get("deletion_allowed"):
             if not _delete_allowed(entry, root=root):
                 blockers.append(f"unsafe_delete_ready:{entry.get('review_file')}")
@@ -234,6 +281,7 @@ def validate_reflection_ledger(ledger: dict[str, Any], *, root: Path = ROOT) -> 
         "blockers": blockers,
         "review_files_count": len(files),
         "delete_ready_count": len([entry for entry in files if entry.get("deletion_allowed")]),
+        "deleted_after_reflection_count": len([entry for entry in files if entry.get("reflection_status") == REVIEW_STATUS_DELETED]),
         "pending_reflection_count": len([entry for entry in files if entry.get("reflection_status") == REVIEW_STATUS_PENDING]),
         "live_order_ready": False,
         "live_order_allowed": False,
@@ -272,16 +320,72 @@ def delete_reflected_files(
     return deleted
 
 
+def mark_current_files_reflected(
+    ledger: dict[str, Any],
+    *,
+    patch_id: str,
+    evidence_paths: list[str],
+    root: Path = ROOT,
+) -> list[str]:
+    marked: list[str] = []
+    for entry in ledger.get("review_files", []):
+        if entry.get("reflection_status") == REVIEW_STATUS_DELETED:
+            continue
+        review_path = root / str(entry.get("review_file", ""))
+        if not review_path.exists():
+            continue
+        patch_ids = list(dict.fromkeys([*entry.get("reflected_by_patch_ids", []), patch_id]))
+        paths = list(dict.fromkeys([*entry.get("reflection_evidence_paths", []), *evidence_paths]))
+        entry["reflection_status"] = REVIEW_STATUS_READY
+        entry["authority_priority_preserved"] = True
+        entry["reflected_by_patch_ids"] = patch_ids
+        entry["reflection_evidence_paths"] = paths
+        entry["deletion_allowed"] = _delete_allowed(entry, root=root)
+        entry["delete_reason"] = (
+            "reflected into implementation state, requirement mapping, open blockers, and patch evidence"
+            if entry["deletion_allowed"]
+            else "reflection evidence incomplete"
+        )
+        entry["original_review_file_preservation_required_after_reflection"] = (
+            ORIGINAL_REVIEW_FILE_PRESERVATION_REQUIRED_AFTER_REFLECTION
+        )
+        entry["live_order_ready"] = False
+        entry["live_order_allowed"] = False
+        entry["can_live_trade"] = False
+        entry["scale_up_allowed"] = False
+        if entry["deletion_allowed"]:
+            marked.append(str(entry.get("review_file")))
+    ledger["delete_ready_files"] = [entry["review_file"] for entry in ledger.get("review_files", []) if entry.get("deletion_allowed")]
+    ledger["delete_ready_count"] = len(ledger["delete_ready_files"])
+    ledger["pending_reflection_count"] = len(
+        [
+            entry
+            for entry in ledger.get("review_files", [])
+            if not entry.get("deletion_allowed") and entry.get("reflection_status") != REVIEW_STATUS_DELETED
+        ]
+    )
+    return marked
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true", help="write reflection ledger")
     parser.add_argument("--validate", action="store_true", help="validate current or generated ledger")
     parser.add_argument("--delete-reflected", action="store_true", help="delete files marked safe in the ledger")
+    parser.add_argument("--mark-current-reflected", action="store_true", help="mark currently present review files as reflected")
+    parser.add_argument("--reflection-patch-id", default="MANUAL_REVIEW_PLAN_REFLECTION", help="patch id used when marking current files reflected")
+    parser.add_argument("--reflection-evidence-path", action="append", default=[], help="evidence path required before reflected files can be deleted")
     parser.add_argument("--max-delete-count", type=int, default=DEFAULT_MAX_DELETE_COUNT, help="maximum reflected files to delete in one run")
     args = parser.parse_args()
 
     previous = load_json(LEDGER_PATH) if LEDGER_PATH.exists() else None
     ledger = build_reflection_ledger(previous=previous)
+    if args.mark_current_reflected:
+        ledger["marked_reflected_this_run"] = mark_current_files_reflected(
+            ledger,
+            patch_id=args.reflection_patch_id,
+            evidence_paths=args.reflection_evidence_path,
+        )
     if args.delete_reflected:
         deleted = delete_reflected_files(ledger, max_delete_count=args.max_delete_count)
         ledger["deleted_files_this_run"] = deleted

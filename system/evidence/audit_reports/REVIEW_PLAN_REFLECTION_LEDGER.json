@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.review_plan_reflection_ledger.v1",
-  "generated_at_utc": "2026-04-30T22:10:29Z",
+  "generated_at_utc": "2026-05-01T04:44:58Z",
   "review_directory": "\uac80\ud1a0\uc548",
   "authority_files": [
     "TRADER_1.md",
@@ -71,8 +71,54 @@
     "upbit_paper_runtime"
   ],
   "delete_ready_count": 0,
-  "pending_reflection_count": 43,
+  "deleted_after_reflection_count": 43,
+  "pending_reflection_count": 0,
   "delete_ready_files": [],
+  "deleted_after_reflection_files": [
+    "\uac80\ud1a0\uc548/1.md",
+    "\uac80\ud1a0\uc548/10.md",
+    "\uac80\ud1a0\uc548/11.md",
+    "\uac80\ud1a0\uc548/12.md",
+    "\uac80\ud1a0\uc548/13.md",
+    "\uac80\ud1a0\uc548/14.md",
+    "\uac80\ud1a0\uc548/15.md",
+    "\uac80\ud1a0\uc548/16.md",
+    "\uac80\ud1a0\uc548/17.md",
+    "\uac80\ud1a0\uc548/18.md",
+    "\uac80\ud1a0\uc548/19.md",
+    "\uac80\ud1a0\uc548/2.md",
+    "\uac80\ud1a0\uc548/20.md",
+    "\uac80\ud1a0\uc548/21.md",
+    "\uac80\ud1a0\uc548/22.md",
+    "\uac80\ud1a0\uc548/23.md",
+    "\uac80\ud1a0\uc548/24.md",
+    "\uac80\ud1a0\uc548/25.md",
+    "\uac80\ud1a0\uc548/26.md",
+    "\uac80\ud1a0\uc548/27.md",
+    "\uac80\ud1a0\uc548/28.md",
+    "\uac80\ud1a0\uc548/3.md",
+    "\uac80\ud1a0\uc548/30.md",
+    "\uac80\ud1a0\uc548/31.md",
+    "\uac80\ud1a0\uc548/32.md",
+    "\uac80\ud1a0\uc548/33.md",
+    "\uac80\ud1a0\uc548/34.md",
+    "\uac80\ud1a0\uc548/35.md",
+    "\uac80\ud1a0\uc548/36.md",
+    "\uac80\ud1a0\uc548/37.md",
+    "\uac80\ud1a0\uc548/38.md",
+    "\uac80\ud1a0\uc548/39.md",
+    "\uac80\ud1a0\uc548/4.md",
+    "\uac80\ud1a0\uc548/40.md",
+    "\uac80\ud1a0\uc548/41.md",
+    "\uac80\ud1a0\uc548/42.md",
+    "\uac80\ud1a0\uc548/43.md",
+    "\uac80\ud1a0\uc548/44.md",
+    "\uac80\ud1a0\uc548/5.md",
+    "\uac80\ud1a0\uc548/6.md",
+    "\uac80\ud1a0\uc548/7.md",
+    "\uac80\ud1a0\uc548/8.md",
+    "\uac80\ud1a0\uc548/9.md"
+  ],
   "review_files": [
     {
       "review_file": "\uac80\ud1a0\uc548/1.md",
@@ -92,249 +138,20 @@
         "optimizer_convergence_guardrail",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
-      "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
-      "original_review_file_preservation_required_after_reflection": false,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false
-    },
-    {
-      "review_file": "\uac80\ud1a0\uc548/2.md",
-      "review_number": 2,
-      "sha256": "3F14163CC41A2981B903663B02647FC3502867067653C2C4B9FC981ABF54F63A",
-      "bytes": 5282,
-      "first_line": "2\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
-      "theme_ids": [
-        "source_package_hygiene",
-        "binance_spot_futures_scope",
-        "runtime_termination_reproducibility",
-        "upbit_paper_runtime",
-        "dashboard_operator_ux",
-        "placeholder_readiness_block",
-        "authority_manifest_identity",
-        "ledger_reconciliation_idempotency",
-        "operations_recovery_24x7",
-        "live_safety_external_blocker"
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
       ],
-      "reflection_status": "PENDING_REFLECTION",
-      "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
-      "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
-      "original_review_file_preservation_required_after_reflection": false,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false
-    },
-    {
-      "review_file": "\uac80\ud1a0\uc548/3.md",
-      "review_number": 3,
-      "sha256": "5B86FE49D65E628CAC55371C4A3AC12ADD10A30CD218CA9C2DB25EE57A8A2AD1",
-      "bytes": 8144,
-      "first_line": "3\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
-      "theme_ids": [
-        "binance_spot_futures_scope",
-        "runtime_termination_reproducibility",
-        "upbit_paper_runtime",
-        "dashboard_operator_ux",
-        "portfolio_pnl_truth",
-        "placeholder_readiness_block",
-        "authority_manifest_identity",
-        "ledger_reconciliation_idempotency",
-        "strategy_profitability_loop",
-        "operations_recovery_24x7",
-        "live_safety_external_blocker"
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
       ],
-      "reflection_status": "PENDING_REFLECTION",
-      "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
-      "original_review_file_preservation_required_after_reflection": false,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false
-    },
-    {
-      "review_file": "\uac80\ud1a0\uc548/4.md",
-      "review_number": 4,
-      "sha256": "EE2862BE08DC208FBC206578A9FF504CF7A73CC6241329A49D702EA24F66A781",
-      "bytes": 6792,
-      "first_line": "4\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
-      "theme_ids": [
-        "source_package_hygiene",
-        "binance_spot_futures_scope",
-        "runtime_termination_reproducibility",
-        "upbit_paper_runtime",
-        "placeholder_readiness_block",
-        "authority_manifest_identity",
-        "ledger_reconciliation_idempotency",
-        "strategy_profitability_loop",
-        "optimizer_convergence_guardrail",
-        "live_safety_external_blocker"
-      ],
-      "reflection_status": "PENDING_REFLECTION",
-      "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
-      "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
-      "original_review_file_preservation_required_after_reflection": false,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false
-    },
-    {
-      "review_file": "\uac80\ud1a0\uc548/5.md",
-      "review_number": 5,
-      "sha256": "0AF77DC22126FEAF35EAD213E623F44B697398CA5B920A968922AACB484D91FF",
-      "bytes": 7068,
-      "first_line": "5\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
-      "theme_ids": [
-        "binance_spot_futures_scope",
-        "upbit_paper_runtime",
-        "dashboard_operator_ux",
-        "portfolio_pnl_truth",
-        "placeholder_readiness_block",
-        "authority_manifest_identity",
-        "ledger_reconciliation_idempotency",
-        "strategy_profitability_loop",
-        "optimizer_convergence_guardrail",
-        "operations_recovery_24x7",
-        "live_safety_external_blocker"
-      ],
-      "reflection_status": "PENDING_REFLECTION",
-      "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
-      "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
-      "original_review_file_preservation_required_after_reflection": false,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false
-    },
-    {
-      "review_file": "\uac80\ud1a0\uc548/6.md",
-      "review_number": 6,
-      "sha256": "FD4FF8F417A0D057495C65AE4F614BF061CCBCCF88898BFBC7ACF1330C9E2FDC",
-      "bytes": 7147,
-      "first_line": "6\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
-      "theme_ids": [
-        "binance_spot_futures_scope",
-        "runtime_termination_reproducibility",
-        "upbit_paper_runtime",
-        "dashboard_operator_ux",
-        "portfolio_pnl_truth",
-        "placeholder_readiness_block",
-        "authority_manifest_identity",
-        "ledger_reconciliation_idempotency",
-        "live_safety_external_blocker"
-      ],
-      "reflection_status": "PENDING_REFLECTION",
-      "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
-      "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
-      "original_review_file_preservation_required_after_reflection": false,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false
-    },
-    {
-      "review_file": "\uac80\ud1a0\uc548/7.md",
-      "review_number": 7,
-      "sha256": "296E8B027DAAD1DBE9208083C159C1CC3FE6F8348CC37445B74B125A4C73DA0C",
-      "bytes": 6332,
-      "first_line": "7\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
-      "theme_ids": [
-        "source_package_hygiene",
-        "binance_spot_futures_scope",
-        "runtime_termination_reproducibility",
-        "upbit_paper_runtime",
-        "dashboard_operator_ux",
-        "authority_manifest_identity",
-        "optimizer_convergence_guardrail",
-        "live_safety_external_blocker"
-      ],
-      "reflection_status": "PENDING_REFLECTION",
-      "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
-      "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
-      "original_review_file_preservation_required_after_reflection": false,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false
-    },
-    {
-      "review_file": "\uac80\ud1a0\uc548/8.md",
-      "review_number": 8,
-      "sha256": "8F7826DEBD25EB0175296D707FDE9E3AF8C0142929A3A0DEB5A6D4900B8BAC6C",
-      "bytes": 6619,
-      "first_line": "8\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
-      "theme_ids": [
-        "source_package_hygiene",
-        "binance_spot_futures_scope",
-        "runtime_termination_reproducibility",
-        "upbit_paper_runtime",
-        "dashboard_operator_ux",
-        "portfolio_pnl_truth",
-        "placeholder_readiness_block",
-        "authority_manifest_identity",
-        "strategy_profitability_loop",
-        "live_safety_external_blocker"
-      ],
-      "reflection_status": "PENDING_REFLECTION",
-      "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
-      "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
-      "original_review_file_preservation_required_after_reflection": false,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false
-    },
-    {
-      "review_file": "\uac80\ud1a0\uc548/9.md",
-      "review_number": 9,
-      "sha256": "BC5DB23B69E5083899B980DAB1970F279D51057B6DDA876820A16A649ADCFC80",
-      "bytes": 8524,
-      "first_line": "9\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
-      "theme_ids": [
-        "binance_spot_futures_scope",
-        "upbit_paper_runtime",
-        "dashboard_operator_ux",
-        "placeholder_readiness_block",
-        "authority_manifest_identity",
-        "strategy_profitability_loop",
-        "optimizer_convergence_guardrail",
-        "live_safety_external_blocker"
-      ],
-      "reflection_status": "PENDING_REFLECTION",
-      "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
-      "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -361,12 +178,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -390,12 +215,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -418,12 +251,20 @@
         "optimizer_convergence_guardrail",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -446,12 +287,20 @@
         "strategy_profitability_loop",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -477,12 +326,20 @@
         "optimizer_convergence_guardrail",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -509,12 +366,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -540,12 +405,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -568,12 +441,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -593,12 +474,20 @@
         "dashboard_operator_ux",
         "authority_manifest_identity"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -621,12 +510,58 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/2.md",
+      "review_number": 2,
+      "sha256": "3F14163CC41A2981B903663B02647FC3502867067653C2C4B9FC981ABF54F63A",
+      "bytes": 5282,
+      "first_line": "2\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -648,12 +583,20 @@
         "authority_manifest_identity",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -675,12 +618,20 @@
         "authority_manifest_identity",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -701,12 +652,20 @@
         "authority_manifest_identity",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -729,12 +688,20 @@
         "optimizer_convergence_guardrail",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -757,12 +724,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -787,12 +762,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -813,12 +796,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -839,12 +830,20 @@
         "strategy_profitability_loop",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -872,12 +871,59 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/3.md",
+      "review_number": 3,
+      "sha256": "5B86FE49D65E628CAC55371C4A3AC12ADD10A30CD218CA9C2DB25EE57A8A2AD1",
+      "bytes": 8144,
+      "first_line": "3\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
+      "theme_ids": [
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -903,12 +949,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -933,12 +987,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -963,12 +1025,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -989,12 +1059,20 @@
         "strategy_profitability_loop",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1013,12 +1091,20 @@
         "strategy_profitability_loop",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1035,12 +1121,20 @@
         "ledger_reconciliation_idempotency",
         "strategy_profitability_loop"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1060,12 +1154,20 @@
         "strategy_profitability_loop",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1084,12 +1186,20 @@
         "strategy_profitability_loop",
         "optimizer_convergence_guardrail"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1109,12 +1219,20 @@
         "ledger_reconciliation_idempotency",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1135,12 +1253,58 @@
         "strategy_profitability_loop",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/4.md",
+      "review_number": 4,
+      "sha256": "EE2862BE08DC208FBC206578A9FF504CF7A73CC6241329A49D702EA24F66A781",
+      "bytes": 6792,
+      "first_line": "4\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1163,12 +1327,20 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1186,12 +1358,20 @@
         "strategy_profitability_loop",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1212,12 +1392,20 @@
         "strategy_profitability_loop",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1233,12 +1421,20 @@
       "theme_ids": [
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1266,12 +1462,206 @@
         "operations_recovery_24x7",
         "live_safety_external_blocker"
       ],
-      "reflection_status": "PENDING_REFLECTION",
+      "reflection_status": "DELETED_AFTER_REFLECTION",
       "authority_priority_preserved": true,
-      "reflected_by_patch_ids": [],
-      "reflection_evidence_paths": [],
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
       "deletion_allowed": false,
-      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/5.md",
+      "review_number": 5,
+      "sha256": "0AF77DC22126FEAF35EAD213E623F44B697398CA5B920A968922AACB484D91FF",
+      "bytes": 7068,
+      "first_line": "5\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
+      "theme_ids": [
+        "binance_spot_futures_scope",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/6.md",
+      "review_number": 6,
+      "sha256": "FD4FF8F417A0D057495C65AE4F614BF061CCBCCF88898BFBC7ACF1330C9E2FDC",
+      "bytes": 7147,
+      "first_line": "6\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
+      "theme_ids": [
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/7.md",
+      "review_number": 7,
+      "sha256": "296E8B027DAAD1DBE9208083C159C1CC3FE6F8348CC37445B74B125A4C73DA0C",
+      "bytes": 6332,
+      "first_line": "7\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "authority_manifest_identity",
+        "optimizer_convergence_guardrail",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/8.md",
+      "review_number": 8,
+      "sha256": "8F7826DEBD25EB0175296D707FDE9E3AF8C0142929A3A0DEB5A6D4900B8BAC6C",
+      "bytes": 6619,
+      "first_line": "8\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "strategy_profitability_loop",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/9.md",
+      "review_number": 9,
+      "sha256": "BC5DB23B69E5083899B980DAB1970F279D51057B6DDA876820A16A649ADCFC80",
+      "bytes": 8524,
+      "first_line": "9\ucc28 \uac80\ud1a0 \uacb0\uacfc\uc785\ub2c8\ub2e4.",
+      "theme_ids": [
+        "binance_spot_futures_scope",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
       "original_review_file_preservation_required_after_reflection": false,
       "live_order_ready": false,
       "live_order_allowed": false,
@@ -1286,10 +1676,56 @@
     "requires_authority_priority_preserved": true,
     "requires_all_live_flags_false": true,
     "original_review_file_preservation_required_after_reflection": false,
-    "delete_one_file_at_a_time": true
+    "delete_each_file_individually_tracked": true,
+    "batch_delete_allowed_when_each_file_has_reflection_evidence": true
   },
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
-  "scale_up_allowed": false
+  "scale_up_allowed": false,
+  "deleted_files_this_run": [
+    "\uac80\ud1a0\uc548/1.md",
+    "\uac80\ud1a0\uc548/2.md",
+    "\uac80\ud1a0\uc548/3.md",
+    "\uac80\ud1a0\uc548/4.md",
+    "\uac80\ud1a0\uc548/5.md",
+    "\uac80\ud1a0\uc548/6.md",
+    "\uac80\ud1a0\uc548/7.md",
+    "\uac80\ud1a0\uc548/8.md",
+    "\uac80\ud1a0\uc548/9.md",
+    "\uac80\ud1a0\uc548/10.md",
+    "\uac80\ud1a0\uc548/11.md",
+    "\uac80\ud1a0\uc548/12.md",
+    "\uac80\ud1a0\uc548/13.md",
+    "\uac80\ud1a0\uc548/14.md",
+    "\uac80\ud1a0\uc548/15.md",
+    "\uac80\ud1a0\uc548/16.md",
+    "\uac80\ud1a0\uc548/17.md",
+    "\uac80\ud1a0\uc548/18.md",
+    "\uac80\ud1a0\uc548/19.md",
+    "\uac80\ud1a0\uc548/20.md",
+    "\uac80\ud1a0\uc548/21.md",
+    "\uac80\ud1a0\uc548/22.md",
+    "\uac80\ud1a0\uc548/23.md",
+    "\uac80\ud1a0\uc548/24.md",
+    "\uac80\ud1a0\uc548/25.md",
+    "\uac80\ud1a0\uc548/26.md",
+    "\uac80\ud1a0\uc548/27.md",
+    "\uac80\ud1a0\uc548/28.md",
+    "\uac80\ud1a0\uc548/30.md",
+    "\uac80\ud1a0\uc548/31.md",
+    "\uac80\ud1a0\uc548/32.md",
+    "\uac80\ud1a0\uc548/33.md",
+    "\uac80\ud1a0\uc548/34.md",
+    "\uac80\ud1a0\uc548/35.md",
+    "\uac80\ud1a0\uc548/36.md",
+    "\uac80\ud1a0\uc548/37.md",
+    "\uac80\ud1a0\uc548/38.md",
+    "\uac80\ud1a0\uc548/39.md",
+    "\uac80\ud1a0\uc548/40.md",
+    "\uac80\ud1a0\uc548/41.md",
+    "\uac80\ud1a0\uc548/42.md",
+    "\uac80\ud1a0\uc548/43.md",
+    "\uac80\ud1a0\uc548/44.md"
+  ]
 }

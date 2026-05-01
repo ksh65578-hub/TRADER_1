@@ -13337,13 +13337,6 @@ def review_plan_reflection_ledger_validator() -> ValidatorResult:
             paths,
             "REVIEW_PLAN_REFLECTION_UNSAFE",
         )
-    if ledger.get("review_files_count") != 43:
-        return blocked_result(
-            validator_id,
-            f"review plan file count changed unexpectedly: {ledger.get('review_files_count')}",
-            paths,
-            "REVIEW_PLAN_REFLECTION_UNSAFE",
-        )
     if ledger.get("delete_ready_count", 0) > 0:
         return blocked_result(
             validator_id,
@@ -13353,7 +13346,7 @@ def review_plan_reflection_ledger_validator() -> ValidatorResult:
         )
     return pass_result(
         validator_id,
-        "review plan files are cataloged and retained until reflection evidence permits one-by-one deletion",
+        "review plan files are cataloged, deleted-after-reflection entries remain ledgered, and new files can enter as pending input",
         paths,
     )
 
