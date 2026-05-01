@@ -22,6 +22,7 @@ from trader1.runtime.portfolio.paper_portfolio import (
 
 
 PAPER_LEDGER_ROLLUP_SCHEMA_ID = "trader1.paper_ledger_rollup_report.v1"
+PAPER_LEDGER_HEAD_SCHEMA_ID = "trader1.paper_ledger_head.v1"
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,12 @@ def _sha256_json(value: Any) -> str:
 def paper_ledger_rollup_hash(report: dict[str, Any]) -> str:
     payload = dict(report)
     payload.pop("rollup_hash", None)
+    return _sha256_json(payload)
+
+
+def paper_ledger_head_report_hash(report: dict[str, Any]) -> str:
+    payload = dict(report)
+    payload.pop("head_report_hash", None)
     return _sha256_json(payload)
 
 
@@ -69,6 +76,108 @@ def _relative_posix(path: Path, root: Path) -> str:
 
 def _runtime_base_dir(root: Path, session_id: str) -> Path:
     return root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
+
+
+def _build_ledger_head_binding(
+    *,
+    root: Path,
+    ledger_dir: Path,
+    session_id: str,
+    ledger_paths: list[Path],
+    require_latest_head_report: bool,
+    latest_source_runtime_cycle_id: str | None,
+    latest_source_ledger_path: Path | None,
+    latest_source_ledger_event_count: int,
+    latest_ledger_head_hash: str | None,
+    artifact_paths: list[str],
+    blockers: list[dict[str, str]],
+) -> dict[str, Any]:
+    if not require_latest_head_report:
+        return {
+            "ledger_head_report_path": None,
+            "ledger_head_report_hash": None,
+            "ledger_head_cycle_id": None,
+            "ledger_head_event_count": 0,
+            "ledger_head_match_status": "NOT_APPLICABLE",
+            "ledger_head_mismatch_count": 0,
+        }
+    if not ledger_paths:
+        return {
+            "ledger_head_report_path": None,
+            "ledger_head_report_hash": None,
+            "ledger_head_cycle_id": None,
+            "ledger_head_event_count": 0,
+            "ledger_head_match_status": "NOT_APPLICABLE",
+            "ledger_head_mismatch_count": 0,
+        }
+
+    ledger_head_path = ledger_dir / "latest_paper_ledger_head.json"
+    if not ledger_head_path.exists():
+        blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "latest PAPER ledger head report is missing"))
+        return {
+            "ledger_head_report_path": None,
+            "ledger_head_report_hash": None,
+            "ledger_head_cycle_id": None,
+            "ledger_head_event_count": 0,
+            "ledger_head_match_status": "MISSING",
+            "ledger_head_mismatch_count": 1,
+        }
+
+    artifact_paths.append(_relative_posix(ledger_head_path, root))
+    mismatch_count = 0
+    try:
+        ledger_head = json.loads(ledger_head_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "latest PAPER ledger head report is not valid JSON"))
+        return {
+            "ledger_head_report_path": _relative_posix(ledger_head_path, root),
+            "ledger_head_report_hash": None,
+            "ledger_head_cycle_id": None,
+            "ledger_head_event_count": 0,
+            "ledger_head_match_status": "MISMATCH",
+            "ledger_head_mismatch_count": 1,
+        }
+
+    if ledger_head.get("schema_id") != PAPER_LEDGER_HEAD_SCHEMA_ID or ledger_head.get("project_id") != "TRADER_1":
+        mismatch_count += 1
+    if (
+        ledger_head.get("exchange") != "UPBIT"
+        or ledger_head.get("market_type") != "KRW_SPOT"
+        or ledger_head.get("mode") != "PAPER"
+        or ledger_head.get("session_id") != session_id
+    ):
+        mismatch_count += 1
+    if any(
+        ledger_head.get(field)
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    ):
+        mismatch_count += 1
+    if ledger_head.get("head_report_hash") != paper_ledger_head_report_hash(ledger_head):
+        mismatch_count += 1
+    if latest_source_runtime_cycle_id and ledger_head.get("cycle_id") != latest_source_runtime_cycle_id:
+        mismatch_count += 1
+    if latest_ledger_head_hash and ledger_head.get("ledger_head_hash") != latest_ledger_head_hash:
+        mismatch_count += 1
+    if latest_source_ledger_event_count > 0 and ledger_head.get("ledger_event_count") != latest_source_ledger_event_count:
+        mismatch_count += 1
+    if latest_source_ledger_path is not None and ledger_head.get("ledger_events_path") != _relative_posix(latest_source_ledger_path, root):
+        mismatch_count += 1
+    try:
+        ledger_head_event_count = int(ledger_head.get("ledger_event_count", 0) or 0)
+    except (TypeError, ValueError):
+        ledger_head_event_count = 0
+        mismatch_count += 1
+
+    if mismatch_count:
+        blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "latest PAPER ledger head report does not match rollup head"))
+    return {
+        "ledger_head_report_path": _relative_posix(ledger_head_path, root),
+        "ledger_head_report_hash": ledger_head.get("head_report_hash"),
+        "ledger_head_cycle_id": ledger_head.get("cycle_id"),
+        "ledger_head_event_count": ledger_head_event_count,
+        "ledger_head_match_status": "PASS" if mismatch_count == 0 else "MISMATCH",
+        "ledger_head_mismatch_count": mismatch_count,
+    }
 
 
 def _portfolio_snapshot_from_fills(
@@ -192,8 +301,11 @@ def build_paper_ledger_rollup_report(
     cycle_dir = ledger_dir / "cycles"
     blockers: list[dict[str, str]] = []
     if ledger_paths is None:
+        ledger_input_scope = "SESSION_CYCLE_GLOB"
         ledger_paths = sorted(cycle_dir.glob("*.paper_ledger_events.jsonl")) if cycle_dir.exists() else []
+        duplicate_ledger_path_count = 0
     else:
+        ledger_input_scope = "EXPLICIT_SCOPED_PATHS"
         scoped_paths: list[Path] = []
         cycle_dir_resolved = cycle_dir.resolve()
         for ledger_path in ledger_paths:
@@ -208,6 +320,10 @@ def build_paper_ledger_rollup_report(
             else:
                 blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "scoped PAPER ledger rollup path is not a cycle ledger JSONL artifact"))
         ledger_paths = sorted(scoped_paths)
+        unique_scoped_paths = {str(path) for path in ledger_paths}
+        duplicate_ledger_path_count = len(ledger_paths) - len(unique_scoped_paths)
+        if duplicate_ledger_path_count:
+            blockers.append(_blocker("RECONCILIATION_REQUIRED", "duplicate PAPER ledger JSONL path requires reconciliation"))
     artifact_paths: list[str] = []
     all_events: list[dict[str, Any]] = []
     fill_events: list[dict[str, Any]] = []
@@ -222,6 +338,8 @@ def build_paper_ledger_rollup_report(
     seen_filled_order_keys: set[tuple[Any, Any]] = set()
     latest_ledger_head_hash: str | None = None
     latest_source_runtime_cycle_id: str | None = None
+    latest_source_ledger_path: Path | None = None
+    latest_source_ledger_event_count = 0
 
     if not ledger_paths:
         blockers.append(_blocker("LEDGER_UNAVAILABLE", "no PAPER ledger JSONL files are available for rollup"))
@@ -243,6 +361,8 @@ def build_paper_ledger_rollup_report(
             blockers.append(_blocker(ledger_blocker or "LEDGER_INTEGRITY_FAIL", ledger_message))
             continue
         latest_source_runtime_cycle_id = source_runtime_cycle_id
+        latest_source_ledger_path = path
+        latest_source_ledger_event_count = len(records)
         for event in records:
             if event.get("exchange") != "UPBIT" or event.get("market_type") != "KRW_SPOT" or event.get("mode") != "PAPER" or event.get("session_id") != session_id:
                 blockers.append(_blocker("SNAPSHOT_SCOPE_MISMATCH", "PAPER ledger rollup detected cross-scope ledger data"))
@@ -271,6 +391,20 @@ def build_paper_ledger_rollup_report(
                 fill_events.append(event)
             all_events.append(event)
             latest_ledger_head_hash = event.get("event_hash")
+
+    ledger_head_binding = _build_ledger_head_binding(
+        root=root,
+        ledger_dir=ledger_dir,
+        session_id=session_id,
+        ledger_paths=ledger_paths,
+        require_latest_head_report=ledger_input_scope == "SESSION_CYCLE_GLOB",
+        latest_source_runtime_cycle_id=latest_source_runtime_cycle_id,
+        latest_source_ledger_path=latest_source_ledger_path,
+        latest_source_ledger_event_count=latest_source_ledger_event_count,
+        latest_ledger_head_hash=latest_ledger_head_hash,
+        artifact_paths=artifact_paths,
+        blockers=blockers,
+    )
 
     portfolio_snapshot = _portfolio_snapshot_from_fills(
         session_id=session_id,
@@ -301,15 +435,18 @@ def build_paper_ledger_rollup_report(
         "mode": "PAPER",
         "session_id": session_id,
         "ledger_source_dir": _relative_posix(cycle_dir, root),
+        "ledger_input_scope": ledger_input_scope,
         "ledger_jsonl_count": len(ledger_paths),
         "ledger_event_count": len(all_events),
         "filled_order_count": len(fill_events),
+        "duplicate_ledger_path_count": duplicate_ledger_path_count,
         "duplicate_event_count": duplicate_event_count,
         "duplicate_order_count": duplicate_order_count,
         "lifecycle_incomplete_order_count": lifecycle_incomplete_order_count,
         "corrupted_ledger_jsonl_quarantined_count": corrupted_ledger_jsonl_quarantined_count,
         "invalid_ledger_jsonl_count": invalid_ledger_jsonl_count,
         "latest_ledger_head_hash": latest_ledger_head_hash,
+        **ledger_head_binding,
         "portfolio_snapshot": portfolio_snapshot,
         "rollup_status": status,
         "primary_blocker_code": blockers[0]["code"] if blockers else None,
@@ -351,15 +488,23 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
         "mode",
         "session_id",
         "ledger_source_dir",
+        "ledger_input_scope",
         "ledger_jsonl_count",
         "ledger_event_count",
         "filled_order_count",
+        "duplicate_ledger_path_count",
         "duplicate_event_count",
         "duplicate_order_count",
         "lifecycle_incomplete_order_count",
         "corrupted_ledger_jsonl_quarantined_count",
         "invalid_ledger_jsonl_count",
         "latest_ledger_head_hash",
+        "ledger_head_report_path",
+        "ledger_head_report_hash",
+        "ledger_head_cycle_id",
+        "ledger_head_event_count",
+        "ledger_head_match_status",
+        "ledger_head_mismatch_count",
         "portfolio_snapshot",
         "rollup_status",
         "primary_blocker_code",
@@ -398,11 +543,14 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
         "ledger_jsonl_count",
         "ledger_event_count",
         "filled_order_count",
+        "duplicate_ledger_path_count",
         "duplicate_event_count",
         "duplicate_order_count",
         "lifecycle_incomplete_order_count",
         "corrupted_ledger_jsonl_quarantined_count",
         "invalid_ledger_jsonl_count",
+        "ledger_head_event_count",
+        "ledger_head_mismatch_count",
     ):
         if not isinstance(report.get(count_field), int) or report.get(count_field) < 0:
             return PaperLedgerRollupValidationResult("FAIL", f"paper ledger rollup count invalid: {count_field}", "SCHEMA_IDENTITY_MISMATCH")
@@ -420,9 +568,37 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
         return PaperLedgerRollupValidationResult("BLOCKED", "PASS paper ledger rollup requires ledger JSONL input", "LEDGER_UNAVAILABLE")
     if report.get("ledger_event_count") < report.get("filled_order_count"):
         return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup event counts are inconsistent", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("ledger_head_match_status") not in {"PASS", "MISSING", "MISMATCH", "NOT_APPLICABLE"}:
+        return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup head match status invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("ledger_input_scope") not in {"SESSION_CYCLE_GLOB", "EXPLICIT_SCOPED_PATHS"}:
+        return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup input scope invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        report.get("ledger_jsonl_count") > 0
+        and report.get("ledger_head_match_status") == "NOT_APPLICABLE"
+        and report.get("ledger_input_scope") != "EXPLICIT_SCOPED_PATHS"
+    ):
+        return PaperLedgerRollupValidationResult("FAIL", "PAPER ledger inputs require latest ledger head binding", "LEDGER_INTEGRITY_FAIL")
+    if report.get("duplicate_ledger_path_count"):
+        if report.get("rollup_status") != "BLOCKED":
+            return PaperLedgerRollupValidationResult("BLOCKED", "duplicate PAPER ledger paths must block review", "RECONCILIATION_REQUIRED")
+    if report.get("ledger_head_mismatch_count") and report.get("ledger_head_match_status") == "PASS":
+        return PaperLedgerRollupValidationResult("FAIL", "PASS ledger head binding cannot carry mismatches", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("ledger_head_match_status") in {"MISSING", "MISMATCH"} and report.get("rollup_status") == "PASS":
+        return PaperLedgerRollupValidationResult("BLOCKED", "PAPER ledger head binding mismatch must block rollup review", "LEDGER_INTEGRITY_FAIL")
     if report.get("rollup_status") == "PASS" and report.get("ledger_event_count") > 0:
         if not isinstance(report.get("latest_ledger_head_hash"), str) or len(report["latest_ledger_head_hash"]) != 64:
             return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup requires latest ledger head hash", "LEDGER_INTEGRITY_FAIL")
+        if report.get("ledger_input_scope") == "SESSION_CYCLE_GLOB":
+            if report.get("ledger_head_match_status") != "PASS" or report.get("ledger_head_mismatch_count") != 0:
+                return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup requires matching ledger head report", "LEDGER_INTEGRITY_FAIL")
+            if not isinstance(report.get("ledger_head_report_path"), str) or not report.get("ledger_head_report_path"):
+                return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup requires ledger head report path", "LEDGER_INTEGRITY_FAIL")
+            if not isinstance(report.get("ledger_head_report_hash"), str) or len(report["ledger_head_report_hash"]) != 64:
+                return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup requires ledger head report hash", "LEDGER_INTEGRITY_FAIL")
+            if report.get("ledger_head_cycle_id") != report.get("portfolio_snapshot", {}).get("source_runtime_cycle_id"):
+                return PaperLedgerRollupValidationResult("FAIL", "paper ledger head cycle does not match portfolio source cycle", "LEDGER_INTEGRITY_FAIL")
+        elif report.get("ledger_head_match_status") != "NOT_APPLICABLE":
+            return PaperLedgerRollupValidationResult("FAIL", "explicit PAPER ledger rollup must not claim latest head binding", "LEDGER_INTEGRITY_FAIL")
     if report.get("duplicate_event_count") or report.get("duplicate_order_count"):
         if report.get("rollup_status") != "BLOCKED":
             return PaperLedgerRollupValidationResult("BLOCKED", "duplicate PAPER ledger rollup must block review", "RECONCILIATION_REQUIRED")
@@ -432,6 +608,10 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
     if report.get("corrupted_ledger_jsonl_quarantined_count") or report.get("invalid_ledger_jsonl_count"):
         if report.get("rollup_status") != "BLOCKED":
             return PaperLedgerRollupValidationResult("BLOCKED", "corrupted or invalid PAPER ledger rollup must block review", "PARTIAL_WRITE_RECOVERY_REQUIRED")
+    artifact_prefix = f"system/runtime/upbit/krw_spot/paper/{report.get('session_id')}/ledger/"
+    for artifact_path in report.get("artifact_paths", []):
+        if not isinstance(artifact_path, str) or not artifact_path.startswith(artifact_prefix) or ".." in artifact_path.replace("\\", "/").split("/"):
+            return PaperLedgerRollupValidationResult("BLOCKED", "paper ledger rollup artifact path escaped PAPER ledger namespace", "SNAPSHOT_SCOPE_MISMATCH")
     portfolio = report.get("portfolio_snapshot")
     if not isinstance(portfolio, dict):
         return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup portfolio snapshot missing", "SCHEMA_IDENTITY_MISMATCH")
@@ -458,10 +638,6 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
             return PaperLedgerRollupValidationResult("FAIL", "filled PAPER rollup requires at least one portfolio position", "SCHEMA_IDENTITY_MISMATCH")
         if position_count > filled_count:
             return PaperLedgerRollupValidationResult("FAIL", "paper rollup portfolio position count exceeds filled order count", "SCHEMA_IDENTITY_MISMATCH")
-        artifact_prefix = f"system/runtime/upbit/krw_spot/paper/{report.get('session_id')}/ledger/"
-        for artifact_path in report.get("artifact_paths", []):
-            if not isinstance(artifact_path, str) or not artifact_path.startswith(artifact_prefix) or ".." in artifact_path.replace("\\", "/").split("/"):
-                return PaperLedgerRollupValidationResult("BLOCKED", "paper ledger rollup artifact path escaped PAPER ledger namespace", "SNAPSHOT_SCOPE_MISMATCH")
     if report.get("rollup_status") == "PASS":
         return PaperLedgerRollupValidationResult("PASS", "PAPER ledger rollup is cumulative, scoped, and live-blocked", None)
     return PaperLedgerRollupValidationResult("BLOCKED", "PAPER ledger rollup is blocked", report.get("primary_blocker_code") or "UNKNOWN_BLOCKED")

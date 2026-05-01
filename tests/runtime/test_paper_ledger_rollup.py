@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 from trader1.runtime.ledger.execution_ledger import build_ledger_event
 from trader1.runtime.ledger.paper_ledger_rollup import (
     build_paper_ledger_rollup_report,
+    paper_ledger_head_report_hash,
     paper_ledger_rollup_hash,
     validate_paper_ledger_rollup_report,
 )
@@ -28,11 +29,19 @@ class PaperLedgerRollupTest(unittest.TestCase):
             result = validate_paper_ledger_rollup_report(rollup)
 
             self.assertEqual(result.status, "PASS")
+            self.assertEqual(rollup["ledger_input_scope"], "SESSION_CYCLE_GLOB")
             self.assertEqual(rollup["ledger_jsonl_count"], 2)
             self.assertEqual(rollup["filled_order_count"], 2)
+            self.assertEqual(rollup["duplicate_ledger_path_count"], 0)
             self.assertEqual(rollup["duplicate_event_count"], 0)
             self.assertEqual(rollup["duplicate_order_count"], 0)
             self.assertEqual(rollup["lifecycle_incomplete_order_count"], 0)
+            self.assertEqual(rollup["ledger_head_match_status"], "PASS")
+            self.assertEqual(rollup["ledger_head_mismatch_count"], 0)
+            self.assertEqual(
+                rollup["ledger_head_cycle_id"],
+                "test-paper-ledger-rollup-cycle-2",
+            )
             self.assertEqual(rollup["portfolio_snapshot"]["source"], "PAPER_LEDGER_ROLLUP")
             self.assertEqual(
                 rollup["portfolio_snapshot"]["source_runtime_cycle_id"],
@@ -289,6 +298,107 @@ class PaperLedgerRollupTest(unittest.TestCase):
 
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_rollup_blocks_duplicate_explicit_ledger_paths(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-paper-ledger-rollup-duplicate-path",
+                requested_cycle_count=1,
+            )
+            ledger_path = None
+            for artifact_path in loop["cycle_results"][0]["artifact_paths"]:
+                if artifact_path.endswith(".paper_ledger_events.jsonl"):
+                    ledger_path = root / artifact_path
+                    break
+            self.assertIsNotNone(ledger_path)
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-duplicate-path",
+                ledger_paths=[ledger_path, ledger_path],
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "RECONCILIATION_REQUIRED")
+            self.assertEqual(rollup["ledger_input_scope"], "EXPLICIT_SCOPED_PATHS")
+            self.assertEqual(rollup["duplicate_ledger_path_count"], 1)
+            self.assertEqual(rollup["ledger_head_match_status"], "NOT_APPLICABLE")
+            self.assertFalse(rollup["live_order_allowed"])
+
+    def test_rollup_blocks_missing_latest_ledger_head_report(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-paper-ledger-rollup-missing-head",
+                requested_cycle_count=1,
+            )
+            head_path = (
+                root
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / "mvp1_upbit_paper_launcher"
+                / "ledger"
+                / "latest_paper_ledger_head.json"
+            )
+            head_path.unlink()
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-missing-head",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "LEDGER_INTEGRITY_FAIL")
+            self.assertEqual(rollup["ledger_head_match_status"], "MISSING")
+            self.assertEqual(rollup["ledger_head_mismatch_count"], 1)
+            self.assertFalse(rollup["live_order_allowed"])
+
+    def test_rollup_blocks_mismatched_latest_ledger_head_report(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-paper-ledger-rollup-mismatched-head",
+                requested_cycle_count=1,
+            )
+            head_path = (
+                root
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / "mvp1_upbit_paper_launcher"
+                / "ledger"
+                / "latest_paper_ledger_head.json"
+            )
+            ledger_head = json.loads(head_path.read_text(encoding="utf-8"))
+            ledger_head["ledger_head_hash"] = "F" * 64
+            ledger_head["head_report_hash"] = paper_ledger_head_report_hash(ledger_head)
+            head_path.write_text(json.dumps(ledger_head, sort_keys=True), encoding="utf-8")
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-mismatched-head",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "LEDGER_INTEGRITY_FAIL")
+            self.assertEqual(rollup["ledger_head_match_status"], "MISMATCH")
+            self.assertGreater(rollup["ledger_head_mismatch_count"], 0)
+            self.assertFalse(rollup["live_order_allowed"])
 
     def test_paper_ledger_rollup_validator_passes_current_contract(self):
         results = run_validators(["paper_ledger_rollup_validator"])
