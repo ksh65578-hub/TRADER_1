@@ -7332,6 +7332,10 @@ def upbit_paper_post_rerun_reconciliation_decision_audit_validator() -> Validato
     required = set(schema.get("required", []))
     for field in (
         "source_operator_queue_hash",
+        "source_operator_queue_file_load_status",
+        "source_operator_queue_file_hash",
+        "source_operator_queue_file_recomputed_hash",
+        "source_operator_queue_file_hash_match",
         "source_operator_queue_status",
         "decision_item_count",
         "write_denied_count",
@@ -7451,7 +7455,9 @@ def upbit_paper_post_rerun_reconciliation_decision_audit_validator() -> Validato
                 paths,
                 queue_result.blocker_code or "UNKNOWN_BLOCKED",
             )
+        source_queue_path = write_upbit_paper_post_rerun_operator_reconciliation_queue_report(root=root, report=operator_queue)
         report = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
+            root=root,
             operator_queue_report=operator_queue,
         )
         result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(report)
@@ -7465,6 +7471,10 @@ def upbit_paper_post_rerun_reconciliation_decision_audit_validator() -> Validato
         if (
             report.get("decision_audit_status") != "BLOCKED"
             or report.get("primary_blocker_code") != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
+            or report.get("source_operator_queue_file_load_status") != "PASS"
+            or report.get("source_operator_queue_file_hash") != report.get("source_operator_queue_hash")
+            or report.get("source_operator_queue_file_recomputed_hash") != report.get("source_operator_queue_hash")
+            or report.get("source_operator_queue_file_hash_match") is not True
             or report.get("decision_item_count") != 1
             or report.get("write_denied_count") != 1
             or report.get("operator_reconciliation_required_count") != 1
@@ -7483,6 +7493,24 @@ def upbit_paper_post_rerun_reconciliation_decision_audit_validator() -> Validato
                 paths,
                 "MEASUREMENT_MISSING",
             )
+        source_queue_path.unlink()
+        missing_source_report = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
+            root=root,
+            operator_queue_report=operator_queue,
+        )
+        missing_source_result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(missing_source_report)
+        if (
+            missing_source_result.status != "BLOCKED"
+            or missing_source_result.blocker_code != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
+            or missing_source_report.get("source_operator_queue_file_load_status") != "MISSING"
+        ):
+            return fail_result(
+                validator_id,
+                "missing source operator queue artifact was not blocked",
+                paths,
+                missing_source_result.blocker_code or POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+            )
+        write_upbit_paper_post_rerun_operator_reconciliation_queue_report(root=root, report=operator_queue)
         if current_ledger_path.exists():
             return fail_result(
                 validator_id,
@@ -7708,7 +7736,9 @@ def upbit_paper_post_rerun_reconciliation_blocker_rollup_validator() -> Validato
             root=root,
             promotion_guard_report=promotion_guard,
         )
+        write_upbit_paper_post_rerun_operator_reconciliation_queue_report(root=root, report=operator_queue)
         decision_audit = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
+            root=root,
             operator_queue_report=operator_queue,
         )
         decision_result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(decision_audit)
@@ -7977,7 +8007,9 @@ def upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator() -
             root=root,
             promotion_guard_report=promotion_guard,
         )
+        write_upbit_paper_post_rerun_operator_reconciliation_queue_report(root=root, report=operator_queue)
         decision_audit = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
+            root=root,
             operator_queue_report=operator_queue,
         )
         blocker_rollup = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(

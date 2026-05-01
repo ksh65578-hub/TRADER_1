@@ -390,6 +390,12 @@
     "post_rerun_reconciliation_decision_audit_status": {
       "type": "string"
     },
+    "post_rerun_decision_audit_source_operator_queue_file_load_status": {
+      "type": "string"
+    },
+    "post_rerun_decision_audit_source_operator_queue_file_hash_match": {
+      "type": "boolean"
+    },
     "post_rerun_reconciliation_decision_item_count": {
       "type": "integer",
       "minimum": 0
