@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "9D56EDE0C35355706EC005D2919F259A6DA3930DF30F1134EF16F8BFF8F440D2",
+      "sha256": "55668C40E0E828E3FF284D72A947D6493C23ED231934E8D717CA2BC00BFA04EC",
       "size_bytes": 1096
     },
     {
@@ -265,8 +265,8 @@
     },
     {
       "path": "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
-      "sha256": "287B83D908F0E51086F20746FFF1E27305D7165F2247E0DF3A639999030AB6AA",
-      "size_bytes": 5873
+      "sha256": "EB5A27C2597205EF692C920667D565841342A88A87B73E8B60EC9DFB597EA787",
+      "size_bytes": 7895
     },
     {
       "path": "contracts/schema/read_only_account_snapshot.schema.json",
@@ -1770,8 +1770,13 @@
     },
     {
       "path": "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
-      "sha256": "9EF505BDFB03F0BD15BF19E75E1D3677C276968D99E6BF59A6CD439D01F46A70",
-      "size_bytes": 10065
+      "sha256": "5870DB9DAA7A5BC64054EEE277861C3FECFABDAB570AAD16BE254F64C3DFE4B7",
+      "size_bytes": 12043
+    },
+    {
+      "path": "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
+      "sha256": "4768B07008CE760C4E98F706BCF1E1A6638602D888525CCBEAEAE62E0EDAF8E5",
+      "size_bytes": 25482
     },
     {
       "path": "tests/validators/fixtures/rolling_window_default_oos_window_fail.json",
@@ -2035,8 +2040,8 @@
     },
     {
       "path": "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
-      "sha256": "746689C4B11DF1159DECD4A5A065BF53ECB5B6D29666DF0D014F32B2C5CBE301",
-      "size_bytes": 4774
+      "sha256": "377D9DC270E097FADA8C0F0585785CD81F8360DEFDDAC80B2FDE7BD9E47E12AA",
+      "size_bytes": 5978
     },
     {
       "path": "tests/validators/test_rolling_window_default_validator.py",
@@ -2617,6 +2622,11 @@
       "path": "tools/emit_placeholder_readiness_surface_guard_patch_evidence.py",
       "sha256": "1A64C02041F7AF643BDB1266F08FBC9D12F5FB663A5363B9E5CC560AAB0C8794",
       "size_bytes": 24547
+    },
+    {
+      "path": "tools/emit_profitability_evidence_runtime_linkage_patch.py",
+      "sha256": "7D0F8972B945FFA146D159EED1040EBCD8414E54AAB8B9228759BEAD3DEF5E85",
+      "size_bytes": 28442
     },
     {
       "path": "tools/emit_profitability_maturity_component_next_actions_patch_evidence.py",
@@ -3880,8 +3890,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "93A72292B7F660E86DE3BA4A76F856453EF7B7EAB61F0D933F161E1FBFEAA8DE",
-      "size_bytes": 751887
+      "sha256": "F61FCDBC5D4C249148C58EA337A63CCA2631F9117B8C3AF15AF33688FB6002EC",
+      "size_bytes": 756593
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4320,6 +4330,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_PROFIT_CONVERGENCE_CYCLE_VALIDATOR.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -6411,6 +6425,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_PROFITABILITY_MATURITY_COMPONENT_NEXT_ACTIONS.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -7384,6 +7402,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8368,6 +8390,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP_VALIDATOR.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9367,6 +9393,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_MATURITY_COMPONENT_NEXT_ACTIONS.validator_run_log.json",
       "reason": "denied:system/"
     },
@@ -9931,6 +9961,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-profitability-evidence-runtime-linkage-cycle-1.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-profitability-evidence-runtime-linkage-cycle-2.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-strategy-regime-cost-runtime-linkage-cycle-1.paper_ledger_events.jsonl",
       "reason": "denied:system/"
     },
@@ -10019,6 +10057,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4-profitability-evidence-runtime-linkage-ledger-rollup.paper_ledger_rollup_report.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4-strategy-regime-cost-runtime-linkage-ledger-rollup.paper_ledger_rollup_report.json",
       "reason": "denied:system/"
     },
@@ -10092,6 +10134,14 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-paper-ledger-rollup-ui-refresh-collector-2.canonical_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-profitability-evidence-runtime-linkage-collector-1.canonical_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-profitability-evidence-runtime-linkage-collector-2.canonical_events.jsonl",
       "reason": "denied:system/"
     },
     {
@@ -10256,6 +10306,22 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-paper-ledger-rollup-ui-refresh-collector-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-profitability-evidence-runtime-linkage-collector-1.collection_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-profitability-evidence-runtime-linkage-collector-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-profitability-evidence-runtime-linkage-collector-2.collection_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-profitability-evidence-runtime-linkage-collector-2.writer_report.json",
       "reason": "denied:system/"
     },
     {
@@ -10507,6 +10573,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-profitability-evidence-runtime-linkage-collector-1.raw_candles.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-profitability-evidence-runtime-linkage-collector-2.raw_candles.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-public-rest-transform-loop-collector-1.raw_candles.json",
       "reason": "denied:system/"
     },
@@ -10688,6 +10762,22 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-paper-ledger-rollup-ui-refresh-cycle-2.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-profitability-evidence-runtime-linkage-cycle-1.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-profitability-evidence-runtime-linkage-cycle-1.writer_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-profitability-evidence-runtime-linkage-cycle-2.runtime_cycle.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-profitability-evidence-runtime-linkage-cycle-2.writer_report.json",
       "reason": "denied:system/"
     },
     {
@@ -10956,6 +11046,14 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-paper-ledger-rollup-ui-refresh.persistent_loop_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-profitability-evidence-runtime-linkage-recovery-guard.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-profitability-evidence-runtime-linkage.persistent_loop_report.json",
       "reason": "denied:system/"
     },
     {

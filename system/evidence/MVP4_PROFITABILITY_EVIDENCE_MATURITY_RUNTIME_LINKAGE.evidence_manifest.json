@@ -1,0 +1,40 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-05-01T12:29:13Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
+    "trader1/validation/mvp0_validators.py",
+    "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+    "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
+    "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+    "tools/emit_profitability_evidence_runtime_linkage_patch.py",
+    "contracts/generated/context_pack/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.md",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json",
+    "system/evidence/patch_results/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.patch_result.json",
+    "system/evidence/validator_runs/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.stage_gate_result.json"
+  ],
+  "known_blockers": [
+    "PROFITABILITY_EVIDENCE_MATURITY",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

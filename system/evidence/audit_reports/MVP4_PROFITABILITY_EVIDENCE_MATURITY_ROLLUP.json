@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-04-29T15:54:53Z",
+  "generated_at_utc": "2026-05-01T12:29:13Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -31,14 +31,16 @@
       "validator_status": "PASS",
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
-        "contracts/schema/strategy_condition_matrix.schema.json"
+        "contracts/schema/strategy_condition_matrix.schema.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
       ],
       "source_evidence_ids": [
-        "REQ-MVP4-STRATEGY-CONDITION-MATRIX-SCHEMA-HARDENING"
+        "REQ-MVP4-STRATEGY-CONDITION-MATRIX-SCHEMA-HARDENING",
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE"
       ],
-      "sample_count": 0,
+      "sample_count": 1,
       "min_required_sample_count": 20,
-      "freshness_status": "BLOCKED",
+      "freshness_status": "PASS",
       "dependency_status": "PASS",
       "next_required_evidence": "Collect PAPER entry, exit, and no-trade traces with source evidence ids.",
       "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
@@ -54,14 +56,16 @@
       "validator_status": "PASS",
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
-        "contracts/schema/symbol_strategy_regime_fit_report.schema.json"
+        "contracts/schema/symbol_strategy_regime_fit_report.schema.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
       ],
       "source_evidence_ids": [
-        "REQ-MVP4-SYMBOL-REGIME-FIT-SCHEMA-HARDENING"
+        "REQ-MVP4-SYMBOL-REGIME-FIT-SCHEMA-HARDENING",
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE"
       ],
-      "sample_count": 0,
+      "sample_count": 1,
       "min_required_sample_count": 20,
-      "freshness_status": "BLOCKED",
+      "freshness_status": "PASS",
       "dependency_status": "PASS",
       "next_required_evidence": "Collect liquidity, volatility, spread, depth, and regime evidence per reviewed symbol.",
       "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
@@ -77,14 +81,16 @@
       "validator_status": "PASS",
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
-        "contracts/schema/strategy_condition_matrix.schema.json"
+        "contracts/schema/strategy_condition_matrix.schema.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
       ],
       "source_evidence_ids": [
-        "REQ-MVP4-STRATEGY-CONDITION-MATRIX-SCHEMA-HARDENING"
+        "REQ-MVP4-STRATEGY-CONDITION-MATRIX-SCHEMA-HARDENING",
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE"
       ],
-      "sample_count": 0,
+      "sample_count": 1,
       "min_required_sample_count": 20,
-      "freshness_status": "BLOCKED",
+      "freshness_status": "PASS",
       "dependency_status": "PASS",
       "next_required_evidence": "Collect regime-labeled VWAP, trend pullback, and breakout/retest outcome samples.",
       "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
@@ -123,10 +129,12 @@
       "validator_status": "PASS",
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
-        "contracts/schema/optimizer_feedback_report.schema.json"
+        "contracts/schema/optimizer_feedback_report.schema.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
       ],
       "source_evidence_ids": [
-        "REQ-MVP4-EXECUTION-FEEDBACK-COST-MODEL-HARDENING"
+        "REQ-MVP4-EXECUTION-FEEDBACK-COST-MODEL-HARDENING",
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE"
       ],
       "sample_count": 1,
       "min_required_sample_count": 30,
@@ -146,10 +154,12 @@
       "validator_status": "PASS",
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
-        "contracts/schema/candidate_scorecard.schema.json"
+        "contracts/schema/candidate_scorecard.schema.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
       ],
       "source_evidence_ids": [
-        "REQ-MVP4-STRATEGY-NET-EV-SCORECARD-SCHEMA-HARDENING"
+        "REQ-MVP4-STRATEGY-NET-EV-SCORECARD-SCHEMA-HARDENING",
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE"
       ],
       "sample_count": 1,
       "min_required_sample_count": 30,
@@ -264,6 +274,26 @@
   "live_review_eligible": false,
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
-  "next_operator_action": "Collect longer PAPER/SHADOW evidence windows; live remains blocked until long-run and external live-review evidence exist.",
-  "rollup_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+  "next_operator_action": "Use PAPER runtime-linked strategy/regime/cost evidence only as PAPER scorecard input; collect longer PAPER/SHADOW windows, OOS, walk-forward, bootstrap, read-only burn-in, manual order evidence, and operator approval while live remains blocked.",
+  "rollup_hash": "48AAB38A53B4757EAA2E2225EA1FFA8829D7347DBF65666B366C4CD95B694E00",
+  "runtime_linkage_evidence": {
+    "status": "PASS",
+    "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json",
+    "source_runtime_cycle_id": "mvp4-profitability-evidence-runtime-linkage-cycle-2",
+    "source_runtime_cycle_hash": "CBF66B499A0DCEAC12D2A9E47994BC0C82E621F14C71E715E2C36468EEFABD42",
+    "runtime_input_role": "PUBLIC_MARKET_DATA_COLLECTION",
+    "runtime_public_market_data_hash": "57D082D6DBB02832DB1F6A0CF70FF015CF0FC9B02D3082839D44ACEE6716113F",
+    "feature_snapshot_hash": "B457209029201C9DF5B28BDC631838A6F06AC8854E75D1A7742CBFBBE5A5BE2E",
+    "strategy_regime_cost_linkage_status": "PASS",
+    "selected_candidate_id": "KRW-BTC-pullback-trend-long",
+    "selected_candidate_net_ev_after_cost_bps": "31",
+    "cost_model_source": "PAPER_RUNTIME_STATIC_COST_MODEL",
+    "sample_count": 1,
+    "min_required_sample_count": 1,
+    "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  }
 }

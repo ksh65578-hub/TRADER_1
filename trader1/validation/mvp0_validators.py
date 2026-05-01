@@ -10325,6 +10325,65 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         if _live_flag_is_true(rollup.get(field)):
             errors.append(f"rollup has forbidden true field: {field}")
 
+    runtime_linkage = rollup.get("runtime_linkage_evidence", {})
+    if not isinstance(runtime_linkage, dict):
+        errors.append("rollup runtime_linkage_evidence must be an object")
+    else:
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            if _live_flag_is_true(runtime_linkage.get(field)):
+                errors.append(f"rollup runtime linkage has forbidden true field: {field}")
+        if runtime_linkage.get("status") != "PASS":
+            errors.append("rollup runtime linkage evidence must be PASS before PAPER scorecard input remains allowed")
+        if runtime_linkage.get("strategy_regime_cost_linkage_status") != "PASS":
+            errors.append("rollup runtime strategy/regime/cost linkage status must be PASS")
+        try:
+            sample_count = int(runtime_linkage.get("sample_count", 0))
+            min_required_sample_count = int(runtime_linkage.get("min_required_sample_count", 1))
+        except (TypeError, ValueError):
+            sample_count = 0
+            min_required_sample_count = 1
+            errors.append("rollup runtime linkage sample counts must be integers")
+        if sample_count < 1:
+            errors.append("rollup runtime linkage evidence requires at least one PAPER runtime sample")
+        if sample_count < min_required_sample_count:
+            errors.append("rollup runtime linkage sample_count is below min_required_sample_count")
+        if runtime_linkage.get("primary_blocker_code") != "PROFITABILITY_EVIDENCE_MATURITY":
+            errors.append("rollup runtime linkage must preserve PROFITABILITY_EVIDENCE_MATURITY blocker")
+
+        source_path_text = runtime_linkage.get("source_runtime_cycle_path")
+        if isinstance(source_path_text, str) and source_path_text:
+            runtime_path = (ROOT / source_path_text).resolve()
+            root = ROOT.resolve()
+            if runtime_path != root and root not in runtime_path.parents:
+                errors.append("rollup runtime linkage source path escapes repository root")
+            elif not runtime_path.exists():
+                errors.append("rollup runtime linkage source runtime cycle path is missing")
+            else:
+                runtime_report = load_json(runtime_path)
+                runtime_result = validate_upbit_paper_runtime_cycle_report(runtime_report)
+                if runtime_result.status != "PASS":
+                    errors.append(f"rollup runtime linkage source cycle failed validation: {runtime_result.message}")
+                if runtime_linkage.get("source_runtime_cycle_id") != runtime_report.get("cycle_id"):
+                    errors.append("rollup runtime linkage cycle id does not match source runtime cycle")
+                if runtime_linkage.get("source_runtime_cycle_hash") != runtime_report.get("cycle_hash"):
+                    errors.append("rollup runtime linkage cycle hash does not match source runtime cycle")
+                if runtime_linkage.get("runtime_input_role") != runtime_report.get("runtime_input_role"):
+                    errors.append("rollup runtime linkage input role does not match source runtime cycle")
+                if runtime_linkage.get("runtime_public_market_data_hash") != runtime_report.get("runtime_public_market_data_hash"):
+                    errors.append("rollup runtime linkage market data hash does not match source runtime cycle")
+                if runtime_linkage.get("feature_snapshot_hash") != runtime_report.get("feature_snapshot_hash"):
+                    errors.append("rollup runtime linkage feature snapshot hash does not match source runtime cycle")
+                selected = runtime_report.get("selected_candidate", {})
+                if runtime_linkage.get("selected_candidate_id") != selected.get("candidate_id"):
+                    errors.append("rollup runtime linkage selected candidate id does not match source runtime cycle")
+                if runtime_linkage.get("selected_candidate_net_ev_after_cost_bps") != selected.get("net_ev_after_cost_bps"):
+                    errors.append("rollup runtime linkage selected candidate net EV does not match source runtime cycle")
+                if runtime_linkage.get("cost_model_source") != selected.get("cost_model_source"):
+                    errors.append("rollup runtime linkage cost model source does not match source runtime cycle")
+                strategy_linkage = runtime_report.get("strategy_regime_cost_linkage", {})
+                if strategy_linkage.get("selected_candidate_id") != runtime_linkage.get("selected_candidate_id"):
+                    errors.append("rollup runtime linkage does not match source strategy_regime_cost_linkage")
+
     if rollup.get("status") != "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY":
         errors.append("rollup status must keep profitability evidence maturity blocked")
 
