@@ -30,6 +30,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_queue 
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review_guidance import (
     POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE_STATUS,
     POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_ITEM_STATUS,
+    POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED,
     build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
     upbit_paper_post_rerun_operator_reconciliation_review_guidance_hash,
     validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
@@ -37,6 +38,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
     build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
+    write_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_decision_audit import (
     build_upbit_paper_post_rerun_reconciliation_decision_audit_report,
@@ -157,18 +159,22 @@ class UpbitPaperPostRerunOperatorReconciliationReviewGuidanceTest(unittest.TestC
             root=root,
             decision_audit_report=decision_audit,
         )
+        write_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(root=root, report=blocker_rollup)
         return root, blocker_rollup, current_ledger_path
 
     def test_builds_review_guidance_without_current_evidence_mutation(self):
         root, blocker_rollup, current_ledger_path = self._blocker_rollup_with_missing_current_ledger()
 
         report = build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
+            root=root,
             blocker_rollup_report=blocker_rollup,
         )
         result = validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(report)
 
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["review_guidance_status"], POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE_STATUS)
+        self.assertEqual(report["source_blocker_rollup_file_load_status"], "PASS")
+        self.assertTrue(report["source_blocker_rollup_file_hash_match"])
         self.assertEqual(report["primary_blocker_code"], POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
         self.assertEqual(report["guidance_item_count"], blocker_rollup["rollup_item_count"])
         self.assertEqual(report["source_unique_blocker_count"], blocker_rollup["unique_blocker_count"])
@@ -194,8 +200,9 @@ class UpbitPaperPostRerunOperatorReconciliationReviewGuidanceTest(unittest.TestC
         self.assertTrue(path.exists())
 
     def test_blocks_live_current_write_and_forbidden_output_mutation(self):
-        _root, blocker_rollup, _current_ledger_path = self._blocker_rollup_with_missing_current_ledger()
+        root, blocker_rollup, _current_ledger_path = self._blocker_rollup_with_missing_current_ledger()
         report = build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
+            root=root,
             blocker_rollup_report=blocker_rollup,
         )
 
@@ -221,8 +228,9 @@ class UpbitPaperPostRerunOperatorReconciliationReviewGuidanceTest(unittest.TestC
         self.assertEqual(forbidden_result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_rejects_count_tamper_and_path_escape(self):
-        _root, blocker_rollup, _current_ledger_path = self._blocker_rollup_with_missing_current_ledger()
+        root, blocker_rollup, _current_ledger_path = self._blocker_rollup_with_missing_current_ledger()
         report = build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
+            root=root,
             blocker_rollup_report=blocker_rollup,
         )
 
@@ -239,6 +247,33 @@ class UpbitPaperPostRerunOperatorReconciliationReviewGuidanceTest(unittest.TestC
         path_result = validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(path_escape)
         self.assertEqual(path_result.status, "BLOCKED")
         self.assertEqual(path_result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_blocks_missing_source_blocker_rollup_file(self):
+        root, blocker_rollup, _current_ledger_path = self._blocker_rollup_with_missing_current_ledger()
+        source_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"
+        )
+        source_path.unlink()
+
+        report = build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
+            root=root,
+            blocker_rollup_report=blocker_rollup,
+        )
+        result = validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(report)
+
+        self.assertEqual(report["source_blocker_rollup_file_load_status"], "MISSING")
+        self.assertFalse(report["source_blocker_rollup_file_hash_match"])
+        self.assertIn(POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED, report["blocker_codes"])
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED)
 
 
 if __name__ == "__main__":

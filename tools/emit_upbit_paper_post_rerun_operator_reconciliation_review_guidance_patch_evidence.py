@@ -104,6 +104,7 @@ def write_runtime_report() -> dict[str, Any]:
             f"{source_result.status} {source_result.blocker_code} {source_result.message}"
         )
     report = build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
+        root=ROOT,
         blocker_rollup_report=blocker_rollup,
         source_blocker_rollup_path=base.rel(source_path),
         guidance_id="mvp4-upbit-paper-post-rerun-operator-reconciliation-review-guidance",

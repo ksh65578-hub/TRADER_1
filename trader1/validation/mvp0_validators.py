@@ -290,6 +290,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup 
     write_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review_guidance import (
+    POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED,
     build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
     upbit_paper_post_rerun_operator_reconciliation_review_guidance_hash,
     validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
@@ -7932,6 +7933,10 @@ def upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator() -
     required = set(schema.get("required", []))
     for field in (
         "source_blocker_rollup_hash",
+        "source_blocker_rollup_file_load_status",
+        "source_blocker_rollup_file_hash",
+        "source_blocker_rollup_file_recomputed_hash",
+        "source_blocker_rollup_file_hash_match",
         "source_blocker_rollup_status",
         "source_rollup_item_count",
         "source_unique_blocker_count",
@@ -8056,6 +8061,7 @@ def upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator() -
             root=root,
             decision_audit_report=decision_audit,
         )
+        write_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(root=root, report=blocker_rollup)
         source_result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(blocker_rollup)
         if source_result.status != "PASS":
             return fail_result(
@@ -8065,6 +8071,7 @@ def upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator() -
                 source_result.blocker_code or "UNKNOWN_BLOCKED",
             )
         report = build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
+            root=root,
             blocker_rollup_report=blocker_rollup,
         )
         result = validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(report)
@@ -8077,6 +8084,8 @@ def upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator() -
             )
         if (
             report.get("review_guidance_status") != "BLOCKED_RECONCILIATION_REVIEW_REQUIRED"
+            or report.get("source_blocker_rollup_file_load_status") != "PASS"
+            or report.get("source_blocker_rollup_file_hash_match") is not True
             or report.get("primary_blocker_code") != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
             or report.get("guidance_item_count") != 1
             or report.get("source_unique_blocker_count", 0) < 1
@@ -8161,6 +8170,36 @@ def upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator() -
                 "post-rerun operator review guidance forbidden output mutation was not blocked",
                 paths,
                 forbidden_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+            )
+
+        source_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"
+        )
+        source_path.unlink()
+        missing_source = build_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
+            root=root,
+            blocker_rollup_report=blocker_rollup,
+        )
+        missing_result = validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(missing_source)
+        if (
+            missing_source.get("source_blocker_rollup_file_load_status") != "MISSING"
+            or missing_source.get("source_blocker_rollup_file_hash_match") is not False
+            or missing_result.status != "BLOCKED"
+            or missing_result.blocker_code != POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED
+        ):
+            return fail_result(
+                validator_id,
+                "post-rerun review guidance missing source blocker rollup file was not blocked",
+                paths,
+                missing_result.blocker_code or POST_RERUN_REVIEW_GUIDANCE_SOURCE_BLOCKER_ROLLUP_BINDING_REQUIRED,
             )
 
         path_escape = json.loads(json.dumps(report))

@@ -55,8 +55,8 @@
       "output_name": "risk_scale_up_decision"
     }
   ],
-  "generated_at_utc": "2026-05-01T17:20:57Z",
-  "guidance_hash": "659AD97D783A830FA0780DC60AE38237936E80D04B30E6CB48FD27DB4E36A9C6",
+  "generated_at_utc": "2026-05-01T20:17:45Z",
+  "guidance_hash": "5F847515F1415E695C74B0BBF1C98919B33731BA1A7C82B916049E77414C7120",
   "guidance_id": "mvp4-upbit-paper-post-rerun-operator-reconciliation-review-guidance",
   "guidance_item_count": 8,
   "guidance_items": [
@@ -454,7 +454,11 @@
   "scale_up_allowed": false,
   "schema_id": "trader1.upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.v1",
   "session_id": "mvp1_upbit_paper_launcher",
-  "source_blocker_rollup_hash": "DEAB93BD73809281FF3AE71B2DFAD441618B9EDF178F8294C45923ED47BAB926",
+  "source_blocker_rollup_file_hash": "C5A183D996A55BC13627BBEC0C9226CAE958C6584EE6797B7D1BE47A6A2A0413",
+  "source_blocker_rollup_file_hash_match": true,
+  "source_blocker_rollup_file_load_status": "PASS",
+  "source_blocker_rollup_file_recomputed_hash": "C5A183D996A55BC13627BBEC0C9226CAE958C6584EE6797B7D1BE47A6A2A0413",
+  "source_blocker_rollup_hash": "C5A183D996A55BC13627BBEC0C9226CAE958C6584EE6797B7D1BE47A6A2A0413",
   "source_blocker_rollup_outcome": "POST_RERUN_RECONCILIATION_BLOCKERS_ROLLED_UP_CURRENT_EVIDENCE_BLOCKED",
   "source_blocker_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
   "source_blocker_rollup_primary_blocker_code": "POST_RERUN_RECONCILIATION_REQUIRED",
