@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.runtime_stability_history.v1",
-  "generated_at_utc": "2026-04-30T23:25:59Z",
+  "generated_at_utc": "2026-05-01T12:45:23Z",
   "project_id": "TRADER_1",
   "exchange": "BINANCE",
   "market_type": "SPOT",
@@ -11,85 +11,21 @@
   "dashboard_truth_only": true,
   "history_status": "ATTENTION",
   "history_window": "LAST_N_SAMPLES",
-  "first_sample_at_utc": "2026-04-30T10:51:32Z",
-  "latest_sample_at_utc": "2026-04-30T23:25:59Z",
-  "observed_span_seconds": 45267,
+  "first_sample_at_utc": "2026-04-30T10:53:23Z",
+  "latest_sample_at_utc": "2026-05-01T12:45:23Z",
+  "observed_span_seconds": 93120,
   "min_validated_span_seconds": 3600,
   "min_validated_sample_count": 2,
   "span_validation_status": "SPAN_VALIDATED",
   "max_samples": 60,
   "sample_count": 60,
-  "stable_sample_count": 31,
-  "attention_sample_count": 29,
+  "stable_sample_count": 30,
+  "attention_sample_count": 30,
   "error_sample_count": 0,
   "stale_metric_sample_count": 0,
-  "latest_sample_hash": "22940E6033A06BF054F082A6435A963B8C012B09889096DDA2C113E50D9CD74F",
+  "latest_sample_hash": "A3F7FEF1CAA11275B072225E4E8FDC2508352609B07DAF75A5C2CCE82B04577E",
   "reset_reason": null,
   "samples": [
-    {
-      "schema_id": "trader1.runtime_stability_sample.v1",
-      "generated_at_utc": "2026-04-30T10:51:32Z",
-      "project_id": "TRADER_1",
-      "exchange": "BINANCE",
-      "market_type": "SPOT",
-      "mode": "LIVE",
-      "session_id": "mvp1_binance_live_launcher",
-      "source_dashboard_hash": "15E22EDA255C0A2DED2D58FD16E117E66856E79D27F3A0B26645E5AA51727FD9",
-      "status": "STABLE",
-      "severity": "NORMAL",
-      "metric_status_counts": {
-        "FAIL": 0,
-        "PASS": 7,
-        "STALE": 0,
-        "UNTESTED": 0,
-        "WARN": 0
-      },
-      "metrics": [
-        {
-          "metric_id": "heartbeat_age",
-          "status": "PASS",
-          "value_display": "0.0s / 30s"
-        },
-        {
-          "metric_id": "source_freshness",
-          "status": "PASS",
-          "value_display": "3/3 PASS"
-        },
-        {
-          "metric_id": "resource_health",
-          "status": "PASS",
-          "value_display": "PASS"
-        },
-        {
-          "metric_id": "runtime_artifact_pressure",
-          "status": "PASS",
-          "value_display": "PASS"
-        },
-        {
-          "metric_id": "event_latency",
-          "status": "PASS",
-          "value_display": "PASS"
-        },
-        {
-          "metric_id": "queue_backlog",
-          "status": "PASS",
-          "value_display": "PASS"
-        },
-        {
-          "metric_id": "rate_limit_pressure",
-          "status": "PASS",
-          "value_display": "PASS"
-        }
-      ],
-      "previous_sample_hash": null,
-      "display_only": true,
-      "dashboard_truth_only": true,
-      "live_order_ready": false,
-      "live_order_allowed": false,
-      "can_live_trade": false,
-      "scale_up_allowed": false,
-      "sample_hash": "16355267308179DAEAEDB0974B361801EE8A914120F4C862FA9885FD745307B9"
-    },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
       "generated_at_utc": "2026-04-30T10:53:23Z",
@@ -145,14 +81,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "16355267308179DAEAEDB0974B361801EE8A914120F4C862FA9885FD745307B9",
+      "previous_sample_hash": null,
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "BEADCAC542636500CA606E6B7CA7D391520120FD8C5EC7274100B07D5CE58DC6"
+      "sample_hash": "BD7139439E8448BE4DBA396B8F2848C0E2C8B1A4ADC2EE031628DFB952EC8B91"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -209,14 +145,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "BEADCAC542636500CA606E6B7CA7D391520120FD8C5EC7274100B07D5CE58DC6",
+      "previous_sample_hash": "BD7139439E8448BE4DBA396B8F2848C0E2C8B1A4ADC2EE031628DFB952EC8B91",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "02E49839FA28444021D34BA0886F4CD03F35C6F98F0C38DB776B33278E654190"
+      "sample_hash": "16EAC4FC55C9D7F31334914B703579407A6A2FB23E7814224B85B405E858426D"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -273,14 +209,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "02E49839FA28444021D34BA0886F4CD03F35C6F98F0C38DB776B33278E654190",
+      "previous_sample_hash": "16EAC4FC55C9D7F31334914B703579407A6A2FB23E7814224B85B405E858426D",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "F49988733B48DEBFC407CDF5234EF427D205F3EC81D6BCB76EA661307BD49639"
+      "sample_hash": "950DA5F9EC5FDD7F6889975AC7ED3A871DB53F23C116E715C18EA04FA8A261D3"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -337,14 +273,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "F49988733B48DEBFC407CDF5234EF427D205F3EC81D6BCB76EA661307BD49639",
+      "previous_sample_hash": "950DA5F9EC5FDD7F6889975AC7ED3A871DB53F23C116E715C18EA04FA8A261D3",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "3D89FEDB8095105B39ABAE7489F4F4C29BB0233F5EC170A585114D181847D1DF"
+      "sample_hash": "F504063AB834D4B99E22ABDC7B146004E04D99D734BF91C9C318B2F521D98201"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -401,14 +337,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "3D89FEDB8095105B39ABAE7489F4F4C29BB0233F5EC170A585114D181847D1DF",
+      "previous_sample_hash": "F504063AB834D4B99E22ABDC7B146004E04D99D734BF91C9C318B2F521D98201",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "DCEA1DD04CB94996EC4862EF3E710A0FA43B6E758AA728A85501669854E1D482"
+      "sample_hash": "0DA3CAB3741FE40D85722865D3D988DCCE8C684F3AA6F439D64F988F7607FE74"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -465,14 +401,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "DCEA1DD04CB94996EC4862EF3E710A0FA43B6E758AA728A85501669854E1D482",
+      "previous_sample_hash": "0DA3CAB3741FE40D85722865D3D988DCCE8C684F3AA6F439D64F988F7607FE74",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "54BE7DD07DC2D29CFF8A3A54421FE7C0363E8C486130BD8CA3290161D8953AA3"
+      "sample_hash": "C411026F1EE2E24DE10F050EA46057060A687AD0F9354357C48467164CFC34F2"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -529,14 +465,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "54BE7DD07DC2D29CFF8A3A54421FE7C0363E8C486130BD8CA3290161D8953AA3",
+      "previous_sample_hash": "C411026F1EE2E24DE10F050EA46057060A687AD0F9354357C48467164CFC34F2",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "3CC9ABD9205345C4C0A880F69683880BE67867EA7889763732BC365A46A0394E"
+      "sample_hash": "A027304A4B5E9D1741E22FE561A6A86A422F7B8817FFA7F0AC879A6595EA5E6D"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -593,14 +529,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "3CC9ABD9205345C4C0A880F69683880BE67867EA7889763732BC365A46A0394E",
+      "previous_sample_hash": "A027304A4B5E9D1741E22FE561A6A86A422F7B8817FFA7F0AC879A6595EA5E6D",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "5AF5016046B9A573C43DC3F1E257299ED3D725D7AF0F1B635A673D105EB231F9"
+      "sample_hash": "CF98933B3CF358327292D672A4CBCB18B6C29988D4AA893BEF5A4977A97F1C81"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -657,14 +593,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "5AF5016046B9A573C43DC3F1E257299ED3D725D7AF0F1B635A673D105EB231F9",
+      "previous_sample_hash": "CF98933B3CF358327292D672A4CBCB18B6C29988D4AA893BEF5A4977A97F1C81",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "8A8F04869A8B9C703B07BDD8A17B9E1FC06AD7D85FF3581EFE84F23D2F4EE09A"
+      "sample_hash": "2E4C3EA8C54F6F6EAB7572F301DFCF1AAFF1BB24A2DA0E4D9974AD208B4C9C6A"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -721,14 +657,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "8A8F04869A8B9C703B07BDD8A17B9E1FC06AD7D85FF3581EFE84F23D2F4EE09A",
+      "previous_sample_hash": "2E4C3EA8C54F6F6EAB7572F301DFCF1AAFF1BB24A2DA0E4D9974AD208B4C9C6A",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "9B1E7CAB6462535237878FACE33AD67EA7DC9D3E34A5A45467CA8A2DFCE3FAF7"
+      "sample_hash": "332DEDC33AB75E3D211594C57538F545A0A205073317CFC7E88F4ACFF88CAC21"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -785,14 +721,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "9B1E7CAB6462535237878FACE33AD67EA7DC9D3E34A5A45467CA8A2DFCE3FAF7",
+      "previous_sample_hash": "332DEDC33AB75E3D211594C57538F545A0A205073317CFC7E88F4ACFF88CAC21",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "7120571F343C807377C0F83F1B887F65A31828B7E20B46E584C5030ADD7283AA"
+      "sample_hash": "D9949AE785CD86F437074CBE34652B4A7169396283CAB7CB8EE584C5342B9C37"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -849,14 +785,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "7120571F343C807377C0F83F1B887F65A31828B7E20B46E584C5030ADD7283AA",
+      "previous_sample_hash": "D9949AE785CD86F437074CBE34652B4A7169396283CAB7CB8EE584C5342B9C37",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "DE6980AACFBFB2E561C34EBA3219D3763F0D9B27625599333106EC61471AB291"
+      "sample_hash": "1174899BB8C154C7F271A9C1D6E01B4239A56C1BFEA18FF5CCB692812D54983C"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -913,14 +849,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "DE6980AACFBFB2E561C34EBA3219D3763F0D9B27625599333106EC61471AB291",
+      "previous_sample_hash": "1174899BB8C154C7F271A9C1D6E01B4239A56C1BFEA18FF5CCB692812D54983C",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "037452ED324599D2DA7AAD685F7CADBE59E6F0AA3B9EA993CA56AF421A8519E4"
+      "sample_hash": "28E515E6945B9D00116362A312658FDBE427E7D95AA8F35E22FE6689DD672119"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -977,14 +913,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "037452ED324599D2DA7AAD685F7CADBE59E6F0AA3B9EA993CA56AF421A8519E4",
+      "previous_sample_hash": "28E515E6945B9D00116362A312658FDBE427E7D95AA8F35E22FE6689DD672119",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "9CDF9EE6DCCA57ECE9CB25E37FC0D1E62E03E1F147AC4F865CA2F2E00AC630E8"
+      "sample_hash": "85B1ECE7B86A4D75489F5DAFCCAFC10580F584E36909F046B041EC0135D5ED87"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1041,14 +977,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "9CDF9EE6DCCA57ECE9CB25E37FC0D1E62E03E1F147AC4F865CA2F2E00AC630E8",
+      "previous_sample_hash": "85B1ECE7B86A4D75489F5DAFCCAFC10580F584E36909F046B041EC0135D5ED87",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "D9CF3F528BE9406AD0D0204650534032AAA3B8BC5A2DD25E71D87AB180E8E560"
+      "sample_hash": "6997E28B7D0A34B6FF7760A31B4C16C4C118B31077337F5CF5463C7F9C90652C"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1105,14 +1041,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "D9CF3F528BE9406AD0D0204650534032AAA3B8BC5A2DD25E71D87AB180E8E560",
+      "previous_sample_hash": "6997E28B7D0A34B6FF7760A31B4C16C4C118B31077337F5CF5463C7F9C90652C",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "1D051C64BB3C22D7D19E14AB4753BE21542EE92D9D1AAB005FBAF50E05E8ABD9"
+      "sample_hash": "ACE4FBEF55F0026EB7B748B5E6D307CB468E4B1DB48C52791F0186B7C65BAFF0"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1169,14 +1105,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "1D051C64BB3C22D7D19E14AB4753BE21542EE92D9D1AAB005FBAF50E05E8ABD9",
+      "previous_sample_hash": "ACE4FBEF55F0026EB7B748B5E6D307CB468E4B1DB48C52791F0186B7C65BAFF0",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "3BF57EB3305A743716BCD287A37965F3ED255536FC3666C390AF514C2CAC50C8"
+      "sample_hash": "7D95CF002437B80C30E6A33EF72A8B485B2BA2EF9810A2AE4C2C870AE87778A2"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1233,14 +1169,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "3BF57EB3305A743716BCD287A37965F3ED255536FC3666C390AF514C2CAC50C8",
+      "previous_sample_hash": "7D95CF002437B80C30E6A33EF72A8B485B2BA2EF9810A2AE4C2C870AE87778A2",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "06C89823B003644A132B0E1C135C38B0A4990C04B767BC372CCB6EF31A70FB29"
+      "sample_hash": "F1EC2C7ECFB42EBEF1F7CE2C26D2B0F0E243FD670C36B166A26DAAA1FA3B82A8"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1297,14 +1233,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "06C89823B003644A132B0E1C135C38B0A4990C04B767BC372CCB6EF31A70FB29",
+      "previous_sample_hash": "F1EC2C7ECFB42EBEF1F7CE2C26D2B0F0E243FD670C36B166A26DAAA1FA3B82A8",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "4A18DED3525640B699B6EA78A7DBDB58A4DD04946BAFBE1D826BFFE06764D433"
+      "sample_hash": "A1E4C1D351E3FD8723281D0FFAA0FD9E22900724B70371434D4AD881C7796817"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1361,14 +1297,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "4A18DED3525640B699B6EA78A7DBDB58A4DD04946BAFBE1D826BFFE06764D433",
+      "previous_sample_hash": "A1E4C1D351E3FD8723281D0FFAA0FD9E22900724B70371434D4AD881C7796817",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "E19411EFAB4E0FC22323C4ACF6F9DB62261A9774A780418575BBB61223742882"
+      "sample_hash": "DC3FD5AC1BEF9A97ACF2FC9DBF503F9B9E77C79C771DAAB47E09289067B2E644"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1425,14 +1361,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "E19411EFAB4E0FC22323C4ACF6F9DB62261A9774A780418575BBB61223742882",
+      "previous_sample_hash": "DC3FD5AC1BEF9A97ACF2FC9DBF503F9B9E77C79C771DAAB47E09289067B2E644",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "AB18CEF84290F69375C215ADFD90A105A28D20A18B8494A7759673BD656D63F4"
+      "sample_hash": "FA3405B6DACC871966BFDFDEABB09C9BD7B3AA4ABBE3ADCA5BD0D66709BCB4E2"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1489,14 +1425,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "AB18CEF84290F69375C215ADFD90A105A28D20A18B8494A7759673BD656D63F4",
+      "previous_sample_hash": "FA3405B6DACC871966BFDFDEABB09C9BD7B3AA4ABBE3ADCA5BD0D66709BCB4E2",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "E606AB5DDC45E8E1BE50EACF7521FD59D4D93918671E1F081EFB0411C1EE6247"
+      "sample_hash": "290899767A6229D1B10F8F1054A493FFA4F86F996310358CAB04FA05970E3C8F"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1553,14 +1489,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "E606AB5DDC45E8E1BE50EACF7521FD59D4D93918671E1F081EFB0411C1EE6247",
+      "previous_sample_hash": "290899767A6229D1B10F8F1054A493FFA4F86F996310358CAB04FA05970E3C8F",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "05C7D3FE4494C001358C96BC1AAE91EA8B640B2DD9762BD22F075FA106C233C8"
+      "sample_hash": "96BAA82FB8EAFD1D93BC85BAE0EE938905CA333E58E5827EB947292AAA1CF69F"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1617,14 +1553,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "05C7D3FE4494C001358C96BC1AAE91EA8B640B2DD9762BD22F075FA106C233C8",
+      "previous_sample_hash": "96BAA82FB8EAFD1D93BC85BAE0EE938905CA333E58E5827EB947292AAA1CF69F",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "63AD6D12FA96D40217A4A8A4B09CBF3C3D3312ED0058C9FFB8819830E665E12C"
+      "sample_hash": "84451B47ACDDF0DA666885FA57DEA141B8EB50CCDB01F7EFFE45A8155266E961"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1681,14 +1617,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "63AD6D12FA96D40217A4A8A4B09CBF3C3D3312ED0058C9FFB8819830E665E12C",
+      "previous_sample_hash": "84451B47ACDDF0DA666885FA57DEA141B8EB50CCDB01F7EFFE45A8155266E961",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "918E6A0EADE5E3BFC6FB42EDD4DE76EAC3C129692A7792F2F71191526E37FDAD"
+      "sample_hash": "9FFE118ACAD8C41E4141EF06B95BAB0FB2A2F01C5497604D6560DD5139095188"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1745,14 +1681,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "918E6A0EADE5E3BFC6FB42EDD4DE76EAC3C129692A7792F2F71191526E37FDAD",
+      "previous_sample_hash": "9FFE118ACAD8C41E4141EF06B95BAB0FB2A2F01C5497604D6560DD5139095188",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "2950A95BB7242576793B68F457308F34FAF71FFFB59C9EF927317DA772F37EA1"
+      "sample_hash": "4BA1F84A16FF11EC232DCD61DF643A879DEA89584BB85E50F73F8C2BEB99A057"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1809,14 +1745,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "2950A95BB7242576793B68F457308F34FAF71FFFB59C9EF927317DA772F37EA1",
+      "previous_sample_hash": "4BA1F84A16FF11EC232DCD61DF643A879DEA89584BB85E50F73F8C2BEB99A057",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "8C49EC79545025EADF0AA2778405357FF3D46963A4AFB52AEEF6EBD8FD0528EF"
+      "sample_hash": "80A42C1C7D9A5BAE57215C3A88C8836BB5B634DEB3FE31A532C1CC057F5CEC4B"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1873,14 +1809,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "8C49EC79545025EADF0AA2778405357FF3D46963A4AFB52AEEF6EBD8FD0528EF",
+      "previous_sample_hash": "80A42C1C7D9A5BAE57215C3A88C8836BB5B634DEB3FE31A532C1CC057F5CEC4B",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "ADB0190BDD6A2D0AECD360580B76D03BA14E19820F5B866D38B5851AF5180847"
+      "sample_hash": "A15502B47049D2E39B0391CA6A1026C6E651AC975E60B25C3484F3D4F091DAB3"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -1937,14 +1873,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "ADB0190BDD6A2D0AECD360580B76D03BA14E19820F5B866D38B5851AF5180847",
+      "previous_sample_hash": "A15502B47049D2E39B0391CA6A1026C6E651AC975E60B25C3484F3D4F091DAB3",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "9B653E98EBBF825FBFE2A813F06495CCC16DB4184CAEF486827671B461B57EBE"
+      "sample_hash": "88A2F5A162908AEE2D9378704C2F53DF1E17EB387ADECD6B7A212C35844A80F8"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2001,14 +1937,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "9B653E98EBBF825FBFE2A813F06495CCC16DB4184CAEF486827671B461B57EBE",
+      "previous_sample_hash": "88A2F5A162908AEE2D9378704C2F53DF1E17EB387ADECD6B7A212C35844A80F8",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "00B79157D83086FFBADF2843E12ED412AD3683A1EF13EA9653AF656D869F6CD9"
+      "sample_hash": "34544C0B228D08270CBE2BD75AF945C158F56BAF6CDAF231EA03A232A7125B85"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2065,14 +2001,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "00B79157D83086FFBADF2843E12ED412AD3683A1EF13EA9653AF656D869F6CD9",
+      "previous_sample_hash": "34544C0B228D08270CBE2BD75AF945C158F56BAF6CDAF231EA03A232A7125B85",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "D497C5796815DFFBEC9933AEA49E6FEDFBDAD6730FDBC49A92E9088A81E33646"
+      "sample_hash": "FBE0DE5C9C604B88A7207B22F7A166556F274DBBCFA800F3C49517F2A51F518A"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2129,14 +2065,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "D497C5796815DFFBEC9933AEA49E6FEDFBDAD6730FDBC49A92E9088A81E33646",
+      "previous_sample_hash": "FBE0DE5C9C604B88A7207B22F7A166556F274DBBCFA800F3C49517F2A51F518A",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "A2D34373AFA3899E63046DB32BAEC4370FA6A37A7F53125B221FFDA009152951"
+      "sample_hash": "820B88C7EEE3EDEB26020AA253F06123BBADD1AF9B68CC5EA2F3557D40BD71B9"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2193,14 +2129,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "A2D34373AFA3899E63046DB32BAEC4370FA6A37A7F53125B221FFDA009152951",
+      "previous_sample_hash": "820B88C7EEE3EDEB26020AA253F06123BBADD1AF9B68CC5EA2F3557D40BD71B9",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "6ED1A51E8AE89B9FA4B01FA545C5949D0F8B7D4929D450F69080A3556F013B33"
+      "sample_hash": "173F502A30C9988844FBFC09959E03813BD89EF0BAA8161BEB043AC0A47B08D4"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2257,14 +2193,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "6ED1A51E8AE89B9FA4B01FA545C5949D0F8B7D4929D450F69080A3556F013B33",
+      "previous_sample_hash": "173F502A30C9988844FBFC09959E03813BD89EF0BAA8161BEB043AC0A47B08D4",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "8FD38FB2DE296ABCBC9653D654261A325EEF554A698E35A82B73092D0B078416"
+      "sample_hash": "DA141D26FE544725EFE367D56FE73D3A0AF10B69FD267B65BCE445817E552822"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2321,14 +2257,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "8FD38FB2DE296ABCBC9653D654261A325EEF554A698E35A82B73092D0B078416",
+      "previous_sample_hash": "DA141D26FE544725EFE367D56FE73D3A0AF10B69FD267B65BCE445817E552822",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "0ED20EEC4A1981A0AF4B249E1DDDAC7A3871ED41758F96C3D123B7BA0EA9531A"
+      "sample_hash": "5133AF52EFF93299AB951A4BFEF01498604F69787805CDB0031CD49791BD49C5"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2385,14 +2321,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "0ED20EEC4A1981A0AF4B249E1DDDAC7A3871ED41758F96C3D123B7BA0EA9531A",
+      "previous_sample_hash": "5133AF52EFF93299AB951A4BFEF01498604F69787805CDB0031CD49791BD49C5",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "164C8728C64B0F0927A18CEE1A17200E48063F521E103CF4B99F8CB102796A0E"
+      "sample_hash": "3FC7FF5748BBCF9E17B351F382CD4B58B45F9CD092CAA45588926DFBEADD7C1E"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2449,14 +2385,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "164C8728C64B0F0927A18CEE1A17200E48063F521E103CF4B99F8CB102796A0E",
+      "previous_sample_hash": "3FC7FF5748BBCF9E17B351F382CD4B58B45F9CD092CAA45588926DFBEADD7C1E",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "E8E81D4C4AB004FDDBED25DA48FB2E5B6B0979092600DF5B935A98E481FC215A"
+      "sample_hash": "F68A4F2CF32467BF79E47CE920DD8ED43680BB5F40544BF5FE09DB8B60B1EABC"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2513,14 +2449,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "E8E81D4C4AB004FDDBED25DA48FB2E5B6B0979092600DF5B935A98E481FC215A",
+      "previous_sample_hash": "F68A4F2CF32467BF79E47CE920DD8ED43680BB5F40544BF5FE09DB8B60B1EABC",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "6A29CBA608E232ACF1BBF2C9AE22D72875F038EB9DA75DA6FD4CBD5238501F53"
+      "sample_hash": "443E9240CCF067F3F4CD30CD9054597384EC110262D4134B68CBF85F8399AD3F"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2577,14 +2513,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "6A29CBA608E232ACF1BBF2C9AE22D72875F038EB9DA75DA6FD4CBD5238501F53",
+      "previous_sample_hash": "443E9240CCF067F3F4CD30CD9054597384EC110262D4134B68CBF85F8399AD3F",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "E0D7A8ECF9A7FDBC46DA4755A287B0D23CFD55BDFD880D5ACDDB2F47D163DBA6"
+      "sample_hash": "4CD93692622457BE49EA737578F486A337FAB25663172EAD4A83696AA7D2DE93"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2641,14 +2577,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "E0D7A8ECF9A7FDBC46DA4755A287B0D23CFD55BDFD880D5ACDDB2F47D163DBA6",
+      "previous_sample_hash": "4CD93692622457BE49EA737578F486A337FAB25663172EAD4A83696AA7D2DE93",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "D39C3BB52A7607710C84F6235443FBB7732F7B78E938DEE5D83FC1C6781A1DDE"
+      "sample_hash": "FB595645D46568055337793EB5228BB9C306C739E54B7D91A0BF560156C24AA0"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2705,14 +2641,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "D39C3BB52A7607710C84F6235443FBB7732F7B78E938DEE5D83FC1C6781A1DDE",
+      "previous_sample_hash": "FB595645D46568055337793EB5228BB9C306C739E54B7D91A0BF560156C24AA0",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "D109BD08553764A8831A3EB0D587D6424D66869A1384C43CD40C2B465FE1905E"
+      "sample_hash": "6EE44E985003038E5BC3D0AC9657B4A16E297B2C65F8C446A7BE02D660330797"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2769,14 +2705,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "D109BD08553764A8831A3EB0D587D6424D66869A1384C43CD40C2B465FE1905E",
+      "previous_sample_hash": "6EE44E985003038E5BC3D0AC9657B4A16E297B2C65F8C446A7BE02D660330797",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "D9B9689A496D57A06254DB87CFD3F1D0C1353F22F0A7A468C4FDFBDB0AC3373C"
+      "sample_hash": "00C275451AD4A4346F534F1F2FC3BDD7CBC9FF22250E3BFC20A5035134BDC5AA"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2833,14 +2769,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "D9B9689A496D57A06254DB87CFD3F1D0C1353F22F0A7A468C4FDFBDB0AC3373C",
+      "previous_sample_hash": "00C275451AD4A4346F534F1F2FC3BDD7CBC9FF22250E3BFC20A5035134BDC5AA",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "E6810104A94BA3CCD7BE12174D5892B702E668597CCDCFE385F8C24C3459CE5D"
+      "sample_hash": "8FCC03C5A124BE70E7E3EDE95A50861F6974CF50687A3F02FB1D5FF85A538143"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2897,14 +2833,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "E6810104A94BA3CCD7BE12174D5892B702E668597CCDCFE385F8C24C3459CE5D",
+      "previous_sample_hash": "8FCC03C5A124BE70E7E3EDE95A50861F6974CF50687A3F02FB1D5FF85A538143",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "C004DA54E4DEEB227254E591E7D0411A0EFA9FF71B45A10EB56ED5A87A6B1AB9"
+      "sample_hash": "0C2A59A8C9647255F7EDBA81E17F965440E630946141FF0FC4338A147FA3AF3C"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -2961,14 +2897,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "C004DA54E4DEEB227254E591E7D0411A0EFA9FF71B45A10EB56ED5A87A6B1AB9",
+      "previous_sample_hash": "0C2A59A8C9647255F7EDBA81E17F965440E630946141FF0FC4338A147FA3AF3C",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "58C622A121B154E72AB32C5E28F5EA1A6A7DE16D7DFE5776EEE484465D7821F7"
+      "sample_hash": "9E51D8768E002A2BE109BC777BBFFF2166650FDF2AE12783D660D622DA9432E9"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3025,14 +2961,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "58C622A121B154E72AB32C5E28F5EA1A6A7DE16D7DFE5776EEE484465D7821F7",
+      "previous_sample_hash": "9E51D8768E002A2BE109BC777BBFFF2166650FDF2AE12783D660D622DA9432E9",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "BD5101B1CAC15F0361F8CD355FCFACF9EA2A3FE51CFDC148398C86A35026D9B5"
+      "sample_hash": "6178BBFBE2D43840B02CAB9D79445531DE380174133038E83E35228491736F97"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3089,14 +3025,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "BD5101B1CAC15F0361F8CD355FCFACF9EA2A3FE51CFDC148398C86A35026D9B5",
+      "previous_sample_hash": "6178BBFBE2D43840B02CAB9D79445531DE380174133038E83E35228491736F97",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "0A977873F6988A6354DEB703139299C722A22EF67B24D5469DFA80C4650F1BE7"
+      "sample_hash": "AEEE8235D5271BD5780FFE807A0037E0D4D9F7B31FA7E64396DB79232B3BC296"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3153,14 +3089,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "0A977873F6988A6354DEB703139299C722A22EF67B24D5469DFA80C4650F1BE7",
+      "previous_sample_hash": "AEEE8235D5271BD5780FFE807A0037E0D4D9F7B31FA7E64396DB79232B3BC296",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "3FEEE8EC9D8DA5DD32898CCF7C9B630EAB6FA37761357EC37B0F3CAC9F8C4624"
+      "sample_hash": "C9D42AECFEF06A15C021AE88E8E17CB9EFAB5623E7FF0A4292A69100714CB98E"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3217,14 +3153,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "3FEEE8EC9D8DA5DD32898CCF7C9B630EAB6FA37761357EC37B0F3CAC9F8C4624",
+      "previous_sample_hash": "C9D42AECFEF06A15C021AE88E8E17CB9EFAB5623E7FF0A4292A69100714CB98E",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "F76C48D223898A65FA896E959FA91164CCDCF6B40A9EA6AC8975C545066FB5A2"
+      "sample_hash": "3316479761AB48444EF136967E9A7192FC5E1222171CBB07B15D4079C9EFCCCA"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3281,14 +3217,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "F76C48D223898A65FA896E959FA91164CCDCF6B40A9EA6AC8975C545066FB5A2",
+      "previous_sample_hash": "3316479761AB48444EF136967E9A7192FC5E1222171CBB07B15D4079C9EFCCCA",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "A2C4549D039E84ABD4C303EE73B676DE30D5F2A999A9B8113AE44D3DECA0D4D7"
+      "sample_hash": "CD152677E31D3BEE2BE1B3DC01B2C7FF32E185461A4BB281C963CB403AD059F6"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3345,14 +3281,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "A2C4549D039E84ABD4C303EE73B676DE30D5F2A999A9B8113AE44D3DECA0D4D7",
+      "previous_sample_hash": "CD152677E31D3BEE2BE1B3DC01B2C7FF32E185461A4BB281C963CB403AD059F6",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "B642FED2426EC12D94AC32934EF99AE3D87CE305425FDD2877BA2501BBDE6564"
+      "sample_hash": "A6184C58D288A6CAC14D2DE9A6665EEB32316EBE5F135681C13124C608926F63"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3409,14 +3345,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "B642FED2426EC12D94AC32934EF99AE3D87CE305425FDD2877BA2501BBDE6564",
+      "previous_sample_hash": "A6184C58D288A6CAC14D2DE9A6665EEB32316EBE5F135681C13124C608926F63",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "453D6DEC9CF146BAE6DD91A1068743495EFC2468DF215873A0099DB10F932B49"
+      "sample_hash": "CD036DC901CD6CD87465906EABA54DCF721E2B10A0FD8374E33A094A7F32C4DC"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3473,14 +3409,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "453D6DEC9CF146BAE6DD91A1068743495EFC2468DF215873A0099DB10F932B49",
+      "previous_sample_hash": "CD036DC901CD6CD87465906EABA54DCF721E2B10A0FD8374E33A094A7F32C4DC",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "8CAD2630D350CC1A024CD65EDE4D0C4F89ED86F56AB6EAF74656B8EB8918C045"
+      "sample_hash": "CBF4C37684B9A437344F8278DFE9D947F5E23F301EE67CFFCE57CCAD74992BF6"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3537,14 +3473,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "8CAD2630D350CC1A024CD65EDE4D0C4F89ED86F56AB6EAF74656B8EB8918C045",
+      "previous_sample_hash": "CBF4C37684B9A437344F8278DFE9D947F5E23F301EE67CFFCE57CCAD74992BF6",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "68E9D56F2684938AADCE9E55532DDFC4855405526C801E1008F9F635D00F76F8"
+      "sample_hash": "C27E282E7D21BB9F2A6FEA0C4CFF70D98BCC0C99A115A25DE06855880CAFC0B2"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3601,14 +3537,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "68E9D56F2684938AADCE9E55532DDFC4855405526C801E1008F9F635D00F76F8",
+      "previous_sample_hash": "C27E282E7D21BB9F2A6FEA0C4CFF70D98BCC0C99A115A25DE06855880CAFC0B2",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "8D227D4638052A492FECC6919C78F13BF57FEC29003B72289F91B3DEDB497B74"
+      "sample_hash": "72D107D4578CEA42495830CC953740B29C3A9CF95C41B0F98B4D9819AE497C32"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3665,14 +3601,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "8D227D4638052A492FECC6919C78F13BF57FEC29003B72289F91B3DEDB497B74",
+      "previous_sample_hash": "72D107D4578CEA42495830CC953740B29C3A9CF95C41B0F98B4D9819AE497C32",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "D9AE948E2076C61946A588AF79CA12464CA0C690EE89759F5BCD5D68AEF7A113"
+      "sample_hash": "D6AC40137F9DFC028393B42F48FE93A06F267392C05C26F5E79737F0AE8BEC22"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3729,14 +3665,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "D9AE948E2076C61946A588AF79CA12464CA0C690EE89759F5BCD5D68AEF7A113",
+      "previous_sample_hash": "D6AC40137F9DFC028393B42F48FE93A06F267392C05C26F5E79737F0AE8BEC22",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "9DDDEDD2B1DCCE0A0C1C0A5FAA0B4BA1832B6E39BB3D53132635235E38584117"
+      "sample_hash": "CF72EEB6CB7AD2464D4BB33970EB8269F15E23FC75A4CE01CCDD16F34728EEC6"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3793,14 +3729,14 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "9DDDEDD2B1DCCE0A0C1C0A5FAA0B4BA1832B6E39BB3D53132635235E38584117",
+      "previous_sample_hash": "CF72EEB6CB7AD2464D4BB33970EB8269F15E23FC75A4CE01CCDD16F34728EEC6",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "4FD947650FF9C4BDFC04C03816CF986591E3BABDB862A2577D1DBC5B48258FB5"
+      "sample_hash": "2067FAAC9567E81A44E7940A30AA6DFEF8771FF53C3FA2A17B30E9FD4661D010"
     },
     {
       "schema_id": "trader1.runtime_stability_sample.v1",
@@ -3857,19 +3793,83 @@
           "value_display": "PASS"
         }
       ],
-      "previous_sample_hash": "4FD947650FF9C4BDFC04C03816CF986591E3BABDB862A2577D1DBC5B48258FB5",
+      "previous_sample_hash": "2067FAAC9567E81A44E7940A30AA6DFEF8771FF53C3FA2A17B30E9FD4661D010",
       "display_only": true,
       "dashboard_truth_only": true,
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false,
-      "sample_hash": "22940E6033A06BF054F082A6435A963B8C012B09889096DDA2C113E50D9CD74F"
+      "sample_hash": "9B3E8FCC402E4017A3F0792A3CE43D41E44F59C322859566FC46274CFDBB7984"
+    },
+    {
+      "schema_id": "trader1.runtime_stability_sample.v1",
+      "generated_at_utc": "2026-05-01T12:45:23Z",
+      "project_id": "TRADER_1",
+      "exchange": "BINANCE",
+      "market_type": "SPOT",
+      "mode": "LIVE",
+      "session_id": "mvp1_binance_live_launcher",
+      "source_dashboard_hash": "52952D5524284400C599CA759A94D95B13BDBE4E002EA3C19C8E5F1A500054D5",
+      "status": "ATTENTION",
+      "severity": "WARNING",
+      "metric_status_counts": {
+        "FAIL": 0,
+        "PASS": 7,
+        "STALE": 0,
+        "UNTESTED": 0,
+        "WARN": 0
+      },
+      "metrics": [
+        {
+          "metric_id": "heartbeat_age",
+          "status": "PASS",
+          "value_display": "0.0s / 30s"
+        },
+        {
+          "metric_id": "source_freshness",
+          "status": "PASS",
+          "value_display": "3/3 PASS"
+        },
+        {
+          "metric_id": "resource_health",
+          "status": "PASS",
+          "value_display": "PASS"
+        },
+        {
+          "metric_id": "runtime_artifact_pressure",
+          "status": "PASS",
+          "value_display": "PASS"
+        },
+        {
+          "metric_id": "event_latency",
+          "status": "PASS",
+          "value_display": "PASS"
+        },
+        {
+          "metric_id": "queue_backlog",
+          "status": "PASS",
+          "value_display": "PASS"
+        },
+        {
+          "metric_id": "rate_limit_pressure",
+          "status": "PASS",
+          "value_display": "PASS"
+        }
+      ],
+      "previous_sample_hash": "9B3E8FCC402E4017A3F0792A3CE43D41E44F59C322859566FC46274CFDBB7984",
+      "display_only": true,
+      "dashboard_truth_only": true,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false,
+      "sample_hash": "A3F7FEF1CAA11275B072225E4E8FDC2508352609B07DAF75A5C2CCE82B04577E"
     }
   ],
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "history_hash": "E74706476C018F5DEAE203367CBD5F719D58932F50C17834ACF4C9187CA5416E"
+  "history_hash": "D49EF92F40A1E89033680EE3D09680F11A33354B327518D4D6C7B694285BE161"
 }

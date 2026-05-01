@@ -930,6 +930,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(portfolio["live_order_ready"])
         self.assertFalse(portfolio["live_order_allowed"])
         self.assertFalse(portfolio["can_live_trade"])
+        self.assertEqual(portfolio["source_snapshot_status"], "PASS")
+        self.assertEqual(portfolio["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
+        self.assertEqual(len(portfolio["source_snapshot_hash"]), 64)
+        self.assertIsInstance(portfolio["source_snapshot_generated_at_utc"], str)
         self.assertEqual(portfolio["cash"]["value_display"], "1,000,000 KRW")
         self.assertEqual(portfolio["equity"]["value_display"], "1,000,000 KRW")
         self.assertEqual(portfolio["positions"]["value_display"], "0")
@@ -1303,6 +1307,30 @@ class ReadOnlyDashboardTest(unittest.TestCase):
     def test_dashboard_blocks_portfolio_scale_up_permission(self):
         dashboard = build_dashboard()
         dashboard["portfolio_snapshot"]["scale_up_allowed"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_blocks_verified_portfolio_missing_snapshot_hash(self):
+        dashboard = build_dashboard()
+        dashboard["portfolio_snapshot"]["source_snapshot_hash"] = None
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_dashboard_blocks_verified_portfolio_snapshot_status_drift(self):
+        dashboard = build_dashboard()
+        dashboard["portfolio_snapshot"]["source_snapshot_status"] = "BLOCKED"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_blocks_verified_portfolio_balance_kind_drift(self):
+        dashboard = build_dashboard()
+        dashboard["portfolio_snapshot"]["source_balance_kind"] = "EXCHANGE_BALANCE"
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")
@@ -2579,6 +2607,13 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["portfolio_snapshot"]["positions"]["value_display"], "1")
         self.assertEqual(dashboard["portfolio_snapshot"]["source_runtime_cycle_id"], "dashboard-position-fill-cycle")
         self.assertEqual(dashboard["portfolio_snapshot"]["source_paper_ledger_head_hash"], "D" * 64)
+        self.assertEqual(dashboard["portfolio_snapshot"]["source_snapshot_hash"], paper_portfolio["snapshot_hash"])
+        self.assertEqual(dashboard["portfolio_snapshot"]["source_snapshot_status"], "PASS")
+        self.assertEqual(
+            dashboard["portfolio_snapshot"]["source_snapshot_generated_at_utc"],
+            paper_portfolio["generated_at_utc"],
+        )
+        self.assertEqual(dashboard["portfolio_snapshot"]["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
         self.assertIsInstance(dashboard["portfolio_snapshot"]["source_snapshot_age_seconds"], int)
         self.assertEqual(dashboard["portfolio_snapshot"]["source_snapshot_stale_after_seconds"], 300)
         rows = dashboard["position_snapshot"]["rows"]
@@ -2596,6 +2631,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         html = render_dashboard_html(dashboard)
         self.assertIn("Runtime cycle: dashboard-position-fill-cycle", html)
         self.assertIn("Ledger head: DDDDDDDDDDDD...", html)
+        self.assertIn(f"Snapshot: {paper_portfolio['snapshot_hash'][:12]}...", html)
+        self.assertIn("Balance: SIMULATED_PAPER_LEDGER", html)
         self.assertIn("Age:", html)
         self.assertIn("KRW-BTC | LONG | qty 0.01 | avg 1000500 | mark 1000000 | value 10000 | PnL -10", html)
         self.assertIn("<td>1000500</td>", html)

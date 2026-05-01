@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.paper_portfolio_snapshot.v1",
-  "generated_at_utc": "2026-04-30T23:25:59Z",
+  "generated_at_utc": "2026-05-01T12:45:23Z",
   "project_id": "TRADER_1",
   "exchange": "BINANCE",
   "market_type": "SPOT",
@@ -31,5 +31,5 @@
   "can_submit_order": false,
   "primary_blocker_code": null,
   "blockers": [],
-  "snapshot_hash": "95B0CF0D5283D508C7EFB4FD191C08B0D3042048594BE2D3ADF71BEFE268655A"
+  "snapshot_hash": "E488C07F3F9A015BBBFF3ADD294FDE09A23A206622706CE7D6D24F8083FC4791"
 }

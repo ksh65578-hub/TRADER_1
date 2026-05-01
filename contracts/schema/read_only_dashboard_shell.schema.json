@@ -3474,9 +3474,13 @@
         "source",
         "source_runtime_cycle_id",
         "source_paper_ledger_head_hash",
+        "source_snapshot_hash",
+        "source_snapshot_status",
+        "source_snapshot_generated_at_utc",
         "source_snapshot_age_seconds",
         "source_snapshot_stale_after_seconds",
         "source_snapshot_freshness_message",
+        "source_balance_kind",
         "cash",
         "equity",
         "locked_cash",
@@ -3533,6 +3537,29 @@
           "minLength": 64,
           "maxLength": 64
         },
+        "source_snapshot_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "source_snapshot_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED",
+            "UNTESTED",
+            "STALE"
+          ]
+        },
+        "source_snapshot_generated_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
         "source_snapshot_age_seconds": {
           "type": [
             "integer",
@@ -3550,6 +3577,12 @@
         "source_snapshot_freshness_message": {
           "type": "string",
           "minLength": 1
+        },
+        "source_balance_kind": {
+          "enum": [
+            "SIMULATED_PAPER_LEDGER",
+            null
+          ]
         },
         "cash": {
           "$ref": "#/$defs/portfolio_card"

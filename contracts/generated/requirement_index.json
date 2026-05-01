@@ -11825,7 +11825,62 @@
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "SCAFFOLD_IMPLEMENTED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-DASHBOARD-PORTFOLIO-TRUTH-RUNTIME-EVIDENCE",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard portfolio truth runtime evidence",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-PORTFOLIO-TRUTH-RUNTIME-EVIDENCE:verified portfolio display must expose simulated snapshot provenance",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard verified portfolio values must expose simulated snapshot provenance",
+      "requirement_kind": "SCHEMA_VALIDATOR_TEST_RUNTIME_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/dashboard/read_only_dashboard.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_dashboard_portfolio_truth_runtime_evidence_patch.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.md",
+        "system/runtime/*/*/*/mvp1_*_launcher/dashboard_shell.json",
+        "system/runtime/*/*/*/mvp1_*_launcher/dashboard/index.html"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_schema_instance_validation.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "HIGH",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "UPBIT_PAPER_RUNTIME",
+        "LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-PORTFOLIO-SOURCE-FRESHNESS",
+        "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH"
+      ],
+      "source_text_sha256": "D0DD292916AF6C359DC98DF8BD35AA3F722E41E3B76E2A6771D32E10D2D5F09D",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T12:29:13Z"
+  "updated_at_utc": "2026-05-01T12:45:22Z"
 }
