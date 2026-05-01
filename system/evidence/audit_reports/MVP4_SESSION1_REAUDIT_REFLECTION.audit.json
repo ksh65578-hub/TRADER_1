@@ -1,0 +1,57 @@
+{
+  "audit_schema_id": "trader1.session1_reaudit_reflection_audit.v1",
+  "generated_at_utc": "2026-05-01T06:17:20Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "PASS",
+  "session1_review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md",
+  "session1_sha256": "A027FE0F2CC165DB4D5ED0558C4F54D8CE0183C5F31F22B82AF0E1C130392F06",
+  "session1_reflection_status": "DELETED_AFTER_REFLECTION",
+  "session1_deleted_after_reflection": true,
+  "session2_review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
+  "session2_sha256": "7EB3001B5C66E02540288845AFA8ECD19E8DD54CFDA8C852A6C7AE0551F23D3A",
+  "session2_reflection_status": "PENDING_REFLECTION",
+  "stale_findings_resolved_or_regression_guarded": [
+    "TRADER_1.md exists in current repo",
+    "AGENTS.md exists in current repo",
+    "trader1 package exists in current repo",
+    "tests directory exists in current repo",
+    "UPBIT and BINANCE paper/live root launchers exist and are smoke-tested"
+  ],
+  "current_defects_or_open_gaps_from_session1": [
+    "Upbit paper repair hash reconciliation remains the next safe task",
+    "PAPER runtime depth and long-run evidence still require continued validation",
+    "ledger/order/reconciliation/idempotency runtime evidence remains a priority",
+    "strategy/regime/cost model runtime linkage remains a priority",
+    "source package and release bundle boundary must continue to be verified"
+  ],
+  "external_blockers_from_session1": [
+    "official API verification",
+    "read-only account snapshot",
+    "manual order test evidence",
+    "operator approval",
+    "read-only burn-in evidence"
+  ],
+  "deleted_files": [
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md"
+  ],
+  "validation": {
+    "schema_id": "trader1.review_plan_reflection_validation_result.v1",
+    "status": "PASS",
+    "blockers": [],
+    "review_files_count": 45,
+    "delete_ready_count": 0,
+    "deleted_after_reflection_count": 44,
+    "pending_reflection_count": 1,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

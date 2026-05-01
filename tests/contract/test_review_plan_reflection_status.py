@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -17,6 +20,8 @@ from tools.review_plan_reflection_status import (
     validate_reflection_ledger,
 )
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 class ReviewPlanReflectionStatusTests(unittest.TestCase):
     def test_catalog_covers_current_review_plan_files(self) -> None:
@@ -28,16 +33,19 @@ class ReviewPlanReflectionStatusTests(unittest.TestCase):
             if isinstance(entry.get("review_number"), int) and entry["review_number"] in EXPECTED_REVIEW_NUMBERS
         )
         self.assertEqual(numbers, EXPECTED_REVIEW_NUMBERS)
-        self.assertEqual(ledger["review_files_count"], 43)
+        self.assertGreaterEqual(ledger["review_files_count"], 43)
         self.assertTrue(all(entry["sha256"] and len(entry["sha256"]) == 64 for entry in catalog))
         self.assertTrue(all(entry["theme_ids"] for entry in catalog))
         self.assertEqual(validate_reflection_ledger(ledger)["status"], "PASS")
 
     def test_default_ledger_preserves_review_files_until_reflection_evidence_exists(self) -> None:
         ledger = build_reflection_ledger()
-        self.assertEqual(ledger["review_files_count"], 43)
+        self.assertGreaterEqual(ledger["review_files_count"], 43)
         self.assertEqual(ledger["delete_ready_count"], 0)
-        self.assertEqual(ledger["pending_reflection_count"] + ledger.get("deleted_after_reflection_count", 0), 43)
+        self.assertEqual(
+            ledger["pending_reflection_count"] + ledger.get("deleted_after_reflection_count", 0),
+            ledger["review_files_count"],
+        )
         self.assertFalse(ledger["live_order_ready"])
         self.assertFalse(ledger["live_order_allowed"])
         self.assertFalse(ledger["can_live_trade"])
@@ -51,6 +59,21 @@ class ReviewPlanReflectionStatusTests(unittest.TestCase):
             )
         )
         self.assertTrue(all(not entry["deletion_allowed"] for entry in ledger["review_files"]))
+
+    def test_cli_validate_uses_utf8_safe_output_for_non_numeric_review_names(self) -> None:
+        env = dict(os.environ)
+        env.pop("PYTHONUTF8", None)
+        completed = subprocess.run(
+            [sys.executable, "-B", "tools/review_plan_reflection_status.py", "--validate"],
+            cwd=ROOT,
+            capture_output=True,
+            env=env,
+            timeout=60,
+        )
+        stdout = completed.stdout.decode("utf-8", errors="replace")
+        stderr = completed.stderr.decode("utf-8", errors="replace")
+        self.assertEqual(completed.returncode, 0, stderr)
+        self.assertIn('"status": "PASS"', stdout)
 
     def test_delete_ready_without_evidence_is_blocked(self) -> None:
         ledger = build_reflection_ledger()
@@ -147,6 +170,35 @@ class ReviewPlanReflectionStatusTests(unittest.TestCase):
             self.assertFalse(any(review_dir.glob("*.md")))
             self.assertTrue(all(entry["reflection_status"] == REVIEW_STATUS_DELETED for entry in ledger["review_files"]))
             self.assertEqual(validate_reflection_ledger(ledger, root=root)["status"], "PASS")
+
+    def test_selected_review_file_can_be_marked_without_touching_other_pending_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            review_dir = root / "검토안"
+            evidence_dir = root / "system" / "evidence" / "patch_results"
+            review_dir.mkdir()
+            evidence_dir.mkdir(parents=True)
+            (review_dir / "session_1.md").write_text("Session 1\nruntime dashboard live strategy\n", encoding="utf-8")
+            (review_dir / "session_2.md").write_text("Session 2\nruntime dashboard live strategy\n", encoding="utf-8")
+            evidence_path = evidence_dir / "SESSION1.patch_result.json"
+            evidence_path.write_text('{"live_order_ready": false}\n', encoding="utf-8")
+
+            ledger = build_reflection_ledger(root=root, review_dir=review_dir)
+            marked = mark_current_files_reflected(
+                ledger,
+                patch_id="SESSION1",
+                evidence_paths=["system/evidence/patch_results/SESSION1.patch_result.json"],
+                review_files=["검토안/session_1.md"],
+                root=root,
+            )
+            self.assertEqual(marked, ["검토안/session_1.md"])
+            self.assertEqual(validate_reflection_ledger(ledger, root=root)["status"], "PASS")
+            deleted = delete_reflected_files(ledger, root=root, max_delete_count=1000)
+            self.assertEqual(deleted, ["검토안/session_1.md"])
+            session_2 = next(entry for entry in ledger["review_files"] if entry["review_file"] == "검토안/session_2.md")
+            self.assertEqual(session_2["reflection_status"], REVIEW_STATUS_PENDING)
+            self.assertTrue((review_dir / "session_2.md").exists())
+            self.assertFalse((review_dir / "session_1.md").exists())
 
 
 if __name__ == "__main__":

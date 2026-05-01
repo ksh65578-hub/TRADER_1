@@ -11523,7 +11523,47 @@
       "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SESSION1-REAUDIT-REFLECTION",
+      "source_section_id": "SESSION1_REAUDIT_ADDENDUM",
+      "source_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md",
+      "source_heading": "TRADER_1.zip \uc804\uc218 \uc7ac\uac80\ud1a0 \uc138\uc158 1",
+      "full_text_marker": "Session 1 review is reflected as stale/current/external categories before deletion.",
+      "authority_level": "REVIEW_ADDENDUM_NON_AUTHORITY",
+      "requirement_title": "Reflect session 1 reaudit without overriding active authority",
+      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.review_plan_reflection_ledger.v1"
+      ],
+      "validator_ids": [
+        "review_plan_reflection_ledger_validator",
+        "root_launcher_guard_validator"
+      ],
+      "artifact_ids": [
+        "system/evidence/audit_reports/MVP4_SESSION1_REAUDIT_REFLECTION.audit.json",
+        "system/evidence/patch_results/MVP4_SESSION1_REAUDIT_REFLECTION.patch_result.json"
+      ],
+      "test_ids": [
+        "tests/contract/test_review_plan_reflection_status.py",
+        "tests/contract/test_root_launchers.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DOCUMENT_NORMALIZATION",
+        "BUNDLE_SECURITY"
+      ],
+      "depends_on": [
+        "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER"
+      ],
+      "source_text_sha256": "A027FE0F2CC165DB4D5ED0558C4F54D8CE0183C5F31F22B82AF0E1C130392F06",
+      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T04:44:58Z"
+  "updated_at_utc": "2026-05-01T06:17:20Z"
 }

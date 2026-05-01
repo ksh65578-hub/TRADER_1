@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "C35DB675193FC54CF7046A564FF5B5FF317F58B609D51FADB4BBD6BE3A47F079",
+      "sha256": "73EA971B804294C4F1CA788E43AB8E1DF9673FB6522FFD3C8D56CFDDB5E299FE",
       "size_bytes": 1096
     },
     {
@@ -625,8 +625,8 @@
     },
     {
       "path": "tests/contract/test_review_plan_reflection_status.py",
-      "sha256": "159128FE7DD9FBD31184B810417DB793F64790F0403EBF4E4E672309C9382BA0",
-      "size_bytes": 7882
+      "sha256": "40D0F213AEC4E9A755CB7310F6D8A273B6C3C23CB17E77AD7CF05533EB9278B5",
+      "size_bytes": 10505
     },
     {
       "path": "tests/contract/test_root_launchers.py",
@@ -2754,6 +2754,11 @@
       "size_bytes": 22557
     },
     {
+      "path": "tools/emit_session1_reaudit_reflection_patch_evidence.py",
+      "sha256": "A231595010BB117784F47FBD887D03BB64C0161A9ECB42853D369CFE9812339A",
+      "size_bytes": 23508
+    },
+    {
       "path": "tools/emit_shadow_harness_measurement_source_guard_patch_evidence.py",
       "sha256": "1BCDB0E99CA72B98E3FF0BF79222D7BB3F07583BA7A919CD788E93CD4932A750",
       "size_bytes": 25276
@@ -3005,8 +3010,8 @@
     },
     {
       "path": "tools/review_plan_reflection_status.py",
-      "sha256": "CCCC950B6A5CD6AADD660776BBEFEE7012FC666D7A46284081CFF851BF9E7A68",
-      "size_bytes": 19049
+      "sha256": "7167C0A5DE582224B14D67F32DBB0DC6DC59E04F3866CABF098C2D8E7D312DEB",
+      "size_bytes": 19693
     },
     {
       "path": "tools/run_bundle_security_validators.py",
@@ -4322,6 +4327,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_SESSION1_REAUDIT_REFLECTION.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_SHADOW_HARNESS_EXECUTION_SUMMARY_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
@@ -5450,6 +5459,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_SESSION1_REAUDIT_REFLECTION.audit.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_SHADOW_HARNESS_MEASUREMENT_SOURCE_GUARD_20260430.md",
       "reason": "denied:system/"
     },
@@ -6442,6 +6455,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_SESSION1_REAUDIT_REFLECTION.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_SHADOW_HARNESS_EXECUTION_SUMMARY_RECHECK.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -7395,6 +7412,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_SECRET_PATTERN_HYGIENE_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_SESSION1_REAUDIT_REFLECTION.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8359,6 +8380,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_SECRET_PATTERN_HYGIENE_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_SESSION1_REAUDIT_REFLECTION.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9339,6 +9364,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_SECRET_PATTERN_HYGIENE_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_SESSION1_REAUDIT_REFLECTION.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
@@ -10952,6 +10981,10 @@
     {
       "path": "system/runtime/upbit/krw_spot/read_only/mvp4_live_review/reconciliation_path.json",
       "reason": "denied:system/"
+    },
+    {
+      "path": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
+      "reason": "not_in_allow_roots"
     }
   ],
   "forbidden_count": 0,

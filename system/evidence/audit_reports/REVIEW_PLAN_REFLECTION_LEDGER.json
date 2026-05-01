@@ -1,13 +1,13 @@
 {
   "schema_id": "trader1.review_plan_reflection_ledger.v1",
-  "generated_at_utc": "2026-05-01T04:44:58Z",
+  "generated_at_utc": "2026-05-01T06:17:20Z",
   "review_directory": "\uac80\ud1a0\uc548",
   "authority_files": [
     "TRADER_1.md",
     "AGENTS.md"
   ],
   "authority_priority": "TRADER_1.md > AGENTS.md > review plan addendum > repository code > runtime artifacts",
-  "review_files_count": 43,
+  "review_files_count": 45,
   "expected_review_numbers": [
     1,
     2,
@@ -71,8 +71,8 @@
     "upbit_paper_runtime"
   ],
   "delete_ready_count": 0,
-  "deleted_after_reflection_count": 43,
-  "pending_reflection_count": 0,
+  "deleted_after_reflection_count": 44,
+  "pending_reflection_count": 1,
   "delete_ready_files": [],
   "deleted_after_reflection_files": [
     "\uac80\ud1a0\uc548/1.md",
@@ -117,9 +117,43 @@
     "\uac80\ud1a0\uc548/6.md",
     "\uac80\ud1a0\uc548/7.md",
     "\uac80\ud1a0\uc548/8.md",
-    "\uac80\ud1a0\uc548/9.md"
+    "\uac80\ud1a0\uc548/9.md",
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md"
   ],
   "review_files": [
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
+      "review_number": null,
+      "sha256": "7EB3001B5C66E02540288845AFA8ECD19E8DD54CFDA8C852A6C7AE0551F23D3A",
+      "bytes": 44424,
+      "first_line": "# TRADER_1.zip Full Re-Audit \u2014 Session 2",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "PENDING_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [],
+      "reflection_evidence_paths": [],
+      "deletion_allowed": false,
+      "delete_reason": "not reflected into authority/contracts/code/tests/artifacts yet",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
     {
       "review_file": "\uac80\ud1a0\uc548/1.md",
       "review_number": 1,
@@ -1667,6 +1701,47 @@
       "live_order_allowed": false,
       "can_live_trade": false,
       "scale_up_allowed": false
+    },
+    {
+      "review_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md",
+      "review_number": null,
+      "sha256": "A027FE0F2CC165DB4D5ED0558C4F54D8CE0183C5F31F22B82AF0E1C130392F06",
+      "bytes": 35124,
+      "first_line": "# TRADER_1.zip \uc804\uc218 \uc7ac\uac80\ud1a0 \uc138\uc158 1",
+      "theme_ids": [
+        "source_package_hygiene",
+        "binance_spot_futures_scope",
+        "runtime_termination_reproducibility",
+        "upbit_paper_runtime",
+        "dashboard_operator_ux",
+        "portfolio_pnl_truth",
+        "placeholder_readiness_block",
+        "authority_manifest_identity",
+        "ledger_reconciliation_idempotency",
+        "strategy_profitability_loop",
+        "optimizer_convergence_guardrail",
+        "operations_recovery_24x7",
+        "live_safety_external_blocker"
+      ],
+      "reflection_status": "DELETED_AFTER_REFLECTION",
+      "authority_priority_preserved": true,
+      "reflected_by_patch_ids": [
+        "MVP4_SESSION1_REAUDIT_REFLECTION_20260501_001"
+      ],
+      "reflection_evidence_paths": [
+        "system/evidence/patch_results/MVP4_SESSION1_REAUDIT_REFLECTION.patch_result.json",
+        "system/evidence/audit_reports/MVP4_SESSION1_REAUDIT_REFLECTION.audit.json",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/requirement_index.json"
+      ],
+      "deletion_allowed": false,
+      "delete_reason": "deleted after reflection evidence; original source preservation was not required",
+      "original_review_file_preservation_required_after_reflection": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
     }
   ],
   "deletion_policy": {
@@ -1684,48 +1759,6 @@
   "can_live_trade": false,
   "scale_up_allowed": false,
   "deleted_files_this_run": [
-    "\uac80\ud1a0\uc548/1.md",
-    "\uac80\ud1a0\uc548/2.md",
-    "\uac80\ud1a0\uc548/3.md",
-    "\uac80\ud1a0\uc548/4.md",
-    "\uac80\ud1a0\uc548/5.md",
-    "\uac80\ud1a0\uc548/6.md",
-    "\uac80\ud1a0\uc548/7.md",
-    "\uac80\ud1a0\uc548/8.md",
-    "\uac80\ud1a0\uc548/9.md",
-    "\uac80\ud1a0\uc548/10.md",
-    "\uac80\ud1a0\uc548/11.md",
-    "\uac80\ud1a0\uc548/12.md",
-    "\uac80\ud1a0\uc548/13.md",
-    "\uac80\ud1a0\uc548/14.md",
-    "\uac80\ud1a0\uc548/15.md",
-    "\uac80\ud1a0\uc548/16.md",
-    "\uac80\ud1a0\uc548/17.md",
-    "\uac80\ud1a0\uc548/18.md",
-    "\uac80\ud1a0\uc548/19.md",
-    "\uac80\ud1a0\uc548/20.md",
-    "\uac80\ud1a0\uc548/21.md",
-    "\uac80\ud1a0\uc548/22.md",
-    "\uac80\ud1a0\uc548/23.md",
-    "\uac80\ud1a0\uc548/24.md",
-    "\uac80\ud1a0\uc548/25.md",
-    "\uac80\ud1a0\uc548/26.md",
-    "\uac80\ud1a0\uc548/27.md",
-    "\uac80\ud1a0\uc548/28.md",
-    "\uac80\ud1a0\uc548/30.md",
-    "\uac80\ud1a0\uc548/31.md",
-    "\uac80\ud1a0\uc548/32.md",
-    "\uac80\ud1a0\uc548/33.md",
-    "\uac80\ud1a0\uc548/34.md",
-    "\uac80\ud1a0\uc548/35.md",
-    "\uac80\ud1a0\uc548/36.md",
-    "\uac80\ud1a0\uc548/37.md",
-    "\uac80\ud1a0\uc548/38.md",
-    "\uac80\ud1a0\uc548/39.md",
-    "\uac80\ud1a0\uc548/40.md",
-    "\uac80\ud1a0\uc548/41.md",
-    "\uac80\ud1a0\uc548/42.md",
-    "\uac80\ud1a0\uc548/43.md",
-    "\uac80\ud1a0\uc548/44.md"
+    "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md"
   ]
 }
