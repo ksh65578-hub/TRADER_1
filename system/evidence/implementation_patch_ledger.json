@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-01T18:30:29Z",
+  "updated_at_utc": "2026-05-01T18:41:06Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -2933,6 +2933,17 @@
       "target_mvp_level": "MVP-4",
       "patch_result_path": "system/evidence/patch_results/MVP4_DASHBOARD_PAPER_CONFIGURED_CAPITAL_UX.patch_result.json",
       "patch_result_hash": "8DA6F589D509626973461B94E28FB83464FDAF84F9AA63D57B685947BE86B7AF",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT_20260502_001",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT.patch_result.json",
+      "patch_result_hash": "9E2D64038B57AE1D94BBE7BDFFA70977BFCE11D35688B220228F1E2FEB893615",
       "live_order_ready_after": false,
       "live_order_allowed_after": false,
       "can_live_trade_after": false,

@@ -6,9 +6,12 @@ import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
+import trader1.runtime.boot.safe_launcher as safe_launcher
 from trader1.runtime.boot.launcher_guard import ALLOWED_ROOT_LAUNCHERS
 from trader1.runtime.boot.safe_launcher import (
+    DEFAULT_INTERACTIVE_HEARTBEAT_TICKS,
     build_launcher_report,
     console_heartbeat_line,
     console_safe_monitor_banner,
@@ -871,10 +874,29 @@ class SafeLauncherTest(unittest.TestCase):
         self.assertIn("HEARTBEAT 2/2 PASS", output)
         self.assertNotIn("Press Enter", output)
 
-    def test_launcher_main_operator_pause_defaults_to_one_shot_safe_boot(self):
+    def test_launcher_main_operator_pause_defaults_to_continuous_safe_monitor(self):
         buffer = StringIO()
-        with TemporaryDirectory() as tmp, redirect_stdout(buffer):
-            result = launcher_main(
+        calls = []
+
+        def fake_emit_console_heartbeats(report, heartbeat, *, ticks, interval_seconds, refresh_heartbeat):
+            calls.append(
+                {
+                    "ticks": ticks,
+                    "interval_seconds": interval_seconds,
+                    "live_order_ready": report["live_order_ready"],
+                    "live_order_allowed": report["live_order_allowed"],
+                    "can_live_trade": report["can_live_trade"],
+                }
+            )
+            return []
+
+        self.assertIsNone(DEFAULT_INTERACTIVE_HEARTBEAT_TICKS)
+        with TemporaryDirectory() as tmp, redirect_stdout(buffer), patch.object(
+            safe_launcher,
+            "emit_console_heartbeats",
+            side_effect=fake_emit_console_heartbeats,
+        ):
+            result = safe_launcher.launcher_main(
                 "UPBIT_PAPER",
                 pause=True,
                 open_dashboard=False,
@@ -883,8 +905,15 @@ class SafeLauncherTest(unittest.TestCase):
             )
         output = buffer.getvalue()
         self.assertEqual(result, 0)
-        self.assertIn("HEARTBEAT 1/1 PASS", output)
-        self.assertNotIn("SAFE_MONITOR running", output)
+        self.assertEqual(len(calls), 1)
+        self.assertIsNone(calls[0]["ticks"])
+        self.assertEqual(calls[0]["interval_seconds"], 0.0)
+        self.assertFalse(calls[0]["live_order_ready"])
+        self.assertFalse(calls[0]["live_order_allowed"])
+        self.assertFalse(calls[0]["can_live_trade"])
+        self.assertIn("SAFE_MONITOR running", output)
+        self.assertIn("until Ctrl+C", output)
+        self.assertIn("live_order_allowed=false", output)
         self.assertNotIn("Press Enter", output)
 
     def test_source_identity_includes_root_launchers_and_contracts(self):

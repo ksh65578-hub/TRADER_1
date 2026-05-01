@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-05-01T18:32:16Z",
+  "generated_at_utc": "2026-05-01T18:41:20Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -81,7 +81,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-05-01T18:32:16Z",
+    "generated_at_utc": "2026-05-01T18:41:20Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -175,7 +175,7 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 87562,
+    "observed_span_seconds": 88066,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 60,
@@ -262,7 +262,7 @@
     "source": "heartbeat.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 87562,
+    "observed_span_seconds": 88066,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 0,
@@ -1501,5 +1501,5 @@
   "blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "FDEFAEFFB71B81E837BD481A512FDFA0C44975F07F4591FE25E4B9E74ACD0FC0"
+  "dashboard_hash": "18D447CF10152050F59D29C6EB86AFE37BD98B6C755F8376308B55CD3F9A105C"
 }
