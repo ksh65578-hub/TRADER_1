@@ -481,6 +481,35 @@
       "type": "integer",
       "minimum": 0
     },
+    "post_rerun_resolution_current_evidence_closure_status": {
+      "type": "string"
+    },
+    "post_rerun_resolution_closure_source_resolution_audit_file_load_status": {
+      "type": "string"
+    },
+    "post_rerun_resolution_closure_source_resolution_audit_file_hash_match": {
+      "type": "boolean"
+    },
+    "post_rerun_resolution_closure_source_unresolved_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_resolution_closure_source_resolved_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_resolution_closure_closed_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_resolution_closure_current_evidence_closed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_resolution_closure_controls_satisfied_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
