@@ -181,13 +181,30 @@ def build_paper_ledger_rollup_report(
     root: Path,
     session_id: str = "mvp1_upbit_paper_launcher",
     rollup_id: str = "paper-ledger-rollup",
+    ledger_paths: list[Path] | None = None,
 ) -> dict[str, Any]:
     root = Path(root).resolve()
     base = _runtime_base_dir(root, session_id)
     ledger_dir = base / "ledger"
     cycle_dir = ledger_dir / "cycles"
-    ledger_paths = sorted(cycle_dir.glob("*.paper_ledger_events.jsonl")) if cycle_dir.exists() else []
     blockers: list[dict[str, str]] = []
+    if ledger_paths is None:
+        ledger_paths = sorted(cycle_dir.glob("*.paper_ledger_events.jsonl")) if cycle_dir.exists() else []
+    else:
+        scoped_paths: list[Path] = []
+        cycle_dir_resolved = cycle_dir.resolve()
+        for ledger_path in ledger_paths:
+            resolved_path = Path(ledger_path).resolve()
+            try:
+                resolved_path.relative_to(cycle_dir_resolved)
+            except ValueError:
+                blockers.append(_blocker("SNAPSHOT_SCOPE_MISMATCH", "scoped PAPER ledger rollup path escaped cycle ledger namespace"))
+                continue
+            if resolved_path.name.endswith(".paper_ledger_events.jsonl"):
+                scoped_paths.append(resolved_path)
+            else:
+                blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "scoped PAPER ledger rollup path is not a cycle ledger JSONL artifact"))
+        ledger_paths = sorted(scoped_paths)
     artifact_paths: list[str] = []
     all_events: list[dict[str, Any]] = []
     fill_events: list[dict[str, Any]] = []

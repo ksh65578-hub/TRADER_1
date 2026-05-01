@@ -20,13 +20,13 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "EB975A10F535EB59BBD4ACA417845122F2870A5E9726AA4249367C8E08A3771E",
+      "sha256": "1272FFAAC1376B793E58E6139DA440B2DEE30121A1181C08FE8C5B94172D33EF",
       "size_bytes": 1096
     },
     {
       "path": "contracts/registry.yaml",
-      "sha256": "F6008B8D237814A4916D2A8EF0A4C428C335AB46A11E8AAFDB82D498C0BB97FC",
-      "size_bytes": 51751
+      "sha256": "316A615212F45CD0076614324812C0BC646A409C2B906DE00BA37C6CE3D32274",
+      "size_bytes": 52172
     },
     {
       "path": "contracts/schema/api_key_permission_check_report.schema.json",
@@ -432,6 +432,11 @@
       "path": "contracts/schema/upbit_paper_dry_run_report.schema.json",
       "sha256": "D0F84C410814966510798B4FB9B9D0AC6C0A91717466861732E978646369FD72",
       "size_bytes": 4673
+    },
+    {
+      "path": "contracts/schema/upbit_paper_ledger_rollup_repair_report.schema.json",
+      "sha256": "05D33D9464D32C8364A9CBC4A864D14E9252BF7C14C9FB3D5BC47A1A0FCC0B03",
+      "size_bytes": 7439
     },
     {
       "path": "contracts/schema/upbit_paper_persistent_loop_report.schema.json",
@@ -947,6 +952,11 @@
       "path": "tests/runtime/test_upbit_paper_blocked_repair_plan.py",
       "sha256": "52E70DFC9FCA4BB4C266ED5710EEA5309313B68ED10FE5BF6511A703E6D3DFA8",
       "size_bytes": 7442
+    },
+    {
+      "path": "tests/runtime/test_upbit_paper_ledger_rollup_repair.py",
+      "sha256": "895F8204BB6D1EF0747EAA566062C6567A11A5D233B342B7E6356B1328D0D8A6",
+      "size_bytes": 7145
     },
     {
       "path": "tests/runtime/test_upbit_paper_runtime_sample_history.py",
@@ -2854,6 +2864,11 @@
       "size_bytes": 24744
     },
     {
+      "path": "tools/emit_upbit_paper_ledger_rollup_ready_repair_patch_evidence.py",
+      "sha256": "C995240E0ADEC5F707C042D9872835D98CA9B83DCA7E3CC1C9351893FD2E121D",
+      "size_bytes": 25825
+    },
+    {
       "path": "tools/emit_upbit_paper_long_run_evidence_boundary_patch_evidence.py",
       "sha256": "E808F8300E29228383AF8BB48032003558229234E8C943CC7777DF9BE2FAD89E",
       "size_bytes": 24275
@@ -3610,8 +3625,8 @@
     },
     {
       "path": "trader1/runtime/ledger/paper_ledger_rollup.py",
-      "sha256": "129FBC929A36A710DADA6BACC9961FE8E205E76D09BA473492905CC7B30DB97F",
-      "size_bytes": 22082
+      "sha256": "5B22451EE129A8C6E07960AC084A5B96E5926CC25B7AE7AFE0F44FD4B81446BE",
+      "size_bytes": 22949
     },
     {
       "path": "trader1/runtime/operator_control/__init__.py",
@@ -3637,6 +3652,11 @@
       "path": "trader1/runtime/paper/upbit_paper_blocked_repair_plan.py",
       "sha256": "4DDA90F7DBCA686427595BA26A3C4BE53E03630A60B450691CC3374875C31199",
       "size_bytes": 21850
+    },
+    {
+      "path": "trader1/runtime/paper/upbit_paper_ledger_rollup_repair.py",
+      "sha256": "A13A8B8C2E958E4D99E90D194E60CB22681497EBABA5258A6D6DF4F4245AC752",
+      "size_bytes": 18892
     },
     {
       "path": "trader1/runtime/paper/upbit_paper_persistent_loop.py",
@@ -3810,8 +3830,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "32172DC62F41271D9D7780F5835DCC425D32A62195666AF521560AB24B9187E9",
-      "size_bytes": 727042
+      "sha256": "9B1F85E959B810C85B01E8214C47A36175FAE0FEED51C809B35B574B3EB30A43",
+      "size_bytes": 735194
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4338,6 +4358,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_CONSISTENCY_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5541,6 +5565,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_LONG_RUN_SAMPLE_ACCUMULATION_20260501.md",
       "reason": "denied:system/"
     },
@@ -6533,6 +6561,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_LONG_RUN_EVIDENCE_BOUNDARY.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -7474,6 +7506,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_CONSISTENCY_GUARD.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8426,6 +8462,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_CONSISTENCY_GUARD.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9394,6 +9434,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_CONSISTENCY_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
@@ -10717,7 +10761,15 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/repairs/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.ledger_rollup_candidate.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_blocked_repair_plan_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_ledger_rollup_repair_report.json",
       "reason": "denied:system/"
     },
     {

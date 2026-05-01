@@ -7559,6 +7559,48 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP-READY-REPAIR",
+      "section_id": "SECTION_LEDGER_RECONCILIATION",
+      "schema_files": [
+        "contracts/schema/upbit_paper_ledger_rollup_repair_report.schema.json",
+        "contracts/schema/paper_ledger_rollup_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/runtime/paper/upbit_paper_ledger_rollup_repair.py",
+        "trader1/runtime/ledger/paper_ledger_rollup.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_upbit_paper_ledger_rollup_repair.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_ledger_rollup_repair.py",
+        "trader1/runtime/ledger/paper_ledger_rollup.py"
+      ],
+      "evidence_artifacts": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_ledger_rollup_repair_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/repairs/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.ledger_rollup_candidate.json",
+        "system/evidence/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_LEDGER_ROLLUP_READY_REPAIR.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_REPAIR_CANDIDATE_VISIBLE_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-LONG-RUN-EVIDENCE-BOUNDARY",
       "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "schema_files": [
@@ -8598,7 +8640,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-01T03:41:17Z",
+  "updated_at_utc": "2026-05-01T03:57:08Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
