@@ -863,6 +863,38 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
         if verified is not None:
             return verified
+    configured_card = _configured_paper_capital_card(
+        exchange,
+        market_type,
+        summary,
+        portfolio_status="UNVERIFIED",
+    )
+    configured_display = configured_card.get("value_display")
+    if isinstance(configured_display, str) and configured_display != "UNVERIFIED":
+        unverified_message = (
+            f"Configured PAPER capital is {configured_display}; current cash and equity require a fresh "
+            "verified simulated ledger snapshot."
+        )
+        cash_detail = (
+            f"Configured PAPER capital is {configured_display}; cash remains unverified until a fresh PAPER ledger "
+            "snapshot is loaded."
+        )
+        equity_detail = (
+            f"Configured PAPER capital is {configured_display}; equity remains unverified until a fresh PAPER ledger "
+            "snapshot is loaded."
+        )
+        next_action = (
+            "Run PAPER with a fresh verified simulated ledger; configured PAPER capital is not exchange balance."
+        )
+    else:
+        unverified_message = "No verified paper portfolio snapshot loaded"
+        cash_detail = "No verified cash source loaded"
+        equity_detail = "No verified equity source loaded"
+        next_action = (
+            "Run PAPER with a verified paper portfolio ledger"
+            if mode == "PAPER"
+            else "Provide read-only account snapshot evidence before portfolio values can be trusted"
+        )
     return {
         "title": "Portfolio Snapshot",
         "status": "UNVERIFIED",
@@ -875,16 +907,11 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
         "source_snapshot_generated_at_utc": None,
         "source_snapshot_age_seconds": None,
         "source_snapshot_stale_after_seconds": None,
-        "source_snapshot_freshness_message": "No verified paper portfolio snapshot loaded",
+        "source_snapshot_freshness_message": unverified_message,
         "source_balance_kind": None,
-        "configured_paper_capital": _configured_paper_capital_card(
-            exchange,
-            market_type,
-            summary,
-            portfolio_status="UNVERIFIED",
-        ),
-        "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "No verified cash source loaded"),
-        "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "No verified equity source loaded"),
+        "configured_paper_capital": configured_card,
+        "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", cash_detail),
+        "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", equity_detail),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "No verified locked-cash source loaded"),
         "realized_pnl": _portfolio_card("realized_pnl", "Realized PnL", "UNVERIFIED", "No verified realized PnL source loaded"),
         "unrealized_pnl": _portfolio_card("unrealized_pnl", "Unrealized PnL", "UNVERIFIED", "No verified unrealized PnL source loaded"),
@@ -893,9 +920,7 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
         "entry_candidates": _portfolio_card("entry_candidates", "Entry Candidates", "UNVERIFIED", "No verified candidate source loaded"),
         "return_pct": _portfolio_card("return_pct", "Return", "UNVERIFIED", "No verified return source loaded"),
         "blocking_reason": "HARD_TRUTH_MISSING",
-        "next_action": "Run PAPER with a verified paper portfolio ledger"
-        if mode == "PAPER"
-        else "Provide read-only account snapshot evidence before portfolio values can be trusted",
+        "next_action": next_action,
         "display_only": True,
         "dashboard_truth_only": True,
         "live_order_ready": False,
@@ -9804,6 +9829,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <h2>Portfolio Snapshot</h2>
         <p>Status: """ + safe_text(portfolio_status) + """ | Source: """ + safe_text(portfolio.get("source", "summary.json")) + """</p>
         <p class="source-line">""" + safe_text(portfolio_source_line) + """</p>
+        <p class="source-line">""" + safe_text(portfolio.get("source_snapshot_freshness_message", "No verified paper portfolio snapshot loaded")) + """</p>
         <section class="portfolio-kpi-grid">
           """ + portfolio_kpi_html + """
         </section>

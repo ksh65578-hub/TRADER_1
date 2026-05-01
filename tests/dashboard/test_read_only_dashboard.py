@@ -2930,7 +2930,11 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["portfolio_snapshot"]["configured_paper_capital"]["freshness_status"], "UNTESTED")
         self.assertIn("Configured PAPER Capital", dashboard["portfolio_snapshot"]["configured_paper_capital"]["label"])
         self.assertIn("not verified cash or equity", dashboard["portfolio_snapshot"]["configured_paper_capital"]["detail"])
+        self.assertIn("Configured PAPER capital is 1,000,000 KRW", dashboard["portfolio_snapshot"]["source_snapshot_freshness_message"])
+        self.assertIn("configured PAPER capital is not exchange balance", dashboard["portfolio_snapshot"]["next_action"])
         self.assertEqual(dashboard["portfolio_snapshot"]["cash"]["value_display"], "UNVERIFIED")
+        self.assertIn("fresh PAPER ledger snapshot", dashboard["portfolio_snapshot"]["cash"]["detail"])
+        self.assertIn("fresh PAPER ledger snapshot", dashboard["portfolio_snapshot"]["equity"]["detail"])
         self.assertEqual(dashboard["portfolio_snapshot"]["realized_pnl"]["value_display"], "UNVERIFIED")
         self.assertEqual(dashboard["operation_status"]["severity"], "WARNING")
         self.assertEqual(dashboard["operation_status"]["color_token"], "yellow")
@@ -2947,6 +2951,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Configured PAPER Capital", html)
         self.assertIn("1,000,000 KRW", html)
         self.assertIn("not verified cash or equity", html)
+        self.assertIn("current cash and equity require a fresh verified simulated ledger snapshot", html)
 
     def test_dashboard_blocks_operation_status_without_runtime_presence_warning(self):
         dashboard = build_dashboard()
