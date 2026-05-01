@@ -667,6 +667,60 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertFalse(dashboard_shell["live_order_allowed"])
             self.assertFalse(dashboard_shell["scale_up_allowed"])
 
+    def test_launcher_dashboard_loads_post_rerun_resolution_closure_as_red_blocker(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        fixture_root = Path(__file__).resolve().parents[2]
+        fixture_runtime = (
+            fixture_root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+        )
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = launcher_dashboard_paths(report, root)
+            paper_runtime = paths["upbit_paper_post_rerun_resolution_current_evidence_closure_report"].parent
+            paper_runtime.mkdir(parents=True, exist_ok=True)
+            for filename in (
+                "upbit_paper_post_rerun_operator_resolution_audit_report.json",
+                "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+            ):
+                (paper_runtime / filename).write_text(
+                    (fixture_runtime / filename).read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
+
+            dashboard_paths = write_launcher_dashboard(report, root)
+            dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+            reconciliation = dashboard_shell["reconciliation_recovery_summary"]
+            self.assertEqual(reconciliation["status"], "BLOCKED")
+            self.assertEqual(reconciliation["severity"], "ERROR")
+            self.assertEqual(reconciliation["color_token"], "red")
+            self.assertEqual(
+                reconciliation["source"],
+                "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+            )
+            self.assertEqual(
+                reconciliation["post_rerun_resolution_closure_status"],
+                "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED",
+            )
+            self.assertEqual(reconciliation["post_rerun_resolution_closure_validation_status"], "PASS")
+            self.assertEqual(
+                reconciliation["post_rerun_resolution_closure_source_resolution_audit_file_load_status"],
+                "PASS",
+            )
+            self.assertEqual(reconciliation["post_rerun_resolution_closure_closed_item_count"], 8)
+            self.assertEqual(reconciliation["post_rerun_resolution_closure_current_evidence_closed_count"], 8)
+            self.assertEqual(reconciliation["post_rerun_resolution_closure_current_evidence_write_allowed_count"], 0)
+            self.assertEqual(dashboard_shell["operator_action_summary"]["status"], "BLOCKED")
+            self.assertFalse(dashboard_shell["operator_action_summary"]["safe_to_continue_paper"])
+            self.assertFalse(dashboard_shell["live_order_allowed"])
+            self.assertFalse(dashboard_shell["scale_up_allowed"])
+
     def test_launcher_dashboard_surfaces_cross_session_reconciliation_as_invalid(self):
         report = build_launcher_report("UPBIT_PAPER")
         with TemporaryDirectory() as tmp:
