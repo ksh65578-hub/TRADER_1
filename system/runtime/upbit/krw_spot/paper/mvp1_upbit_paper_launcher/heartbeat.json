@@ -1,19 +1,19 @@
 {
   "schema_id": "trader1.heartbeat.v1",
-  "generated_at_utc": "2026-04-30T23:25:59Z",
+  "generated_at_utc": "2026-05-01T12:45:22Z",
   "project_id": "TRADER_1",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
   "session_id": "mvp1_upbit_paper_launcher",
-  "config_hash": "9A9E6AA13182A88532E2D7B793C8DFE27078147161BE44A94FEB4C79B0248766",
-  "registry_hash": "AEAB86C3EF5595A5249A2F8C0F17E893B488953C5CFA1E63D724C994C9CCAA30",
-  "schema_bundle_hash": "70364F8F63EA8B4F1D969F9F33E9792BAB29A172432C8574CEF173E502C56021",
-  "source_tree_hash": "E63C4414A75264211DD1D791EE85F797062BF4D40F17667F776FEB701F9F2400",
+  "config_hash": "2BC26684D3CCB91567611F44F3DF7DFE89F9B5C057B1859B170A94F324E1FE6A",
+  "registry_hash": "35CC58E56CB67CE0627A9F5232364B3395D899B9DB55ACAFC0F6605F33A8DCE8",
+  "schema_bundle_hash": "03569D39A19409D688B7ACF8BBF1D70C1C52CBF1F2AF41838E50E36F85A8896D",
+  "source_tree_hash": "4160721289A8DD3A8EBA259C547B2D77284DFA0AE594861155F2C7ED66F21E31",
   "engine_state": "BOOTSTRAP_READ_ONLY",
   "startup_probe_phase": "STARTUP_PROBE_GATE_BLOCKED",
   "heartbeat_status": "PASS",
-  "last_heartbeat_at_utc": "2026-04-30T23:25:59Z",
+  "last_heartbeat_at_utc": "2026-05-01T12:45:22Z",
   "stale_after_seconds": 30,
   "heartbeat_age_seconds": 0.0,
   "dashboard_truth_only": true,
@@ -25,57 +25,57 @@
     "cpu": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     },
     "memory": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     },
     "disk": {
       "status": "WARN",
-      "message": "Runtime artifact pressure WARN: files=265, bytes=1977399, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "message": "Runtime artifact pressure WARN: files=342, bytes=2637968, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     },
     "event_latency": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     },
     "queue_backlog": {
       "status": "WARN",
       "message": "Runtime artifact pressure requires review before operator trading review",
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     },
     "rest_health": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     },
     "websocket_health": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     },
     "private_stream_health": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     },
     "rate_limit_pressure": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     },
     "watchdog_heartbeat": {
       "status": "PASS",
       "message": null,
-      "observed_at_utc": "2026-04-30T23:25:59Z"
+      "observed_at_utc": "2026-05-01T12:45:22Z"
     }
   },
   "primary_blocker_code": null,
   "blockers": [],
   "final_action": "SAFE_MODE",
   "next_action": "continue read-only monitoring",
-  "heartbeat_hash": "039A5670FD90A3F8D6E74738C6A420FE32EC4F2B1837958551EAB56F9F4D0DD7"
+  "heartbeat_hash": "C7755DBB8C9528C46D3CBE7F753915F49D6A45FEA4EEF1E042EFA56D4777BE89"
 }

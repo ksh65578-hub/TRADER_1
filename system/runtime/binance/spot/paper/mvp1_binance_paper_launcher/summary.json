@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.summary.v1",
   "project": "TRADER_1",
-  "generated_at_utc": "2026-04-30T23:25:59Z",
+  "generated_at_utc": "2026-05-01T12:45:23Z",
   "exchange": "BINANCE",
   "market_type": "SPOT",
   "mode": "PAPER",
@@ -47,11 +47,11 @@
   "portfolio": {
     "source": "LEDGER",
     "freshness_status": "PASS",
-    "source_snapshot_hash": "95B0CF0D5283D508C7EFB4FD191C08B0D3042048594BE2D3ADF71BEFE268655A",
+    "source_snapshot_hash": "E488C07F3F9A015BBBFF3ADD294FDE09A23A206622706CE7D6D24F8083FC4791",
     "source_runtime_cycle_id": null,
     "source_paper_ledger_head_hash": null,
     "source_snapshot_status": "PASS",
-    "source_snapshot_generated_at_utc": "2026-04-30T23:25:59Z",
+    "source_snapshot_generated_at_utc": "2026-05-01T12:45:23Z",
     "source_snapshot_age_seconds": 0,
     "source_snapshot_stale_after_seconds": 300,
     "source_snapshot_freshness_message": "PAPER portfolio snapshot is fresh and display-only",

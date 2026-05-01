@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "55668C40E0E828E3FF284D72A947D6493C23ED231934E8D717CA2BC00BFA04EC",
+      "sha256": "864BAFF89FAC1F8AF72F429872FEC2D96AC778FCFC06717AFD3741D9936A58D7",
       "size_bytes": 1096
     },
     {
@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "CA5BAF0DDD9B967F347872A0E4093339318CE7E7DFB43516A0ACFC83A3662F61",
-      "size_bytes": 114850
+      "sha256": "47343E766D570F5608C40093C73EB2A5750C890B2B345A05340222DBADF78ACE",
+      "size_bytes": 115616
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -650,8 +650,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "1E596D7F36F4C089D8AAADBEF7EC73409B714A20836038CD88F0AC193F13B449",
-      "size_bytes": 189920
+      "sha256": "DB71F9477FC702616745C56F0237E0301F5F7629568638E30AA8B8DFB67B5992",
+      "size_bytes": 192200
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -2264,6 +2264,11 @@
       "size_bytes": 28108
     },
     {
+      "path": "tools/emit_dashboard_portfolio_truth_runtime_evidence_patch.py",
+      "sha256": "A7A5A36E51A782008551E557C892DFC218CCDFF4CF97F8EB379265B02FC0F730",
+      "size_bytes": 29720
+    },
+    {
       "path": "tools/emit_dashboard_position_detail_truth_guard_patch_evidence.py",
       "sha256": "5E9ACCEA52C8E81E28BEC4D71AC8834AF0E59B8D91D5B6356786C723FBF683E5",
       "size_bytes": 27571
@@ -3510,8 +3515,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "19255538BA7E21664942C4AB7DD3233CFF22FB344D4BEDB5E6203A52949A1F53",
-      "size_bytes": 527555
+      "sha256": "5CE39D469B83107ECFFF38F79144E5FC1219A95999BC036A85801C0534D85A9D",
+      "size_bytes": 530121
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -4214,6 +4219,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_DASHBOARD_PORTFOLIO_SOURCE_FRESHNESS.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5030,6 +5039,10 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_DASHBOARD_PORTFOLIO_SOURCE_FRESHNESS.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.audit.json",
       "reason": "denied:system/"
     },
     {
@@ -6081,6 +6094,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_DASHBOARD_POSITION_DETAIL_TRUTH_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -7058,6 +7075,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_DASHBOARD_PORTFOLIO_SOURCE_FRESHNESS.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8046,6 +8067,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_DASHBOARD_PORTFOLIO_SOURCE_FRESHNESS.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9046,6 +9071,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_DASHBOARD_PORTFOLIO_SOURCE_FRESHNESS.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

@@ -431,6 +431,10 @@ def _decimal(value: Any) -> Decimal | None:
         return None
 
 
+def _is_hash64(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789ABCDEFabcdef" for char in value)
+
+
 def _currency_for_scope(exchange: str, market_type: str) -> str:
     if exchange == "UPBIT" and market_type == "KRW_SPOT":
         return "KRW"
@@ -644,9 +648,13 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         "source": "summary.json",
         "source_runtime_cycle_id": portfolio.get("source_runtime_cycle_id"),
         "source_paper_ledger_head_hash": portfolio.get("source_paper_ledger_head_hash"),
+        "source_snapshot_hash": portfolio.get("source_snapshot_hash"),
+        "source_snapshot_status": portfolio.get("source_snapshot_status"),
+        "source_snapshot_generated_at_utc": portfolio.get("source_snapshot_generated_at_utc"),
         "source_snapshot_age_seconds": portfolio.get("source_snapshot_age_seconds"),
         "source_snapshot_stale_after_seconds": portfolio.get("source_snapshot_stale_after_seconds"),
         "source_snapshot_freshness_message": portfolio.get("source_snapshot_freshness_message"),
+        "source_balance_kind": portfolio.get("source_balance_kind"),
         "cash": _portfolio_card(
             "cash",
             "Cash",
@@ -723,9 +731,13 @@ def _stale_portfolio_snapshot() -> dict[str, Any]:
         "source": "summary.json",
         "source_runtime_cycle_id": None,
         "source_paper_ledger_head_hash": None,
+        "source_snapshot_hash": None,
+        "source_snapshot_status": "STALE",
+        "source_snapshot_generated_at_utc": None,
         "source_snapshot_age_seconds": None,
         "source_snapshot_stale_after_seconds": None,
         "source_snapshot_freshness_message": "Stale summary; rerun PAPER launcher",
+        "source_balance_kind": None,
         "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
@@ -763,9 +775,13 @@ def _portfolio_snapshot(exchange: str, market_type: str, mode: str, summary: dic
         "source": "summary.json",
         "source_runtime_cycle_id": None,
         "source_paper_ledger_head_hash": None,
+        "source_snapshot_hash": None,
+        "source_snapshot_status": "UNTESTED",
+        "source_snapshot_generated_at_utc": None,
         "source_snapshot_age_seconds": None,
         "source_snapshot_stale_after_seconds": None,
         "source_snapshot_freshness_message": "No verified paper portfolio snapshot loaded",
+        "source_balance_kind": None,
         "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "No verified cash source loaded"),
         "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "No verified equity source loaded"),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "No verified locked-cash source loaded"),
@@ -7290,13 +7306,29 @@ def validate_read_only_dashboard_shell(
     if portfolio.get("status") == "VERIFIED":
         source_cycle_id = portfolio.get("source_runtime_cycle_id")
         source_ledger_head = portfolio.get("source_paper_ledger_head_hash")
+        source_snapshot_hash = portfolio.get("source_snapshot_hash")
+        source_snapshot_status = portfolio.get("source_snapshot_status")
+        source_snapshot_generated_at = portfolio.get("source_snapshot_generated_at_utc")
         source_age_seconds = portfolio.get("source_snapshot_age_seconds")
         source_stale_after_seconds = portfolio.get("source_snapshot_stale_after_seconds")
         source_freshness_message = portfolio.get("source_snapshot_freshness_message")
+        source_balance_kind = portfolio.get("source_balance_kind")
         if source_cycle_id is not None and (not isinstance(source_cycle_id, str) or not source_cycle_id):
             return DashboardValidationResult("FAIL", "portfolio runtime cycle provenance is invalid", "SCHEMA_IDENTITY_MISMATCH")
         if source_ledger_head is not None and (not isinstance(source_ledger_head, str) or len(source_ledger_head) != 64):
             return DashboardValidationResult("FAIL", "portfolio ledger head provenance is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if not _is_hash64(source_snapshot_hash):
+            return DashboardValidationResult("FAIL", "portfolio source snapshot hash is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if source_snapshot_status != "PASS":
+            return DashboardValidationResult("BLOCKED", "verified portfolio source snapshot is not PASS", "HARD_TRUTH_MISSING")
+        if _parse_utc(source_snapshot_generated_at) is None:
+            return DashboardValidationResult("FAIL", "portfolio source snapshot timestamp is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if source_balance_kind != "SIMULATED_PAPER_LEDGER":
+            return DashboardValidationResult(
+                "BLOCKED",
+                "verified portfolio source must remain simulated PAPER ledger truth",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
         if not isinstance(source_age_seconds, int) or source_age_seconds < 0:
             return DashboardValidationResult("FAIL", "portfolio source age is invalid", "SCHEMA_IDENTITY_MISMATCH")
         if not isinstance(source_stale_after_seconds, int) or source_stale_after_seconds <= 0:
@@ -7305,6 +7337,8 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "verified portfolio source is stale", "LATENCY_TTL_EXPIRED")
         if not isinstance(source_freshness_message, str) or not source_freshness_message:
             return DashboardValidationResult("FAIL", "portfolio source freshness message is missing", "SCHEMA_IDENTITY_MISMATCH")
+    elif portfolio.get("source_snapshot_hash") is not None or portfolio.get("source_snapshot_status") == "PASS":
+        return DashboardValidationResult("BLOCKED", "unverified portfolio cannot carry PASS snapshot provenance", "HARD_TRUTH_MISSING")
     for card_id in PORTFOLIO_CARD_IDS:
         card = portfolio.get(card_id)
         if not isinstance(card, dict):
@@ -8292,6 +8326,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     portfolio_status = portfolio.get("status", "UNVERIFIED") if isinstance(portfolio, dict) else "UNVERIFIED"
     portfolio_cycle_source = portfolio.get("source_runtime_cycle_id") if isinstance(portfolio, dict) else None
     portfolio_ledger_source = portfolio.get("source_paper_ledger_head_hash") if isinstance(portfolio, dict) else None
+    portfolio_snapshot_source = portfolio.get("source_snapshot_hash") if isinstance(portfolio, dict) else None
+    portfolio_balance_kind = portfolio.get("source_balance_kind") if isinstance(portfolio, dict) else None
     portfolio_age_seconds = portfolio.get("source_snapshot_age_seconds") if isinstance(portfolio, dict) else None
     portfolio_stale_after_seconds = portfolio.get("source_snapshot_stale_after_seconds") if isinstance(portfolio, dict) else None
     portfolio_age_line = (
@@ -8301,7 +8337,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     )
     portfolio_source_line = (
         f"Runtime cycle: {portfolio_cycle_source or 'not linked'} | Ledger head: "
-        f"{str(portfolio_ledger_source)[:12] + '...' if portfolio_ledger_source else 'not linked'} | {portfolio_age_line}"
+        f"{str(portfolio_ledger_source)[:12] + '...' if portfolio_ledger_source else 'not linked'} | Snapshot: "
+        f"{str(portfolio_snapshot_source)[:12] + '...' if portfolio_snapshot_source else 'not linked'} | Balance: "
+        f"{portfolio_balance_kind or 'not verified'} | {portfolio_age_line}"
     )
     if portfolio_status == "VERIFIED" and shell.get("mode") == "PAPER":
         portfolio_status = "PAPER LEDGER VERIFIED (SIMULATED)"
