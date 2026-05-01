@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-01T02:04:38Z",
+  "updated_at_utc": "2026-05-01T03:41:17Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -206,6 +206,7 @@
     "REQ-MVP4-UI-COMPLETION-RECHECK-OPERATOR-FLOW-HARDENING",
     "REQ-MVP4-UPBIT-LIVE-REVIEW-SCAFFOLD",
     "REQ-MVP4-UPBIT-MARKET-DATA-POINTER-SCHEMA-GUARD",
+    "REQ-MVP4-UPBIT-PAPER-BLOCKED-REPAIR-PLAN",
     "REQ-MVP4-UPBIT-PAPER-BLOCKED-REPAIR-REASON-ROLLUP",
     "REQ-MVP4-UPBIT-PAPER-CANDIDATE-DECISION-THRESHOLD-GUARD",
     "REQ-MVP4-UPBIT-PAPER-LEDGER-JSONL-RECOVERY",
@@ -319,6 +320,7 @@
     "trader1.summary.v1",
     "trader1.survival_layer_report.v1",
     "trader1.symbol_strategy_regime_fit_report.v1",
+    "trader1.upbit_paper_blocked_repair_plan_report.v1",
     "trader1.upbit_paper_dry_run_report.v1",
     "trader1.upbit_paper_persistent_loop_report.v1",
     "trader1.upbit_paper_runtime_cycle_report.v1",
@@ -444,6 +446,7 @@
     "truth_hierarchy_validator",
     "upbit_live_review_preflight_validator",
     "upbit_operational_paper_gate_validator",
+    "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_dry_run_validator",
     "upbit_paper_persistent_loop_validator",
     "upbit_paper_runtime_cycle_validator",
@@ -468,6 +471,7 @@
   ],
   "open_contract_gap_ids": [
     "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
     "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
     "PATCH_RESULT_VALIDATOR_RUN_GAP",
     "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
@@ -476,12 +480,12 @@
     "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_UPBIT_PAPER_BLOCKED_REPAIR_REASON_ROLLUP_20260501_001",
-  "last_patch_result_hash": "D41DC4B893844B432913FA8086C46A8885ECE422EDBA7C13A9E30D88C95553AC",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_REGENERATED_BLOCKED_REPAIR_REPAIR_PLAN",
+  "last_patch_id": "MVP4_UPBIT_PAPER_BLOCKED_REPAIR_PLAN_20260501_001",
+  "last_patch_result_hash": "D2F60CD12E4A231BFD137A79E6F1738100FE1C0D15DBC9D5E784709ACF2AB7F7",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_LEDGER_ROLLUP_REBUILD_READY_REPAIR",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "7DAC5BD9911244FD7FA9399B4AE24E0B07FE38FFF4FB6D401809E640B7BDCDEA"
+  "state_hash": "FBCBAF859AB3A1B32ADDA6ECD66E486A1E44549FB3DC64622BB865DB31A88A45"
 }
