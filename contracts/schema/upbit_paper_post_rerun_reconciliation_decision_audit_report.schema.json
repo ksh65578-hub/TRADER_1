@@ -17,6 +17,10 @@
     "decision_audit_role",
     "source_operator_queue_path",
     "source_operator_queue_hash",
+    "source_operator_queue_file_load_status",
+    "source_operator_queue_file_hash",
+    "source_operator_queue_file_recomputed_hash",
+    "source_operator_queue_file_hash_match",
     "source_operator_queue_status",
     "source_operator_queue_primary_blocker_code",
     "source_queue_item_count",
@@ -65,6 +69,12 @@
     "decision_audit_role": {"const": "PAPER_POST_RERUN_RECONCILIATION_DECISION_AUDIT_NOT_CURRENT_EVIDENCE"},
     "source_operator_queue_path": {"type": "string", "minLength": 1},
     "source_operator_queue_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+    "source_operator_queue_file_load_status": {
+      "enum": ["PASS", "MISSING", "INVALID_UTF8", "INVALID_JSON", "NOT_OBJECT", "HASH_MISMATCH", "SCOPE_MISMATCH", "UNKNOWN"]
+    },
+    "source_operator_queue_file_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+    "source_operator_queue_file_recomputed_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+    "source_operator_queue_file_hash_match": {"type": "boolean"},
     "source_operator_queue_status": {"const": "BLOCKED"},
     "source_operator_queue_primary_blocker_code": {"const": "POST_RERUN_RECONCILIATION_REQUIRED"},
     "source_queue_item_count": {"type": "integer", "minimum": 0},

@@ -25,6 +25,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation i
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_queue import (
     build_upbit_paper_post_rerun_operator_reconciliation_queue_report,
+    write_upbit_paper_post_rerun_operator_reconciliation_queue_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
     POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_ITEM_STATUS,
@@ -141,7 +142,9 @@ class UpbitPaperPostRerunReconciliationBlockerRollupTest(unittest.TestCase):
             root=root,
             promotion_guard_report=promotion_guard,
         )
+        write_upbit_paper_post_rerun_operator_reconciliation_queue_report(root=root, report=operator_queue)
         decision_audit = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
+            root=root,
             operator_queue_report=operator_queue,
         )
         return root, decision_audit, current_ledger_path

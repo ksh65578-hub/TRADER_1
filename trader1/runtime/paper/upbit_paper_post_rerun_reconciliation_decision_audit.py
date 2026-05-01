@@ -17,6 +17,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation i
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_queue import (
     POST_RERUN_OPERATOR_RECONCILIATION_ACTION,
     POST_RERUN_OPERATOR_RECONCILIATION_QUEUE_ROLE,
+    upbit_paper_post_rerun_operator_reconciliation_queue_hash,
     validate_upbit_paper_post_rerun_operator_reconciliation_queue_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -66,6 +67,11 @@ def _runtime_base(root: Path, session_id: str) -> Path:
     return Path(root).resolve() / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
 
+def _rooted(root: Path, relative_path: str) -> Path:
+    parts = [part for part in relative_path.replace("\\", "/").split("/") if part]
+    return Path(root).resolve().joinpath(*parts)
+
+
 def _artifact_path_allowed(path: str, session_id: str) -> bool:
     normalized = path.replace("\\", "/")
     parts = normalized.split("/")
@@ -84,6 +90,53 @@ def _current_ledger_path_allowed(path: str, session_id: str) -> bool:
         and normalized.startswith(f"system/runtime/upbit/krw_spot/paper/{session_id}/ledger/cycles/")
         and normalized.endswith(".paper_ledger_events.jsonl")
     )
+
+
+def _safe_load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None, "MISSING"
+    except UnicodeDecodeError:
+        return None, "INVALID_UTF8"
+    except json.JSONDecodeError:
+        return None, "INVALID_JSON"
+    if not isinstance(value, dict):
+        return None, "NOT_OBJECT"
+    return value, None
+
+
+def _source_operator_queue_file_binding(
+    *,
+    root: Path,
+    relative_path: str,
+    expected_hash: Any,
+    session_id: str,
+) -> dict[str, Any]:
+    if not _artifact_path_allowed(relative_path, session_id):
+        return {
+            "source_operator_queue_file_load_status": "SCOPE_MISMATCH",
+            "source_operator_queue_file_hash": None,
+            "source_operator_queue_file_recomputed_hash": None,
+            "source_operator_queue_file_hash_match": False,
+        }
+    source, source_error = _safe_load_json(_rooted(root, relative_path))
+    if source is None:
+        return {
+            "source_operator_queue_file_load_status": str(source_error or "UNKNOWN"),
+            "source_operator_queue_file_hash": None,
+            "source_operator_queue_file_recomputed_hash": None,
+            "source_operator_queue_file_hash_match": False,
+        }
+    file_hash = source.get("queue_hash")
+    recomputed_hash = upbit_paper_post_rerun_operator_reconciliation_queue_hash(source)
+    hash_match = bool(file_hash == expected_hash == recomputed_hash)
+    return {
+        "source_operator_queue_file_load_status": "PASS" if hash_match else "HASH_MISMATCH",
+        "source_operator_queue_file_hash": file_hash,
+        "source_operator_queue_file_recomputed_hash": recomputed_hash,
+        "source_operator_queue_file_hash_match": hash_match,
+    }
 
 
 def _build_decision_item(*, priority_order: int, session_id: str, queue_item: dict[str, Any]) -> dict[str, Any]:
@@ -154,10 +207,12 @@ def _build_decision_item(*, priority_order: int, session_id: str, queue_item: di
 
 def build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
     *,
+    root: Path,
     operator_queue_report: dict[str, Any],
     source_operator_queue_path: str = "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
     audit_id: str = "upbit-paper-post-rerun-reconciliation-decision-audit",
 ) -> dict[str, Any]:
+    root = Path(root).resolve()
     queue_result = validate_upbit_paper_post_rerun_operator_reconciliation_queue_report(operator_queue_report)
     session_id = str(operator_queue_report.get("session_id") or "UNKNOWN")
     queue_items = [item for item in operator_queue_report.get("items", []) if isinstance(item, dict)]
@@ -176,6 +231,15 @@ def build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
         blockers.add(queue_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
     for item in items:
         blockers.update(str(code) for code in item.get("blocking_codes", []))
+    source_hash = operator_queue_report.get("queue_hash")
+    source_file_binding = _source_operator_queue_file_binding(
+        root=root,
+        relative_path=source_operator_queue_path,
+        expected_hash=source_hash,
+        session_id=session_id,
+    )
+    if source_file_binding["source_operator_queue_file_load_status"] != "PASS":
+        blockers.add("POST_RERUN_DECISION_AUDIT_SOURCE_QUEUE_BINDING_REQUIRED")
     report = {
         "schema_id": UPBIT_PAPER_POST_RERUN_RECONCILIATION_DECISION_AUDIT_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -188,7 +252,8 @@ def build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
         "truth_role": POST_RERUN_RECONCILIATION_DECISION_AUDIT_TRUTH_ROLE,
         "decision_audit_role": POST_RERUN_RECONCILIATION_DECISION_AUDIT_ROLE,
         "source_operator_queue_path": source_operator_queue_path,
-        "source_operator_queue_hash": operator_queue_report.get("queue_hash"),
+        "source_operator_queue_hash": source_hash,
+        **source_file_binding,
         "source_operator_queue_status": operator_queue_report.get("queue_status"),
         "source_operator_queue_primary_blocker_code": operator_queue_report.get("primary_blocker_code"),
         "source_queue_item_count": int(operator_queue_report.get("queue_item_count") or 0),
@@ -250,6 +315,10 @@ def validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(
         "decision_audit_role",
         "source_operator_queue_path",
         "source_operator_queue_hash",
+        "source_operator_queue_file_load_status",
+        "source_operator_queue_file_hash",
+        "source_operator_queue_file_recomputed_hash",
+        "source_operator_queue_file_hash_match",
         "source_operator_queue_status",
         "source_operator_queue_primary_blocker_code",
         "source_queue_item_count",
@@ -335,6 +404,24 @@ def validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(
     session_id = str(report.get("session_id"))
     if not _artifact_path_allowed(str(report.get("source_operator_queue_path") or ""), session_id):
         return UpbitPaperPostRerunReconciliationDecisionAuditValidationResult("BLOCKED", "source operator queue path escaped PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
+    if (
+        report.get("source_operator_queue_file_load_status") != "PASS"
+        or report.get("source_operator_queue_file_hash_match") is not True
+    ):
+        return UpbitPaperPostRerunReconciliationDecisionAuditValidationResult(
+            "BLOCKED",
+            "source operator queue file binding is missing or mismatched",
+            POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+        )
+    if (
+        report.get("source_operator_queue_file_hash") != report.get("source_operator_queue_hash")
+        or report.get("source_operator_queue_file_recomputed_hash") != report.get("source_operator_queue_hash")
+    ):
+        return UpbitPaperPostRerunReconciliationDecisionAuditValidationResult(
+            "FAIL",
+            "source operator queue file hash does not match source report hash",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
     if POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE not in set(report.get("blocker_codes") or []):
         return UpbitPaperPostRerunReconciliationDecisionAuditValidationResult("BLOCKED", "post-rerun reconciliation decision audit missing reconciliation blocker", POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
     items = report.get("items")

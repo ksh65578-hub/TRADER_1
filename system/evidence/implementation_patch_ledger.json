@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-01T19:51:22Z",
+  "updated_at_utc": "2026-05-01T19:59:57Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -2988,6 +2988,17 @@
       "target_mvp_level": "MVP-4",
       "patch_result_path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_SOURCE_BINDING_GUARD.patch_result.json",
       "patch_result_hash": "EB594E13385A06E18ACF111BDF6433D79CAE9B4BBD37B720466018E992A1FC91",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_UPBIT_PAPER_POST_RERUN_DECISION_AUDIT_SOURCE_BINDING_GUARD_20260502_001",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_DECISION_AUDIT_SOURCE_BINDING_GUARD.patch_result.json",
+      "patch_result_hash": "E92247BE6F0ED386E8533DF5A5D41368215031108F19AFD7C79DAA57A86C9B9E",
       "live_order_ready_after": false,
       "live_order_allowed_after": false,
       "can_live_trade_after": false,

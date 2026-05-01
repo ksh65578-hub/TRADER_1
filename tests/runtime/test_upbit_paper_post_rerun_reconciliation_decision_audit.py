@@ -25,6 +25,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_ledger_rollup_reconciliation i
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_queue import (
     build_upbit_paper_post_rerun_operator_reconciliation_queue_report,
+    write_upbit_paper_post_rerun_operator_reconciliation_queue_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_decision_audit import (
     POST_RERUN_RECONCILIATION_WRITE_DENIED_STATUS,
@@ -138,12 +139,14 @@ class UpbitPaperPostRerunReconciliationDecisionAuditTest(unittest.TestCase):
             root=root,
             promotion_guard_report=promotion_guard,
         )
+        write_upbit_paper_post_rerun_operator_reconciliation_queue_report(root=root, report=operator_queue)
         return root, operator_queue, current_ledger_path
 
     def test_builds_decision_audit_without_current_evidence_authorization(self):
         root, operator_queue, current_ledger_path = self._operator_queue_with_missing_current_ledger()
 
         report = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
+            root=root,
             operator_queue_report=operator_queue,
         )
         result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(report)
@@ -151,6 +154,10 @@ class UpbitPaperPostRerunReconciliationDecisionAuditTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["decision_audit_status"], "BLOCKED")
         self.assertEqual(report["primary_blocker_code"], POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
+        self.assertEqual(report["source_operator_queue_file_load_status"], "PASS")
+        self.assertEqual(report["source_operator_queue_file_hash"], report["source_operator_queue_hash"])
+        self.assertEqual(report["source_operator_queue_file_recomputed_hash"], report["source_operator_queue_hash"])
+        self.assertTrue(report["source_operator_queue_file_hash_match"])
         self.assertEqual(report["decision_item_count"], 1)
         self.assertEqual(report["write_denied_count"], 1)
         self.assertEqual(report["operator_reconciliation_required_count"], 1)
@@ -176,8 +183,9 @@ class UpbitPaperPostRerunReconciliationDecisionAuditTest(unittest.TestCase):
         self.assertTrue(path.exists())
 
     def test_blocks_live_and_current_write_authorization_mutation(self):
-        _root, operator_queue, _current_ledger_path = self._operator_queue_with_missing_current_ledger()
+        root, operator_queue, _current_ledger_path = self._operator_queue_with_missing_current_ledger()
         report = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
+            root=root,
             operator_queue_report=operator_queue,
         )
 
@@ -196,8 +204,9 @@ class UpbitPaperPostRerunReconciliationDecisionAuditTest(unittest.TestCase):
         self.assertEqual(write_result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_rejects_count_tamper_and_path_escape(self):
-        _root, operator_queue, _current_ledger_path = self._operator_queue_with_missing_current_ledger()
+        root, operator_queue, _current_ledger_path = self._operator_queue_with_missing_current_ledger()
         report = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
+            root=root,
             operator_queue_report=operator_queue,
         )
 
@@ -214,6 +223,32 @@ class UpbitPaperPostRerunReconciliationDecisionAuditTest(unittest.TestCase):
         path_result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(path_escape)
         self.assertEqual(path_result.status, "BLOCKED")
         self.assertEqual(path_result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_blocks_missing_source_operator_queue_file_binding(self):
+        root, operator_queue, _current_ledger_path = self._operator_queue_with_missing_current_ledger()
+        source_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_operator_reconciliation_queue_report.json"
+        )
+        source_path.unlink()
+
+        report = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
+            root=root,
+            operator_queue_report=operator_queue,
+        )
+        result = validate_upbit_paper_post_rerun_reconciliation_decision_audit_report(report)
+
+        self.assertEqual(report["source_operator_queue_file_load_status"], "MISSING")
+        self.assertFalse(report["source_operator_queue_file_hash_match"])
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
 
 
 if __name__ == "__main__":
