@@ -115,6 +115,33 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         self.assertTrue(any("long-run" in error for error in errors), errors)
 
+    def test_maturity_rollup_helper_requires_runtime_linkage_evidence(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        del tampered["runtime_linkage_evidence"]
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("runtime_linkage_evidence" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_runtime_linkage_live_drift(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["runtime_linkage_evidence"]["live_order_allowed"] = True
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("live_order_allowed" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_runtime_linkage_hash_mismatch(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["runtime_linkage_evidence"]["source_runtime_cycle_hash"] = "A" * 64
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("cycle hash" in error for error in errors), errors)
+
 
 if __name__ == "__main__":
     unittest.main()

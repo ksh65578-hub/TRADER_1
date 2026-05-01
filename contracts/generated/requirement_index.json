@@ -7064,6 +7064,53 @@
       "test_status": "PASS_TARGETED_PENDING_FULL_SUITE"
     },
     {
+      "requirement_id": "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE",
+      "source_section_id": "SECTION_STRATEGY_PROFITABILITY_LOOP",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Profitability evidence maturity runtime linkage",
+      "full_text_marker": "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE:SECTION_STRATEGY_PROFITABILITY_LOOP:profitability rollup links PAPER runtime strategy/regime/cost evidence",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Profitability maturity rollup must link to actual PAPER runtime strategy/regime/cost evidence",
+      "requirement_kind": "RUNTIME_VALIDATOR_SCHEMA_PATCH",
+      "schema_ids": [
+        "trader1.profitability_evidence_maturity_rollup.v1"
+      ],
+      "validator_ids": [
+        "profitability_evidence_maturity_rollup_validator",
+        "upbit_paper_runtime_cycle_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
+        "trader1/validation/mvp0_validators.py",
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
+        "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
+        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+        "tools/emit_profitability_evidence_runtime_linkage_patch.py",
+        "contracts/generated/context_pack/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.md"
+      ],
+      "test_ids": [
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "PROFIT_CONVERGENCE_MVP3",
+        "SECTION_STRATEGY_PROFITABILITY_LOOP",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-STRATEGY-REGIME-COST-RUNTIME-LINKAGE",
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-ROLLUP-VALIDATOR",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "D4C92EFD6640E260C6061F17E2D78CC2DF0F2082C1C8E317F8ADAC75562DC82C",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PROFITABILITY-MATURITY-COMPONENT-NEXT-ACTIONS",
       "source_section_id": "SECTION_PROFITABILITY_EVIDENCE_MATURITY",
       "source_file": "TRADER_1.md",
@@ -11780,5 +11827,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T12:13:57Z"
+  "updated_at_utc": "2026-05-01T12:29:13Z"
 }
