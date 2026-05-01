@@ -18,6 +18,9 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import validate_upbit_pap
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
     validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review_guidance import (
+    validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
 
@@ -31,6 +34,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "runtime_orchestration_report.json",
     "upbit_paper_runtime_recovery_guard_report.json",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+    "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
 }
@@ -40,6 +44,7 @@ RECONCILIATION_RECOVERY_SOURCES = {
     "reconciliation_report.json",
     "restart_recovery_report.json",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+    "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
 }
 ORDER_AFFECTING_FINAL_ACTIONS = {
     "ENTER_LONG",
@@ -151,6 +156,8 @@ RECONCILIATION_RECOVERY_LEDGER_STATES = {"NOT_LOADED", "PAPER_LEDGER_MATCHED", "
 RECONCILIATION_RECOVERY_WRITER_STATES = {"NOT_LOADED", "RECOVERED", "RECONCILE_REQUIRED", "INVALID"}
 POST_RERUN_BLOCKER_ROLLUP_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
 POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+POST_RERUN_REVIEW_GUIDANCE_STATUSES = {"NOT_LOADED", "BLOCKED_RECONCILIATION_REVIEW_REQUIRED", "INVALID"}
+POST_RERUN_REVIEW_GUIDANCE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 OPERATOR_ACTION_STATUSES = {"PAPER_MONITORING", "PAPER_REVIEW_READY", "REFRESH_REQUIRED", "ACTION_REQUIRED", "BLOCKED"}
 OPERATOR_ACTION_KINDS = {"CONTINUE_PAPER", "REFRESH_DASHBOARD", "REVIEW_PAPER_EVIDENCE", "RESOLVE_BLOCKER", "STOP_AND_INSPECT"}
 OPERATOR_WORKFLOW_STEPS = {"RUN_PAPER", "INSPECT_DASHBOARD", "COLLECT_EVIDENCE", "LIVE_REVIEW_BLOCKED"}
@@ -4949,16 +4956,20 @@ def _reconciliation_recovery_summary(
     reconciliation_report: dict[str, Any] | None,
     restart_recovery_report: dict[str, Any] | None,
     post_rerun_blocker_rollup_report: dict[str, Any] | None,
+    post_rerun_review_guidance_report: dict[str, Any] | None,
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
     restart_loaded = isinstance(restart_recovery_report, dict)
     post_rerun_rollup_loaded = isinstance(post_rerun_blocker_rollup_report, dict)
+    post_rerun_guidance_loaded = isinstance(post_rerun_review_guidance_report, dict)
     reconciliation_status = "NOT_LOADED"
     restart_status = "NOT_LOADED"
     post_rerun_rollup_status = "NOT_LOADED"
+    post_rerun_review_guidance_status = "NOT_LOADED"
     reconciliation_validation_status = "UNTESTED"
     restart_validation_status = "UNTESTED"
     post_rerun_rollup_validation_status = "UNTESTED"
+    post_rerun_review_guidance_validation_status = "UNTESTED"
     ledger_state = "NOT_LOADED"
     single_writer_state = "NOT_LOADED"
     idempotency_state = "NOT_LOADED"
@@ -4969,6 +4980,12 @@ def _reconciliation_recovery_summary(
     post_rerun_current_evidence_write_authorized_count = 0
     post_rerun_current_evidence_write_allowed_count = 0
     post_rerun_candidate_current_evidence_usable_count = 0
+    post_rerun_review_guidance_item_count = 0
+    post_rerun_review_step_count = 0
+    post_rerun_forbidden_output_count = 0
+    post_rerun_guidance_current_evidence_write_authorized_count = 0
+    post_rerun_guidance_current_evidence_write_allowed_count = 0
+    post_rerun_guidance_candidate_current_evidence_usable_count = 0
     post_rerun_blocker_codes: list[str] = []
     primary_blocker = "RECONCILIATION_REQUIRED"
     source = "summary.json"
@@ -5085,13 +5102,90 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Post-rerun blocker rollup status is unknown.")
 
-    if not reconciliation_loaded and not restart_loaded and not post_rerun_rollup_loaded:
+    if post_rerun_guidance_loaded:
+        source = "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"
+        post_rerun_review_guidance_status = str(
+            post_rerun_review_guidance_report.get("review_guidance_status", "INVALID")
+        )
+        guidance_result = validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
+            post_rerun_review_guidance_report
+        )
+        post_rerun_review_guidance_validation_status = guidance_result.status
+        if guidance_result.status != "PASS":
+            post_rerun_review_guidance_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = guidance_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(f"Post-rerun review guidance invalid: {guidance_result.message}")
+        elif not _scope_matches(post_rerun_review_guidance_report, exchange=exchange, market_type=market_type, mode=mode, session_id=session_id):
+            post_rerun_review_guidance_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Post-rerun review guidance scope does not match this dashboard.")
+        elif post_rerun_review_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
+            post_rerun_review_guidance_item_count = _safe_count(
+                post_rerun_review_guidance_report.get("guidance_item_count")
+            )
+            post_rerun_review_step_count = _safe_count(
+                post_rerun_review_guidance_report.get("review_step_count")
+            )
+            post_rerun_forbidden_output_count = _safe_count(
+                post_rerun_review_guidance_report.get("forbidden_output_count")
+            )
+            post_rerun_guidance_current_evidence_write_authorized_count = _safe_count(
+                post_rerun_review_guidance_report.get("current_evidence_write_authorized_count")
+            )
+            post_rerun_guidance_current_evidence_write_allowed_count = _safe_count(
+                post_rerun_review_guidance_report.get("current_evidence_write_allowed_count")
+            )
+            post_rerun_guidance_candidate_current_evidence_usable_count = _safe_count(
+                post_rerun_review_guidance_report.get("candidate_current_evidence_usable_count")
+            )
+            raw_codes = post_rerun_review_guidance_report.get("blocker_codes", [])
+            guidance_codes = [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            post_rerun_blocker_codes = sorted({*post_rerun_blocker_codes, *guidance_codes})
+            ledger_state = "RECONCILE_REQUIRED"
+            single_writer_state = "RECONCILE_REQUIRED"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = str(
+                post_rerun_review_guidance_report.get("primary_blocker_code")
+                or "POST_RERUN_RECONCILIATION_REQUIRED"
+            )
+            issue_messages.append(
+                "Post-rerun operator review guidance keeps current evidence blocked until reconciliation is resolved."
+            )
+        else:
+            post_rerun_review_guidance_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Post-rerun review guidance status is unknown.")
+
+    if not reconciliation_loaded and not restart_loaded and not post_rerun_rollup_loaded and not post_rerun_guidance_loaded:
         status = "NOT_LOADED"
         severity = "WARNING"
         color_token = "yellow"
         one_line_blocker = "RECONCILIATION_REQUIRED: ledger/reconciliation and restart recovery evidence are not loaded."
         next_action = "Run PAPER with reconciliation and restart recovery artifacts, then review this panel before live review."
         message = "Ledger/reconciliation evidence is not loaded; portfolio values remain display-only."
+    elif post_rerun_review_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = (
+            f"{primary_blocker}: post-rerun operator review guidance has "
+            f"{post_rerun_review_guidance_item_count} blocked item(s)."
+        )
+        next_action = "Follow the post-rerun review guidance and keep current evidence writes blocked until reconciliation is resolved."
+        message = (
+            f"Post-rerun review guidance is active: {post_rerun_review_step_count} review step(s), "
+            f"{post_rerun_forbidden_output_count} forbidden output(s), "
+            f"{post_rerun_guidance_current_evidence_write_allowed_count} current-evidence writes allowed."
+        )
     elif post_rerun_rollup_status == "BLOCKED":
         status = "BLOCKED"
         severity = "ERROR"
@@ -5116,7 +5210,23 @@ def _reconciliation_recovery_summary(
         one_line_blocker = "LIVE_READY_MISSING: PAPER ledger checks passed, but live review remains blocked."
         next_action = "Continue PAPER monitoring; keep live blocked until external live-review evidence exists."
         message = "PAPER ledger, reconciliation, restart recovery, and idempotency checks are aligned for display review."
-    elif "INVALID" in {reconciliation_status, restart_status} or "FAIL" in {reconciliation_validation_status, restart_validation_status} or "BLOCKED" in {reconciliation_validation_status, restart_validation_status}:
+    elif (
+        "INVALID" in {reconciliation_status, restart_status, post_rerun_rollup_status, post_rerun_review_guidance_status}
+        or "FAIL"
+        in {
+            reconciliation_validation_status,
+            restart_validation_status,
+            post_rerun_rollup_validation_status,
+            post_rerun_review_guidance_validation_status,
+        }
+        or "BLOCKED"
+        in {
+            reconciliation_validation_status,
+            restart_validation_status,
+            post_rerun_rollup_validation_status,
+            post_rerun_review_guidance_validation_status,
+        }
+    ):
         status = "INVALID"
         severity = "ERROR"
         color_token = "red"
@@ -5157,6 +5267,14 @@ def _reconciliation_recovery_summary(
         "post_rerun_current_evidence_write_authorized_count": post_rerun_current_evidence_write_authorized_count,
         "post_rerun_current_evidence_write_allowed_count": post_rerun_current_evidence_write_allowed_count,
         "post_rerun_candidate_current_evidence_usable_count": post_rerun_candidate_current_evidence_usable_count,
+        "post_rerun_review_guidance_status": post_rerun_review_guidance_status,
+        "post_rerun_review_guidance_validation_status": post_rerun_review_guidance_validation_status,
+        "post_rerun_review_guidance_item_count": post_rerun_review_guidance_item_count,
+        "post_rerun_review_step_count": post_rerun_review_step_count,
+        "post_rerun_forbidden_output_count": post_rerun_forbidden_output_count,
+        "post_rerun_guidance_current_evidence_write_authorized_count": post_rerun_guidance_current_evidence_write_authorized_count,
+        "post_rerun_guidance_current_evidence_write_allowed_count": post_rerun_guidance_current_evidence_write_allowed_count,
+        "post_rerun_guidance_candidate_current_evidence_usable_count": post_rerun_guidance_candidate_current_evidence_usable_count,
         "post_rerun_blocker_codes": post_rerun_blocker_codes,
         "ledger_state": ledger_state,
         "single_writer_state": single_writer_state,
@@ -5198,6 +5316,7 @@ def build_read_only_dashboard_shell(
     reconciliation_report: dict[str, Any] | None = None,
     restart_recovery_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_reconciliation_blocker_rollup_report: dict[str, Any] | None = None,
+    upbit_paper_post_rerun_operator_reconciliation_review_guidance_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
     optimizer_feedback_report: dict[str, Any] | None = None,
@@ -5223,6 +5342,7 @@ def build_read_only_dashboard_shell(
         "shadow_runtime_orchestration": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/runtime_orchestration_report.json",
         "upbit_paper_runtime_recovery_guard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
         "upbit_paper_post_rerun_reconciliation_blocker_rollup": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+        "upbit_paper_post_rerun_operator_reconciliation_review_guidance": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
     }
@@ -5369,6 +5489,31 @@ def build_read_only_dashboard_shell(
                 rollup_freshness,
             )
         )
+    if isinstance(upbit_paper_post_rerun_operator_reconciliation_review_guidance_report, dict):
+        guidance_result = validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(
+            upbit_paper_post_rerun_operator_reconciliation_review_guidance_report
+        )
+        guidance_freshness = (
+            "PASS"
+            if guidance_result.status == "PASS"
+            and upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.get("review_guidance_status")
+            == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED"
+            and upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.get("current_evidence_write_allowed") is False
+            and upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.get("live_order_allowed") is False
+            and upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE",
+                paths.get(
+                    "upbit_paper_post_rerun_operator_reconciliation_review_guidance",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+                ),
+                True,
+                guidance_freshness,
+            )
+        )
     market_data_continuity_status = _market_data_continuity_status(
         report=upbit_public_rest_continuity_history,
         exchange=exchange,
@@ -5413,6 +5558,7 @@ def build_read_only_dashboard_shell(
         reconciliation_report=reconciliation_report,
         restart_recovery_report=restart_recovery_report,
         post_rerun_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
+        post_rerun_review_guidance_report=upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
     )
     stability_trends = _stability_trends(
         exchange=exchange,
@@ -5688,6 +5834,12 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "post_rerun_unique_blocker_count",
                 "post_rerun_primary_blocker_item_count",
                 "post_rerun_current_evidence_write_allowed_count",
+                "post_rerun_review_guidance_status",
+                "post_rerun_review_guidance_validation_status",
+                "post_rerun_review_guidance_item_count",
+                "post_rerun_review_step_count",
+                "post_rerun_forbidden_output_count",
+                "post_rerun_guidance_current_evidence_write_allowed_count",
             )
         )
         for code in reconciliation.get("post_rerun_blocker_codes", []):
@@ -6127,10 +6279,16 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "restart recovery validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     post_rerun_rollup_status = reconciliation.get("post_rerun_blocker_rollup_status", "NOT_LOADED")
     post_rerun_rollup_validation_status = reconciliation.get("post_rerun_blocker_rollup_validation_status", "UNTESTED")
+    post_rerun_guidance_status = reconciliation.get("post_rerun_review_guidance_status", "NOT_LOADED")
+    post_rerun_guidance_validation_status = reconciliation.get("post_rerun_review_guidance_validation_status", "UNTESTED")
     if post_rerun_rollup_status not in POST_RERUN_BLOCKER_ROLLUP_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun blocker rollup status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_rollup_validation_status not in POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun blocker rollup validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_guidance_status not in POST_RERUN_REVIEW_GUIDANCE_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun review guidance status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_guidance_validation_status not in POST_RERUN_REVIEW_GUIDANCE_VALIDATION_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun review guidance validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     post_rerun_count_fields = (
         "post_rerun_blocker_rollup_item_count",
         "post_rerun_unique_blocker_count",
@@ -6138,6 +6296,12 @@ def validate_read_only_dashboard_shell(
         "post_rerun_current_evidence_write_authorized_count",
         "post_rerun_current_evidence_write_allowed_count",
         "post_rerun_candidate_current_evidence_usable_count",
+        "post_rerun_review_guidance_item_count",
+        "post_rerun_review_step_count",
+        "post_rerun_forbidden_output_count",
+        "post_rerun_guidance_current_evidence_write_authorized_count",
+        "post_rerun_guidance_current_evidence_write_allowed_count",
+        "post_rerun_guidance_candidate_current_evidence_usable_count",
     )
     for field in post_rerun_count_fields:
         value = reconciliation.get(field, 0)
@@ -6149,11 +6313,14 @@ def validate_read_only_dashboard_shell(
     if not isinstance(post_rerun_blocker_codes, list) or any(not isinstance(code, str) or not code for code in post_rerun_blocker_codes):
         return DashboardValidationResult("FAIL", "post-rerun blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_rollup_status == "BLOCKED":
+        allowed_rollup_sources = {"upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"}
+        if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
+            allowed_rollup_sources.add("upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
             or reconciliation.get("color_token") != "red"
-            or reconciliation.get("source") != "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"
+            or reconciliation.get("source") not in allowed_rollup_sources
             or reconciliation.get("primary_blocker_code") != "POST_RERUN_RECONCILIATION_REQUIRED"
             or reconciliation.get("post_rerun_blocker_rollup_validation_status") != "PASS"
             or reconciliation.get("post_rerun_blocker_rollup_item_count", 0) <= 0
@@ -6168,6 +6335,26 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_candidate_current_evidence_usable_count", 0) != 0
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun blocker rollup cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
+    if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source") != "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"
+            or reconciliation.get("primary_blocker_code") != "POST_RERUN_RECONCILIATION_REQUIRED"
+            or reconciliation.get("post_rerun_review_guidance_validation_status") != "PASS"
+            or reconciliation.get("post_rerun_review_guidance_item_count", 0) <= 0
+            or reconciliation.get("post_rerun_review_step_count", 0) < 4
+            or reconciliation.get("post_rerun_forbidden_output_count", 0) < 5
+            or "POST_RERUN_RECONCILIATION_REQUIRED" not in set(post_rerun_blocker_codes)
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun review guidance must render as a red reconciliation blocker", "LIVE_FINAL_GUARD_FAILED")
+        if (
+            reconciliation.get("post_rerun_guidance_current_evidence_write_authorized_count", 0) != 0
+            or reconciliation.get("post_rerun_guidance_current_evidence_write_allowed_count", 0) != 0
+            or reconciliation.get("post_rerun_guidance_candidate_current_evidence_usable_count", 0) != 0
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun review guidance cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
     if reconciliation.get("ledger_state") not in RECONCILIATION_RECOVERY_LEDGER_STATES:
         return DashboardValidationResult("FAIL", "ledger state display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("single_writer_state") not in RECONCILIATION_RECOVERY_WRITER_STATES:
@@ -7935,7 +8122,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p>rollup={safe_text(reconciliation.get('post_rerun_blocker_rollup_status', 'NOT_LOADED'))}"
         f"<br>items={safe_text(reconciliation.get('post_rerun_blocker_rollup_item_count', 0))}"
         f"<br>unique={safe_text(reconciliation.get('post_rerun_unique_blocker_count', 0))}"
-        f"<br>current-writes={safe_text(reconciliation.get('post_rerun_current_evidence_write_allowed_count', 0))}</p></div>"
+        f"<br>current-writes={safe_text(reconciliation.get('post_rerun_current_evidence_write_allowed_count', 0))}"
+        f"<br>guidance={safe_text(reconciliation.get('post_rerun_review_guidance_status', 'NOT_LOADED'))}"
+        f"<br>steps={safe_text(reconciliation.get('post_rerun_review_step_count', 0))}"
+        f"<br>forbidden={safe_text(reconciliation.get('post_rerun_forbidden_output_count', 0))}"
+        f"<br>guidance-writes={safe_text(reconciliation.get('post_rerun_guidance_current_evidence_write_allowed_count', 0))}</p></div>"
         "<div><strong>Live Boundary</strong>"
         "<p><span class=\"pill safe-lock\">live_order_allowed=false</span><br><span class=\"pill safe-lock\">can_live_trade=false</span><br><span class=\"pill safe-lock\">scale_up_allowed=false</span></p></div>"
         "</section>"
