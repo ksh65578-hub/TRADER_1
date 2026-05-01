@@ -303,6 +303,30 @@
     "rerun_executor_created": {
       "type": "boolean"
     },
+    "staging_status": {
+      "type": "string"
+    },
+    "staged_cycle_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "staged_artifact_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "staging_reused_existing_artifact_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "staging_executor_created": {
+      "type": "boolean"
+    },
+    "post_staging_ledger_rollup_required": {
+      "type": "boolean"
+    },
+    "post_staging_reconciliation_required": {
+      "type": "boolean"
+    },
     "authority_hash_checked": {
       "type": "boolean"
     },

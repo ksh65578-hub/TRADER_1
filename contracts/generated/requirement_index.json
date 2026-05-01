@@ -10069,6 +10069,71 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-BOUNDED-RERUN-STAGING-EXECUTOR",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER bounded rerun staging executor",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-BOUNDED-RERUN-STAGING-EXECUTOR: bounded PAPER rerun staging must create isolated rerun candidates from validated missing-cycle guard items without mutating current evidence, live permission, or scale-up state",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER bounded rerun staging executor",
+      "requirement_kind": "SCHEMA_VALIDATOR_RUNTIME_ARTIFACT_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.upbit_paper_bounded_rerun_staging_executor_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_repair_operator_queue_validator",
+        "upbit_paper_missing_cycle_rerun_guard_validator",
+        "upbit_paper_bounded_rerun_staging_executor_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/registry.yaml",
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_bounded_rerun_staging_executor_report.schema.json",
+        "trader1/runtime/paper/upbit_paper_bounded_rerun_staging_executor.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_upbit_paper_bounded_rerun_staging_executor.py",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_bounded_rerun_staging_executor_report.json",
+        "contracts/security/source_bundle_manifest.json",
+        "tools/emit_upbit_paper_bounded_rerun_staging_executor_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_BOUNDED_RERUN_STAGING_EXECUTOR.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_bounded_rerun_staging_executor.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_RUNTIME_RECOVERY",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-MISSING-CYCLE-RERUN-GUARD",
+        "REQ-MVP4-UPBIT-PAPER-REPAIR-OPERATOR-QUEUE",
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-RECOVERY-GUARD",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "D8DBB130071BEC97D01DF79465F71996A5386583D9550694C398CBD40D393A6A",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_STAGED_CANDIDATES_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-CANDIDATE-DECISION-THRESHOLD-GUARD",
       "source_section_id": "SECTION_MVP3_OPERATIONAL_PAPER",
       "source_file": "TRADER_1.md",
@@ -12124,5 +12189,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T14:22:36Z"
+  "updated_at_utc": "2026-05-01T14:57:18Z"
 }

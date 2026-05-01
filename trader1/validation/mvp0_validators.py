@@ -249,6 +249,13 @@ from trader1.runtime.paper.upbit_paper_missing_cycle_rerun_guard import (
     validate_upbit_paper_missing_cycle_rerun_guard_report,
     write_upbit_paper_missing_cycle_rerun_guard_report,
 )
+from trader1.runtime.paper.upbit_paper_bounded_rerun_staging_executor import (
+    POST_RERUN_LEDGER_ROLLUP_REQUIRED_BLOCKER_CODE,
+    build_upbit_paper_bounded_rerun_staging_executor_report,
+    upbit_paper_bounded_rerun_staging_executor_hash,
+    validate_upbit_paper_bounded_rerun_staging_executor_report,
+    write_upbit_paper_bounded_rerun_staging_executor_report,
+)
 from trader1.research.replay.replay_runner import (
     build_replay_consistency_report,
     replay_consistency_hash,
@@ -414,6 +421,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_post_repair_reconciliation_validator",
     "upbit_paper_repair_operator_queue_validator",
     "upbit_paper_missing_cycle_rerun_guard_validator",
+    "upbit_paper_bounded_rerun_staging_executor_validator",
     "upbit_paper_runtime_recovery_guard_validator",
     "restart_recovery_validator",
     "upbit_operational_paper_gate_validator",
@@ -2700,6 +2708,19 @@ def runtime_schema_instance_validator() -> ValidatorResult:
         post_repair_reconciliation = build_upbit_paper_post_repair_reconciliation_report(
             ledger_rollup_repair_report=ledger_rollup_repair,
         )
+        repair_operator_queue = build_upbit_paper_repair_operator_queue_report(
+            blocked_repair_plan_report=blocked_repair_plan,
+            ledger_rollup_repair_report=ledger_rollup_repair,
+            post_repair_reconciliation_report=post_repair_reconciliation,
+        )
+        missing_cycle_rerun_guard = build_upbit_paper_missing_cycle_rerun_guard_report(
+            root=Path(tmp),
+            repair_operator_queue_report=repair_operator_queue,
+        )
+        bounded_rerun_staging_executor = build_upbit_paper_bounded_rerun_staging_executor_report(
+            root=Path(tmp),
+            missing_cycle_rerun_guard_report=missing_cycle_rerun_guard,
+        )
         instances.extend(
             [
                 ("write_upbit_public_market_data_collection_artifacts:writer", collection_writer),
@@ -2713,6 +2734,9 @@ def runtime_schema_instance_validator() -> ValidatorResult:
                 ("build_upbit_paper_blocked_repair_plan_report", blocked_repair_plan),
                 ("build_upbit_paper_ledger_rollup_repair_report", ledger_rollup_repair),
                 ("build_upbit_paper_post_repair_reconciliation_report", post_repair_reconciliation),
+                ("build_upbit_paper_repair_operator_queue_report", repair_operator_queue),
+                ("build_upbit_paper_missing_cycle_rerun_guard_report", missing_cycle_rerun_guard),
+                ("build_upbit_paper_bounded_rerun_staging_executor_report", bounded_rerun_staging_executor),
             ]
         )
 
@@ -6186,6 +6210,168 @@ def upbit_paper_missing_cycle_rerun_guard_validator() -> ValidatorResult:
     return pass_result(
         "upbit_paper_missing_cycle_rerun_guard_validator",
         "Upbit PAPER missing cycle rerun guard separates staging-eligible reruns from recovery-blocked work without mutating evidence",
+        paths,
+    )
+
+
+def upbit_paper_bounded_rerun_staging_executor_validator() -> ValidatorResult:
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_bounded_rerun_staging_executor_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_bounded_rerun_staging_executor.py"
+    guard_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_missing_cycle_rerun_guard.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_bounded_rerun_staging_executor.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob("*/paper_runtime/upbit_paper_bounded_rerun_staging_executor_report.json")
+    )
+    paths = [schema_path, module_path, guard_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_bounded_rerun_staging_executor_report.v1":
+        return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", "bounded rerun staging executor schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", "bounded rerun staging executor schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "source_missing_cycle_rerun_guard_hash",
+        "ready_guard_item_count",
+        "eligible_missing_cycle_count",
+        "staged_cycle_count",
+        "staged_artifact_count",
+        "staged_current_evidence_usable_count",
+        "post_staging_ledger_rollup_required",
+        "post_staging_reconciliation_required",
+        "actual_rerun_executed",
+        "current_ledger_jsonl_write_allowed",
+        "latest_runtime_pointer_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", f"bounded rerun staging executor schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        current = run_upbit_paper_persistent_loop(root=root, loop_id="validator-staging-current", requested_cycle_count=1)
+        legacy = json.loads(json.dumps(current))
+        legacy["loop_id"] = "validator-staging-legacy"
+        for field in (
+            "paper_ledger_rollup_status",
+            "paper_ledger_rollup_hash",
+            "paper_ledger_rollup_primary_blocker_code",
+            "paper_ledger_rollup_path",
+        ):
+            legacy.pop(field, None)
+        legacy["loop_hash"] = upbit_paper_persistent_loop_hash(legacy)
+        loop_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "validator-staging-legacy.persistent_loop_report.json"
+        )
+        loop_path.write_text(json.dumps(legacy, indent=2), encoding="utf-8")
+        reconciliation = build_upbit_paper_stale_loop_reconciliation_report(root=root)
+        plan = build_upbit_paper_stale_loop_regeneration_plan(root=root, reconciliation_report=reconciliation)
+        guard = build_upbit_paper_stale_loop_execution_guard(root=root, plan=plan)
+        executor = build_upbit_paper_stale_loop_safe_regeneration_executor_report(root=root, guard=guard)
+        post_regeneration = build_upbit_paper_stale_loop_post_regeneration_reconciliation_report(root=root, executor_report=executor)
+        source_item = post_regeneration["items"][0]
+        replacement_path = root.joinpath(*source_item["replacement_path"].split("/"))
+        replacement = load_json(replacement_path)
+        cycle_id = replacement["cycle_results"][0]["cycle_id"]
+        current_ledger_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "ledger"
+            / "cycles"
+            / f"{cycle_id}.paper_ledger_events.jsonl"
+        )
+        current_ledger_path.unlink()
+        repair_plan = build_upbit_paper_blocked_repair_plan_report(root=root, post_reconciliation_report=post_regeneration)
+        ledger_repair = build_upbit_paper_ledger_rollup_repair_report(root=root, repair_plan_report=repair_plan)
+        post_repair = build_upbit_paper_post_repair_reconciliation_report(ledger_rollup_repair_report=ledger_repair)
+        queue = build_upbit_paper_repair_operator_queue_report(
+            blocked_repair_plan_report=repair_plan,
+            ledger_rollup_repair_report=ledger_repair,
+            post_repair_reconciliation_report=post_repair,
+        )
+        missing_guard = build_upbit_paper_missing_cycle_rerun_guard_report(root=root, repair_operator_queue_report=queue)
+        report = build_upbit_paper_bounded_rerun_staging_executor_report(
+            root=root,
+            missing_cycle_rerun_guard_report=missing_guard,
+        )
+        result = validate_upbit_paper_bounded_rerun_staging_executor_report(report)
+        if result.status != "PASS":
+            return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", f"valid bounded rerun staging executor failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
+        if (
+            report.get("executor_status") != "BLOCKED"
+            or report.get("primary_blocker_code") != POST_RERUN_LEDGER_ROLLUP_REQUIRED_BLOCKER_CODE
+            or report.get("staging_status") != "PASS"
+            or report.get("ready_guard_item_count") != 1
+            or report.get("eligible_missing_cycle_count") != 1
+            or report.get("staged_cycle_count") != 1
+            or report.get("staged_artifact_count") != 3
+            or report.get("staged_current_evidence_usable_count") != 0
+            or report.get("actual_rerun_executed")
+            or report.get("current_ledger_jsonl_write_allowed")
+            or report.get("latest_runtime_pointer_write_allowed")
+            or report.get("live_order_allowed")
+            or report.get("scale_up_allowed")
+        ):
+            return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", "bounded rerun staging executor did not stage isolated candidates while staying live-blocked", paths, "MEASUREMENT_MISSING")
+        if current_ledger_path.exists():
+            return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", "bounded rerun staging executor wrote current ledger JSONL", paths, "LIVE_FINAL_GUARD_FAILED")
+        for staged_path in report["items"][0]["staging_artifact_paths"]:
+            if "/rerun_candidates/" not in staged_path or not root.joinpath(*staged_path.split("/")).exists():
+                return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", "bounded rerun staging artifact missing or outside staging namespace", paths, "SNAPSHOT_SCOPE_MISMATCH")
+        second = build_upbit_paper_bounded_rerun_staging_executor_report(root=root, missing_cycle_rerun_guard_report=missing_guard)
+        second_result = validate_upbit_paper_bounded_rerun_staging_executor_report(second)
+        if second_result.status != "PASS" or second.get("staging_reused_existing_artifact_count") != 3:
+            return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", "bounded rerun staging executor is not idempotent for matching staged artifacts", paths, second_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+        written_path = write_upbit_paper_bounded_rerun_staging_executor_report(root=root, report=report)
+        if not written_path.exists():
+            return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", "bounded rerun staging executor writer did not create report", paths, "MEASUREMENT_MISSING")
+
+        count_tamper = json.loads(json.dumps(report))
+        count_tamper["staged_cycle_count"] = 0
+        count_tamper["executor_hash"] = upbit_paper_bounded_rerun_staging_executor_hash(count_tamper)
+        count_result = validate_upbit_paper_bounded_rerun_staging_executor_report(count_tamper)
+        if count_result.status != "FAIL" or count_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+            return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", "bounded rerun staging count tamper was not rejected", paths, count_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+
+        live_mutation = json.loads(json.dumps(report))
+        live_mutation["live_order_allowed"] = True
+        live_mutation["executor_hash"] = upbit_paper_bounded_rerun_staging_executor_hash(live_mutation)
+        live_result = validate_upbit_paper_bounded_rerun_staging_executor_report(live_mutation)
+        if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+            return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", "bounded rerun staging live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result("upbit_paper_bounded_rerun_staging_executor_validator", f"runtime bounded rerun staging artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_bounded_rerun_staging_executor_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                "upbit_paper_bounded_rerun_staging_executor_validator",
+                f"runtime bounded rerun staging artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        "upbit_paper_bounded_rerun_staging_executor_validator",
+        "Upbit PAPER bounded rerun staging executor writes isolated rerun candidates without mutating current evidence",
         paths,
     )
 
@@ -13978,6 +14164,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
     "upbit_paper_repair_operator_queue_validator": upbit_paper_repair_operator_queue_validator,
     "upbit_paper_missing_cycle_rerun_guard_validator": upbit_paper_missing_cycle_rerun_guard_validator,
+    "upbit_paper_bounded_rerun_staging_executor_validator": upbit_paper_bounded_rerun_staging_executor_validator,
     "upbit_paper_runtime_recovery_guard_validator": upbit_paper_runtime_recovery_guard_validator,
     "restart_recovery_validator": restart_recovery_validator,
     "upbit_operational_paper_gate_validator": upbit_operational_paper_gate_validator,
