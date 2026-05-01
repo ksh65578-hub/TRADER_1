@@ -3852,6 +3852,14 @@ def upbit_paper_runtime_cycle_validator() -> ValidatorResult:
     required = set(schema.get("required", []))
     if "source_public_market_data_hash" not in required:
         return fail_result("upbit_paper_runtime_cycle_validator", "Upbit PAPER runtime cycle schema missing source market data hash", paths, "SCHEMA_IDENTITY_MISMATCH")
+    for field in ("runtime_public_market_data_hash", "feature_snapshot_hash", "strategy_regime_cost_linkage"):
+        if field not in required:
+            return fail_result(
+                "upbit_paper_runtime_cycle_validator",
+                f"Upbit PAPER runtime cycle schema missing strategy/regime/cost linkage field: {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
 
     entry = build_upbit_paper_runtime_cycle_report(cycle_id="validator-upbit-runtime-entry")
     entry_result = validate_upbit_paper_runtime_cycle_report(entry)
@@ -3863,6 +3871,20 @@ def upbit_paper_runtime_cycle_validator() -> ValidatorResult:
         return fail_result("upbit_paper_runtime_cycle_validator", "PAPER runtime created forbidden live/order permission", paths, "LIVE_FINAL_GUARD_FAILED")
     if entry["paper_portfolio_snapshot"].get("open_position_count") != 1:
         return fail_result("upbit_paper_runtime_cycle_validator", "PAPER fill did not update portfolio position count", paths, "SCHEMA_IDENTITY_MISMATCH")
+    linkage = entry.get("strategy_regime_cost_linkage", {})
+    if (
+        linkage.get("source_runtime_cycle_id") != entry.get("cycle_id")
+        or linkage.get("selected_candidate_id") != entry.get("selected_candidate", {}).get("candidate_id")
+        or linkage.get("report_regime") != entry.get("regime")
+        or linkage.get("runtime_public_market_data_hash") != entry.get("runtime_public_market_data_hash")
+        or linkage.get("feature_snapshot_hash") != entry.get("feature_snapshot_hash")
+    ):
+        return fail_result(
+            "upbit_paper_runtime_cycle_validator",
+            "PAPER runtime strategy/regime/cost linkage does not bind selected candidate to runtime evidence",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
 
     no_trade = build_upbit_paper_runtime_cycle_report(cycle_id="validator-upbit-runtime-no-trade", edge_profile="NEGATIVE")
     no_trade_result = validate_upbit_paper_runtime_cycle_report(no_trade)
@@ -3904,6 +3926,48 @@ def upbit_paper_runtime_cycle_validator() -> ValidatorResult:
             "collection-bound PAPER runtime allowed market data payload mutation",
             paths,
             payload_mismatch_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    feature_mismatch = build_upbit_paper_runtime_cycle_report(cycle_id="validator-upbit-runtime-feature-mismatch")
+    feature_mismatch["feature_snapshot"]["regime"] = "RISK_OFF"
+    feature_mismatch["regime"] = "RISK_OFF"
+    feature_mismatch["cycle_hash"] = upbit_paper_runtime_cycle_hash(feature_mismatch)
+    feature_mismatch_result = validate_upbit_paper_runtime_cycle_report(feature_mismatch)
+    if feature_mismatch_result.status != "FAIL" or feature_mismatch_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result(
+            "upbit_paper_runtime_cycle_validator",
+            "PAPER runtime allowed feature/regime evidence to diverge from public market data",
+            paths,
+            feature_mismatch_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    candidate_regime_mismatch = build_upbit_paper_runtime_cycle_report(cycle_id="validator-upbit-runtime-candidate-regime-mismatch")
+    candidate_regime_mismatch["strategy_candidates"][0]["regime"] = "RANGE"
+    candidate_regime_mismatch["selected_candidate"] = dict(candidate_regime_mismatch["strategy_candidates"][0])
+    candidate_regime_mismatch["cycle_hash"] = upbit_paper_runtime_cycle_hash(candidate_regime_mismatch)
+    candidate_regime_mismatch_result = validate_upbit_paper_runtime_cycle_report(candidate_regime_mismatch)
+    if candidate_regime_mismatch_result.status != "BLOCKED" or candidate_regime_mismatch_result.blocker_code != "REGIME_MISMATCH":
+        return fail_result(
+            "upbit_paper_runtime_cycle_validator",
+            "PAPER runtime allowed candidate regime to diverge from computed runtime regime",
+            paths,
+            candidate_regime_mismatch_result.blocker_code or "REGIME_MISMATCH",
+        )
+
+    spread_cost_mismatch = build_upbit_paper_runtime_cycle_report(cycle_id="validator-upbit-runtime-spread-cost-mismatch")
+    spread_candidate = spread_cost_mismatch["strategy_candidates"][0]
+    spread_candidate["cost_breakdown_bps"]["spread_bps"] = "2"
+    spread_candidate["expected_cost_bps"] = "12"
+    spread_candidate["net_ev_after_cost_bps"] = "30"
+    spread_cost_mismatch["selected_candidate"] = dict(spread_candidate)
+    spread_cost_mismatch["cycle_hash"] = upbit_paper_runtime_cycle_hash(spread_cost_mismatch)
+    spread_cost_mismatch_result = validate_upbit_paper_runtime_cycle_report(spread_cost_mismatch)
+    if spread_cost_mismatch_result.status != "FAIL" or spread_cost_mismatch_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result(
+            "upbit_paper_runtime_cycle_validator",
+            "PAPER runtime allowed candidate spread cost to diverge from feature spread",
+            paths,
+            spread_cost_mismatch_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
         )
 
     mutated = build_upbit_paper_runtime_cycle_report(cycle_id="validator-upbit-runtime-live-mutation")

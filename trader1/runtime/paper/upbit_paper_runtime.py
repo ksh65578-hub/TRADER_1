@@ -55,6 +55,10 @@ def _hash_report(report: dict[str, Any]) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")).hexdigest().upper()
 
 
+def _hash_payload(payload: dict[str, Any]) -> str:
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")).hexdigest().upper()
+
+
 def _blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
 
@@ -184,6 +188,40 @@ def _build_candidates(symbol: str, features: dict[str, Any], *, edge_profile: st
             regime=regime,
         ),
     ]
+
+
+def _build_strategy_regime_cost_linkage(
+    *,
+    cycle_id: str,
+    runtime_input_role: str,
+    runtime_public_market_data_hash: str,
+    feature_snapshot_hash: str,
+    selected_candidate: dict[str, Any],
+    regime: str,
+) -> dict[str, Any]:
+    breakdown = selected_candidate.get("cost_breakdown_bps", {})
+    cost_sum = sum(
+        (_decimal(breakdown.get(field)) for field in ("fee_bps", "slippage_bps", "spread_bps", "market_impact_bps", "latency_bps")),
+        Decimal("0"),
+    )
+    return {
+        "source_runtime_cycle_id": cycle_id,
+        "runtime_input_role": runtime_input_role,
+        "runtime_public_market_data_hash": runtime_public_market_data_hash,
+        "feature_snapshot_hash": feature_snapshot_hash,
+        "report_regime": regime,
+        "selected_candidate_id": selected_candidate.get("candidate_id"),
+        "selected_candidate_regime": selected_candidate.get("regime"),
+        "selected_candidate_cost_model_source": selected_candidate.get("cost_model_source"),
+        "selected_candidate_expected_cost_bps": selected_candidate.get("expected_cost_bps"),
+        "cost_breakdown_sum_bps": _decimal_text(cost_sum),
+        "selected_candidate_net_ev_after_cost_bps": selected_candidate.get("net_ev_after_cost_bps"),
+        "decision_basis": "NET_EV_AFTER_COST_AND_REGIME",
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
 
 
 def upbit_paper_runtime_cycle_hash(report: dict[str, Any]) -> str:
@@ -331,6 +369,16 @@ def build_upbit_paper_runtime_cycle_report(
     else:
         final_decision = "NO_TRADE"
         no_trade_reasons = [str(selected.get("no_trade_reason") or "MIN_EDGE_FAIL")]
+    runtime_public_market_data_hash = public_market_data_hash(market_data)
+    feature_snapshot_hash = _hash_payload(features)
+    strategy_regime_cost_linkage = _build_strategy_regime_cost_linkage(
+        cycle_id=cycle_id,
+        runtime_input_role=runtime_input_role,
+        runtime_public_market_data_hash=runtime_public_market_data_hash,
+        feature_snapshot_hash=feature_snapshot_hash,
+        selected_candidate=selected,
+        regime=str(features.get("regime")),
+    )
 
     sizing = build_position_sizing_decision(
         sizing_decision_id=f"{cycle_id}-sizing",
@@ -441,12 +489,15 @@ def build_upbit_paper_runtime_cycle_report(
         "source_collection_report_hash": source_collection_report_hash,
         "source_public_market_data_hash": source_public_market_data_hash,
         "canonical_event_count": canonical_event_count,
+        "runtime_public_market_data_hash": runtime_public_market_data_hash,
         "market_data_source": market_data.get("source", "UNAVAILABLE"),
         "public_market_data": market_data,
         "feature_snapshot": features,
+        "feature_snapshot_hash": feature_snapshot_hash,
         "regime": features.get("regime"),
         "strategy_candidates": candidates,
         "selected_candidate": selected,
+        "strategy_regime_cost_linkage": strategy_regime_cost_linkage,
         "sizing_decision": sizing,
         "paper_fill": fill,
         "paper_ledger_events": ledger_events,
@@ -487,12 +538,15 @@ def validate_upbit_paper_runtime_cycle_report(report: dict[str, Any]) -> UpbitPa
         "source_collection_report_hash",
         "source_public_market_data_hash",
         "canonical_event_count",
+        "runtime_public_market_data_hash",
         "market_data_source",
         "public_market_data",
         "feature_snapshot",
+        "feature_snapshot_hash",
         "regime",
         "strategy_candidates",
         "selected_candidate",
+        "strategy_regime_cost_linkage",
         "sizing_decision",
         "paper_fill",
         "paper_ledger_events",
@@ -561,6 +615,19 @@ def validate_upbit_paper_runtime_cycle_report(report: dict[str, Any]) -> UpbitPa
     )
     if data_status != "PASS":
         return UpbitPaperRuntimeCycleValidationResult(data_status, data_message, data_blocker)
+    expected_market_data_hash = public_market_data_hash(report["public_market_data"])
+    if report.get("runtime_public_market_data_hash") != expected_market_data_hash:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "runtime public market data hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("runtime_input_role") == "PUBLIC_MARKET_DATA_COLLECTION" and report.get("source_public_market_data_hash") != expected_market_data_hash:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "runtime source market data hash does not match payload hash", "SCHEMA_IDENTITY_MISMATCH")
+    expected_features = _feature_snapshot(report["public_market_data"])
+    if report.get("feature_snapshot") != expected_features:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "feature snapshot does not match public market data", "SCHEMA_IDENTITY_MISMATCH")
+    expected_feature_hash = _hash_payload(expected_features)
+    if report.get("feature_snapshot_hash") != expected_feature_hash:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "feature snapshot hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("regime") != expected_features.get("regime"):
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "runtime regime does not match computed feature regime", "REGIME_MISMATCH")
     sizing_result = validate_position_sizing_decision(report["sizing_decision"])
     if sizing_result.status != "PASS":
         return UpbitPaperRuntimeCycleValidationResult(sizing_result.status, sizing_result.message, sizing_result.blocker_code)
@@ -604,6 +671,12 @@ def validate_upbit_paper_runtime_cycle_report(report: dict[str, Any]) -> UpbitPa
         cost_result = _validate_candidate_costs(candidate)
         if cost_result.status != "PASS":
             return cost_result
+        if candidate.get("symbol") != report.get("symbol"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy candidate symbol does not match runtime symbol", "SCHEMA_IDENTITY_MISMATCH")
+        if candidate.get("regime") != report.get("regime"):
+            return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "strategy candidate regime does not match runtime regime", "REGIME_MISMATCH")
+        if _decimal(candidate.get("cost_breakdown_bps", {}).get("spread_bps")) != _decimal(expected_features.get("spread_bps")):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy candidate spread cost is not bound to feature spread", "SCHEMA_IDENTITY_MISMATCH")
         candidates_by_id[candidate_id] = candidate
     selected_id = selected.get("candidate_id")
     if selected_id not in candidates_by_id:
@@ -616,6 +689,16 @@ def validate_upbit_paper_runtime_cycle_report(report: dict[str, Any]) -> UpbitPa
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "selected candidate is not the highest net EV after cost candidate", "MIN_EDGE_FAIL")
     if report["sizing_decision"].get("strategy_unit_id") != selected_id:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "sizing decision strategy unit does not match selected candidate", "SCHEMA_IDENTITY_MISMATCH")
+    expected_linkage = _build_strategy_regime_cost_linkage(
+        cycle_id=report["cycle_id"],
+        runtime_input_role=report["runtime_input_role"],
+        runtime_public_market_data_hash=expected_market_data_hash,
+        feature_snapshot_hash=expected_feature_hash,
+        selected_candidate=selected,
+        regime=str(report["regime"]),
+    )
+    if report.get("strategy_regime_cost_linkage") != expected_linkage:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy/regime/cost linkage does not match runtime evidence", "SCHEMA_IDENTITY_MISMATCH")
     if final_decision == "ENTER_LONG":
         if selected.get("decision") != "PAPER_ENTRY_REVIEW":
             return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper entry requires selected candidate entry review decision", "MIN_EDGE_FAIL")

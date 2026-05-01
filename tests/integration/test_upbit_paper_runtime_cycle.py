@@ -28,6 +28,11 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["summary"]["portfolio"]["source"], "LEDGER")
         self.assertEqual(report["summary"]["portfolio"]["freshness_status"], "PASS")
         self.assertTrue(report["summary"]["entry_candidates"])
+        self.assertEqual(report["strategy_regime_cost_linkage"]["source_runtime_cycle_id"], report["cycle_id"])
+        self.assertEqual(report["strategy_regime_cost_linkage"]["selected_candidate_id"], report["selected_candidate"]["candidate_id"])
+        self.assertEqual(report["strategy_regime_cost_linkage"]["report_regime"], report["regime"])
+        self.assertEqual(report["strategy_regime_cost_linkage"]["runtime_public_market_data_hash"], report["runtime_public_market_data_hash"])
+        self.assertEqual(report["strategy_regime_cost_linkage"]["feature_snapshot_hash"], report["feature_snapshot_hash"])
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
@@ -49,6 +54,7 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
         self.assertEqual(report["source_collection_report_hash"], collection["collection_hash"])
         self.assertEqual(report["source_public_market_data_hash"], collection["public_market_data_hash"])
+        self.assertEqual(report["runtime_public_market_data_hash"], collection["public_market_data_hash"])
         self.assertEqual(report["canonical_event_count"], collection["canonical_event_count"])
         self.assertFalse(report["live_order_allowed"])
 
@@ -154,6 +160,42 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-cost-sum-mismatch")
         report["strategy_candidates"][0]["cost_breakdown_bps"]["slippage_bps"] = "99"
         report["selected_candidate"] = dict(report["strategy_candidates"][0])
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_feature_snapshot_must_match_public_market_data_regime(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-feature-regime-mismatch")
+        report["feature_snapshot"]["regime"] = "RISK_OFF"
+        report["regime"] = "RISK_OFF"
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_candidate_regime_must_match_runtime_regime(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-candidate-regime-mismatch")
+        report["strategy_candidates"][0]["regime"] = "RANGE"
+        report["selected_candidate"] = dict(report["strategy_candidates"][0])
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "REGIME_MISMATCH")
+
+    def test_candidate_spread_cost_must_match_feature_spread(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-spread-cost-mismatch")
+        candidate = report["strategy_candidates"][0]
+        candidate["cost_breakdown_bps"]["spread_bps"] = "2"
+        candidate["expected_cost_bps"] = "12"
+        candidate["net_ev_after_cost_bps"] = "30"
+        report["selected_candidate"] = dict(candidate)
         report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
 
         result = validate_upbit_paper_runtime_cycle_report(report)

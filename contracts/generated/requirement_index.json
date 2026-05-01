@@ -9367,6 +9367,51 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-STRATEGY-REGIME-COST-RUNTIME-LINKAGE",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Strategy, regime, and cost model runtime linkage",
+      "full_text_marker": "REQ-MVP4-STRATEGY-REGIME-COST-RUNTIME-LINKAGE:SECTION_UPBIT_PAPER_RUNTIME:public data hash, feature regime, candidate cost, and selected strategy linkage",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "PAPER runtime strategy selection must be bound to recomputed regime and cost evidence",
+      "requirement_kind": "RUNTIME_VALIDATOR_SCHEMA_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_runtime_cycle_report.v1"
+      ],
+      "validator_ids": [
+        "upbit_paper_runtime_cycle_validator",
+        "upbit_paper_persistent_loop_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_runtime_cycle_report.schema.json",
+        "trader1/runtime/paper/upbit_paper_runtime.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py",
+        "trader1/validation/mvp0_validators.py",
+        "tools/emit_strategy_regime_cost_runtime_linkage_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_STRATEGY_REGIME_COST_RUNTIME_LINKAGE.md"
+      ],
+      "test_ids": [
+        "tests/integration/test_upbit_paper_runtime_cycle.py",
+        "tests/integration/test_upbit_public_collection_persistent_loop.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
+      "blocking_level": "PAPER_RUNTIME_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "EXCHANGE_ADAPTER",
+        "PROFIT_CONVERGENCE_MVP3",
+        "SECTION_UPBIT_PAPER_RUNTIME"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-ENGINE-0-TO-1-FOUNDATION",
+        "REQ-MVP4-UPBIT-PAPER-PUBLIC-COLLECTOR-PERSISTENT-LOOP"
+      ],
+      "source_text_sha256": "E5428D374158ED704CE2CA4E720468658D297BD340F4D549996314EA7EA2CC3D",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-SUMMARY-PORTFOLIO-FRESHNESS-GUARD",
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
@@ -11735,5 +11780,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T12:03:06Z"
+  "updated_at_utc": "2026-05-01T12:13:57Z"
 }
