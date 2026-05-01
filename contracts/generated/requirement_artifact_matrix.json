@@ -8679,9 +8679,43 @@
       "minimum_depth": "DEPTH_1_SCHEMA_AND_ARTIFACT_STRUCTURE",
       "live_affecting": true,
       "status": "SCAFFOLD_IMPLEMENTED"
+    },
+    {
+      "requirement_id": "REQ-MVP4-REVIEW-PLAN-REFLECTED-FILE-CLEANUP",
+      "section_id": "USER_REVIEW_PLAN_DELETE_POLICY",
+      "schema_files": [],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_review_plan_reflection_status.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "tools/review_plan_reflection_status.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+        "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "affected_contract_ids",
+        "validators_required",
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
     }
   ],
-  "updated_at_utc": "2026-05-01T04:26:34Z",
+  "updated_at_utc": "2026-05-01T04:44:58Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

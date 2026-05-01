@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "E28FF5D0C42E306465FDEE2DBACC45BE25D14E4D72C0B89921D454AD5D0DF8DD",
+      "sha256": "C35DB675193FC54CF7046A564FF5B5FF317F58B609D51FADB4BBD6BE3A47F079",
       "size_bytes": 1096
     },
     {
@@ -625,8 +625,8 @@
     },
     {
       "path": "tests/contract/test_review_plan_reflection_status.py",
-      "sha256": "7E44E78CB04C6457DD628EB693011A6FA46063ACAB3555C09F147F69B2F9AED2",
-      "size_bytes": 4924
+      "sha256": "159128FE7DD9FBD31184B810417DB793F64790F0403EBF4E4E672309C9382BA0",
+      "size_bytes": 7882
     },
     {
       "path": "tests/contract/test_root_launchers.py",
@@ -2664,6 +2664,11 @@
       "size_bytes": 20822
     },
     {
+      "path": "tools/emit_review_plan_reflected_file_cleanup_patch_evidence.py",
+      "sha256": "A5816FF93F886E8DF8925BF8718991A055CF89EC72A57EF8A47B2F9DAF83E149",
+      "size_bytes": 23367
+    },
+    {
       "path": "tools/emit_review_plan_reflection_ledger_patch_evidence.py",
       "sha256": "CE4EC038CBD64A25FB4F2876EDB3B2A1A9694E97C2DD6DFF4AD9AFCD0151EBE3",
       "size_bytes": 23351
@@ -3000,8 +3005,8 @@
     },
     {
       "path": "tools/review_plan_reflection_status.py",
-      "sha256": "B1783EC93B510BEA0676B5FF8E56E3FD6A462E111ABF614D40E9E043C8793D92",
-      "size_bytes": 13638
+      "sha256": "CCCC950B6A5CD6AADD660776BBEFEE7012FC666D7A46284081CFF851BF9E7A68",
+      "size_bytes": 19049
     },
     {
       "path": "tools/run_bundle_security_validators.py",
@@ -3850,8 +3855,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "9C0B40F93319249C4A4A8AA54A182191F2A014D126794AB2CF9F55B6E6A3E117",
-      "size_bytes": 743766
+      "sha256": "4236720678C25D1C3BB0C10C4CC5D2D5CAC080B0324CE2D82E98EEB16E3083D0",
+      "size_bytes": 743517
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -4302,6 +4307,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_REVIEW_PLAN_DELETE_POLICY.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5377,6 +5386,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.audit.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_REVIEW_PLAN_REFLECTION_LEDGER.audit.json",
       "reason": "denied:system/"
     },
@@ -6365,6 +6378,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_REVIEW_PLAN_REFLECTION_LEDGER.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -7314,6 +7331,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_REVIEW_PLAN_DELETE_POLICY.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -8274,6 +8295,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_REVIEW_PLAN_DELETE_POLICY.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9246,6 +9271,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_REVIEW_PLAN_DELETE_POLICY.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
@@ -10923,178 +10952,6 @@
     {
       "path": "system/runtime/upbit/krw_spot/read_only/mvp4_live_review/reconciliation_path.json",
       "reason": "denied:system/"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/1.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/10.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/11.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/12.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/13.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/14.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/15.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/16.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/17.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/18.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/19.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/2.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/20.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/21.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/22.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/23.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/24.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/25.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/26.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/27.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/28.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/3.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/30.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/31.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/32.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/33.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/34.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/35.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/36.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/37.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/38.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/39.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/4.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/40.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/41.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/42.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/43.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/44.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/5.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/6.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/7.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/8.md",
-      "reason": "not_in_allow_roots"
-    },
-    {
-      "path": "\uac80\ud1a0\uc548/9.md",
-      "reason": "not_in_allow_roots"
     }
   ],
   "forbidden_count": 0,
