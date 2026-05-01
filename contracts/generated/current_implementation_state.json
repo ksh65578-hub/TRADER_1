@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-01T13:28:16Z",
+  "updated_at_utc": "2026-05-01T14:01:15Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -226,6 +226,7 @@
     "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH",
     "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION",
     "REQ-MVP4-UPBIT-PAPER-REPAIR-HASH-RECONCILIATION-POLICY",
+    "REQ-MVP4-UPBIT-PAPER-REPAIR-OPERATOR-QUEUE",
     "REQ-MVP4-UPBIT-PAPER-RUNTIME-CANDIDATE-LINKAGE-COST-MODEL",
     "REQ-MVP4-UPBIT-PAPER-RUNTIME-E2E-CONSISTENCY-GUARD",
     "REQ-MVP4-UPBIT-PAPER-RUNTIME-ENGINE-0-TO-1",
@@ -337,6 +338,7 @@
     "trader1.upbit_paper_ledger_rollup_repair_report.v1",
     "trader1.upbit_paper_persistent_loop_report.v1",
     "trader1.upbit_paper_post_repair_reconciliation_report.v1",
+    "trader1.upbit_paper_repair_operator_queue_report.v1",
     "trader1.upbit_paper_runtime_cycle_report.v1",
     "trader1.upbit_paper_runtime_recovery_guard_report.v1",
     "trader1.upbit_paper_runtime_sample_history.v1",
@@ -465,6 +467,7 @@
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_persistent_loop_validator",
     "upbit_paper_post_repair_reconciliation_validator",
+    "upbit_paper_repair_operator_queue_validator",
     "upbit_paper_runtime_cycle_validator",
     "upbit_paper_runtime_recovery_guard_validator",
     "upbit_paper_runtime_sample_history_validator",
@@ -488,6 +491,7 @@
   "open_contract_gap_ids": [
     "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
     "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "MISSING_CYCLE_LEDGER_RERUN_GUARD_REQUIRED",
     "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
     "PATCH_RESULT_VALIDATOR_RUN_GAP",
     "POST_REPAIR_RECONCILIATION_REQUIRED",
@@ -498,12 +502,12 @@
     "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD_20260501_001",
-  "last_patch_result_hash": "9C726C781FED0F2CF562CE94EC5BD62EC1E8EDC3516367F590A21C454FABB7EC",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_RUNTIME_E2E_CONTINUE",
+  "last_patch_id": "MVP4_UPBIT_PAPER_REPAIR_OPERATOR_QUEUE_20260501_001",
+  "last_patch_result_hash": "2AC826C2BEF342241CBCCCFBEF7F7DDD80A3EF7C3023EB61F5CDDE78F1EB733C",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_MISSING_CYCLE_RERUN_GUARD",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "2913E7768B3CED64FDC575ABE8454B402CC9A05180C3AA0BCDF23C2163F1D03F"
+  "state_hash": "72E829015EDDFC7A93F0AFBE4906582988EE638DCC6B2E1E6C38941EF64BB15E"
 }
