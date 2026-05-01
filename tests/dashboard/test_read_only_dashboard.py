@@ -26,6 +26,9 @@ from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence impor
     build_upbit_paper_ledger_idempotency_runtime_evidence_report,
     upbit_paper_ledger_idempotency_runtime_evidence_hash,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_current_evidence_closure_recheck import (
+    upbit_paper_post_rerun_current_evidence_closure_recheck_hash,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import upbit_paper_runtime_recovery_guard_hash
 from trader1.runtime.paper.upbit_public_rest_continuity_history import (
@@ -192,6 +195,7 @@ def build_dashboard(
     shadow_persistent_runtime_report=None,
     upbit_paper_post_rerun_operator_resolution_audit_report=None,
     upbit_paper_post_rerun_resolution_current_evidence_closure_report=None,
+    upbit_paper_post_rerun_current_evidence_closure_recheck_report=None,
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
@@ -212,6 +216,7 @@ def build_dashboard(
         upbit_paper_post_rerun_reconciliation_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
         upbit_paper_post_rerun_operator_resolution_audit_report=upbit_paper_post_rerun_operator_resolution_audit_report,
         upbit_paper_post_rerun_resolution_current_evidence_closure_report=upbit_paper_post_rerun_resolution_current_evidence_closure_report,
+        upbit_paper_post_rerun_current_evidence_closure_recheck_report=upbit_paper_post_rerun_current_evidence_closure_recheck_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         optimizer_feedback_report=optimizer_feedback_report,
@@ -440,6 +445,22 @@ def post_rerun_resolution_current_evidence_closure_fixture():
     )
 
 
+def post_rerun_current_evidence_closure_recheck_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def build_dashboard_with_post_rerun_blocker_rollup(report=None):
     report = report or post_rerun_blocker_rollup_fixture()
     session_id = report["session_id"]
@@ -512,6 +533,28 @@ def build_dashboard_with_post_rerun_resolution_closure(
         upbit_paper_post_rerun_operator_reconciliation_review_guidance_report=guidance_report,
         upbit_paper_post_rerun_operator_resolution_audit_report=audit_report,
         upbit_paper_post_rerun_resolution_current_evidence_closure_report=report,
+    )
+
+
+def build_dashboard_with_post_rerun_current_evidence_closure_recheck(
+    report=None,
+    closure_report=None,
+    ledger_idempotency_report=None,
+):
+    report = report or post_rerun_current_evidence_closure_recheck_fixture()
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_post_rerun_resolution_current_evidence_closure_report=closure_report,
+        upbit_paper_post_rerun_current_evidence_closure_recheck_report=report,
+        upbit_paper_ledger_idempotency_runtime_evidence_report=ledger_idempotency_report,
     )
 
 
@@ -1732,6 +1775,82 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_projects_post_rerun_closure_recheck_for_operator_visibility(self):
+        dashboard = build_dashboard_with_post_rerun_current_evidence_closure_recheck(
+            closure_report=post_rerun_resolution_current_evidence_closure_fixture(),
+            ledger_idempotency_report=build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+                root=ROOT,
+                session_id="mvp1_upbit_paper_launcher",
+                evidence_id="test-dashboard-post-rerun-closure-recheck-ledger",
+            ),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(reconciliation["source"], "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json")
+        self.assertEqual(
+            reconciliation["post_rerun_current_evidence_closure_recheck_status"],
+            "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED",
+        )
+        self.assertEqual(reconciliation["post_rerun_current_evidence_closure_recheck_validation_status"], "PASS")
+        self.assertEqual(reconciliation["post_rerun_current_evidence_bridge_status"], "BLOCKED_BY_POST_RERUN_CLOSURE")
+        self.assertEqual(
+            reconciliation["post_rerun_current_evidence_portfolio_recheck_status"],
+            "LEDGER_PROVENANCE_PASS_BUT_OPERATOR_CURRENT_EVIDENCE_BLOCKED",
+        )
+        self.assertEqual(
+            reconciliation["post_rerun_current_evidence_closure_recheck_source_closure_file_load_status"],
+            "PASS",
+        )
+        self.assertEqual(
+            reconciliation["post_rerun_current_evidence_closure_recheck_source_ledger_file_load_status"],
+            "PASS",
+        )
+        self.assertTrue(reconciliation["post_rerun_current_evidence_closure_recheck_source_closure_file_hash_match"])
+        self.assertTrue(reconciliation["post_rerun_current_evidence_closure_recheck_source_ledger_file_hash_match"])
+        self.assertEqual(reconciliation["post_rerun_current_evidence_closure_recheck_ledger_runtime_evidence_status"], "PASS")
+        self.assertEqual(reconciliation["post_rerun_current_evidence_closure_recheck_ledger_reconciliation_status"], "PASS")
+        self.assertEqual(reconciliation["post_rerun_current_evidence_closure_recheck_ledger_idempotency_status"], "PASS")
+        self.assertEqual(
+            reconciliation["post_rerun_current_evidence_closure_recheck_ledger_portfolio_provenance_status"],
+            "PASS",
+        )
+        self.assertFalse(reconciliation["post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed"])
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        sources = [
+            source
+            for source in dashboard["source_artifacts"]
+            if source["artifact_id"] == "POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK"
+        ]
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(sources[0]["freshness_status"], "PASS")
+        self.assertEqual(
+            sources[0]["filename"],
+            "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
+        )
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Closure Recheck", html)
+        self.assertIn("bridge=BLOCKED_BY_POST_RERUN_CLOSURE", html)
+        self.assertIn("recheck-writes=False", html)
+
+    def test_dashboard_blocks_post_rerun_closure_recheck_live_or_write_drift(self):
+        report = post_rerun_current_evidence_closure_recheck_fixture()
+        report["current_evidence_write_allowed"] = True
+        report["live_order_allowed"] = True
+        report["recheck_hash"] = upbit_paper_post_rerun_current_evidence_closure_recheck_hash(report)
+        dashboard = build_dashboard_with_post_rerun_current_evidence_closure_recheck(report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["post_rerun_current_evidence_closure_recheck_status"], "INVALID")
+        self.assertEqual(reconciliation["post_rerun_current_evidence_closure_recheck_validation_status"], "BLOCKED")
+        self.assertEqual(reconciliation["status"], "INVALID")
+        self.assertEqual(reconciliation["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
 
     def test_dashboard_blocks_post_rerun_resolution_audit_current_evidence_drift(self):
         dashboard = build_dashboard_with_post_rerun_resolution_audit()
