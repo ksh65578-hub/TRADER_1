@@ -89,6 +89,13 @@ class UpbitPaperLedgerRollupRepairTest(unittest.TestCase):
         self.assertEqual(item["candidate_rollup_validator_status"], "PASS")
         self.assertEqual(item["candidate_rollup"]["ledger_jsonl_count"], 1)
         self.assertGreater(item["candidate_rollup"]["ledger_event_count"], 0)
+        self.assertEqual(item["candidate_rollup_hash_self_check"], "PASS")
+        self.assertEqual(item["candidate_rollup_recomputed_hash"], item["candidate_rollup_hash"])
+        self.assertEqual(item["hash_reconciliation_status"], "SOURCE_EXPECTED_ROLLUP_ARTIFACT_MISSING")
+        self.assertEqual(item["hash_reconciliation_blocker_code"], "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED")
+        self.assertTrue(item["hash_reconciliation_requires_operator_action"])
+        self.assertFalse(item["source_loop_expected_rollup_artifact_exists"])
+        self.assertEqual(report["hash_reconciliation_operator_action_required_count"], 1)
         self.assertFalse(item["candidate_artifact_is_current_evidence"])
         self.assertFalse(item["current_evidence_mutation_allowed"])
         self.assertTrue(item["post_repair_reconciliation_required"])
@@ -121,6 +128,17 @@ class UpbitPaperLedgerRollupRepairTest(unittest.TestCase):
         count_result = validate_upbit_paper_ledger_rollup_repair_report(count_tamper)
         self.assertEqual(count_result.status, "FAIL")
         self.assertEqual(count_result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+        hash_tamper = json.loads(json.dumps(report))
+        hash_tamper["items"][0]["hash_reconciliation_status"] = "MATCH"
+        hash_tamper["items"][0]["hash_reconciliation_blocker_code"] = None
+        hash_tamper["items"][0]["hash_reconciliation_requires_operator_action"] = False
+        hash_tamper["hash_reconciliation_status_counts"] = [{"hash_reconciliation_status": "MATCH", "count": 1}]
+        hash_tamper["hash_reconciliation_operator_action_required_count"] = 0
+        hash_tamper["repair_report_hash"] = upbit_paper_ledger_rollup_repair_hash(hash_tamper)
+        hash_result = validate_upbit_paper_ledger_rollup_repair_report(hash_tamper)
+        self.assertEqual(hash_result.status, "FAIL")
+        self.assertEqual(hash_result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_repair_report_fails_closed_on_candidate_rollup_live_mutation(self):
         root, repair_plan = self._blocked_repair_plan()

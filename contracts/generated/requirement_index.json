@@ -7489,6 +7489,49 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-REVIEW-PLAN-REFLECTED-FILE-CLEANUP",
+      "source_section_id": "USER_REVIEW_PLAN_DELETE_POLICY",
+      "source_file": "user_prompt",
+      "source_heading": "Delete reflected \uac80\ud1a0\uc548 inputs after reflection",
+      "full_text_marker": "REQ-MVP4-REVIEW-PLAN-REFLECTED-FILE-CLEANUP: reflected review-plan files are deleted after file-level reflection evidence",
+      "authority_level": "USER_OPERATION_POLICY_WITH_ACTIVE_AUTHORITY_SAFETY",
+      "requirement_title": "Delete reflected review-plan inbox files after ledgered reflection",
+      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.review_plan_reflection_ledger.v1"
+      ],
+      "validator_ids": [
+        "review_plan_reflection_ledger_validator"
+      ],
+      "artifact_ids": [
+        "tools/review_plan_reflection_status.py",
+        "tools/emit_review_plan_reflected_file_cleanup_patch_evidence.py",
+        "tests/contract/test_review_plan_reflection_status.py",
+        "trader1/validation/mvp0_validators.py",
+        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
+        "contracts/generated/context_pack/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.md"
+      ],
+      "test_ids": [
+        "tests/contract/test_review_plan_reflection_status.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DOCUMENT_NORMALIZATION",
+        "BUNDLE_SECURITY"
+      ],
+      "depends_on": [
+        "REQ-MVP4-REVIEW-PLAN-DELETE-POLICY",
+        "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER"
+      ],
+      "source_text_sha256": "7BB75C508AAC0BFBF5201007EF2AFF94BA685C9AC33D61A41049D87EF0D5511F",
+      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER",
       "source_section_id": "AGENTS_0G.16",
       "source_file": "AGENTS.md",
@@ -8069,6 +8112,86 @@
       ],
       "source_text_sha256": "E923F70C47EE1B64E8C2E3E04BECDC07FDB317460F52857A8A1F48701326B6F3",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SESSION1-REAUDIT-REFLECTION",
+      "source_section_id": "SESSION1_REAUDIT_ADDENDUM",
+      "source_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md",
+      "source_heading": "TRADER_1.zip \uc804\uc218 \uc7ac\uac80\ud1a0 \uc138\uc158 1",
+      "full_text_marker": "Session 1 review is reflected as stale/current/external categories before deletion.",
+      "authority_level": "REVIEW_ADDENDUM_NON_AUTHORITY",
+      "requirement_title": "Reflect session 1 reaudit without overriding active authority",
+      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.review_plan_reflection_ledger.v1"
+      ],
+      "validator_ids": [
+        "review_plan_reflection_ledger_validator",
+        "root_launcher_guard_validator"
+      ],
+      "artifact_ids": [
+        "system/evidence/audit_reports/MVP4_SESSION1_REAUDIT_REFLECTION.audit.json",
+        "system/evidence/patch_results/MVP4_SESSION1_REAUDIT_REFLECTION.patch_result.json"
+      ],
+      "test_ids": [
+        "tests/contract/test_review_plan_reflection_status.py",
+        "tests/contract/test_root_launchers.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DOCUMENT_NORMALIZATION",
+        "BUNDLE_SECURITY"
+      ],
+      "depends_on": [
+        "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER"
+      ],
+      "source_text_sha256": "A027FE0F2CC165DB4D5ED0558C4F54D8CE0183C5F31F22B82AF0E1C130392F06",
+      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-SESSION2-REAUDIT-REFLECTION",
+      "source_section_id": "SESSION2_REAUDIT_ADDENDUM",
+      "source_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
+      "source_heading": "TRADER_1.zip \uc804\uc218 \uc7ac\uac80\ud1a0 \uc138\uc158 2",
+      "full_text_marker": "Session 2 review is reflected as stale/current/external categories before deletion.",
+      "authority_level": "REVIEW_ADDENDUM_NON_AUTHORITY",
+      "requirement_title": "Reflect Session 2 reaudit without overriding active authority",
+      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.review_plan_reflection_ledger.v1"
+      ],
+      "validator_ids": [
+        "review_plan_reflection_ledger_validator",
+        "root_launcher_guard_validator"
+      ],
+      "artifact_ids": [
+        "system/evidence/audit_reports/MVP4_SESSION2_REAUDIT_REFLECTION.audit.json",
+        "system/evidence/patch_results/MVP4_SESSION2_REAUDIT_REFLECTION.patch_result.json"
+      ],
+      "test_ids": [
+        "tests/contract/test_review_plan_reflection_status.py",
+        "tests/contract/test_root_launchers.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DOCUMENT_NORMALIZATION",
+        "BUNDLE_SECURITY"
+      ],
+      "depends_on": [
+        "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER"
+      ],
+      "source_text_sha256": "F26437F57AC6BA34ED6ECE94754E886F6FCBD56D4F788EC40E88E1482FDC1B76",
+      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
     },
@@ -10338,6 +10461,74 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-REPAIR-HASH-RECONCILIATION-POLICY",
+      "source_section_id": "SECTION_LEDGER_RECONCILIATION",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER repair hash reconciliation policy",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-REPAIR-HASH-RECONCILIATION-POLICY: repair candidates must expose recomputed hash reconciliation evidence and remain blocked before current evidence use",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER repair hash reconciliation policy",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_ledger_rollup_repair_report.v1",
+        "trader1.upbit_paper_post_repair_reconciliation_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_blocked_repair_plan_validator",
+        "upbit_paper_ledger_rollup_repair_validator",
+        "upbit_paper_post_repair_reconciliation_validator",
+        "paper_ledger_rollup_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_ledger_rollup_repair_report.schema.json",
+        "contracts/schema/upbit_paper_post_repair_reconciliation_report.schema.json",
+        "trader1/runtime/paper/upbit_paper_ledger_rollup_repair.py",
+        "trader1/runtime/paper/upbit_paper_post_repair_reconciliation.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_upbit_paper_ledger_rollup_repair.py",
+        "tests/runtime/test_upbit_paper_post_repair_reconciliation.py",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_ledger_rollup_repair_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_repair_reconciliation_report.json",
+        "contracts/security/source_bundle_manifest.json",
+        "tools/emit_upbit_paper_repair_hash_reconciliation_policy_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_REPAIR_HASH_RECONCILIATION_POLICY.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_ledger_rollup_repair.py",
+        "tests/runtime/test_upbit_paper_post_repair_reconciliation.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_RUNTIME_RECOVERY",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP-READY-REPAIR",
+        "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "19AE3D8E866A2E1ECE6B62FD2560FB6A8D89C89DF9C888E9EE7522AF26F98190",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_HASH_RECONCILIATION_EVIDENCE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-RUNTIME-CANDIDATE-LINKAGE-COST-MODEL",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -11480,130 +11671,7 @@
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "SCAFFOLD_IMPLEMENTED",
       "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-REVIEW-PLAN-REFLECTED-FILE-CLEANUP",
-      "source_section_id": "USER_REVIEW_PLAN_DELETE_POLICY",
-      "source_file": "user_prompt",
-      "source_heading": "Delete reflected \uac80\ud1a0\uc548 inputs after reflection",
-      "full_text_marker": "REQ-MVP4-REVIEW-PLAN-REFLECTED-FILE-CLEANUP: reflected review-plan files are deleted after file-level reflection evidence",
-      "authority_level": "USER_OPERATION_POLICY_WITH_ACTIVE_AUTHORITY_SAFETY",
-      "requirement_title": "Delete reflected review-plan inbox files after ledgered reflection",
-      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
-      "schema_ids": [
-        "trader1.review_plan_reflection_ledger.v1"
-      ],
-      "validator_ids": [
-        "review_plan_reflection_ledger_validator"
-      ],
-      "artifact_ids": [
-        "tools/review_plan_reflection_status.py",
-        "tools/emit_review_plan_reflected_file_cleanup_patch_evidence.py",
-        "tests/contract/test_review_plan_reflection_status.py",
-        "trader1/validation/mvp0_validators.py",
-        "system/evidence/audit_reports/REVIEW_PLAN_REFLECTION_LEDGER.json",
-        "contracts/generated/context_pack/MVP4_REVIEW_PLAN_REFLECTED_FILE_CLEANUP.md"
-      ],
-      "test_ids": [
-        "tests/contract/test_review_plan_reflection_status.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "DOCUMENT_NORMALIZATION",
-        "BUNDLE_SECURITY"
-      ],
-      "depends_on": [
-        "REQ-MVP4-REVIEW-PLAN-DELETE-POLICY",
-        "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER"
-      ],
-      "source_text_sha256": "7BB75C508AAC0BFBF5201007EF2AFF94BA685C9AC33D61A41049D87EF0D5511F",
-      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-SESSION1-REAUDIT-REFLECTION",
-      "source_section_id": "SESSION1_REAUDIT_ADDENDUM",
-      "source_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_1.md",
-      "source_heading": "TRADER_1.zip \uc804\uc218 \uc7ac\uac80\ud1a0 \uc138\uc158 1",
-      "full_text_marker": "Session 1 review is reflected as stale/current/external categories before deletion.",
-      "authority_level": "REVIEW_ADDENDUM_NON_AUTHORITY",
-      "requirement_title": "Reflect session 1 reaudit without overriding active authority",
-      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
-      "schema_ids": [
-        "trader1.review_plan_reflection_ledger.v1"
-      ],
-      "validator_ids": [
-        "review_plan_reflection_ledger_validator",
-        "root_launcher_guard_validator"
-      ],
-      "artifact_ids": [
-        "system/evidence/audit_reports/MVP4_SESSION1_REAUDIT_REFLECTION.audit.json",
-        "system/evidence/patch_results/MVP4_SESSION1_REAUDIT_REFLECTION.patch_result.json"
-      ],
-      "test_ids": [
-        "tests/contract/test_review_plan_reflection_status.py",
-        "tests/contract/test_root_launchers.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "DOCUMENT_NORMALIZATION",
-        "BUNDLE_SECURITY"
-      ],
-      "depends_on": [
-        "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER"
-      ],
-      "source_text_sha256": "A027FE0F2CC165DB4D5ED0558C4F54D8CE0183C5F31F22B82AF0E1C130392F06",
-      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-SESSION2-REAUDIT-REFLECTION",
-      "source_section_id": "SESSION2_REAUDIT_ADDENDUM",
-      "source_file": "\uac80\ud1a0\uc548/TRADER_1_full_reaudit_session_2.md",
-      "source_heading": "TRADER_1.zip \uc804\uc218 \uc7ac\uac80\ud1a0 \uc138\uc158 2",
-      "full_text_marker": "Session 2 review is reflected as stale/current/external categories before deletion.",
-      "authority_level": "REVIEW_ADDENDUM_NON_AUTHORITY",
-      "requirement_title": "Reflect Session 2 reaudit without overriding active authority",
-      "requirement_kind": "AUDIT_VALIDATOR_PATCH",
-      "schema_ids": [
-        "trader1.review_plan_reflection_ledger.v1"
-      ],
-      "validator_ids": [
-        "review_plan_reflection_ledger_validator",
-        "root_launcher_guard_validator"
-      ],
-      "artifact_ids": [
-        "system/evidence/audit_reports/MVP4_SESSION2_REAUDIT_REFLECTION.audit.json",
-        "system/evidence/patch_results/MVP4_SESSION2_REAUDIT_REFLECTION.patch_result.json"
-      ],
-      "test_ids": [
-        "tests/contract/test_review_plan_reflection_status.py",
-        "tests/contract/test_root_launchers.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "DOCUMENT_NORMALIZATION",
-        "BUNDLE_SECURITY"
-      ],
-      "depends_on": [
-        "REQ-MVP4-REVIEW-PLAN-REFLECTION-LEDGER"
-      ],
-      "source_text_sha256": "F26437F57AC6BA34ED6ECE94754E886F6FCBD56D4F788EC40E88E1482FDC1B76",
-      "source_authority_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T06:28:38Z"
+  "updated_at_utc": "2026-05-01T11:34:43Z"
 }

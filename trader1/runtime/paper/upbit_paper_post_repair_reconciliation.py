@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from trader1.runtime.ledger.paper_ledger_rollup import validate_paper_ledger_rollup_report
+from trader1.runtime.ledger.paper_ledger_rollup import paper_ledger_rollup_hash, validate_paper_ledger_rollup_report
 from trader1.runtime.paper.upbit_paper_ledger_rollup_repair import (
     LEDGER_ROLLUP_REPAIR_BLOCKER_CODE,
     validate_upbit_paper_ledger_rollup_repair_report,
@@ -61,17 +61,34 @@ def _classification_for_item(item: dict[str, Any], candidate_status: str) -> tup
     return "REPAIR_CANDIDATE_BLOCKED_CURRENT_EVIDENCE_MUTATION_POLICY", POST_REPAIR_RECONCILIATION_BLOCKER_CODE
 
 
+def _status_counts(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for item in items:
+        status = str(item.get("hash_reconciliation_status") or "UNKNOWN")
+        counts[status] = counts.get(status, 0) + 1
+    return [{"hash_reconciliation_status": status, "count": counts[status]} for status in sorted(counts)]
+
+
 def _build_item(item: dict[str, Any]) -> dict[str, Any]:
     candidate = item.get("candidate_rollup") if isinstance(item.get("candidate_rollup"), dict) else {}
     candidate_result = validate_paper_ledger_rollup_report(candidate)
     classification, blocker_code = _classification_for_item(item, candidate_result.status)
+    candidate_hash = item.get("candidate_rollup_hash")
+    candidate_recomputed_hash = item.get("candidate_rollup_recomputed_hash")
+    if not isinstance(candidate_recomputed_hash, str) and candidate:
+        candidate_recomputed_hash = paper_ledger_rollup_hash(candidate)
     return {
         "replacement_loop_id": str(item.get("replacement_loop_id") or "UNKNOWN"),
         "replacement_path": str(item.get("replacement_path") or ""),
         "source_loop_expected_rollup_path": str(item.get("source_loop_expected_rollup_path") or ""),
         "source_loop_expected_rollup_hash": item.get("source_loop_expected_rollup_hash"),
+        "source_loop_expected_rollup_artifact_exists": bool(item.get("source_loop_expected_rollup_artifact_exists")),
+        "source_loop_expected_rollup_artifact_load_status": str(item.get("source_loop_expected_rollup_artifact_load_status") or "UNKNOWN"),
+        "source_loop_expected_rollup_recomputed_hash": item.get("source_loop_expected_rollup_recomputed_hash"),
         "candidate_rollup_artifact_path": str(item.get("candidate_rollup_artifact_path") or ""),
-        "candidate_rollup_hash": item.get("candidate_rollup_hash"),
+        "candidate_rollup_hash": candidate_hash,
+        "candidate_rollup_recomputed_hash": candidate_recomputed_hash,
+        "candidate_rollup_hash_self_check": item.get("candidate_rollup_hash_self_check") or ("PASS" if candidate_hash == candidate_recomputed_hash else "FAIL"),
         "candidate_rollup_validator_status": candidate_result.status,
         "candidate_rollup_validator_blocker_code": candidate_result.blocker_code,
         "candidate_rollup_status": candidate.get("rollup_status"),
@@ -79,6 +96,9 @@ def _build_item(item: dict[str, Any]) -> dict[str, Any]:
         "candidate_ledger_event_count": candidate.get("ledger_event_count"),
         "candidate_filled_order_count": candidate.get("filled_order_count"),
         "source_loop_expected_rollup_hash_match": bool(item.get("source_loop_expected_rollup_hash_match")),
+        "hash_reconciliation_status": str(item.get("hash_reconciliation_status") or "UNKNOWN"),
+        "hash_reconciliation_blocker_code": item.get("hash_reconciliation_blocker_code"),
+        "hash_reconciliation_requires_operator_action": bool(item.get("hash_reconciliation_requires_operator_action")),
         "candidate_current_evidence_usable": False,
         "candidate_classification": classification,
         "item_blocker_code": blocker_code,
@@ -107,6 +127,7 @@ def build_upbit_paper_post_repair_reconciliation_report(
     candidate_pass_count = sum(1 for item in items if item.get("candidate_rollup_validator_status") == "PASS")
     hash_match_count = sum(1 for item in items if item.get("source_loop_expected_rollup_hash_match"))
     usable_count = sum(1 for item in items if item.get("candidate_current_evidence_usable"))
+    hash_reconciliation_operator_action_required_count = sum(1 for item in items if item.get("hash_reconciliation_requires_operator_action"))
     blocker_codes = {POST_REPAIR_RECONCILIATION_BLOCKER_CODE}
     if repair_result.status != "PASS":
         blocker_codes.add(repair_result.blocker_code or LEDGER_ROLLUP_REPAIR_BLOCKER_CODE)
@@ -134,6 +155,8 @@ def build_upbit_paper_post_repair_reconciliation_report(
         "candidate_rollup_blocked_count": len(items) - candidate_pass_count,
         "source_loop_expected_rollup_hash_match_count": hash_match_count,
         "source_loop_expected_rollup_hash_mismatch_count": len(items) - hash_match_count,
+        "hash_reconciliation_status_counts": _status_counts(items),
+        "hash_reconciliation_operator_action_required_count": hash_reconciliation_operator_action_required_count,
         "candidate_current_evidence_usable_count": usable_count,
         "candidate_current_evidence_blocked_count": len(items) - usable_count,
         "post_repair_reconciliation_status": "BLOCKED",
@@ -189,6 +212,8 @@ def validate_upbit_paper_post_repair_reconciliation_report(report: dict[str, Any
         "candidate_rollup_blocked_count",
         "source_loop_expected_rollup_hash_match_count",
         "source_loop_expected_rollup_hash_mismatch_count",
+        "hash_reconciliation_status_counts",
+        "hash_reconciliation_operator_action_required_count",
         "candidate_current_evidence_usable_count",
         "candidate_current_evidence_blocked_count",
         "post_repair_reconciliation_status",
@@ -265,6 +290,12 @@ def validate_upbit_paper_post_repair_reconciliation_report(report: dict[str, Any
         or report.get("source_loop_expected_rollup_hash_mismatch_count") != len(items) - hash_match_count
     ):
         return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation hash-match rollup mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    expected_status_counts = _status_counts(items)
+    if report.get("hash_reconciliation_status_counts") != expected_status_counts:
+        return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation hash status rollup mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    required_operator_count = sum(1 for item in items if item.get("hash_reconciliation_requires_operator_action"))
+    if report.get("hash_reconciliation_operator_action_required_count") != required_operator_count:
+        return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation hash operator-action count mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("candidate_current_evidence_usable_count") != usable_count or report.get("candidate_current_evidence_blocked_count") != len(items) - usable_count:
         return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation current-evidence count mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if usable_count:
@@ -296,6 +327,32 @@ def validate_upbit_paper_post_repair_reconciliation_report(report: dict[str, Any
             return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation candidate validator status mismatch", "SCHEMA_IDENTITY_MISMATCH")
         if candidate.get("rollup_hash") != item.get("candidate_rollup_hash"):
             return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation candidate hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        candidate_recomputed_hash = paper_ledger_rollup_hash(candidate)
+        if (
+            item.get("candidate_rollup_recomputed_hash") != candidate_recomputed_hash
+            or item.get("candidate_rollup_hash_self_check") != ("PASS" if candidate.get("rollup_hash") == candidate_recomputed_hash else "FAIL")
+        ):
+            return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation candidate hash self-check mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if not item.get("source_loop_expected_rollup_artifact_exists") and item.get("source_loop_expected_rollup_artifact_load_status") == "PASS":
+            return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation expected artifact existence mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if item.get("source_loop_expected_rollup_artifact_load_status") == "PASS":
+            expected_recomputed_hash = item.get("source_loop_expected_rollup_recomputed_hash")
+            if not isinstance(expected_recomputed_hash, str) or len(expected_recomputed_hash) != 64:
+                return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation expected artifact hash missing", "SCHEMA_IDENTITY_MISMATCH")
+        elif item.get("source_loop_expected_rollup_recomputed_hash") is not None:
+            return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation expected artifact hash set while unreadable", "SCHEMA_IDENTITY_MISMATCH")
+        if item.get("hash_reconciliation_status") == "MATCH":
+            if (
+                not item.get("source_loop_expected_rollup_hash_match")
+                or item.get("hash_reconciliation_blocker_code") is not None
+                or item.get("hash_reconciliation_requires_operator_action")
+            ):
+                return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation hash match status mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        elif (
+            item.get("hash_reconciliation_blocker_code") != REPAIR_CANDIDATE_HASH_MISMATCH_BLOCKER_CODE
+            or not item.get("hash_reconciliation_requires_operator_action")
+        ):
+            return UpbitPaperPostRepairReconciliationValidationResult("FAIL", "post-repair reconciliation hash reconciliation blocker mismatch", "SCHEMA_IDENTITY_MISMATCH")
         if (
             candidate.get("ledger_jsonl_count") != item.get("candidate_ledger_jsonl_count")
             or candidate.get("ledger_event_count") != item.get("candidate_ledger_event_count")

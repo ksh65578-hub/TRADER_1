@@ -5532,6 +5532,8 @@ def upbit_paper_ledger_rollup_repair_validator() -> ValidatorResult:
         "repair_candidate_count",
         "candidate_rollup_pass_count",
         "candidate_rollup_blocked_count",
+        "hash_reconciliation_status_counts",
+        "hash_reconciliation_operator_action_required_count",
         "remaining_non_ready_repair_item_count",
         "current_evidence_mutation_allowed",
         "persistent_loop_mutation_allowed",
@@ -5581,6 +5583,9 @@ def upbit_paper_ledger_rollup_repair_validator() -> ValidatorResult:
             or report.get("scale_up_allowed")
             or not report["items"][0].get("post_repair_reconciliation_required")
             or report["items"][0].get("candidate_artifact_is_current_evidence")
+            or not report["items"][0].get("hash_reconciliation_requires_operator_action")
+            or report["items"][0].get("hash_reconciliation_blocker_code") != "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED"
+            or report["items"][0].get("candidate_rollup_hash_self_check") != "PASS"
         ):
             return fail_result("upbit_paper_ledger_rollup_repair_validator", "ledger rollup repair did not create a blocked scoped candidate", paths, "MEASUREMENT_MISSING")
         written_path = write_upbit_paper_ledger_rollup_repair_report(root=root, report=report)
@@ -5642,6 +5647,8 @@ def upbit_paper_post_repair_reconciliation_validator() -> ValidatorResult:
         "source_repair_report_hash",
         "candidate_current_evidence_usable_count",
         "candidate_current_evidence_blocked_count",
+        "hash_reconciliation_status_counts",
+        "hash_reconciliation_operator_action_required_count",
         "post_repair_reconciliation_status",
         "current_evidence_mutation_allowed",
         "persistent_loop_mutation_allowed",
@@ -5698,6 +5705,10 @@ def upbit_paper_post_repair_reconciliation_validator() -> ValidatorResult:
             or report.get("live_order_allowed")
             or report.get("scale_up_allowed")
             or REPAIR_CANDIDATE_HASH_MISMATCH_BLOCKER_CODE not in report.get("blocker_codes", [])
+            or report.get("hash_reconciliation_operator_action_required_count") != 1
+            or not report["items"][0].get("hash_reconciliation_requires_operator_action")
+            or report["items"][0].get("hash_reconciliation_blocker_code") != REPAIR_CANDIDATE_HASH_MISMATCH_BLOCKER_CODE
+            or report["items"][0].get("candidate_rollup_hash_self_check") != "PASS"
         ):
             return fail_result("upbit_paper_post_repair_reconciliation_validator", "post-repair reconciliation did not stay hash-aware and blocked", paths, "MEASUREMENT_MISSING")
         written_path = write_upbit_paper_post_repair_reconciliation_report(root=root, report=report)
