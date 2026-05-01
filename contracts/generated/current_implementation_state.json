@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-01T15:20:06Z",
+  "updated_at_utc": "2026-05-01T15:40:48Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -227,6 +227,7 @@
     "REQ-MVP4-UPBIT-PAPER-PERSISTENT-LOOP-BOUNDED",
     "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-SOURCE-TRUTH",
     "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION",
+    "REQ-MVP4-UPBIT-PAPER-POST-RERUN-CURRENT-EVIDENCE-PROMOTION-GUARD",
     "REQ-MVP4-UPBIT-PAPER-POST-RERUN-LEDGER-ROLLUP-RECONCILIATION",
     "REQ-MVP4-UPBIT-PAPER-REPAIR-HASH-RECONCILIATION-POLICY",
     "REQ-MVP4-UPBIT-PAPER-REPAIR-OPERATOR-QUEUE",
@@ -343,6 +344,7 @@
     "trader1.upbit_paper_missing_cycle_rerun_guard_report.v1",
     "trader1.upbit_paper_persistent_loop_report.v1",
     "trader1.upbit_paper_post_repair_reconciliation_report.v1",
+    "trader1.upbit_paper_post_rerun_current_evidence_promotion_guard_report.v1",
     "trader1.upbit_paper_post_rerun_ledger_rollup_reconciliation_report.v1",
     "trader1.upbit_paper_repair_operator_queue_report.v1",
     "trader1.upbit_paper_runtime_cycle_report.v1",
@@ -475,6 +477,7 @@
     "upbit_paper_missing_cycle_rerun_guard_validator",
     "upbit_paper_persistent_loop_validator",
     "upbit_paper_post_repair_reconciliation_validator",
+    "upbit_paper_post_rerun_current_evidence_promotion_guard_validator",
     "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
     "upbit_paper_repair_operator_queue_validator",
     "upbit_paper_runtime_cycle_validator",
@@ -505,7 +508,6 @@
     "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
     "PATCH_RESULT_VALIDATOR_RUN_GAP",
     "POST_REPAIR_RECONCILIATION_REQUIRED",
-    "POST_RERUN_CURRENT_EVIDENCE_PROMOTION_GUARD_REQUIRED",
     "POST_RERUN_RECONCILIATION_REQUIRED",
     "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
     "RECOVERY_GUARD_RERUN_REQUIRED_BEFORE_CYCLE_RERUN",
@@ -516,12 +518,12 @@
     "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_UPBIT_PAPER_POST_RERUN_LEDGER_ROLLUP_RECONCILIATION_20260501_001",
-  "last_patch_result_hash": "E4DB13A84A7D21B16055E0C9582769525643BAD013C22D39ADD3460DFA1744F7",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_POST_RERUN_CURRENT_EVIDENCE_PROMOTION_GUARD",
+  "last_patch_id": "MVP4_UPBIT_PAPER_POST_RERUN_CURRENT_EVIDENCE_PROMOTION_GUARD_20260502_001",
+  "last_patch_result_hash": "B00CD6906F1926E3C714E294B3630879038F1FCA873FF154E9D897FABEEB97F6",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RECONCILIATION_QUEUE",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "EAD3B015BAFC83189B4C16B0CBE4D8944CC6735CE844B853A1969064197EB8BD"
+  "state_hash": "B26843D926AC24E12BD787A168BBE5F9FB624EC6603696B98D4BCD1F974480AF"
 }
