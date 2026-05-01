@@ -186,6 +186,7 @@ def build_dashboard(
     upbit_public_rest_continuity_history=None,
     shadow_runtime_harness_report=None,
     shadow_persistent_runtime_report=None,
+    upbit_paper_post_rerun_operator_resolution_audit_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
@@ -203,6 +204,7 @@ def build_dashboard(
         reconciliation_report=reconciliation_report,
         restart_recovery_report=restart_recovery_report,
         upbit_paper_post_rerun_reconciliation_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
+        upbit_paper_post_rerun_operator_resolution_audit_report=upbit_paper_post_rerun_operator_resolution_audit_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         optimizer_feedback_report=optimizer_feedback_report,
         convergence_assessment_report=convergence_assessment_report,
@@ -378,6 +380,22 @@ def post_rerun_review_guidance_fixture():
     )
 
 
+def post_rerun_resolution_audit_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_operator_resolution_audit_report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def build_dashboard_with_post_rerun_blocker_rollup(report=None):
     report = report or post_rerun_blocker_rollup_fixture()
     session_id = report["session_id"]
@@ -408,6 +426,24 @@ def build_dashboard_with_post_rerun_review_guidance(report=None, rollup_report=N
         startup_probe=startup_probe,
         upbit_paper_post_rerun_reconciliation_blocker_rollup_report=rollup_report,
         upbit_paper_post_rerun_operator_reconciliation_review_guidance_report=report,
+    )
+
+
+def build_dashboard_with_post_rerun_resolution_audit(report=None, rollup_report=None, guidance_report=None):
+    report = report or post_rerun_resolution_audit_fixture()
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_post_rerun_reconciliation_blocker_rollup_report=rollup_report,
+        upbit_paper_post_rerun_operator_reconciliation_review_guidance_report=guidance_report,
+        upbit_paper_post_rerun_operator_resolution_audit_report=report,
     )
 
 
@@ -1425,6 +1461,94 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             reconciliation["post_rerun_review_guidance_status"],
             "BLOCKED_RECONCILIATION_REVIEW_REQUIRED",
         )
+
+    def test_dashboard_projects_post_rerun_resolution_audit_for_operator_visibility(self):
+        dashboard = build_dashboard_with_post_rerun_resolution_audit()
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(dashboard["blocking_reason"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(reconciliation["severity"], "ERROR")
+        self.assertEqual(reconciliation["color_token"], "red")
+        self.assertEqual(
+            reconciliation["source"],
+            "upbit_paper_post_rerun_operator_resolution_audit_report.json",
+        )
+        self.assertEqual(
+            reconciliation["post_rerun_resolution_audit_status"],
+            "UNRESOLVED_RECONCILIATION_REVIEW_ONLY",
+        )
+        self.assertEqual(reconciliation["post_rerun_resolution_audit_validation_status"], "PASS")
+        self.assertEqual(reconciliation["post_rerun_resolution_unresolved_item_count"], 8)
+        self.assertEqual(reconciliation["post_rerun_resolution_resolved_item_count"], 0)
+        self.assertEqual(reconciliation["post_rerun_resolution_control_count"], 4)
+        self.assertEqual(reconciliation["post_rerun_resolution_controls_satisfied_count"], 0)
+        self.assertEqual(reconciliation["post_rerun_resolution_current_evidence_write_authorized_count"], 0)
+        self.assertEqual(reconciliation["post_rerun_resolution_current_evidence_write_allowed_count"], 0)
+        self.assertEqual(reconciliation["post_rerun_resolution_candidate_current_evidence_usable_count"], 0)
+        self.assertEqual(reconciliation["post_rerun_resolution_source_review_guidance_file_load_status"], "PASS")
+        self.assertTrue(reconciliation["post_rerun_resolution_source_review_guidance_file_hash_match"])
+        self.assertEqual(reconciliation["post_rerun_resolution_source_decision_audit_file_load_status"], "PASS")
+        self.assertTrue(reconciliation["post_rerun_resolution_source_decision_audit_file_hash_match"])
+        self.assertIn("POST_RERUN_RECONCILIATION_REQUIRED", reconciliation["post_rerun_blocker_codes"])
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["status"], "BLOCKED")
+        self.assertEqual(operator_action["severity"], "ERROR")
+        self.assertEqual(operator_action["primary_blocker_code"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        self.assertEqual(operator_action["primary_action"], "STOP_AND_INSPECT")
+        self.assertFalse(operator_action["safe_to_continue_paper"])
+        self.assertFalse(operator_action["live_order_allowed"])
+        self.assertFalse(operator_action["scale_up_allowed"])
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Post-Rerun Resolution", html)
+        self.assertIn("resolution=UNRESOLVED_RECONCILIATION_REVIEW_ONLY", html)
+        self.assertIn("unresolved=8", html)
+        self.assertIn("resolved=0", html)
+        self.assertIn("controls=4", html)
+        self.assertIn("satisfied=0", html)
+        self.assertIn("resolution-writes=0", html)
+        self.assertIn("source-bindings=PASS/PASS", html)
+
+    def test_dashboard_prefers_resolution_audit_source_when_all_post_rerun_sources_loaded(self):
+        dashboard = build_dashboard_with_post_rerun_resolution_audit(
+            rollup_report=post_rerun_blocker_rollup_fixture(),
+            guidance_report=post_rerun_review_guidance_fixture(),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(
+            reconciliation["source"],
+            "upbit_paper_post_rerun_operator_resolution_audit_report.json",
+        )
+        self.assertEqual(reconciliation["post_rerun_blocker_rollup_status"], "BLOCKED")
+        self.assertEqual(
+            reconciliation["post_rerun_review_guidance_status"],
+            "BLOCKED_RECONCILIATION_REVIEW_REQUIRED",
+        )
+        self.assertEqual(
+            reconciliation["post_rerun_resolution_audit_status"],
+            "UNRESOLVED_RECONCILIATION_REVIEW_ONLY",
+        )
+
+    def test_dashboard_blocks_post_rerun_resolution_audit_current_evidence_drift(self):
+        dashboard = build_dashboard_with_post_rerun_resolution_audit()
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        reconciliation["post_rerun_resolution_current_evidence_write_allowed_count"] = 1
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_blocks_post_rerun_resolution_audit_source_binding_drift(self):
+        dashboard = build_dashboard_with_post_rerun_resolution_audit()
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        reconciliation["post_rerun_resolution_source_review_guidance_file_hash_match"] = False
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_dashboard_blocks_post_rerun_review_guidance_current_evidence_drift(self):
         dashboard = build_dashboard_with_post_rerun_review_guidance()
