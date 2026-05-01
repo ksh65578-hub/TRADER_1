@@ -8897,6 +8897,62 @@
       "status": "IMPLEMENTED_REVIEW_ONLY_RESOLUTION_CURRENT_EVIDENCE_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RESOLUTION-CURRENT-EVIDENCE-CLOSURE-DASHBOARD-BINDING",
+      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "schema_files": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "contracts/schema/upbit_paper_post_rerun_resolution_current_evidence_closure_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "fixture_files": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_resolution_current_evidence_closure_report.json"
+      ],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE_DASHBOARD_BINDING.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE_DASHBOARD_BINDING.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE_DASHBOARD_BINDING.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE_DASHBOARD_BINDING.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "reconciliation_recovery_summary.post_rerun_resolution_closure_status",
+        "reconciliation_recovery_summary.post_rerun_resolution_closure_source_resolution_audit_file_load_status",
+        "reconciliation_recovery_summary.post_rerun_resolution_closure_closed_item_count",
+        "reconciliation_recovery_summary.post_rerun_resolution_closure_current_evidence_write_allowed_count",
+        "source_artifacts.POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE",
+        "operator_action_summary.primary_blocker_code",
+        "blocking_reason"
+      ],
+      "patch_result_fields": [
+        "post_rerun_resolution_current_evidence_closure_status",
+        "post_rerun_resolution_closure_source_resolution_audit_file_load_status",
+        "post_rerun_resolution_closure_source_resolution_audit_file_hash_match",
+        "post_rerun_resolution_closure_source_unresolved_item_count",
+        "post_rerun_resolution_closure_source_resolved_item_count",
+        "post_rerun_resolution_closure_closed_item_count",
+        "post_rerun_resolution_closure_current_evidence_closed_count",
+        "post_rerun_current_evidence_write_allowed_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_DASHBOARD_VISIBLE_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-RERUN-REVIEW-GUIDANCE-SOURCE-BINDING-GUARD",
       "section_id": "SECTION_LEDGER_RECONCILIATION",
       "schema_files": [
@@ -10003,7 +10059,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-01T20:57:38Z",
+  "updated_at_utc": "2026-05-01T21:18:51Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
