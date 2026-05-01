@@ -1,0 +1,176 @@
+{
+  "accepted_cycle_sample_count": 2,
+  "accepted_loop_report_count": 1,
+  "actual_long_run_evidence_created": false,
+  "can_live_trade": false,
+  "credential_load_attempted": false,
+  "cycle_floor_met": false,
+  "dashboard_truth_only": false,
+  "duplicate_cycle_hash_count": 0,
+  "exchange": "UPBIT",
+  "execution_truth": false,
+  "first_sample_at_utc": "2026-04-30T23:25:58Z",
+  "generated_at_utc": "2026-05-01T00:05:58Z",
+  "history_evidence_role": "PAPER_RUNTIME_SAMPLE_HISTORY_NOT_LONG_RUN_EVIDENCE",
+  "history_hash": "8DD2F59CD9542047020B6AC0FC0BE0F647F13DCDA59A2D4BA612EC78EB8E8A2A",
+  "history_id": "mvp4-upbit-paper-runtime-sample-history",
+  "invalid_source_count": 16,
+  "invalid_sources": [
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-linkage-cost-model.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-candidate-scorecard-runtime-linkage-binding.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-ledger-jsonl-recovery-ui-refresh.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-paper-ledger-rollup-ui-refresh.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-public-rest-transform-loop.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-sequence-regime-guard-loop.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-summary-portfolio-provenance-guard.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-market-data-pointer-schema-guard.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-paper-ledger-rollup-consistency-guard.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-paper-runtime-e2e-consistency-guard.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-public-loop-dashboard.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-recovery-guard-loop.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-runtime-source-hash-guard.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4_dashboard_stale_rollup_truth_guard_current_refresh.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4_upbit_candidate_decision_guard_current_refresh.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4_upbit_scorecard_bridge_current_refresh.persistent_loop_report.json",
+      "reason": "SCHEMA_IDENTITY_MISMATCH"
+    }
+  ],
+  "latest_sample_at_utc": "2026-04-30T23:25:58Z",
+  "live_key_loaded": false,
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+  "long_run_evidence_eligible": false,
+  "long_run_next_action": "Collect validated, non-duplicated PAPER and SHADOW runtime history over the required wall-clock span before live review.",
+  "market_type": "KRW_SPOT",
+  "min_actual_long_run_cycle_count": 2880,
+  "min_actual_long_run_span_seconds": 86400,
+  "mode": "PAPER",
+  "observed_span_seconds": 0,
+  "order_adapter_called": false,
+  "order_endpoint_called": false,
+  "primary_blocker_code": "RECONCILIATION_REQUIRED",
+  "private_endpoint_called": false,
+  "project_id": "TRADER_1",
+  "promotion_eligible": false,
+  "runtime_analysis_only": true,
+  "runtime_sample_status": "BLOCKED",
+  "samples": [
+    {
+      "can_live_trade": false,
+      "candidate_count": 3,
+      "cycle_id": "mvp4-upbit-paper-long-run-evidence-boundary-cycle-1",
+      "entry_reason_count": 3,
+      "exchange": "UPBIT",
+      "final_decision": "ENTER_LONG",
+      "generated_at_utc": "2026-04-30T23:25:58Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-upbit-paper-long-run-evidence-boundary",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "no_trade_reason_count": 0,
+      "paper_ledger_head_hash": "5743C56E7B2A47742F7C493D72C905711FB4B8901234C7D715375B22C91207FE",
+      "paper_portfolio_snapshot_hash": "A31CF57277A07378458BEA8ED394A6D80A35551AEA2180EF03C9AA8C7C23BF75",
+      "previous_sample_hash": null,
+      "project_id": "TRADER_1",
+      "runtime_input_role": "PUBLIC_MARKET_DATA_COLLECTION",
+      "sample_hash": "F75C1812888A0A5E7FA1454920A74595131569D9F669E9295263CDD8C9D96873",
+      "scale_up_allowed": false,
+      "schema_id": "trader1.upbit_paper_runtime_sample.v1",
+      "session_id": "mvp1_upbit_paper_launcher",
+      "source_loop_report_hash": "AF90185603BD8FF63D1925762355FAF78FC2823F2AD8E4ADB967016E8EEF661D",
+      "source_loop_report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-paper-long-run-evidence-boundary.persistent_loop_report.json",
+      "source_runtime_cycle_hash": "7E4ED257DA255EA959C602945B2BE621FD812EBFFFB8CC66AD890D72E910AD4C",
+      "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-paper-long-run-evidence-boundary-cycle-1.runtime_cycle.json"
+    },
+    {
+      "can_live_trade": false,
+      "candidate_count": 3,
+      "cycle_id": "mvp4-upbit-paper-long-run-evidence-boundary-cycle-2",
+      "entry_reason_count": 3,
+      "exchange": "UPBIT",
+      "final_decision": "ENTER_LONG",
+      "generated_at_utc": "2026-04-30T23:25:58Z",
+      "live_order_allowed": false,
+      "live_order_ready": false,
+      "loop_id": "mvp4-upbit-paper-long-run-evidence-boundary",
+      "market_type": "KRW_SPOT",
+      "mode": "PAPER",
+      "no_trade_reason_count": 0,
+      "paper_ledger_head_hash": "E1DD3B4018F252F0B2B6E72F372DB617ABE1949B60887AAAAE5E3151B68CEDC6",
+      "paper_portfolio_snapshot_hash": "3D5E67C71CE3EFEC37037064D84306695DCEB18FCBB5B82B6B0B3189A971ECD3",
+      "previous_sample_hash": "F75C1812888A0A5E7FA1454920A74595131569D9F669E9295263CDD8C9D96873",
+      "project_id": "TRADER_1",
+      "runtime_input_role": "PUBLIC_MARKET_DATA_COLLECTION",
+      "sample_hash": "E127D2F72C3ACF34E0E1815429868FF34CA89324CF7EC68F582A36313D0FD375",
+      "scale_up_allowed": false,
+      "schema_id": "trader1.upbit_paper_runtime_sample.v1",
+      "session_id": "mvp1_upbit_paper_launcher",
+      "source_loop_report_hash": "AF90185603BD8FF63D1925762355FAF78FC2823F2AD8E4ADB967016E8EEF661D",
+      "source_loop_report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-paper-long-run-evidence-boundary.persistent_loop_report.json",
+      "source_runtime_cycle_hash": "925BFEF05F4171C0E2F3444F3D7687B854546BF54A2E7C73AB6D41286D622613",
+      "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-paper-long-run-evidence-boundary-cycle-2.runtime_cycle.json"
+    }
+  ],
+  "scale_up_allowed": false,
+  "schema_id": "trader1.upbit_paper_runtime_sample_history.v1",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source_loop_report_count": 17,
+  "source_loop_report_hashes": [
+    "AF90185603BD8FF63D1925762355FAF78FC2823F2AD8E4ADB967016E8EEF661D"
+  ],
+  "source_runtime_cycle_hashes": [
+    "7E4ED257DA255EA959C602945B2BE621FD812EBFFFB8CC66AD890D72E910AD4C",
+    "925BFEF05F4171C0E2F3444F3D7687B854546BF54A2E7C73AB6D41286D622613"
+  ],
+  "span_floor_met": false,
+  "truth_role": "paper_runtime_analysis_truth",
+  "unique_runtime_cycle_hash_count": 2
+}

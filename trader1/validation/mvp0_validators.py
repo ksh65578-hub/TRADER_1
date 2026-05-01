@@ -178,6 +178,13 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     validate_upbit_paper_persistent_loop_report,
     validate_upbit_paper_runtime_recovery_guard_report,
 )
+from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
+    build_upbit_paper_runtime_sample_history,
+    upbit_paper_runtime_sample_hash,
+    upbit_paper_runtime_sample_history_hash,
+    validate_upbit_paper_runtime_sample_history,
+    write_upbit_paper_runtime_sample_history,
+)
 from trader1.research.replay.replay_runner import (
     build_replay_consistency_report,
     replay_consistency_hash,
@@ -332,6 +339,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_public_rest_continuity_validator",
     "upbit_public_rest_continuity_history_validator",
     "upbit_paper_persistent_loop_validator",
+    "upbit_paper_runtime_sample_history_validator",
     "upbit_paper_runtime_recovery_guard_validator",
     "restart_recovery_validator",
     "upbit_operational_paper_gate_validator",
@@ -2597,10 +2605,13 @@ def runtime_schema_instance_validator() -> ValidatorResult:
     with TemporaryDirectory() as tmp:
         collection_writer = write_upbit_public_market_data_collection_artifacts(root=Path(tmp), report=collection_report)
         latest_pointer = load_json(Path(tmp) / collection_writer["artifact_paths"][3])
+        run_upbit_paper_persistent_loop(root=Path(tmp), loop_id="runtime-schema-instance-sample-history", requested_cycle_count=1)
+        sample_history = build_upbit_paper_runtime_sample_history(root=Path(tmp), session_id="mvp1_upbit_paper_launcher")
         instances.extend(
             [
                 ("write_upbit_public_market_data_collection_artifacts:writer", collection_writer),
                 ("write_upbit_public_market_data_collection_artifacts:latest_pointer", latest_pointer),
+                ("build_upbit_paper_runtime_sample_history", sample_history),
             ]
         )
 
@@ -4501,6 +4512,124 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         return fail_result("upbit_paper_persistent_loop_validator", "persistent loop budget overrun was not blocked", paths, over_budget_result.blocker_code or "RUNTIME_BUDGET_EXCEEDED")
 
     return pass_result("upbit_paper_persistent_loop_validator", "Upbit PAPER persistent loop runs bounded public-data-backed PAPER cycles, writes recovery guard artifacts, and remains live-blocked", paths)
+
+
+def upbit_paper_runtime_sample_history_validator() -> ValidatorResult:
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_runtime_sample_history.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_runtime_sample_history.py"
+    loop_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_persistent_loop.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_runtime_sample_history.py"
+    runtime_history_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob("*/paper_runtime/upbit_paper_runtime_sample_history.json")
+    )
+    paths = [schema_path, module_path, loop_module_path, test_path, *runtime_history_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_runtime_sample_history.v1":
+        return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample history schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample history schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "truth_role",
+        "runtime_analysis_only",
+        "execution_truth",
+        "history_evidence_role",
+        "accepted_cycle_sample_count",
+        "unique_runtime_cycle_hash_count",
+        "duplicate_cycle_hash_count",
+        "invalid_source_count",
+        "observed_span_seconds",
+        "min_actual_long_run_span_seconds",
+        "min_actual_long_run_cycle_count",
+        "span_floor_met",
+        "cycle_floor_met",
+        "actual_long_run_evidence_created",
+        "long_run_evidence_eligible",
+        "long_run_blocker_code",
+        "promotion_eligible",
+        "credential_load_attempted",
+        "order_endpoint_called",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result("upbit_paper_runtime_sample_history_validator", f"runtime sample history schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+    sample_schema = schema.get("$defs", {}).get("runtime_sample", {})
+    if sample_schema.get("additionalProperties") is not False:
+        return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        run_upbit_paper_persistent_loop(root=root, loop_id="validator-runtime-sample-history-a", requested_cycle_count=1)
+        run_upbit_paper_persistent_loop(root=root, loop_id="validator-runtime-sample-history-b", requested_cycle_count=1)
+        history = build_upbit_paper_runtime_sample_history(root=root, session_id="mvp1_upbit_paper_launcher")
+        result = validate_upbit_paper_runtime_sample_history(history)
+        if result.status != "PASS":
+            return fail_result("upbit_paper_runtime_sample_history_validator", f"valid runtime sample history failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
+        if history.get("accepted_cycle_sample_count") != 2 or history.get("unique_runtime_cycle_hash_count") != 2:
+            return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample history did not bind two unique PAPER runtime cycles", paths, "MEASUREMENT_MISSING")
+        if history.get("actual_long_run_evidence_created") or history.get("long_run_evidence_eligible") or history.get("promotion_eligible"):
+            return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample history created long-run or promotion evidence", paths, "LIVE_FINAL_GUARD_FAILED")
+        if history.get("long_run_blocker_code") != "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT":
+            return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample history did not expose long-run blocker", paths, "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+        written_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
+        if not written_path.exists():
+            return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample history writer did not create artifact", paths, "MEASUREMENT_MISSING")
+
+    live_mutation = json.loads(json.dumps(history))
+    live_mutation["long_run_evidence_eligible"] = True
+    live_mutation["history_hash"] = upbit_paper_runtime_sample_history_hash(live_mutation)
+    live_result = validate_upbit_paper_runtime_sample_history(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample history false long-run claim was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    duplicate = json.loads(json.dumps(history))
+    duplicate_sample = dict(duplicate["samples"][0])
+    duplicate_sample["generated_at_utc"] = duplicate["samples"][-1]["generated_at_utc"]
+    duplicate_sample["previous_sample_hash"] = duplicate["samples"][-1]["sample_hash"]
+    duplicate_sample["sample_hash"] = upbit_paper_runtime_sample_hash(duplicate_sample)
+    duplicate["samples"].append(duplicate_sample)
+    duplicate["accepted_cycle_sample_count"] = len(duplicate["samples"])
+    duplicate["unique_runtime_cycle_hash_count"] = len({item["source_runtime_cycle_hash"] for item in duplicate["samples"]})
+    duplicate["duplicate_cycle_hash_count"] = duplicate["accepted_cycle_sample_count"] - duplicate["unique_runtime_cycle_hash_count"]
+    duplicate["source_runtime_cycle_hashes"] = [item["source_runtime_cycle_hash"] for item in duplicate["samples"]]
+    duplicate["latest_sample_at_utc"] = duplicate["samples"][-1]["generated_at_utc"]
+    duplicate["history_hash"] = upbit_paper_runtime_sample_history_hash(duplicate)
+    duplicate_result = validate_upbit_paper_runtime_sample_history(duplicate)
+    if duplicate_result.status != "BLOCKED" or duplicate_result.blocker_code != "RECONCILIATION_REQUIRED":
+        return fail_result("upbit_paper_runtime_sample_history_validator", "duplicate runtime cycle sample was not blocked", paths, duplicate_result.blocker_code or "RECONCILIATION_REQUIRED")
+
+    path_escape = json.loads(json.dumps(history))
+    path_escape["samples"][0]["source_runtime_cycle_path"] = "system/runtime/upbit/krw_spot/live/mvp1_upbit_paper_launcher/unsafe.runtime_cycle.json"
+    path_escape["samples"][0]["sample_hash"] = upbit_paper_runtime_sample_hash(path_escape["samples"][0])
+    path_escape["history_hash"] = upbit_paper_runtime_sample_history_hash(path_escape)
+    path_result = validate_upbit_paper_runtime_sample_history(path_escape)
+    if path_result.status != "BLOCKED" or path_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+        return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample cross-namespace source path was not blocked", paths, path_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH")
+
+    floor_mismatch = json.loads(json.dumps(history))
+    floor_mismatch["span_floor_met"] = True
+    floor_mismatch["history_hash"] = upbit_paper_runtime_sample_history_hash(floor_mismatch)
+    floor_result = validate_upbit_paper_runtime_sample_history(floor_mismatch)
+    if floor_result.status != "FAIL" or floor_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result("upbit_paper_runtime_sample_history_validator", "runtime sample floor flag mismatch was not detected", paths, floor_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+
+    for runtime_path in runtime_history_paths:
+        try:
+            runtime_history = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result("upbit_paper_runtime_sample_history_validator", f"runtime sample history artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_runtime_sample_history(runtime_history)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                "upbit_paper_runtime_sample_history_validator",
+                f"runtime sample history artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result("upbit_paper_runtime_sample_history_validator", "Upbit PAPER runtime sample history binds actual cycle files, blocks duplicate/source drift, and cannot create live or long-run evidence", paths)
 
 
 def upbit_paper_runtime_recovery_guard_validator() -> ValidatorResult:
@@ -12175,6 +12304,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_public_rest_continuity_validator": upbit_public_rest_continuity_validator,
     "upbit_public_rest_continuity_history_validator": upbit_public_rest_continuity_history_validator,
     "upbit_paper_persistent_loop_validator": upbit_paper_persistent_loop_validator,
+    "upbit_paper_runtime_sample_history_validator": upbit_paper_runtime_sample_history_validator,
     "upbit_paper_runtime_recovery_guard_validator": upbit_paper_runtime_recovery_guard_validator,
     "restart_recovery_validator": restart_recovery_validator,
     "upbit_operational_paper_gate_validator": upbit_operational_paper_gate_validator,
