@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-05-01T22:51:19Z",
+  "generated_at_utc": "2026-05-01T23:04:19Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -113,7 +113,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-05-01T22:51:19Z",
+    "generated_at_utc": "2026-05-01T23:04:19Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -132,7 +132,7 @@
     "color_token": "yellow",
     "label": "Running without verified portfolio",
     "message": "Program heartbeat is fresh, but portfolio cash, equity, positions, and PnL are not verified yet.",
-    "recovery_hint": "Run PAPER with a fresh verified simulated ledger; configured PAPER capital is not exchange balance.",
+    "recovery_hint": "Resolve post-rerun reconciliation before treating configured PAPER capital or ledger provenance as current portfolio cash/equity.",
     "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
     "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
     "operator_meaning": "The dashboard heartbeat is fresh, but it does not prove a continuous PAPER engine is updating portfolio values.",
@@ -142,9 +142,9 @@
     "summary_freshness_status": "PASS",
     "startup_freshness_status": "PASS",
     "portfolio_status": "UNVERIFIED",
-    "portfolio_blocking_reason": "HARD_TRUTH_MISSING",
-    "portfolio_next_action": "Run PAPER with a fresh verified simulated ledger; configured PAPER capital is not exchange balance.",
-    "primary_blocker": "HARD_TRUTH_MISSING",
+    "portfolio_blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
+    "portfolio_next_action": "Resolve post-rerun reconciliation before treating configured PAPER capital or ledger provenance as current portfolio cash/equity.",
+    "primary_blocker": "POST_RERUN_RECONCILIATION_REQUIRED",
     "live_orders_blocked": true
   },
   "reconciliation_recovery_summary": {
@@ -261,7 +261,7 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 92050,
+    "observed_span_seconds": 91827,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 60,
@@ -300,7 +300,7 @@
         "label": "Runtime artifact pressure",
         "status": "WARN",
         "value_display": "WARN",
-        "detail": "Runtime artifact pressure WARN: files=408, bytes=3505001, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
+        "detail": "Runtime artifact pressure WARN: files=408, bytes=3506492, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -348,7 +348,7 @@
     "source": "heartbeat.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 92050,
+    "observed_span_seconds": 91827,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 0,
@@ -1445,11 +1445,11 @@
     "source_runtime_cycle_id": null,
     "source_paper_ledger_head_hash": null,
     "source_snapshot_hash": null,
-    "source_snapshot_status": "UNTESTED",
+    "source_snapshot_status": "BLOCKED",
     "source_snapshot_generated_at_utc": null,
     "source_snapshot_age_seconds": null,
     "source_snapshot_stale_after_seconds": null,
-    "source_snapshot_freshness_message": "Configured PAPER capital is 1,000,000 KRW; current cash and equity require a fresh verified simulated ledger snapshot.",
+    "source_snapshot_freshness_message": "Configured PAPER capital is 1,000,000 KRW; ledger provenance recheck is PASS, but portfolio current evidence remains blocked by BLOCKED_BY_POST_RERUN_CLOSURE.",
     "source_balance_kind": null,
     "configured_paper_capital": {
       "card_id": "configured_paper_capital",
@@ -1462,14 +1462,14 @@
       "card_id": "cash",
       "label": "Cash",
       "value_display": "UNVERIFIED",
-      "detail": "Configured PAPER capital is 1,000,000 KRW; cash remains unverified until a fresh PAPER ledger snapshot is loaded.",
+      "detail": "Configured PAPER capital is 1,000,000 KRW; cash is not promoted to current evidence because portfolio recheck status is LEDGER_PROVENANCE_PASS_BUT_OPERATOR_CURRENT_EVIDENCE_BLOCKED.",
       "freshness_status": "UNTESTED"
     },
     "equity": {
       "card_id": "equity",
       "label": "Equity",
       "value_display": "UNVERIFIED",
-      "detail": "Configured PAPER capital is 1,000,000 KRW; equity remains unverified until a fresh PAPER ledger snapshot is loaded.",
+      "detail": "Configured PAPER capital is 1,000,000 KRW; equity is not promoted to current evidence because portfolio recheck status is LEDGER_PROVENANCE_PASS_BUT_OPERATOR_CURRENT_EVIDENCE_BLOCKED.",
       "freshness_status": "UNTESTED"
     },
     "locked_cash": {
@@ -1521,8 +1521,8 @@
       "detail": "No verified return source loaded",
       "freshness_status": "UNTESTED"
     },
-    "blocking_reason": "HARD_TRUTH_MISSING",
-    "next_action": "Run PAPER with a fresh verified simulated ledger; configured PAPER capital is not exchange balance.",
+    "blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
+    "next_action": "Resolve post-rerun reconciliation before treating configured PAPER capital or ledger provenance as current portfolio cash/equity.",
     "display_only": true,
     "dashboard_truth_only": true,
     "live_order_ready": false,
@@ -1587,5 +1587,5 @@
   "blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "82E07E918395983B87001DFBB35BE9F0175012CE2E79AA146988042B198D38AD"
+  "dashboard_hash": "1011D7014A6853A6004F029FC31EDF0052757C3DB65C73D3967B3F70646A7E36"
 }
