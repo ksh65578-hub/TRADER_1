@@ -7049,6 +7049,10 @@ def upbit_paper_post_rerun_operator_reconciliation_queue_validator() -> Validato
     required = set(schema.get("required", []))
     for field in (
         "source_promotion_guard_hash",
+        "source_promotion_guard_file_load_status",
+        "source_promotion_guard_file_hash",
+        "source_promotion_guard_file_recomputed_hash",
+        "source_promotion_guard_file_hash_match",
         "source_promotion_guard_status",
         "queue_item_count",
         "operator_reconciliation_required_count",
@@ -7162,7 +7166,9 @@ def upbit_paper_post_rerun_operator_reconciliation_queue_validator() -> Validato
                 paths,
                 guard_result.blocker_code or "UNKNOWN_BLOCKED",
             )
+        source_guard_path = write_upbit_paper_post_rerun_current_evidence_promotion_guard_report(root=root, report=promotion_guard)
         report = build_upbit_paper_post_rerun_operator_reconciliation_queue_report(
+            root=root,
             promotion_guard_report=promotion_guard,
         )
         result = validate_upbit_paper_post_rerun_operator_reconciliation_queue_report(report)
@@ -7176,6 +7182,10 @@ def upbit_paper_post_rerun_operator_reconciliation_queue_validator() -> Validato
         if (
             report.get("queue_status") != "BLOCKED"
             or report.get("primary_blocker_code") != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
+            or report.get("source_promotion_guard_file_load_status") != "PASS"
+            or report.get("source_promotion_guard_file_hash") != report.get("source_promotion_guard_hash")
+            or report.get("source_promotion_guard_file_recomputed_hash") != report.get("source_promotion_guard_hash")
+            or report.get("source_promotion_guard_file_hash_match") is not True
             or report.get("queue_item_count") != 1
             or report.get("operator_reconciliation_required_count") != 1
             or report.get("review_ready_reconciliation_item_count") != 1
@@ -7193,6 +7203,24 @@ def upbit_paper_post_rerun_operator_reconciliation_queue_validator() -> Validato
                 paths,
                 "MEASUREMENT_MISSING",
             )
+        source_guard_path.unlink()
+        missing_source_report = build_upbit_paper_post_rerun_operator_reconciliation_queue_report(
+            root=root,
+            promotion_guard_report=promotion_guard,
+        )
+        missing_source_result = validate_upbit_paper_post_rerun_operator_reconciliation_queue_report(missing_source_report)
+        if (
+            missing_source_result.status != "BLOCKED"
+            or missing_source_result.blocker_code != POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE
+            or missing_source_report.get("source_promotion_guard_file_load_status") != "MISSING"
+        ):
+            return fail_result(
+                "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
+                "missing source promotion guard artifact was not blocked",
+                paths,
+                missing_source_result.blocker_code or POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+            )
+        write_upbit_paper_post_rerun_current_evidence_promotion_guard_report(root=root, report=promotion_guard)
         if current_ledger_path.exists():
             return fail_result(
                 "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
@@ -7410,7 +7438,9 @@ def upbit_paper_post_rerun_reconciliation_decision_audit_validator() -> Validato
             root=root,
             post_rerun_reconciliation_report=source_report,
         )
+        write_upbit_paper_post_rerun_current_evidence_promotion_guard_report(root=root, report=promotion_guard)
         operator_queue = build_upbit_paper_post_rerun_operator_reconciliation_queue_report(
+            root=root,
             promotion_guard_report=promotion_guard,
         )
         queue_result = validate_upbit_paper_post_rerun_operator_reconciliation_queue_report(operator_queue)
@@ -7673,7 +7703,9 @@ def upbit_paper_post_rerun_reconciliation_blocker_rollup_validator() -> Validato
             root=root,
             post_rerun_reconciliation_report=source_report,
         )
+        write_upbit_paper_post_rerun_current_evidence_promotion_guard_report(root=root, report=promotion_guard)
         operator_queue = build_upbit_paper_post_rerun_operator_reconciliation_queue_report(
+            root=root,
             promotion_guard_report=promotion_guard,
         )
         decision_audit = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(
@@ -7940,7 +7972,9 @@ def upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator() -
             root=root,
             post_rerun_reconciliation_report=source_report,
         )
+        write_upbit_paper_post_rerun_current_evidence_promotion_guard_report(root=root, report=promotion_guard)
         operator_queue = build_upbit_paper_post_rerun_operator_reconciliation_queue_report(
+            root=root,
             promotion_guard_report=promotion_guard,
         )
         decision_audit = build_upbit_paper_post_rerun_reconciliation_decision_audit_report(

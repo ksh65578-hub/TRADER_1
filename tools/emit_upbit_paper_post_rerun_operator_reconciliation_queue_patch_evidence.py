@@ -103,6 +103,7 @@ def write_runtime_report() -> dict[str, Any]:
             f"{guard_result.status} {guard_result.blocker_code} {guard_result.message}"
         )
     report = build_upbit_paper_post_rerun_operator_reconciliation_queue_report(
+        root=ROOT,
         promotion_guard_report=guard,
         queue_id="mvp4-upbit-paper-post-rerun-operator-reconciliation-queue",
     )

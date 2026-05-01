@@ -17,6 +17,10 @@
     "queue_role",
     "source_promotion_guard_path",
     "source_promotion_guard_hash",
+    "source_promotion_guard_file_load_status",
+    "source_promotion_guard_file_hash",
+    "source_promotion_guard_file_recomputed_hash",
+    "source_promotion_guard_file_hash_match",
     "source_promotion_guard_status",
     "source_promotion_guard_primary_blocker_code",
     "source_promotion_review_ready_count",
@@ -64,6 +68,12 @@
     "queue_role": {"const": "PAPER_POST_RERUN_RECONCILIATION_OPERATOR_QUEUE_NOT_CURRENT_EVIDENCE"},
     "source_promotion_guard_path": {"type": "string", "minLength": 1},
     "source_promotion_guard_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+    "source_promotion_guard_file_load_status": {
+      "enum": ["PASS", "MISSING", "INVALID_UTF8", "INVALID_JSON", "NOT_OBJECT", "HASH_MISMATCH", "SCOPE_MISMATCH", "UNKNOWN"]
+    },
+    "source_promotion_guard_file_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+    "source_promotion_guard_file_recomputed_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+    "source_promotion_guard_file_hash_match": {"type": "boolean"},
     "source_promotion_guard_status": {"const": "BLOCKED"},
     "source_promotion_guard_primary_blocker_code": {"const": "POST_RERUN_RECONCILIATION_REQUIRED"},
     "source_promotion_review_ready_count": {"type": "integer", "minimum": 0},
