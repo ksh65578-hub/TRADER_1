@@ -1,14 +1,14 @@
-# MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT
+# MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_GUARD
 
-context_pack_id: MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT
+context_pack_id: MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_GUARD
 task_class: MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT_REVIEW_ONLY
 source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
 source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
 included_section_ids: ["SECTION_DASHBOARD_OPERATOR_UX", "SECTION_UPBIT_PAPER_RUNTIME", "SECTION_LEDGER_RECONCILIATION", "SECTION_LIVE_FINAL_GUARD"]
-included_requirement_ids: ["REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RESOLUTION-AUDIT"]
+included_requirement_ids: ["REQ-MVP4-UPBIT-PAPER-POST-RERUN-RESOLUTION-AUDIT-SOURCE-BINDING-GUARD"]
 included_schema_ids: ["trader1.patch_result.v1", "trader1.upbit_paper_post_rerun_operator_resolution_audit_report.v1"]
 included_validator_ids: ["schema_validator", "registry_validator", "runtime_schema_instance_validator", "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator", "upbit_paper_post_rerun_reconciliation_decision_audit_validator", "upbit_paper_post_rerun_operator_resolution_audit_validator", "patch_result_schema_validator", "patch_result_runtime_schema_instance_validator", "generated_artifact_dirty_validator", "source_bundle_hygiene_validator", "shipped_package_hygiene_validator", "secret_scan_validator", "coverage_index_validator", "live_final_guard_validator"]
-included_artifact_ids: ["contracts/registry.yaml", "contracts/schema/patch_result.schema.json", "contracts/schema/upbit_paper_post_rerun_operator_resolution_audit_report.schema.json", "trader1/runtime/paper/upbit_paper_post_rerun_operator_resolution_audit.py", "trader1/validation/mvp0_validators.py", "tests/runtime/test_upbit_paper_post_rerun_operator_resolution_audit.py", "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json", "contracts/security/source_bundle_manifest.json", "tools/emit_upbit_paper_post_rerun_operator_resolution_audit_patch_evidence.py", "contracts/generated/context_pack/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT.md"]
+included_artifact_ids: ["contracts/registry.yaml", "contracts/schema/patch_result.schema.json", "contracts/schema/upbit_paper_post_rerun_operator_resolution_audit_report.schema.json", "trader1/runtime/paper/upbit_paper_post_rerun_operator_resolution_audit.py", "trader1/validation/mvp0_validators.py", "tests/runtime/test_upbit_paper_post_rerun_operator_resolution_audit.py", "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json", "contracts/security/source_bundle_manifest.json", "tools/emit_upbit_paper_post_rerun_operator_resolution_audit_patch_evidence.py", "tools/emit_upbit_paper_post_rerun_resolution_audit_source_binding_guard_patch_evidence.py", "contracts/generated/context_pack/MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_GUARD.md"]
 
 acceptance_checklist:
 - The audit consumes validated post-rerun review guidance and decision-audit reports only.
@@ -39,4 +39,4 @@ runtime_summary:
 
 conflict_resolution_rule:
 TRADER_1.md active authority wins over this context pack. This context pack is a read cache only.
-generated_at_utc: 2026-05-01T20:24:58Z
+generated_at_utc: 2026-05-01T20:26:50Z

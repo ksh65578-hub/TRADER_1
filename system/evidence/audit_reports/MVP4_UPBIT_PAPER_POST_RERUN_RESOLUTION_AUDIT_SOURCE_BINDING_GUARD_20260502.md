@@ -1,7 +1,7 @@
 # MVP4 Upbit PAPER Post-Rerun Operator Resolution Audit
 
-created_at_utc: 2026-05-01T20:24:58Z
-patch_id: MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT_20260502_001
+created_at_utc: 2026-05-01T20:26:50Z
+patch_id: MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_GUARD_20260502_001
 
 Finding:
 - Post-rerun guidance was dashboard-visible, but the system still needed a separate review-only audit proving that operator resolution is not accepted while reconciliation evidence is missing.
@@ -14,6 +14,10 @@ Patch:
 Runtime summary:
 - resolution_audit_status: UNRESOLVED_RECONCILIATION_REVIEW_ONLY
 - primary_blocker_code: POST_RERUN_RECONCILIATION_REQUIRED
+- source_review_guidance_file_load_status: PASS
+- source_review_guidance_file_hash_match: True
+- source_decision_audit_file_load_status: PASS
+- source_decision_audit_file_hash_match: True
 - unresolved_item_count: 8
 - resolved_item_count: 0
 - resolution_control_count: 4
