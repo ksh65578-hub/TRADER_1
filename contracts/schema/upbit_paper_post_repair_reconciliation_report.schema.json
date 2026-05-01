@@ -24,6 +24,8 @@
     "candidate_rollup_blocked_count",
     "source_loop_expected_rollup_hash_match_count",
     "source_loop_expected_rollup_hash_mismatch_count",
+    "hash_reconciliation_status_counts",
+    "hash_reconciliation_operator_action_required_count",
     "candidate_current_evidence_usable_count",
     "candidate_current_evidence_blocked_count",
     "post_repair_reconciliation_status",
@@ -68,6 +70,19 @@
     "candidate_rollup_blocked_count": {"type": "integer", "minimum": 0},
     "source_loop_expected_rollup_hash_match_count": {"type": "integer", "minimum": 0},
     "source_loop_expected_rollup_hash_mismatch_count": {"type": "integer", "minimum": 0},
+    "hash_reconciliation_status_counts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hash_reconciliation_status", "count"],
+        "properties": {
+          "hash_reconciliation_status": {"type": "string", "minLength": 1},
+          "count": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "hash_reconciliation_operator_action_required_count": {"type": "integer", "minimum": 0},
     "candidate_current_evidence_usable_count": {"const": 0},
     "candidate_current_evidence_blocked_count": {"type": "integer", "minimum": 0},
     "post_repair_reconciliation_status": {"const": "BLOCKED"},
@@ -83,8 +98,13 @@
           "replacement_path",
           "source_loop_expected_rollup_path",
           "source_loop_expected_rollup_hash",
+          "source_loop_expected_rollup_artifact_exists",
+          "source_loop_expected_rollup_artifact_load_status",
+          "source_loop_expected_rollup_recomputed_hash",
           "candidate_rollup_artifact_path",
           "candidate_rollup_hash",
+          "candidate_rollup_recomputed_hash",
+          "candidate_rollup_hash_self_check",
           "candidate_rollup_validator_status",
           "candidate_rollup_validator_blocker_code",
           "candidate_rollup_status",
@@ -92,6 +112,9 @@
           "candidate_ledger_event_count",
           "candidate_filled_order_count",
           "source_loop_expected_rollup_hash_match",
+          "hash_reconciliation_status",
+          "hash_reconciliation_blocker_code",
+          "hash_reconciliation_requires_operator_action",
           "candidate_current_evidence_usable",
           "candidate_classification",
           "item_blocker_code",
@@ -107,8 +130,13 @@
           "replacement_path": {"type": "string", "minLength": 1},
           "source_loop_expected_rollup_path": {"type": "string", "minLength": 1},
           "source_loop_expected_rollup_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+          "source_loop_expected_rollup_artifact_exists": {"type": "boolean"},
+          "source_loop_expected_rollup_artifact_load_status": {"type": "string", "minLength": 1},
+          "source_loop_expected_rollup_recomputed_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
           "candidate_rollup_artifact_path": {"type": "string", "minLength": 1},
           "candidate_rollup_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+          "candidate_rollup_recomputed_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+          "candidate_rollup_hash_self_check": {"enum": ["PASS", "FAIL"]},
           "candidate_rollup_validator_status": {"enum": ["PASS", "BLOCKED", "FAIL"]},
           "candidate_rollup_validator_blocker_code": {"type": ["string", "null"]},
           "candidate_rollup_status": {"enum": ["PASS", "BLOCKED", null]},
@@ -116,6 +144,20 @@
           "candidate_ledger_event_count": {"type": ["integer", "null"], "minimum": 0},
           "candidate_filled_order_count": {"type": ["integer", "null"], "minimum": 0},
           "source_loop_expected_rollup_hash_match": {"type": "boolean"},
+          "hash_reconciliation_status": {
+            "enum": [
+              "MATCH",
+              "CANDIDATE_HASH_SELF_CHECK_FAIL",
+              "SOURCE_EXPECTED_HASH_MISSING",
+              "SOURCE_EXPECTED_ROLLUP_ARTIFACT_MISSING",
+              "SOURCE_EXPECTED_ROLLUP_ARTIFACT_UNREADABLE",
+              "SOURCE_EXPECTED_ROLLUP_HASH_STALE",
+              "SOURCE_EXPECTED_ROLLUP_HASH_MISMATCH",
+              "UNKNOWN"
+            ]
+          },
+          "hash_reconciliation_blocker_code": {"type": ["string", "null"]},
+          "hash_reconciliation_requires_operator_action": {"type": "boolean"},
           "candidate_current_evidence_usable": {"const": false},
           "candidate_classification": {
             "enum": [

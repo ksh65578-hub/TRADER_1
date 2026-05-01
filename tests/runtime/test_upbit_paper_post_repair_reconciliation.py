@@ -87,10 +87,17 @@ class UpbitPaperPostRepairReconciliationTest(unittest.TestCase):
         self.assertEqual(report["repair_candidate_count"], 1)
         self.assertEqual(report["candidate_rollup_pass_count"], 1)
         self.assertEqual(report["source_loop_expected_rollup_hash_mismatch_count"], 1)
+        self.assertEqual(report["hash_reconciliation_operator_action_required_count"], 1)
         self.assertEqual(report["candidate_current_evidence_usable_count"], 0)
         self.assertIn(REPAIR_CANDIDATE_HASH_MISMATCH_BLOCKER_CODE, report["blocker_codes"])
         item = report["items"][0]
         self.assertEqual(item["candidate_classification"], "REPAIR_CANDIDATE_BLOCKED_HASH_MISMATCH")
+        self.assertEqual(item["candidate_rollup_hash_self_check"], "PASS")
+        self.assertEqual(item["candidate_rollup_recomputed_hash"], item["candidate_rollup_hash"])
+        self.assertEqual(item["hash_reconciliation_status"], "SOURCE_EXPECTED_ROLLUP_ARTIFACT_MISSING")
+        self.assertEqual(item["hash_reconciliation_blocker_code"], REPAIR_CANDIDATE_HASH_MISMATCH_BLOCKER_CODE)
+        self.assertTrue(item["hash_reconciliation_requires_operator_action"])
+        self.assertFalse(item["source_loop_expected_rollup_artifact_exists"])
         self.assertFalse(item["candidate_current_evidence_usable"])
         self.assertFalse(item["current_evidence_mutation_allowed"])
         self.assertFalse(report["live_order_ready"])
@@ -122,6 +129,17 @@ class UpbitPaperPostRepairReconciliationTest(unittest.TestCase):
         count_result = validate_upbit_paper_post_repair_reconciliation_report(count_tamper)
         self.assertEqual(count_result.status, "FAIL")
         self.assertEqual(count_result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+        hash_tamper = json.loads(json.dumps(report))
+        hash_tamper["items"][0]["hash_reconciliation_status"] = "MATCH"
+        hash_tamper["items"][0]["hash_reconciliation_blocker_code"] = None
+        hash_tamper["items"][0]["hash_reconciliation_requires_operator_action"] = False
+        hash_tamper["hash_reconciliation_status_counts"] = [{"hash_reconciliation_status": "MATCH", "count": 1}]
+        hash_tamper["hash_reconciliation_operator_action_required_count"] = 0
+        hash_tamper["post_repair_reconciliation_hash"] = upbit_paper_post_repair_reconciliation_hash(hash_tamper)
+        hash_result = validate_upbit_paper_post_repair_reconciliation_report(hash_tamper)
+        self.assertEqual(hash_result.status, "FAIL")
+        self.assertEqual(hash_result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_rejects_missing_hash_mismatch_blocker(self):
         _, repair_report = self._repair_report()

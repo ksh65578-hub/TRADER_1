@@ -12,7 +12,14 @@
   "credential_load_attempted": false,
   "current_evidence_mutation_allowed": false,
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-01T04:26:34Z",
+  "generated_at_utc": "2026-05-01T11:34:43Z",
+  "hash_reconciliation_operator_action_required_count": 1,
+  "hash_reconciliation_status_counts": [
+    {
+      "count": 1,
+      "hash_reconciliation_status": "SOURCE_EXPECTED_ROLLUP_ARTIFACT_MISSING"
+    }
+  ],
   "items": [
     {
       "candidate_classification": "REPAIR_CANDIDATE_BLOCKED_HASH_MISMATCH",
@@ -33,7 +40,7 @@
         "duplicate_order_count": 0,
         "exchange": "UPBIT",
         "filled_order_count": 1,
-        "generated_at_utc": "2026-05-01T03:57:08Z",
+        "generated_at_utc": "2026-05-01T11:34:43Z",
         "invalid_ledger_jsonl_count": 0,
         "latest_ledger_head_hash": "BD30D25DB4E7AF4FB94A4FA6647CC93F8F57773ACEC64D909BA9E88D01E84986",
         "ledger_event_count": 6,
@@ -53,7 +60,7 @@
           "display_balance_kind": "SIMULATED_PAPER_LEDGER",
           "equity": "999997.25",
           "exchange": "UPBIT",
-          "generated_at_utc": "2026-05-01T03:57:08Z",
+          "generated_at_utc": "2026-05-01T11:34:43Z",
           "live_order_allowed": false,
           "live_order_ready": false,
           "locked_balance": "0",
@@ -82,7 +89,7 @@
           "return_pct": "-0.000275",
           "schema_id": "trader1.paper_portfolio_snapshot.v1",
           "session_id": "mvp1_upbit_paper_launcher",
-          "snapshot_hash": "B88AE9734E4C076CB3DC5059223EEB3C53BE6399EF2F61DE4BFCDD716CBF7DE2",
+          "snapshot_hash": "FCAD2175A04819071A3A292219C7894E95DFE47AF862D3CCCCA3C853F0ACBCF3",
           "snapshot_status": "PASS",
           "source": "PAPER_LEDGER_ROLLUP",
           "source_paper_ledger_head_hash": "BD30D25DB4E7AF4FB94A4FA6647CC93F8F57773ACEC64D909BA9E88D01E84986",
@@ -95,7 +102,7 @@
         "primary_blocker_code": null,
         "project_id": "TRADER_1",
         "promotion_eligible": false,
-        "rollup_hash": "28FC3F061D8DF42E874BD4A4C0C76EC264C610CEF5E205BA0198D186E421894F",
+        "rollup_hash": "A7BE6F8F5F4935580F284B45B259F33F9FC4C90AA4A237B304FFCDCF259ABB9E",
         "rollup_id": "mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema-repair-candidate",
         "rollup_status": "PASS",
         "scale_up_allowed": false,
@@ -103,11 +110,16 @@
         "session_id": "mvp1_upbit_paper_launcher"
       },
       "candidate_rollup_artifact_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/repairs/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.ledger_rollup_candidate.json",
-      "candidate_rollup_hash": "28FC3F061D8DF42E874BD4A4C0C76EC264C610CEF5E205BA0198D186E421894F",
+      "candidate_rollup_hash": "A7BE6F8F5F4935580F284B45B259F33F9FC4C90AA4A237B304FFCDCF259ABB9E",
+      "candidate_rollup_hash_self_check": "PASS",
+      "candidate_rollup_recomputed_hash": "A7BE6F8F5F4935580F284B45B259F33F9FC4C90AA4A237B304FFCDCF259ABB9E",
       "candidate_rollup_status": "PASS",
       "candidate_rollup_validator_blocker_code": null,
       "candidate_rollup_validator_status": "PASS",
       "current_evidence_mutation_allowed": false,
+      "hash_reconciliation_blocker_code": "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+      "hash_reconciliation_requires_operator_action": true,
+      "hash_reconciliation_status": "SOURCE_EXPECTED_ROLLUP_ARTIFACT_MISSING",
       "item_blocker_code": "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
       "live_permission_created": false,
       "persistent_loop_mutation_allowed": false,
@@ -115,9 +127,12 @@
       "replacement_loop_id": "mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema",
       "replacement_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.persistent_loop_report.json",
       "source_delete_allowed": false,
+      "source_loop_expected_rollup_artifact_exists": false,
+      "source_loop_expected_rollup_artifact_load_status": "MISSING",
       "source_loop_expected_rollup_hash": "55A9A44BA78671F808FA197A2E0A387E9B87C4EA490FA1C70D944083F6BBACF1",
       "source_loop_expected_rollup_hash_match": false,
-      "source_loop_expected_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.synthetic_ledger_rollup_missing.json"
+      "source_loop_expected_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-ledger-jsonl-recovery-ui-refresh-regenerated-current-schema.synthetic_ledger_rollup_missing.json",
+      "source_loop_expected_rollup_recomputed_hash": null
     }
   ],
   "live_key_loaded": false,
@@ -130,7 +145,7 @@
   "order_adapter_called": false,
   "order_endpoint_called": false,
   "persistent_loop_mutation_allowed": false,
-  "post_repair_reconciliation_hash": "FEBE82061477AD4DC8C680943D61DED7BAEFACBC086812D1F5EB3FCB8151CAD8",
+  "post_repair_reconciliation_hash": "21F41AD7F375A1D6A8B92F721E1754B6541C14677102BD58B13C7E3DCB8C7865",
   "post_repair_reconciliation_id": "upbit-paper-post-repair-reconciliation",
   "post_repair_reconciliation_status": "BLOCKED",
   "primary_blocker_code": "POST_REPAIR_RECONCILIATION_REQUIRED",
@@ -146,7 +161,7 @@
   "source_loop_expected_rollup_hash_match_count": 0,
   "source_loop_expected_rollup_hash_mismatch_count": 1,
   "source_repair_primary_blocker_code": "POST_REPAIR_RECONCILIATION_REQUIRED",
-  "source_repair_report_hash": "1ACC49946541560BBF4B93D48572F2453F9203D5FBC5B55CE2B38D7988702CED",
+  "source_repair_report_hash": "19742A69B95A869887452C2B7425357060C63D5086F1928791F5158A41DD5FC3",
   "source_repair_report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_ledger_rollup_repair_report.json",
   "source_repair_report_status": "BLOCKED",
   "truth_role": "paper_runtime_post_repair_reconciliation_truth"

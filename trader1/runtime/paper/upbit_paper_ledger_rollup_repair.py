@@ -9,6 +9,7 @@ from typing import Any
 
 from trader1.runtime.ledger.paper_ledger_rollup import (
     build_paper_ledger_rollup_report,
+    paper_ledger_rollup_hash,
     validate_paper_ledger_rollup_report,
 )
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
@@ -21,6 +22,7 @@ from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_js
 UPBIT_PAPER_LEDGER_ROLLUP_REPAIR_SCHEMA_ID = "trader1.upbit_paper_ledger_rollup_repair_report.v1"
 LEDGER_ROLLUP_REPAIR_ARTIFACT_ROLE = "LEDGER_ROLLUP_REPAIR_CANDIDATE_NOT_CURRENT_EVIDENCE"
 LEDGER_ROLLUP_REPAIR_BLOCKER_CODE = "POST_REPAIR_RECONCILIATION_REQUIRED"
+REPAIR_CANDIDATE_HASH_MISMATCH_BLOCKER_CODE = "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED"
 
 
 @dataclass(frozen=True)
@@ -79,6 +81,55 @@ def _safe_load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     return value, None
 
 
+def _expected_rollup_artifact_state(*, root: Path, session_id: str, expected_rollup_path: str) -> tuple[bool, str, str | None]:
+    if not expected_rollup_path:
+        return False, "MISSING_PATH", None
+    if not _artifact_path_allowed(expected_rollup_path, session_id):
+        return False, "PATH_SCOPE_MISMATCH", None
+    path = _rooted(root, expected_rollup_path)
+    exists = path.exists()
+    expected_rollup, load_error = _safe_load_json(path)
+    if expected_rollup is None:
+        return exists, str(load_error or "MISSING"), None
+    return exists, "PASS", paper_ledger_rollup_hash(expected_rollup)
+
+
+def _hash_reconciliation_status(
+    *,
+    source_loop_expected_hash: Any,
+    candidate_hash: Any,
+    candidate_recomputed_hash: str,
+    expected_artifact_exists: bool,
+    expected_artifact_load_status: str,
+    expected_artifact_recomputed_hash: str | None,
+) -> str:
+    if candidate_hash != candidate_recomputed_hash:
+        return "CANDIDATE_HASH_SELF_CHECK_FAIL"
+    if not isinstance(source_loop_expected_hash, str) or len(source_loop_expected_hash) != 64:
+        return "SOURCE_EXPECTED_HASH_MISSING"
+    if source_loop_expected_hash != candidate_hash:
+        if not expected_artifact_exists:
+            return "SOURCE_EXPECTED_ROLLUP_ARTIFACT_MISSING"
+        if expected_artifact_load_status != "PASS":
+            return "SOURCE_EXPECTED_ROLLUP_ARTIFACT_UNREADABLE"
+        if expected_artifact_recomputed_hash and expected_artifact_recomputed_hash != source_loop_expected_hash:
+            return "SOURCE_EXPECTED_ROLLUP_HASH_STALE"
+        return "SOURCE_EXPECTED_ROLLUP_HASH_MISMATCH"
+    if expected_artifact_load_status != "PASS":
+        return "SOURCE_EXPECTED_ROLLUP_ARTIFACT_UNREADABLE"
+    if expected_artifact_recomputed_hash != source_loop_expected_hash:
+        return "SOURCE_EXPECTED_ROLLUP_HASH_STALE"
+    return "MATCH"
+
+
+def _status_counts(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for item in items:
+        status = str(item.get("hash_reconciliation_status") or "UNKNOWN")
+        counts[status] = counts.get(status, 0) + 1
+    return [{"hash_reconciliation_status": status, "count": counts[status]} for status in sorted(counts)]
+
+
 def _cycle_ledger_path(root: Path, session_id: str, cycle_id: str) -> Path:
     return _runtime_base(root, session_id) / "ledger" / "cycles" / f"{cycle_id}.paper_ledger_events.jsonl"
 
@@ -112,6 +163,21 @@ def _build_repair_item(*, root: Path, session_id: str, plan_item: dict[str, Any]
     durable_atomic_write_json(candidate_artifact_path, candidate)
     source_loop_expected_hash = (replacement or {}).get("paper_ledger_rollup_hash")
     candidate_hash = candidate.get("rollup_hash")
+    candidate_recomputed_hash = paper_ledger_rollup_hash(candidate)
+    expected_exists, expected_load_status, expected_recomputed_hash = _expected_rollup_artifact_state(
+        root=root,
+        session_id=session_id,
+        expected_rollup_path=expected_rollup_path,
+    )
+    hash_reconciliation_status = _hash_reconciliation_status(
+        source_loop_expected_hash=source_loop_expected_hash,
+        candidate_hash=candidate_hash,
+        candidate_recomputed_hash=candidate_recomputed_hash,
+        expected_artifact_exists=expected_exists,
+        expected_artifact_load_status=expected_load_status,
+        expected_artifact_recomputed_hash=expected_recomputed_hash,
+    )
+    hash_reconciliation_blocker_code = None if hash_reconciliation_status == "MATCH" else REPAIR_CANDIDATE_HASH_MISMATCH_BLOCKER_CODE
     return {
         "replacement_loop_id": replacement_loop_id,
         "replacement_path": replacement_path,
@@ -124,12 +190,20 @@ def _build_repair_item(*, root: Path, session_id: str, plan_item: dict[str, Any]
         "missing_cycle_ledger_jsonl_paths": [_relative_posix(path, root) for path in missing_cycle_ledger_paths],
         "source_loop_expected_rollup_path": expected_rollup_path,
         "source_loop_expected_rollup_hash": source_loop_expected_hash,
+        "source_loop_expected_rollup_artifact_exists": expected_exists,
+        "source_loop_expected_rollup_artifact_load_status": expected_load_status,
+        "source_loop_expected_rollup_recomputed_hash": expected_recomputed_hash,
         "candidate_rollup_artifact_path": _relative_posix(candidate_artifact_path, root),
         "candidate_rollup_status": candidate.get("rollup_status"),
         "candidate_rollup_validator_status": candidate_result.status,
         "candidate_rollup_validator_blocker_code": candidate_result.blocker_code,
         "candidate_rollup_hash": candidate_hash,
+        "candidate_rollup_recomputed_hash": candidate_recomputed_hash,
+        "candidate_rollup_hash_self_check": "PASS" if candidate_hash == candidate_recomputed_hash else "FAIL",
         "source_loop_expected_rollup_hash_match": bool(source_loop_expected_hash and source_loop_expected_hash == candidate_hash),
+        "hash_reconciliation_status": hash_reconciliation_status,
+        "hash_reconciliation_blocker_code": hash_reconciliation_blocker_code,
+        "hash_reconciliation_requires_operator_action": hash_reconciliation_status != "MATCH",
         "candidate_ledger_jsonl_count": candidate.get("ledger_jsonl_count"),
         "candidate_ledger_event_count": candidate.get("ledger_event_count"),
         "candidate_filled_order_count": candidate.get("filled_order_count"),
@@ -162,6 +236,7 @@ def build_upbit_paper_ledger_rollup_repair_report(
     items = [_build_repair_item(root=root, session_id=session_id, plan_item=item) for item in repair_plan_items]
     candidate_pass_count = sum(1 for item in items if item.get("candidate_rollup_validator_status") == "PASS")
     source_hash_match_count = sum(1 for item in items if item.get("source_loop_expected_rollup_hash_match"))
+    hash_reconciliation_operator_action_required_count = sum(1 for item in items if item.get("hash_reconciliation_requires_operator_action"))
     blockers = [LEDGER_ROLLUP_REPAIR_BLOCKER_CODE]
     if plan_result.status != "PASS":
         blockers.append(plan_result.blocker_code or BLOCKED_REPAIR_PLAN_BLOCKER_CODE)
@@ -190,6 +265,8 @@ def build_upbit_paper_ledger_rollup_repair_report(
         "candidate_rollup_blocked_count": len(items) - candidate_pass_count,
         "source_loop_expected_rollup_hash_match_count": source_hash_match_count,
         "source_loop_expected_rollup_hash_mismatch_count": len(items) - source_hash_match_count,
+        "hash_reconciliation_status_counts": _status_counts(items),
+        "hash_reconciliation_operator_action_required_count": hash_reconciliation_operator_action_required_count,
         "remaining_non_ready_repair_item_count": int(repair_plan_report.get("repair_item_count") or 0) - len(items),
         "repair_report_status": "BLOCKED",
         "primary_blocker_code": LEDGER_ROLLUP_REPAIR_BLOCKER_CODE,
@@ -245,6 +322,8 @@ def validate_upbit_paper_ledger_rollup_repair_report(report: dict[str, Any]) -> 
         "candidate_rollup_blocked_count",
         "source_loop_expected_rollup_hash_match_count",
         "source_loop_expected_rollup_hash_mismatch_count",
+        "hash_reconciliation_status_counts",
+        "hash_reconciliation_operator_action_required_count",
         "remaining_non_ready_repair_item_count",
         "repair_report_status",
         "primary_blocker_code",
@@ -310,6 +389,12 @@ def validate_upbit_paper_ledger_rollup_repair_report(report: dict[str, Any]) -> 
         or report.get("source_loop_expected_rollup_hash_mismatch_count") != len(items) - hash_match_count
     ):
         return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair source hash rollup mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    expected_status_counts = _status_counts(items)
+    if report.get("hash_reconciliation_status_counts") != expected_status_counts:
+        return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair hash status rollup mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    required_operator_count = sum(1 for item in items if item.get("hash_reconciliation_requires_operator_action"))
+    if report.get("hash_reconciliation_operator_action_required_count") != required_operator_count:
+        return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair hash operator-action count mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("repair_report_status") != "BLOCKED" or report.get("primary_blocker_code") != LEDGER_ROLLUP_REPAIR_BLOCKER_CODE:
         return UpbitPaperLedgerRollupRepairValidationResult("BLOCKED", "ledger rollup repair must remain blocked until post-repair reconciliation", LEDGER_ROLLUP_REPAIR_BLOCKER_CODE)
     session_id = str(report.get("session_id"))
@@ -340,6 +425,32 @@ def validate_upbit_paper_ledger_rollup_repair_report(report: dict[str, Any]) -> 
             return UpbitPaperLedgerRollupRepairValidationResult("BLOCKED", candidate_result.message, candidate_result.blocker_code or "LEDGER_ROLLUP_BLOCKED")
         if candidate.get("rollup_hash") != item.get("candidate_rollup_hash"):
             return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair candidate hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        candidate_recomputed_hash = paper_ledger_rollup_hash(candidate)
+        if (
+            item.get("candidate_rollup_recomputed_hash") != candidate_recomputed_hash
+            or item.get("candidate_rollup_hash_self_check") != ("PASS" if candidate.get("rollup_hash") == candidate_recomputed_hash else "FAIL")
+        ):
+            return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair candidate hash self-check mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if not item.get("source_loop_expected_rollup_artifact_exists") and item.get("source_loop_expected_rollup_artifact_load_status") == "PASS":
+            return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair expected artifact existence mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if item.get("source_loop_expected_rollup_artifact_load_status") == "PASS":
+            expected_recomputed_hash = item.get("source_loop_expected_rollup_recomputed_hash")
+            if not isinstance(expected_recomputed_hash, str) or len(expected_recomputed_hash) != 64:
+                return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair expected artifact hash missing", "SCHEMA_IDENTITY_MISMATCH")
+        elif item.get("source_loop_expected_rollup_recomputed_hash") is not None:
+            return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair expected artifact hash set while unreadable", "SCHEMA_IDENTITY_MISMATCH")
+        if item.get("hash_reconciliation_status") == "MATCH":
+            if (
+                not item.get("source_loop_expected_rollup_hash_match")
+                or item.get("hash_reconciliation_blocker_code") is not None
+                or item.get("hash_reconciliation_requires_operator_action")
+            ):
+                return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair hash match status mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        elif (
+            item.get("hash_reconciliation_blocker_code") != REPAIR_CANDIDATE_HASH_MISMATCH_BLOCKER_CODE
+            or not item.get("hash_reconciliation_requires_operator_action")
+        ):
+            return UpbitPaperLedgerRollupRepairValidationResult("FAIL", "ledger rollup repair hash reconciliation blocker mismatch", "SCHEMA_IDENTITY_MISMATCH")
         if (
             candidate.get("ledger_jsonl_count") != item.get("candidate_ledger_jsonl_count")
             or candidate.get("ledger_event_count") != item.get("candidate_ledger_event_count")
