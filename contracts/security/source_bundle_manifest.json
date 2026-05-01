@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "1B83FB5524002FCA44E54834ED0322F12034C5DF64C317DCE4D4C6EB8F1F6050",
+      "sha256": "4CB6D9373CF10BDFF33A1106DBD0E540A7DE0393031048F0E09BBA3E55421520",
       "size_bytes": 1096
     },
     {
@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "47343E766D570F5608C40093C73EB2A5750C890B2B345A05340222DBADF78ACE",
-      "size_bytes": 115616
+      "sha256": "15E22EBE3EFE29194B25C30854EFDBF5B25706391883D27B68D34917A7520DBF",
+      "size_bytes": 117088
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -690,8 +690,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "DB71F9477FC702616745C56F0237E0301F5F7629568638E30AA8B8DFB67B5992",
-      "size_bytes": 192200
+      "sha256": "7D797E96802E79CB05462781448F4F2F9BA64AC9039E52BFA99252378468893C",
+      "size_bytes": 196996
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -3044,6 +3044,11 @@
       "size_bytes": 31981
     },
     {
+      "path": "tools/emit_upbit_paper_post_rerun_operator_blocker_dashboard_visibility_patch_evidence.py",
+      "sha256": "FB375CB4C76FC9456D663E1C5C6373EF2FAE8F1AF1EC9D842E702831AF494EB6",
+      "size_bytes": 33818
+    },
+    {
       "path": "tools/emit_upbit_paper_post_rerun_operator_reconciliation_queue_patch_evidence.py",
       "sha256": "C33A1174D2A893DB55A9DB425E95B3667367D7D4CF7498E7A914BA5FE95A643D",
       "size_bytes": 28608
@@ -3645,8 +3650,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "5CE39D469B83107ECFFF38F79144E5FC1219A95999BC036A85801C0534D85A9D",
-      "size_bytes": 530121
+      "sha256": "F566726879A4E72FF07AD148B5A4D4BF51E2D5B511BB0BCF086B4E3634FECEEA",
+      "size_bytes": 543324
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -3775,8 +3780,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "F0EA9768FEB6C84957975592E0ED52267B62BEEBFD61A7F78726EB301F0AF6D5",
-      "size_bytes": 54077
+      "sha256": "B368DF4987DCC063DCC076AD991C51416AD1A7019B234DB65A019EBDC7DFA4E5",
+      "size_bytes": 55558
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -4657,6 +4662,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_POST_RERUN_LEDGER_ROLLUP_RECONCILIATION.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_BLOCKER_DASHBOARD_VISIBILITY.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5932,6 +5941,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_BLOCKER_DASHBOARD_VISIBILITY_20260502.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RECONCILIATION_QUEUE_20260502.md",
       "reason": "denied:system/"
     },
@@ -7016,6 +7029,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_BLOCKER_DASHBOARD_VISIBILITY.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RECONCILIATION_QUEUE.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -8037,6 +8054,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_LEDGER_ROLLUP_RECONCILIATION.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_BLOCKER_DASHBOARD_VISIBILITY.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9069,6 +9090,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_POST_RERUN_LEDGER_ROLLUP_RECONCILIATION.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_BLOCKER_DASHBOARD_VISIBILITY.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10117,6 +10142,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_POST_RERUN_LEDGER_ROLLUP_RECONCILIATION.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_BLOCKER_DASHBOARD_VISIBILITY.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
