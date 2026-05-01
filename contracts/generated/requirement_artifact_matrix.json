@@ -2252,6 +2252,44 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-PORTFOLIO-TRUTH-RUNTIME-EVIDENCE",
+      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "schema_files": [
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_schema_instance_validation.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.audit.json"
+      ],
+      "dashboard_artifacts": [
+        "system/runtime/*/*/*/mvp1_*_launcher/dashboard_shell.json"
+      ],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-POSITION-DETAIL-TRUTH-GUARD",
       "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "schema_files": [
@@ -6919,6 +6957,40 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-SOURCE-RELEASE-BUNDLE-PATH-SECRET-GUARD",
+      "section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
+      "schema_files": [],
+      "validator_files": [
+        "trader1/security/source_bundle.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/security/test_source_bundle_security.py"
+      ],
+      "fixture_files": [
+        "contracts/security/source_bundle_denylist.json"
+      ],
+      "runtime_modules": [],
+      "evidence_artifacts": [
+        "contracts/security/source_bundle_manifest.json",
+        "system/evidence/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.patch_result.json",
+        "system/evidence/audit_reports/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.audit.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-STABILITY-HISTORY-DISTINCT-SNAPSHOT-GUARD",
       "section_id": "SECTION_LONG_RUN_OPERATION",
       "schema_files": [
@@ -8045,6 +8117,49 @@
       "status": "IMPLEMENTED_HASH_RECONCILIATION_EVIDENCE_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-REPAIR-OPERATOR-QUEUE",
+      "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "schema_files": [
+        "contracts/schema/upbit_paper_repair_operator_queue_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/runtime/paper/upbit_paper_repair_operator_queue.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_upbit_paper_repair_operator_queue.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_repair_operator_queue.py",
+        "trader1/runtime/paper/upbit_paper_blocked_repair_plan.py",
+        "trader1/runtime/paper/upbit_paper_ledger_rollup_repair.py",
+        "trader1/runtime/paper/upbit_paper_post_repair_reconciliation.py"
+      ],
+      "evidence_artifacts": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repair_operator_queue_report.json",
+        "system/evidence/MVP4_UPBIT_PAPER_REPAIR_OPERATOR_QUEUE.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_REPAIR_OPERATOR_QUEUE.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_REPAIR_OPERATOR_QUEUE.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_REPAIR_OPERATOR_QUEUE.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repair_operator_queue_report.json"
+      ],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_OPERATOR_VISIBLE_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-RUNTIME-CANDIDATE-LINKAGE-COST-MODEL",
       "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "schema_files": [
@@ -8904,118 +9019,6 @@
       "status": "IMPLEMENTED"
     },
     {
-      "requirement_id": "REQ-OPT-MVP0-SCAFFOLD",
-      "section_id": "SECTION_OPTIMIZER_SCOPE",
-      "schema_files": [
-        "contracts/schema/profit_optimizer_config.schema.json",
-        "contracts/schema/candidate_scorecard.schema.json",
-        "contracts/schema/optimizer_run_report.schema.json",
-        "contracts/schema/optimization_state.schema.json",
-        "contracts/schema/search_space_snapshot.schema.json",
-        "contracts/schema/parameter_narrowing_report.schema.json",
-        "contracts/schema/symbol_strategy_regime_fit_report.schema.json",
-        "contracts/schema/optimizer_feedback_report.schema.json",
-        "contracts/schema/overfit_diagnostic_report.schema.json",
-        "contracts/schema/optimizer_recommendation_report.schema.json",
-        "contracts/schema/optimizer_guardrail_report.schema.json"
-      ],
-      "validator_files": [
-        "contracts/validators/validator_registry.json"
-      ],
-      "test_files": [
-        "tests/contract/test_mvp0_contract_scaffold.py",
-        "tests/live_blocked/test_live_blocked_scaffold.py"
-      ],
-      "fixture_files": [],
-      "runtime_modules": [],
-      "evidence_artifacts": [
-        "system/evidence/MVP0_CONTRACT_BASELINE.evidence_manifest.json",
-        "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json"
-      ],
-      "dashboard_artifacts": [],
-      "patch_result_fields": [
-        "live_order_ready_after",
-        "live_order_allowed_after",
-        "can_live_trade_after",
-        "token_navigation_patch"
-      ],
-      "minimum_depth": "DEPTH_1_SCHEMA_AND_ARTIFACT_STRUCTURE",
-      "live_affecting": true,
-      "status": "SCAFFOLD_IMPLEMENTED"
-    },
-    {
-      "requirement_id": "REQ-MVP4-DASHBOARD-PORTFOLIO-TRUTH-RUNTIME-EVIDENCE",
-      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
-      "schema_files": [
-        "contracts/schema/read_only_dashboard_shell.schema.json"
-      ],
-      "validator_files": [
-        "trader1/dashboard/read_only_dashboard.py"
-      ],
-      "test_files": [
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/contract/test_schema_instance_validation.py"
-      ],
-      "fixture_files": [],
-      "runtime_modules": [
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/runtime/boot/safe_launcher.py"
-      ],
-      "evidence_artifacts": [
-        "system/evidence/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.evidence_manifest.json",
-        "system/evidence/patch_results/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.patch_result.json",
-        "system/evidence/audit_reports/MVP4_DASHBOARD_PORTFOLIO_TRUTH_RUNTIME_EVIDENCE.audit.json"
-      ],
-      "dashboard_artifacts": [
-        "system/runtime/*/*/*/mvp1_*_launcher/dashboard_shell.json"
-      ],
-      "patch_result_fields": [
-        "validators_run",
-        "tests_run",
-        "live_order_ready_after",
-        "live_order_allowed_after",
-        "can_live_trade_after",
-        "scale_up_allowed_after"
-      ],
-      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "live_affecting": true,
-      "status": "IMPLEMENTED_FAIL_CLOSED"
-    },
-    {
-      "requirement_id": "REQ-MVP4-SOURCE-RELEASE-BUNDLE-PATH-SECRET-GUARD",
-      "section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
-      "schema_files": [],
-      "validator_files": [
-        "trader1/security/source_bundle.py",
-        "trader1/validation/mvp0_validators.py"
-      ],
-      "test_files": [
-        "tests/security/test_source_bundle_security.py"
-      ],
-      "fixture_files": [
-        "contracts/security/source_bundle_denylist.json"
-      ],
-      "runtime_modules": [],
-      "evidence_artifacts": [
-        "contracts/security/source_bundle_manifest.json",
-        "system/evidence/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.evidence_manifest.json",
-        "system/evidence/patch_results/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.patch_result.json",
-        "system/evidence/audit_reports/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.audit.json"
-      ],
-      "dashboard_artifacts": [],
-      "patch_result_fields": [
-        "validators_run",
-        "tests_run",
-        "live_order_ready_after",
-        "live_order_allowed_after",
-        "can_live_trade_after",
-        "scale_up_allowed_after"
-      ],
-      "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
-      "live_affecting": true,
-      "status": "IMPLEMENTED_FAIL_CLOSED"
-    },
-    {
       "requirement_id": "REQ-MVP4-WINDOWS-RESTART-RECOVERY-ARTIFACT-PATH-GUARD",
       "section_id": "SECTION_RUNTIME_RECOVERY_RTO_ACTIVE",
       "schema_files": [
@@ -9054,9 +9057,49 @@
       "minimum_depth": "DEPTH_4_RUNTIME_INTEGRATION",
       "live_affecting": true,
       "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
+      "requirement_id": "REQ-OPT-MVP0-SCAFFOLD",
+      "section_id": "SECTION_OPTIMIZER_SCOPE",
+      "schema_files": [
+        "contracts/schema/profit_optimizer_config.schema.json",
+        "contracts/schema/candidate_scorecard.schema.json",
+        "contracts/schema/optimizer_run_report.schema.json",
+        "contracts/schema/optimization_state.schema.json",
+        "contracts/schema/search_space_snapshot.schema.json",
+        "contracts/schema/parameter_narrowing_report.schema.json",
+        "contracts/schema/symbol_strategy_regime_fit_report.schema.json",
+        "contracts/schema/optimizer_feedback_report.schema.json",
+        "contracts/schema/overfit_diagnostic_report.schema.json",
+        "contracts/schema/optimizer_recommendation_report.schema.json",
+        "contracts/schema/optimizer_guardrail_report.schema.json"
+      ],
+      "validator_files": [
+        "contracts/validators/validator_registry.json"
+      ],
+      "test_files": [
+        "tests/contract/test_mvp0_contract_scaffold.py",
+        "tests/live_blocked/test_live_blocked_scaffold.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [],
+      "evidence_artifacts": [
+        "system/evidence/MVP0_CONTRACT_BASELINE.evidence_manifest.json",
+        "system/evidence/patch_results/MVP0_CONTRACT_BASELINE.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "token_navigation_patch"
+      ],
+      "minimum_depth": "DEPTH_1_SCHEMA_AND_ARTIFACT_STRUCTURE",
+      "live_affecting": true,
+      "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-01T13:28:16Z",
+  "updated_at_utc": "2026-05-01T14:01:15Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
