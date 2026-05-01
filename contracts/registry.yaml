@@ -940,6 +940,10 @@
       "schema_id": "trader1.upbit_paper_post_rerun_reconciliation_blocker_rollup_report.v1",
       "path": "contracts/schema/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.schema.json"
     },
+    "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report": {
+      "schema_id": "trader1.upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.v1",
+      "path": "contracts/schema/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.schema.json"
+    },
     "evidence_manifest": {
       "schema_id": "trader1.evidence_manifest.v1",
       "path": "contracts/schema/evidence_manifest.schema.json"
@@ -1346,6 +1350,7 @@
       "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
       "upbit_paper_post_rerun_reconciliation_decision_audit_validator",
       "upbit_paper_post_rerun_reconciliation_blocker_rollup_validator",
+      "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "restart_recovery_validator",
       "upbit_operational_paper_gate_validator",
@@ -1419,6 +1424,7 @@
       "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
       "upbit_paper_post_rerun_reconciliation_decision_audit_validator",
       "upbit_paper_post_rerun_reconciliation_blocker_rollup_validator",
+      "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "restart_recovery_validator",
       "upbit_operational_paper_gate_validator",
@@ -1592,6 +1598,7 @@
       "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
       "upbit_paper_post_rerun_reconciliation_decision_audit_validator",
       "upbit_paper_post_rerun_reconciliation_blocker_rollup_validator",
+      "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
       "upbit_paper_runtime_recovery_guard_validator",
       "paper_ledger_rollup_validator",
       "upbit_live_review_preflight_validator",
