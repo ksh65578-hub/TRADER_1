@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from trader1.runtime.ledger.execution_ledger import build_ledger_event
 from trader1.runtime.ledger.paper_ledger_rollup import (
     build_paper_ledger_rollup_report,
     paper_ledger_rollup_hash,
@@ -31,6 +32,7 @@ class PaperLedgerRollupTest(unittest.TestCase):
             self.assertEqual(rollup["filled_order_count"], 2)
             self.assertEqual(rollup["duplicate_event_count"], 0)
             self.assertEqual(rollup["duplicate_order_count"], 0)
+            self.assertEqual(rollup["lifecycle_incomplete_order_count"], 0)
             self.assertEqual(rollup["portfolio_snapshot"]["source"], "PAPER_LEDGER_ROLLUP")
             self.assertEqual(
                 rollup["portfolio_snapshot"]["source_runtime_cycle_id"],
@@ -73,6 +75,91 @@ class PaperLedgerRollupTest(unittest.TestCase):
             self.assertEqual(result.status, "BLOCKED")
             self.assertEqual(result.blocker_code, "RECONCILIATION_REQUIRED")
             self.assertGreater(rollup["duplicate_event_count"], 0)
+            self.assertFalse(rollup["live_order_allowed"])
+
+    def test_rollup_blocks_filled_order_without_complete_lifecycle(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ledger_dir = (
+                root
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / "mvp1_upbit_paper_launcher"
+                / "ledger"
+                / "cycles"
+            )
+            ledger_dir.mkdir(parents=True)
+            intent = build_ledger_event(
+                event_id="incomplete-cycle-intent",
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                event_type="ORDER_INTENT_CREATED",
+                source="LOCAL",
+                dedup_key="intent:incomplete",
+                intent_id="intent-incomplete",
+                client_order_id="client-incomplete",
+                symbol="KRW-BTC",
+                side="BUY",
+            )
+            reservation = build_ledger_event(
+                event_id="incomplete-cycle-reserve",
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                event_type="BUDGET_RESERVED",
+                source="LOCAL",
+                dedup_key="reserve:incomplete",
+                previous_hash=intent["event_hash"],
+                intent_id="intent-incomplete",
+                client_order_id="client-incomplete",
+                symbol="KRW-BTC",
+                side="BUY",
+            )
+            filled = build_ledger_event(
+                event_id="incomplete-cycle-filled",
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                event_type="ORDER_FILLED",
+                source="LOCAL",
+                dedup_key="filled:incomplete",
+                previous_hash=reservation["event_hash"],
+                intent_id="intent-incomplete",
+                client_order_id="client-incomplete",
+                order_id="PAPER-client-incomplete",
+                symbol="KRW-BTC",
+                side="BUY",
+                quantity="0.001",
+                price="100000000",
+                fee_amount="50",
+                fee_asset="KRW",
+                balance_delta={"KRW": "-50"},
+                position_delta={"symbol": "KRW-BTC", "quantity": "0.001", "side": "BUY"},
+            )
+            ledger_path = ledger_dir / "incomplete-cycle.paper_ledger_events.jsonl"
+            ledger_path.write_text(
+                "\n".join(json.dumps(event, sort_keys=True) for event in (intent, reservation, filled)) + "\n",
+                encoding="utf-8",
+            )
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-lifecycle-incomplete",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "RECONCILIATION_REQUIRED")
+            self.assertEqual(rollup["lifecycle_incomplete_order_count"], 1)
+            self.assertEqual(rollup["invalid_ledger_jsonl_count"], 1)
             self.assertFalse(rollup["live_order_allowed"])
 
     def test_rollup_quarantines_partial_ledger_jsonl_and_blocks_resume_review(self):

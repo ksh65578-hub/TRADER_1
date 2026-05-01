@@ -116,6 +116,7 @@ from trader1.runtime.health.heartbeat import build_heartbeat, heartbeat_hash, va
 from trader1.runtime.health.runtime_resource_pressure import inspect_runtime_resource_pressure
 from trader1.runtime.health.stability_history import validate_stability_history
 from trader1.runtime.ledger.execution_ledger import (
+    build_ledger_event,
     build_minimal_intent_chain,
     ledger_event_hash,
     validate_ledger_chain,
@@ -3101,6 +3102,7 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
         "filled_order_count",
         "duplicate_event_count",
         "duplicate_order_count",
+        "lifecycle_incomplete_order_count",
         "corrupted_ledger_jsonl_quarantined_count",
         "invalid_ledger_jsonl_count",
         "portfolio_snapshot",
@@ -3135,6 +3137,8 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
             return fail_result("paper_ledger_rollup_validator", f"valid paper ledger rollup failed: {rollup_result.message}", paths, rollup_result.blocker_code or "UNKNOWN_BLOCKED")
         if rollup.get("ledger_jsonl_count") != 2 or rollup.get("filled_order_count") != 2:
             return fail_result("paper_ledger_rollup_validator", "paper ledger rollup did not aggregate both cycle ledgers", paths, "MEASUREMENT_MISSING")
+        if rollup.get("lifecycle_incomplete_order_count") != 0:
+            return fail_result("paper_ledger_rollup_validator", "valid paper ledger rollup reported incomplete order lifecycle", paths, "RECONCILIATION_REQUIRED")
         if rollup.get("portfolio_snapshot", {}).get("source") != "PAPER_LEDGER_ROLLUP":
             return fail_result("paper_ledger_rollup_validator", "paper ledger rollup portfolio source is not explicit", paths, "LIVE_FINAL_GUARD_FAILED")
         if rollup.get("live_order_allowed") or rollup.get("can_live_trade") or rollup.get("scale_up_allowed"):
@@ -3164,6 +3168,79 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
         duplicate_result = validate_paper_ledger_rollup_report(duplicate_rollup)
         if duplicate_result.status != "BLOCKED" or duplicate_result.blocker_code != "RECONCILIATION_REQUIRED":
             return fail_result("paper_ledger_rollup_validator", "cross-cycle duplicate ledger event was not blocked", paths, "RECONCILIATION_REQUIRED")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        ledger_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "ledger" / "cycles"
+        ledger_dir.mkdir(parents=True)
+        intent = build_ledger_event(
+            event_id="validator-incomplete-intent",
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="mvp1_upbit_paper_launcher",
+            event_type="ORDER_INTENT_CREATED",
+            source="LOCAL",
+            dedup_key="intent:validator-incomplete",
+            intent_id="intent-validator-incomplete",
+            client_order_id="client-validator-incomplete",
+            symbol="KRW-BTC",
+            side="BUY",
+        )
+        reservation = build_ledger_event(
+            event_id="validator-incomplete-reserve",
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="mvp1_upbit_paper_launcher",
+            event_type="BUDGET_RESERVED",
+            source="LOCAL",
+            dedup_key="reserve:validator-incomplete",
+            previous_hash=intent["event_hash"],
+            intent_id="intent-validator-incomplete",
+            client_order_id="client-validator-incomplete",
+            symbol="KRW-BTC",
+            side="BUY",
+        )
+        filled = build_ledger_event(
+            event_id="validator-incomplete-filled",
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="mvp1_upbit_paper_launcher",
+            event_type="ORDER_FILLED",
+            source="LOCAL",
+            dedup_key="filled:validator-incomplete",
+            previous_hash=reservation["event_hash"],
+            intent_id="intent-validator-incomplete",
+            client_order_id="client-validator-incomplete",
+            order_id="PAPER-client-validator-incomplete",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.001",
+            price="100000000",
+            fee_amount="50",
+            fee_asset="KRW",
+            balance_delta={"KRW": "-50"},
+            position_delta={"symbol": "KRW-BTC", "quantity": "0.001", "side": "BUY"},
+        )
+        incomplete_path = ledger_dir / "validator-incomplete.paper_ledger_events.jsonl"
+        incomplete_path.write_text(
+            "\n".join(json.dumps(event, sort_keys=True) for event in (intent, reservation, filled)) + "\n",
+            encoding="utf-8",
+        )
+        incomplete_rollup = build_paper_ledger_rollup_report(
+            root=root,
+            session_id="mvp1_upbit_paper_launcher",
+            rollup_id="validator-paper-ledger-rollup-incomplete-lifecycle",
+        )
+        incomplete_result = validate_paper_ledger_rollup_report(incomplete_rollup)
+        if (
+            incomplete_result.status != "BLOCKED"
+            or incomplete_result.blocker_code != "RECONCILIATION_REQUIRED"
+            or incomplete_rollup.get("lifecycle_incomplete_order_count") != 1
+        ):
+            return fail_result("paper_ledger_rollup_validator", "incomplete filled order lifecycle was not blocked", paths, "RECONCILIATION_REQUIRED")
 
     with TemporaryDirectory() as tmp:
         empty_rollup = build_paper_ledger_rollup_report(

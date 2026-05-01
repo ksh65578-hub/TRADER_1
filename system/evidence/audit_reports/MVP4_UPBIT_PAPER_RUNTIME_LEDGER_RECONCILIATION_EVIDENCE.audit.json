@@ -1,0 +1,25 @@
+{
+  "audit_schema_id": "trader1.upbit_paper_runtime_ledger_lifecycle_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "filled_order_lifecycle_constant": true,
+    "incomplete_lifecycle_counter": true,
+    "upbit_paper_ledger_blocks_incomplete_lifecycle": true,
+    "rollup_reports_lifecycle_count": true,
+    "schema_requires_lifecycle_count": true,
+    "negative_fixture_present": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "filled_order_without_complete_lifecycle",
+      "condition": "a hash-valid PAPER ledger could include ORDER_FILLED without submit/ack predecessors",
+      "impact": "portfolio rollup could count an execution whose order lifecycle was not proved",
+      "fix": "Upbit PAPER ledger validation and rollup evidence now count and block incomplete filled-order lifecycle chains"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

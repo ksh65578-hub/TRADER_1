@@ -4,6 +4,15 @@ from typing import Any
 
 from trader1.runtime.ledger.execution_ledger import build_ledger_event, build_minimal_intent_chain, validate_ledger_chain
 
+UPBIT_PAPER_FILLED_ORDER_REQUIRED_LIFECYCLE = (
+    "ORDER_INTENT_CREATED",
+    "BUDGET_RESERVED",
+    "ORDER_SUBMIT_STARTED",
+    "ORDER_SUBMITTED",
+    "ORDER_ACK_RECEIVED",
+    "ORDER_FILLED",
+)
+
 
 def build_upbit_paper_intent_chain(
     *,
@@ -117,6 +126,43 @@ def build_upbit_paper_fill_chain(
     return [*events, submit_started, submitted, ack, filled]
 
 
+def count_incomplete_upbit_paper_order_lifecycles(events: list[dict[str, Any]]) -> int:
+    events_by_client_order_id: dict[str, list[tuple[int, dict[str, Any]]]] = {}
+    for index, event in enumerate(events):
+        client_order_id = event.get("client_order_id")
+        if isinstance(client_order_id, str) and client_order_id:
+            events_by_client_order_id.setdefault(client_order_id, []).append((index, event))
+
+    incomplete_count = 0
+    for client_order_id, indexed_events in events_by_client_order_id.items():
+        ordered_types = [str(event.get("event_type")) for _, event in indexed_events]
+        if "ORDER_FILLED" not in ordered_types:
+            continue
+        missing = [event_type for event_type in UPBIT_PAPER_FILLED_ORDER_REQUIRED_LIFECYCLE if event_type not in ordered_types]
+        if missing:
+            incomplete_count += 1
+            continue
+        first_positions = {event_type: ordered_types.index(event_type) for event_type in UPBIT_PAPER_FILLED_ORDER_REQUIRED_LIFECYCLE}
+        if any(
+            first_positions[previous] > first_positions[current]
+            for previous, current in zip(
+                UPBIT_PAPER_FILLED_ORDER_REQUIRED_LIFECYCLE,
+                UPBIT_PAPER_FILLED_ORDER_REQUIRED_LIFECYCLE[1:],
+            )
+        ):
+            incomplete_count += 1
+            continue
+        filled_events = [event for _, event in indexed_events if event.get("event_type") == "ORDER_FILLED"]
+        if any(not event.get("order_id") for event in filled_events):
+            incomplete_count += 1
+            continue
+        filled_order_ids = {event.get("order_id") for event in filled_events}
+        if len(filled_order_ids) != len(filled_events):
+            incomplete_count += 1
+            continue
+    return incomplete_count
+
+
 def validate_upbit_paper_ledger(events: list[dict[str, Any]]) -> tuple[str, str | None, str]:
     result = validate_ledger_chain(events)
     if result.status != "PASS":
@@ -124,4 +170,11 @@ def validate_upbit_paper_ledger(events: list[dict[str, Any]]) -> tuple[str, str 
     for event in events:
         if event.get("exchange") != "UPBIT" or event.get("market_type") != "KRW_SPOT" or event.get("mode") != "PAPER":
             return "BLOCKED", "SNAPSHOT_SCOPE_MISMATCH", "paper ledger event scope mismatch"
+    incomplete_lifecycle_count = count_incomplete_upbit_paper_order_lifecycles(events)
+    if incomplete_lifecycle_count:
+        return (
+            "BLOCKED",
+            "RECONCILIATION_REQUIRED",
+            f"filled PAPER order lifecycle incomplete count={incomplete_lifecycle_count}",
+        )
     return "PASS", None, "paper ledger chain is scoped and hash-linked"

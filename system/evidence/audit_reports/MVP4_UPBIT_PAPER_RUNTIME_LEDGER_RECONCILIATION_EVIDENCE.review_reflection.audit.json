@@ -1,0 +1,70 @@
+{
+  "audit_schema_id": "trader1.upbit_paper_runtime_ledger_reconciliation_reaudit_reflection_audit.v1",
+  "generated_at_utc": "2026-05-01T12:03:06Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "PASS",
+  "review_files_processed_count": 0,
+  "review_files_deleted_count": 0,
+  "review_files_processed": [],
+  "review_theme_category_totals": {},
+  "review_gap_mapping": [
+    {
+      "gap": "ledger/reconciliation/idempotency runtime evidence",
+      "reflected_status": "IMPLEMENTED_THIS_PATCH_FOR_UPBIT_PAPER_ORDER_LIFECYCLE_COMPLETENESS",
+      "evidence": "filled PAPER orders now require intent/reserve/submit/submitted/ack/fill lifecycle evidence before rollup can pass"
+    },
+    {
+      "gap": "strategy/regime/cost model runtime linkage",
+      "reflected_status": "NEXT_ALLOWED_TASK",
+      "evidence": "MVP4_STRATEGY_REGIME_COST_RUNTIME_LINKAGE"
+    },
+    {
+      "gap": "Binance spot/futures executable runtime",
+      "reflected_status": "BLOCKED_SURFACE_ONLY",
+      "evidence": "kept out of scope for this Upbit PAPER patch"
+    },
+    {
+      "gap": "LIVE_READY/MICRO_LIVE positive promotion",
+      "reflected_status": "BLOCKED_EXTERNAL_EVIDENCE_AND_MVP5_PLUS",
+      "evidence": "no live flags, no credentials, no LIVE_ENABLING_PATCH"
+    }
+  ],
+  "runtime_artifacts": [
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-cycle-1.paper_ledger_events.jsonl",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-cycle-2.paper_ledger_events.jsonl",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/latest_paper_ledger_head.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-ledger-rollup.paper_ledger_rollup_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-collector-1.canonical_events.jsonl",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-collector-2.canonical_events.jsonl",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-collector-1.collection_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-collector-2.collection_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/latest_collection_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-collector-1.raw_candles.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-collector-2.raw_candles.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-cycle-1.runtime_cycle.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-cycle-2.runtime_cycle.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation-recovery-guard.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/mvp4-upbit-paper-runtime-ledger-lifecycle-reconciliation.persistent_loop_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+  ],
+  "validation": {
+    "schema_id": "trader1.review_plan_reflection_validation_result.v1",
+    "status": "PASS",
+    "blockers": [],
+    "review_files_count": 63,
+    "delete_ready_count": 0,
+    "deleted_after_reflection_count": 63,
+    "pending_reflection_count": 0,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
