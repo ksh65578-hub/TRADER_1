@@ -360,6 +360,21 @@
       "type": "integer",
       "minimum": 0
     },
+    "post_rerun_operator_reconciliation_queue_status": {
+      "type": "string"
+    },
+    "post_rerun_operator_reconciliation_queue_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_operator_reconciliation_required_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_review_ready_reconciliation_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
