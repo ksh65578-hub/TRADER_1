@@ -54,7 +54,7 @@
       "resolution_scope": "REVIEW_ONLY_POST_RERUN_RECONCILIATION_REQUIRED"
     }
   ],
-  "blocker_rollup_hash": "DEAB93BD73809281FF3AE71B2DFAD441618B9EDF178F8294C45923ED47BAB926",
+  "blocker_rollup_hash": "C5A183D996A55BC13627BBEC0C9226CAE958C6584EE6797B7D1BE47A6A2A0413",
   "blocker_rollup_role": "PAPER_POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_NOT_CURRENT_EVIDENCE",
   "blocker_rollup_status": "BLOCKED",
   "can_live_trade": false,
@@ -66,7 +66,7 @@
   "current_evidence_write_authorized_count": 0,
   "current_ledger_jsonl_write_allowed": false,
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-01T16:37:38Z",
+  "generated_at_utc": "2026-05-01T20:09:49Z",
   "items": [
     {
       "actual_long_run_evidence_created": false,
@@ -403,7 +403,11 @@
   "scale_up_allowed": false,
   "schema_id": "trader1.upbit_paper_post_rerun_reconciliation_blocker_rollup_report.v1",
   "session_id": "mvp1_upbit_paper_launcher",
-  "source_decision_audit_hash": "01160AD484B673C068F6D3B0B7595F230B9A26CD85BA61BF563C14D869DFEE80",
+  "source_decision_audit_file_hash": "638C627369DE80E406C59F6D7B023A5B2E2A4AAC2F034DEEA0C2D27644D9EB02",
+  "source_decision_audit_file_hash_match": true,
+  "source_decision_audit_file_load_status": "PASS",
+  "source_decision_audit_file_recomputed_hash": "638C627369DE80E406C59F6D7B023A5B2E2A4AAC2F034DEEA0C2D27644D9EB02",
+  "source_decision_audit_hash": "638C627369DE80E406C59F6D7B023A5B2E2A4AAC2F034DEEA0C2D27644D9EB02",
   "source_decision_audit_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_decision_audit_report.json",
   "source_decision_audit_primary_blocker_code": "POST_RERUN_RECONCILIATION_REQUIRED",
   "source_decision_audit_status": "BLOCKED",

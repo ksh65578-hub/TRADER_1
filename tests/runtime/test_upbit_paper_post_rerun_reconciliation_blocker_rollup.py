@@ -28,6 +28,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_queue 
     write_upbit_paper_post_rerun_operator_reconciliation_queue_report,
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
+    POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED,
     POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP_ITEM_STATUS,
     build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
     upbit_paper_post_rerun_reconciliation_blocker_rollup_hash,
@@ -36,6 +37,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup 
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_decision_audit import (
     build_upbit_paper_post_rerun_reconciliation_decision_audit_report,
+    write_upbit_paper_post_rerun_reconciliation_decision_audit_report,
 )
 from trader1.runtime.paper.upbit_paper_repair_operator_queue import build_upbit_paper_repair_operator_queue_report
 from trader1.runtime.paper.upbit_paper_stale_loop_execution_guard import build_upbit_paper_stale_loop_execution_guard
@@ -147,18 +149,22 @@ class UpbitPaperPostRerunReconciliationBlockerRollupTest(unittest.TestCase):
             root=root,
             operator_queue_report=operator_queue,
         )
+        write_upbit_paper_post_rerun_reconciliation_decision_audit_report(root=root, report=decision_audit)
         return root, decision_audit, current_ledger_path
 
     def test_builds_blocker_rollup_without_current_evidence_mutation(self):
         root, decision_audit, current_ledger_path = self._decision_audit_with_missing_current_ledger()
 
         report = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+            root=root,
             decision_audit_report=decision_audit,
         )
         result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(report)
 
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["blocker_rollup_status"], "BLOCKED")
+        self.assertEqual(report["source_decision_audit_file_load_status"], "PASS")
+        self.assertTrue(report["source_decision_audit_file_hash_match"])
         self.assertEqual(report["primary_blocker_code"], POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
         self.assertEqual(report["rollup_item_count"], 1)
         self.assertEqual(report["primary_blocker_item_count"], 1)
@@ -184,8 +190,9 @@ class UpbitPaperPostRerunReconciliationBlockerRollupTest(unittest.TestCase):
         self.assertTrue(path.exists())
 
     def test_blocks_live_and_current_write_mutation(self):
-        _root, decision_audit, _current_ledger_path = self._decision_audit_with_missing_current_ledger()
+        root, decision_audit, _current_ledger_path = self._decision_audit_with_missing_current_ledger()
         report = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+            root=root,
             decision_audit_report=decision_audit,
         )
 
@@ -204,8 +211,9 @@ class UpbitPaperPostRerunReconciliationBlockerRollupTest(unittest.TestCase):
         self.assertEqual(write_result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_rejects_count_tamper_and_path_escape(self):
-        _root, decision_audit, _current_ledger_path = self._decision_audit_with_missing_current_ledger()
+        root, decision_audit, _current_ledger_path = self._decision_audit_with_missing_current_ledger()
         report = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+            root=root,
             decision_audit_report=decision_audit,
         )
 
@@ -222,6 +230,33 @@ class UpbitPaperPostRerunReconciliationBlockerRollupTest(unittest.TestCase):
         path_result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(path_escape)
         self.assertEqual(path_result.status, "BLOCKED")
         self.assertEqual(path_result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_blocks_missing_source_decision_audit_file(self):
+        root, decision_audit, _current_ledger_path = self._decision_audit_with_missing_current_ledger()
+        source_path = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_reconciliation_decision_audit_report.json"
+        )
+        source_path.unlink()
+
+        report = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+            root=root,
+            decision_audit_report=decision_audit,
+        )
+        result = validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(report)
+
+        self.assertEqual(report["source_decision_audit_file_load_status"], "MISSING")
+        self.assertFalse(report["source_decision_audit_file_hash_match"])
+        self.assertIn(POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED, report["blocker_codes"])
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, POST_RERUN_BLOCKER_ROLLUP_SOURCE_DECISION_AUDIT_BINDING_REQUIRED)
 
 
 if __name__ == "__main__":

@@ -40,6 +40,7 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup 
 )
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_decision_audit import (
     build_upbit_paper_post_rerun_reconciliation_decision_audit_report,
+    write_upbit_paper_post_rerun_reconciliation_decision_audit_report,
 )
 from trader1.runtime.paper.upbit_paper_repair_operator_queue import build_upbit_paper_repair_operator_queue_report
 from trader1.runtime.paper.upbit_paper_stale_loop_execution_guard import build_upbit_paper_stale_loop_execution_guard
@@ -151,7 +152,9 @@ class UpbitPaperPostRerunOperatorReconciliationReviewGuidanceTest(unittest.TestC
             root=root,
             operator_queue_report=operator_queue,
         )
+        write_upbit_paper_post_rerun_reconciliation_decision_audit_report(root=root, report=decision_audit)
         blocker_rollup = build_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(
+            root=root,
             decision_audit_report=decision_audit,
         )
         return root, blocker_rollup, current_ledger_path
