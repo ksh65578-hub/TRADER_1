@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-01T17:46:22Z",
+  "updated_at_utc": "2026-05-01T18:15:02Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -233,6 +233,7 @@
     "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RECONCILIATION-QUEUE",
     "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RECONCILIATION-REVIEW-DASHBOARD-BINDING",
     "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RECONCILIATION-REVIEW-GUIDANCE",
+    "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RESOLUTION-AUDIT",
     "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-BLOCKER-ROLLUP",
     "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-DECISION-AUDIT",
     "REQ-MVP4-UPBIT-PAPER-REPAIR-HASH-RECONCILIATION-POLICY",
@@ -354,6 +355,7 @@
     "trader1.upbit_paper_post_rerun_ledger_rollup_reconciliation_report.v1",
     "trader1.upbit_paper_post_rerun_operator_reconciliation_queue_report.v1",
     "trader1.upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.v1",
+    "trader1.upbit_paper_post_rerun_operator_resolution_audit_report.v1",
     "trader1.upbit_paper_post_rerun_reconciliation_blocker_rollup_report.v1",
     "trader1.upbit_paper_post_rerun_reconciliation_decision_audit_report.v1",
     "trader1.upbit_paper_repair_operator_queue_report.v1",
@@ -491,6 +493,7 @@
     "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
     "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
+    "upbit_paper_post_rerun_operator_resolution_audit_validator",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_validator",
     "upbit_paper_post_rerun_reconciliation_decision_audit_validator",
     "upbit_paper_repair_operator_queue_validator",
@@ -533,12 +536,12 @@
     "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_DASHBOARD_BINDING_20260502_001",
-  "last_patch_result_hash": "B2B27ABC84E5843EA87C0F0F90EB351D2F900CBB333704B93D5B015EAFC856EA",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT_REVIEW_ONLY",
+  "last_patch_id": "MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT_20260502_001",
+  "last_patch_result_hash": "8AC457C6DC6F7FA5C8FF10B6B52E1FFFCA73150999B2A2DC319A30F7CE08B9FF",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_DASHBOARD_BINDING",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "63D9A84137C12C67A4ECA974BBBCFD2303BAE0E90FA396E8F6EFAFBCA65577F7"
+  "state_hash": "FDAEC6ABC0D2A5B3ED3DCB944F9D463ECA2B3397B865AAF4C5EF7BC5CA239A00"
 }

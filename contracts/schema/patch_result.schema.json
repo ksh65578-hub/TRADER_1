@@ -420,6 +420,25 @@
       "type": "integer",
       "minimum": 0
     },
+    "post_rerun_operator_resolution_audit_status": {
+      "type": "string"
+    },
+    "post_rerun_operator_resolution_unresolved_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_operator_resolution_resolved_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_operator_resolution_control_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_rerun_operator_resolution_controls_satisfied_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
