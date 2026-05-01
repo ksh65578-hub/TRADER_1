@@ -1,0 +1,44 @@
+{
+  "audit_schema_id": "trader1.upbit_paper_ledger_head_binding_guard_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "checks": {
+    "schema_requires_duplicate_path_count": true,
+    "schema_declares_ledger_input_scope": true,
+    "schema_requires_ledger_head_binding": true,
+    "module_hashes_head_report": true,
+    "module_splits_session_and_explicit_input_scope": true,
+    "module_requires_head_only_for_session_glob": true,
+    "module_rejects_explicit_latest_head_claim": true,
+    "module_blocks_missing_head": true,
+    "module_blocks_head_mismatch": true,
+    "validator_asserts_session_scope": true,
+    "validator_asserts_explicit_scope_not_applicable": true,
+    "validator_duplicate_path_negative": true,
+    "validator_missing_head_negative": true,
+    "validator_mismatch_head_negative": true,
+    "test_asserts_session_scope": true,
+    "test_asserts_explicit_scope": true,
+    "test_duplicate_path_negative": true,
+    "test_missing_head_negative": true,
+    "test_mismatched_head_negative": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "ledger_head_rollup_false_binding",
+      "condition": "PAPER rollup could be generated from ledger JSONL while latest_paper_ledger_head.json was missing or inconsistent",
+      "impact": "portfolio truth could be displayed without proving the latest ledger head artifact matched the rolled-up source cycle",
+      "fix": "rollup now records and validates ledger head report path, hash, cycle, event count, match status, and mismatch count"
+    },
+    {
+      "classification": "explicit_duplicate_ledger_path_replay",
+      "condition": "explicit ledger_paths could include the same JSONL more than once",
+      "impact": "reconciliation evidence could double-count events or hide rerun input mistakes",
+      "fix": "rollup now counts duplicate ledger paths and blocks review with RECONCILIATION_REQUIRED"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

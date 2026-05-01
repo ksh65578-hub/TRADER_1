@@ -124,6 +124,7 @@ from trader1.runtime.ledger.execution_ledger import (
 )
 from trader1.runtime.ledger.paper_ledger_rollup import (
     build_paper_ledger_rollup_report,
+    paper_ledger_head_report_hash,
     paper_ledger_rollup_hash,
     validate_paper_ledger_rollup_report,
 )
@@ -3188,13 +3189,21 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
     required = set(schema.get("required", []))
     for field in (
         "ledger_jsonl_count",
+        "ledger_input_scope",
         "ledger_event_count",
         "filled_order_count",
+        "duplicate_ledger_path_count",
         "duplicate_event_count",
         "duplicate_order_count",
         "lifecycle_incomplete_order_count",
         "corrupted_ledger_jsonl_quarantined_count",
         "invalid_ledger_jsonl_count",
+        "ledger_head_report_path",
+        "ledger_head_report_hash",
+        "ledger_head_cycle_id",
+        "ledger_head_event_count",
+        "ledger_head_match_status",
+        "ledger_head_mismatch_count",
         "portfolio_snapshot",
         "display_only",
         "dashboard_truth_only",
@@ -3227,8 +3236,16 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
             return fail_result("paper_ledger_rollup_validator", f"valid paper ledger rollup failed: {rollup_result.message}", paths, rollup_result.blocker_code or "UNKNOWN_BLOCKED")
         if rollup.get("ledger_jsonl_count") != 2 or rollup.get("filled_order_count") != 2:
             return fail_result("paper_ledger_rollup_validator", "paper ledger rollup did not aggregate both cycle ledgers", paths, "MEASUREMENT_MISSING")
+        if rollup.get("ledger_input_scope") != "SESSION_CYCLE_GLOB":
+            return fail_result("paper_ledger_rollup_validator", "valid paper ledger rollup did not mark session-cycle input scope", paths, "SCHEMA_IDENTITY_MISMATCH")
         if rollup.get("lifecycle_incomplete_order_count") != 0:
             return fail_result("paper_ledger_rollup_validator", "valid paper ledger rollup reported incomplete order lifecycle", paths, "RECONCILIATION_REQUIRED")
+        if rollup.get("duplicate_ledger_path_count") != 0:
+            return fail_result("paper_ledger_rollup_validator", "valid paper ledger rollup reported duplicate ledger paths", paths, "RECONCILIATION_REQUIRED")
+        if rollup.get("ledger_head_match_status") != "PASS" or rollup.get("ledger_head_mismatch_count") != 0:
+            return fail_result("paper_ledger_rollup_validator", "valid paper ledger rollup did not bind latest ledger head report", paths, "LEDGER_INTEGRITY_FAIL")
+        if rollup.get("ledger_head_cycle_id") != rollup.get("portfolio_snapshot", {}).get("source_runtime_cycle_id"):
+            return fail_result("paper_ledger_rollup_validator", "paper ledger head cycle does not match portfolio source cycle", paths, "LEDGER_INTEGRITY_FAIL")
         if rollup.get("portfolio_snapshot", {}).get("source") != "PAPER_LEDGER_ROLLUP":
             return fail_result("paper_ledger_rollup_validator", "paper ledger rollup portfolio source is not explicit", paths, "LIVE_FINAL_GUARD_FAILED")
         if rollup.get("live_order_allowed") or rollup.get("can_live_trade") or rollup.get("scale_up_allowed"):
@@ -3258,6 +3275,83 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
         duplicate_result = validate_paper_ledger_rollup_report(duplicate_rollup)
         if duplicate_result.status != "BLOCKED" or duplicate_result.blocker_code != "RECONCILIATION_REQUIRED":
             return fail_result("paper_ledger_rollup_validator", "cross-cycle duplicate ledger event was not blocked", paths, "RECONCILIATION_REQUIRED")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        loop = run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="validator-paper-ledger-rollup-duplicate-path",
+            requested_cycle_count=1,
+        )
+        first_path = None
+        for artifact_path in loop["cycle_results"][0]["artifact_paths"]:
+            if str(artifact_path).endswith(".paper_ledger_events.jsonl"):
+                first_path = root / str(artifact_path)
+                break
+        if first_path is None:
+            return fail_result("paper_ledger_rollup_validator", "test loop did not write ledger JSONL for duplicate path guard", paths, "LEDGER_UNAVAILABLE")
+        duplicate_path_rollup = build_paper_ledger_rollup_report(
+            root=root,
+            session_id="mvp1_upbit_paper_launcher",
+            rollup_id="validator-paper-ledger-rollup-duplicate-path",
+            ledger_paths=[first_path, first_path],
+        )
+        duplicate_path_result = validate_paper_ledger_rollup_report(duplicate_path_rollup)
+        if (
+            duplicate_path_result.status != "BLOCKED"
+            or duplicate_path_result.blocker_code != "RECONCILIATION_REQUIRED"
+            or duplicate_path_rollup.get("duplicate_ledger_path_count") != 1
+            or duplicate_path_rollup.get("ledger_input_scope") != "EXPLICIT_SCOPED_PATHS"
+            or duplicate_path_rollup.get("ledger_head_match_status") != "NOT_APPLICABLE"
+        ):
+            return fail_result("paper_ledger_rollup_validator", "duplicate explicit ledger paths were not blocked", paths, "RECONCILIATION_REQUIRED")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="validator-paper-ledger-rollup-missing-head",
+            requested_cycle_count=1,
+        )
+        head_path = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "ledger" / "latest_paper_ledger_head.json"
+        head_path.unlink()
+        missing_head_rollup = build_paper_ledger_rollup_report(
+            root=root,
+            session_id="mvp1_upbit_paper_launcher",
+            rollup_id="validator-paper-ledger-rollup-missing-head",
+        )
+        missing_head_result = validate_paper_ledger_rollup_report(missing_head_rollup)
+        if (
+            missing_head_result.status != "BLOCKED"
+            or missing_head_result.blocker_code != "LEDGER_INTEGRITY_FAIL"
+            or missing_head_rollup.get("ledger_head_match_status") != "MISSING"
+        ):
+            return fail_result("paper_ledger_rollup_validator", "missing latest ledger head report was not blocked", paths, "LEDGER_INTEGRITY_FAIL")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="validator-paper-ledger-rollup-mismatch-head",
+            requested_cycle_count=1,
+        )
+        head_path = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "ledger" / "latest_paper_ledger_head.json"
+        ledger_head = load_json(head_path)
+        ledger_head["ledger_head_hash"] = "F" * 64
+        ledger_head["head_report_hash"] = paper_ledger_head_report_hash(ledger_head)
+        head_path.write_text(json.dumps(ledger_head, sort_keys=True), encoding="utf-8")
+        mismatched_head_rollup = build_paper_ledger_rollup_report(
+            root=root,
+            session_id="mvp1_upbit_paper_launcher",
+            rollup_id="validator-paper-ledger-rollup-mismatch-head",
+        )
+        mismatched_head_result = validate_paper_ledger_rollup_report(mismatched_head_rollup)
+        if (
+            mismatched_head_result.status != "BLOCKED"
+            or mismatched_head_result.blocker_code != "LEDGER_INTEGRITY_FAIL"
+            or mismatched_head_rollup.get("ledger_head_match_status") != "MISMATCH"
+        ):
+            return fail_result("paper_ledger_rollup_validator", "mismatched latest ledger head report was not blocked", paths, "LEDGER_INTEGRITY_FAIL")
 
     with TemporaryDirectory() as tmp:
         root = Path(tmp)

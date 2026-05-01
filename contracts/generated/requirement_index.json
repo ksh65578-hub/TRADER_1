@@ -10180,6 +10180,66 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-LEDGER-HEAD-BINDING-GUARD",
+      "source_section_id": "SECTION_LEDGER_RECONCILIATION",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER ledger head binding guard",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-LEDGER-HEAD-BINDING-GUARD:paper ledger rollup must prove latest ledger head artifact binding",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "PAPER ledger rollup must bind latest ledger head report before portfolio truth can PASS",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.paper_ledger_rollup_report.v1",
+        "trader1.patch_result.v1"
+      ],
+      "validator_ids": [
+        "registry_validator",
+        "schema_validator",
+        "paper_ledger_rollup_validator",
+        "ledger_durability_validator",
+        "ledger_reconciliation_validator",
+        "upbit_paper_persistent_loop_validator",
+        "runtime_schema_instance_validator",
+        "path_namespace_validator",
+        "single_writer_order_path_validator",
+        "live_final_guard_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/paper_ledger_rollup_report.schema.json",
+        "trader1/runtime/ledger/paper_ledger_rollup.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_paper_ledger_rollup.py",
+        "tools/emit_upbit_paper_ledger_head_binding_guard_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_LEDGER_HEAD_BINDING_GUARD.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_paper_ledger_rollup.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP-CONSISTENCY-GUARD"
+      ],
+      "source_text_sha256": "CAAD2322E07FBD865ABD37BCD6844619B2A6C2752BAEA47863EF651B04C84C0C",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-LEDGER-JSONL-RECOVERY",
       "source_section_id": "SECTION_LEDGER_RECONCILIATION",
       "source_file": "TRADER_1.md",
@@ -12863,5 +12923,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-01T18:58:32Z"
+  "updated_at_utc": "2026-05-01T19:25:11Z"
 }
