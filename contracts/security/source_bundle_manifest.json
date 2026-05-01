@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "D3A9AC657C6D5E4631FC22ABBF36DDCF25F84F7DFB1241FC69D804DD58AE045A",
+      "sha256": "90125D2FDFB07D12FDBAE9BE2FD690F704F1A870386DF709CF1AD0A39229B104",
       "size_bytes": 1096
     },
     {
@@ -275,8 +275,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "7C60C30A339F373CEB274C7E2780CF4280F77A756F41973B983D81A488E80571",
-      "size_bytes": 123615
+      "sha256": "72ECD4821130939183AC81E8A29D8DE5AD1FBDB3824A150A3A0DD1B45E046C4E",
+      "size_bytes": 126440
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -710,8 +710,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "1334EAE86AC9D93FE49F1E60AB810F49D833F27F3554D279F486416A34FA76D5",
-      "size_bytes": 217328
+      "sha256": "60E323D71F39115C79AEA9AB22E37C3706CB2F9DD935991B181FDB8E7B698741",
+      "size_bytes": 221855
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -3039,6 +3039,11 @@
       "size_bytes": 27664
     },
     {
+      "path": "tools/emit_upbit_paper_ledger_idempotency_dashboard_visibility_patch_evidence.py",
+      "sha256": "8474087D5002A8121CE8B268465330E7897F1FB42B669F14D1295370B46F081A",
+      "size_bytes": 26018
+    },
+    {
       "path": "tools/emit_upbit_paper_ledger_idempotency_runtime_evidence_patch_evidence.py",
       "sha256": "E9965B6E85F84568CCE0A1A46A7103AC0FA94B90575716C65D866DE566BC64E5",
       "size_bytes": 27614
@@ -3785,8 +3790,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "AEB4AD3E956C504929B83F332921FA3CABEB5E228E290EE69903E224546AEEEB",
-      "size_bytes": 596618
+      "sha256": "E2E205BFB99DA7D38CC3DE5831EC081A1412A23C5A2F9C4399532C3B4EA3A5B6",
+      "size_bytes": 612172
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -3915,8 +3920,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "7D5CE2BF11EB3A5CC8687309A573E06C2E88E41C398DAA23635AC339F772E6F3",
-      "size_bytes": 60245
+      "sha256": "74ADE7ECCA35C5D1E1B845B8F576C7961CE7A24BA65EDBDFE7B15A3FDC60F727",
+      "size_bytes": 61688
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -4793,6 +4798,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_LEDGER_HEAD_BINDING_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -6144,6 +6153,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY_20260502.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_LEDGER_JSONL_RECOVERY_20260430.md",
       "reason": "denied:system/"
     },
@@ -7308,6 +7321,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_LEDGER_JSONL_RECOVERY.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -8409,6 +8426,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_LEDGER_HEAD_BINDING_GUARD.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9521,6 +9542,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_LEDGER_HEAD_BINDING_GUARD.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10649,6 +10674,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_LEDGER_HEAD_BINDING_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

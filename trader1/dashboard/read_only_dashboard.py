@@ -28,6 +28,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_operator_resolution_audit impo
 from trader1.runtime.paper.upbit_paper_post_rerun_resolution_current_evidence_closure import (
     validate_upbit_paper_post_rerun_resolution_current_evidence_closure_report,
 )
+from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
+    validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
 
@@ -44,6 +47,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
     "upbit_paper_post_rerun_operator_resolution_audit_report.json",
     "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+    "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
 }
@@ -56,6 +60,7 @@ RECONCILIATION_RECOVERY_SOURCES = {
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
     "upbit_paper_post_rerun_operator_resolution_audit_report.json",
     "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+    "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
 }
 ORDER_AFFECTING_FINAL_ACTIONS = {
     "ENTER_LONG",
@@ -174,6 +179,8 @@ POST_RERUN_RESOLUTION_AUDIT_STATUSES = {"NOT_LOADED", "UNRESOLVED_RECONCILIATION
 POST_RERUN_RESOLUTION_AUDIT_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_RERUN_RESOLUTION_CLOSURE_STATUSES = {"NOT_LOADED", "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED", "INVALID"}
 POST_RERUN_RESOLUTION_CLOSURE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
+PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_RERUN_SOURCE_BINDING_STATUSES = {
     "PASS",
     "MISSING",
@@ -5063,6 +5070,7 @@ def _reconciliation_recovery_summary(
     session_id: str,
     reconciliation_report: dict[str, Any] | None,
     restart_recovery_report: dict[str, Any] | None,
+    ledger_idempotency_runtime_evidence_report: dict[str, Any] | None,
     post_rerun_blocker_rollup_report: dict[str, Any] | None,
     post_rerun_review_guidance_report: dict[str, Any] | None,
     post_rerun_resolution_audit_report: dict[str, Any] | None,
@@ -5070,12 +5078,25 @@ def _reconciliation_recovery_summary(
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
     restart_loaded = isinstance(restart_recovery_report, dict)
+    ledger_idempotency_evidence_loaded = isinstance(ledger_idempotency_runtime_evidence_report, dict)
     post_rerun_rollup_loaded = isinstance(post_rerun_blocker_rollup_report, dict)
     post_rerun_guidance_loaded = isinstance(post_rerun_review_guidance_report, dict)
     post_rerun_resolution_loaded = isinstance(post_rerun_resolution_audit_report, dict)
     post_rerun_resolution_closure_loaded = isinstance(post_rerun_resolution_closure_report, dict)
     reconciliation_status = "NOT_LOADED"
     restart_status = "NOT_LOADED"
+    ledger_idempotency_runtime_evidence_status = "NOT_LOADED"
+    ledger_idempotency_runtime_validation_status = "UNTESTED"
+    ledger_idempotency_runtime_reconciliation_status = "NOT_LOADED"
+    ledger_idempotency_runtime_portfolio_provenance_status = "NOT_LOADED"
+    ledger_idempotency_runtime_duplicate_event_id_count = 0
+    ledger_idempotency_runtime_duplicate_dedup_key_count = 0
+    ledger_idempotency_runtime_duplicate_semantic_event_count = 0
+    ledger_idempotency_runtime_duplicate_filled_order_key_count = 0
+    ledger_idempotency_runtime_source_count_mismatch_count = 0
+    ledger_idempotency_runtime_source_ledger_jsonl_count = 0
+    ledger_idempotency_runtime_recomputed_ledger_event_count = 0
+    ledger_idempotency_runtime_primary_blocker_code = "NOT_LOADED"
     post_rerun_rollup_status = "NOT_LOADED"
     post_rerun_review_guidance_status = "NOT_LOADED"
     post_rerun_resolution_audit_status = "NOT_LOADED"
@@ -5192,6 +5213,88 @@ def _reconciliation_recovery_summary(
             idempotency_state = "INVALID"
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Restart recovery status is unknown.")
+
+    if ledger_idempotency_evidence_loaded:
+        source = "upbit_paper_ledger_idempotency_runtime_evidence_report.json" if not post_rerun_rollup_loaded else source
+        ledger_idempotency_runtime_evidence_status = str(
+            ledger_idempotency_runtime_evidence_report.get("runtime_evidence_status", "INVALID")
+        )
+        ledger_idempotency_runtime_reconciliation_status = str(
+            ledger_idempotency_runtime_evidence_report.get("reconciliation_status", "INVALID")
+        )
+        ledger_idempotency_runtime_portfolio_provenance_status = str(
+            ledger_idempotency_runtime_evidence_report.get("portfolio_provenance_status", "INVALID")
+        )
+        ledger_idempotency_runtime_duplicate_event_id_count = _safe_count(
+            ledger_idempotency_runtime_evidence_report.get("duplicate_event_id_count")
+        )
+        ledger_idempotency_runtime_duplicate_dedup_key_count = _safe_count(
+            ledger_idempotency_runtime_evidence_report.get("duplicate_dedup_key_count")
+        )
+        ledger_idempotency_runtime_duplicate_semantic_event_count = _safe_count(
+            ledger_idempotency_runtime_evidence_report.get("duplicate_semantic_event_count")
+        )
+        ledger_idempotency_runtime_duplicate_filled_order_key_count = _safe_count(
+            ledger_idempotency_runtime_evidence_report.get("duplicate_filled_order_key_count")
+        )
+        ledger_idempotency_runtime_source_count_mismatch_count = _safe_count(
+            ledger_idempotency_runtime_evidence_report.get("source_count_mismatch_count")
+        )
+        ledger_idempotency_runtime_source_ledger_jsonl_count = _safe_count(
+            ledger_idempotency_runtime_evidence_report.get("source_ledger_jsonl_count")
+        )
+        ledger_idempotency_runtime_recomputed_ledger_event_count = _safe_count(
+            ledger_idempotency_runtime_evidence_report.get("recomputed_ledger_event_count")
+        )
+        ledger_idempotency_runtime_primary_blocker_code = str(
+            ledger_idempotency_runtime_evidence_report.get("primary_blocker_code")
+            or "LIVE_READY_MISSING"
+        )
+        evidence_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            ledger_idempotency_runtime_evidence_report
+        )
+        ledger_idempotency_runtime_validation_status = evidence_result.status
+        if evidence_result.status != "PASS":
+            ledger_idempotency_runtime_evidence_status = (
+                "BLOCKED" if evidence_result.status == "BLOCKED" else "INVALID"
+            )
+            ledger_state = "RECONCILE_REQUIRED" if evidence_result.status == "BLOCKED" else "INVALID"
+            idempotency_state = "RECONCILE_REQUIRED" if evidence_result.status == "BLOCKED" else "INVALID"
+            primary_blocker = evidence_result.blocker_code or ledger_idempotency_runtime_primary_blocker_code
+            issue_messages.append(f"Ledger idempotency runtime evidence invalid: {evidence_result.message}")
+        elif not _scope_matches(
+            ledger_idempotency_runtime_evidence_report,
+            exchange=exchange,
+            market_type=market_type,
+            mode=mode,
+            session_id=session_id,
+        ):
+            ledger_idempotency_runtime_evidence_status = "INVALID"
+            ledger_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Ledger idempotency runtime evidence scope does not match this dashboard.")
+        elif _freshness_from_generated_at(ledger_idempotency_runtime_evidence_report) != "PASS":
+            ledger_idempotency_runtime_evidence_status = "STALE"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = "LATENCY_TTL_EXPIRED"
+            issue_messages.append("Ledger idempotency runtime evidence is stale for this dashboard.")
+        elif ledger_idempotency_runtime_evidence_status == "PASS":
+            idempotency_state = "RECOVERED"
+            if ledger_state == "NOT_LOADED":
+                ledger_state = "PAPER_LEDGER_MATCHED"
+            ledger_idempotency_runtime_primary_blocker_code = "LIVE_READY_MISSING"
+        elif ledger_idempotency_runtime_evidence_status == "BLOCKED":
+            idempotency_state = "RECONCILE_REQUIRED"
+            ledger_state = "RECONCILE_REQUIRED"
+            primary_blocker = ledger_idempotency_runtime_primary_blocker_code or "RECONCILIATION_REQUIRED"
+            issue_messages.append("Ledger idempotency runtime evidence requires reconciliation before PAPER review.")
+        else:
+            ledger_idempotency_runtime_evidence_status = "INVALID"
+            ledger_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Ledger idempotency runtime evidence status is unknown.")
 
     if post_rerun_rollup_loaded:
         source = "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"
@@ -5470,6 +5573,7 @@ def _reconciliation_recovery_summary(
     if (
         not reconciliation_loaded
         and not restart_loaded
+        and not ledger_idempotency_evidence_loaded
         and not post_rerun_rollup_loaded
         and not post_rerun_guidance_loaded
         and not post_rerun_resolution_loaded
@@ -5550,8 +5654,10 @@ def _reconciliation_recovery_summary(
     elif (
         reconciliation_status == "PASS"
         and restart_status == "PASS"
+        and ledger_idempotency_runtime_evidence_status in {"NOT_LOADED", "PASS"}
         and reconciliation_validation_status == "PASS"
         and restart_validation_status == "PASS"
+        and ledger_idempotency_runtime_validation_status in {"UNTESTED", "PASS"}
         and not issue_messages
     ):
         status = "PASS"
@@ -5569,6 +5675,7 @@ def _reconciliation_recovery_summary(
             post_rerun_review_guidance_status,
             post_rerun_resolution_audit_status,
             post_rerun_resolution_closure_status,
+            ledger_idempotency_runtime_evidence_status,
         }
         or "FAIL"
         in {
@@ -5578,6 +5685,7 @@ def _reconciliation_recovery_summary(
             post_rerun_review_guidance_validation_status,
             post_rerun_resolution_audit_validation_status,
             post_rerun_resolution_closure_validation_status,
+            ledger_idempotency_runtime_validation_status,
         }
         or "BLOCKED"
         in {
@@ -5587,6 +5695,7 @@ def _reconciliation_recovery_summary(
             post_rerun_review_guidance_validation_status,
             post_rerun_resolution_audit_validation_status,
             post_rerun_resolution_closure_validation_status,
+            ledger_idempotency_runtime_validation_status if ledger_idempotency_runtime_evidence_status != "BLOCKED" else "PASS",
         }
     ):
         status = "INVALID"
@@ -5595,6 +5704,13 @@ def _reconciliation_recovery_summary(
         one_line_blocker = f"{primary_blocker}: ledger or recovery evidence is invalid for this dashboard."
         next_action = "Stop review, regenerate scoped PAPER reconciliation/restart artifacts, and rerun validators."
         message = issue_messages[0] if issue_messages else "Ledger/recovery evidence failed validation."
+    elif ledger_idempotency_runtime_evidence_status == "BLOCKED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = f"{primary_blocker}: current PAPER ledger idempotency evidence is blocked."
+        next_action = "Inspect duplicate, count-mismatch, and provenance evidence before any PAPER trading review."
+        message = issue_messages[0] if issue_messages else "PAPER ledger idempotency runtime evidence requires reconciliation."
     elif reconciliation_status in {"MISMATCH", "FAIL"} or restart_status == "BLOCKED":
         status = "BLOCKED"
         severity = "ERROR"
@@ -5621,6 +5737,18 @@ def _reconciliation_recovery_summary(
         "reconciliation_validation_status": reconciliation_validation_status,
         "restart_recovery_status": restart_status,
         "restart_recovery_validation_status": restart_validation_status,
+        "ledger_idempotency_runtime_evidence_status": ledger_idempotency_runtime_evidence_status,
+        "ledger_idempotency_runtime_validation_status": ledger_idempotency_runtime_validation_status,
+        "ledger_idempotency_runtime_reconciliation_status": ledger_idempotency_runtime_reconciliation_status,
+        "ledger_idempotency_runtime_portfolio_provenance_status": ledger_idempotency_runtime_portfolio_provenance_status,
+        "ledger_idempotency_runtime_duplicate_event_id_count": ledger_idempotency_runtime_duplicate_event_id_count,
+        "ledger_idempotency_runtime_duplicate_dedup_key_count": ledger_idempotency_runtime_duplicate_dedup_key_count,
+        "ledger_idempotency_runtime_duplicate_semantic_event_count": ledger_idempotency_runtime_duplicate_semantic_event_count,
+        "ledger_idempotency_runtime_duplicate_filled_order_key_count": ledger_idempotency_runtime_duplicate_filled_order_key_count,
+        "ledger_idempotency_runtime_source_count_mismatch_count": ledger_idempotency_runtime_source_count_mismatch_count,
+        "ledger_idempotency_runtime_source_ledger_jsonl_count": ledger_idempotency_runtime_source_ledger_jsonl_count,
+        "ledger_idempotency_runtime_recomputed_ledger_event_count": ledger_idempotency_runtime_recomputed_ledger_event_count,
+        "ledger_idempotency_runtime_primary_blocker_code": ledger_idempotency_runtime_primary_blocker_code,
         "post_rerun_blocker_rollup_status": post_rerun_rollup_status,
         "post_rerun_blocker_rollup_validation_status": post_rerun_rollup_validation_status,
         "post_rerun_blocker_rollup_item_count": post_rerun_rollup_item_count,
@@ -5709,6 +5837,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_post_rerun_operator_reconciliation_review_guidance_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_operator_resolution_audit_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_resolution_current_evidence_closure_report: dict[str, Any] | None = None,
+    upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
     optimizer_feedback_report: dict[str, Any] | None = None,
@@ -5737,6 +5866,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_post_rerun_operator_reconciliation_review_guidance": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
         "upbit_paper_post_rerun_operator_resolution_audit": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
         "upbit_paper_post_rerun_resolution_current_evidence_closure": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+        "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
     }
@@ -5958,6 +6088,30 @@ def build_read_only_dashboard_shell(
                 closure_freshness,
             )
         )
+    if isinstance(upbit_paper_ledger_idempotency_runtime_evidence_report, dict):
+        idempotency_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            upbit_paper_ledger_idempotency_runtime_evidence_report
+        )
+        idempotency_freshness = (
+            "PASS"
+            if _freshness_from_generated_at(upbit_paper_ledger_idempotency_runtime_evidence_report) == "PASS"
+            and idempotency_result.status in {"PASS", "BLOCKED"}
+            and upbit_paper_ledger_idempotency_runtime_evidence_report.get("live_order_allowed") is False
+            and upbit_paper_ledger_idempotency_runtime_evidence_report.get("can_live_trade") is False
+            and upbit_paper_ledger_idempotency_runtime_evidence_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
+                paths.get(
+                    "upbit_paper_ledger_idempotency_runtime_evidence",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
+                ),
+                True,
+                idempotency_freshness,
+            )
+        )
     market_data_continuity_status = _market_data_continuity_status(
         report=upbit_public_rest_continuity_history,
         exchange=exchange,
@@ -6001,6 +6155,7 @@ def build_read_only_dashboard_shell(
         session_id=session_id,
         reconciliation_report=reconciliation_report,
         restart_recovery_report=restart_recovery_report,
+        ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         post_rerun_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
         post_rerun_review_guidance_report=upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
         post_rerun_resolution_audit_report=upbit_paper_post_rerun_operator_resolution_audit_report,
@@ -6274,6 +6429,18 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "next_operator_action",
                 "reconciliation_status",
                 "restart_recovery_status",
+                "ledger_idempotency_runtime_evidence_status",
+                "ledger_idempotency_runtime_validation_status",
+                "ledger_idempotency_runtime_reconciliation_status",
+                "ledger_idempotency_runtime_portfolio_provenance_status",
+                "ledger_idempotency_runtime_duplicate_event_id_count",
+                "ledger_idempotency_runtime_duplicate_dedup_key_count",
+                "ledger_idempotency_runtime_duplicate_semantic_event_count",
+                "ledger_idempotency_runtime_duplicate_filled_order_key_count",
+                "ledger_idempotency_runtime_source_count_mismatch_count",
+                "ledger_idempotency_runtime_source_ledger_jsonl_count",
+                "ledger_idempotency_runtime_recomputed_ledger_event_count",
+                "ledger_idempotency_runtime_primary_blocker_code",
                 "post_rerun_blocker_rollup_status",
                 "post_rerun_blocker_rollup_validation_status",
                 "post_rerun_blocker_rollup_item_count",
@@ -6747,6 +6914,40 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "reconciliation validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("restart_recovery_validation_status") not in RECONCILIATION_RECOVERY_VALIDATION_STATUSES:
         return DashboardValidationResult("FAIL", "restart recovery validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    ledger_idempotency_status = reconciliation.get("ledger_idempotency_runtime_evidence_status", "NOT_LOADED")
+    ledger_idempotency_validation_status = reconciliation.get("ledger_idempotency_runtime_validation_status", "UNTESTED")
+    if ledger_idempotency_status not in PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_STATUSES:
+        return DashboardValidationResult("FAIL", "ledger idempotency runtime evidence status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if ledger_idempotency_validation_status not in PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_VALIDATION_STATUSES:
+        return DashboardValidationResult("FAIL", "ledger idempotency runtime evidence validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    for field in (
+        "ledger_idempotency_runtime_duplicate_event_id_count",
+        "ledger_idempotency_runtime_duplicate_dedup_key_count",
+        "ledger_idempotency_runtime_duplicate_semantic_event_count",
+        "ledger_idempotency_runtime_duplicate_filled_order_key_count",
+        "ledger_idempotency_runtime_source_count_mismatch_count",
+        "ledger_idempotency_runtime_source_ledger_jsonl_count",
+        "ledger_idempotency_runtime_recomputed_ledger_event_count",
+    ):
+        value = reconciliation.get(field, 0)
+        if not isinstance(value, int) or value < 0:
+            return DashboardValidationResult("FAIL", f"ledger idempotency runtime evidence count is invalid: {field}", "SCHEMA_IDENTITY_MISMATCH")
+    if ledger_idempotency_status == "PASS":
+        if reconciliation.get("ledger_idempotency_runtime_reconciliation_status") != "PASS":
+            return DashboardValidationResult("FAIL", "PASS ledger idempotency evidence must expose PASS reconciliation", "SCHEMA_IDENTITY_MISMATCH")
+        if reconciliation.get("ledger_idempotency_runtime_portfolio_provenance_status") != "PASS":
+            return DashboardValidationResult("FAIL", "PASS ledger idempotency evidence must expose PASS portfolio provenance", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            reconciliation.get("ledger_idempotency_runtime_duplicate_event_id_count", 0)
+            + reconciliation.get("ledger_idempotency_runtime_duplicate_dedup_key_count", 0)
+            + reconciliation.get("ledger_idempotency_runtime_duplicate_semantic_event_count", 0)
+            + reconciliation.get("ledger_idempotency_runtime_duplicate_filled_order_key_count", 0)
+            + reconciliation.get("ledger_idempotency_runtime_source_count_mismatch_count", 0)
+            != 0
+        ):
+            return DashboardValidationResult("FAIL", "PASS ledger idempotency evidence cannot hide duplicate or mismatch counts", "RECONCILIATION_REQUIRED")
+    if ledger_idempotency_status == "BLOCKED" and reconciliation.get("status") not in {"BLOCKED", "INVALID"}:
+        return DashboardValidationResult("BLOCKED", "blocked ledger idempotency evidence must block ledger review", "RECONCILIATION_REQUIRED")
     post_rerun_rollup_status = reconciliation.get("post_rerun_blocker_rollup_status", "NOT_LOADED")
     post_rerun_rollup_validation_status = reconciliation.get("post_rerun_blocker_rollup_validation_status", "UNTESTED")
     post_rerun_guidance_status = reconciliation.get("post_rerun_review_guidance_status", "NOT_LOADED")
@@ -8712,6 +8913,18 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p>report={safe_text(reconciliation.get('restart_recovery_status', 'NOT_LOADED'))}<br>validator={safe_text(reconciliation.get('restart_recovery_validation_status', 'UNTESTED'))}</p></div>"
         "<div><strong>Ledger / Writer</strong>"
         f"<p>ledger={safe_text(reconciliation.get('ledger_state', 'NOT_LOADED'))}<br>single-writer={safe_text(reconciliation.get('single_writer_state', 'NOT_LOADED'))}<br>idempotency={safe_text(reconciliation.get('idempotency_state', 'NOT_LOADED'))}</p></div>"
+        "<div><strong>Current Ledger Evidence</strong>"
+        f"<p>idempotency={safe_text(reconciliation.get('ledger_idempotency_runtime_evidence_status', 'NOT_LOADED'))}"
+        f"<br>validator={safe_text(reconciliation.get('ledger_idempotency_runtime_validation_status', 'UNTESTED'))}"
+        f"<br>reconciliation={safe_text(reconciliation.get('ledger_idempotency_runtime_reconciliation_status', 'NOT_LOADED'))}"
+        f"<br>portfolio={safe_text(reconciliation.get('ledger_idempotency_runtime_portfolio_provenance_status', 'NOT_LOADED'))}"
+        f"<br>ledger-files={safe_text(reconciliation.get('ledger_idempotency_runtime_source_ledger_jsonl_count', 0))}"
+        f"<br>events={safe_text(reconciliation.get('ledger_idempotency_runtime_recomputed_ledger_event_count', 0))}"
+        f"<br>duplicates={safe_text(reconciliation.get('ledger_idempotency_runtime_duplicate_event_id_count', 0))}/"
+        f"{safe_text(reconciliation.get('ledger_idempotency_runtime_duplicate_dedup_key_count', 0))}/"
+        f"{safe_text(reconciliation.get('ledger_idempotency_runtime_duplicate_semantic_event_count', 0))}/"
+        f"{safe_text(reconciliation.get('ledger_idempotency_runtime_duplicate_filled_order_key_count', 0))}"
+        f"<br>count-mismatch={safe_text(reconciliation.get('ledger_idempotency_runtime_source_count_mismatch_count', 0))}</p></div>"
         "<div><strong>Post-Rerun Blockers</strong>"
         f"<p>rollup={safe_text(reconciliation.get('post_rerun_blocker_rollup_status', 'NOT_LOADED'))}"
         f"<br>items={safe_text(reconciliation.get('post_rerun_blocker_rollup_item_count', 0))}"

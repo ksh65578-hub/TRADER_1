@@ -7822,6 +7822,49 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-LEDGER-IDEMPOTENCY-DASHBOARD-VISIBILITY",
+      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "schema_files": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "contracts/schema/upbit_paper_ledger_idempotency_runtime_evidence_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_upbit_paper_ledger_idempotency_runtime_evidence.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "reconciliation_recovery_summary.ledger_idempotency_runtime_evidence_status",
+        "reconciliation_recovery_summary.ledger_idempotency_runtime_validation_status",
+        "source_artifacts.PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
+        "dashboard_html.Current Ledger Evidence"
+      ],
+      "patch_result_fields": [
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_DASHBOARD_OPERATOR_VISIBILITY_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-LEDGER-IDEMPOTENCY-RUNTIME-EVIDENCE",
       "section_id": "SECTION_LEDGER_RECONCILIATION",
       "schema_files": [
@@ -10182,7 +10225,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-01T21:57:22Z",
+  "updated_at_utc": "2026-05-01T22:15:24Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

@@ -87,6 +87,7 @@
             "POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE",
             "POST_RERUN_OPERATOR_RESOLUTION_AUDIT",
             "POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE",
+            "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD"
           ]
@@ -109,6 +110,7 @@
             "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
             "upbit_paper_post_rerun_operator_resolution_audit_report.json",
             "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+            "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json"
           ]
@@ -408,6 +410,18 @@
         "reconciliation_validation_status",
         "restart_recovery_status",
         "restart_recovery_validation_status",
+        "ledger_idempotency_runtime_evidence_status",
+        "ledger_idempotency_runtime_validation_status",
+        "ledger_idempotency_runtime_reconciliation_status",
+        "ledger_idempotency_runtime_portfolio_provenance_status",
+        "ledger_idempotency_runtime_duplicate_event_id_count",
+        "ledger_idempotency_runtime_duplicate_dedup_key_count",
+        "ledger_idempotency_runtime_duplicate_semantic_event_count",
+        "ledger_idempotency_runtime_duplicate_filled_order_key_count",
+        "ledger_idempotency_runtime_source_count_mismatch_count",
+        "ledger_idempotency_runtime_source_ledger_jsonl_count",
+        "ledger_idempotency_runtime_recomputed_ledger_event_count",
+        "ledger_idempotency_runtime_primary_blocker_code",
         "ledger_state",
         "single_writer_state",
         "idempotency_state",
@@ -464,7 +478,8 @@
             "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
             "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
             "upbit_paper_post_rerun_operator_resolution_audit_report.json",
-            "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json"
+            "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+            "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
           ]
         },
         "reconciliation_status": {
@@ -506,6 +521,72 @@
             "BLOCKED",
             "UNTESTED"
           ]
+        },
+        "ledger_idempotency_runtime_evidence_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "STALE",
+            "INVALID"
+          ]
+        },
+        "ledger_idempotency_runtime_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "ledger_idempotency_runtime_reconciliation_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "FAIL",
+            "INVALID"
+          ]
+        },
+        "ledger_idempotency_runtime_portfolio_provenance_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "FAIL",
+            "INVALID"
+          ]
+        },
+        "ledger_idempotency_runtime_duplicate_event_id_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ledger_idempotency_runtime_duplicate_dedup_key_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ledger_idempotency_runtime_duplicate_semantic_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ledger_idempotency_runtime_duplicate_filled_order_key_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ledger_idempotency_runtime_source_count_mismatch_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ledger_idempotency_runtime_source_ledger_jsonl_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ledger_idempotency_runtime_recomputed_ledger_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ledger_idempotency_runtime_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
         },
         "post_rerun_blocker_rollup_status": {
           "enum": [
