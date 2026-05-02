@@ -342,6 +342,13 @@ from trader1.runtime.paper.upbit_paper_stale_loop_isolated_event_id_scope_repair
     validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_report,
     write_upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard import (
+    POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE as REPAIRED_CURRENT_EVIDENCE_POST_RERUN_BLOCKER_CODE,
+    build_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
+    upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_hash,
+    validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
+    write_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -630,6 +637,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_validator",
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator",
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_validator",
+    "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validator",
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_post_repair_reconciliation_validator",
@@ -9071,6 +9079,236 @@ def upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_va
     return pass_result(
         validator_id,
         "Upbit PAPER isolated repaired candidate rollups have no duplicate event identities and live remains blocked",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validator"
+    schema_path = (
+        ROOT
+        / "contracts"
+        / "schema"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.schema.json"
+    )
+    module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard.py"
+    )
+    source_module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck.py"
+    )
+    test_path = (
+        ROOT
+        / "tests"
+        / "runtime"
+        / "test_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard.py"
+    )
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json"
+        )
+    )
+    paths = [schema_path, module_path, source_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if (
+        schema.get("$id")
+        != "trader1.upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.v1"
+    ):
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired current evidence guard schema_id mismatch",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if schema.get("additionalProperties") is not False:
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired current evidence guard schema must be strict",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    required = set(schema.get("required", []))
+    for field in (
+        "event_id_scope_repaired_current_evidence_guard_role",
+        "source_event_id_scope_repaired_duplicate_recheck_hash",
+        "operator_guidance_item_count",
+        "candidate_count",
+        "guard_review_ready_count",
+        "guard_blocked_count",
+        "current_evidence_write_allowed_count",
+        "portfolio_truth_write_allowed_count",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "event_id_scope_repaired_current_evidence_guard_hash",
+    ):
+        if field not in required:
+            return fail_result(
+                validator_id,
+                f"isolated event-id repaired current evidence guard schema missing required field: {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+    source_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_report.json"
+    )
+    guidance_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"
+    )
+    if not source_path.exists():
+        return blocked_result(
+            validator_id,
+            "isolated event-id repaired current evidence guard source duplicate recheck report is missing",
+            paths,
+            "MEASUREMENT_MISSING",
+        )
+    source_report = load_json(source_path)
+    guidance_report = load_json(guidance_path) if guidance_path.exists() else None
+    report = build_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report(
+        root=ROOT,
+        event_id_scope_repaired_duplicate_recheck_report=source_report,
+        operator_review_guidance_report=guidance_report,
+    )
+    result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report(report)
+    if result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"valid isolated event-id repaired current evidence guard failed: {result.message}",
+            paths,
+            result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    if (
+        report.get("current_evidence_guard_status") != "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+        or report.get("primary_blocker_code") != REPAIRED_CURRENT_EVIDENCE_POST_RERUN_BLOCKER_CODE
+        or report.get("candidate_count") != 3
+        or report.get("guard_review_ready_count") != 3
+        or report.get("guard_blocked_count") != 3
+        or report.get("clean_candidate_count") != 3
+        or report.get("duplicate_total_count") != 0
+        or report.get("ledger_jsonl_count") != 6
+        or report.get("ledger_event_count") != 36
+        or report.get("filled_order_count") != 6
+        or report.get("operator_guidance_item_count") != 8
+        or report.get("operator_guidance_forbidden_output_count") != 6
+        or report.get("current_evidence_write_allowed_count") != 0
+        or report.get("portfolio_truth_write_allowed_count") != 0
+    ):
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired current evidence guard did not preserve expected blocked counts",
+            paths,
+            "MEASUREMENT_MISSING",
+        )
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["live_order_allowed"] = True
+    live_mutation["event_id_scope_repaired_current_evidence_guard_hash"] = (
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_hash(live_mutation)
+    )
+    live_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report(
+        live_mutation
+    )
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired current evidence guard live mutation was not blocked",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    false_count = json.loads(json.dumps(report))
+    false_count["current_evidence_write_allowed_count"] = 1
+    false_count["event_id_scope_repaired_current_evidence_guard_hash"] = (
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_hash(false_count)
+    )
+    false_count_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report(
+        false_count
+    )
+    if false_count_result.status != "BLOCKED" or false_count_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired current evidence guard allowed current evidence count drift",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    false_aggregate = json.loads(json.dumps(report))
+    false_aggregate["guard_review_ready_count"] = 2
+    false_aggregate["event_id_scope_repaired_current_evidence_guard_hash"] = (
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_hash(false_aggregate)
+    )
+    false_aggregate_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report(
+        false_aggregate
+    )
+    if false_aggregate_result.status != "FAIL":
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired current evidence guard allowed false aggregate count",
+            paths,
+            false_aggregate_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report(
+            root=Path(tmp),
+            report=report,
+        )
+        if not written_path.exists():
+            return fail_result(
+                validator_id,
+                "isolated event-id repaired current evidence guard writer did not create report artifact",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(
+                validator_id,
+                f"runtime isolated event-id repaired current evidence guard artifact is not valid json: {rel(runtime_path)}: {exc}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        runtime_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report(
+            runtime_report
+        )
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime isolated event-id repaired current evidence guard artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER isolated repaired current-evidence guard keeps clean candidates review-only and live blocked",
         paths,
     )
 
@@ -20279,6 +20517,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_validator": upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_validator,
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator": upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator,
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_validator": upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_validator,
+    "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validator": upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
