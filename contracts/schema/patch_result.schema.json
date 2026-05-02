@@ -1075,6 +1075,45 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_status": {
+      "type": "string"
+    },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_clean_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_affected_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_group_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_event_id_duplicate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_dedup_key_duplicate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_filled_order_duplicate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_occurrence_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
