@@ -1,4 +1,4 @@
-from trader1.runtime.boot.safe_launcher import launcher_main
+from trader1.runtime.boot.safe_launcher import root_operator_launcher_main
 
 
 LAUNCHER_NAME = "UPBIT_PAPER"
@@ -7,5 +7,4 @@ MODE = "PAPER"
 
 
 if __name__ == "__main__":
-    raise SystemExit(launcher_main(LAUNCHER_NAME))
-
+    raise SystemExit(root_operator_launcher_main(LAUNCHER_NAME))

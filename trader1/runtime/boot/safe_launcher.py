@@ -78,6 +78,8 @@ ORDER_AFFECTING_FINAL_ACTIONS = {
 DEFAULT_NON_INTERACTIVE_HEARTBEAT_TICKS = 1
 DEFAULT_INTERACTIVE_HEARTBEAT_TICKS: int | None = None
 DEFAULT_INTERACTIVE_HEARTBEAT_INTERVAL_SECONDS = 10.0
+ROOT_OPERATOR_HEARTBEAT_TICKS_ENV = "TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS"
+ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV = "TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS"
 RUNTIME_WRITE_LOCK_FILENAME = ".runtime_write.lock"
 RUNTIME_WRITE_LOCK_TIMEOUT_SECONDS = 5.0
 RUNTIME_WRITE_LOCK_STALE_SECONDS = 30.0
@@ -1433,6 +1435,42 @@ def should_pause_for_operator(pause: bool | None = None) -> bool:
     if pause is not None:
         return pause
     return bool(sys.stdin.isatty() and sys.stdout.isatty())
+
+
+def _optional_nonnegative_int_env(name: str) -> int | None:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return None
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a non-negative integer") from exc
+    if value < 0:
+        raise ValueError(f"{name} must be a non-negative integer")
+    return value
+
+
+def _optional_nonnegative_float_env(name: str) -> float | None:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return None
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a non-negative number") from exc
+    if value < 0:
+        raise ValueError(f"{name} must be a non-negative number")
+    return value
+
+
+def root_operator_launcher_main(launcher_name: str, *, root: Path = ROOT) -> int:
+    return launcher_main(
+        launcher_name,
+        pause=True,
+        console_heartbeat_ticks=_optional_nonnegative_int_env(ROOT_OPERATOR_HEARTBEAT_TICKS_ENV),
+        console_heartbeat_interval_seconds=_optional_nonnegative_float_env(ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV),
+        root=root,
+    )
 
 
 def launcher_main(

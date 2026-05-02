@@ -33,6 +33,12 @@ class RootLauncherGuardTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(set(result.root_launchers_found), ALLOWED_ROOT_LAUNCHERS)
 
+    def test_current_repo_root_launchers_hold_console_for_operator_monitor(self):
+        root = Path(__file__).resolve().parents[2]
+        for launcher in ALLOWED_ROOT_LAUNCHERS:
+            text = (root / f"{launcher}.py").read_text(encoding="utf-8")
+            self.assertIn("root_operator_launcher_main(LAUNCHER_NAME)", text, launcher)
+
     def test_exact_four_allowed_launchers_pass_when_present(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

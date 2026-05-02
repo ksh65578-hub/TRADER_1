@@ -10,17 +10,17 @@
     },
     {
       "path": "BINANCE_LIVE.py",
-      "sha256": "BB8FA181BD5BC42AFCC79C5E8E89B1258C2B42AF4DC2DE4AF3BFE12B82CE5DB2",
-      "size_bytes": 308
+      "sha256": "5EB79121192E9CE727CA205584F8FA1315F7FFFC1581145B76AEACDE6E96C7A9",
+      "size_bytes": 336
     },
     {
       "path": "BINANCE_PAPER.py",
-      "sha256": "BD91620620841E7463EE11D766F6B1D18549B04AA42CF21299A7B53FA56BA6C9",
-      "size_bytes": 310
+      "sha256": "C5F21062273252E5BFDA8898F87A8A92529E100E1E1B2FC78C2129752CD7C25E",
+      "size_bytes": 338
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "0A74C10D5013E3FE7A87AF01127BCCB204C90ABCE36F3664464CC1F0E6B0A281",
+      "sha256": "659D2308CA63DBFF889D6C73C3A9E483D848857554AB9EA3D2E72601D1448B65",
       "size_bytes": 1096
     },
     {
@@ -700,8 +700,8 @@
     },
     {
       "path": "tests/contract/test_root_launchers.py",
-      "sha256": "6A4FA5810D75D765BC7572E572CE387FD772EE9B4DAC972D2A45730125503A7C",
-      "size_bytes": 5633
+      "sha256": "F81BEC96C83FD8FD8558659C077F99E3653D860F1AF9C8B44778A9871F27A24B",
+      "size_bytes": 5976
     },
     {
       "path": "tests/contract/test_schema_instance_validation.py",
@@ -1000,8 +1000,8 @@
     },
     {
       "path": "tests/runtime/test_safe_launcher.py",
-      "sha256": "87C20C30F2072459AD0CC0E072841E950813244F330CF6CB59834F5F2981A6BD",
-      "size_bytes": 56746
+      "sha256": "D6AA146AC01ADC60F6F68B432560B9874F119275AA5D80F12B9A92893AEEE8F7",
+      "size_bytes": 58487
     },
     {
       "path": "tests/runtime/test_safe_smoke.py",
@@ -3340,13 +3340,18 @@
     },
     {
       "path": "tools/emit_windows_console_safe_monitor_default_patch_evidence.py",
-      "sha256": "18B120E0F2BC480E4035AFAD120D9E2A0EC2484941929E091E570AD2CBC54B56",
-      "size_bytes": 16913
+      "sha256": "28233D55FCE79D80EA74C661E9C8600CCF49641BC28EAD688F3FF3F7D8337D66",
+      "size_bytes": 17407
     },
     {
       "path": "tools/emit_windows_restart_recovery_artifact_path_guard_patch_evidence.py",
       "sha256": "CAFD53F7AE79D541DDC9CD6408A76BD321BA3C06E3DBB3FD05EE61CD929B360F",
       "size_bytes": 31341
+    },
+    {
+      "path": "tools/emit_windows_root_launcher_console_persistence_patch_evidence.py",
+      "sha256": "2648014D40783957968AB5410D7503EA8AF5ACA5747DC87B4EF365BA5D23C720",
+      "size_bytes": 8589
     },
     {
       "path": "tools/evidence_write_helper_coverage.py",
@@ -3965,8 +3970,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "F7C9F52590FBF331709BF95C1450B8D7920FB68C50F146767A033FC1EAC99112",
-      "size_bytes": 64730
+      "sha256": "C5E089EE69234F7FEC9040C3511978F94F899651320A55D82F2E7FC09678E4F9",
+      "size_bytes": 66066
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -4305,13 +4310,13 @@
     },
     {
       "path": "UPBIT_LIVE.py",
-      "sha256": "86553D93D775ED5C08ED9BC5C99E8971EA9A63C795FDE5929CEABB14644BD693",
-      "size_bytes": 212
+      "sha256": "ED276DB90ADC1C8E5135916D8D611CE765F0E05DD648EA33ABE84871C5F913A4",
+      "size_bytes": 239
     },
     {
       "path": "UPBIT_PAPER.py",
-      "sha256": "F1F1FE6FF79FBB0A7BA8B4E6E3A9947300454F4300CBE4B75290BD2E7E9472AE",
-      "size_bytes": 214
+      "sha256": "64F297ADB1EAEBB28D5FFFE147D904DC909444A30630C804B53E1384DB1B998B",
+      "size_bytes": 241
     }
   ],
   "excluded_files": [
@@ -5077,6 +5082,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -6488,6 +6497,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE_20260502.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/PATCH_RESULT_VALIDATOR_RUN_GAP_AUDIT.json",
       "reason": "denied:system/"
     },
@@ -7664,6 +7677,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/patch_results/MVP0_BUNDLE_SECURITY.patch_result.json",
       "reason": "denied:system/"
     },
@@ -8789,6 +8806,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9925,6 +9946,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -11077,6 +11102,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
