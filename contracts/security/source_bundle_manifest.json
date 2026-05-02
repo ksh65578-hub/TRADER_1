@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "1AD74943548928B599583D3C10CB908F1DBC32BA70CC8A8039D412CD7BA62DBF",
+      "sha256": "731DA2B048E9047933F0825551DB0DC26C357A5F2332B0C507CB1A9729782A37",
       "size_bytes": 1096
     },
     {
@@ -280,8 +280,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "F9DB4AE81A4CB026177B68296319E08674583C64E6EABB34EEAD4698C61A0C03",
-      "size_bytes": 168330
+      "sha256": "0E04590304BD0E7DC320ABAB91636CD2A54E3AF2C7DF6F24FC0F56773FC6800E",
+      "size_bytes": 172989
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -850,8 +850,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "A352A9479C6B86DB638C9351152905355D569AE23A46F648E8C07824BD558409",
-      "size_bytes": 322518
+      "sha256": "BE84B9C006603D3B0F2A2083FFFEC4F7A628BC7BB888EAC3B7E400435D6485EF",
+      "size_bytes": 336113
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -3559,6 +3559,11 @@
       "size_bytes": 25802
     },
     {
+      "path": "tools/emit_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_dashboard_binding_patch_evidence.py",
+      "sha256": "B5C10C0DBF36861CCEBFB909F47D7E658B11691734A9857709814C5BB19B89CF",
+      "size_bytes": 30843
+    },
+    {
       "path": "tools/emit_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_patch_evidence.py",
       "sha256": "A0C2784545004E7D871BC88ED341EFD8A0B6ECE5FF03373EFC73023DC722108E",
       "size_bytes": 25116
@@ -4310,8 +4315,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "95624843462D934C5DE1788ED77A888AC0F30A4488F0AD69094DCE1E4F066E4C",
-      "size_bytes": 955643
+      "sha256": "FF54044BC863639D29FA242203DB3094F89B7BC382D25361289F571C8402A3AC",
+      "size_bytes": 1006210
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -4440,8 +4445,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "DF7ABEE238BCB8FFEF9D2CA666CDC414EF4A20D1B887419D01FFF5C493420A6B",
-      "size_bytes": 83598
+      "sha256": "9AECB54B0D8F34B11D33A17CD66A111B930073CB9C67822FE42C726BF5562C9F",
+      "size_bytes": 85469
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -5635,6 +5640,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP_DASHBOARD_BINDING.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -8430,6 +8439,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP_DASHBOARD_BINDING.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -9715,6 +9728,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP_DASHBOARD_BINDING.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -11030,6 +11047,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP_DASHBOARD_BINDING.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12339,6 +12360,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP_DASHBOARD_BINDING.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
