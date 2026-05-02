@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-05-02T03:57:23Z",
+  "generated_at_utc": "2026-05-02T04:20:09Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -153,7 +153,7 @@
       "filename": "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
       "truth_role": "dashboard_serving_truth",
       "loaded": true,
-      "freshness_status": "STALE"
+      "freshness_status": "PASS"
     },
     {
       "artifact_id": "MARKET_DATA_CONTINUITY_HISTORY",
@@ -169,7 +169,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-05-02T03:57:23Z",
+    "generated_at_utc": "2026-05-02T04:20:09Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -214,7 +214,7 @@
     "reconciliation_validation_status": "PASS",
     "restart_recovery_status": "PASS",
     "restart_recovery_validation_status": "PASS",
-    "ledger_idempotency_runtime_evidence_status": "STALE",
+    "ledger_idempotency_runtime_evidence_status": "PASS",
     "ledger_idempotency_runtime_validation_status": "PASS",
     "ledger_idempotency_runtime_reconciliation_status": "PASS",
     "ledger_idempotency_runtime_portfolio_provenance_status": "PASS",
@@ -433,7 +433,7 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 33517,
+    "observed_span_seconds": 34730,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 60,
@@ -453,8 +453,8 @@
         "metric_id": "source_freshness",
         "label": "Source freshness",
         "status": "STALE",
-        "value_display": "13/19 PASS",
-        "detail": "Refresh required: CANDIDATE_SCORECARD, PAPER_PERSISTENT_LOOP, PAPER_RUNTIME_RECOVERY_GUARD, UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE, PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE, MARKET_DATA_CONTINUITY_HISTORY",
+        "value_display": "14/19 PASS",
+        "detail": "Refresh required: CANDIDATE_SCORECARD, PAPER_PERSISTENT_LOOP, PAPER_RUNTIME_RECOVERY_GUARD, UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE, MARKET_DATA_CONTINUITY_HISTORY",
         "source": "summary.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -472,7 +472,7 @@
         "label": "Runtime artifact pressure",
         "status": "WARN",
         "value_display": "WARN",
-        "detail": "Runtime artifact pressure WARN: files=409, bytes=3533775, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
+        "detail": "Runtime artifact pressure WARN: files=409, bytes=3533530, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -520,7 +520,7 @@
     "source": "heartbeat.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 33517,
+    "observed_span_seconds": 34730,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 0,
@@ -1840,5 +1840,5 @@
   "blocking_reason": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "A6290D9C2CF0739B1E3E591B620FBF0750E175C56FDD92473BF62B7FFF4988F3"
+  "dashboard_hash": "15F59B2B0B5B58FB2509BFC6EC02FB8BD20DB9C17A5F81D951BAA0A192DFC4EA"
 }

@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-05-02T03:57:22Z",
+  "generated_at_utc": "2026-05-02T04:20:09Z",
   "exchange": "BINANCE",
   "market_type": "SPOT",
   "mode": "PAPER",
@@ -41,7 +41,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-05-02T03:57:22Z",
+    "generated_at_utc": "2026-05-02T04:20:09Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -255,12 +255,12 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 140137,
+    "observed_span_seconds": 138260,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 0,
     "stale_sample_count": 0,
-    "summary": "Validated stability history has 60 sample(s) over 140137s; live orders remain blocked.",
+    "summary": "Validated stability history has 60 sample(s) over 138260s; live orders remain blocked.",
     "metrics": [
       {
         "metric_id": "heartbeat_age",
@@ -294,7 +294,7 @@
         "label": "Runtime artifact pressure",
         "status": "PASS",
         "value_display": "PASS",
-        "detail": "Runtime artifact pressure PASS: files=10, bytes=284437, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
+        "detail": "Runtime artifact pressure PASS: files=10, bytes=284438, temp_files=0, lock_present=true; runtime artifact count, disk usage, and writer lock are within safe thresholds",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -342,7 +342,7 @@
     "source": "stability_history.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 140137,
+    "observed_span_seconds": 138260,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 60,
@@ -582,7 +582,7 @@
     "color_token": "blue",
     "truth_role": "dashboard_serving_truth",
     "source": "stability_history.json",
-    "one_line_summary": "Program stability history is clean, but actual long-run evidence still needs 86400s duration and 2880 stable samples before review. Current display history: 140137s and 60 stable samples. Use dedicated persistent PAPER/SHADOW runtime evidence for the full proof; display history alone is not enough.",
+    "one_line_summary": "Program stability history is clean, but actual long-run evidence still needs 86400s duration and 2880 stable samples before review. Current display history: 138260s and 60 stable samples. Use dedicated persistent PAPER/SHADOW runtime evidence for the full proof; display history alone is not enough.",
     "stub_boundary_message": "No validated persistent runtime source is loaded for long-run evidence.",
     "evidence_requirement_summary": "1/8 long-run evidence requirements currently pass for display-only review; LIVE review remains blocked.",
     "evidence_requirements_blocking_count": 7,
@@ -1519,9 +1519,9 @@
     "source": "summary.json",
     "source_runtime_cycle_id": null,
     "source_paper_ledger_head_hash": null,
-    "source_snapshot_hash": "0141AD2802956FCDF3C2EA0B2520488C53FC4E563D132C0DD6D372EDF20BAAA9",
+    "source_snapshot_hash": "0606C5CC95D2A05298FB362FF5F7AB7DFDAC73991845E9524ADC72AA036E2385",
     "source_snapshot_status": "PASS",
-    "source_snapshot_generated_at_utc": "2026-05-02T03:57:22Z",
+    "source_snapshot_generated_at_utc": "2026-05-02T04:20:09Z",
     "source_snapshot_age_seconds": 0,
     "source_snapshot_stale_after_seconds": 300,
     "source_snapshot_freshness_message": "PAPER portfolio snapshot is fresh and display-only",
@@ -1662,5 +1662,5 @@
   "blocking_reason": "BINANCE_ADAPTER_SURFACE_ONLY",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "2FB15F04735D8D6C71E27ED9F7E05F8207C6EEB26246A7D84B9AD390BFBE0D7C"
+  "dashboard_hash": "3FB43225B8E66BD8DBD1709181827A90CD61359EE985E1B4504E0E11724EA17A"
 }

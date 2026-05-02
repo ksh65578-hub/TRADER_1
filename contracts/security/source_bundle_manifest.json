@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "285114E90A16CDDA700839DD25E2863590E3FD0A41D43F0D7C65A066BD2F258F",
+      "sha256": "3899BB22B7BAB0029132ACB3A1765448BEEEEB51B0D7376971284F88E87D1E2C",
       "size_bytes": 1096
     },
     {
@@ -1057,6 +1057,11 @@
       "path": "tests/runtime/test_upbit_paper_ledger_idempotency_runtime_evidence.py",
       "sha256": "6A141F88BA1567D86CDE92A84A687FCF45F741857B941C3A5E260D1B2209BBAB",
       "size_bytes": 7236
+    },
+    {
+      "path": "tests/runtime/test_upbit_paper_ledger_idempotency_runtime_evidence_refresh.py",
+      "sha256": "0579CE4E043023E4EC6DD22124E9BA19E136124A9D0DB7C757F7D09DCD40647B",
+      "size_bytes": 4865
     },
     {
       "path": "tests/runtime/test_upbit_paper_ledger_rollup_repair.py",
@@ -3104,6 +3109,11 @@
       "size_bytes": 27614
     },
     {
+      "path": "tools/emit_upbit_paper_ledger_idempotency_runtime_evidence_refresh_patch_evidence.py",
+      "sha256": "0A8D328B48BCFECE6518D5842AFABB530F0FB84910BCF4C957E1D23EF906AC16",
+      "size_bytes": 30645
+    },
+    {
       "path": "tools/emit_upbit_paper_ledger_jsonl_recovery_patch_evidence.py",
       "sha256": "C2BDA40BCBDD5830BA4BF9B6861B88FFDD5562D9536C37A288CA94D5F4196056",
       "size_bytes": 23272
@@ -3702,6 +3712,11 @@
       "path": "tools/run_upbit_live_review_validators.py",
       "sha256": "C50DEC935E608B7270B64E02AF7BA4A48AC07FA9A65DEA325090FFF82303CD79",
       "size_bytes": 857
+    },
+    {
+      "path": "tools/run_upbit_paper_ledger_idempotency_runtime_evidence_refresh.py",
+      "sha256": "F59DF5E0E8A604C107753C8889FC32469FC5F82F6E0C1CD7DB5B57F08CA23921",
+      "size_bytes": 4866
     },
     {
       "path": "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
@@ -4949,6 +4964,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -6372,6 +6391,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH.audit.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_LEDGER_JSONL_RECOVERY_20260430.md",
       "reason": "denied:system/"
     },
@@ -7588,6 +7615,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_LEDGER_JSONL_RECOVERY.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -8749,6 +8780,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9940,6 +9975,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_LEDGER_JSONL_RECOVERY.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -11125,6 +11164,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_DASHBOARD_VISIBILITY.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

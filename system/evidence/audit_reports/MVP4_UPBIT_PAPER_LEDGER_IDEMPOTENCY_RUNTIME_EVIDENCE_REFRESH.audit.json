@@ -1,0 +1,18 @@
+{
+  "audit_schema_id": "trader1.upbit_paper_ledger_idempotency_runtime_evidence_refresh_audit.v1",
+  "created_at_utc": "2026-05-02T04:20:03Z",
+  "patch_id": "MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH_20260502_001",
+  "status": "PASS",
+  "runtime_report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
+  "runtime_evidence_status": "PASS",
+  "idempotency_status": "PASS",
+  "reconciliation_status": "PASS",
+  "portfolio_provenance_status": "PASS",
+  "source_ledger_jsonl_count": 28,
+  "recomputed_ledger_event_count": 168,
+  "mismatch_count": 0,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
