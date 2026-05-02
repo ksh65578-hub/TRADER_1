@@ -613,6 +613,29 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_ledger_recheck_preview_status": {
+      "type": "string"
+    },
+    "stale_loop_ledger_recheck_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_ledger_recheck_replacement_validation_fail_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_ledger_recheck_preview_blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_ledger_recheck_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_ledger_recheck_current_evidence_usable_after_preview_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
