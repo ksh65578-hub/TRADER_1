@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "9FA84EEB1693486BBEA574BF43A90AC9E7DB8FFE466627C62260C1323B9C2800",
+      "sha256": "5AD28CAA4A591146836E0127100B3D4B5576F796F6B8600839F961C91B5DE297",
       "size_bytes": 1096
     },
     {
@@ -280,8 +280,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "E5A87217C762942BAEC3C60CD08B6685D8FE5AA4202E71DA663A379281F06527",
-      "size_bytes": 156054
+      "sha256": "A4C3057E4985F766B4FBF9FB9B9B9EAEF2B802851F0B27189CC6299607FA9F6C",
+      "size_bytes": 159216
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -825,8 +825,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "EA681F10187C48C345355DEF1D12BDC02396851538BAA9305A95EACB702AA533",
-      "size_bytes": 279902
+      "sha256": "A74D47F3ACFA157F617317A09107CB1842D3F43F04EB70A4BA25F46115BACF50",
+      "size_bytes": 287598
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -3554,6 +3554,11 @@
       "size_bytes": 31386
     },
     {
+      "path": "tools/emit_upbit_paper_stale_loop_isolated_event_id_scope_repaired_dashboard_binding_patch_evidence.py",
+      "sha256": "7F23B083F20978B86EEA755C5F2808D7BF91D166A204F01C09B74B8FF6CFEC5A",
+      "size_bytes": 32275
+    },
+    {
       "path": "tools/emit_upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_patch_evidence.py",
       "sha256": "B6A66271EC032A975301E732203D4022EEFBEC37A186720FD1A3F26D3EDA8152",
       "size_bytes": 32048
@@ -4210,8 +4215,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "12C34530F1DEAAD0C826D41F9DA8D99AEC37CE566F79D9E23FAD4853892FB498",
-      "size_bytes": 818876
+      "sha256": "B193715F54926498A56652DD6F891B91C30619470B5D29679A1AED045DFBFD2D",
+      "size_bytes": 849905
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -4340,8 +4345,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "C80B5283BE167D6522942E0D9868036BE1EC7B2C8E81C3B04746926219219736",
-      "size_bytes": 76960
+      "sha256": "B94DBBC0AA5AF2388C36F23F02D453A14A37CE39BF4F27F67CD1536E60BD135B",
+      "size_bytes": 78825
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -5542,6 +5547,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -8309,6 +8318,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DUPLICATE_RECHECK.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -9554,6 +9567,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10829,6 +10846,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DUPLICATE_RECHECK.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12098,6 +12119,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
