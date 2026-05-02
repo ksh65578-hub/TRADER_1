@@ -904,6 +904,45 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_isolated_ledger_rollup_rebuild_status": {
+      "type": "string"
+    },
+    "stale_loop_isolated_ledger_rollup_rebuild_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_ledger_rollup_rebuild_candidate_pass_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_ledger_rollup_rebuild_candidate_blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_ledger_rollup_rebuild_candidate_artifact_ready_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_ledger_rollup_rebuild_ledger_jsonl_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_ledger_rollup_rebuild_ledger_event_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_ledger_rollup_rebuild_filled_order_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_ledger_rollup_rebuild_duplicate_event_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_ledger_rollup_rebuild_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0

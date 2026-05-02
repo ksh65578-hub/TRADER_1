@@ -10256,6 +10256,62 @@
       "status": "IMPLEMENTED_LIVE_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-LEDGER-ROLLUP-REBUILD",
+      "section_id": "SECTION_LEDGER_VALIDATOR_IDS",
+      "schema_files": [
+        "contracts/schema/upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/runtime/paper/upbit_paper_stale_loop_isolated_ledger_rollup_rebuild.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_upbit_paper_stale_loop_isolated_ledger_rollup_rebuild.py"
+      ],
+      "fixture_files": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_ledger_input_scope_repair_executor_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-72F5403130CA.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-731F6482DCB3.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-0C2E6FE7456E.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-E519286B8CA6.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-sequence-regime-guard-loop-rege-540754AE515E/ledger/mvp4-sequence-regime-guard-loop-cycl-CE6B92B20272.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-sequence-regime-guard-loop-rege-540754AE515E/ledger/mvp4-sequence-regime-guard-loop-cycl-D1C9D10FC6E9.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-05D1969A30F4.paper_ledger_events.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-EF1A4C85DCAD.paper_ledger_events.jsonl"
+      ],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_stale_loop_isolated_ledger_rollup_rebuild.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_LEDGER_ROLLUP_REBUILD.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_LEDGER_ROLLUP_REBUILD.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_LEDGER_ROLLUP_REBUILD.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_LEDGER_ROLLUP_REBUILD.patch_result.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-sequence-regime-guard-loop-rege-540754AE515E/rollup/isolated_rollup.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "stale_loop_isolated_ledger_rollup_rebuild_status",
+        "stale_loop_isolated_ledger_rollup_rebuild_candidate_count",
+        "stale_loop_isolated_ledger_rollup_rebuild_candidate_pass_count",
+        "stale_loop_isolated_ledger_rollup_rebuild_candidate_blocked_count",
+        "stale_loop_isolated_ledger_rollup_rebuild_candidate_artifact_ready_count",
+        "stale_loop_isolated_ledger_rollup_rebuild_ledger_jsonl_count",
+        "stale_loop_isolated_ledger_rollup_rebuild_ledger_event_count",
+        "stale_loop_isolated_ledger_rollup_rebuild_filled_order_count",
+        "stale_loop_isolated_ledger_rollup_rebuild_duplicate_event_count",
+        "stale_loop_isolated_ledger_rollup_rebuild_current_evidence_write_allowed_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_CANDIDATE_ROLLUP_REBUILD_BLOCKED_RECONCILIATION"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-LEDGER-INPUT-SCOPE-REPAIR-EXECUTOR",
       "section_id": "SECTION_LEDGER_VALIDATOR_IDS",
       "schema_files": [
@@ -11447,7 +11503,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-02T08:14:12Z",
+  "updated_at_utc": "2026-05-02T08:41:48Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
