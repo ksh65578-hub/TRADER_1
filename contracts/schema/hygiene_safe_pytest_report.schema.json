@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.hygiene_safe_pytest_report.v1",
+  "title": "TRADER_1 Hygiene Safe Pytest Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "created_at_utc",
+    "status",
+    "command",
+    "returncode",
+    "preexisting_cache_artifact_count",
+    "post_run_cache_artifact_count",
+    "preexisting_cache_artifacts",
+    "post_run_cache_artifacts",
+    "pythondontwritebytecode",
+    "pytest_cacheprovider_disabled",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed"
+  ],
+  "properties": {
+    "schema_id": { "const": "trader1.hygiene_safe_pytest_report.v1" },
+    "created_at_utc": { "type": "string" },
+    "status": { "enum": ["PASS", "FAIL"] },
+    "command": { "type": "string", "minLength": 1 },
+    "returncode": { "type": "integer" },
+    "preexisting_cache_artifact_count": { "type": "integer", "minimum": 0 },
+    "post_run_cache_artifact_count": { "type": "integer", "minimum": 0 },
+    "preexisting_cache_artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/cache_artifact" }
+    },
+    "post_run_cache_artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/cache_artifact" }
+    },
+    "pythondontwritebytecode": { "const": "1" },
+    "pytest_cacheprovider_disabled": { "const": true },
+    "live_order_ready": { "const": false },
+    "live_order_allowed": { "const": false },
+    "can_live_trade": { "const": false },
+    "scale_up_allowed": { "const": false }
+  },
+  "$defs": {
+    "cache_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "reason"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

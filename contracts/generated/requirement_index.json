@@ -9112,6 +9112,63 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-SOURCE-PACKAGE-HYGIENE-SAFE-PYTEST-RUNNER",
+      "source_section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Source package hygiene safe pytest runner",
+      "full_text_marker": "REQ-MVP4-SOURCE-PACKAGE-HYGIENE-SAFE-PYTEST-RUNNER:pytest proof runs must not leave cache or bytecode artifacts",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Cache-proof pytest runner for source/release hygiene",
+      "requirement_kind": "BUNDLE_SECURITY_TEST_PATCH",
+      "schema_ids": [
+        "trader1.hygiene_safe_pytest_report.v1",
+        "trader1.patch_result.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "bytecode_free_syntax_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "pyproject.toml",
+        "contracts/schema/hygiene_safe_pytest_report.schema.json",
+        "tools/run_hygiene_safe_pytest.py",
+        "tools/emit_source_package_hygiene_safe_pytest_runner_patch_evidence.py",
+        "tests/runtime/test_bytecode_free_syntax_check.py",
+        "tests/security/test_source_bundle_security.py",
+        "contracts/security/source_bundle_manifest.json",
+        "contracts/generated/context_pack/MVP4_SOURCE_PACKAGE_HYGIENE_SAFE_PYTEST_RUNNER.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_bytecode_free_syntax_check.py",
+        "tests/security/test_source_bundle_security.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_SOURCE_BUNDLE_HYGIENE",
+        "SECTION_TEST_PROOF",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP0-BUNDLE-SECURITY",
+        "REQ-MVP4-SOURCE-PACKAGE-HYGIENE-CACHE-DIR-GUARD",
+        "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+      ],
+      "source_text_sha256": "15218AA49EF6F63349D4219B88E0DA9B3F2276AD49D6377F10927ED5A04C5CFA",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-SOURCE-RELEASE-BUNDLE-PATH-SECRET-GUARD",
       "source_section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
       "source_file": "TRADER_1.md",
@@ -14726,5 +14783,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T01:56:25Z"
+  "updated_at_utc": "2026-05-02T02:26:57Z"
 }

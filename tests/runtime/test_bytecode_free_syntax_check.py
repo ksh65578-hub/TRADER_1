@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+import tomllib
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -70,6 +71,60 @@ class BytecodeFreeSyntaxCheckTest(unittest.TestCase):
     def test_registered_validator_passes_current_repo(self):
         statuses = {result["validator_id"]: result["status"] for result in run_validators(["bytecode_free_syntax_validator"])}
         self.assertEqual(statuses["bytecode_free_syntax_validator"], "PASS")
+
+    def test_hygiene_safe_pytest_runner_disables_bytecode_writes(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            package = root / "sample_default_cacheproof"
+            package.mkdir()
+            (package / "__init__.py").write_text("", encoding="utf-8")
+            (package / "module.py").write_text("VALUE = 7\n", encoding="utf-8")
+            test_file = root / "test_sample_default_cacheproof.py"
+            test_file.write_text(
+                "from sample_default_cacheproof import module\n\n"
+                "def test_value():\n"
+                "    assert module.VALUE == 7\n",
+                encoding="utf-8",
+            )
+            report_path = root / "hygiene_safe_pytest_report.json"
+            env = os.environ.copy()
+            env.pop("PYTHONDONTWRITEBYTECODE", None)
+            env["PYTHONPATH"] = str(root) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "tools/run_hygiene_safe_pytest.py",
+                    "--report",
+                    str(report_path),
+                    "--",
+                    str(test_file),
+                ],
+                cwd=ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                timeout=30,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            self.assertEqual(report["status"], "PASS")
+            self.assertEqual(report["post_run_cache_artifact_count"], 0)
+            self.assertTrue(report["pytest_cacheprovider_disabled"])
+            schema_bundle = load_schema_bundle(ROOT / "contracts" / "schema")
+            schema = schema_for_instance(report, schema_bundle)
+            self.assertIsNotNone(schema)
+            schema_result = validate_instance_against_schema(report, schema, schema_bundle)
+            self.assertEqual(schema_result.status, "PASS", schema_result.errors)
+            self.assertFalse((package / "__pycache__").exists())
+            self.assertFalse((test_file.parent / "__pycache__").exists())
+
+    def test_pytest_default_options_disable_cacheprovider(self):
+        config = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+        addopts = config["tool"]["pytest"]["ini_options"]["addopts"].split()
+        self.assertIn("-p", addopts)
+        self.assertIn("no:cacheprovider", addopts)
 
 
 if __name__ == "__main__":
