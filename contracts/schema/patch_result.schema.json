@@ -690,6 +690,33 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_normalized_reconciliation_recheck_status": {
+      "type": "string"
+    },
+    "stale_loop_normalized_reconciliation_recheck_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_recheck_hash_match_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_recheck_validation_blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_recheck_ledger_rollup_required_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_recheck_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_recheck_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
