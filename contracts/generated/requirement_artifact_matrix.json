@@ -8402,6 +8402,59 @@
       "status": "IMPLEMENTED_HASH_AWARE_BLOCKED_POST_REPAIR_RECONCILIATION"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION-DASHBOARD-BINDING",
+      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "schema_files": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "contracts/schema/upbit_paper_post_repair_reconciliation_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/runtime/paper/upbit_paper_post_repair_reconciliation.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "fixture_files": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_repair_reconciliation_report.json"
+      ],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_DASHBOARD_BINDING.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_DASHBOARD_BINDING.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_DASHBOARD_BINDING.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_DASHBOARD_BINDING.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "reconciliation_recovery_summary.post_repair_reconciliation_status",
+        "reconciliation_recovery_summary.post_repair_reconciliation_item_count",
+        "reconciliation_recovery_summary.post_repair_source_loop_expected_rollup_hash_mismatch_count",
+        "reconciliation_recovery_summary.post_repair_candidate_current_evidence_usable_count",
+        "source_artifacts.POST_REPAIR_RECONCILIATION",
+        "portfolio_snapshot.source_snapshot_status",
+        "operator_action_summary.primary_blocker_code",
+        "blocking_reason"
+      ],
+      "patch_result_fields": [
+        "post_repair_reconciliation_status",
+        "post_repair_reconciliation_item_count",
+        "post_repair_source_loop_expected_rollup_hash_mismatch_count",
+        "post_repair_candidate_current_evidence_usable_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_DASHBOARD_VISIBLE_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-RERUN-BLOCKER-ROLLUP-SOURCE-BINDING-GUARD",
       "section_id": "SECTION_LEDGER_RECONCILIATION",
       "schema_files": [
@@ -10451,7 +10504,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-01T23:59:13Z",
+  "updated_at_utc": "2026-05-02T00:35:22Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
