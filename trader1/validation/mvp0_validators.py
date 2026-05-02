@@ -236,6 +236,13 @@ from trader1.runtime.paper.upbit_paper_stale_loop_ledger_recheck_preview import 
     validate_upbit_paper_stale_loop_ledger_recheck_preview_report,
     write_upbit_paper_stale_loop_ledger_recheck_preview_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_replacement_schema_normalization_preview import (
+    POST_NORMALIZATION_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+    build_upbit_paper_stale_loop_replacement_schema_normalization_preview_report,
+    upbit_paper_stale_loop_replacement_schema_normalization_preview_hash,
+    validate_upbit_paper_stale_loop_replacement_schema_normalization_preview_report,
+    write_upbit_paper_stale_loop_replacement_schema_normalization_preview_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -509,6 +516,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_stale_loop_post_regeneration_reconciliation_validator",
     "upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator",
     "upbit_paper_stale_loop_ledger_recheck_preview_validator",
+    "upbit_paper_stale_loop_replacement_schema_normalization_preview_validator",
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_post_repair_reconciliation_validator",
@@ -6346,6 +6354,123 @@ def upbit_paper_stale_loop_ledger_recheck_preview_validator() -> ValidatorResult
     return pass_result(
         validator_id,
         "Upbit PAPER stale-loop ledger recheck preview verifies ledger bindings while keeping replacement schema failures blocked and current-evidence writes disabled",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_replacement_schema_normalization_preview_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_stale_loop_replacement_schema_normalization_preview_validator"
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_stale_loop_replacement_schema_normalization_preview_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_replacement_schema_normalization_preview.py"
+    ledger_preview_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_ledger_recheck_preview.py"
+    persistent_loop_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_persistent_loop.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_stale_loop_replacement_schema_normalization_preview.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_stale_loop_replacement_schema_normalization_preview_report.json"
+        )
+    )
+    paths = [schema_path, module_path, ledger_preview_module_path, persistent_loop_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_stale_loop_replacement_schema_normalization_preview_report.v1":
+        return fail_result(validator_id, "replacement schema normalization preview schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "replacement schema normalization preview schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "normalization_preview_role",
+        "source_ledger_recheck_preview_hash",
+        "normalization_candidate_count",
+        "proposed_current_evidence_write_true_count",
+        "normalized_schema_fail_count",
+        "normalized_reconciliation_blocked_count",
+        "normalization_write_allowed_count",
+        "current_evidence_write_allowed_count",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "normalization_preview_hash",
+    ):
+        if field not in required:
+            return fail_result(validator_id, f"replacement schema normalization preview schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    preview_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_ledger_recheck_preview_report.json"
+    )
+    if not preview_path.exists():
+        return fail_result(validator_id, "replacement schema normalization source preview is missing", paths + [preview_path], "MEASUREMENT_MISSING")
+    ledger_preview = load_json(preview_path)
+    report = build_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(
+        root=ROOT,
+        ledger_recheck_preview_report=ledger_preview,
+    )
+    result = validate_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(report)
+    if result.status != "PASS":
+        return fail_result(validator_id, f"valid replacement schema normalization preview failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
+    if (
+        report.get("preview_status") != "BLOCKED"
+        or report.get("primary_blocker_code") != POST_NORMALIZATION_RECONCILIATION_REQUIRED_BLOCKER_CODE
+        or report.get("normalization_candidate_count") != 5
+        or report.get("missing_field_total_count") != 35
+        or report.get("proposed_current_evidence_write_true_count") != 5
+        or report.get("normalized_schema_fail_count") != 0
+        or report.get("normalized_reconciliation_blocked_count") != 5
+        or report.get("normalization_write_allowed_count") != 0
+        or report.get("current_evidence_write_allowed_count") != 0
+    ):
+        return fail_result(validator_id, "replacement schema normalization preview did not preserve expected blocked counts", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["live_order_allowed"] = True
+    live_mutation["normalization_preview_hash"] = upbit_paper_stale_loop_replacement_schema_normalization_preview_hash(live_mutation)
+    live_result = validate_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "replacement schema normalization preview live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_write = json.loads(json.dumps(report))
+    false_write["normalization_write_allowed_count"] = 1
+    false_write["normalization_preview_hash"] = upbit_paper_stale_loop_replacement_schema_normalization_preview_hash(false_write)
+    false_write_result = validate_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(false_write)
+    if false_write_result.status != "BLOCKED" or false_write_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "replacement schema normalization preview allowed write count drift", paths, false_write_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_ready = json.loads(json.dumps(report))
+    false_ready["items"][0]["normalized_validation_blocker_code"] = "SCHEMA_IDENTITY_MISMATCH"
+    false_ready["normalization_preview_hash"] = upbit_paper_stale_loop_replacement_schema_normalization_preview_hash(false_ready)
+    false_ready_result = validate_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(false_ready)
+    if false_ready_result.status != "FAIL":
+        return fail_result(validator_id, "replacement schema normalization preview allowed READY item with schema mismatch", paths, false_ready_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(root=Path(tmp), report=report)
+        if not written_path.exists():
+            return fail_result(validator_id, "replacement schema normalization preview writer did not create report artifact", paths, "MEASUREMENT_MISSING")
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(validator_id, f"runtime replacement schema normalization preview artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime replacement schema normalization preview artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER stale-loop replacement schema normalization preview removes schema mismatch in memory while keeping replacement writes and current evidence blocked",
         paths,
     )
 
@@ -17539,6 +17664,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_post_regeneration_reconciliation_validator": upbit_paper_stale_loop_post_regeneration_reconciliation_validator,
     "upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator": upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator,
     "upbit_paper_stale_loop_ledger_recheck_preview_validator": upbit_paper_stale_loop_ledger_recheck_preview_validator,
+    "upbit_paper_stale_loop_replacement_schema_normalization_preview_validator": upbit_paper_stale_loop_replacement_schema_normalization_preview_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
