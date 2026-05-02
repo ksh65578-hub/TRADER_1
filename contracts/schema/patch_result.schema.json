@@ -636,6 +636,33 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_replacement_schema_normalization_preview_status": {
+      "type": "string"
+    },
+    "stale_loop_replacement_schema_normalization_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_replacement_schema_missing_field_total_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_replacement_schema_normalized_schema_fail_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_replacement_schema_normalized_reconciliation_blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_replacement_schema_normalization_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_replacement_schema_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0

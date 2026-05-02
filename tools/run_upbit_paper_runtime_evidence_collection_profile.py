@@ -61,6 +61,20 @@ def _sha256_json(value: Any) -> str:
     ).hexdigest().upper()
 
 
+def _atomic_write_text(path: Path, value: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.tmp")
+    with tmp.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(value)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp, path)
+
+
+def write_text(path: Path, value: str) -> None:
+    _atomic_write_text(path, value)
+
+
 def upbit_paper_runtime_evidence_collection_profile_hash(report: dict[str, Any]) -> str:
     payload = dict(report)
     payload.pop("profile_hash", None)
@@ -91,7 +105,7 @@ def _duplicate_first_ledger_jsonl(root: Path, loop: dict[str, Any]) -> None:
             if artifact_text.endswith(".paper_ledger_events.jsonl"):
                 source = root / artifact_text
                 duplicate = source.with_name("duplicate-runtime-evidence-profile.paper_ledger_events.jsonl")
-                duplicate.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+                write_text(duplicate, source.read_text(encoding="utf-8"))
                 rollup = build_paper_ledger_rollup_report(
                     root=root,
                     session_id=str(loop.get("session_id") or DEFAULT_SESSION_ID),

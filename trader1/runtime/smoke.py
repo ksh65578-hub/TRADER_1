@@ -8,7 +8,6 @@ from typing import Any
 from trader1.runtime.boot.safe_launcher import (
     ROOT_LAUNCHER_SPECS,
     build_launcher_report,
-    launcher_dashboard_paths,
     load_json,
     validate_launcher_report,
     write_launcher_runtime_bundle,
@@ -51,8 +50,14 @@ def _runtime_bundle_smoke_checks(temp_root: Path) -> list[dict[str, Any]]:
         heartbeat = load_json(dashboard_paths["heartbeat"])
         dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
         dashboard_html_exists = dashboard_paths["dashboard_html"].exists()
-        scoped_paths = launcher_dashboard_paths(report, temp_root)
-        paths_are_scoped = all(str(report["session_id"]) in str(path) for path in scoped_paths.values())
+        emitted_paths = {
+            "launcher_report": report_path,
+            "summary": dashboard_paths["summary"],
+            "heartbeat": dashboard_paths["heartbeat"],
+            "dashboard_shell": dashboard_paths["dashboard_shell"],
+            "dashboard_html": dashboard_paths["dashboard_html"],
+        }
+        paths_are_scoped = all(str(report["session_id"]) in str(path) for path in emitted_paths.values())
         checks.append(
             {
                 "launcher_name": launcher_name,
