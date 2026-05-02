@@ -271,6 +271,13 @@ from trader1.runtime.paper.upbit_paper_stale_loop_ledger_rollup_regeneration_pla
     validate_upbit_paper_stale_loop_ledger_rollup_regeneration_plan_report,
     write_upbit_paper_stale_loop_ledger_rollup_regeneration_plan_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_ledger_rollup_regeneration_executor import (
+    LEDGER_ROLLUP_REGENERATION_EXECUTOR_BLOCKER_CODE,
+    build_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report,
+    upbit_paper_stale_loop_ledger_rollup_regeneration_executor_hash,
+    validate_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report,
+    write_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -549,6 +556,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_stale_loop_normalized_reconciliation_recheck_validator",
     "upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator",
     "upbit_paper_stale_loop_ledger_rollup_regeneration_plan_validator",
+    "upbit_paper_stale_loop_ledger_rollup_regeneration_executor_validator",
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_post_repair_reconciliation_validator",
@@ -7015,6 +7023,134 @@ def upbit_paper_stale_loop_ledger_rollup_regeneration_plan_validator() -> Valida
     return pass_result(
         validator_id,
         "Upbit PAPER stale-loop ledger-rollup regeneration plan is input-complete, plan-only, and live-blocked",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_ledger_rollup_regeneration_executor_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_stale_loop_ledger_rollup_regeneration_executor_validator"
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_ledger_rollup_regeneration_executor.py"
+    plan_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_ledger_rollup_regeneration_plan.py"
+    rollup_module_path = ROOT / "trader1" / "runtime" / "ledger" / "paper_ledger_rollup.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_stale_loop_ledger_rollup_regeneration_executor.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report.json"
+        )
+    )
+    paths = [schema_path, module_path, plan_module_path, rollup_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report.v1":
+        return fail_result(validator_id, "ledger-rollup regeneration executor schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "ledger-rollup regeneration executor schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "ledger_rollup_regeneration_executor_role",
+        "source_ledger_rollup_regeneration_plan_hash",
+        "candidate_rollup_attempt_count",
+        "candidate_rollup_pass_count",
+        "candidate_rollup_blocked_count",
+        "candidate_rollup_artifact_ready_count",
+        "strict_input_scope_blocked_count",
+        "candidate_current_evidence_usable_count",
+        "target_rollup_write_allowed_count",
+        "current_evidence_write_allowed_count",
+        "current_evidence_write_allowed",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "ledger_rollup_regeneration_executor_hash",
+    ):
+        if field not in required:
+            return fail_result(validator_id, f"ledger-rollup regeneration executor schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    source_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_ledger_rollup_regeneration_plan_report.json"
+    )
+    if not source_path.exists():
+        return fail_result(validator_id, "ledger-rollup regeneration executor source plan is missing", paths + [source_path], "MEASUREMENT_MISSING")
+    source = load_json(source_path)
+    report = build_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report(
+        root=ROOT,
+        ledger_rollup_regeneration_plan_report=source,
+        candidate_write_enabled=False,
+    )
+    result = validate_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report(report)
+    if result.status != "PASS":
+        return fail_result(validator_id, f"valid ledger-rollup regeneration executor failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
+    if (
+        report.get("executor_status") != "BLOCKED"
+        or report.get("primary_blocker_code") != LEDGER_ROLLUP_REGENERATION_EXECUTOR_BLOCKER_CODE
+        or report.get("candidate_rollup_attempt_count") != 5
+        or report.get("candidate_rollup_pass_count") != 1
+        or report.get("candidate_rollup_blocked_count") != 4
+        or report.get("strict_input_scope_blocked_count") != 4
+        or report.get("candidate_rollup_artifact_ready_count") != 0
+        or report.get("candidate_current_evidence_usable_count") != 0
+        or report.get("target_rollup_write_allowed_count") != 0
+        or report.get("current_evidence_write_allowed_count") != 0
+    ):
+        return fail_result(validator_id, "ledger-rollup regeneration executor did not preserve expected candidate-only blocked counts", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["live_order_allowed"] = True
+    live_mutation["ledger_rollup_regeneration_executor_hash"] = (
+        upbit_paper_stale_loop_ledger_rollup_regeneration_executor_hash(live_mutation)
+    )
+    live_result = validate_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "ledger-rollup regeneration executor live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_write = json.loads(json.dumps(report))
+    false_write["current_evidence_write_allowed_count"] = 1
+    false_write["ledger_rollup_regeneration_executor_hash"] = (
+        upbit_paper_stale_loop_ledger_rollup_regeneration_executor_hash(false_write)
+    )
+    false_write_result = validate_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report(false_write)
+    if false_write_result.status != "BLOCKED" or false_write_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "ledger-rollup regeneration executor allowed current evidence count drift", paths, false_write_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_scope_count = json.loads(json.dumps(report))
+    false_scope_count["strict_input_scope_blocked_count"] = 0
+    false_scope_count["ledger_rollup_regeneration_executor_hash"] = (
+        upbit_paper_stale_loop_ledger_rollup_regeneration_executor_hash(false_scope_count)
+    )
+    false_scope_result = validate_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report(false_scope_count)
+    if false_scope_result.status != "FAIL":
+        return fail_result(validator_id, "ledger-rollup regeneration executor allowed false scope-blocked count", paths, false_scope_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report(root=Path(tmp), report=report)
+        if not written_path.exists():
+            return fail_result(validator_id, "ledger-rollup regeneration executor writer did not create report artifact", paths, "MEASUREMENT_MISSING")
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(validator_id, f"runtime ledger-rollup regeneration executor artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_stale_loop_ledger_rollup_regeneration_executor_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime ledger-rollup regeneration executor artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER stale-loop ledger-rollup regeneration executor creates candidate-only rollups and keeps current evidence blocked",
         paths,
     )
 
@@ -18213,6 +18349,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_normalized_reconciliation_recheck_validator": upbit_paper_stale_loop_normalized_reconciliation_recheck_validator,
     "upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator": upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator,
     "upbit_paper_stale_loop_ledger_rollup_regeneration_plan_validator": upbit_paper_stale_loop_ledger_rollup_regeneration_plan_validator,
+    "upbit_paper_stale_loop_ledger_rollup_regeneration_executor_validator": upbit_paper_stale_loop_ledger_rollup_regeneration_executor_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
