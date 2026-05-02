@@ -31,6 +31,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_resolution_current_evidence_cl
 from trader1.runtime.paper.upbit_paper_post_rerun_current_evidence_closure_recheck import (
     validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_repair_path import (
+    validate_upbit_paper_post_rerun_reconciliation_repair_path_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
@@ -51,6 +54,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_post_rerun_operator_resolution_audit_report.json",
     "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
     "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
+    "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
@@ -65,6 +69,7 @@ RECONCILIATION_RECOVERY_SOURCES = {
     "upbit_paper_post_rerun_operator_resolution_audit_report.json",
     "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
     "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
+    "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
 }
 ORDER_AFFECTING_FINAL_ACTIONS = {
@@ -191,6 +196,16 @@ POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_STATUSES = {
     "INVALID",
 }
 POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+POST_RERUN_RECONCILIATION_REPAIR_PATH_STATUSES = {"NOT_LOADED", "BLOCKED_REPAIR_PATH_DECLARED", "INVALID"}
+POST_RERUN_RECONCILIATION_REPAIR_PATH_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+POST_RERUN_RECONCILIATION_REPAIR_GATE_STATUSES = {"NOT_LOADED", "BLOCKED", "PASS", "FAIL"}
+POST_RERUN_RECONCILIATION_REPAIR_GATE_IDS = {
+    "NOT_LOADED",
+    "VALIDATED_OPERATOR_RESOLUTION_ACCEPTANCE",
+    "VALIDATED_CURRENT_LEDGER_REBUILD",
+    "VALIDATED_SOURCE_HASH_RECONCILIATION",
+    "VALIDATED_NO_LIVE_OR_SCALE_MUTATION",
+}
 POST_RERUN_CURRENT_EVIDENCE_BRIDGE_STATUSES = {"NOT_LOADED", "BLOCKED_BY_POST_RERUN_CLOSURE", "INVALID"}
 POST_RERUN_CURRENT_EVIDENCE_PORTFOLIO_RECHECK_STATUSES = {
     "NOT_LOADED",
@@ -892,7 +907,13 @@ def _portfolio_snapshot(
 ) -> dict[str, Any]:
     if summary is not None and summary_freshness != "PASS":
         return _stale_portfolio_snapshot(exchange, market_type, summary)
-    if mode == "PAPER" and isinstance(summary, dict):
+    post_rerun_current_truth_blocked = isinstance(reconciliation_recovery_summary, dict) and (
+        reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_status")
+        == "BLOCKED_REPAIR_PATH_DECLARED"
+        or reconciliation_recovery_summary.get("post_rerun_current_evidence_closure_recheck_status")
+        == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED"
+    )
+    if mode == "PAPER" and isinstance(summary, dict) and not post_rerun_current_truth_blocked:
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
         if verified is not None:
             return verified
@@ -931,6 +952,55 @@ def _portfolio_snapshot(
     source_snapshot_status = "UNTESTED"
     blocking_reason = "HARD_TRUTH_MISSING"
     if (
+        isinstance(reconciliation_recovery_summary, dict)
+        and reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_status")
+        == "BLOCKED_REPAIR_PATH_DECLARED"
+    ):
+        source_snapshot_status = "BLOCKED"
+        blocking_reason = "POST_RERUN_RECONCILIATION_REQUIRED"
+        gate_count = reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_repair_gate_count", 0)
+        satisfied_count = reconciliation_recovery_summary.get(
+            "post_rerun_reconciliation_repair_path_satisfied_gate_count",
+            0,
+        )
+        blocked_count = reconciliation_recovery_summary.get(
+            "post_rerun_reconciliation_repair_path_blocked_gate_count",
+            0,
+        )
+        next_gate = reconciliation_recovery_summary.get(
+            "post_rerun_reconciliation_repair_path_first_gate_id",
+            "NOT_LOADED",
+        )
+        source_bridge_status = reconciliation_recovery_summary.get(
+            "post_rerun_reconciliation_repair_path_source_recheck_bridge_status",
+            "NOT_LOADED",
+        )
+        if isinstance(configured_display, str) and configured_display != "UNVERIFIED":
+            unverified_message = (
+                f"Configured PAPER capital is {configured_display}; repair gates are "
+                f"{satisfied_count}/{gate_count} satisfied with {blocked_count} blocked, so portfolio "
+                f"cash/equity remains unverified current evidence."
+            )
+            cash_detail = (
+                f"Configured PAPER capital is {configured_display}; cash remains blocked until repair gate "
+                f"{next_gate} and the remaining post-rerun repair gates are validated."
+            )
+            equity_detail = (
+                f"Configured PAPER capital is {configured_display}; equity remains blocked by "
+                f"{source_bridge_status} and cannot be treated as current portfolio truth."
+            )
+        else:
+            unverified_message = (
+                f"Portfolio current evidence remains blocked: repair gates are {satisfied_count}/{gate_count} "
+                f"satisfied with {blocked_count} blocked."
+            )
+            cash_detail = f"Cash remains unverified until repair gate {next_gate} is satisfied."
+            equity_detail = f"Equity remains unverified while repair path bridge status is {source_bridge_status}."
+        next_action = (
+            "Complete the blocked post-rerun repair gates with a separate validated current ledger rebuild before "
+            "treating configured PAPER capital as current portfolio cash/equity."
+        )
+    elif (
         isinstance(reconciliation_recovery_summary, dict)
         and reconciliation_recovery_summary.get("post_rerun_current_evidence_closure_recheck_status")
         == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED"
@@ -5144,6 +5214,7 @@ def _reconciliation_recovery_summary(
     post_rerun_resolution_audit_report: dict[str, Any] | None,
     post_rerun_resolution_closure_report: dict[str, Any] | None,
     post_rerun_current_evidence_closure_recheck_report: dict[str, Any] | None,
+    post_rerun_reconciliation_repair_path_report: dict[str, Any] | None,
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
     restart_loaded = isinstance(restart_recovery_report, dict)
@@ -5153,6 +5224,7 @@ def _reconciliation_recovery_summary(
     post_rerun_resolution_loaded = isinstance(post_rerun_resolution_audit_report, dict)
     post_rerun_resolution_closure_loaded = isinstance(post_rerun_resolution_closure_report, dict)
     post_rerun_closure_recheck_loaded = isinstance(post_rerun_current_evidence_closure_recheck_report, dict)
+    post_rerun_repair_path_loaded = isinstance(post_rerun_reconciliation_repair_path_report, dict)
     reconciliation_status = "NOT_LOADED"
     restart_status = "NOT_LOADED"
     ledger_idempotency_runtime_evidence_status = "NOT_LOADED"
@@ -5184,6 +5256,24 @@ def _reconciliation_recovery_summary(
     post_rerun_current_evidence_closure_recheck_ledger_idempotency_status = "NOT_LOADED"
     post_rerun_current_evidence_closure_recheck_ledger_portfolio_provenance_status = "NOT_LOADED"
     post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed = False
+    post_rerun_reconciliation_repair_path_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_validation_status = "UNTESTED"
+    post_rerun_reconciliation_repair_path_source_closure_file_load_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_source_closure_file_hash_match = False
+    post_rerun_reconciliation_repair_path_source_recheck_file_load_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_source_recheck_file_hash_match = False
+    post_rerun_reconciliation_repair_path_source_closure_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_source_recheck_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_source_recheck_bridge_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_repair_gate_count = 0
+    post_rerun_reconciliation_repair_path_satisfied_gate_count = 0
+    post_rerun_reconciliation_repair_path_blocked_gate_count = 0
+    post_rerun_reconciliation_repair_path_current_evidence_write_authorized_count = 0
+    post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count = 0
+    post_rerun_reconciliation_repair_path_candidate_current_evidence_usable_count = 0
+    post_rerun_reconciliation_repair_path_first_gate_id = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_first_gate_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_next_action = "NOT_LOADED"
     reconciliation_validation_status = "UNTESTED"
     restart_validation_status = "UNTESTED"
     post_rerun_rollup_validation_status = "UNTESTED"
@@ -5740,6 +5830,105 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Post-rerun current-evidence closure recheck status is unknown.")
 
+    if post_rerun_repair_path_loaded:
+        source = "upbit_paper_post_rerun_reconciliation_repair_path_report.json"
+        post_rerun_reconciliation_repair_path_status = str(
+            post_rerun_reconciliation_repair_path_report.get("repair_path_status", "INVALID")
+        )
+        repair_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(
+            post_rerun_reconciliation_repair_path_report
+        )
+        post_rerun_reconciliation_repair_path_validation_status = repair_result.status
+        if repair_result.status != "PASS":
+            post_rerun_reconciliation_repair_path_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = repair_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(f"Post-rerun reconciliation repair path invalid: {repair_result.message}")
+        elif not _scope_matches(
+            post_rerun_reconciliation_repair_path_report,
+            exchange=exchange,
+            market_type=market_type,
+            mode=mode,
+            session_id=session_id,
+        ):
+            post_rerun_reconciliation_repair_path_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Post-rerun reconciliation repair path scope does not match this dashboard.")
+        elif post_rerun_reconciliation_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+            post_rerun_reconciliation_repair_path_source_closure_file_load_status = str(
+                post_rerun_reconciliation_repair_path_report.get("source_closure_file_load_status") or "UNKNOWN"
+            )
+            post_rerun_reconciliation_repair_path_source_closure_file_hash_match = bool(
+                post_rerun_reconciliation_repair_path_report.get("source_closure_file_hash_match") is True
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_file_load_status = str(
+                post_rerun_reconciliation_repair_path_report.get("source_recheck_file_load_status") or "UNKNOWN"
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_file_hash_match = bool(
+                post_rerun_reconciliation_repair_path_report.get("source_recheck_file_hash_match") is True
+            )
+            post_rerun_reconciliation_repair_path_source_closure_status = str(
+                post_rerun_reconciliation_repair_path_report.get("source_closure_status") or "INVALID"
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_status = str(
+                post_rerun_reconciliation_repair_path_report.get("source_recheck_status") or "INVALID"
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_bridge_status = str(
+                post_rerun_reconciliation_repair_path_report.get("source_recheck_bridge_status") or "INVALID"
+            )
+            post_rerun_reconciliation_repair_path_repair_gate_count = _safe_count(
+                post_rerun_reconciliation_repair_path_report.get("repair_gate_count")
+            )
+            post_rerun_reconciliation_repair_path_satisfied_gate_count = _safe_count(
+                post_rerun_reconciliation_repair_path_report.get("satisfied_repair_gate_count")
+            )
+            post_rerun_reconciliation_repair_path_blocked_gate_count = _safe_count(
+                post_rerun_reconciliation_repair_path_report.get("blocked_repair_gate_count")
+            )
+            post_rerun_reconciliation_repair_path_current_evidence_write_authorized_count = _safe_count(
+                post_rerun_reconciliation_repair_path_report.get("current_evidence_write_authorized_count")
+            )
+            post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count = _safe_count(
+                post_rerun_reconciliation_repair_path_report.get("current_evidence_write_allowed_count")
+            )
+            post_rerun_reconciliation_repair_path_candidate_current_evidence_usable_count = _safe_count(
+                post_rerun_reconciliation_repair_path_report.get("candidate_current_evidence_usable_count")
+            )
+            repair_gates = post_rerun_reconciliation_repair_path_report.get("repair_gates", [])
+            first_gate = repair_gates[0] if isinstance(repair_gates, list) and repair_gates and isinstance(repair_gates[0], dict) else {}
+            post_rerun_reconciliation_repair_path_first_gate_id = str(first_gate.get("gate_id") or "NOT_LOADED")
+            post_rerun_reconciliation_repair_path_first_gate_status = str(first_gate.get("gate_status") or "NOT_LOADED")
+            post_rerun_reconciliation_repair_path_next_action = str(
+                first_gate.get("next_action")
+                or post_rerun_reconciliation_repair_path_report.get("repair_next_action")
+                or "Collect the blocked post-rerun repair-gate evidence before any current-evidence rebuild."
+            )
+            raw_codes = post_rerun_reconciliation_repair_path_report.get("blocker_codes", [])
+            repair_codes = [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            post_rerun_blocker_codes = sorted({*post_rerun_blocker_codes, *repair_codes})
+            ledger_state = "RECONCILE_REQUIRED"
+            single_writer_state = "RECONCILE_REQUIRED"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = str(
+                post_rerun_reconciliation_repair_path_report.get("primary_blocker_code")
+                or "POST_RERUN_RECONCILIATION_REQUIRED"
+            )
+            issue_messages.append(
+                "Post-rerun reconciliation repair path declares blocked repair gates; current evidence remains unavailable."
+            )
+        else:
+            post_rerun_reconciliation_repair_path_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Post-rerun reconciliation repair path status is unknown.")
+
     if (
         not reconciliation_loaded
         and not restart_loaded
@@ -5749,6 +5938,7 @@ def _reconciliation_recovery_summary(
         and not post_rerun_resolution_loaded
         and not post_rerun_resolution_closure_loaded
         and not post_rerun_closure_recheck_loaded
+        and not post_rerun_repair_path_loaded
     ):
         status = "NOT_LOADED"
         severity = "WARNING"
@@ -5756,6 +5946,34 @@ def _reconciliation_recovery_summary(
         one_line_blocker = "RECONCILIATION_REQUIRED: ledger/reconciliation and restart recovery evidence are not loaded."
         next_action = "Run PAPER with reconciliation and restart recovery artifacts, then review this panel before live review."
         message = "Ledger/reconciliation evidence is not loaded; portfolio values remain display-only."
+    elif post_rerun_reconciliation_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = (
+            f"{primary_blocker}: post-rerun repair path has "
+            f"{post_rerun_reconciliation_repair_path_satisfied_gate_count}/"
+            f"{post_rerun_reconciliation_repair_path_repair_gate_count} satisfied repair gate(s)."
+        )
+        next_action = (
+            post_rerun_reconciliation_repair_path_next_action
+            if post_rerun_reconciliation_repair_path_next_action != "NOT_LOADED"
+            else "Collect the blocked post-rerun repair-gate evidence before any current-evidence rebuild."
+        )
+        message = (
+            "Post-rerun reconciliation repair path is active: "
+            f"repair={post_rerun_reconciliation_repair_path_status}, "
+            f"gates={post_rerun_reconciliation_repair_path_satisfied_gate_count}/"
+            f"{post_rerun_reconciliation_repair_path_repair_gate_count}, "
+            f"blocked={post_rerun_reconciliation_repair_path_blocked_gate_count}, "
+            f"sources={post_rerun_reconciliation_repair_path_source_closure_file_load_status}/"
+            f"{post_rerun_reconciliation_repair_path_source_recheck_file_load_status}, "
+            f"closure={post_rerun_reconciliation_repair_path_source_closure_status}, "
+            f"recheck={post_rerun_reconciliation_repair_path_source_recheck_status}, "
+            f"bridge={post_rerun_reconciliation_repair_path_source_recheck_bridge_status}, "
+            f"current-evidence writes allowed="
+            f"{post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count}."
+        )
     elif post_rerun_current_evidence_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
         status = "BLOCKED"
         severity = "ERROR"
@@ -5872,6 +6090,7 @@ def _reconciliation_recovery_summary(
             post_rerun_resolution_audit_status,
             post_rerun_resolution_closure_status,
             post_rerun_current_evidence_closure_recheck_status,
+            post_rerun_reconciliation_repair_path_status,
             ledger_idempotency_runtime_evidence_status,
         }
         or "FAIL"
@@ -5883,6 +6102,7 @@ def _reconciliation_recovery_summary(
             post_rerun_resolution_audit_validation_status,
             post_rerun_resolution_closure_validation_status,
             post_rerun_current_evidence_closure_recheck_validation_status,
+            post_rerun_reconciliation_repair_path_validation_status,
             ledger_idempotency_runtime_validation_status,
         }
         or "BLOCKED"
@@ -5893,6 +6113,7 @@ def _reconciliation_recovery_summary(
             post_rerun_review_guidance_validation_status,
             post_rerun_resolution_audit_validation_status,
             post_rerun_resolution_closure_validation_status,
+            post_rerun_reconciliation_repair_path_validation_status,
             ledger_idempotency_runtime_validation_status if ledger_idempotency_runtime_evidence_status != "BLOCKED" else "PASS",
         }
     ):
@@ -6004,6 +6225,24 @@ def _reconciliation_recovery_summary(
         "post_rerun_current_evidence_closure_recheck_ledger_idempotency_status": post_rerun_current_evidence_closure_recheck_ledger_idempotency_status,
         "post_rerun_current_evidence_closure_recheck_ledger_portfolio_provenance_status": post_rerun_current_evidence_closure_recheck_ledger_portfolio_provenance_status,
         "post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed": post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed,
+        "post_rerun_reconciliation_repair_path_status": post_rerun_reconciliation_repair_path_status,
+        "post_rerun_reconciliation_repair_path_validation_status": post_rerun_reconciliation_repair_path_validation_status,
+        "post_rerun_reconciliation_repair_path_source_closure_file_load_status": post_rerun_reconciliation_repair_path_source_closure_file_load_status,
+        "post_rerun_reconciliation_repair_path_source_closure_file_hash_match": post_rerun_reconciliation_repair_path_source_closure_file_hash_match,
+        "post_rerun_reconciliation_repair_path_source_recheck_file_load_status": post_rerun_reconciliation_repair_path_source_recheck_file_load_status,
+        "post_rerun_reconciliation_repair_path_source_recheck_file_hash_match": post_rerun_reconciliation_repair_path_source_recheck_file_hash_match,
+        "post_rerun_reconciliation_repair_path_source_closure_status": post_rerun_reconciliation_repair_path_source_closure_status,
+        "post_rerun_reconciliation_repair_path_source_recheck_status": post_rerun_reconciliation_repair_path_source_recheck_status,
+        "post_rerun_reconciliation_repair_path_source_recheck_bridge_status": post_rerun_reconciliation_repair_path_source_recheck_bridge_status,
+        "post_rerun_reconciliation_repair_path_repair_gate_count": post_rerun_reconciliation_repair_path_repair_gate_count,
+        "post_rerun_reconciliation_repair_path_satisfied_gate_count": post_rerun_reconciliation_repair_path_satisfied_gate_count,
+        "post_rerun_reconciliation_repair_path_blocked_gate_count": post_rerun_reconciliation_repair_path_blocked_gate_count,
+        "post_rerun_reconciliation_repair_path_current_evidence_write_authorized_count": post_rerun_reconciliation_repair_path_current_evidence_write_authorized_count,
+        "post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count": post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count,
+        "post_rerun_reconciliation_repair_path_candidate_current_evidence_usable_count": post_rerun_reconciliation_repair_path_candidate_current_evidence_usable_count,
+        "post_rerun_reconciliation_repair_path_first_gate_id": post_rerun_reconciliation_repair_path_first_gate_id,
+        "post_rerun_reconciliation_repair_path_first_gate_status": post_rerun_reconciliation_repair_path_first_gate_status,
+        "post_rerun_reconciliation_repair_path_next_action": post_rerun_reconciliation_repair_path_next_action,
         "post_rerun_blocker_codes": post_rerun_blocker_codes,
         "ledger_state": ledger_state,
         "single_writer_state": single_writer_state,
@@ -6049,6 +6288,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_post_rerun_operator_resolution_audit_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_resolution_current_evidence_closure_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_current_evidence_closure_recheck_report: dict[str, Any] | None = None,
+    upbit_paper_post_rerun_reconciliation_repair_path_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
@@ -6079,6 +6319,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_post_rerun_operator_resolution_audit": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
         "upbit_paper_post_rerun_resolution_current_evidence_closure": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
         "upbit_paper_post_rerun_current_evidence_closure_recheck": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
+        "upbit_paper_post_rerun_reconciliation_repair_path": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_repair_path_report.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
@@ -6328,6 +6569,34 @@ def build_read_only_dashboard_shell(
                 recheck_freshness,
             )
         )
+    if isinstance(upbit_paper_post_rerun_reconciliation_repair_path_report, dict):
+        repair_path_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(
+            upbit_paper_post_rerun_reconciliation_repair_path_report
+        )
+        repair_path_freshness = (
+            "PASS"
+            if repair_path_result.status == "PASS"
+            and upbit_paper_post_rerun_reconciliation_repair_path_report.get("repair_path_status")
+            == "BLOCKED_REPAIR_PATH_DECLARED"
+            and upbit_paper_post_rerun_reconciliation_repair_path_report.get("current_evidence_write_allowed") is False
+            and upbit_paper_post_rerun_reconciliation_repair_path_report.get("current_evidence_write_allowed_count") == 0
+            and upbit_paper_post_rerun_reconciliation_repair_path_report.get("live_order_ready") is False
+            and upbit_paper_post_rerun_reconciliation_repair_path_report.get("live_order_allowed") is False
+            and upbit_paper_post_rerun_reconciliation_repair_path_report.get("can_live_trade") is False
+            and upbit_paper_post_rerun_reconciliation_repair_path_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "POST_RERUN_RECONCILIATION_REPAIR_PATH",
+                paths.get(
+                    "upbit_paper_post_rerun_reconciliation_repair_path",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_repair_path_report.json",
+                ),
+                True,
+                repair_path_freshness,
+            )
+        )
     if isinstance(upbit_paper_ledger_idempotency_runtime_evidence_report, dict):
         idempotency_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
             upbit_paper_ledger_idempotency_runtime_evidence_report
@@ -6390,6 +6659,7 @@ def build_read_only_dashboard_shell(
         post_rerun_resolution_audit_report=upbit_paper_post_rerun_operator_resolution_audit_report,
         post_rerun_resolution_closure_report=upbit_paper_post_rerun_resolution_current_evidence_closure_report,
         post_rerun_current_evidence_closure_recheck_report=upbit_paper_post_rerun_current_evidence_closure_recheck_report,
+        post_rerun_reconciliation_repair_path_report=upbit_paper_post_rerun_reconciliation_repair_path_report,
     )
     position_snapshot = _position_snapshot(summary, summary_freshness)
     portfolio_snapshot = _portfolio_snapshot(
@@ -7218,6 +7488,14 @@ def validate_read_only_dashboard_shell(
         "post_rerun_current_evidence_closure_recheck_validation_status",
         "UNTESTED",
     )
+    post_rerun_repair_path_status = reconciliation.get(
+        "post_rerun_reconciliation_repair_path_status",
+        "NOT_LOADED",
+    )
+    post_rerun_repair_path_validation_status = reconciliation.get(
+        "post_rerun_reconciliation_repair_path_validation_status",
+        "UNTESTED",
+    )
     if post_rerun_rollup_status not in POST_RERUN_BLOCKER_ROLLUP_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun blocker rollup status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_rollup_validation_status not in POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES:
@@ -7238,6 +7516,10 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "post-rerun closure recheck status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_closure_recheck_validation_status not in POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_VALIDATION_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun closure recheck validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_repair_path_status not in POST_RERUN_RECONCILIATION_REPAIR_PATH_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun reconciliation repair path status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_repair_path_validation_status not in POST_RERUN_RECONCILIATION_REPAIR_PATH_VALIDATION_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun reconciliation repair path validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("post_rerun_current_evidence_bridge_status", "NOT_LOADED") not in POST_RERUN_CURRENT_EVIDENCE_BRIDGE_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun current-evidence bridge status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if (
@@ -7251,6 +7533,8 @@ def validate_read_only_dashboard_shell(
         "post_rerun_resolution_closure_source_resolution_audit_file_load_status",
         "post_rerun_current_evidence_closure_recheck_source_closure_file_load_status",
         "post_rerun_current_evidence_closure_recheck_source_ledger_file_load_status",
+        "post_rerun_reconciliation_repair_path_source_closure_file_load_status",
+        "post_rerun_reconciliation_repair_path_source_recheck_file_load_status",
     ):
         if reconciliation.get(field, "NOT_LOADED") not in POST_RERUN_SOURCE_BINDING_STATUSES:
             return DashboardValidationResult("FAIL", f"post-rerun resolution source binding status is unknown: {field}", "SCHEMA_IDENTITY_MISMATCH")
@@ -7260,6 +7544,8 @@ def validate_read_only_dashboard_shell(
         "post_rerun_resolution_closure_source_resolution_audit_file_hash_match",
         "post_rerun_current_evidence_closure_recheck_source_closure_file_hash_match",
         "post_rerun_current_evidence_closure_recheck_source_ledger_file_hash_match",
+        "post_rerun_reconciliation_repair_path_source_closure_file_hash_match",
+        "post_rerun_reconciliation_repair_path_source_recheck_file_hash_match",
     ):
         if not isinstance(reconciliation.get(field, False), bool):
             return DashboardValidationResult("FAIL", f"post-rerun resolution source binding match is invalid: {field}", "SCHEMA_IDENTITY_MISMATCH")
@@ -7294,6 +7580,12 @@ def validate_read_only_dashboard_shell(
         "post_rerun_resolution_closure_current_evidence_write_authorized_count",
         "post_rerun_resolution_closure_current_evidence_write_allowed_count",
         "post_rerun_resolution_closure_candidate_current_evidence_usable_count",
+        "post_rerun_reconciliation_repair_path_repair_gate_count",
+        "post_rerun_reconciliation_repair_path_satisfied_gate_count",
+        "post_rerun_reconciliation_repair_path_blocked_gate_count",
+        "post_rerun_reconciliation_repair_path_current_evidence_write_authorized_count",
+        "post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count",
+        "post_rerun_reconciliation_repair_path_candidate_current_evidence_usable_count",
     )
     for field in post_rerun_count_fields:
         value = reconciliation.get(field, 0)
@@ -7304,6 +7596,16 @@ def validate_read_only_dashboard_shell(
         post_rerun_blocker_codes = []
     if not isinstance(post_rerun_blocker_codes, list) or any(not isinstance(code, str) or not code for code in post_rerun_blocker_codes):
         return DashboardValidationResult("FAIL", "post-rerun blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        reconciliation.get("post_rerun_reconciliation_repair_path_first_gate_id", "NOT_LOADED")
+        not in POST_RERUN_RECONCILIATION_REPAIR_GATE_IDS
+    ):
+        return DashboardValidationResult("FAIL", "post-rerun repair path first gate id display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        reconciliation.get("post_rerun_reconciliation_repair_path_first_gate_status", "NOT_LOADED")
+        not in POST_RERUN_RECONCILIATION_REPAIR_GATE_STATUSES
+    ):
+        return DashboardValidationResult("FAIL", "post-rerun repair path first gate status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_rollup_status == "BLOCKED":
         allowed_rollup_sources = {"upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"}
         if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
@@ -7314,6 +7616,8 @@ def validate_read_only_dashboard_shell(
             allowed_rollup_sources.add("upbit_paper_post_rerun_resolution_current_evidence_closure_report.json")
         if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
             allowed_rollup_sources.add("upbit_paper_post_rerun_current_evidence_closure_recheck_report.json")
+        if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+            allowed_rollup_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -7341,6 +7645,8 @@ def validate_read_only_dashboard_shell(
             allowed_guidance_sources.add("upbit_paper_post_rerun_resolution_current_evidence_closure_report.json")
         if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
             allowed_guidance_sources.add("upbit_paper_post_rerun_current_evidence_closure_recheck_report.json")
+        if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+            allowed_guidance_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -7366,6 +7672,8 @@ def validate_read_only_dashboard_shell(
             allowed_resolution_sources.add("upbit_paper_post_rerun_resolution_current_evidence_closure_report.json")
         if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
             allowed_resolution_sources.add("upbit_paper_post_rerun_current_evidence_closure_recheck_report.json")
+        if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+            allowed_resolution_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -7400,6 +7708,8 @@ def validate_read_only_dashboard_shell(
         allowed_closure_sources = {"upbit_paper_post_rerun_resolution_current_evidence_closure_report.json"}
         if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
             allowed_closure_sources.add("upbit_paper_post_rerun_current_evidence_closure_recheck_report.json")
+        if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+            allowed_closure_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -7431,11 +7741,14 @@ def validate_read_only_dashboard_shell(
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun resolution current-evidence closure must keep source audit binding verified", "LIVE_FINAL_GUARD_FAILED")
     if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
+        allowed_recheck_sources = {"upbit_paper_post_rerun_current_evidence_closure_recheck_report.json"}
+        if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+            allowed_recheck_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
             or reconciliation.get("color_token") != "red"
-            or reconciliation.get("source") != "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json"
+            or reconciliation.get("source") not in allowed_recheck_sources
             or reconciliation.get("primary_blocker_code") != "POST_RERUN_RECONCILIATION_REQUIRED"
             or reconciliation.get("post_rerun_current_evidence_closure_recheck_validation_status") != "PASS"
             or reconciliation.get("post_rerun_current_evidence_bridge_status") != "BLOCKED_BY_POST_RERUN_CLOSURE"
@@ -7460,6 +7773,42 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed") is not False
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun closure recheck cannot hide ledger or current-evidence write drift", "LIVE_FINAL_GUARD_FAILED")
+    if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source") != "upbit_paper_post_rerun_reconciliation_repair_path_report.json"
+            or reconciliation.get("primary_blocker_code") != "POST_RERUN_RECONCILIATION_REQUIRED"
+            or reconciliation.get("post_rerun_reconciliation_repair_path_validation_status") != "PASS"
+            or reconciliation.get("post_rerun_reconciliation_repair_path_repair_gate_count", 0) < 4
+            or reconciliation.get("post_rerun_reconciliation_repair_path_satisfied_gate_count", 0) != 0
+            or reconciliation.get("post_rerun_reconciliation_repair_path_blocked_gate_count", 0)
+            != reconciliation.get("post_rerun_reconciliation_repair_path_repair_gate_count", 0)
+            or reconciliation.get("post_rerun_reconciliation_repair_path_first_gate_status") != "BLOCKED"
+            or "POST_RERUN_RECONCILIATION_REQUIRED" not in set(post_rerun_blocker_codes)
+            or "POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE_REQUIRED" not in set(post_rerun_blocker_codes)
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun repair path must render as a red blocked repair-gate path", "LIVE_FINAL_GUARD_FAILED")
+        if (
+            reconciliation.get("post_rerun_reconciliation_repair_path_current_evidence_write_authorized_count", 0) != 0
+            or reconciliation.get("post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count", 0) != 0
+            or reconciliation.get("post_rerun_reconciliation_repair_path_candidate_current_evidence_usable_count", 0) != 0
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun repair path cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
+        if (
+            reconciliation.get("post_rerun_reconciliation_repair_path_source_closure_file_load_status") != "PASS"
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_closure_file_hash_match") is not True
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_recheck_file_load_status") != "PASS"
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_recheck_file_hash_match") is not True
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_closure_status")
+            != "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED"
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_recheck_status")
+            != "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED"
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_recheck_bridge_status")
+            != "BLOCKED_BY_POST_RERUN_CLOSURE"
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun repair path must keep closure/recheck source binding verified", "LIVE_FINAL_GUARD_FAILED")
     if reconciliation.get("ledger_state") not in RECONCILIATION_RECOVERY_LEDGER_STATES:
         return DashboardValidationResult("FAIL", "ledger state display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("single_writer_state") not in RECONCILIATION_RECOVERY_WRITER_STATES:
@@ -9269,7 +9618,18 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"{safe_text(reconciliation.get('post_rerun_current_evidence_closure_recheck_ledger_reconciliation_status', 'NOT_LOADED'))}/"
         f"{safe_text(reconciliation.get('post_rerun_current_evidence_closure_recheck_ledger_idempotency_status', 'NOT_LOADED'))}/"
         f"{safe_text(reconciliation.get('post_rerun_current_evidence_closure_recheck_ledger_portfolio_provenance_status', 'NOT_LOADED'))}"
-        f"<br>recheck-writes={safe_text(reconciliation.get('post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed', False))}</p></div>"
+        f"<br>recheck-writes={safe_text(reconciliation.get('post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed', False))}"
+        "<br><strong>Repair Path</strong>"
+        f"<br>repair={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_status', 'NOT_LOADED'))}"
+        f"<br>gates={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_satisfied_gate_count', 0))}/"
+        f"{safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_repair_gate_count', 0))}"
+        f"<br>blocked-gates={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_blocked_gate_count', 0))}"
+        f"<br>first-gate={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_first_gate_id', 'NOT_LOADED'))}/"
+        f"{safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_first_gate_status', 'NOT_LOADED'))}"
+        f"<br>repair-sources={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_closure_file_load_status', 'NOT_LOADED'))}/"
+        f"{safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_recheck_file_load_status', 'NOT_LOADED'))}"
+        f"<br>repair-bridge={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_recheck_bridge_status', 'NOT_LOADED'))}"
+        f"<br>repair-writes={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count', 0))}</p></div>"
         "<div><strong>Live Boundary</strong>"
         "<p><span class=\"pill safe-lock\">live_order_allowed=false</span><br><span class=\"pill safe-lock\">can_live_trade=false</span><br><span class=\"pill safe-lock\">scale_up_allowed=false</span></p></div>"
         "</section>"

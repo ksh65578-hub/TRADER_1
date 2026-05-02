@@ -88,6 +88,7 @@
             "POST_RERUN_OPERATOR_RESOLUTION_AUDIT",
             "POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE",
             "POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK",
+            "POST_RERUN_RECONCILIATION_REPAIR_PATH",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD"
@@ -112,6 +113,7 @@
             "upbit_paper_post_rerun_operator_resolution_audit_report.json",
             "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
             "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
+            "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json"
@@ -482,6 +484,7 @@
             "upbit_paper_post_rerun_operator_resolution_audit_report.json",
             "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
             "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
+            "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
           ]
         },
@@ -919,6 +922,120 @@
         },
         "post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed": {
           "const": false
+        },
+        "post_rerun_reconciliation_repair_path_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_REPAIR_PATH_DECLARED",
+            "INVALID"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_source_closure_file_load_status": {
+          "enum": [
+            "PASS",
+            "MISSING",
+            "INVALID_UTF8",
+            "INVALID_JSON",
+            "NOT_OBJECT",
+            "HASH_MISMATCH",
+            "SCOPE_MISMATCH",
+            "UNKNOWN",
+            "NOT_LOADED"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_source_closure_file_hash_match": {
+          "type": "boolean"
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_file_load_status": {
+          "enum": [
+            "PASS",
+            "MISSING",
+            "INVALID_UTF8",
+            "INVALID_JSON",
+            "NOT_OBJECT",
+            "HASH_MISMATCH",
+            "SCOPE_MISMATCH",
+            "UNKNOWN",
+            "NOT_LOADED"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_file_hash_match": {
+          "type": "boolean"
+        },
+        "post_rerun_reconciliation_repair_path_source_closure_status": {
+          "enum": [
+            "NOT_LOADED",
+            "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED",
+            "INVALID"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED",
+            "BLOCKED_CURRENT_LEDGER_IDEMPOTENCY_RECHECK_REQUIRED",
+            "INVALID"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_bridge_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_BY_POST_RERUN_CLOSURE",
+            "INVALID"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_repair_gate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_reconciliation_repair_path_satisfied_gate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_reconciliation_repair_path_blocked_gate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_reconciliation_repair_path_current_evidence_write_authorized_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_reconciliation_repair_path_candidate_current_evidence_usable_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_reconciliation_repair_path_first_gate_id": {
+          "enum": [
+            "NOT_LOADED",
+            "VALIDATED_OPERATOR_RESOLUTION_ACCEPTANCE",
+            "VALIDATED_CURRENT_LEDGER_REBUILD",
+            "VALIDATED_SOURCE_HASH_RECONCILIATION",
+            "VALIDATED_NO_LIVE_OR_SCALE_MUTATION"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_first_gate_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED",
+            "PASS",
+            "FAIL"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_next_action": {
+          "type": "string",
+          "minLength": 1
         },
         "post_rerun_blocker_codes": {
           "type": "array",
@@ -5115,7 +5232,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 13,
+      "maxItems": 14,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
