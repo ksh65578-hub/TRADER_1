@@ -9223,6 +9223,62 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-SOURCE-RELEASE-BUNDLE-PROOF-PROFILE",
+      "source_section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Source release bundle proof profile",
+      "full_text_marker": "REQ-MVP4-SOURCE-RELEASE-BUNDLE-PROOF-PROFILE:bounded source release proof command must emit machine-readable no-live evidence",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Bounded source/release proof profile report",
+      "requirement_kind": "BUNDLE_SECURITY_TEST_PATCH",
+      "schema_ids": [
+        "trader1.source_release_proof_profile_report.v1",
+        "trader1.patch_result.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "bytecode_free_syntax_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "pyproject.toml",
+        "contracts/schema/source_release_proof_profile_report.schema.json",
+        "tools/run_source_release_proof_profile.py",
+        "tools/run_bundle_security_validators.py",
+        "tools/emit_source_release_bundle_proof_profile_patch_evidence.py",
+        "tests/runtime/test_source_release_proof_profile.py",
+        "contracts/security/source_bundle_manifest.json",
+        "contracts/generated/context_pack/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_source_release_proof_profile.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_SOURCE_BUNDLE_HYGIENE",
+        "SECTION_TEST_PROOF",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP0-BUNDLE-SECURITY",
+        "REQ-MVP4-SOURCE-PACKAGE-HYGIENE-SAFE-PYTEST-RUNNER",
+        "REQ-MVP4-BYTECODE-FREE-SYNTAX-REPRODUCIBILITY"
+      ],
+      "source_text_sha256": "D08C995177A5A44C8343FCCE517A8F26BFBAB3519E242C4332003872BB4D5BD9",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-STABILITY-HISTORY-DISTINCT-SNAPSHOT-GUARD",
       "source_section_id": "SECTION_LONG_RUN_OPERATION",
       "source_file": "TRADER_1.md",
@@ -14783,5 +14839,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T02:26:57Z"
+  "updated_at_utc": "2026-05-02T03:06:54Z"
 }
