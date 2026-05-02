@@ -328,6 +328,13 @@ from trader1.runtime.paper.upbit_paper_stale_loop_isolated_event_id_scope_repair
     validate_upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_report,
     write_upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild import (
+    ISOLATED_EVENT_ID_SCOPE_REPAIRED_ROLLUP_REBUILD_BLOCKER_CODE,
+    build_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report,
+    upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_hash,
+    validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report,
+    write_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -614,6 +621,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_validator",
     "upbit_paper_stale_loop_isolated_event_id_scope_repair_plan_validator",
     "upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_validator",
+    "upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator",
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_post_repair_reconciliation_validator",
@@ -8578,6 +8586,263 @@ def upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_validator() -
     return pass_result(
         validator_id,
         "Upbit PAPER isolated event-id scope repair executor repairs candidate mirrors and blocks current evidence/live",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator"
+    schema_path = (
+        ROOT
+        / "contracts"
+        / "schema"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report.schema.json"
+    )
+    module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild.py"
+    )
+    source_module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repair_executor.py"
+    )
+    test_path = (
+        ROOT
+        / "tests"
+        / "runtime"
+        / "test_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild.py"
+    )
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report.json"
+        )
+    )
+    paths = [schema_path, module_path, source_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if (
+        schema.get("$id")
+        != "trader1.upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report.v1"
+    ):
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired rollup rebuild schema_id mismatch",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if schema.get("additionalProperties") is not False:
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired rollup rebuild schema must be strict",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    required = set(schema.get("required", []))
+    for field in (
+        "event_id_scope_repaired_rollup_rebuild_role",
+        "source_event_id_scope_repair_executor_hash",
+        "candidate_rollup_attempt_count",
+        "candidate_rollup_pass_count",
+        "candidate_rollup_blocked_count",
+        "ledger_jsonl_count",
+        "duplicate_event_count",
+        "current_evidence_write_allowed_count",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "event_id_scope_repaired_rollup_rebuild_hash",
+    ):
+        if field not in required:
+            return fail_result(
+                validator_id,
+                f"isolated event-id repaired rollup rebuild schema missing required field: {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+    source_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_report.json"
+    )
+    if not source_path.exists():
+        return blocked_result(
+            validator_id,
+            "isolated event-id repaired rollup rebuild source executor report is missing",
+            paths,
+            "MEASUREMENT_MISSING",
+        )
+    source_report = load_json(source_path)
+    report = build_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
+        root=ROOT,
+        event_id_scope_repair_executor_report=source_report,
+        candidate_rollup_write_enabled=False,
+    )
+    result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(report)
+    if result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"valid isolated event-id repaired rollup rebuild failed: {result.message}",
+            paths,
+            result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    if (
+        report.get("rebuild_status") != "WRITE_DISABLED_CURRENT_EVIDENCE_BLOCKED"
+        or report.get("primary_blocker_code") != ISOLATED_EVENT_ID_SCOPE_REPAIRED_ROLLUP_REBUILD_BLOCKER_CODE
+        or report.get("candidate_rollup_attempt_count") != 3
+        or report.get("candidate_rollup_pass_count") != 3
+        or report.get("candidate_rollup_blocked_count") != 0
+        or report.get("ledger_jsonl_count") != 6
+        or report.get("ledger_event_count") != 36
+        or report.get("filled_order_count") != 6
+        or report.get("duplicate_event_count") != 0
+        or report.get("event_id_updated_count") != 12
+        or report.get("event_hash_recalculation_count") != 36
+        or report.get("current_evidence_write_allowed_count") != 0
+    ):
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired rollup rebuild did not preserve expected safe counts",
+            paths,
+            "MEASUREMENT_MISSING",
+        )
+
+    def rooted(root: Path, relative_path: str) -> Path:
+        return root.joinpath(*[part for part in relative_path.replace("\\", "/").split("/") if part])
+
+    with TemporaryDirectory() as tmp:
+        tmp_root = Path(tmp)
+        for item in source_report.get("items", []):
+            for cycle in item.get("cycles", []):
+                relative_path = cycle["repaired_ledger_path"]
+                source = rooted(ROOT, relative_path)
+                target = rooted(tmp_root, relative_path)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(source.read_bytes())
+        enabled_report = build_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
+            root=tmp_root,
+            event_id_scope_repair_executor_report=source_report,
+            candidate_rollup_write_enabled=True,
+        )
+        enabled_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
+            enabled_report
+        )
+        if enabled_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"enabled isolated event-id repaired rollup rebuild failed: {enabled_result.message}",
+                paths,
+                enabled_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+        if (
+            enabled_report.get("rebuild_status")
+            != "REPAIRED_CANDIDATE_ROLLUPS_READY_CURRENT_EVIDENCE_BLOCKED"
+            or enabled_report.get("candidate_rollup_artifact_ready_count") != 3
+            or enabled_report.get("candidate_rollup_written_count") != 3
+            or enabled_report.get("duplicate_event_count") != 0
+        ):
+            return fail_result(
+                validator_id,
+                "enabled isolated event-id repaired rollup rebuild did not write three clean candidate rollups",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["live_order_allowed"] = True
+    live_mutation["event_id_scope_repaired_rollup_rebuild_hash"] = (
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_hash(live_mutation)
+    )
+    live_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
+        live_mutation
+    )
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired rollup rebuild live mutation was not blocked",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    false_count = json.loads(json.dumps(report))
+    false_count["current_evidence_write_allowed_count"] = 1
+    false_count["event_id_scope_repaired_rollup_rebuild_hash"] = (
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_hash(false_count)
+    )
+    false_count_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
+        false_count
+    )
+    if false_count_result.status != "BLOCKED" or false_count_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired rollup rebuild allowed current evidence count drift",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    false_aggregate = json.loads(json.dumps(report))
+    false_aggregate["duplicate_event_count"] = 1
+    false_aggregate["event_id_scope_repaired_rollup_rebuild_hash"] = (
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_hash(false_aggregate)
+    )
+    false_aggregate_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
+        false_aggregate
+    )
+    if false_aggregate_result.status != "FAIL":
+        return fail_result(
+            validator_id,
+            "isolated event-id repaired rollup rebuild allowed false aggregate count",
+            paths,
+            false_aggregate_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
+            root=Path(tmp),
+            report=report,
+        )
+        if not written_path.exists():
+            return fail_result(
+                validator_id,
+                "isolated event-id repaired rollup rebuild writer did not create report artifact",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(
+                validator_id,
+                f"runtime isolated event-id repaired rollup rebuild artifact is not valid json: {rel(runtime_path)}: {exc}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        runtime_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
+            runtime_report
+        )
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime isolated event-id repaired rollup rebuild artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER isolated repaired candidate rollups are rebuilt and current evidence/live remain blocked",
         paths,
     )
 
@@ -19784,6 +20049,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_validator": upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_validator,
     "upbit_paper_stale_loop_isolated_event_id_scope_repair_plan_validator": upbit_paper_stale_loop_isolated_event_id_scope_repair_plan_validator,
     "upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_validator": upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_validator,
+    "upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator": upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
