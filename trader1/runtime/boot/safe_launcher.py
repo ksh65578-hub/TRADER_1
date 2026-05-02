@@ -27,7 +27,10 @@ from trader1.runtime.health.runtime_resource_pressure import inspect_runtime_res
 from trader1.runtime.health.stability_history import append_stability_history, validate_stability_history
 from trader1.runtime.ledger.paper_ledger_rollup import validate_paper_ledger_rollup_report
 from trader1.runtime.paper.operational_cycle import validate_paper_operation_gate_report
-from trader1.runtime.paper.upbit_paper_persistent_loop import validate_upbit_paper_runtime_recovery_guard_report
+from trader1.runtime.paper.upbit_paper_persistent_loop import (
+    validate_upbit_paper_persistent_loop_report,
+    validate_upbit_paper_runtime_recovery_guard_report,
+)
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
     validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
 )
@@ -497,6 +500,9 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "heartbeat": base / "heartbeat.json",
         "summary": base / "summary.json",
         "upbit_paper_runtime_cycle_report": base / "upbit_paper_runtime_cycle_report.json",
+        "upbit_paper_persistent_loop_report": base
+        / "paper_runtime"
+        / "upbit_paper_persistent_loop_report.json",
         "upbit_paper_runtime_recovery_guard_report": base
         / "paper_runtime"
         / "upbit_paper_runtime_recovery_guard_report.json",
@@ -644,6 +650,38 @@ def load_scoped_paper_ledger_rollup_report(report: dict[str, Any], root: Path = 
     if validation_result.status in {"PASS", "BLOCKED"}:
         return rollup
     return rollup
+
+
+def load_scoped_upbit_paper_persistent_loop_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    canonical_path = paths["upbit_paper_persistent_loop_report"]
+    candidates = [canonical_path]
+    paper_runtime_dir = launcher_runtime_dir(report, root) / "paper_runtime"
+    if paper_runtime_dir.exists():
+        candidates.extend(
+            sorted(
+                paper_runtime_dir.glob("*.persistent_loop_report.json"),
+                key=lambda path: path.stat().st_mtime,
+                reverse=True,
+            )
+        )
+    seen: set[Path] = set()
+    for path in candidates:
+        resolved_path = path.resolve()
+        if resolved_path in seen:
+            continue
+        seen.add(resolved_path)
+        persistent_loop = _load_dashboard_json_artifact(path)
+        if not isinstance(persistent_loop, dict):
+            continue
+        if not _dashboard_artifact_is_fresh(persistent_loop):
+            return persistent_loop
+        result = validate_upbit_paper_persistent_loop_report(persistent_loop)
+        if result.status in {"PASS", "BLOCKED"}:
+            return persistent_loop
+    return None
 
 
 def load_scoped_upbit_paper_runtime_recovery_guard_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
@@ -1207,6 +1245,7 @@ def build_launcher_dashboard_artifacts(
         "reconciliation_report": _runtime_display_path(paths["reconciliation_report"], root),
         "restart_recovery_report": _runtime_display_path(paths["restart_recovery_report"], root),
         "paper_ledger_rollup_report": _runtime_display_path(paths["paper_ledger_rollup_report"], root),
+        "upbit_paper_persistent_loop": _runtime_display_path(paths["upbit_paper_persistent_loop_report"], root),
         "upbit_paper_runtime_recovery_guard": _runtime_display_path(paths["upbit_paper_runtime_recovery_guard_report"], root),
         "upbit_paper_post_rerun_reconciliation_blocker_rollup": _runtime_display_path(
             paths["upbit_paper_post_rerun_reconciliation_blocker_rollup_report"], root
@@ -1257,6 +1296,7 @@ def build_launcher_dashboard_artifacts(
         paper_operation_gate_report=paper_operation_gate_report,
         root=root,
     )
+    upbit_paper_persistent_loop_report = load_scoped_upbit_paper_persistent_loop_report(report, root)
     upbit_paper_runtime_recovery_guard_report = load_scoped_upbit_paper_runtime_recovery_guard_report(report, root)
     upbit_paper_post_rerun_reconciliation_blocker_rollup_report = (
         load_scoped_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(report, root)
@@ -1320,6 +1360,7 @@ def build_launcher_dashboard_artifacts(
         upbit_paper_repair_operator_queue_report=upbit_paper_repair_operator_queue_report,
         upbit_paper_stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
+        upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
         stability_history=stability_history,

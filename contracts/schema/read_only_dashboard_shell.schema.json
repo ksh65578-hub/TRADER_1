@@ -23,6 +23,7 @@
     "long_run_operator_summary",
     "shadow_runtime_harness_status",
     "shadow_persistent_runtime_status",
+    "paper_persistent_loop_status",
     "paper_runtime_recovery_guard_status",
     "runtime_evidence_boundary",
     "operator_action_summary",
@@ -82,6 +83,7 @@
             "SHADOW_RUNTIME_HARNESS",
             "SHADOW_PERSISTENT_RUNTIME",
             "SHADOW_RUNTIME_ORCHESTRATION",
+            "PAPER_PERSISTENT_LOOP",
             "PAPER_RUNTIME_RECOVERY_GUARD",
             "POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP",
             "POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE",
@@ -111,6 +113,7 @@
             "actual_runtime_harness_report.json",
             "shadow_observation_persistent_runtime_report.json",
             "runtime_orchestration_report.json",
+            "upbit_paper_persistent_loop_report.json",
             "upbit_paper_runtime_recovery_guard_report.json",
             "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
             "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
@@ -5301,6 +5304,172 @@
         }
       }
     },
+    "paper_persistent_loop_status": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "severity",
+        "color_token",
+        "truth_role",
+        "source",
+        "loop_id",
+        "requested_cycle_count",
+        "completed_cycle_count",
+        "actual_paper_runtime_executed",
+        "preflight_existing_runtime_state_detected",
+        "preflight_recovery_guard_status",
+        "current_evidence_write_allowed",
+        "recovery_guard_status",
+        "paper_ledger_rollup_status",
+        "paper_runtime_resume_allowed",
+        "partial_write_recovery_required",
+        "runtime_evidence_role",
+        "long_run_evidence_eligible",
+        "long_run_blocker_code",
+        "promotion_eligible",
+        "primary_blocker_code",
+        "one_line_summary",
+        "next_operator_action",
+        "display_only",
+        "dashboard_truth_only",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "PAPER Persistent Runtime"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "STALE",
+            "INVALID"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "NORMAL",
+            "WARNING",
+            "ERROR"
+          ]
+        },
+        "color_token": {
+          "enum": [
+            "green",
+            "blue",
+            "yellow",
+            "red"
+          ]
+        },
+        "truth_role": {
+          "const": "dashboard_serving_truth"
+        },
+        "source": {
+          "enum": [
+            "NOT_LOADED",
+            "upbit_paper_persistent_loop_report.json"
+          ]
+        },
+        "loop_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_cycle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_cycle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actual_paper_runtime_executed": {
+          "type": "boolean"
+        },
+        "preflight_existing_runtime_state_detected": {
+          "type": "boolean"
+        },
+        "preflight_recovery_guard_status": {
+          "enum": [
+            "SKIPPED",
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "current_evidence_write_allowed": {
+          "type": "boolean"
+        },
+        "recovery_guard_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "paper_ledger_rollup_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "paper_runtime_resume_allowed": {
+          "type": "boolean"
+        },
+        "partial_write_recovery_required": {
+          "type": "boolean"
+        },
+        "runtime_evidence_role": {
+          "enum": [
+            "NOT_LOADED",
+            "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"
+          ]
+        },
+        "long_run_evidence_eligible": {
+          "const": false
+        },
+        "long_run_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "promotion_eligible": {
+          "const": false
+        },
+        "primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_operator_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
     "paper_runtime_recovery_guard_status": {
       "type": "object",
       "required": [
@@ -5525,7 +5694,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 18,
+      "maxItems": 19,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -5550,6 +5719,9 @@
     },
     "shadow_persistent_runtime_status": {
       "$ref": "#/$defs/shadow_persistent_runtime_status"
+    },
+    "paper_persistent_loop_status": {
+      "$ref": "#/$defs/paper_persistent_loop_status"
     },
     "paper_runtime_recovery_guard_status": {
       "$ref": "#/$defs/paper_runtime_recovery_guard_status"

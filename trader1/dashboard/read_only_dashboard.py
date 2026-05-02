@@ -15,7 +15,10 @@ from trader1.runtime.health.stability_history import (
     DEFAULT_MIN_VALIDATED_SPAN_SECONDS,
 )
 from trader1.runtime.portfolio.paper_portfolio import PAPER_STARTING_CASH_BY_SCOPE
-from trader1.runtime.paper.upbit_paper_persistent_loop import validate_upbit_paper_runtime_recovery_guard_report
+from trader1.runtime.paper.upbit_paper_persistent_loop import (
+    validate_upbit_paper_persistent_loop_report,
+    validate_upbit_paper_runtime_recovery_guard_report,
+)
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
     validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
 )
@@ -60,6 +63,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "actual_runtime_harness_report.json",
     "shadow_observation_persistent_runtime_report.json",
     "runtime_orchestration_report.json",
+    "upbit_paper_persistent_loop_report.json",
     "upbit_paper_runtime_recovery_guard_report.json",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
@@ -163,6 +167,9 @@ SHADOW_PERSISTENT_RUNTIME_DURATION_SOURCES = {"NOT_LOADED", "STUB_ESTIMATE_ONLY"
 SHADOW_PERSISTENT_RUNTIME_DURATION_ROLES = {"NOT_LONG_RUN_EVIDENCE"}
 SHADOW_RUNTIME_ORCHESTRATION_STATUSES = {"NOT_LOADED", "BOUNDARY_VERIFIED", "BLOCKED", "STALE"}
 SHADOW_RUNTIME_ORCHESTRATION_SOURCES = {"NOT_LOADED", "runtime_orchestration_report.json"}
+PAPER_PERSISTENT_LOOP_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
+PAPER_PERSISTENT_LOOP_SOURCES = {"NOT_LOADED", "upbit_paper_persistent_loop_report.json"}
+PAPER_PERSISTENT_LOOP_EVIDENCE_ROLES = {"NOT_LOADED", "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"}
 PAPER_RUNTIME_RECOVERY_GUARD_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
 PAPER_RUNTIME_RECOVERY_GUARD_SOURCES = {"NOT_LOADED", "upbit_paper_runtime_recovery_guard_report.json"}
 MARKET_DATA_CONTINUITY_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
@@ -2317,6 +2324,150 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
             "long_run_evidence_eligible": False,
             "optimizer_input_role": str(report.get("optimizer_input_role") or "SHADOW_PERSISTENT_RUNTIME_STUB_ONLY"),
             "primary_blocker_code": blocker_code,
+            "one_line_summary": summary,
+            "next_operator_action": next_action,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+    )
+    return base
+
+
+def _paper_persistent_loop_status(
+    *,
+    report: dict[str, Any] | None,
+    exchange: str,
+    market_type: str,
+    mode: str,
+    session_id: str,
+) -> dict[str, Any]:
+    def safe_count(value: Any) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return 0
+        return parsed if parsed >= 0 else 0
+
+    base = {
+        "title": "PAPER Persistent Runtime",
+        "status": "NOT_LOADED",
+        "severity": "WARNING",
+        "color_token": "yellow",
+        "truth_role": "dashboard_serving_truth",
+        "source": "NOT_LOADED",
+        "loop_id": "NOT_LOADED",
+        "requested_cycle_count": 0,
+        "completed_cycle_count": 0,
+        "actual_paper_runtime_executed": False,
+        "preflight_existing_runtime_state_detected": False,
+        "preflight_recovery_guard_status": "SKIPPED",
+        "current_evidence_write_allowed": False,
+        "recovery_guard_status": "BLOCKED",
+        "paper_ledger_rollup_status": "BLOCKED",
+        "paper_runtime_resume_allowed": False,
+        "partial_write_recovery_required": False,
+        "runtime_evidence_role": "NOT_LOADED",
+        "long_run_evidence_eligible": False,
+        "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        "promotion_eligible": False,
+        "primary_blocker_code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+        "one_line_summary": "No bounded Upbit PAPER persistent loop report is loaded.",
+        "next_operator_action": "Run the bounded Upbit PAPER persistent loop before using this panel for runtime review.",
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return base
+
+    validation_result = validate_upbit_paper_persistent_loop_report(report)
+    scope_matches = (
+        report.get("exchange") == exchange
+        and report.get("market_type") == market_type
+        and report.get("mode") == mode
+        and report.get("session_id") == session_id
+    )
+    freshness_status = _freshness_from_generated_at(report)
+    unsafe_permission = any(
+        report.get(field) is not False
+        for field in (
+            "long_run_evidence_eligible",
+            "promotion_eligible",
+            "credential_load_attempted",
+            "private_endpoint_called",
+            "order_endpoint_called",
+            "order_adapter_called",
+            "live_key_loaded",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+        )
+    )
+
+    status = "PASS"
+    severity = "NORMAL"
+    color_token = "green"
+    primary_blocker = report.get("primary_blocker_code") or "LIVE_READY_MISSING"
+    summary = "Bounded Upbit PAPER persistent loop executed and remains separated from LIVE_READY and long-run evidence."
+    next_action = "Review PAPER runtime, ledger rollup, and recovery status; keep LIVE and scale-up blocked."
+
+    if unsafe_permission:
+        status = "INVALID"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = "LIVE_FINAL_GUARD_FAILED"
+        summary = "Persistent loop attempted live, private, order, promotion, long-run, or scale permission; dashboard blocked it."
+        next_action = "Inspect and regenerate the persistent loop report without live or scale permissions."
+    elif validation_result.status == "FAIL" or not scope_matches:
+        status = "INVALID"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = validation_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+        summary = "Persistent loop report is invalid or scoped to another runtime."
+        next_action = "Regenerate a scoped Upbit KRW_SPOT PAPER persistent loop report."
+    elif validation_result.status == "BLOCKED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = validation_result.blocker_code or report.get("primary_blocker_code") or "RECONCILIATION_REQUIRED"
+        summary = "Persistent loop is blocked before current evidence can be trusted."
+        next_action = "Inspect the preflight, recovery guard, and ledger rollup blockers before continuing PAPER review."
+    elif freshness_status != "PASS":
+        status = "STALE"
+        severity = "WARNING"
+        color_token = "yellow"
+        primary_blocker = "LATENCY_TTL_EXPIRED"
+        summary = "Persistent loop report is stale. It cannot prove current PAPER runtime status."
+        next_action = "Rerun the bounded Upbit PAPER persistent loop or refresh runtime evidence."
+
+    base.update(
+        {
+            "status": status,
+            "severity": severity,
+            "color_token": color_token,
+            "source": "upbit_paper_persistent_loop_report.json",
+            "loop_id": str(report.get("loop_id") or "UNKNOWN"),
+            "requested_cycle_count": safe_count(report.get("requested_cycle_count")),
+            "completed_cycle_count": safe_count(report.get("completed_cycle_count")),
+            "actual_paper_runtime_executed": report.get("actual_paper_runtime_executed") is True,
+            "preflight_existing_runtime_state_detected": report.get("preflight_existing_runtime_state_detected") is True,
+            "preflight_recovery_guard_status": str(report.get("preflight_recovery_guard_status") or "SKIPPED"),
+            "current_evidence_write_allowed": report.get("current_evidence_write_allowed") is True and status == "PASS",
+            "recovery_guard_status": str(report.get("recovery_guard_status") or "BLOCKED"),
+            "paper_ledger_rollup_status": str(report.get("paper_ledger_rollup_status") or "BLOCKED"),
+            "paper_runtime_resume_allowed": report.get("paper_runtime_resume_allowed") is True and status == "PASS",
+            "partial_write_recovery_required": report.get("partial_write_recovery_required") is True,
+            "runtime_evidence_role": str(report.get("runtime_evidence_role") or "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"),
+            "long_run_evidence_eligible": False,
+            "long_run_blocker_code": str(report.get("long_run_blocker_code") or "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"),
+            "promotion_eligible": False,
+            "primary_blocker_code": str(primary_blocker or "LIVE_READY_MISSING"),
             "one_line_summary": summary,
             "next_operator_action": next_action,
             "live_order_ready": False,
@@ -7054,6 +7205,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_repair_operator_queue_report: dict[str, Any] | None = None,
     upbit_paper_stale_loop_post_regeneration_reconciliation_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
+    upbit_paper_persistent_loop_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
     optimizer_feedback_report: dict[str, Any] | None = None,
@@ -7077,6 +7229,7 @@ def build_read_only_dashboard_shell(
         "shadow_runtime_harness": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/actual_runtime_harness_report.json",
         "shadow_persistent_runtime": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/shadow_observation_persistent_runtime_report.json",
         "shadow_runtime_orchestration": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/runtime_orchestration_report.json",
+        "upbit_paper_persistent_loop": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_persistent_loop_report.json",
         "upbit_paper_runtime_recovery_guard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
         "upbit_paper_post_rerun_reconciliation_blocker_rollup": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
         "upbit_paper_post_rerun_operator_reconciliation_review_guidance": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
@@ -7184,6 +7337,31 @@ def build_read_only_dashboard_shell(
                 paths.get("shadow_runtime_orchestration", "system/runtime/upbit/krw_spot/shadow/unknown/runtime_orchestration_report.json"),
                 True,
                 orchestration_freshness,
+            )
+        )
+    paper_persistent_loop_status = _paper_persistent_loop_status(
+        report=upbit_paper_persistent_loop_report,
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+    )
+    if isinstance(upbit_paper_persistent_loop_report, dict):
+        persistent_loop_freshness = (
+            "PASS"
+            if _freshness_from_generated_at(upbit_paper_persistent_loop_report) == "PASS"
+            and paper_persistent_loop_status["status"] in {"PASS", "BLOCKED"}
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "PAPER_PERSISTENT_LOOP",
+                paths.get(
+                    "upbit_paper_persistent_loop",
+                    "system/runtime/upbit/krw_spot/paper/unknown/paper_runtime/upbit_paper_persistent_loop_report.json",
+                ),
+                True,
+                persistent_loop_freshness,
             )
         )
     paper_runtime_recovery_guard_status = _paper_runtime_recovery_guard_status(
@@ -7710,6 +7888,7 @@ def build_read_only_dashboard_shell(
         "market_data_continuity_status": market_data_continuity_status,
         "shadow_runtime_harness_status": shadow_runtime_harness_status,
         "shadow_persistent_runtime_status": shadow_persistent_runtime_status,
+        "paper_persistent_loop_status": paper_persistent_loop_status,
         "paper_runtime_recovery_guard_status": paper_runtime_recovery_guard_status,
         "runtime_evidence_boundary": runtime_evidence_boundary,
         "shadow_runtime_orchestration_status": shadow_runtime_orchestration_status,
@@ -7789,6 +7968,25 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "estimated_runtime_seconds",
                 "observed_runtime_seconds",
                 "optimizer_input_role",
+                "primary_blocker_code",
+                "one_line_summary",
+                "next_operator_action",
+            )
+        )
+    paper_persistent_loop = shell.get("paper_persistent_loop_status", {})
+    if isinstance(paper_persistent_loop, dict):
+        values.extend(
+            str(paper_persistent_loop.get(key, ""))
+            for key in (
+                "status",
+                "loop_id",
+                "requested_cycle_count",
+                "completed_cycle_count",
+                "preflight_recovery_guard_status",
+                "current_evidence_write_allowed",
+                "recovery_guard_status",
+                "paper_ledger_rollup_status",
+                "paper_runtime_resume_allowed",
                 "primary_blocker_code",
                 "one_line_summary",
                 "next_operator_action",
@@ -9412,6 +9610,86 @@ def validate_read_only_dashboard_shell(
     if shadow_persistent.get("status") == "BLOCKED" and shadow_persistent.get("severity") != "ERROR":
         return DashboardValidationResult("FAIL", "blocked persistent runtime status must render as error", "SCHEMA_IDENTITY_MISMATCH")
 
+    paper_persistent_loop = shell.get("paper_persistent_loop_status")
+    if not isinstance(paper_persistent_loop, dict):
+        return DashboardValidationResult("FAIL", "dashboard paper_persistent_loop_status missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        paper_persistent_loop.get("truth_role") != "dashboard_serving_truth"
+        or paper_persistent_loop.get("source") not in PAPER_PERSISTENT_LOOP_SOURCES
+    ):
+        return DashboardValidationResult("BLOCKED", "paper persistent loop display cannot claim execution truth", "LIVE_FINAL_GUARD_FAILED")
+    if paper_persistent_loop.get("display_only") is not True or paper_persistent_loop.get("dashboard_truth_only") is not True:
+        return DashboardValidationResult("BLOCKED", "paper persistent loop display must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        paper_persistent_loop.get("live_order_ready")
+        or paper_persistent_loop.get("live_order_allowed")
+        or paper_persistent_loop.get("can_live_trade")
+        or paper_persistent_loop.get("scale_up_allowed")
+        or paper_persistent_loop.get("long_run_evidence_eligible")
+        or paper_persistent_loop.get("promotion_eligible")
+    ):
+        return DashboardValidationResult("BLOCKED", "paper persistent loop attempted live, scale, promotion, or long-run permission", "LIVE_FINAL_GUARD_FAILED")
+    if paper_persistent_loop.get("status") not in PAPER_PERSISTENT_LOOP_STATUSES:
+        return DashboardValidationResult("FAIL", "paper persistent loop status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_persistent_loop.get("severity") not in OPERATION_STATUS_LEVELS or paper_persistent_loop.get("color_token") not in OPERATION_COLOR_TOKENS:
+        return DashboardValidationResult("FAIL", "paper persistent loop severity or color is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_persistent_loop.get("severity") == "NORMAL" and paper_persistent_loop.get("color_token") not in {"green", "blue"}:
+        return DashboardValidationResult("FAIL", "normal paper persistent loop must use green or blue", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_persistent_loop.get("severity") == "WARNING" and paper_persistent_loop.get("color_token") != "yellow":
+        return DashboardValidationResult("FAIL", "warning paper persistent loop must use yellow", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_persistent_loop.get("severity") == "ERROR" and paper_persistent_loop.get("color_token") != "red":
+        return DashboardValidationResult("FAIL", "error paper persistent loop must use red", "SCHEMA_IDENTITY_MISMATCH")
+    paper_loop_source_loaded = paper_persistent_loop.get("source") == "upbit_paper_persistent_loop_report.json"
+    paper_loop_source_listed = "upbit_paper_persistent_loop_report.json" in source_filenames
+    if paper_loop_source_loaded and not paper_loop_source_listed:
+        return DashboardValidationResult("BLOCKED", "paper persistent loop status must be backed by a listed source artifact", "HARD_TRUTH_MISSING")
+    if not paper_loop_source_loaded and paper_loop_source_listed:
+        return DashboardValidationResult("BLOCKED", "paper persistent loop source artifact is listed while status is not loaded", "SCHEMA_IDENTITY_MISMATCH")
+    for count_field in ("requested_cycle_count", "completed_cycle_count"):
+        if not isinstance(paper_persistent_loop.get(count_field), int) or paper_persistent_loop.get(count_field) < 0:
+            return DashboardValidationResult("FAIL", f"paper persistent loop count is invalid: {count_field}", "SCHEMA_IDENTITY_MISMATCH")
+    for text_field in (
+        "loop_id",
+        "preflight_recovery_guard_status",
+        "recovery_guard_status",
+        "paper_ledger_rollup_status",
+        "runtime_evidence_role",
+        "long_run_blocker_code",
+        "primary_blocker_code",
+        "one_line_summary",
+        "next_operator_action",
+    ):
+        if not isinstance(paper_persistent_loop.get(text_field), str) or not paper_persistent_loop.get(text_field, "").strip():
+            return DashboardValidationResult("FAIL", f"paper persistent loop missing {text_field}", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_persistent_loop.get("runtime_evidence_role") not in PAPER_PERSISTENT_LOOP_EVIDENCE_ROLES:
+        return DashboardValidationResult("BLOCKED", "paper persistent loop must remain bounded and not long-run evidence", "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+    if paper_persistent_loop.get("long_run_blocker_code") != "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT":
+        return DashboardValidationResult("BLOCKED", "paper persistent loop must expose the long-run evidence blocker", "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+    if paper_persistent_loop.get("current_evidence_write_allowed") and paper_persistent_loop.get("status") != "PASS":
+        return DashboardValidationResult("BLOCKED", "paper persistent loop cannot allow current evidence writes unless status is PASS", "RECONCILIATION_REQUIRED")
+    if paper_persistent_loop.get("paper_runtime_resume_allowed") and paper_persistent_loop.get("status") != "PASS":
+        return DashboardValidationResult("BLOCKED", "paper persistent loop cannot allow runtime resume unless status is PASS", "RECONCILIATION_REQUIRED")
+    if paper_persistent_loop.get("status") == "PASS":
+        if (
+            paper_persistent_loop.get("source") != "upbit_paper_persistent_loop_report.json"
+            or paper_persistent_loop.get("runtime_evidence_role") != "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"
+            or paper_persistent_loop.get("completed_cycle_count") <= 0
+            or paper_persistent_loop.get("actual_paper_runtime_executed") is not True
+            or paper_persistent_loop.get("current_evidence_write_allowed") is not True
+            or paper_persistent_loop.get("paper_runtime_resume_allowed") is not True
+            or paper_persistent_loop.get("recovery_guard_status") != "PASS"
+            or paper_persistent_loop.get("paper_ledger_rollup_status") != "PASS"
+            or paper_persistent_loop.get("primary_blocker_code") != "LIVE_READY_MISSING"
+        ):
+            return DashboardValidationResult("BLOCKED", "PASS paper persistent loop requires bounded PAPER evidence and live still blocked", "LIVE_FINAL_GUARD_FAILED")
+    if paper_persistent_loop.get("status") in {"BLOCKED", "INVALID"}:
+        if paper_persistent_loop.get("severity") != "ERROR" or paper_persistent_loop.get("current_evidence_write_allowed"):
+            return DashboardValidationResult("FAIL", "blocked or invalid paper persistent loop must render as error and block current evidence writes", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_persistent_loop.get("status") in {"NOT_LOADED", "STALE"} and (
+        paper_persistent_loop.get("current_evidence_write_allowed") or paper_persistent_loop.get("paper_runtime_resume_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "not-loaded or stale paper persistent loop cannot allow current writes or resume", "RECONCILIATION_REQUIRED")
+
     paper_recovery_guard = shell.get("paper_runtime_recovery_guard_status")
     if not isinstance(paper_recovery_guard, dict):
         return DashboardValidationResult("FAIL", "dashboard paper_runtime_recovery_guard_status missing", "SCHEMA_IDENTITY_MISMATCH")
@@ -10702,6 +10980,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     shadow_harness_status_display = str(shadow_harness.get("status", "NOT_LOADED")).replace("_", " ").title()
     shadow_persistent = shell.get("shadow_persistent_runtime_status", {}) if isinstance(shell.get("shadow_persistent_runtime_status"), dict) else {}
     shadow_persistent_status_display = str(shadow_persistent.get("status", "NOT_LOADED")).replace("_", " ").title()
+    paper_persistent_loop = shell.get("paper_persistent_loop_status", {}) if isinstance(shell.get("paper_persistent_loop_status"), dict) else {}
+    paper_persistent_loop_status_display = str(paper_persistent_loop.get("status", "NOT_LOADED")).replace("_", " ").title()
     paper_recovery_guard = shell.get("paper_runtime_recovery_guard_status", {}) if isinstance(shell.get("paper_runtime_recovery_guard_status"), dict) else {}
     paper_recovery_guard_status_display = str(paper_recovery_guard.get("status", "NOT_LOADED")).replace("_", " ").title()
     market_data = shell.get("market_data_continuity_status", {}) if isinstance(shell.get("market_data_continuity_status"), dict) else {}
@@ -10728,6 +11008,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Market data</dt><dd class=\"pill {status_class(market_data.get('status'))}\">{safe_text(market_data_status_display)}</dd></div>"
         f"<div><dt>PAPER/SHADOW check</dt><dd class=\"pill {status_class(shadow_harness.get('status'))}\">{safe_text(shadow_harness_status_display)}</dd></div>"
         f"<div><dt>Persistent runtime</dt><dd class=\"pill {status_class(shadow_persistent.get('status'))}\">{safe_text(shadow_persistent_status_display)}</dd></div>"
+        f"<div><dt>PAPER loop</dt><dd class=\"pill {status_class(paper_persistent_loop.get('status'))}\">{safe_text(paper_persistent_loop_status_display)}</dd></div>"
         f"<div><dt>PAPER recovery</dt><dd class=\"pill {status_class(paper_recovery_guard.get('status'))}\">{safe_text(paper_recovery_guard_status_display)}</dd></div>"
         f"<div><dt>Source pairing</dt><dd class=\"pill {status_class(runtime_orchestration.get('status'))}\">{safe_text(runtime_orchestration_status_display)}</dd></div>"
         f"<div><dt>Actual long-run evidence</dt><dd class=\"pill {status_class(runtime_boundary.get('status'))}\">{safe_text(runtime_boundary_status_display)}</dd></div>"
@@ -10964,6 +11245,32 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "</section>"
         f"<p class=\"next\">Next: {safe_text(market_data.get('next_operator_action', 'Collect PAPER public market-data continuity.'))}</p>"
         f"<small>Source={safe_text(market_data.get('source', 'NOT_LOADED'))} | window={safe_text(market_data.get('history_window_label', 'NOT_LOADED'))} | blocker={safe_text(market_data.get('primary_blocker_code', 'DATA_UNAVAILABLE'))}. Display-only market-data status; execution, ledger, exchange, optimizer, and live-readiness truth remain separate.</small>"
+        "</section>"
+    )
+
+    paper_persistent_loop_color = safe_text(paper_persistent_loop.get("color_token", "yellow"))
+    paper_persistent_loop_html = (
+        f"<section class=\"paper-persistent-loop paper-persistent-loop-{paper_persistent_loop_color}\" aria-label=\"paper persistent runtime loop\">"
+        "<div class=\"portfolio-head\">"
+        "<div>"
+        "<span class=\"eyebrow\">PAPER Persistent Runtime</span>"
+        f"<h2>{safe_text(paper_persistent_loop.get('title', 'PAPER Persistent Runtime'))}</h2>"
+        "</div>"
+        f"<p><span class=\"pill {status_class(paper_persistent_loop.get('status'))}\">{safe_text(paper_persistent_loop_status_display)}</span></p>"
+        "</div>"
+        f"<p>{safe_text(paper_persistent_loop.get('one_line_summary', 'No bounded PAPER persistent loop report is loaded.'))}</p>"
+        "<section class=\"decision-grid\">"
+        "<div><strong>Cycles</strong>"
+        f"<p>completed={safe_text(paper_persistent_loop.get('completed_cycle_count', 0))}/{safe_text(paper_persistent_loop.get('requested_cycle_count', 0))}<br>actual PAPER runtime={safe_text(paper_persistent_loop.get('actual_paper_runtime_executed', False))}</p></div>"
+        "<div><strong>Preflight</strong>"
+        f"<p>existing state={safe_text(paper_persistent_loop.get('preflight_existing_runtime_state_detected', False))}<br>guard={safe_text(paper_persistent_loop.get('preflight_recovery_guard_status', 'SKIPPED'))}<br>current writes={safe_text(paper_persistent_loop.get('current_evidence_write_allowed', False))}</p></div>"
+        "<div><strong>Recovery / Ledger</strong>"
+        f"<p>recovery={safe_text(paper_persistent_loop.get('recovery_guard_status', 'BLOCKED'))}<br>ledger={safe_text(paper_persistent_loop.get('paper_ledger_rollup_status', 'BLOCKED'))}<br>resume_allowed={safe_text(paper_persistent_loop.get('paper_runtime_resume_allowed', False))}</p></div>"
+        "<div><strong>Evidence Boundary</strong>"
+        f"<p>{safe_text(paper_persistent_loop.get('runtime_evidence_role', 'NOT_LOADED'))}<br><span class=\"pill safe-lock\">long-run eligible={safe_text(paper_persistent_loop.get('long_run_evidence_eligible', False))}</span><br><span class=\"pill safe-lock\">scale-up blocked</span><br>blocker={safe_text(paper_persistent_loop.get('long_run_blocker_code', 'LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT'))}</p></div>"
+        "</section>"
+        f"<p class=\"next\">Next: {safe_text(paper_persistent_loop.get('next_operator_action', 'Run a bounded PAPER loop with verified recovery and ledger evidence.'))}</p>"
+        f"<small>Source={safe_text(paper_persistent_loop.get('source', 'NOT_LOADED'))} | Loop={safe_text(paper_persistent_loop.get('loop_id', 'NOT_LOADED'))} | Blocker={safe_text(paper_persistent_loop.get('primary_blocker_code', 'ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING'))}. Display-only bounded PAPER loop status; it cannot approve live orders, promotion, long-run evidence, or risk scale-up.</small>"
         "</section>"
     )
 
@@ -12008,6 +12315,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         """ + workflow_html + """
         """ + long_run_html + """
         """ + market_data_html + """
+        """ + paper_persistent_loop_html + """
         """ + paper_recovery_guard_html + """
         """ + runtime_boundary_html + """
         """ + runtime_orchestration_html + """

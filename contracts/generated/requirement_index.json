@@ -11044,6 +11044,70 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-PERSISTENT-LOOP-DASHBOARD-BINDING",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "PAPER persistent runtime dashboard truth",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-PERSISTENT-LOOP-DASHBOARD-BINDING: dashboard must load scoped Upbit PAPER persistent loop status as bounded display truth only",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER persistent loop dashboard binding",
+      "requirement_kind": "RUNTIME_DASHBOARD_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.upbit_paper_persistent_loop_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "upbit_paper_persistent_loop_validator",
+        "upbit_paper_runtime_recovery_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/runtime/paper/upbit_paper_persistent_loop.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/runtime/test_safe_launcher.py",
+        "tools/emit_upbit_paper_persistent_loop_dashboard_binding_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_PERSISTENT_LOOP_DASHBOARD_BINDING.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-PERSISTENT-RUNTIME-RECOVERY-PREFLIGHT",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "D21A788A3D00EDD604064DC7A7FD1D4F6661892BE2839D1E5D982AAD99232C31",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-PERSISTENT-RUNTIME-RECOVERY-PREFLIGHT",
       "source_section_id": "SECTION_RUNTIME_RECOVERY",
       "source_file": "TRADER_1.md",
@@ -14662,5 +14726,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T01:30:14Z"
+  "updated_at_utc": "2026-05-02T01:56:25Z"
 }

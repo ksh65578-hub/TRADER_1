@@ -239,6 +239,16 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertFalse(loop["long_run_evidence_eligible"])
             self.assertEqual(loop["long_run_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
             self.assertFalse(loop["live_order_allowed"])
+            canonical_loop_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_persistent_loop_report.json"
+            )
+            self.assertTrue(canonical_loop_path.exists())
+            canonical_loop = json.loads(canonical_loop_path.read_text(encoding="utf-8"))
+            self.assertEqual(canonical_loop["loop_hash"], loop["loop_hash"])
+            self.assertEqual(validate_upbit_paper_persistent_loop_report(canonical_loop).status, "PASS")
+            self.assertFalse(canonical_loop["live_order_allowed"])
+            self.assertFalse(canonical_loop["long_run_evidence_eligible"])
             guard_path = root / loop["runtime_recovery_guard_path"]
             guard = json.loads(guard_path.read_text(encoding="utf-8"))
             self.assertEqual(validate_upbit_paper_runtime_recovery_guard_report(guard).status, "PASS")

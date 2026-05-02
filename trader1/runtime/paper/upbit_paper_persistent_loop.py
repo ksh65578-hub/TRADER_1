@@ -513,6 +513,8 @@ def run_upbit_paper_persistent_loop(
     report["loop_hash"] = upbit_paper_persistent_loop_hash(report)
     loop_path = _runtime_base_dir(root, session_id) / "paper_runtime" / f"{loop_id}.persistent_loop_report.json"
     durable_atomic_write_json(loop_path, report)
+    canonical_loop_path = _runtime_base_dir(root, session_id) / "paper_runtime" / "upbit_paper_persistent_loop_report.json"
+    durable_atomic_write_json(canonical_loop_path, report)
     return report
 
 

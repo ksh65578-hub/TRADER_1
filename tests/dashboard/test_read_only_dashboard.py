@@ -2,6 +2,7 @@ import json
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from trader1.config.config_schema import build_runtime_config
 from trader1.dashboard.read_only_dashboard import (
@@ -45,7 +46,10 @@ from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliati
     stale_loop_post_regeneration_reconciliation_hash,
 )
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
-from trader1.runtime.paper.upbit_paper_persistent_loop import upbit_paper_runtime_recovery_guard_hash
+from trader1.runtime.paper.upbit_paper_persistent_loop import (
+    run_upbit_paper_persistent_loop,
+    upbit_paper_runtime_recovery_guard_hash,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity_history import (
     build_upbit_public_rest_continuity_history_report,
     upbit_public_rest_continuity_history_hash,
@@ -196,6 +200,7 @@ def build_dashboard(
     paper_portfolio_snapshot=None,
     reconciliation_report=None,
     restart_recovery_report=None,
+    upbit_paper_persistent_loop_report=None,
     upbit_paper_runtime_recovery_guard_report=None,
     optimizer_feedback_report=None,
     convergence_assessment_report=None,
@@ -243,6 +248,7 @@ def build_dashboard(
         upbit_paper_repair_operator_queue_report=upbit_paper_repair_operator_queue_report,
         upbit_paper_stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
+        upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         optimizer_feedback_report=optimizer_feedback_report,
         convergence_assessment_report=convergence_assessment_report,
@@ -324,6 +330,32 @@ def build_dashboard_with_paper_runtime_recovery_guard(report=None):
         heartbeat=heartbeat,
         startup_probe=startup_probe,
         upbit_paper_runtime_recovery_guard_report=report,
+    )
+
+
+def paper_persistent_loop_fixture(session_id="test_read_only_dashboard"):
+    with TemporaryDirectory() as tmp:
+        return run_upbit_paper_persistent_loop(
+            root=Path(tmp),
+            loop_id="test-dashboard-paper-persistent-loop",
+            session_id=session_id,
+            requested_cycle_count=1,
+        )
+
+
+def build_dashboard_with_paper_persistent_loop(report=None):
+    report = report or paper_persistent_loop_fixture()
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_persistent_loop_report=report,
     )
 
 
@@ -4126,6 +4158,45 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(requirements["SHORT_WINDOW_HARNESS_SOURCE"]["status"], "MISSING")
         self.assertEqual(requirements["RUNTIME_ORCHESTRATION_SOURCE_PAIRING"]["status"], "MISSING")
         self.assertEqual(requirements["ACTUAL_RUNTIME_DURATION"]["status"], "COLLECTING")
+
+    def test_dashboard_projects_paper_persistent_loop_as_bounded_runtime_evidence(self):
+        dashboard = build_dashboard_with_paper_persistent_loop()
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        loop_sources = [source for source in dashboard["source_artifacts"] if source["artifact_id"] == "PAPER_PERSISTENT_LOOP"]
+        self.assertEqual(len(loop_sources), 1)
+        self.assertEqual(loop_sources[0]["filename"], "upbit_paper_persistent_loop_report.json")
+        self.assertEqual(loop_sources[0]["freshness_status"], "PASS")
+        self.assertEqual(loop_sources[0]["truth_role"], "dashboard_serving_truth")
+
+        loop_status = dashboard["paper_persistent_loop_status"]
+        self.assertEqual(loop_status["status"], "PASS")
+        self.assertEqual(loop_status["runtime_evidence_role"], "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE")
+        self.assertEqual(loop_status["completed_cycle_count"], 1)
+        self.assertTrue(loop_status["actual_paper_runtime_executed"])
+        self.assertTrue(loop_status["current_evidence_write_allowed"])
+        self.assertTrue(loop_status["paper_runtime_resume_allowed"])
+        self.assertFalse(loop_status["long_run_evidence_eligible"])
+        self.assertFalse(loop_status["promotion_eligible"])
+        self.assertFalse(loop_status["live_order_ready"])
+        self.assertFalse(loop_status["live_order_allowed"])
+        self.assertFalse(loop_status["can_live_trade"])
+        self.assertFalse(loop_status["scale_up_allowed"])
+
+        html = render_dashboard_html(dashboard)
+        self.assertIn("PAPER_PERSISTENT_LOOP=PASS", html)
+        self.assertIn("PAPER Persistent Runtime", html)
+        self.assertIn("BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE", html)
+        self.assertIn("Display-only bounded PAPER loop status", html)
+
+    def test_dashboard_blocks_paper_persistent_loop_live_or_long_run_drift(self):
+        dashboard = build_dashboard_with_paper_persistent_loop()
+        dashboard["paper_persistent_loop_status"]["long_run_evidence_eligible"] = True
+        dashboard["paper_persistent_loop_status"]["live_order_allowed"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_dashboard_blocks_runtime_evidence_boundary_false_validated_long_run(self):
         dashboard = build_dashboard_with_shadow_persistent_runtime()
