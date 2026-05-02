@@ -257,6 +257,13 @@ from trader1.runtime.paper.upbit_paper_stale_loop_normalized_reconciliation_rech
     validate_upbit_paper_stale_loop_normalized_reconciliation_recheck_report,
     write_upbit_paper_stale_loop_normalized_reconciliation_recheck_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck import (
+    LEDGER_ROLLUP_RECHECK_REQUIRES_ROLLUP_ARTIFACT_BLOCKER_CODE,
+    build_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report,
+    upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_hash,
+    validate_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report,
+    write_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -533,6 +540,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_stale_loop_replacement_schema_normalization_preview_validator",
     "upbit_paper_stale_loop_normalized_reconciliation_preview_validator",
     "upbit_paper_stale_loop_normalized_reconciliation_recheck_validator",
+    "upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator",
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_post_repair_reconciliation_validator",
@@ -6733,6 +6741,159 @@ def upbit_paper_stale_loop_normalized_reconciliation_recheck_validator() -> Vali
     return pass_result(
         validator_id,
         "Upbit PAPER stale-loop normalized reconciliation recheck keeps schema-resolved candidates blocked on ledger-rollup reconciliation",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator"
+    schema_path = (
+        ROOT
+        / "contracts"
+        / "schema"
+        / "upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report.schema.json"
+    )
+    module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck.py"
+    )
+    source_module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_stale_loop_normalized_reconciliation_recheck.py"
+    )
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report.json"
+        )
+    )
+    paths = [schema_path, module_path, source_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report.v1":
+        return fail_result(validator_id, "ledger-rollup reconciliation recheck schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "ledger-rollup reconciliation recheck schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "ledger_rollup_reconciliation_recheck_role",
+        "source_normalized_reconciliation_recheck_hash",
+        "ledger_rollup_recheck_candidate_count",
+        "ledger_rollup_artifact_exists_count",
+        "ledger_rollup_artifact_missing_count",
+        "ledger_rollup_hash_match_count",
+        "ledger_rollup_validator_pass_count",
+        "ledger_rollup_reconciliation_blocked_count",
+        "candidate_current_evidence_usable_count",
+        "ledger_rollup_write_allowed_count",
+        "current_evidence_write_allowed_count",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "ledger_rollup_reconciliation_recheck_hash",
+    ):
+        if field not in required:
+            return fail_result(validator_id, f"ledger-rollup reconciliation recheck schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    source_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_normalized_reconciliation_recheck_report.json"
+    )
+    if not source_path.exists():
+        return fail_result(validator_id, "ledger-rollup recheck source normalized recheck is missing", paths + [source_path], "MEASUREMENT_MISSING")
+    source = load_json(source_path)
+    report = build_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report(
+        root=ROOT,
+        normalized_reconciliation_recheck_report=source,
+    )
+    result = validate_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report(report)
+    if result.status != "PASS":
+        return fail_result(validator_id, f"valid ledger-rollup reconciliation recheck failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
+    if (
+        report.get("recheck_status") != "BLOCKED"
+        or report.get("primary_blocker_code") != LEDGER_ROLLUP_RECHECK_REQUIRES_ROLLUP_ARTIFACT_BLOCKER_CODE
+        or report.get("ledger_rollup_recheck_candidate_count") != 5
+        or report.get("ledger_rollup_artifact_exists_count") != 0
+        or report.get("ledger_rollup_artifact_missing_count") != 5
+        or report.get("ledger_rollup_hash_match_count") != 0
+        or report.get("ledger_rollup_validator_pass_count") != 0
+        or report.get("ledger_rollup_reconciliation_blocked_count") != 5
+        or report.get("candidate_current_evidence_usable_count") != 0
+        or report.get("ledger_rollup_write_allowed_count") != 0
+        or report.get("current_evidence_write_allowed_count") != 0
+    ):
+        return fail_result(validator_id, "ledger-rollup reconciliation recheck did not preserve expected blocked counts", paths, "SCHEMA_IDENTITY_MISMATCH")
+    reason_counts = {item.get("reason_code"): item.get("count") for item in report.get("reason_code_rollup", [])}
+    for reason in (
+        "LEDGER_ROLLUP_ARTIFACT_MISSING",
+        "LEDGER_ROLLUP_HASH_NOT_RECONCILED",
+        "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+    ):
+        if reason_counts.get(reason) != 5:
+            return fail_result(validator_id, f"ledger-rollup reconciliation recheck missing reason rollup: {reason}", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["live_order_allowed"] = True
+    live_mutation["ledger_rollup_reconciliation_recheck_hash"] = (
+        upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_hash(live_mutation)
+    )
+    live_result = validate_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "ledger-rollup reconciliation recheck live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_write = json.loads(json.dumps(report))
+    false_write["ledger_rollup_write_allowed_count"] = 1
+    false_write["ledger_rollup_reconciliation_recheck_hash"] = (
+        upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_hash(false_write)
+    )
+    false_write_result = validate_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report(false_write)
+    if false_write_result.status != "BLOCKED" or false_write_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "ledger-rollup reconciliation recheck allowed write count drift", paths, false_write_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_hash_match = json.loads(json.dumps(report))
+    false_hash_match["items"][0]["rollup_hash_match"] = True
+    false_hash_match["ledger_rollup_hash_match_count"] = 1
+    false_hash_match["ledger_rollup_reconciliation_recheck_hash"] = (
+        upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_hash(false_hash_match)
+    )
+    false_hash_result = validate_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report(false_hash_match)
+    if false_hash_result.status != "FAIL":
+        return fail_result(validator_id, "ledger-rollup reconciliation recheck allowed false hash-match pass", paths, false_hash_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report(root=Path(tmp), report=report)
+        if not written_path.exists():
+            return fail_result(validator_id, "ledger-rollup reconciliation recheck writer did not create report artifact", paths, "MEASUREMENT_MISSING")
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(validator_id, f"runtime ledger-rollup reconciliation recheck artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime ledger-rollup reconciliation recheck artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER stale-loop ledger-rollup reconciliation recheck keeps missing rollup artifacts blocked without writes",
         paths,
     )
 
@@ -17929,6 +18090,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_replacement_schema_normalization_preview_validator": upbit_paper_stale_loop_replacement_schema_normalization_preview_validator,
     "upbit_paper_stale_loop_normalized_reconciliation_preview_validator": upbit_paper_stale_loop_normalized_reconciliation_preview_validator,
     "upbit_paper_stale_loop_normalized_reconciliation_recheck_validator": upbit_paper_stale_loop_normalized_reconciliation_recheck_validator,
+    "upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator": upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
