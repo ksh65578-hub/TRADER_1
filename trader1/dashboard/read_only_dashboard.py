@@ -912,6 +912,67 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
     return snapshot
 
 
+def _runtime_ledger_portfolio_truth_reconciled(
+    summary: dict[str, Any] | None,
+    reconciliation_recovery_summary: dict[str, Any] | None,
+    ledger_idempotency_runtime_evidence_report: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(summary, dict) or not isinstance(reconciliation_recovery_summary, dict):
+        return False
+    if not isinstance(ledger_idempotency_runtime_evidence_report, dict):
+        return False
+    portfolio = summary.get("portfolio")
+    if not isinstance(portfolio, dict):
+        return False
+    summary_ledger_head = portfolio.get("source_paper_ledger_head_hash")
+    evidence_ledger_head = ledger_idempotency_runtime_evidence_report.get(
+        "portfolio_source_paper_ledger_head_hash"
+    ) or ledger_idempotency_runtime_evidence_report.get("source_ledger_head_hash")
+    if not isinstance(summary_ledger_head, str) or len(summary_ledger_head) != 64:
+        return False
+    if summary_ledger_head != evidence_ledger_head:
+        return False
+    summary_cycle_id = portfolio.get("source_runtime_cycle_id")
+    evidence_cycle_id = ledger_idempotency_runtime_evidence_report.get("portfolio_source_runtime_cycle_id")
+    if not isinstance(summary_cycle_id, str) or not summary_cycle_id:
+        return False
+    if not isinstance(evidence_cycle_id, str) or summary_cycle_id != evidence_cycle_id:
+        return False
+    return (
+        reconciliation_recovery_summary.get("ledger_idempotency_runtime_evidence_status") == "PASS"
+        and reconciliation_recovery_summary.get("ledger_idempotency_runtime_validation_status") == "PASS"
+        and reconciliation_recovery_summary.get("ledger_idempotency_runtime_reconciliation_status") == "PASS"
+        and reconciliation_recovery_summary.get("ledger_idempotency_runtime_portfolio_provenance_status") == "PASS"
+        and reconciliation_recovery_summary.get("ledger_idempotency_runtime_duplicate_event_id_count") == 0
+        and reconciliation_recovery_summary.get("ledger_idempotency_runtime_duplicate_dedup_key_count") == 0
+        and reconciliation_recovery_summary.get("ledger_idempotency_runtime_duplicate_semantic_event_count") == 0
+        and reconciliation_recovery_summary.get("ledger_idempotency_runtime_duplicate_filled_order_key_count") == 0
+        and reconciliation_recovery_summary.get("ledger_idempotency_runtime_source_count_mismatch_count") == 0
+        and reconciliation_recovery_summary.get("live_order_ready") is False
+        and reconciliation_recovery_summary.get("live_order_allowed") is False
+        and reconciliation_recovery_summary.get("can_live_trade") is False
+        and reconciliation_recovery_summary.get("scale_up_allowed") is False
+    )
+
+
+def _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary: dict[str, Any] | None) -> str | None:
+    if not isinstance(reconciliation_recovery_summary, dict):
+        return None
+    if reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED":
+        return "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+    if reconciliation_recovery_summary.get("repair_operator_queue_status") == "BLOCKED":
+        return "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
+    if reconciliation_recovery_summary.get("post_repair_reconciliation_status") == "BLOCKED":
+        return "POST_REPAIR_RECONCILIATION_REQUIRED"
+    if reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_status") == "BLOCKED_REPAIR_PATH_DECLARED":
+        return "POST_RERUN_RECONCILIATION_REPAIR_PATH_REQUIRED"
+    if reconciliation_recovery_summary.get("post_rerun_current_evidence_closure_recheck_status") == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
+        return "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
+    if reconciliation_recovery_summary.get("post_rerun_operator_reconciliation_queue_status") == "BLOCKED":
+        return "POST_RERUN_RECONCILIATION_REQUIRED"
+    return None
+
+
 def _stale_portfolio_snapshot(exchange: str, market_type: str, summary: dict[str, Any] | None) -> dict[str, Any]:
     snapshot = {
         "title": "Portfolio Snapshot",
@@ -963,6 +1024,7 @@ def _portfolio_snapshot(
     summary: dict[str, Any] | None,
     summary_freshness: str,
     reconciliation_recovery_summary: dict[str, Any] | None = None,
+    ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if summary is not None and summary_freshness != "PASS":
         return _stale_portfolio_snapshot(exchange, market_type, summary)
@@ -979,6 +1041,25 @@ def _portfolio_snapshot(
     if mode == "PAPER" and isinstance(summary, dict) and not post_rerun_current_truth_blocked:
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
         if verified is not None:
+            return verified
+    if mode == "PAPER" and isinstance(summary, dict) and _runtime_ledger_portfolio_truth_reconciled(
+        summary,
+        reconciliation_recovery_summary,
+        ledger_idempotency_runtime_evidence_report,
+    ):
+        verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
+        if verified is not None:
+            blocker_code = _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary)
+            if blocker_code:
+                verified["blocking_reason"] = blocker_code
+                verified["source_snapshot_freshness_message"] = (
+                    "PAPER portfolio ledger values are verified for display by idempotency runtime evidence; "
+                    f"current-evidence writes and live review remain blocked by {blocker_code}."
+                )
+                verified["next_action"] = (
+                    "Use these PAPER ledger values for dashboard review only; keep current-evidence writes, live orders, "
+                    "and risk scale-up blocked until the reconciliation panel is resolved."
+                )
             return verified
     configured_card = _configured_paper_capital_card(
         exchange,
@@ -5622,7 +5703,8 @@ def _operation_status(
     heartbeat_freshness: str,
     startup_freshness: str,
     portfolio_snapshot: dict[str, Any] | None,
-    primary_blocker: str | None,
+    reconciliation_recovery_summary: dict[str, Any] | None = None,
+    primary_blocker: str | None = None,
 ) -> dict[str, Any]:
     heartbeat_status = heartbeat.get("heartbeat_status") if isinstance(heartbeat, dict) else "STALE"
     engine_state = heartbeat.get("engine_state") if isinstance(heartbeat, dict) else "UNKNOWN"
@@ -5633,6 +5715,7 @@ def _operation_status(
     portfolio_next_action_text = str(
         portfolio_next_action or "Run PAPER with a verified paper portfolio ledger before trusting portfolio values."
     )
+    reconciliation_blocker = _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary)
     if heartbeat_status == "PASS" and heartbeat_freshness == "PASS":
         if portfolio_status == "STALE":
             return {
@@ -5676,6 +5759,28 @@ def _operation_status(
                 "portfolio_blocking_reason": portfolio_blocker,
                 "portfolio_next_action": portfolio_next_action_text,
                 "primary_blocker": portfolio_blocker or primary_blocker or "HARD_TRUTH_MISSING",
+                "live_orders_blocked": live_orders_blocked,
+            }
+        if portfolio_status == "VERIFIED" and reconciliation_blocker:
+            return {
+                "status": "CHECKING_SAFE_MODE",
+                "severity": "WARNING",
+                "color_token": "yellow",
+                "label": "Running with verified PAPER portfolio",
+                "message": "PAPER ledger values are verified for display, but reconciliation blockers still prevent trading review.",
+                "recovery_hint": portfolio_next_action_text,
+                "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+                "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
+                "operator_meaning": "Portfolio cash, equity, positions, and PnL come from verified simulated PAPER ledger evidence; this still does not prove a continuous PAPER engine is running, and reconciliation/live boundaries remain separate.",
+                "source": "summary.json",
+                "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
+                "heartbeat_status": "PASS",
+                "summary_freshness_status": summary_freshness,
+                "startup_freshness_status": startup_freshness,
+                "portfolio_status": portfolio_status,
+                "portfolio_blocking_reason": portfolio_blocker or reconciliation_blocker,
+                "portfolio_next_action": portfolio_next_action_text,
+                "primary_blocker": reconciliation_blocker,
                 "live_orders_blocked": live_orders_blocked,
             }
         return {
@@ -7968,6 +8073,7 @@ def build_read_only_dashboard_shell(
         summary,
         summary_freshness,
         reconciliation_recovery_summary=reconciliation_recovery_summary,
+        ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
     )
     decision_trace = _decision_trace(summary, primary_blocker, position_snapshot)
     operation_status = _operation_status(
@@ -7976,6 +8082,7 @@ def build_read_only_dashboard_shell(
         heartbeat_freshness=heartbeat_freshness,
         startup_freshness=startup_freshness,
         portfolio_snapshot=portfolio_snapshot,
+        reconciliation_recovery_summary=reconciliation_recovery_summary,
         primary_blocker=primary_blocker,
     )
     stability_trends = _stability_trends(
