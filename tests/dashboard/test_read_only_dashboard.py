@@ -35,6 +35,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_repair_path imp
 from trader1.runtime.paper.upbit_paper_post_repair_reconciliation import (
     upbit_paper_post_repair_reconciliation_hash,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliation import (
+    stale_loop_post_regeneration_reconciliation_hash,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import upbit_paper_runtime_recovery_guard_hash
 from trader1.runtime.paper.upbit_public_rest_continuity_history import (
@@ -204,6 +207,7 @@ def build_dashboard(
     upbit_paper_post_rerun_current_evidence_closure_recheck_report=None,
     upbit_paper_post_rerun_reconciliation_repair_path_report=None,
     upbit_paper_post_repair_reconciliation_report=None,
+    upbit_paper_stale_loop_post_regeneration_reconciliation_report=None,
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
@@ -227,6 +231,7 @@ def build_dashboard(
         upbit_paper_post_rerun_current_evidence_closure_recheck_report=upbit_paper_post_rerun_current_evidence_closure_recheck_report,
         upbit_paper_post_rerun_reconciliation_repair_path_report=upbit_paper_post_rerun_reconciliation_repair_path_report,
         upbit_paper_post_repair_reconciliation_report=upbit_paper_post_repair_reconciliation_report,
+        upbit_paper_stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         optimizer_feedback_report=optimizer_feedback_report,
@@ -503,6 +508,22 @@ def post_repair_reconciliation_fixture():
     )
 
 
+def stale_loop_post_regeneration_reconciliation_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def build_dashboard_with_post_rerun_blocker_rollup(report=None):
     report = report or post_rerun_blocker_rollup_fixture()
     session_id = report["session_id"]
@@ -653,6 +674,30 @@ def build_dashboard_with_post_repair_reconciliation(
         startup_probe=startup_probe,
         upbit_paper_post_rerun_reconciliation_repair_path_report=repair_path_report,
         upbit_paper_post_repair_reconciliation_report=report,
+    )
+
+
+def build_dashboard_with_stale_loop_post_regeneration_reconciliation(
+    report=None,
+    post_repair_report=None,
+    with_paper_portfolio=True,
+):
+    report = report or stale_loop_post_regeneration_reconciliation_fixture()
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(
+        session_id=session_id,
+        with_paper_portfolio=with_paper_portfolio,
+    )
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_post_repair_reconciliation_report=post_repair_report,
+        upbit_paper_stale_loop_post_regeneration_reconciliation_report=report,
     )
 
 
@@ -2111,6 +2156,81 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         reconciliation = dashboard["reconciliation_recovery_summary"]
         self.assertEqual(reconciliation["post_repair_reconciliation_status"], "INVALID")
         self.assertEqual(reconciliation["post_repair_reconciliation_validation_status"], "BLOCKED")
+        self.assertEqual(reconciliation["status"], "INVALID")
+        self.assertEqual(reconciliation["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
+
+    def test_dashboard_projects_stale_loop_post_regeneration_reconciliation_for_operator_visibility(self):
+        dashboard = build_dashboard_with_stale_loop_post_regeneration_reconciliation(
+            post_repair_report=post_repair_reconciliation_fixture()
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(reconciliation["source"], "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
+        self.assertEqual(
+            reconciliation["primary_blocker_code"],
+            "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+        )
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_reconciliation_status"], "BLOCKED")
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_reconciliation_validation_status"], "PASS")
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_item_count"], 16)
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_planned_item_count"], 16)
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_accepted_count"], 10)
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_blocked_reconciliation_count"], 6)
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_invalid_count"], 0)
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_current_evidence_usable_count"], 10)
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_excluded_from_current_evidence_count"], 6)
+        self.assertIn(
+            "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+            reconciliation["stale_loop_post_regeneration_blocker_codes"],
+        )
+        reason_counts = {
+            item["reason_code"]: item["count"]
+            for item in reconciliation["stale_loop_post_regeneration_blocked_repair_reason_counts"]
+        }
+        self.assertEqual(reason_counts["LEDGER_ROLLUP_BLOCKED"], 6)
+        self.assertEqual(reason_counts["LEDGER_ROLLUP_RECONCILIATION_REQUIRED"], 6)
+        sources = [
+            source
+            for source in dashboard["source_artifacts"]
+            if source["artifact_id"] == "STALE_LOOP_POST_REGENERATION_RECONCILIATION"
+        ]
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(sources[0]["freshness_status"], "PASS")
+        self.assertEqual(
+            sources[0]["filename"],
+            "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+        )
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["blocking_reason"], "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
+        self.assertIn("Configured PAPER capital is 1,000,000 KRW", portfolio["source_snapshot_freshness_message"])
+        self.assertIn("accepted 10 current-schema artifact", portfolio["source_snapshot_freshness_message"])
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Stale Loop Post Regeneration", html)
+        self.assertIn("post-regeneration=BLOCKED", html)
+        self.assertIn("accepted=10", html)
+        self.assertIn("blocked=6", html)
+        self.assertIn("ledger-blocked=6", html)
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_stale_loop_post_regeneration_live_or_evidence_drift(self):
+        report = stale_loop_post_regeneration_reconciliation_fixture()
+        report["long_run_evidence_eligible"] = True
+        report["live_order_allowed"] = True
+        report["post_reconciliation_hash"] = stale_loop_post_regeneration_reconciliation_hash(report)
+        dashboard = build_dashboard_with_stale_loop_post_regeneration_reconciliation(report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_reconciliation_status"], "INVALID")
+        self.assertEqual(reconciliation["stale_loop_post_regeneration_reconciliation_validation_status"], "BLOCKED")
         self.assertEqual(reconciliation["status"], "INVALID")
         self.assertEqual(reconciliation["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
         self.assertFalse(reconciliation["live_order_allowed"])

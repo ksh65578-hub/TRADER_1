@@ -37,6 +37,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_repair_path imp
 from trader1.runtime.paper.upbit_paper_post_repair_reconciliation import (
     validate_upbit_paper_post_repair_reconciliation_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliation import (
+    validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
@@ -59,6 +62,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
     "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
     "upbit_paper_post_repair_reconciliation_report.json",
+    "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
@@ -75,6 +79,7 @@ RECONCILIATION_RECOVERY_SOURCES = {
     "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
     "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
     "upbit_paper_post_repair_reconciliation_report.json",
+    "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
 }
 ORDER_AFFECTING_FINAL_ACTIONS = {
@@ -205,6 +210,8 @@ POST_RERUN_RECONCILIATION_REPAIR_PATH_STATUSES = {"NOT_LOADED", "BLOCKED_REPAIR_
 POST_RERUN_RECONCILIATION_REPAIR_PATH_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_REPAIR_RECONCILIATION_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
 POST_REPAIR_RECONCILIATION_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+STALE_LOOP_POST_REGENERATION_RECONCILIATION_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
+STALE_LOOP_POST_REGENERATION_RECONCILIATION_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_RERUN_RECONCILIATION_REPAIR_GATE_STATUSES = {"NOT_LOADED", "BLOCKED", "PASS", "FAIL"}
 POST_RERUN_RECONCILIATION_REPAIR_GATE_IDS = {
     "NOT_LOADED",
@@ -920,6 +927,7 @@ def _portfolio_snapshot(
         or reconciliation_recovery_summary.get("post_rerun_current_evidence_closure_recheck_status")
         == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED"
         or reconciliation_recovery_summary.get("post_repair_reconciliation_status") == "BLOCKED"
+        or reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED"
     )
     if mode == "PAPER" and isinstance(summary, dict) and not post_rerun_current_truth_blocked:
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
@@ -960,6 +968,45 @@ def _portfolio_snapshot(
     source_snapshot_status = "UNTESTED"
     blocking_reason = "HARD_TRUTH_MISSING"
     if (
+        isinstance(reconciliation_recovery_summary, dict)
+        and reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED"
+    ):
+        source_snapshot_status = "BLOCKED"
+        blocking_reason = "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+        accepted_count = reconciliation_recovery_summary.get("stale_loop_post_regeneration_accepted_count", 0)
+        blocked_count = reconciliation_recovery_summary.get("stale_loop_post_regeneration_blocked_reconciliation_count", 0)
+        usable_count = reconciliation_recovery_summary.get("stale_loop_post_regeneration_current_evidence_usable_count", 0)
+        excluded_count = reconciliation_recovery_summary.get("stale_loop_post_regeneration_excluded_from_current_evidence_count", 0)
+        if isinstance(configured_display, str) and configured_display != "UNVERIFIED":
+            unverified_message = (
+                f"Configured PAPER capital is {configured_display}; stale-loop post-regeneration accepted "
+                f"{accepted_count} current-schema artifact(s), but {blocked_count} replacement(s) still require "
+                "ledger/recovery reconciliation, so cash/equity remains unverified."
+            )
+            cash_detail = (
+                f"Configured PAPER capital is {configured_display}; cash remains unverified while "
+                f"{excluded_count} regenerated replacement(s) are excluded from current portfolio evidence."
+            )
+            equity_detail = (
+                f"Configured PAPER capital is {configured_display}; equity remains unverified because "
+                f"{usable_count} usable regenerated runtime artifact(s) are not portfolio cash/equity proof while reconciliation is blocked."
+            )
+        else:
+            unverified_message = (
+                "Portfolio current evidence remains blocked by stale-loop post-regeneration reconciliation: "
+                f"{accepted_count} accepted current-schema artifact(s), {blocked_count} blocked replacement(s)."
+            )
+            cash_detail = (
+                f"Cash remains unverified while {excluded_count} regenerated replacement(s) stay excluded from current evidence."
+            )
+            equity_detail = (
+                f"Equity remains unverified; {usable_count} usable regenerated runtime artifact(s) are not portfolio proof."
+            )
+        next_action = (
+            "Reconcile blocked stale-loop regenerated replacements before treating configured PAPER capital or "
+            "regenerated artifacts as current portfolio cash/equity."
+        )
+    elif (
         isinstance(reconciliation_recovery_summary, dict)
         and reconciliation_recovery_summary.get("post_repair_reconciliation_status") == "BLOCKED"
     ):
@@ -5254,6 +5301,15 @@ def _safe_count(value: Any) -> int:
     return 0
 
 
+def _reason_count_value(items: Any, reason_code: str) -> int:
+    if not isinstance(items, list):
+        return 0
+    for item in items:
+        if isinstance(item, dict) and item.get("reason_code") == reason_code:
+            return _safe_count(item.get("count"))
+    return 0
+
+
 def _reconciliation_recovery_summary(
     *,
     exchange: str,
@@ -5270,6 +5326,7 @@ def _reconciliation_recovery_summary(
     post_rerun_current_evidence_closure_recheck_report: dict[str, Any] | None,
     post_rerun_reconciliation_repair_path_report: dict[str, Any] | None,
     post_repair_reconciliation_report: dict[str, Any] | None,
+    stale_loop_post_regeneration_reconciliation_report: dict[str, Any] | None,
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
     restart_loaded = isinstance(restart_recovery_report, dict)
@@ -5281,6 +5338,10 @@ def _reconciliation_recovery_summary(
     post_rerun_closure_recheck_loaded = isinstance(post_rerun_current_evidence_closure_recheck_report, dict)
     post_rerun_repair_path_loaded = isinstance(post_rerun_reconciliation_repair_path_report, dict)
     post_repair_reconciliation_loaded = isinstance(post_repair_reconciliation_report, dict)
+    stale_loop_post_regeneration_reconciliation_loaded = isinstance(
+        stale_loop_post_regeneration_reconciliation_report,
+        dict,
+    )
     reconciliation_status = "NOT_LOADED"
     restart_status = "NOT_LOADED"
     ledger_idempotency_runtime_evidence_status = "NOT_LOADED"
@@ -5344,6 +5405,25 @@ def _reconciliation_recovery_summary(
     post_repair_primary_blocker_code = "NOT_LOADED"
     post_repair_operator_next_action = "NOT_LOADED"
     post_repair_blocker_codes: list[str] = []
+    stale_loop_post_regeneration_reconciliation_status = "NOT_LOADED"
+    stale_loop_post_regeneration_reconciliation_validation_status = "UNTESTED"
+    stale_loop_post_regeneration_item_count = 0
+    stale_loop_post_regeneration_planned_item_count = 0
+    stale_loop_post_regeneration_accepted_count = 0
+    stale_loop_post_regeneration_blocked_reconciliation_count = 0
+    stale_loop_post_regeneration_invalid_count = 0
+    stale_loop_post_regeneration_current_evidence_usable_count = 0
+    stale_loop_post_regeneration_excluded_from_current_evidence_count = 0
+    stale_loop_post_regeneration_source_retained_count = 0
+    stale_loop_post_regeneration_replacement_found_count = 0
+    stale_loop_post_regeneration_source_hash_mismatch_count = 0
+    stale_loop_post_regeneration_replacement_hash_mismatch_count = 0
+    stale_loop_post_regeneration_unpaired_artifact_count = 0
+    stale_loop_post_regeneration_duplicate_runtime_cycle_hash_count = 0
+    stale_loop_post_regeneration_blocked_repair_reason_counts: list[dict[str, Any]] = []
+    stale_loop_post_regeneration_primary_blocker_code = "NOT_LOADED"
+    stale_loop_post_regeneration_operator_next_action = "NOT_LOADED"
+    stale_loop_post_regeneration_blocker_codes: list[str] = []
     reconciliation_validation_status = "UNTESTED"
     restart_validation_status = "UNTESTED"
     post_rerun_rollup_validation_status = "UNTESTED"
@@ -6081,6 +6161,111 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Post-repair reconciliation status is unknown.")
 
+    if stale_loop_post_regeneration_reconciliation_loaded:
+        source = "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json"
+        stale_loop_post_regeneration_reconciliation_status = str(
+            stale_loop_post_regeneration_reconciliation_report.get("post_reconciliation_status", "INVALID")
+        )
+        stale_loop_result = validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
+            stale_loop_post_regeneration_reconciliation_report
+        )
+        stale_loop_post_regeneration_reconciliation_validation_status = stale_loop_result.status
+        if stale_loop_result.status != "PASS":
+            stale_loop_post_regeneration_reconciliation_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = stale_loop_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(f"Stale-loop post-regeneration reconciliation invalid: {stale_loop_result.message}")
+        elif not _scope_matches(
+            stale_loop_post_regeneration_reconciliation_report,
+            exchange=exchange,
+            market_type=market_type,
+            mode=mode,
+            session_id=session_id,
+        ):
+            stale_loop_post_regeneration_reconciliation_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Stale-loop post-regeneration reconciliation scope does not match this dashboard.")
+        elif stale_loop_post_regeneration_reconciliation_status == "BLOCKED":
+            stale_loop_post_regeneration_item_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("post_reconciliation_item_count")
+            )
+            stale_loop_post_regeneration_planned_item_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("planned_regeneration_item_count")
+            )
+            stale_loop_post_regeneration_accepted_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("regenerated_current_accepted_count")
+            )
+            stale_loop_post_regeneration_blocked_reconciliation_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get(
+                    "regenerated_current_blocked_reconciliation_count"
+                )
+            )
+            stale_loop_post_regeneration_invalid_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("regenerated_current_invalid_count")
+            )
+            stale_loop_post_regeneration_current_evidence_usable_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("current_evidence_usable_count")
+            )
+            stale_loop_post_regeneration_excluded_from_current_evidence_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("excluded_from_current_evidence_count")
+            )
+            stale_loop_post_regeneration_source_retained_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("source_retained_count")
+            )
+            stale_loop_post_regeneration_replacement_found_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("replacement_found_count")
+            )
+            stale_loop_post_regeneration_source_hash_mismatch_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("source_hash_mismatch_count")
+            )
+            stale_loop_post_regeneration_replacement_hash_mismatch_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("replacement_hash_mismatch_count")
+            )
+            stale_loop_post_regeneration_unpaired_artifact_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("unpaired_regenerated_artifact_count")
+            )
+            stale_loop_post_regeneration_duplicate_runtime_cycle_hash_count = _safe_count(
+                stale_loop_post_regeneration_reconciliation_report.get("usable_runtime_cycle_hash_duplicate_count")
+            )
+            raw_reason_counts = stale_loop_post_regeneration_reconciliation_report.get("blocked_repair_reason_counts", [])
+            if isinstance(raw_reason_counts, list):
+                stale_loop_post_regeneration_blocked_repair_reason_counts = [
+                    {"reason_code": str(item.get("reason_code")), "count": _safe_count(item.get("count"))}
+                    for item in raw_reason_counts
+                    if isinstance(item, dict) and item.get("reason_code")
+                ]
+            stale_loop_post_regeneration_primary_blocker_code = str(
+                stale_loop_post_regeneration_reconciliation_report.get("primary_blocker_code")
+                or "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+            )
+            stale_loop_post_regeneration_operator_next_action = str(
+                stale_loop_post_regeneration_reconciliation_report.get("operator_next_action")
+                or "Reconcile blocked stale-loop regenerated replacements before evidence use."
+            )
+            raw_codes = stale_loop_post_regeneration_reconciliation_report.get("blocker_codes", [])
+            stale_loop_post_regeneration_blocker_codes = (
+                [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            )
+            ledger_state = "RECONCILE_REQUIRED"
+            single_writer_state = "RECONCILE_REQUIRED"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = stale_loop_post_regeneration_primary_blocker_code
+            issue_messages.append(
+                "Stale-loop post-regeneration reconciliation separates accepted current-schema artifacts from blocked replacements."
+            )
+        else:
+            stale_loop_post_regeneration_reconciliation_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Stale-loop post-regeneration reconciliation status is unknown.")
+
     if (
         not reconciliation_loaded
         and not restart_loaded
@@ -6092,6 +6277,7 @@ def _reconciliation_recovery_summary(
         and not post_rerun_closure_recheck_loaded
         and not post_rerun_repair_path_loaded
         and not post_repair_reconciliation_loaded
+        and not stale_loop_post_regeneration_reconciliation_loaded
     ):
         status = "NOT_LOADED"
         severity = "WARNING"
@@ -6099,6 +6285,30 @@ def _reconciliation_recovery_summary(
         one_line_blocker = "RECONCILIATION_REQUIRED: ledger/reconciliation and restart recovery evidence are not loaded."
         next_action = "Run PAPER with reconciliation and restart recovery artifacts, then review this panel before live review."
         message = "Ledger/reconciliation evidence is not loaded; portfolio values remain display-only."
+    elif stale_loop_post_regeneration_reconciliation_status == "BLOCKED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = (
+            f"{primary_blocker}: stale-loop post-regeneration has "
+            f"{stale_loop_post_regeneration_blocked_reconciliation_count} blocked regenerated replacement(s)."
+        )
+        next_action = (
+            stale_loop_post_regeneration_operator_next_action
+            if stale_loop_post_regeneration_operator_next_action != "NOT_LOADED"
+            else "Reconcile blocked stale-loop regenerated replacements before evidence use."
+        )
+        message = (
+            "Stale-loop post-regeneration reconciliation is active: "
+            f"status={stale_loop_post_regeneration_reconciliation_status}, "
+            f"planned={stale_loop_post_regeneration_planned_item_count}, "
+            f"items={stale_loop_post_regeneration_item_count}, "
+            f"accepted={stale_loop_post_regeneration_accepted_count}, "
+            f"blocked={stale_loop_post_regeneration_blocked_reconciliation_count}, "
+            f"invalid={stale_loop_post_regeneration_invalid_count}, "
+            f"current-evidence usable={stale_loop_post_regeneration_current_evidence_usable_count}, "
+            f"excluded={stale_loop_post_regeneration_excluded_from_current_evidence_count}."
+        )
     elif post_repair_reconciliation_status == "BLOCKED":
         status = "BLOCKED"
         severity = "ERROR"
@@ -6268,6 +6478,7 @@ def _reconciliation_recovery_summary(
             post_rerun_current_evidence_closure_recheck_status,
             post_rerun_reconciliation_repair_path_status,
             post_repair_reconciliation_status,
+            stale_loop_post_regeneration_reconciliation_status,
             ledger_idempotency_runtime_evidence_status,
         }
         or "FAIL"
@@ -6281,6 +6492,7 @@ def _reconciliation_recovery_summary(
             post_rerun_current_evidence_closure_recheck_validation_status,
             post_rerun_reconciliation_repair_path_validation_status,
             post_repair_reconciliation_validation_status,
+            stale_loop_post_regeneration_reconciliation_validation_status,
             ledger_idempotency_runtime_validation_status,
         }
         or "BLOCKED"
@@ -6293,6 +6505,7 @@ def _reconciliation_recovery_summary(
             post_rerun_resolution_closure_validation_status,
             post_rerun_reconciliation_repair_path_validation_status,
             post_repair_reconciliation_validation_status,
+            stale_loop_post_regeneration_reconciliation_validation_status,
             ledger_idempotency_runtime_validation_status if ledger_idempotency_runtime_evidence_status != "BLOCKED" else "PASS",
         }
     ):
@@ -6436,6 +6649,25 @@ def _reconciliation_recovery_summary(
         "post_repair_primary_blocker_code": post_repair_primary_blocker_code,
         "post_repair_operator_next_action": post_repair_operator_next_action,
         "post_repair_blocker_codes": post_repair_blocker_codes,
+        "stale_loop_post_regeneration_reconciliation_status": stale_loop_post_regeneration_reconciliation_status,
+        "stale_loop_post_regeneration_reconciliation_validation_status": stale_loop_post_regeneration_reconciliation_validation_status,
+        "stale_loop_post_regeneration_item_count": stale_loop_post_regeneration_item_count,
+        "stale_loop_post_regeneration_planned_item_count": stale_loop_post_regeneration_planned_item_count,
+        "stale_loop_post_regeneration_accepted_count": stale_loop_post_regeneration_accepted_count,
+        "stale_loop_post_regeneration_blocked_reconciliation_count": stale_loop_post_regeneration_blocked_reconciliation_count,
+        "stale_loop_post_regeneration_invalid_count": stale_loop_post_regeneration_invalid_count,
+        "stale_loop_post_regeneration_current_evidence_usable_count": stale_loop_post_regeneration_current_evidence_usable_count,
+        "stale_loop_post_regeneration_excluded_from_current_evidence_count": stale_loop_post_regeneration_excluded_from_current_evidence_count,
+        "stale_loop_post_regeneration_source_retained_count": stale_loop_post_regeneration_source_retained_count,
+        "stale_loop_post_regeneration_replacement_found_count": stale_loop_post_regeneration_replacement_found_count,
+        "stale_loop_post_regeneration_source_hash_mismatch_count": stale_loop_post_regeneration_source_hash_mismatch_count,
+        "stale_loop_post_regeneration_replacement_hash_mismatch_count": stale_loop_post_regeneration_replacement_hash_mismatch_count,
+        "stale_loop_post_regeneration_unpaired_artifact_count": stale_loop_post_regeneration_unpaired_artifact_count,
+        "stale_loop_post_regeneration_duplicate_runtime_cycle_hash_count": stale_loop_post_regeneration_duplicate_runtime_cycle_hash_count,
+        "stale_loop_post_regeneration_blocked_repair_reason_counts": stale_loop_post_regeneration_blocked_repair_reason_counts,
+        "stale_loop_post_regeneration_primary_blocker_code": stale_loop_post_regeneration_primary_blocker_code,
+        "stale_loop_post_regeneration_operator_next_action": stale_loop_post_regeneration_operator_next_action,
+        "stale_loop_post_regeneration_blocker_codes": stale_loop_post_regeneration_blocker_codes,
         "post_rerun_blocker_codes": post_rerun_blocker_codes,
         "ledger_state": ledger_state,
         "single_writer_state": single_writer_state,
@@ -6483,6 +6715,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_post_rerun_current_evidence_closure_recheck_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_reconciliation_repair_path_report: dict[str, Any] | None = None,
     upbit_paper_post_repair_reconciliation_report: dict[str, Any] | None = None,
+    upbit_paper_stale_loop_post_regeneration_reconciliation_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
@@ -6515,6 +6748,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_post_rerun_current_evidence_closure_recheck": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
         "upbit_paper_post_rerun_reconciliation_repair_path": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_repair_path_report.json",
         "upbit_paper_post_repair_reconciliation": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_repair_reconciliation_report.json",
+        "upbit_paper_stale_loop_post_regeneration_reconciliation": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
@@ -6821,6 +7055,37 @@ def build_read_only_dashboard_shell(
                 post_repair_freshness,
             )
         )
+    if isinstance(upbit_paper_stale_loop_post_regeneration_reconciliation_report, dict):
+        stale_loop_post_regeneration_result = validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
+            upbit_paper_stale_loop_post_regeneration_reconciliation_report
+        )
+        stale_loop_post_regeneration_freshness = (
+            "PASS"
+            if stale_loop_post_regeneration_result.status == "PASS"
+            and upbit_paper_stale_loop_post_regeneration_reconciliation_report.get("post_reconciliation_status")
+            == "BLOCKED"
+            and upbit_paper_stale_loop_post_regeneration_reconciliation_report.get("actual_long_run_evidence_created")
+            is False
+            and upbit_paper_stale_loop_post_regeneration_reconciliation_report.get("long_run_evidence_eligible")
+            is False
+            and upbit_paper_stale_loop_post_regeneration_reconciliation_report.get("promotion_eligible") is False
+            and upbit_paper_stale_loop_post_regeneration_reconciliation_report.get("live_order_ready") is False
+            and upbit_paper_stale_loop_post_regeneration_reconciliation_report.get("live_order_allowed") is False
+            and upbit_paper_stale_loop_post_regeneration_reconciliation_report.get("can_live_trade") is False
+            and upbit_paper_stale_loop_post_regeneration_reconciliation_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "STALE_LOOP_POST_REGENERATION_RECONCILIATION",
+                paths.get(
+                    "upbit_paper_stale_loop_post_regeneration_reconciliation",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+                ),
+                True,
+                stale_loop_post_regeneration_freshness,
+            )
+        )
     if isinstance(upbit_paper_ledger_idempotency_runtime_evidence_report, dict):
         idempotency_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
             upbit_paper_ledger_idempotency_runtime_evidence_report
@@ -6885,6 +7150,7 @@ def build_read_only_dashboard_shell(
         post_rerun_current_evidence_closure_recheck_report=upbit_paper_post_rerun_current_evidence_closure_recheck_report,
         post_rerun_reconciliation_repair_path_report=upbit_paper_post_rerun_reconciliation_repair_path_report,
         post_repair_reconciliation_report=upbit_paper_post_repair_reconciliation_report,
+        stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
     )
     position_snapshot = _position_snapshot(summary, summary_freshness)
     portfolio_snapshot = _portfolio_snapshot(
@@ -7220,9 +7486,34 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "post_rerun_resolution_closure_closed_item_count",
                 "post_rerun_resolution_closure_current_evidence_closed_count",
                 "post_rerun_resolution_closure_current_evidence_write_allowed_count",
+                "post_rerun_reconciliation_repair_path_status",
+                "post_rerun_reconciliation_repair_path_validation_status",
+                "post_rerun_reconciliation_repair_path_repair_gate_count",
+                "post_rerun_reconciliation_repair_path_blocked_gate_count",
+                "post_repair_reconciliation_status",
+                "post_repair_reconciliation_validation_status",
+                "post_repair_repair_candidate_count",
+                "post_repair_reconciliation_item_count",
+                "post_repair_candidate_current_evidence_usable_count",
+                "post_repair_candidate_current_evidence_blocked_count",
+                "stale_loop_post_regeneration_reconciliation_status",
+                "stale_loop_post_regeneration_reconciliation_validation_status",
+                "stale_loop_post_regeneration_item_count",
+                "stale_loop_post_regeneration_planned_item_count",
+                "stale_loop_post_regeneration_accepted_count",
+                "stale_loop_post_regeneration_blocked_reconciliation_count",
+                "stale_loop_post_regeneration_invalid_count",
+                "stale_loop_post_regeneration_current_evidence_usable_count",
+                "stale_loop_post_regeneration_excluded_from_current_evidence_count",
+                "stale_loop_post_regeneration_primary_blocker_code",
+                "stale_loop_post_regeneration_operator_next_action",
             )
         )
         for code in reconciliation.get("post_rerun_blocker_codes", []):
+            values.append(str(code))
+        for code in reconciliation.get("post_repair_blocker_codes", []):
+            values.append(str(code))
+        for code in reconciliation.get("stale_loop_post_regeneration_blocker_codes", []):
             values.append(str(code))
     stability = shell.get("stability_trends", {})
     if isinstance(stability, dict):
@@ -7726,6 +8017,14 @@ def validate_read_only_dashboard_shell(
         "post_repair_reconciliation_validation_status",
         "UNTESTED",
     )
+    stale_loop_post_regeneration_status = reconciliation.get(
+        "stale_loop_post_regeneration_reconciliation_status",
+        "NOT_LOADED",
+    )
+    stale_loop_post_regeneration_validation_status = reconciliation.get(
+        "stale_loop_post_regeneration_reconciliation_validation_status",
+        "UNTESTED",
+    )
     if post_rerun_rollup_status not in POST_RERUN_BLOCKER_ROLLUP_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun blocker rollup status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_rollup_validation_status not in POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES:
@@ -7754,6 +8053,13 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "post-repair reconciliation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_repair_validation_status not in POST_REPAIR_RECONCILIATION_VALIDATION_STATUSES:
         return DashboardValidationResult("FAIL", "post-repair reconciliation validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if stale_loop_post_regeneration_status not in STALE_LOOP_POST_REGENERATION_RECONCILIATION_STATUSES:
+        return DashboardValidationResult("FAIL", "stale-loop post-regeneration reconciliation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        stale_loop_post_regeneration_validation_status
+        not in STALE_LOOP_POST_REGENERATION_RECONCILIATION_VALIDATION_STATUSES
+    ):
+        return DashboardValidationResult("FAIL", "stale-loop post-regeneration reconciliation validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("post_rerun_current_evidence_bridge_status", "NOT_LOADED") not in POST_RERUN_CURRENT_EVIDENCE_BRIDGE_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun current-evidence bridge status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if (
@@ -7829,6 +8135,19 @@ def validate_read_only_dashboard_shell(
         "post_repair_hash_reconciliation_operator_action_required_count",
         "post_repair_candidate_current_evidence_usable_count",
         "post_repair_candidate_current_evidence_blocked_count",
+        "stale_loop_post_regeneration_item_count",
+        "stale_loop_post_regeneration_planned_item_count",
+        "stale_loop_post_regeneration_accepted_count",
+        "stale_loop_post_regeneration_blocked_reconciliation_count",
+        "stale_loop_post_regeneration_invalid_count",
+        "stale_loop_post_regeneration_current_evidence_usable_count",
+        "stale_loop_post_regeneration_excluded_from_current_evidence_count",
+        "stale_loop_post_regeneration_source_retained_count",
+        "stale_loop_post_regeneration_replacement_found_count",
+        "stale_loop_post_regeneration_source_hash_mismatch_count",
+        "stale_loop_post_regeneration_replacement_hash_mismatch_count",
+        "stale_loop_post_regeneration_unpaired_artifact_count",
+        "stale_loop_post_regeneration_duplicate_runtime_cycle_hash_count",
     )
     for field in post_rerun_count_fields:
         value = reconciliation.get(field, 0)
@@ -7846,9 +8165,34 @@ def validate_read_only_dashboard_shell(
         not isinstance(code, str) or not code for code in post_repair_blocker_codes
     ):
         return DashboardValidationResult("FAIL", "post-repair blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
+    stale_loop_post_regeneration_blocker_codes = reconciliation.get(
+        "stale_loop_post_regeneration_blocker_codes",
+        [],
+    )
+    if stale_loop_post_regeneration_blocker_codes is None:
+        stale_loop_post_regeneration_blocker_codes = []
+    if not isinstance(stale_loop_post_regeneration_blocker_codes, list) or any(
+        not isinstance(code, str) or not code for code in stale_loop_post_regeneration_blocker_codes
+    ):
+        return DashboardValidationResult("FAIL", "stale-loop post-regeneration blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
+    stale_loop_post_regeneration_reason_counts = reconciliation.get(
+        "stale_loop_post_regeneration_blocked_repair_reason_counts",
+        [],
+    )
+    if not isinstance(stale_loop_post_regeneration_reason_counts, list) or any(
+        not isinstance(item, dict)
+        or not isinstance(item.get("reason_code"), str)
+        or not item.get("reason_code")
+        or not isinstance(item.get("count"), int)
+        or item.get("count") < 0
+        for item in stale_loop_post_regeneration_reason_counts
+    ):
+        return DashboardValidationResult("FAIL", "stale-loop post-regeneration reason counts are invalid", "SCHEMA_IDENTITY_MISMATCH")
     allowed_post_rerun_primary_blockers = {"POST_RERUN_RECONCILIATION_REQUIRED"}
     if post_repair_status == "BLOCKED":
         allowed_post_rerun_primary_blockers.add("POST_REPAIR_RECONCILIATION_REQUIRED")
+    if stale_loop_post_regeneration_status == "BLOCKED":
+        allowed_post_rerun_primary_blockers.add("STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
     if (
         reconciliation.get("post_rerun_reconciliation_repair_path_first_gate_id", "NOT_LOADED")
         not in POST_RERUN_RECONCILIATION_REPAIR_GATE_IDS
@@ -7873,6 +8217,8 @@ def validate_read_only_dashboard_shell(
             allowed_rollup_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_rollup_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if stale_loop_post_regeneration_status == "BLOCKED":
+            allowed_rollup_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -7904,6 +8250,8 @@ def validate_read_only_dashboard_shell(
             allowed_guidance_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_guidance_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if stale_loop_post_regeneration_status == "BLOCKED":
+            allowed_guidance_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -7933,6 +8281,8 @@ def validate_read_only_dashboard_shell(
             allowed_resolution_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_resolution_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if stale_loop_post_regeneration_status == "BLOCKED":
+            allowed_resolution_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -7971,6 +8321,8 @@ def validate_read_only_dashboard_shell(
             allowed_closure_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_closure_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if stale_loop_post_regeneration_status == "BLOCKED":
+            allowed_closure_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -8007,6 +8359,8 @@ def validate_read_only_dashboard_shell(
             allowed_recheck_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_recheck_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if stale_loop_post_regeneration_status == "BLOCKED":
+            allowed_recheck_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -8040,6 +8394,8 @@ def validate_read_only_dashboard_shell(
         allowed_repair_path_sources = {"upbit_paper_post_rerun_reconciliation_repair_path_report.json"}
         if post_repair_status == "BLOCKED":
             allowed_repair_path_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if stale_loop_post_regeneration_status == "BLOCKED":
+            allowed_repair_path_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -8048,6 +8404,7 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("primary_blocker_code") not in {
                 "POST_RERUN_RECONCILIATION_REQUIRED",
                 "POST_REPAIR_RECONCILIATION_REQUIRED",
+                "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
             }
             or reconciliation.get("post_rerun_reconciliation_repair_path_validation_status") != "PASS"
             or reconciliation.get("post_rerun_reconciliation_repair_path_repair_gate_count", 0) < 4
@@ -8080,12 +8437,17 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "post-rerun repair path must keep closure/recheck source binding verified", "LIVE_FINAL_GUARD_FAILED")
     if post_repair_status == "BLOCKED":
         item_count = reconciliation.get("post_repair_reconciliation_item_count", 0)
+        allowed_post_repair_sources = {"upbit_paper_post_repair_reconciliation_report.json"}
+        allowed_post_repair_blockers = {"POST_REPAIR_RECONCILIATION_REQUIRED"}
+        if stale_loop_post_regeneration_status == "BLOCKED":
+            allowed_post_repair_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
+            allowed_post_repair_blockers.add("STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
             or reconciliation.get("color_token") != "red"
-            or reconciliation.get("source") != "upbit_paper_post_repair_reconciliation_report.json"
-            or reconciliation.get("primary_blocker_code") != "POST_REPAIR_RECONCILIATION_REQUIRED"
+            or reconciliation.get("source") not in allowed_post_repair_sources
+            or reconciliation.get("primary_blocker_code") not in allowed_post_repair_blockers
             or reconciliation.get("post_repair_reconciliation_validation_status") != "PASS"
             or item_count <= 0
             or reconciliation.get("post_repair_repair_candidate_count", 0) != item_count
@@ -8096,6 +8458,43 @@ def validate_read_only_dashboard_shell(
             or "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED" not in set(post_repair_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "post-repair reconciliation must render as a red blocked repair-candidate path", "LIVE_FINAL_GUARD_FAILED")
+    if stale_loop_post_regeneration_status == "BLOCKED":
+        item_count = reconciliation.get("stale_loop_post_regeneration_item_count", 0)
+        accepted_count = reconciliation.get("stale_loop_post_regeneration_accepted_count", 0)
+        blocked_count = reconciliation.get("stale_loop_post_regeneration_blocked_reconciliation_count", 0)
+        usable_count = reconciliation.get("stale_loop_post_regeneration_current_evidence_usable_count", 0)
+        excluded_count = reconciliation.get("stale_loop_post_regeneration_excluded_from_current_evidence_count", 0)
+        reason_codes = {
+            item.get("reason_code")
+            for item in stale_loop_post_regeneration_reason_counts
+            if isinstance(item, dict)
+        }
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source") != "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json"
+            or reconciliation.get("primary_blocker_code")
+            != "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+            or reconciliation.get("stale_loop_post_regeneration_reconciliation_validation_status") != "PASS"
+            or item_count <= 0
+            or reconciliation.get("stale_loop_post_regeneration_planned_item_count", 0) != item_count
+            or accepted_count <= 0
+            or blocked_count <= 0
+            or accepted_count + blocked_count + reconciliation.get("stale_loop_post_regeneration_invalid_count", 0)
+            != item_count
+            or usable_count != accepted_count
+            or excluded_count != blocked_count
+            or reconciliation.get("stale_loop_post_regeneration_source_hash_mismatch_count", 0) != 0
+            or reconciliation.get("stale_loop_post_regeneration_replacement_hash_mismatch_count", 0) != 0
+            or reconciliation.get("stale_loop_post_regeneration_unpaired_artifact_count", 0) != 0
+            or reconciliation.get("stale_loop_post_regeneration_duplicate_runtime_cycle_hash_count", 0) != 0
+            or "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+            not in set(stale_loop_post_regeneration_blocker_codes)
+            or "LEDGER_ROLLUP_BLOCKED" not in reason_codes
+            or "LEDGER_ROLLUP_RECONCILIATION_REQUIRED" not in reason_codes
+        ):
+            return DashboardValidationResult("BLOCKED", "stale-loop post-regeneration reconciliation must render as a red blocked regenerated-source path", "LIVE_FINAL_GUARD_FAILED")
     if reconciliation.get("ledger_state") not in RECONCILIATION_RECOVERY_LEDGER_STATES:
         return DashboardValidationResult("FAIL", "ledger state display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("single_writer_state") not in RECONCILIATION_RECOVERY_WRITER_STATES:
@@ -9923,6 +10322,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<br>hash-mismatch={safe_text(reconciliation.get('post_repair_source_loop_expected_rollup_hash_mismatch_count', 0))}"
         f"<br>operator-action={safe_text(reconciliation.get('post_repair_hash_reconciliation_operator_action_required_count', 0))}"
         f"<br>usable={safe_text(reconciliation.get('post_repair_candidate_current_evidence_usable_count', 0))}</p></div>"
+        "<div><strong>Stale Loop Post Regeneration</strong>"
+        f"<p>post-regeneration={safe_text(reconciliation.get('stale_loop_post_regeneration_reconciliation_status', 'NOT_LOADED'))}"
+        f"<br>accepted={safe_text(reconciliation.get('stale_loop_post_regeneration_accepted_count', 0))}"
+        f"<br>blocked={safe_text(reconciliation.get('stale_loop_post_regeneration_blocked_reconciliation_count', 0))}"
+        f"<br>usable={safe_text(reconciliation.get('stale_loop_post_regeneration_current_evidence_usable_count', 0))}"
+        f"<br>excluded={safe_text(reconciliation.get('stale_loop_post_regeneration_excluded_from_current_evidence_count', 0))}"
+        f"<br>ledger-blocked={safe_text(_reason_count_value(reconciliation.get('stale_loop_post_regeneration_blocked_repair_reason_counts', []), 'LEDGER_ROLLUP_BLOCKED'))}</p></div>"
         "<div><strong>Live Boundary</strong>"
         "<p><span class=\"pill safe-lock\">live_order_allowed=false</span><br><span class=\"pill safe-lock\">can_live_trade=false</span><br><span class=\"pill safe-lock\">scale_up_allowed=false</span></p></div>"
         "</section>"
