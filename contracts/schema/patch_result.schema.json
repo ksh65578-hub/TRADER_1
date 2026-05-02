@@ -525,6 +525,21 @@
       "type": "integer",
       "minimum": 0
     },
+    "post_repair_reconciliation_status": {
+      "type": "string"
+    },
+    "post_repair_reconciliation_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_repair_source_loop_expected_rollup_hash_mismatch_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_repair_candidate_current_evidence_usable_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
