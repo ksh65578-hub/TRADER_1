@@ -1114,6 +1114,33 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status": {
+      "type": "string"
+    },
+    "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
