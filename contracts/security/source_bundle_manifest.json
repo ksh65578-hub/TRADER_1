@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "6FB14BD82884BA34E2CD7AB9F96D7BA5CDD72EDBC8F87439F2373EC6119D1BB9",
+      "sha256": "285114E90A16CDDA700839DD25E2863590E3FD0A41D43F0D7C65A066BD2F258F",
       "size_bytes": 1096
     },
     {
@@ -280,8 +280,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "88D2A7E4D2ECC8C9641C96041325F4CAF9CC5663371E5F49039427B661661679",
-      "size_bytes": 146701
+      "sha256": "CEA3D5546F8C2F09FDD7811EF443E40ACA977DFA46D63620D860F31A5125E5DD",
+      "size_bytes": 153281
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -735,8 +735,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "4EED32ED31F752682D3C967BD33B10C575BC3DB9B16707A2A9F57523CD8EBAAB",
-      "size_bytes": 264333
+      "sha256": "9FBDD8D7D1556151233ADFBF7F1BEDDE39160813ABEAAF5261EFC07E400AFDFB",
+      "size_bytes": 269447
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -3915,8 +3915,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "55B92F6CEFF9CC9BC1A963E79C7DEE115CA1B38A8DD87C91BB77F41C2A703FDD",
-      "size_bytes": 763147
+      "sha256": "B52C9E0C733E4EB3D494CEF2EC63BA3E920437DF9E70F33F79C6F015188D77F3",
+      "size_bytes": 789178
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -4045,8 +4045,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "809B306969CCCE7D3823B155EB565B90E76DC4072CDDD18F8FD0BA57DCB8F796",
-      "size_bytes": 73565
+      "sha256": "F12212951B4DD44108352FA443B23646631B8E51E4B157B32CB9587E3B416406",
+      "size_bytes": 75332
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
@@ -4725,6 +4725,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_DASHBOARD_STABILITY_SCALEUP_LOCK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_DASHBOARD_UPBIT_PAPER_RUNTIME_EVIDENCE_PROFILE_BINDING.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -5773,6 +5777,14 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_DASHBOARD_STALE_ROLLUP_TRUTH_GUARD_20260430.md",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_DASHBOARD_UPBIT_PAPER_RUNTIME_EVIDENCE_PROFILE_BINDING.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_DASHBOARD_UPBIT_PAPER_RUNTIME_EVIDENCE_PROFILE_BINDING.audit.md",
       "reason": "denied:system/"
     },
     {
@@ -7008,6 +7020,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_DASHBOARD_UPBIT_PAPER_RUNTIME_EVIDENCE_PROFILE_BINDING.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_DASHBOARD_VISUAL_LAYOUT_QA.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -8165,6 +8181,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_DASHBOARD_STALE_ROLLUP_TRUTH_GUARD.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_DASHBOARD_UPBIT_PAPER_RUNTIME_EVIDENCE_PROFILE_BINDING.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -9352,6 +9372,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_DASHBOARD_UPBIT_PAPER_RUNTIME_EVIDENCE_PROFILE_BINDING.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_DASHBOARD_VISUAL_LAYOUT_QA.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -10529,6 +10553,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_DASHBOARD_STALE_ROLLUP_TRUTH_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_DASHBOARD_UPBIT_PAPER_RUNTIME_EVIDENCE_PROFILE_BINDING.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

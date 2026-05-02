@@ -14896,7 +14896,56 @@
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "SCAFFOLD_IMPLEMENTED",
       "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-DASHBOARD-UPBIT-PAPER-RUNTIME-EVIDENCE-PROFILE-BINDING",
+      "source_section_id": "SECTION_DASHBOARD_SHELL",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard Upbit PAPER runtime evidence profile binding",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-UPBIT-PAPER-RUNTIME-EVIDENCE-PROFILE-BINDING:SECTION_DASHBOARD_SHELL:Dashboard Upbit PAPER runtime evidence profile binding",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard binds bounded Upbit PAPER runtime evidence profile as display-only truth",
+      "requirement_kind": "DASHBOARD_UX",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.upbit_paper_runtime_evidence_collection_profile_report.v1"
+      ],
+      "validator_ids": [
+        "read_only_dashboard_validator",
+        "runtime_schema_instance_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+        "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+        "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard/index.html",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_UPBIT_PAPER_RUNTIME_EVIDENCE_PROFILE_BINDING.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "PROFIT_CONVERGENCE_MVP4"
+      ],
+      "depends_on": [
+        "REQ-MVP1-READ-ONLY-DASHBOARD-SHELL",
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-EVIDENCE-COLLECTION-PROFILE"
+      ],
+      "source_text_sha256": "1EDD796BDA378DFBFE0527C1CE97837E3A7E34B0C013B6D6F0A6976FE42851EC",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T03:28:53Z"
+  "updated_at_utc": "2026-05-02T03:57:23Z"
 }

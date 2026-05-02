@@ -78,6 +78,9 @@ from trader1.research.shadow.shadow_observation_persistent_runtime import (
 from trader1.research.shadow.shadow_observation_runtime_orchestration import (
     validate_shadow_observation_runtime_orchestration_report,
 )
+from tools.run_upbit_paper_runtime_evidence_collection_profile import (
+    validate_upbit_paper_runtime_evidence_collection_profile_report,
+)
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -506,6 +509,11 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "upbit_paper_runtime_recovery_guard_report": base
         / "paper_runtime"
         / "upbit_paper_runtime_recovery_guard_report.json",
+        "upbit_paper_runtime_evidence_collection_profile_report": root
+        / "system"
+        / "evidence"
+        / "runtime_checks"
+        / "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
         "upbit_paper_post_rerun_reconciliation_blocker_rollup_report": base
         / "paper_runtime"
         / "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
@@ -714,6 +722,29 @@ def load_scoped_upbit_paper_runtime_recovery_guard_report(report: dict[str, Any]
         result = validate_upbit_paper_runtime_recovery_guard_report(recovery_guard)
         if result.status in {"PASS", "BLOCKED"}:
             return recovery_guard
+    return None
+
+
+def load_scoped_upbit_paper_runtime_evidence_collection_profile_report(
+    report: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    path = launcher_dashboard_paths(report, root)["upbit_paper_runtime_evidence_collection_profile_report"]
+    profile = _load_dashboard_json_artifact(path)
+    if not isinstance(profile, dict):
+        return None
+    if (
+        profile.get("exchange") != report.get("exchange")
+        or profile.get("market_type") != report.get("market_type")
+        or profile.get("mode") != report.get("mode")
+        or profile.get("session_id") != report.get("session_id")
+    ):
+        return None
+    result = validate_upbit_paper_runtime_evidence_collection_profile_report(profile)
+    if result.status in {"PASS", "BLOCKED"}:
+        return profile
     return None
 
 
@@ -1247,6 +1278,9 @@ def build_launcher_dashboard_artifacts(
         "paper_ledger_rollup_report": _runtime_display_path(paths["paper_ledger_rollup_report"], root),
         "upbit_paper_persistent_loop": _runtime_display_path(paths["upbit_paper_persistent_loop_report"], root),
         "upbit_paper_runtime_recovery_guard": _runtime_display_path(paths["upbit_paper_runtime_recovery_guard_report"], root),
+        "upbit_paper_runtime_evidence_collection_profile": _runtime_display_path(
+            paths["upbit_paper_runtime_evidence_collection_profile_report"], root
+        ),
         "upbit_paper_post_rerun_reconciliation_blocker_rollup": _runtime_display_path(
             paths["upbit_paper_post_rerun_reconciliation_blocker_rollup_report"], root
         ),
@@ -1298,6 +1332,9 @@ def build_launcher_dashboard_artifacts(
     )
     upbit_paper_persistent_loop_report = load_scoped_upbit_paper_persistent_loop_report(report, root)
     upbit_paper_runtime_recovery_guard_report = load_scoped_upbit_paper_runtime_recovery_guard_report(report, root)
+    upbit_paper_runtime_evidence_collection_profile_report = (
+        load_scoped_upbit_paper_runtime_evidence_collection_profile_report(report, root)
+    )
     upbit_paper_post_rerun_reconciliation_blocker_rollup_report = (
         load_scoped_upbit_paper_post_rerun_reconciliation_blocker_rollup_report(report, root)
     )
@@ -1362,6 +1399,7 @@ def build_launcher_dashboard_artifacts(
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
+        upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
         upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
         stability_history=stability_history,
         shadow_runtime_harness_report=shadow_runtime_harness_report,
