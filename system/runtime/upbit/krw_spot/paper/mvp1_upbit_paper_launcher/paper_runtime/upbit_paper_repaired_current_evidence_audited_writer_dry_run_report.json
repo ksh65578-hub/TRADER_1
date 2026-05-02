@@ -1,7 +1,7 @@
 {
   "actual_long_run_evidence_created": false,
-  "audited_writer_dry_run_hash": "D13782F4A0AB7AA668E7E88C4F21B9D0A96AC9387EF587261051C273A343E692",
-  "audited_writer_dry_run_id": "upbit-paper-repaired-current-evidence-audited-writer-dry-run-20260502",
+  "audited_writer_dry_run_hash": "4ACA880AAC253477A962CE0A77764048DA853D6D104B9F308E2B6AD74B65CEAE",
+  "audited_writer_dry_run_id": "upbit-paper-repaired-current-evidence-audited-writer-dry-run-dashboard-binding-20260502",
   "audited_writer_dry_run_role": "PAPER_RUNTIME_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_REVIEW_ONLY",
   "blocker_codes": [
     "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
@@ -193,7 +193,7 @@
   "dry_run_passed": false,
   "dry_run_status": "BLOCKED_DRY_RUN_ONLY_WRITER_NOT_ENABLED",
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-02T12:46:01Z",
+  "generated_at_utc": "2026-05-02T13:16:30Z",
   "latest_runtime_pointer_write_allowed": false,
   "live_key_loaded": false,
   "live_order_allowed": false,
