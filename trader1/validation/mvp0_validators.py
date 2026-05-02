@@ -378,6 +378,13 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
     validate_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
     write_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_implementation_prep import (
+    AUDITED_WRITER_IMPLEMENTATION_PREP_STATUS,
+    build_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
+    upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_hash,
+    validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
+    write_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -10274,6 +10281,277 @@ def upbit_paper_repaired_current_evidence_audited_writer_locked_output_validator
     return pass_result(
         validator_id,
         "Upbit PAPER repaired current-evidence audited writer locked output fixes future output boundaries while keeping current-evidence, portfolio truth, live, and scale-up writes blocked",
+        paths,
+    )
+
+
+def upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validator"
+    schema_path = (
+        ROOT
+        / "contracts"
+        / "schema"
+        / "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.schema.json"
+    )
+    module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep.py"
+    )
+    source_module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_repaired_current_evidence_audited_writer_locked_output.py"
+    )
+    test_path = (
+        ROOT
+        / "tests"
+        / "runtime"
+        / "test_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep.py"
+    )
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json"
+        )
+    )
+    paths = [schema_path, module_path, source_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if (
+        schema.get("$id")
+        != "trader1.upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.v1"
+    ):
+        return fail_result(
+            validator_id,
+            "audited writer implementation prep schema_id mismatch",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    required = set(schema.get("required", []))
+    for field in (
+        "audited_writer_implementation_prep_role",
+        "source_audited_writer_locked_output_hash",
+        "source_audited_writer_locked_output_validator_status",
+        "implementation_prep_status",
+        "implementation_prep_passed",
+        "implementation_prep_check_count",
+        "implementation_prep_check_pass_count",
+        "implementation_prep_check_blocked_count",
+        "implementation_prep_checks",
+        "target_states",
+        "target_state_hash",
+        "pre_write_idempotency_manifest",
+        "writer_enabled",
+        "lock_acquire_attempted",
+        "lock_acquired",
+        "lock_file_written",
+        "current_evidence_write_allowed",
+        "current_evidence_artifact_written",
+        "idempotency_manifest_write_allowed",
+        "idempotency_manifest_written",
+        "portfolio_truth_write_allowed",
+        "portfolio_truth_artifact_written",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "audited_writer_implementation_prep_hash",
+    ):
+        if field not in required:
+            return fail_result(
+                validator_id,
+                f"audited writer implementation prep schema missing required field {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+    source_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json"
+    )
+    if not source_path.exists():
+        return blocked_result(
+            validator_id,
+            "audited writer implementation prep source locked-output report missing",
+            paths,
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+        )
+    source_report = load_json(source_path)
+    report = build_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+        root=ROOT,
+        source_audited_writer_locked_output_report=source_report,
+    )
+    result = validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(report)
+    if result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"valid audited writer implementation prep failed: {result.message}",
+            paths,
+            result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    if (
+        report.get("implementation_prep_status") != AUDITED_WRITER_IMPLEMENTATION_PREP_STATUS
+        or report.get("primary_blocker_code") != AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED_BLOCKER_CODE
+        or report.get("source_locked_output_control_pass_count") != 11
+        or report.get("source_locked_output_control_blocked_count") != 1
+        or report.get("implementation_prep_check_count") != 11
+        or report.get("implementation_prep_check_pass_count") != 10
+        or report.get("implementation_prep_check_blocked_count") != 1
+        or report.get("implementation_prep_passed") is not False
+        or report.get("writer_enabled") is not False
+        or report.get("lock_acquire_attempted") is not False
+        or report.get("lock_acquired") is not False
+        or report.get("lock_file_written") is not False
+        or report.get("current_evidence_write_allowed") is not False
+        or report.get("current_evidence_artifact_written") is not False
+        or report.get("idempotency_manifest_written") is not False
+        or report.get("portfolio_truth_write_allowed") is not False
+        or report.get("portfolio_truth_artifact_written") is not False
+        or report.get("live_order_allowed") is not False
+        or report.get("can_live_trade") is not False
+        or report.get("scale_up_allowed") is not False
+    ):
+        return fail_result(
+            validator_id,
+            "audited writer implementation prep did not preserve review-only blocked boundary",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if (
+        report.get("planned_artifact_paths")
+        != [
+            "paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
+            "paper_runtime/current_evidence/audited_current_evidence_idempotency_manifest.json",
+            "paper_runtime/portfolio/paper_portfolio_snapshot.json",
+        ]
+        or report.get("lock_path") != "paper_runtime/locks/audited_current_evidence_writer.lock"
+    ):
+        return fail_result(
+            validator_id,
+            "audited writer implementation prep target paths drifted",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    for state in report.get("target_states", []):
+        if (
+            state.get("final_path_resolves_under_session") is not True
+            or state.get("temp_path_resolves_under_session") is not True
+            or state.get("final_exists") is not False
+            or state.get("temp_exists") is not False
+            or state.get("artifact_write_allowed") is not False
+            or state.get("artifact_written") is not False
+        ):
+            return fail_result(
+                validator_id,
+                "audited writer implementation prep target state is unsafe or already written",
+                paths,
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+
+    writer_mutation = json.loads(json.dumps(report))
+    writer_mutation["writer_enabled"] = True
+    writer_mutation["audited_writer_implementation_prep_hash"] = (
+        upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_hash(writer_mutation)
+    )
+    writer_result = validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+        writer_mutation
+    )
+    if writer_result.status != "BLOCKED" or writer_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "audited writer implementation prep allowed writer enablement mutation",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    false_aggregate = json.loads(json.dumps(report))
+    false_aggregate["implementation_prep_check_pass_count"] = 11
+    false_aggregate["audited_writer_implementation_prep_hash"] = (
+        upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_hash(false_aggregate)
+    )
+    false_aggregate_result = validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+        false_aggregate
+    )
+    if false_aggregate_result.status != "FAIL":
+        return fail_result(
+            validator_id,
+            "audited writer implementation prep allowed false aggregate",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    live_check = json.loads(json.dumps(report))
+    live_check["implementation_prep_checks"][0]["live_order_allowed"] = True
+    live_check["audited_writer_implementation_prep_hash"] = (
+        upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_hash(live_check)
+    )
+    live_check_result = validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+        live_check
+    )
+    if live_check_result.status != "BLOCKED" or live_check_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "audited writer implementation prep allowed live permission on a check",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+            root=Path(tmp),
+            report=report,
+        )
+        if not written_path.exists():
+            return fail_result(
+                validator_id,
+                "audited writer implementation prep writer did not create prep report artifact",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+        if (
+            (written_path.parent / "current_evidence").exists()
+            or (written_path.parent / "portfolio").exists()
+            or (written_path.parent / "locks").exists()
+        ):
+            return fail_result(
+                validator_id,
+                "audited writer implementation prep created current-evidence, portfolio, or lock directories",
+                paths,
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(
+                validator_id,
+                f"runtime audited writer implementation prep artifact is not valid json: {rel(runtime_path)}: {exc}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        runtime_result = validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+            runtime_report
+        )
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime audited writer implementation prep artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER repaired current-evidence audited writer implementation prep proves target-safe, idempotency-prepared, writer-disabled boundaries",
         paths,
     )
 
@@ -21487,6 +21765,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_repaired_current_evidence_audited_writer_design_validator": upbit_paper_repaired_current_evidence_audited_writer_design_validator,
     "upbit_paper_repaired_current_evidence_audited_writer_dry_run_validator": upbit_paper_repaired_current_evidence_audited_writer_dry_run_validator,
     "upbit_paper_repaired_current_evidence_audited_writer_locked_output_validator": upbit_paper_repaired_current_evidence_audited_writer_locked_output_validator,
+    "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validator": upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
