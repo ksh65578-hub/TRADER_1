@@ -1,0 +1,561 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.v1",
+  "title": "Upbit PAPER Repaired Current Evidence Audited Writer Locked Output Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "audited_writer_locked_output_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "truth_role",
+    "audited_writer_locked_output_role",
+    "source_audited_writer_dry_run_hash",
+    "source_audited_writer_dry_run_status",
+    "source_audited_writer_dry_run_validator_status",
+    "source_dry_run_check_pass_count",
+    "source_dry_run_check_blocked_count",
+    "source_current_evidence_artifact_written",
+    "source_portfolio_truth_artifact_written",
+    "locked_output_status",
+    "locked_output_passed",
+    "locked_output_control_count",
+    "locked_output_control_pass_count",
+    "locked_output_control_blocked_count",
+    "locked_output_controls",
+    "locked_write_plan",
+    "current_evidence_locked_payload",
+    "portfolio_truth_locked_payload",
+    "idempotency_manifest_locked_payload",
+    "planned_artifact_paths",
+    "planned_temp_paths",
+    "lock_path",
+    "primary_blocker_code",
+    "blocker_codes",
+    "operator_next_action",
+    "display_only",
+    "dashboard_truth_only",
+    "paper_only",
+    "locked_output_only",
+    "separate_writer_patch_required",
+    "writer_implementation_allowed",
+    "writer_enabled",
+    "lock_acquired",
+    "lock_file_written",
+    "current_evidence_write_allowed",
+    "current_evidence_mutation_allowed",
+    "current_evidence_artifact_written",
+    "current_ledger_jsonl_write_allowed",
+    "latest_runtime_pointer_write_allowed",
+    "portfolio_truth_write_allowed",
+    "portfolio_snapshot_write_allowed",
+    "portfolio_truth_artifact_written",
+    "persistent_loop_mutation_allowed",
+    "source_delete_allowed",
+    "actual_long_run_evidence_created",
+    "long_run_evidence_eligible",
+    "promotion_eligible",
+    "credential_load_attempted",
+    "private_endpoint_called",
+    "order_endpoint_called",
+    "order_adapter_called",
+    "live_key_loaded",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "scale_up_allowed",
+    "audited_writer_locked_output_hash"
+  ],
+  "$defs": {
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "locked_output_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_id",
+        "control_status",
+        "blocker_code",
+        "detail",
+        "current_evidence_write_allowed",
+        "portfolio_truth_write_allowed",
+        "artifact_write_allowed",
+        "artifact_written",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "control_id": {
+          "enum": [
+            "SOURCE_AUDITED_WRITER_DRY_RUN_VALID",
+            "TARGET_NAMESPACE_LOCKED",
+            "CURRENT_EVIDENCE_TARGET_LOCKED",
+            "IDEMPOTENCY_MANIFEST_TARGET_LOCKED",
+            "PORTFOLIO_TRUTH_TARGET_LOCKED",
+            "ATOMIC_TEMP_TARGETS_LOCKED",
+            "SINGLE_WRITER_LOCK_PATH_LOCKED",
+            "OUTPUT_PAYLOAD_HASHES_LOCKED",
+            "DASHBOARD_PROJECTION_LOCKED",
+            "NO_RUNTIME_MUTATION_CONFIRMED",
+            "LIVE_AND_SCALE_BOUNDARY_CONFIRMED",
+            "WRITER_OUTPUT_APPROVAL_GRANTED"
+          ]
+        },
+        "control_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "artifact_write_allowed": {
+          "const": false
+        },
+        "artifact_written": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "locked_payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "payload_schema_id",
+        "payload_status",
+        "relative_final_path",
+        "relative_temp_path",
+        "current_evidence_write_allowed",
+        "portfolio_truth_write_allowed",
+        "artifact_write_allowed",
+        "artifact_written",
+        "live_order_allowed",
+        "scale_up_allowed",
+        "payload_hash"
+      ],
+      "properties": {
+        "payload_schema_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_status": {
+          "const": "LOCKED_NOT_WRITTEN"
+        },
+        "relative_final_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relative_temp_path": {
+          "type": "string",
+          "pattern": "\\.tmp$"
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "artifact_write_allowed": {
+          "const": false
+        },
+        "artifact_written": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        },
+        "payload_hash": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "locked_write_plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_schema_id",
+        "plan_status",
+        "exchange",
+        "market_type",
+        "mode",
+        "session_id",
+        "lock_path",
+        "planned_artifact_paths",
+        "planned_temp_paths",
+        "locked_outputs",
+        "plan_write_allowed",
+        "current_evidence_write_allowed",
+        "portfolio_truth_write_allowed",
+        "live_order_allowed",
+        "scale_up_allowed",
+        "plan_hash"
+      ],
+      "properties": {
+        "plan_schema_id": {
+          "const": "trader1.upbit_paper_audited_writer_locked_write_plan.v1"
+        },
+        "plan_status": {
+          "const": "LOCKED_NOT_WRITTEN"
+        },
+        "exchange": {
+          "const": "UPBIT"
+        },
+        "market_type": {
+          "const": "KRW_SPOT"
+        },
+        "mode": {
+          "const": "PAPER"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lock_path": {
+          "const": "paper_runtime/locks/audited_current_evidence_writer.lock"
+        },
+        "planned_artifact_paths": {
+          "$ref": "#/$defs/string_list"
+        },
+        "planned_temp_paths": {
+          "$ref": "#/$defs/string_list"
+        },
+        "locked_outputs": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "artifact_id",
+              "relative_final_path",
+              "relative_temp_path",
+              "payload_hash",
+              "artifact_write_allowed",
+              "artifact_written"
+            ],
+            "properties": {
+              "artifact_id": {
+                "enum": [
+                  "AUDITED_CURRENT_EVIDENCE_SNAPSHOT",
+                  "AUDITED_CURRENT_EVIDENCE_IDEMPOTENCY_MANIFEST",
+                  "AUDITED_PORTFOLIO_TRUTH_SNAPSHOT"
+                ]
+              },
+              "relative_final_path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "relative_temp_path": {
+                "type": "string",
+                "pattern": "\\.tmp$"
+              },
+              "payload_hash": {
+                "type": "string",
+                "minLength": 1
+              },
+              "artifact_write_allowed": {
+                "const": false
+              },
+              "artifact_written": {
+                "const": false
+              }
+            }
+          }
+        },
+        "plan_write_allowed": {
+          "const": false
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        },
+        "plan_hash": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_id": {
+      "const": "trader1.upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "audited_writer_locked_output_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "const": "UPBIT"
+    },
+    "market_type": {
+      "const": "KRW_SPOT"
+    },
+    "mode": {
+      "const": "PAPER"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "truth_role": {
+      "const": "paper_runtime_repaired_current_evidence_audited_writer_locked_output_truth"
+    },
+    "audited_writer_locked_output_role": {
+      "const": "PAPER_RUNTIME_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT_SCAFFOLD"
+    },
+    "source_audited_writer_dry_run_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_audited_writer_dry_run_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_audited_writer_dry_run_validator_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "source_dry_run_check_pass_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_dry_run_check_blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_current_evidence_artifact_written": {
+      "const": false
+    },
+    "source_portfolio_truth_artifact_written": {
+      "const": false
+    },
+    "locked_output_status": {
+      "enum": [
+        "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED",
+        "BLOCKED_SOURCE_DRY_RUN_INVALID"
+      ]
+    },
+    "locked_output_passed": {
+      "const": false
+    },
+    "locked_output_control_count": {
+      "const": 12
+    },
+    "locked_output_control_pass_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
+    },
+    "locked_output_control_blocked_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
+    },
+    "locked_output_controls": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "$ref": "#/$defs/locked_output_control"
+      }
+    },
+    "locked_write_plan": {
+      "$ref": "#/$defs/locked_write_plan"
+    },
+    "current_evidence_locked_payload": {
+      "$ref": "#/$defs/locked_payload"
+    },
+    "portfolio_truth_locked_payload": {
+      "$ref": "#/$defs/locked_payload"
+    },
+    "idempotency_manifest_locked_payload": {
+      "$ref": "#/$defs/locked_payload"
+    },
+    "planned_artifact_paths": {
+      "$ref": "#/$defs/string_list"
+    },
+    "planned_temp_paths": {
+      "$ref": "#/$defs/string_list"
+    },
+    "lock_path": {
+      "const": "paper_runtime/locks/audited_current_evidence_writer.lock"
+    },
+    "primary_blocker_code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blocker_codes": {
+      "$ref": "#/$defs/string_list"
+    },
+    "operator_next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "display_only": {
+      "const": true
+    },
+    "dashboard_truth_only": {
+      "const": true
+    },
+    "paper_only": {
+      "const": true
+    },
+    "locked_output_only": {
+      "const": true
+    },
+    "separate_writer_patch_required": {
+      "const": true
+    },
+    "writer_implementation_allowed": {
+      "const": false
+    },
+    "writer_enabled": {
+      "const": false
+    },
+    "lock_acquired": {
+      "const": false
+    },
+    "lock_file_written": {
+      "const": false
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "current_evidence_mutation_allowed": {
+      "const": false
+    },
+    "current_evidence_artifact_written": {
+      "const": false
+    },
+    "current_ledger_jsonl_write_allowed": {
+      "const": false
+    },
+    "latest_runtime_pointer_write_allowed": {
+      "const": false
+    },
+    "portfolio_truth_write_allowed": {
+      "const": false
+    },
+    "portfolio_snapshot_write_allowed": {
+      "const": false
+    },
+    "portfolio_truth_artifact_written": {
+      "const": false
+    },
+    "persistent_loop_mutation_allowed": {
+      "const": false
+    },
+    "source_delete_allowed": {
+      "const": false
+    },
+    "actual_long_run_evidence_created": {
+      "const": false
+    },
+    "long_run_evidence_eligible": {
+      "const": false
+    },
+    "promotion_eligible": {
+      "const": false
+    },
+    "credential_load_attempted": {
+      "const": false
+    },
+    "private_endpoint_called": {
+      "const": false
+    },
+    "order_endpoint_called": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "live_key_loaded": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "audited_writer_locked_output_hash": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

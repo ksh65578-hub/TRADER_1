@@ -9998,6 +9998,42 @@
       "status": "IMPLEMENTED_DASHBOARD_BOUND_DRY_RUN_ONLY_LIVE_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-LOCKED-OUTPUT",
+      "section_id": "SECTION_PORTFOLIO_TRUTH",
+      "schema_files": [
+        "contracts/schema/upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer_locked_output.py"
+      ],
+      "fixture_files": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json"
+      ],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_repaired_current_evidence_audited_writer_locked_output.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT.patch_result.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_LOCKED_OUTPUT_WRITER_DISABLED_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-PRECHECK",
       "section_id": "SECTION_LEDGER_RECONCILIATION",
       "schema_files": [
@@ -12263,7 +12299,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-02T13:16:24Z",
+  "updated_at_utc": "2026-05-02T13:36:39Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
