@@ -1,0 +1,23 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-02T00:58:20Z",
+  "patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_POST_REGENERATION_DASHBOARD_BINDING_20260502_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_DASHBOARD_VISIBLE_STALE_LOOP_POST_REGENERATION_RECONCILIATION_LIVE_BLOCKED",
+  "dashboard_blocking_reason": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+  "operator_action_status": "BLOCKED",
+  "operator_primary_blocker_code": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+  "portfolio_status": "UNVERIFIED",
+  "portfolio_source_snapshot_status": "BLOCKED",
+  "reconciliation_status": "BLOCKED",
+  "stale_loop_post_regeneration_reconciliation_status": "BLOCKED",
+  "stale_loop_post_regeneration_item_count": 16,
+  "stale_loop_post_regeneration_accepted_count": 10,
+  "stale_loop_post_regeneration_blocked_reconciliation_count": 6,
+  "stale_loop_post_regeneration_current_evidence_usable_count": 10,
+  "stale_loop_post_regeneration_excluded_from_current_evidence_count": 6,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

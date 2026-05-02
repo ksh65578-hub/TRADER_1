@@ -540,6 +540,29 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_post_regeneration_reconciliation_status": {
+      "type": "string"
+    },
+    "stale_loop_post_regeneration_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_post_regeneration_accepted_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_post_regeneration_blocked_reconciliation_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_post_regeneration_current_evidence_usable_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_post_regeneration_excluded_from_current_evidence_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0

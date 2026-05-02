@@ -49,6 +49,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_repair_path imp
 from trader1.runtime.paper.upbit_paper_post_repair_reconciliation import (
     validate_upbit_paper_post_repair_reconciliation_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliation import (
+    validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
@@ -512,6 +515,9 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "upbit_paper_post_repair_reconciliation_report": base
         / "paper_runtime"
         / "upbit_paper_post_repair_reconciliation_report.json",
+        "upbit_paper_stale_loop_post_regeneration_reconciliation_report": base
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
         "upbit_paper_ledger_idempotency_runtime_evidence_report": base
         / "ledger"
         / "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
@@ -778,6 +784,24 @@ def load_scoped_upbit_paper_post_repair_reconciliation_report(
     if result.status == "PASS":
         return post_repair
     return post_repair
+
+
+def load_scoped_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
+    report: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    post_regeneration = _load_dashboard_json_artifact(
+        paths["upbit_paper_stale_loop_post_regeneration_reconciliation_report"]
+    )
+    if post_regeneration is None:
+        return None
+    result = validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(post_regeneration)
+    if result.status == "PASS":
+        return post_regeneration
+    return post_regeneration
 
 
 def load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(
@@ -1159,6 +1183,9 @@ def build_launcher_dashboard_artifacts(
         "upbit_paper_post_repair_reconciliation": _runtime_display_path(
             paths["upbit_paper_post_repair_reconciliation_report"], root
         ),
+        "upbit_paper_stale_loop_post_regeneration_reconciliation": _runtime_display_path(
+            paths["upbit_paper_stale_loop_post_regeneration_reconciliation_report"], root
+        ),
         "upbit_paper_ledger_idempotency_runtime_evidence": _runtime_display_path(
             paths["upbit_paper_ledger_idempotency_runtime_evidence_report"], root
         ),
@@ -1200,6 +1227,9 @@ def build_launcher_dashboard_artifacts(
     upbit_paper_post_repair_reconciliation_report = (
         load_scoped_upbit_paper_post_repair_reconciliation_report(report, root)
     )
+    upbit_paper_stale_loop_post_regeneration_reconciliation_report = (
+        load_scoped_upbit_paper_stale_loop_post_regeneration_reconciliation_report(report, root)
+    )
     upbit_paper_ledger_idempotency_runtime_evidence_report = (
         load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(report, root)
     )
@@ -1228,6 +1258,7 @@ def build_launcher_dashboard_artifacts(
         upbit_paper_post_rerun_current_evidence_closure_recheck_report=upbit_paper_post_rerun_current_evidence_closure_recheck_report,
         upbit_paper_post_rerun_reconciliation_repair_path_report=upbit_paper_post_rerun_reconciliation_repair_path_report,
         upbit_paper_post_repair_reconciliation_report=upbit_paper_post_repair_reconciliation_report,
+        upbit_paper_stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
