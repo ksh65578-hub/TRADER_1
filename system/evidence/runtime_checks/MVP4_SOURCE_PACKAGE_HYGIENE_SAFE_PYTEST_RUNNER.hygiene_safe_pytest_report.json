@@ -1,0 +1,17 @@
+{
+  "schema_id": "trader1.hygiene_safe_pytest_report.v1",
+  "created_at_utc": "2026-05-02T02:27:49Z",
+  "status": "PASS",
+  "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -m pytest tests/runtime/test_bytecode_free_syntax_check.py tests/security/test_source_bundle_security.py -p no:cacheprovider",
+  "returncode": 0,
+  "preexisting_cache_artifact_count": 0,
+  "post_run_cache_artifact_count": 0,
+  "preexisting_cache_artifacts": [],
+  "post_run_cache_artifacts": [],
+  "pythondontwritebytecode": "1",
+  "pytest_cacheprovider_disabled": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

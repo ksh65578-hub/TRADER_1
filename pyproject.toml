@@ -2,7 +2,7 @@
 minversion = "8.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -p no:cacheprovider"
 markers = [
     "smoke: fast checks for launchers, live-blocked defaults, and source hygiene",
     "unit: focused unit-level behavior checks",

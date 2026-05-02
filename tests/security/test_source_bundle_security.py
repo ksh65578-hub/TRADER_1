@@ -55,6 +55,7 @@ class SourceBundleSecurityTest(unittest.TestCase):
     def test_manifest_includes_root_launchers_as_source_identity(self):
         manifest = build_source_bundle_manifest()
         included_paths = {item["path"] for item in manifest["included_files"]}
+        self.assertIn("tools/run_hygiene_safe_pytest.py", included_paths)
         for launcher in ("UPBIT_PAPER.py", "UPBIT_LIVE.py", "BINANCE_PAPER.py", "BINANCE_LIVE.py"):
             self.assertIn(launcher, included_paths)
 
