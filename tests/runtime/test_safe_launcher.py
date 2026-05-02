@@ -617,6 +617,54 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertFalse(dashboard_shell["live_order_allowed"])
             self.assertFalse(dashboard_shell["scale_up_allowed"])
 
+    def test_launcher_dashboard_loads_post_rerun_operator_reconciliation_queue_as_red_blocker(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        fixture_root = Path(__file__).resolve().parents[2]
+        fixture_path = (
+            fixture_root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_operator_reconciliation_queue_report.json"
+        )
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = launcher_dashboard_paths(report, root)
+            paths["upbit_paper_post_rerun_operator_reconciliation_queue_report"].parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+            paths["upbit_paper_post_rerun_operator_reconciliation_queue_report"].write_text(
+                fixture_path.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+
+            dashboard_paths = write_launcher_dashboard(report, root)
+            dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+            reconciliation = dashboard_shell["reconciliation_recovery_summary"]
+
+            self.assertEqual(reconciliation["status"], "BLOCKED")
+            self.assertEqual(reconciliation["severity"], "ERROR")
+            self.assertEqual(reconciliation["color_token"], "red")
+            self.assertEqual(
+                reconciliation["source"],
+                "upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
+            )
+            self.assertEqual(reconciliation["post_rerun_operator_reconciliation_queue_status"], "BLOCKED")
+            self.assertEqual(reconciliation["post_rerun_operator_reconciliation_queue_validation_status"], "PASS")
+            self.assertEqual(reconciliation["post_rerun_operator_queue_item_count"], 8)
+            self.assertEqual(reconciliation["post_rerun_operator_queue_review_ready_reconciliation_item_count"], 8)
+            self.assertEqual(reconciliation["post_rerun_operator_queue_current_evidence_write_allowed_count"], 0)
+            self.assertEqual(reconciliation["post_rerun_operator_queue_candidate_current_evidence_usable_count"], 0)
+            self.assertEqual(dashboard_shell["operator_action_summary"]["status"], "BLOCKED")
+            self.assertFalse(dashboard_shell["operator_action_summary"]["safe_to_continue_paper"])
+            self.assertFalse(dashboard_shell["live_order_allowed"])
+            self.assertFalse(dashboard_shell["scale_up_allowed"])
+
     def test_launcher_dashboard_loads_post_rerun_resolution_audit_as_red_blocker(self):
         report = build_launcher_report("UPBIT_PAPER")
         fixture_root = Path(__file__).resolve().parents[2]
@@ -759,6 +807,52 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertEqual(reconciliation["post_repair_reconciliation_status"], "BLOCKED")
             self.assertEqual(reconciliation["post_repair_reconciliation_validation_status"], "PASS")
             self.assertEqual(reconciliation["post_repair_candidate_current_evidence_usable_count"], 0)
+            self.assertEqual(dashboard_shell["operator_action_summary"]["status"], "BLOCKED")
+            self.assertFalse(dashboard_shell["operator_action_summary"]["safe_to_continue_paper"])
+            self.assertFalse(dashboard_shell["live_order_allowed"])
+            self.assertFalse(dashboard_shell["scale_up_allowed"])
+
+    def test_launcher_dashboard_loads_repair_operator_queue_as_red_blocker(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        fixture_root = Path(__file__).resolve().parents[2]
+        fixture_path = (
+            fixture_root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_repair_operator_queue_report.json"
+        )
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = launcher_dashboard_paths(report, root)
+            paths["upbit_paper_repair_operator_queue_report"].parent.mkdir(parents=True, exist_ok=True)
+            paths["upbit_paper_repair_operator_queue_report"].write_text(
+                fixture_path.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+
+            dashboard_paths = write_launcher_dashboard(report, root)
+            dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+            reconciliation = dashboard_shell["reconciliation_recovery_summary"]
+
+            self.assertEqual(reconciliation["status"], "BLOCKED")
+            self.assertEqual(reconciliation["severity"], "ERROR")
+            self.assertEqual(reconciliation["color_token"], "red")
+            self.assertEqual(reconciliation["source"], "upbit_paper_repair_operator_queue_report.json")
+            self.assertEqual(
+                reconciliation["primary_blocker_code"],
+                "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+            )
+            self.assertEqual(reconciliation["repair_operator_queue_status"], "BLOCKED")
+            self.assertEqual(reconciliation["repair_operator_queue_validation_status"], "PASS")
+            self.assertEqual(reconciliation["repair_operator_queue_item_count"], 6)
+            self.assertEqual(reconciliation["repair_operator_queue_ledger_candidate_review_ready_count"], 1)
+            self.assertEqual(reconciliation["repair_operator_queue_runtime_cycle_rerun_required_count"], 5)
+            self.assertEqual(reconciliation["repair_operator_queue_candidate_current_evidence_usable_count"], 0)
             self.assertEqual(dashboard_shell["operator_action_summary"]["status"], "BLOCKED")
             self.assertFalse(dashboard_shell["operator_action_summary"]["safe_to_continue_paper"])
             self.assertFalse(dashboard_shell["live_order_allowed"])

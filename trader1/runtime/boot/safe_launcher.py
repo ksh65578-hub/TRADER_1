@@ -34,6 +34,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup 
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review_guidance import (
     validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_queue import (
+    validate_upbit_paper_post_rerun_operator_reconciliation_queue_report,
+)
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_resolution_audit import (
     validate_upbit_paper_post_rerun_operator_resolution_audit_report,
 )
@@ -48,6 +51,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_repair_path imp
 )
 from trader1.runtime.paper.upbit_paper_post_repair_reconciliation import (
     validate_upbit_paper_post_repair_reconciliation_report,
+)
+from trader1.runtime.paper.upbit_paper_repair_operator_queue import (
+    validate_upbit_paper_repair_operator_queue_report,
 )
 from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliation import (
     validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report,
@@ -500,6 +506,9 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report": base
         / "paper_runtime"
         / "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+        "upbit_paper_post_rerun_operator_reconciliation_queue_report": base
+        / "paper_runtime"
+        / "upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
         "upbit_paper_post_rerun_operator_resolution_audit_report": base
         / "paper_runtime"
         / "upbit_paper_post_rerun_operator_resolution_audit_report.json",
@@ -515,6 +524,9 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "upbit_paper_post_repair_reconciliation_report": base
         / "paper_runtime"
         / "upbit_paper_post_repair_reconciliation_report.json",
+        "upbit_paper_repair_operator_queue_report": base
+        / "paper_runtime"
+        / "upbit_paper_repair_operator_queue_report.json",
         "upbit_paper_stale_loop_post_regeneration_reconciliation_report": base
         / "paper_runtime"
         / "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
@@ -698,6 +710,24 @@ def load_scoped_upbit_paper_post_rerun_operator_reconciliation_review_guidance_r
     return guidance
 
 
+def load_scoped_upbit_paper_post_rerun_operator_reconciliation_queue_report(
+    report: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    queue = _load_dashboard_json_artifact(
+        paths["upbit_paper_post_rerun_operator_reconciliation_queue_report"]
+    )
+    if queue is None:
+        return None
+    result = validate_upbit_paper_post_rerun_operator_reconciliation_queue_report(queue)
+    if result.status == "PASS":
+        return queue
+    return queue
+
+
 def load_scoped_upbit_paper_post_rerun_operator_resolution_audit_report(
     report: dict[str, Any],
     root: Path = ROOT,
@@ -784,6 +814,22 @@ def load_scoped_upbit_paper_post_repair_reconciliation_report(
     if result.status == "PASS":
         return post_repair
     return post_repair
+
+
+def load_scoped_upbit_paper_repair_operator_queue_report(
+    report: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    queue = _load_dashboard_json_artifact(paths["upbit_paper_repair_operator_queue_report"])
+    if queue is None:
+        return None
+    result = validate_upbit_paper_repair_operator_queue_report(queue)
+    if result.status == "PASS":
+        return queue
+    return queue
 
 
 def load_scoped_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
@@ -1168,6 +1214,9 @@ def build_launcher_dashboard_artifacts(
         "upbit_paper_post_rerun_operator_reconciliation_review_guidance": _runtime_display_path(
             paths["upbit_paper_post_rerun_operator_reconciliation_review_guidance_report"], root
         ),
+        "upbit_paper_post_rerun_operator_reconciliation_queue": _runtime_display_path(
+            paths["upbit_paper_post_rerun_operator_reconciliation_queue_report"], root
+        ),
         "upbit_paper_post_rerun_operator_resolution_audit": _runtime_display_path(
             paths["upbit_paper_post_rerun_operator_resolution_audit_report"], root
         ),
@@ -1182,6 +1231,9 @@ def build_launcher_dashboard_artifacts(
         ),
         "upbit_paper_post_repair_reconciliation": _runtime_display_path(
             paths["upbit_paper_post_repair_reconciliation_report"], root
+        ),
+        "upbit_paper_repair_operator_queue": _runtime_display_path(
+            paths["upbit_paper_repair_operator_queue_report"], root
         ),
         "upbit_paper_stale_loop_post_regeneration_reconciliation": _runtime_display_path(
             paths["upbit_paper_stale_loop_post_regeneration_reconciliation_report"], root
@@ -1212,6 +1264,9 @@ def build_launcher_dashboard_artifacts(
     upbit_paper_post_rerun_operator_reconciliation_review_guidance_report = (
         load_scoped_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report(report, root)
     )
+    upbit_paper_post_rerun_operator_reconciliation_queue_report = (
+        load_scoped_upbit_paper_post_rerun_operator_reconciliation_queue_report(report, root)
+    )
     upbit_paper_post_rerun_operator_resolution_audit_report = (
         load_scoped_upbit_paper_post_rerun_operator_resolution_audit_report(report, root)
     )
@@ -1226,6 +1281,9 @@ def build_launcher_dashboard_artifacts(
     )
     upbit_paper_post_repair_reconciliation_report = (
         load_scoped_upbit_paper_post_repair_reconciliation_report(report, root)
+    )
+    upbit_paper_repair_operator_queue_report = (
+        load_scoped_upbit_paper_repair_operator_queue_report(report, root)
     )
     upbit_paper_stale_loop_post_regeneration_reconciliation_report = (
         load_scoped_upbit_paper_stale_loop_post_regeneration_reconciliation_report(report, root)
@@ -1253,11 +1311,13 @@ def build_launcher_dashboard_artifacts(
         restart_recovery_report=restart_recovery_report,
         upbit_paper_post_rerun_reconciliation_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
         upbit_paper_post_rerun_operator_reconciliation_review_guidance_report=upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
+        upbit_paper_post_rerun_operator_reconciliation_queue_report=upbit_paper_post_rerun_operator_reconciliation_queue_report,
         upbit_paper_post_rerun_operator_resolution_audit_report=upbit_paper_post_rerun_operator_resolution_audit_report,
         upbit_paper_post_rerun_resolution_current_evidence_closure_report=upbit_paper_post_rerun_resolution_current_evidence_closure_report,
         upbit_paper_post_rerun_current_evidence_closure_recheck_report=upbit_paper_post_rerun_current_evidence_closure_recheck_report,
         upbit_paper_post_rerun_reconciliation_repair_path_report=upbit_paper_post_rerun_reconciliation_repair_path_report,
         upbit_paper_post_repair_reconciliation_report=upbit_paper_post_repair_reconciliation_report,
+        upbit_paper_repair_operator_queue_report=upbit_paper_repair_operator_queue_report,
         upbit_paper_stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,

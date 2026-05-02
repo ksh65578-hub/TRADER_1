@@ -85,11 +85,13 @@
             "PAPER_RUNTIME_RECOVERY_GUARD",
             "POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP",
             "POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE",
+            "POST_RERUN_OPERATOR_RECONCILIATION_QUEUE",
             "POST_RERUN_OPERATOR_RESOLUTION_AUDIT",
             "POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE",
             "POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK",
             "POST_RERUN_RECONCILIATION_REPAIR_PATH",
             "POST_REPAIR_RECONCILIATION",
+            "REPAIR_OPERATOR_QUEUE",
             "STALE_LOOP_POST_REGENERATION_RECONCILIATION",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
@@ -112,11 +114,13 @@
             "upbit_paper_runtime_recovery_guard_report.json",
             "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
             "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+            "upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
             "upbit_paper_post_rerun_operator_resolution_audit_report.json",
             "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
             "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
             "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
             "upbit_paper_post_repair_reconciliation_report.json",
+            "upbit_paper_repair_operator_queue_report.json",
             "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
@@ -485,11 +489,13 @@
             "restart_recovery_report.json",
             "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
             "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+            "upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
             "upbit_paper_post_rerun_operator_resolution_audit_report.json",
             "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
             "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
             "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
             "upbit_paper_post_repair_reconciliation_report.json",
+            "upbit_paper_repair_operator_queue_report.json",
             "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
           ]
@@ -677,6 +683,61 @@
         "post_rerun_guidance_candidate_current_evidence_usable_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "post_rerun_operator_reconciliation_queue_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED",
+            "INVALID"
+          ]
+        },
+        "post_rerun_operator_reconciliation_queue_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "post_rerun_operator_queue_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_operator_queue_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_operator_queue_review_ready_reconciliation_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_operator_queue_blocked_pre_review_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_operator_queue_current_evidence_write_allowed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_operator_queue_candidate_current_evidence_usable_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_operator_queue_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "post_rerun_operator_queue_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "post_rerun_operator_queue_blocker_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
         },
         "post_rerun_resolution_audit_status": {
           "enum": [
@@ -1103,6 +1164,61 @@
           "minLength": 1
         },
         "post_repair_blocker_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "repair_operator_queue_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED",
+            "INVALID"
+          ]
+        },
+        "repair_operator_queue_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "repair_operator_queue_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_operator_queue_ledger_candidate_review_ready_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_operator_queue_runtime_cycle_rerun_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_operator_queue_recovery_guard_rerun_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_operator_queue_hash_operator_reconciliation_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_operator_queue_candidate_current_evidence_usable_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_operator_queue_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repair_operator_queue_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repair_operator_queue_blocker_codes": {
           "type": "array",
           "items": {
             "type": "string",
@@ -5409,7 +5525,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 16,
+      "maxItems": 18,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
