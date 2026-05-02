@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-01T23:59:13Z",
+  "updated_at_utc": "2026-05-02T00:12:33Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -3153,6 +3153,17 @@
       "target_mvp_level": "MVP-4",
       "patch_result_path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_DASHBOARD_BINDING.patch_result.json",
       "patch_result_hash": "B4C010CA5B1D6C619A39927AE6ED920EECD89D41E97789E24AC37A76B90151A1",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE_20260502_001",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE.patch_result.json",
+      "patch_result_hash": "05B2B7812479F1EF318B373024164A3B27BF7A76E1C36F6579F8385ED057167D",
       "live_order_ready_after": false,
       "live_order_allowed_after": false,
       "can_live_trade_after": false,

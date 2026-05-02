@@ -1,11 +1,15 @@
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
 
+sys.dont_write_bytecode = True
+
 ROOT = Path(__file__).resolve().parents[1]
 PATCH_ID = "MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT_20260502_001"
 PATCH_BASENAME = "MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT"
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -318,7 +322,7 @@ def main() -> int:
         )
     )
     tests_run = [
-        run_command([sys.executable, "-m", "pytest", "-q", "tests/runtime/test_safe_launcher.py"]),
+        run_command([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q", "tests/runtime/test_safe_launcher.py"]),
         run_command(
             [
                 sys.executable,
@@ -326,7 +330,18 @@ def main() -> int:
                 "from trader1.runtime.boot.safe_launcher import launcher_main; raise SystemExit(launcher_main('UPBIT_PAPER', pause=True, open_dashboard=False, console_heartbeat_ticks=2, console_heartbeat_interval_seconds=0.0))",
             ]
         ),
-        run_command([sys.executable, "UPBIT_PAPER.py"]),
+        run_command(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "import os, runpy; "
+                    "os.environ['TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS']='2'; "
+                    "os.environ['TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS']='0'; "
+                    "runpy.run_path('UPBIT_PAPER.py', run_name='__main__')"
+                ),
+            ]
+        ),
         run_command([sys.executable, "tools/run_root_launcher_validators.py"]),
         run_command([sys.executable, "tools/run_heartbeat_validators.py"]),
         run_command([sys.executable, "tools/run_read_only_dashboard_validators.py"]),

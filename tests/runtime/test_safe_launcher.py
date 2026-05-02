@@ -12,6 +12,8 @@ import trader1.runtime.boot.safe_launcher as safe_launcher
 from trader1.runtime.boot.launcher_guard import ALLOWED_ROOT_LAUNCHERS
 from trader1.runtime.boot.safe_launcher import (
     DEFAULT_INTERACTIVE_HEARTBEAT_TICKS,
+    ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV,
+    ROOT_OPERATOR_HEARTBEAT_TICKS_ENV,
     build_launcher_report,
     console_heartbeat_line,
     console_safe_monitor_banner,
@@ -22,6 +24,7 @@ from trader1.runtime.boot.safe_launcher import (
     launcher_status_message,
     load_json,
     refresh_launcher_monitor_artifacts,
+    root_operator_launcher_main,
     runtime_write_lock,
     should_pause_for_operator,
     source_identity_files,
@@ -1022,6 +1025,49 @@ class SafeLauncherTest(unittest.TestCase):
         self.assertIn("until Ctrl+C", output)
         self.assertIn("live_order_allowed=false", output)
         self.assertNotIn("Press Enter", output)
+
+    def test_root_operator_launcher_main_forces_console_hold_open(self):
+        calls = []
+
+        def fake_launcher_main(launcher_name, **kwargs):
+            calls.append((launcher_name, kwargs))
+            return 0
+
+        with patch.dict(os.environ, {}, clear=True), patch.object(
+            safe_launcher,
+            "launcher_main",
+            side_effect=fake_launcher_main,
+        ):
+            result = root_operator_launcher_main("UPBIT_PAPER")
+
+        self.assertEqual(result, 0)
+        self.assertEqual(calls[0][0], "UPBIT_PAPER")
+        self.assertTrue(calls[0][1]["pause"])
+        self.assertIsNone(calls[0][1]["console_heartbeat_ticks"])
+        self.assertIsNone(calls[0][1]["console_heartbeat_interval_seconds"])
+
+    def test_root_operator_launcher_main_can_be_bounded_for_automation(self):
+        calls = []
+
+        def fake_launcher_main(launcher_name, **kwargs):
+            calls.append((launcher_name, kwargs))
+            return 0
+
+        with patch.dict(
+            os.environ,
+            {
+                ROOT_OPERATOR_HEARTBEAT_TICKS_ENV: "2",
+                ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV: "0",
+            },
+            clear=True,
+        ), patch.object(safe_launcher, "launcher_main", side_effect=fake_launcher_main):
+            result = root_operator_launcher_main("UPBIT_PAPER")
+
+        self.assertEqual(result, 0)
+        self.assertEqual(calls[0][0], "UPBIT_PAPER")
+        self.assertTrue(calls[0][1]["pause"])
+        self.assertEqual(calls[0][1]["console_heartbeat_ticks"], 2)
+        self.assertEqual(calls[0][1]["console_heartbeat_interval_seconds"], 0.0)
 
     def test_source_identity_includes_root_launchers_and_contracts(self):
         relative_paths = {path.relative_to(Path(__file__).resolve().parents[2]).as_posix() for path in source_identity_files()}

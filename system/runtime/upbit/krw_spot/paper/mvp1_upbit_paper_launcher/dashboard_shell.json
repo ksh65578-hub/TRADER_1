@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-05-01T23:59:19Z",
+  "generated_at_utc": "2026-05-02T00:12:50Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -121,7 +121,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-05-01T23:59:19Z",
+    "generated_at_utc": "2026-05-02T00:12:50Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -287,7 +287,7 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 91974,
+    "observed_span_seconds": 22302,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 60,
@@ -326,7 +326,7 @@
         "label": "Runtime artifact pressure",
         "status": "WARN",
         "value_display": "WARN",
-        "detail": "Runtime artifact pressure WARN: files=409, bytes=3516266, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
+        "detail": "Runtime artifact pressure WARN: files=409, bytes=3516289, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -374,7 +374,7 @@
     "source": "heartbeat.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 91974,
+    "observed_span_seconds": 22302,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 0,
@@ -1613,5 +1613,5 @@
   "blocking_reason": "POST_RERUN_RECONCILIATION_REQUIRED",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "A749204446B5994089A4CC8475E233AD5922C03CD29F4378A3FF775235A7163C"
+  "dashboard_hash": "D8BC335DEB025FDF8F97232327A2F9A3086E42E344CB0110A1946C973CB1AEB1"
 }
