@@ -99,6 +99,7 @@
             "STALE_LOOP_POST_REGENERATION_RECONCILIATION",
             "STALE_LOOP_OPERATOR_QUEUE_CLOSURE",
             "STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD",
+            "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_PRECHECK",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD"
@@ -132,6 +133,7 @@
             "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
             "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
             "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
+            "upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json"
@@ -509,6 +511,7 @@
             "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
             "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
             "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
+            "upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
           ]
         },
@@ -1115,6 +1118,68 @@
         "post_rerun_reconciliation_repair_path_next_action": {
           "type": "string",
           "minLength": 1
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_AUDITED_WRITER_DISABLED",
+            "BLOCKED_SOURCE_GUARD_INVALID",
+            "INVALID"
+          ]
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_gate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_gate_pass_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_gate_blocked_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_candidate_ready_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_audit_inputs_clean": {
+          "type": "boolean"
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_passed": {
+          "const": false
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_enabled": {
+          "const": false
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_current_evidence_write_allowed": {
+          "const": false
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_precheck_blocker_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "post_repair_reconciliation_status": {
           "enum": [
@@ -6105,7 +6170,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 21,
+      "maxItems": 22,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
