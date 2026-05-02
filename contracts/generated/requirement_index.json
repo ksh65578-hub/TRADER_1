@@ -13533,6 +13533,65 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-RUNTIME-EVIDENCE-COLLECTION-PROFILE",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER runtime evidence collection profile",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-RUNTIME-EVIDENCE-COLLECTION-PROFILE: bounded Upbit PAPER runtime evidence profile must bind loop, recovery, sample history, and idempotency evidence without creating long-run or live permission",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Bounded Upbit PAPER runtime evidence collection profile",
+      "requirement_kind": "RUNTIME_EVIDENCE_PROFILE_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_runtime_evidence_collection_profile_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "upbit_paper_persistent_loop_validator",
+        "upbit_paper_runtime_recovery_guard_validator",
+        "upbit_paper_runtime_sample_history_validator",
+        "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+        "paper_ledger_rollup_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_runtime_evidence_collection_profile_report.schema.json",
+        "contracts/schema/patch_result.schema.json",
+        "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
+        "tools/emit_upbit_paper_runtime_evidence_collection_profile_patch_evidence.py",
+        "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py",
+        "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LEDGER_RECONCILIATION_IDEMPOTENCY",
+        "SECTION_PAPER_SHADOW_EVIDENCE",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-SAMPLE-HISTORY-PROVENANCE",
+        "REQ-MVP4-UPBIT-PAPER-LEDGER-RECONCILIATION-IDEMPOTENCY-RUNTIME-EVIDENCE",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "C18BD5448793DE54C29DC7C33FE6F8DD4D6FA47E15382C5E024AA7D7A075A1FA",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-RUNTIME-LEDGER-RECONCILIATION-EVIDENCE",
       "source_section_id": "SECTION_LEDGER_RECONCILIATION",
       "source_file": "TRADER_1.md",
@@ -14839,5 +14898,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T03:06:54Z"
+  "updated_at_utc": "2026-05-02T03:28:53Z"
 }

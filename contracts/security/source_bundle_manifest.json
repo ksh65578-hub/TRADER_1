@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "6E72F0F33BF78DA4BCB4E86F339F78A8AE833ABDB84B92532BE2B7CB973E7E9B",
+      "sha256": "6FB14BD82884BA34E2CD7AB9F96D7BA5CDD72EDBC8F87439F2373EC6119D1BB9",
       "size_bytes": 1096
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "contracts/schema/patch_result.schema.json",
-      "sha256": "800124AF61D7DE222719F197C857DFD8A3F8140AAE6E24540E99E6793C039931",
-      "size_bytes": 17850
+      "sha256": "111C4FA9B6758432603CE9BA81D57E7DA78729BCD4107C47AC411B40BDF897DE",
+      "size_bytes": 18491
     },
     {
       "path": "contracts/schema/position_sizing_decision.schema.json",
@@ -532,6 +532,11 @@
       "path": "contracts/schema/upbit_paper_runtime_cycle_report.schema.json",
       "sha256": "EE9AF343314BC9E8D0B53B0240645A188AE9C13E765E4D66953DF0D1A7C50474",
       "size_bytes": 7891
+    },
+    {
+      "path": "contracts/schema/upbit_paper_runtime_evidence_collection_profile_report.schema.json",
+      "sha256": "0BFF13BC507AD7361FBEBBEAED1D715E55694BE138B70252239480AE9760521D",
+      "size_bytes": 6705
     },
     {
       "path": "contracts/schema/upbit_paper_runtime_recovery_guard_report.schema.json",
@@ -1122,6 +1127,11 @@
       "path": "tests/runtime/test_upbit_paper_repair_operator_queue.py",
       "sha256": "DD8B088504D2B44D8277D0CE7BCC76E8829FBBD83B0C3E00BFD61052C038ED1A",
       "size_bytes": 8001
+    },
+    {
+      "path": "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py",
+      "sha256": "E748139B756C2999A95587C9D6D90449757EE1DE95AA3B7F811CDE262719791F",
+      "size_bytes": 5304
     },
     {
       "path": "tests/runtime/test_upbit_paper_runtime_sample_history.py",
@@ -3299,6 +3309,11 @@
       "size_bytes": 26896
     },
     {
+      "path": "tools/emit_upbit_paper_runtime_evidence_collection_profile_patch_evidence.py",
+      "sha256": "E948031C76FF31BAF6F55E055D8C8D87FBD11C510BB4384D3249C5159F9ED8F5",
+      "size_bytes": 28217
+    },
+    {
       "path": "tools/emit_upbit_paper_runtime_ledger_reconciliation_evidence_patch.py",
       "sha256": "4D43B50D447529D1FA07A83C6CE579E6C2BFB7792C842AE389E467A326A8DE16",
       "size_bytes": 33903
@@ -3687,6 +3702,11 @@
       "path": "tools/run_upbit_live_review_validators.py",
       "sha256": "C50DEC935E608B7270B64E02AF7BA4A48AC07FA9A65DEA325090FFF82303CD79",
       "size_bytes": 857
+    },
+    {
+      "path": "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
+      "sha256": "89C6D9A594F6C97CBDC3B65F80ED47B1CC6CCB0957D5C25CB3F97821D7164878",
+      "size_bytes": 21996
     },
     {
       "path": "tools/run_upbit_paper_validators.py",
@@ -5089,6 +5109,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_RUNTIME_ENGINE_0_TO_1_FOUNDATION.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -6500,6 +6524,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_20260502.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.audit.json",
       "reason": "denied:system/"
     },
@@ -7712,6 +7744,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -8868,6 +8904,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_RUNTIME_LEDGER_RECONCILIATION_EVIDENCE.patch_result.json",
       "reason": "denied:system/"
     },
@@ -8977,6 +9017,10 @@
     },
     {
       "path": "system/evidence/runtime_checks/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
       "reason": "denied:system/"
     },
     {
@@ -10041,6 +10085,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_ENGINE_0_TO_1_FOUNDATION.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -11221,6 +11269,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_RUNTIME_ENGINE_0_TO_1_FOUNDATION.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

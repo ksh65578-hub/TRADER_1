@@ -714,6 +714,28 @@
     "source_release_profile_shipped_forbidden_count": {
       "type": "integer",
       "minimum": 0
+    },
+    "upbit_paper_runtime_evidence_profile_status": {
+      "type": "string"
+    },
+    "upbit_paper_runtime_evidence_profile_component_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "upbit_paper_runtime_evidence_profile_component_pass_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "upbit_paper_runtime_evidence_profile_accepted_cycle_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "upbit_paper_runtime_evidence_profile_ledger_status": {
+      "type": "string"
+    },
+    "upbit_paper_runtime_evidence_profile_mismatch_count": {
+      "type": "integer",
+      "minimum": 0
     }
   }
 }
