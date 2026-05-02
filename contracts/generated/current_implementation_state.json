@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-02T07:36:20Z",
+  "updated_at_utc": "2026-05-02T07:52:22Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -275,6 +275,7 @@
     "REQ-MVP4-UPBIT-PAPER-RUNTIME-SOURCE-HASH-GUARD",
     "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY",
     "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES",
+    "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-LEDGER-INPUT-SCOPE-REPAIR-PLAN",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-LEDGER-RECHECK-PREVIEW",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-LEDGER-ROLLUP-EXECUTOR-RECONCILIATION-RECHECK",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-LEDGER-ROLLUP-RECONCILIATION-RECHECK",
@@ -406,6 +407,7 @@
     "trader1.upbit_paper_runtime_evidence_collection_profile_report.v1",
     "trader1.upbit_paper_runtime_recovery_guard_report.v1",
     "trader1.upbit_paper_runtime_sample_history.v1",
+    "trader1.upbit_paper_stale_loop_ledger_input_scope_repair_plan_report.v1",
     "trader1.upbit_paper_stale_loop_ledger_recheck_preview_report.v1",
     "trader1.upbit_paper_stale_loop_ledger_rollup_executor_reconciliation_recheck_report.v1",
     "trader1.upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report.v1",
@@ -556,6 +558,7 @@
     "upbit_paper_runtime_recovery_guard_validator",
     "upbit_paper_runtime_sample_history_validator",
     "upbit_paper_stale_loop_execution_guard_validator",
+    "upbit_paper_stale_loop_ledger_input_scope_repair_plan_validator",
     "upbit_paper_stale_loop_ledger_recheck_preview_validator",
     "upbit_paper_stale_loop_ledger_rollup_executor_reconciliation_recheck_validator",
     "upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator",
@@ -599,12 +602,12 @@
     "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_EXECUTOR_RECONCILIATION_RECHECK_20260502_001",
-  "last_patch_result_hash": "851C05481CBB3BA0D6AE0CB948EAF6095FE0420484FF4C9F506357492435968A",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_INPUT_SCOPE_REPAIR_PLAN",
+  "last_patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_INPUT_SCOPE_REPAIR_PLAN_20260502_001",
+  "last_patch_result_hash": "19A84E1A89BB82D60F80F70CFEAA466534B5D64D5AA9B913583E6CFC9A655916",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_INPUT_SCOPE_REPAIR_EXECUTOR",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "377BC2A54C01AB9759E6DF5BCE84D4E39D588A709707CE76404F18875A4E54F1"
+  "state_hash": "668149DBB490E22C8994F5AAAFC9F3CFC77530A104D86242E103B3AB3E865219"
 }
