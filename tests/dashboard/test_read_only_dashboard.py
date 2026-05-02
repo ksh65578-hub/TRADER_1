@@ -51,6 +51,10 @@ from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation_operator_queue_
 from trader1.runtime.paper.upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard import (
     upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_hash,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_precheck import (
+    build_upbit_paper_repaired_current_evidence_audited_writer_precheck_report,
+    upbit_paper_repaired_current_evidence_audited_writer_precheck_hash,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
@@ -233,6 +237,7 @@ def build_dashboard(
     upbit_paper_stale_loop_post_regeneration_reconciliation_report=None,
     upbit_paper_stale_loop_reconciliation_operator_queue_closure_report=None,
     upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=None,
+    upbit_paper_repaired_current_evidence_audited_writer_precheck_report=None,
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
@@ -261,6 +266,7 @@ def build_dashboard(
         upbit_paper_stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
         upbit_paper_stale_loop_reconciliation_operator_queue_closure_report=upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
         upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
+        upbit_paper_repaired_current_evidence_audited_writer_precheck_report=upbit_paper_repaired_current_evidence_audited_writer_precheck_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
@@ -659,6 +665,15 @@ def stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_fixture()
     )
 
 
+def audited_writer_precheck_fixture(source_guard_report=None):
+    return build_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(
+        root=ROOT,
+        source_current_evidence_guard_report=source_guard_report
+        or stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_fixture(),
+        audited_writer_precheck_id="test-dashboard-audited-writer-precheck",
+    )
+
+
 def build_dashboard_with_post_rerun_blocker_rollup(report=None):
     report = report or post_rerun_blocker_rollup_fixture()
     session_id = report["session_id"]
@@ -935,6 +950,23 @@ def build_dashboard_with_stale_loop_isolated_event_id_scope_repaired_current_evi
         heartbeat=heartbeat,
         startup_probe=startup_probe,
         upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=report,
+    )
+
+
+def build_dashboard_with_audited_writer_precheck(report=None, source_guard_report=None):
+    report = report or audited_writer_precheck_fixture(source_guard_report)
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=source_guard_report,
+        upbit_paper_repaired_current_evidence_audited_writer_precheck_report=report,
     )
 
 
@@ -2882,6 +2914,144 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         dashboard = build_dashboard_with_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard()
         dashboard["operator_workflow_summary"]["summary"] = (
             "Operator flow is blocked until the red dashboard issue is inspected."
+        )
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_projects_audited_writer_precheck_for_operator_visibility(self):
+        source_guard = stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_fixture()
+        precheck = audited_writer_precheck_fixture(source_guard)
+        dashboard = build_dashboard_with_audited_writer_precheck(precheck, source_guard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(
+            reconciliation["source"],
+            "upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json",
+        )
+        self.assertEqual(reconciliation["primary_blocker_code"], "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_status"],
+            "BLOCKED_AUDITED_WRITER_DISABLED",
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_validation_status"],
+            "PASS",
+        )
+        self.assertEqual(reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_gate_count"], 7)
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_gate_pass_count"],
+            6,
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_gate_blocked_count"],
+            1,
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_candidate_ready_count"],
+            3,
+        )
+        self.assertTrue(reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_audit_inputs_clean"])
+        self.assertFalse(reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_passed"])
+        self.assertFalse(reconciliation["upbit_paper_repaired_current_evidence_audited_writer_enabled"])
+        self.assertFalse(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_current_evidence_write_allowed"]
+        )
+        self.assertFalse(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_portfolio_truth_write_allowed"]
+        )
+        self.assertIn(
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_blocker_codes"],
+        )
+        sources = [
+            source
+            for source in dashboard["source_artifacts"]
+            if source["artifact_id"] == "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_PRECHECK"
+        ]
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(
+            sources[0]["filename"],
+            "upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json",
+        )
+        self.assertEqual(sources[0]["freshness_status"], "PASS")
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["blocking_reason"], "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+        self.assertIn("Configured PAPER capital is 1,000,000 KRW", portfolio["source_snapshot_freshness_message"])
+        self.assertIn("audited writer precheck", portfolio["source_snapshot_freshness_message"])
+
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["status"], "BLOCKED")
+        self.assertEqual(operator_action["primary_action"], "STOP_AND_INSPECT")
+        self.assertEqual(operator_action["workflow_step"], "INSPECT_DASHBOARD")
+        self.assertEqual(operator_action["primary_action_label"], "Inspect audited writer precheck")
+        self.assertEqual(operator_action["primary_blocker_code"], "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+        self.assertIn("audited current-evidence writer is not implemented", operator_action["one_line_blocker"])
+        self.assertIn("portfolio truth writes=0", operator_action["one_line_blocker"])
+        self.assertIn("audited writer", operator_action["next_operator_action"].lower())
+        self.assertFalse(operator_action["safe_to_continue_paper"])
+        self.assertFalse(operator_action["live_order_allowed"])
+        self.assertFalse(operator_action["scale_up_allowed"])
+
+        workflow = dashboard["operator_workflow_summary"]
+        self.assertEqual(workflow["status"], "BLOCKED")
+        self.assertEqual(workflow["current_step"], "INSPECT_DASHBOARD")
+        self.assertIn("Audited current-evidence writer is not implemented", workflow["summary"])
+        self.assertIn("configured PAPER capital is not verified cash or equity", workflow["steps"][1]["detail"])
+        self.assertIn("separate audited writer", workflow["steps"][2]["detail"])
+        self.assertFalse(workflow["live_order_allowed"])
+        self.assertFalse(workflow["scale_up_allowed"])
+
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Inspect audited writer precheck", html)
+        self.assertIn("Audited Current Evidence Writer Precheck", html)
+        self.assertIn("precheck=BLOCKED_AUDITED_WRITER_DISABLED", html)
+        self.assertIn("gates=6/7", html)
+        self.assertIn("blocked-gates=1", html)
+        self.assertIn("candidate-ready=3", html)
+        self.assertIn("writer-enabled=False", html)
+        self.assertIn("current-writes=False", html)
+        self.assertIn("portfolio-writes=False", html)
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_audited_writer_precheck_drift(self):
+        precheck = audited_writer_precheck_fixture()
+        precheck["audited_writer_enabled"] = True
+        precheck["audited_writer_precheck_hash"] = upbit_paper_repaired_current_evidence_audited_writer_precheck_hash(
+            precheck
+        )
+        dashboard = build_dashboard_with_audited_writer_precheck(precheck)
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "INVALID")
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_precheck_status"],
+            "INVALID",
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_audited_writer_precheck_operator_action_drift(self):
+        dashboard = build_dashboard_with_audited_writer_precheck()
+        dashboard["operator_action_summary"]["primary_action_label"] = "Inspect repaired current-evidence blocker"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_blocks_audited_writer_precheck_operator_workflow_drift(self):
+        dashboard = build_dashboard_with_audited_writer_precheck()
+        dashboard["operator_workflow_summary"]["summary"] = (
+            "Repaired isolated event-id candidates are review-only; current evidence and portfolio truth writes remain blocked."
         )
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)
