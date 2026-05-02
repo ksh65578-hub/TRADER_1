@@ -48,6 +48,9 @@ from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliati
 from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation_operator_queue_closure import (
     build_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard import (
+    upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_hash,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
@@ -229,6 +232,7 @@ def build_dashboard(
     upbit_paper_repair_operator_queue_report=None,
     upbit_paper_stale_loop_post_regeneration_reconciliation_report=None,
     upbit_paper_stale_loop_reconciliation_operator_queue_closure_report=None,
+    upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=None,
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
@@ -256,6 +260,7 @@ def build_dashboard(
         upbit_paper_repair_operator_queue_report=upbit_paper_repair_operator_queue_report,
         upbit_paper_stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
         upbit_paper_stale_loop_reconciliation_operator_queue_closure_report=upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
@@ -638,6 +643,22 @@ def stale_loop_operator_queue_closure_fixture(post_report=None, ledger_report=No
     )
 
 
+def stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def build_dashboard_with_post_rerun_blocker_rollup(report=None):
     report = report or post_rerun_blocker_rollup_fixture()
     session_id = report["session_id"]
@@ -892,6 +913,28 @@ def build_dashboard_with_stale_loop_operator_queue_closure(
         upbit_paper_stale_loop_post_regeneration_reconciliation_report=post_report,
         upbit_paper_stale_loop_reconciliation_operator_queue_closure_report=report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=ledger_idempotency_report,
+    )
+
+
+def build_dashboard_with_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard(
+    report=None,
+    with_paper_portfolio=True,
+):
+    report = report or stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_fixture()
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(
+        session_id=session_id,
+        with_paper_portfolio=with_paper_portfolio,
+    )
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=report,
     )
 
 
@@ -2670,6 +2713,128 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_projects_repaired_current_evidence_guard_for_operator_visibility(self):
+        dashboard = build_dashboard_with_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard()
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(
+            reconciliation["source"],
+            "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
+        )
+        self.assertEqual(reconciliation["primary_blocker_code"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status"],
+            "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED",
+        )
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status"],
+            "PASS",
+        )
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count"],
+            3,
+        )
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count"],
+            3,
+        )
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count"],
+            3,
+        )
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count"],
+            3,
+        )
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count"],
+            0,
+        )
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count"],
+            6,
+        )
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count"],
+            36,
+        )
+        self.assertEqual(
+            reconciliation[
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count"
+            ],
+            0,
+        )
+        self.assertEqual(
+            reconciliation[
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_current_evidence_usable_count"
+            ],
+            0,
+        )
+        self.assertEqual(
+            reconciliation[
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count"
+            ],
+            0,
+        )
+        self.assertIn(
+            "ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_CURRENT_WRITES_BLOCKED",
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes"],
+        )
+        sources = [
+            source
+            for source in dashboard["source_artifacts"]
+            if source["artifact_id"] == "STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD"
+        ]
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(
+            sources[0]["filename"],
+            "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
+        )
+        self.assertEqual(sources[0]["freshness_status"], "PASS")
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(
+            portfolio["blocking_reason"],
+            "ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_CURRENT_WRITES_BLOCKED",
+        )
+        self.assertIn("Configured PAPER capital is 1,000,000 KRW", portfolio["source_snapshot_freshness_message"])
+        self.assertIn("clean review-only evidence", portfolio["source_snapshot_freshness_message"])
+
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Repaired Current Evidence Guard", html)
+        self.assertIn("guard=BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED", html)
+        self.assertIn("candidates=3/3", html)
+        self.assertIn("ledger=6/36", html)
+        self.assertIn("writes=0", html)
+        self.assertIn("portfolio-writes=0", html)
+        self.assertFalse(reconciliation["live_order_ready"])
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_repaired_current_evidence_guard_write_drift(self):
+        report = stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_fixture()
+        report["current_evidence_write_allowed_count"] = 1
+        report["event_id_scope_repaired_current_evidence_guard_hash"] = (
+            upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_hash(report)
+        )
+        dashboard = build_dashboard_with_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard(report)
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "INVALID")
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status"],
+            "INVALID",
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
 
     def test_dashboard_displays_bound_verified_portfolio_when_stale_loop_reconciliation_blocks_writes(self):
         report = stale_loop_post_regeneration_reconciliation_fixture()

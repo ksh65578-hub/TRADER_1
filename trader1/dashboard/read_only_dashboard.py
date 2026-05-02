@@ -52,6 +52,9 @@ from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliati
 from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation_operator_queue_closure import (
     validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard import (
+    validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
@@ -83,6 +86,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_repair_operator_queue_report.json",
     "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
     "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+    "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
@@ -103,6 +107,7 @@ RECONCILIATION_RECOVERY_SOURCES = {
     "upbit_paper_repair_operator_queue_report.json",
     "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
     "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+    "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
 }
 ORDER_AFFECTING_FINAL_ACTIONS = {
@@ -250,6 +255,17 @@ STALE_LOOP_POST_REGENERATION_RECONCILIATION_STATUSES = {"NOT_LOADED", "BLOCKED",
 STALE_LOOP_POST_REGENERATION_RECONCILIATION_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 STALE_LOOP_OPERATOR_QUEUE_CLOSURE_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "INVALID"}
 STALE_LOOP_OPERATOR_QUEUE_CLOSURE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_STATUSES = {
+    "NOT_LOADED",
+    "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED",
+    "INVALID",
+}
+STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_VALIDATION_STATUSES = {
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+    "UNTESTED",
+}
 POST_RERUN_RECONCILIATION_REPAIR_GATE_STATUSES = {"NOT_LOADED", "BLOCKED", "PASS", "FAIL"}
 POST_RERUN_RECONCILIATION_REPAIR_GATE_IDS = {
     "NOT_LOADED",
@@ -965,6 +981,11 @@ def _runtime_ledger_portfolio_truth_reconciled(
 def _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary: dict[str, Any] | None) -> str | None:
     if not isinstance(reconciliation_recovery_summary, dict):
         return None
+    if (
+        reconciliation_recovery_summary.get("stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status")
+        == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+    ):
+        return "ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_CURRENT_WRITES_BLOCKED"
     if reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED":
         return "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
     if reconciliation_recovery_summary.get("stale_loop_operator_queue_closure_status") == "BLOCKED":
@@ -1047,6 +1068,8 @@ def _portfolio_snapshot(
         or reconciliation_recovery_summary.get("repair_operator_queue_status") == "BLOCKED"
         or reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED"
         or reconciliation_recovery_summary.get("stale_loop_operator_queue_closure_status") == "BLOCKED"
+        or reconciliation_recovery_summary.get("stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status")
+        == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
     )
     if mode == "PAPER" and isinstance(summary, dict) and not post_rerun_current_truth_blocked:
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
@@ -1106,6 +1129,60 @@ def _portfolio_snapshot(
     source_snapshot_status = "UNTESTED"
     blocking_reason = "HARD_TRUTH_MISSING"
     if (
+        isinstance(reconciliation_recovery_summary, dict)
+        and reconciliation_recovery_summary.get("stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status")
+        == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+    ):
+        source_snapshot_status = "BLOCKED"
+        blocking_reason = "ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_CURRENT_WRITES_BLOCKED"
+        candidate_count = reconciliation_recovery_summary.get(
+            "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count",
+            0,
+        )
+        ready_count = reconciliation_recovery_summary.get(
+            "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count",
+            0,
+        )
+        clean_count = reconciliation_recovery_summary.get(
+            "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count",
+            0,
+        )
+        duplicate_count = reconciliation_recovery_summary.get(
+            "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count",
+            0,
+        )
+        ledger_jsonl_count = reconciliation_recovery_summary.get(
+            "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count",
+            0,
+        )
+        ledger_event_count = reconciliation_recovery_summary.get(
+            "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count",
+            0,
+        )
+        if isinstance(configured_display, str) and configured_display != "UNVERIFIED":
+            unverified_message = (
+                f"Configured PAPER capital is {configured_display}; {ready_count}/{candidate_count} repaired "
+                f"candidate(s) are clean review-only evidence, but current portfolio cash/equity writes remain blocked."
+            )
+            cash_detail = (
+                f"Configured PAPER capital is {configured_display}; cash remains unverified because the repaired "
+                f"candidate guard allows 0 current-evidence or portfolio-truth writes."
+            )
+            equity_detail = (
+                f"Configured PAPER capital is {configured_display}; equity remains unverified while "
+                f"{clean_count} clean repaired candidate(s) stay review-only and {duplicate_count} duplicate event(s) are observed."
+            )
+        else:
+            unverified_message = (
+                f"{ready_count}/{candidate_count} repaired candidate(s) are clean review-only evidence, but portfolio truth writes remain blocked."
+            )
+            cash_detail = "Cash remains unverified because the repaired candidate guard allows 0 portfolio-truth writes."
+            equity_detail = "Equity remains unverified because repaired candidates are not current portfolio proof."
+        next_action = (
+            "Keep repaired candidates review-only; build a separate audited current-evidence writer before treating "
+            f"{ledger_jsonl_count} ledger file(s) / {ledger_event_count} event(s) as portfolio cash/equity."
+        )
+    elif (
         isinstance(reconciliation_recovery_summary, dict)
         and reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED"
     ):
@@ -5893,6 +5970,7 @@ def _reconciliation_recovery_summary(
     repair_operator_queue_report: dict[str, Any] | None,
     stale_loop_post_regeneration_reconciliation_report: dict[str, Any] | None,
     stale_loop_operator_queue_closure_report: dict[str, Any] | None,
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report: dict[str, Any] | None,
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
     restart_loaded = isinstance(restart_recovery_report, dict)
@@ -5911,6 +5989,10 @@ def _reconciliation_recovery_summary(
         dict,
     )
     stale_loop_operator_queue_closure_loaded = isinstance(stale_loop_operator_queue_closure_report, dict)
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_loaded = isinstance(
+        stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
+        dict,
+    )
     reconciliation_status = "NOT_LOADED"
     restart_status = "NOT_LOADED"
     ledger_idempotency_runtime_evidence_status = "NOT_LOADED"
@@ -6032,6 +6114,22 @@ def _reconciliation_recovery_summary(
     stale_loop_operator_queue_closure_primary_blocker_code = "NOT_LOADED"
     stale_loop_operator_queue_closure_next_action = "NOT_LOADED"
     stale_loop_operator_queue_closure_blocker_codes: list[str] = []
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status = "NOT_LOADED"
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status = "UNTESTED"
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_filled_order_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_current_evidence_usable_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count = 0
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_primary_blocker_code = "NOT_LOADED"
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_next_action = "NOT_LOADED"
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes: list[str] = []
     reconciliation_validation_status = "UNTESTED"
     restart_validation_status = "UNTESTED"
     post_rerun_rollup_validation_status = "UNTESTED"
@@ -7117,6 +7215,119 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Stale-loop operator queue closure status is unknown.")
 
+    if stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_loaded:
+        source = "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json"
+        stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status = str(
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "current_evidence_guard_status",
+                "INVALID",
+            )
+        )
+        guard_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report(
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report
+        )
+        stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status = guard_result.status
+        if guard_result.status != "PASS":
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = guard_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(f"Repaired current-evidence guard invalid: {guard_result.message}")
+        elif not _scope_matches(
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
+            exchange=exchange,
+            market_type=market_type,
+            mode=mode,
+            session_id=session_id,
+        ):
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Repaired current-evidence guard scope does not match this dashboard.")
+        elif (
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status
+            == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+        ):
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get("candidate_count")
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                    "guard_review_ready_count"
+                )
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get("guard_blocked_count")
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get("clean_candidate_count")
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get("duplicate_total_count")
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get("ledger_jsonl_count")
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get("ledger_event_count")
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_filled_order_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get("filled_order_count")
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                    "current_evidence_write_allowed_count"
+                )
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_current_evidence_usable_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                    "candidate_current_evidence_usable_count"
+                )
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count = _safe_count(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                    "portfolio_truth_write_allowed_count"
+                )
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_primary_blocker_code = str(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get("primary_blocker_code")
+                or "POST_RERUN_RECONCILIATION_REQUIRED"
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_next_action = str(
+                stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get("operator_next_action")
+                or "Keep repaired candidates review-only; current evidence writes remain blocked."
+            )
+            raw_codes = stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "blocker_codes",
+                [],
+            )
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes = (
+                [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            )
+            post_rerun_blocker_codes = sorted(
+                {
+                    *post_rerun_blocker_codes,
+                    *stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes,
+                }
+            )
+            ledger_state = "RECONCILE_REQUIRED"
+            single_writer_state = "RECONCILE_REQUIRED"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_primary_blocker_code
+            issue_messages.append(
+                "Repaired current-evidence guard keeps clean isolated event-id candidates review-only."
+            )
+        else:
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Repaired current-evidence guard status is unknown.")
+
     if (
         not reconciliation_loaded
         and not restart_loaded
@@ -7132,6 +7343,7 @@ def _reconciliation_recovery_summary(
         and not repair_operator_queue_loaded
         and not stale_loop_post_regeneration_reconciliation_loaded
         and not stale_loop_operator_queue_closure_loaded
+        and not stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_loaded
     ):
         status = "NOT_LOADED"
         severity = "WARNING"
@@ -7139,6 +7351,39 @@ def _reconciliation_recovery_summary(
         one_line_blocker = "RECONCILIATION_REQUIRED: ledger/reconciliation and restart recovery evidence are not loaded."
         next_action = "Run PAPER with reconciliation and restart recovery artifacts, then review this panel before live review."
         message = "Ledger/reconciliation evidence is not loaded; portfolio values remain display-only."
+    elif (
+        stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status
+        == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+    ):
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = (
+            f"{primary_blocker}: isolated event-id repaired candidates are review-only; "
+            f"{stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count}/"
+            f"{stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count} clean candidate(s), "
+            "current-evidence writes=0."
+        )
+        next_action = (
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_next_action
+            if stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_next_action != "NOT_LOADED"
+            else "Keep repaired candidates review-only; current evidence writes remain blocked."
+        )
+        message = (
+            "Repaired current-evidence guard is active: "
+            f"guard={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status}, "
+            f"candidates={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count}, "
+            f"review-ready={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count}, "
+            f"blocked={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count}, "
+            f"clean={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count}, "
+            f"duplicates={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count}, "
+            f"ledger-jsonl={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count}, "
+            f"ledger-events={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count}, "
+            f"fills={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_filled_order_count}, "
+            f"current-evidence writes allowed={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count}, "
+            f"current-evidence usable={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_current_evidence_usable_count}, "
+            f"portfolio-truth writes={stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count}."
+        )
     elif stale_loop_post_regeneration_reconciliation_status == "BLOCKED":
         status = "BLOCKED"
         severity = "ERROR"
@@ -7420,6 +7665,7 @@ def _reconciliation_recovery_summary(
             repair_operator_queue_status,
             stale_loop_post_regeneration_reconciliation_status,
             stale_loop_operator_queue_closure_status,
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status,
             ledger_idempotency_runtime_evidence_status,
         }
         or "FAIL"
@@ -7437,6 +7683,7 @@ def _reconciliation_recovery_summary(
             repair_operator_queue_validation_status,
             stale_loop_post_regeneration_reconciliation_validation_status,
             stale_loop_operator_queue_closure_validation_status,
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status,
             ledger_idempotency_runtime_validation_status,
         }
         or "BLOCKED"
@@ -7453,6 +7700,7 @@ def _reconciliation_recovery_summary(
             repair_operator_queue_validation_status,
             stale_loop_post_regeneration_reconciliation_validation_status,
             stale_loop_operator_queue_closure_validation_status,
+            stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status,
             ledger_idempotency_runtime_validation_status if ledger_idempotency_runtime_evidence_status != "BLOCKED" else "PASS",
         }
     ):
@@ -7654,6 +7902,22 @@ def _reconciliation_recovery_summary(
         "stale_loop_operator_queue_closure_primary_blocker_code": stale_loop_operator_queue_closure_primary_blocker_code,
         "stale_loop_operator_queue_closure_next_action": stale_loop_operator_queue_closure_next_action,
         "stale_loop_operator_queue_closure_blocker_codes": stale_loop_operator_queue_closure_blocker_codes,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_filled_order_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_filled_order_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_current_evidence_usable_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_current_evidence_usable_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_primary_blocker_code": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_primary_blocker_code,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_next_action": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_next_action,
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes": stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes,
         "post_rerun_blocker_codes": post_rerun_blocker_codes,
         "ledger_state": ledger_state,
         "single_writer_state": single_writer_state,
@@ -7705,6 +7969,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_repair_operator_queue_report: dict[str, Any] | None = None,
     upbit_paper_stale_loop_post_regeneration_reconciliation_report: dict[str, Any] | None = None,
     upbit_paper_stale_loop_reconciliation_operator_queue_closure_report: dict[str, Any] | None = None,
+    upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_persistent_loop_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
@@ -7745,6 +8010,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_repair_operator_queue": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repair_operator_queue_report.json",
         "upbit_paper_stale_loop_post_regeneration_reconciliation": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
         "upbit_paper_stale_loop_reconciliation_operator_queue_closure": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+        "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
@@ -8227,6 +8493,58 @@ def build_read_only_dashboard_shell(
                 stale_loop_operator_queue_closure_freshness,
             )
         )
+    if isinstance(upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report, dict):
+        repaired_current_guard_result = validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report(
+            upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report
+        )
+        repaired_current_guard_freshness = (
+            "PASS"
+            if repaired_current_guard_result.status == "PASS"
+            and upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "current_evidence_guard_status"
+            )
+            == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+            and upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "current_evidence_write_allowed_count"
+            )
+            == 0
+            and upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "candidate_current_evidence_usable_count"
+            )
+            == 0
+            and upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "portfolio_truth_write_allowed_count"
+            )
+            == 0
+            and upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "live_order_ready"
+            )
+            is False
+            and upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "live_order_allowed"
+            )
+            is False
+            and upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "can_live_trade"
+            )
+            is False
+            and upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.get(
+                "scale_up_allowed"
+            )
+            is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD",
+                paths.get(
+                    "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
+                ),
+                True,
+                repaired_current_guard_freshness,
+            )
+        )
     if isinstance(upbit_paper_ledger_idempotency_runtime_evidence_report, dict):
         idempotency_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
             upbit_paper_ledger_idempotency_runtime_evidence_report
@@ -8295,6 +8613,7 @@ def build_read_only_dashboard_shell(
         repair_operator_queue_report=upbit_paper_repair_operator_queue_report,
         stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
         stale_loop_operator_queue_closure_report=upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
+        stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
     )
     position_snapshot = _position_snapshot(summary, summary_freshness)
     portfolio_snapshot = _portfolio_snapshot(
@@ -9247,6 +9566,14 @@ def validate_read_only_dashboard_shell(
         "stale_loop_operator_queue_closure_validation_status",
         "UNTESTED",
     )
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status = reconciliation.get(
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status",
+        "NOT_LOADED",
+    )
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status = reconciliation.get(
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status",
+        "UNTESTED",
+    )
     if post_rerun_rollup_status not in POST_RERUN_BLOCKER_ROLLUP_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun blocker rollup status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_rollup_validation_status not in POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES:
@@ -9294,6 +9621,16 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "stale-loop operator queue closure status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if stale_loop_operator_queue_closure_validation_status not in STALE_LOOP_OPERATOR_QUEUE_CLOSURE_VALIDATION_STATUSES:
         return DashboardValidationResult("FAIL", "stale-loop operator queue closure validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status
+        not in STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_STATUSES
+    ):
+        return DashboardValidationResult("FAIL", "repaired current-evidence guard status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status
+        not in STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_VALIDATION_STATUSES
+    ):
+        return DashboardValidationResult("FAIL", "repaired current-evidence guard validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("post_rerun_current_evidence_bridge_status", "NOT_LOADED") not in POST_RERUN_CURRENT_EVIDENCE_BRIDGE_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun current-evidence bridge status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if (
@@ -9404,6 +9741,17 @@ def validate_read_only_dashboard_shell(
         "stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count",
         "stale_loop_operator_queue_closure_current_evidence_write_allowed_count",
         "stale_loop_operator_queue_closure_source_ledger_mismatch_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_filled_order_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_current_evidence_usable_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count",
     )
     for field in post_rerun_count_fields:
         value = reconciliation.get(field, 0)
@@ -9455,6 +9803,17 @@ def validate_read_only_dashboard_shell(
         not isinstance(code, str) or not code for code in stale_loop_operator_queue_closure_blocker_codes
     ):
         return DashboardValidationResult("FAIL", "stale-loop operator queue closure blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
+    stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes = reconciliation.get(
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes",
+        [],
+    )
+    if stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes is None:
+        stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes = []
+    if not isinstance(stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes, list) or any(
+        not isinstance(code, str) or not code
+        for code in stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes
+    ):
+        return DashboardValidationResult("FAIL", "repaired current-evidence guard blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
     stale_loop_post_regeneration_reason_counts = reconciliation.get(
         "stale_loop_post_regeneration_blocked_repair_reason_counts",
         [],
@@ -9487,7 +9846,11 @@ def validate_read_only_dashboard_shell(
         not in POST_RERUN_RECONCILIATION_REPAIR_GATE_STATUSES
     ):
         return DashboardValidationResult("FAIL", "post-rerun repair path first gate status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
-    if post_rerun_rollup_status == "BLOCKED":
+    current_guard_blocks_current_evidence = (
+        stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status
+        == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+    )
+    if post_rerun_rollup_status == "BLOCKED" and not current_guard_blocks_current_evidence:
         allowed_rollup_sources = {"upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"}
         if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
             allowed_rollup_sources.add("upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json")
@@ -9526,7 +9889,7 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_candidate_current_evidence_usable_count", 0) != 0
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun blocker rollup cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
+    if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED" and not current_guard_blocks_current_evidence:
         allowed_guidance_sources = {"upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"}
         if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
             allowed_guidance_sources.add("upbit_paper_post_rerun_operator_resolution_audit_report.json")
@@ -9563,7 +9926,7 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_guidance_candidate_current_evidence_usable_count", 0) != 0
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun review guidance cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_operator_queue_status == "BLOCKED":
+    if post_rerun_operator_queue_status == "BLOCKED" and not current_guard_blocks_current_evidence:
         item_count = reconciliation.get("post_rerun_operator_queue_item_count", 0)
         allowed_operator_queue_sources = {"upbit_paper_post_rerun_operator_reconciliation_queue_report.json"}
         if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
@@ -9596,7 +9959,7 @@ def validate_read_only_dashboard_shell(
             or "POST_RERUN_RECONCILIATION_REQUIRED" not in set(post_rerun_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun operator queue must render as a red review-only reconciliation blocker", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
+    if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY" and not current_guard_blocks_current_evidence:
         allowed_resolution_sources = {"upbit_paper_post_rerun_operator_resolution_audit_report.json"}
         if post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED":
             allowed_resolution_sources.add("upbit_paper_post_rerun_resolution_current_evidence_closure_report.json")
@@ -9637,7 +10000,10 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_resolution_source_decision_audit_file_hash_match") is not True
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun resolution audit must keep source guidance and decision bindings verified", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED":
+    if (
+        post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED"
+        and not current_guard_blocks_current_evidence
+    ):
         source_unresolved_count = reconciliation.get("post_rerun_resolution_closure_source_unresolved_item_count", 0)
         closed_count = reconciliation.get("post_rerun_resolution_closure_closed_item_count", 0)
         current_evidence_closed_count = reconciliation.get("post_rerun_resolution_closure_current_evidence_closed_count", 0)
@@ -9682,7 +10048,7 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_resolution_closure_source_resolution_audit_file_hash_match") is not True
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun resolution current-evidence closure must keep source audit binding verified", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
+    if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED" and not current_guard_blocks_current_evidence:
         allowed_recheck_sources = {"upbit_paper_post_rerun_current_evidence_closure_recheck_report.json"}
         if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
             allowed_recheck_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
@@ -9721,7 +10087,7 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed") is not False
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun closure recheck cannot hide ledger or current-evidence write drift", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+    if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED" and not current_guard_blocks_current_evidence:
         allowed_repair_path_sources = {"upbit_paper_post_rerun_reconciliation_repair_path_report.json"}
         if post_repair_status == "BLOCKED":
             allowed_repair_path_sources.add("upbit_paper_post_repair_reconciliation_report.json")
@@ -9769,7 +10135,7 @@ def validate_read_only_dashboard_shell(
             != "BLOCKED_BY_POST_RERUN_CLOSURE"
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun repair path must keep closure/recheck source binding verified", "LIVE_FINAL_GUARD_FAILED")
-    if post_repair_status == "BLOCKED":
+    if post_repair_status == "BLOCKED" and not current_guard_blocks_current_evidence:
         item_count = reconciliation.get("post_repair_reconciliation_item_count", 0)
         allowed_post_repair_sources = {"upbit_paper_post_repair_reconciliation_report.json"}
         allowed_post_repair_blockers = {"POST_REPAIR_RECONCILIATION_REQUIRED"}
@@ -9795,7 +10161,7 @@ def validate_read_only_dashboard_shell(
             or "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED" not in set(post_repair_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "post-repair reconciliation must render as a red blocked repair-candidate path", "LIVE_FINAL_GUARD_FAILED")
-    if repair_operator_queue_status == "BLOCKED":
+    if repair_operator_queue_status == "BLOCKED" and not current_guard_blocks_current_evidence:
         item_count = reconciliation.get("repair_operator_queue_item_count", 0)
         allowed_repair_queue_sources = {"upbit_paper_repair_operator_queue_report.json"}
         if stale_loop_post_regeneration_status == "BLOCKED":
@@ -9819,7 +10185,7 @@ def validate_read_only_dashboard_shell(
             not in set(repair_operator_queue_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "repair operator queue must render as a red repair-review blocker", "LIVE_FINAL_GUARD_FAILED")
-    if stale_loop_post_regeneration_status == "BLOCKED":
+    if stale_loop_post_regeneration_status == "BLOCKED" and not current_guard_blocks_current_evidence:
         item_count = reconciliation.get("stale_loop_post_regeneration_item_count", 0)
         accepted_count = reconciliation.get("stale_loop_post_regeneration_accepted_count", 0)
         blocked_count = reconciliation.get("stale_loop_post_regeneration_blocked_reconciliation_count", 0)
@@ -9856,7 +10222,7 @@ def validate_read_only_dashboard_shell(
             or "LEDGER_ROLLUP_RECONCILIATION_REQUIRED" not in reason_codes
         ):
             return DashboardValidationResult("BLOCKED", "stale-loop post-regeneration reconciliation must render as a red blocked regenerated-source path", "LIVE_FINAL_GUARD_FAILED")
-    if stale_loop_operator_queue_closure_status == "BLOCKED":
+    if stale_loop_operator_queue_closure_status == "BLOCKED" and not current_guard_blocks_current_evidence:
         item_count = reconciliation.get("stale_loop_operator_queue_closure_item_count", 0)
         lane_count = (
             reconciliation.get("stale_loop_operator_queue_closure_ledger_recheck_ready_count", 0)
@@ -9889,6 +10255,75 @@ def validate_read_only_dashboard_shell(
             not in set(stale_loop_operator_queue_closure_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "stale-loop operator queue closure must render as a red display-only closure blocker", "LIVE_FINAL_GUARD_FAILED")
+    if current_guard_blocks_current_evidence:
+        candidate_count = reconciliation.get(
+            "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count",
+            0,
+        )
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source")
+            != "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json"
+            or reconciliation.get("primary_blocker_code") != "POST_RERUN_RECONCILIATION_REQUIRED"
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validation_status"
+            )
+            != "PASS"
+            or candidate_count <= 0
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count",
+                0,
+            )
+            != candidate_count
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count",
+                0,
+            )
+            != candidate_count
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count",
+                0,
+            )
+            != candidate_count
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count",
+                0,
+            )
+            != 0
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count",
+                0,
+            )
+            <= 0
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count",
+                0,
+            )
+            <= 0
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count",
+                0,
+            )
+            != 0
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_current_evidence_usable_count",
+                0,
+            )
+            != 0
+            or reconciliation.get(
+                "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count",
+                0,
+            )
+            != 0
+            or "ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_CURRENT_WRITES_BLOCKED"
+            not in set(stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes)
+            or "POST_RERUN_RECONCILIATION_REQUIRED"
+            not in set(stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocker_codes)
+            or "POST_RERUN_RECONCILIATION_REQUIRED" not in set(post_rerun_blocker_codes)
+        ):
+            return DashboardValidationResult("BLOCKED", "repaired current-evidence guard must render as a red review-only current-write blocker", "LIVE_FINAL_GUARD_FAILED")
     if reconciliation.get("ledger_state") not in RECONCILIATION_RECOVERY_LEDGER_STATES:
         return DashboardValidationResult("FAIL", "ledger state display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("single_writer_state") not in RECONCILIATION_RECOVERY_WRITER_STATES:
@@ -11953,6 +12388,17 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<br>operator-review={safe_text(reconciliation.get('stale_loop_operator_queue_closure_operator_review_required_count', 0))}"
         f"<br>writes={safe_text(reconciliation.get('stale_loop_operator_queue_closure_current_evidence_write_allowed_count', 0))}"
         f"<br>usable-after-closure={safe_text(reconciliation.get('stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count', 0))}</p></div>"
+        "<div><strong>Repaired Current Evidence Guard</strong>"
+        f"<p>guard={safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status', 'NOT_LOADED'))}"
+        f"<br>candidates={safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count', 0))}/"
+        f"{safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count', 0))}"
+        f"<br>clean={safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_clean_candidate_count', 0))}"
+        f"<br>duplicates={safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count', 0))}"
+        f"<br>ledger={safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_jsonl_count', 0))}/"
+        f"{safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_ledger_event_count', 0))}"
+        f"<br>writes={safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count', 0))}"
+        f"<br>portfolio-writes={safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count', 0))}"
+        f"<br>usable={safe_text(reconciliation.get('stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_current_evidence_usable_count', 0))}</p></div>"
         "<div><strong>Live Boundary</strong>"
         "<p><span class=\"pill safe-lock\">live_order_allowed=false</span><br><span class=\"pill safe-lock\">can_live_trade=false</span><br><span class=\"pill safe-lock\">scale_up_allowed=false</span></p></div>"
         "</section>"

@@ -10472,6 +10472,55 @@
       "status": "IMPLEMENTED_CURRENT_EVIDENCE_GUARD_REVIEW_ONLY_LIVE_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-EVENT-ID-SCOPE-REPAIRED-DASHBOARD-BINDING",
+      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "schema_files": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "contracts/schema/upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "fixture_files": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json"
+      ],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "reconciliation_recovery_summary.stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status",
+        "source_artifacts.STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD",
+        "portfolio_snapshot.blocking_reason",
+        "portfolio_snapshot.configured_paper_capital",
+        "blocking_reason"
+      ],
+      "patch_result_fields": [
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count",
+        "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_DASHBOARD_VISIBLE_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-EVENT-ID-SCOPE-REPAIRED-DUPLICATE-RECHECK",
       "section_id": "SECTION_LEDGER_VALIDATOR_IDS",
       "schema_files": [
@@ -11832,7 +11881,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-02T10:40:22Z",
+  "updated_at_utc": "2026-05-02T11:07:09Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
