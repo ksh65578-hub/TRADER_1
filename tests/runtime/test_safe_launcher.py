@@ -944,6 +944,72 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertFalse(dashboard_shell["live_order_allowed"])
             self.assertFalse(dashboard_shell["scale_up_allowed"])
 
+    def test_launcher_dashboard_loads_stale_loop_operator_queue_closure_as_red_blocker(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        fixture_root = Path(__file__).resolve().parents[2]
+        fixture_path = (
+            fixture_root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+            / "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json"
+        )
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = launcher_dashboard_paths(report, root)
+            paths["upbit_paper_stale_loop_reconciliation_operator_queue_closure_report"].parent.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+            paths["upbit_paper_stale_loop_reconciliation_operator_queue_closure_report"].write_text(
+                fixture_path.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+
+            dashboard_paths = write_launcher_dashboard(report, root)
+            dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+            reconciliation = dashboard_shell["reconciliation_recovery_summary"]
+            source_files = {source["filename"] for source in dashboard_shell["source_artifacts"]}
+
+            self.assertEqual(reconciliation["status"], "BLOCKED")
+            self.assertEqual(reconciliation["severity"], "ERROR")
+            self.assertEqual(reconciliation["color_token"], "red")
+            self.assertEqual(
+                reconciliation["source"],
+                "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+            )
+            self.assertEqual(
+                reconciliation["primary_blocker_code"],
+                "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING",
+            )
+            self.assertEqual(reconciliation["stale_loop_operator_queue_closure_status"], "BLOCKED")
+            self.assertEqual(reconciliation["stale_loop_operator_queue_closure_validation_status"], "PASS")
+            self.assertEqual(reconciliation["stale_loop_operator_queue_closure_item_count"], 6)
+            self.assertEqual(reconciliation["stale_loop_operator_queue_closure_source_blocked_item_count"], 6)
+            self.assertEqual(reconciliation["stale_loop_operator_queue_closure_ledger_recheck_ready_count"], 5)
+            self.assertEqual(reconciliation["stale_loop_operator_queue_closure_recovery_guard_required_count"], 1)
+            self.assertEqual(reconciliation["stale_loop_operator_queue_closure_current_evidence_write_allowed_count"], 0)
+            self.assertEqual(
+                reconciliation["stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count"],
+                0,
+            )
+            self.assertIn(
+                "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING",
+                reconciliation["stale_loop_operator_queue_closure_blocker_codes"],
+            )
+            self.assertIn(
+                "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+                source_files,
+            )
+            self.assertEqual(dashboard_shell["operator_action_summary"]["status"], "BLOCKED")
+            self.assertFalse(dashboard_shell["operator_action_summary"]["safe_to_continue_paper"])
+            self.assertFalse(dashboard_shell["live_order_allowed"])
+            self.assertFalse(dashboard_shell["scale_up_allowed"])
+
     def test_launcher_dashboard_surfaces_cross_session_reconciliation_as_invalid(self):
         report = build_launcher_report("UPBIT_PAPER")
         with TemporaryDirectory() as tmp:

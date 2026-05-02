@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.read_only_dashboard_shell.v1",
   "project_id": "TRADER_1",
-  "generated_at_utc": "2026-05-02T04:42:58Z",
+  "generated_at_utc": "2026-05-02T05:25:14Z",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
@@ -148,12 +148,20 @@
       "freshness_status": "PASS"
     },
     {
+      "artifact_id": "STALE_LOOP_OPERATOR_QUEUE_CLOSURE",
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+      "filename": "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+      "truth_role": "dashboard_serving_truth",
+      "loaded": true,
+      "freshness_status": "PASS"
+    },
+    {
       "artifact_id": "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
       "filename": "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
       "truth_role": "dashboard_serving_truth",
       "loaded": true,
-      "freshness_status": "PASS"
+      "freshness_status": "STALE"
     },
     {
       "artifact_id": "MARKET_DATA_CONTINUITY_HISTORY",
@@ -169,7 +177,7 @@
     "status": "AUTO_REFRESH_ENABLED",
     "truth_role": "dashboard_serving_truth",
     "source": "heartbeat.json",
-    "generated_at_utc": "2026-05-02T04:42:58Z",
+    "generated_at_utc": "2026-05-02T05:25:14Z",
     "auto_refresh_interval_seconds": 10,
     "stale_after_seconds": 300,
     "client_stale_guard_enabled": true,
@@ -186,20 +194,20 @@
     "status": "CHECKING_SAFE_MODE",
     "severity": "WARNING",
     "color_token": "yellow",
-    "label": "Running with verified PAPER portfolio",
-    "message": "PAPER ledger values are verified for display, but reconciliation blockers still prevent trading review.",
-    "recovery_hint": "Use these PAPER ledger values for dashboard review only; keep current-evidence writes, live orders, and risk scale-up blocked until the reconciliation panel is resolved.",
+    "label": "Running without verified portfolio",
+    "message": "Program heartbeat is fresh, but portfolio cash, equity, positions, and PnL are not verified yet.",
+    "recovery_hint": "Reconcile blocked stale-loop regenerated replacements before treating configured PAPER capital or regenerated artifacts as current portfolio cash/equity.",
     "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
     "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
-    "operator_meaning": "Portfolio cash, equity, positions, and PnL come from verified simulated PAPER ledger evidence; this still does not prove a continuous PAPER engine is running, and reconciliation/live boundaries remain separate.",
+    "operator_meaning": "The dashboard heartbeat is fresh, but it does not prove a continuous PAPER engine is updating portfolio values.",
     "source": "summary.json",
     "engine_state": "BOOTSTRAP_READ_ONLY",
     "heartbeat_status": "PASS",
     "summary_freshness_status": "PASS",
     "startup_freshness_status": "PASS",
-    "portfolio_status": "VERIFIED",
+    "portfolio_status": "UNVERIFIED",
     "portfolio_blocking_reason": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
-    "portfolio_next_action": "Use these PAPER ledger values for dashboard review only; keep current-evidence writes, live orders, and risk scale-up blocked until the reconciliation panel is resolved.",
+    "portfolio_next_action": "Reconcile blocked stale-loop regenerated replacements before treating configured PAPER capital or regenerated artifacts as current portfolio cash/equity.",
     "primary_blocker": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
     "live_orders_blocked": true
   },
@@ -214,7 +222,7 @@
     "reconciliation_validation_status": "PASS",
     "restart_recovery_status": "PASS",
     "restart_recovery_validation_status": "PASS",
-    "ledger_idempotency_runtime_evidence_status": "PASS",
+    "ledger_idempotency_runtime_evidence_status": "STALE",
     "ledger_idempotency_runtime_validation_status": "PASS",
     "ledger_idempotency_runtime_reconciliation_status": "PASS",
     "ledger_idempotency_runtime_portfolio_provenance_status": "PASS",
@@ -397,7 +405,42 @@
     "stale_loop_post_regeneration_primary_blocker_code": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
     "stale_loop_post_regeneration_operator_next_action": "Reconcile BLOCKED regenerated replacements and quarantine mismatched or unpaired artifacts before evidence use.",
     "stale_loop_post_regeneration_blocker_codes": [
-      "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+      "LEDGER_ROLLUP_BLOCKED",
+      "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+      "LOOP_RECONCILIATION_REQUIRED",
+      "LOOP_STATUS_BLOCKED",
+      "PAPER_RUNTIME_RESUME_BLOCKED",
+      "PARTIAL_WRITE_RECOVERY_REQUIRED",
+      "RECOVERY_GUARD_BLOCKED",
+      "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+      "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING"
+    ],
+    "stale_loop_operator_queue_closure_status": "BLOCKED",
+    "stale_loop_operator_queue_closure_validation_status": "PASS",
+    "stale_loop_operator_queue_closure_item_count": 6,
+    "stale_loop_operator_queue_closure_source_blocked_item_count": 6,
+    "stale_loop_operator_queue_closure_ledger_recheck_ready_count": 5,
+    "stale_loop_operator_queue_closure_recovery_guard_required_count": 1,
+    "stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count": 0,
+    "stale_loop_operator_queue_closure_operator_review_required_count": 0,
+    "stale_loop_operator_queue_closure_unsafe_or_scope_blocked_count": 0,
+    "stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count": 0,
+    "stale_loop_operator_queue_closure_current_evidence_write_allowed_count": 0,
+    "stale_loop_operator_queue_closure_source_ledger_idempotency_status": "PASS",
+    "stale_loop_operator_queue_closure_source_ledger_reconciliation_status": "PASS",
+    "stale_loop_operator_queue_closure_source_ledger_mismatch_count": 0,
+    "stale_loop_operator_queue_closure_primary_blocker_code": "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING",
+    "stale_loop_operator_queue_closure_next_action": "Recheck ledger-only stale-loop replacements with the current PASS ledger/idempotency evidence; keep recovery-blocked replacements out of current evidence.",
+    "stale_loop_operator_queue_closure_blocker_codes": [
+      "LEDGER_ROLLUP_BLOCKED",
+      "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+      "LOOP_RECONCILIATION_REQUIRED",
+      "LOOP_STATUS_BLOCKED",
+      "PAPER_RUNTIME_RESUME_BLOCKED",
+      "PARTIAL_WRITE_RECOVERY_REQUIRED",
+      "RECOVERY_GUARD_BLOCKED",
+      "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+      "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING"
     ],
     "post_rerun_blocker_codes": [
       "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
@@ -412,9 +455,9 @@
     "idempotency_state": "RECONCILE_REQUIRED",
     "mismatch_count": 0,
     "primary_blocker_code": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
-    "one_line_blocker": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED: stale-loop post-regeneration has 6 blocked regenerated replacement(s).",
-    "message": "Stale-loop post-regeneration reconciliation is active: status=BLOCKED, planned=16, items=16, accepted=10, blocked=6, invalid=0, current-evidence usable=10, excluded=6.",
-    "next_operator_action": "Reconcile BLOCKED regenerated replacements and quarantine mismatched or unpaired artifacts before evidence use.",
+    "one_line_blocker": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED: stale-loop post-regeneration has 6 blocked regenerated replacement(s); closure split ledger-ready=5, recovery=1, runtime-rerun=0, operator-review=0.",
+    "message": "Stale-loop post-regeneration reconciliation is active: status=BLOCKED, planned=16, items=16, accepted=10, blocked=6, invalid=0, current-evidence usable=10, excluded=6; closure=BLOCKED, ledger-ready=5, recovery=1, writes=0.",
+    "next_operator_action": "Recheck ledger-only stale-loop replacements with the current PASS ledger/idempotency evidence; keep recovery-blocked replacements out of current evidence.",
     "display_only": true,
     "dashboard_truth_only": true,
     "live_order_ready": false,
@@ -433,7 +476,7 @@
     "history_window": "VALIDATED_HISTORY",
     "history_source": "stability_history.json",
     "history_sample_count": 60,
-    "observed_span_seconds": 28902,
+    "observed_span_seconds": 29178,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "degraded_sample_count": 60,
@@ -453,8 +496,8 @@
         "metric_id": "source_freshness",
         "label": "Source freshness",
         "status": "STALE",
-        "value_display": "14/19 PASS",
-        "detail": "Refresh required: CANDIDATE_SCORECARD, PAPER_PERSISTENT_LOOP, PAPER_RUNTIME_RECOVERY_GUARD, UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE, MARKET_DATA_CONTINUITY_HISTORY",
+        "value_display": "14/20 PASS",
+        "detail": "Refresh required: CANDIDATE_SCORECARD, PAPER_PERSISTENT_LOOP, PAPER_RUNTIME_RECOVERY_GUARD, UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE, PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE, MARKET_DATA_CONTINUITY_HISTORY",
         "source": "summary.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -472,7 +515,7 @@
         "label": "Runtime artifact pressure",
         "status": "WARN",
         "value_display": "WARN",
-        "detail": "Runtime artifact pressure WARN: files=410, bytes=3543347, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
+        "detail": "Runtime artifact pressure WARN: files=411, bytes=3563762, temp_files=0, lock_present=true; runtime artifact growth crossed warning threshold",
         "source": "heartbeat.json",
         "trend_direction": "CURRENT_ONLY"
       },
@@ -520,7 +563,7 @@
     "source": "heartbeat.json",
     "history_window": "VALIDATED_HISTORY",
     "history_sample_count": 60,
-    "observed_span_seconds": 28902,
+    "observed_span_seconds": 29178,
     "min_validated_span_seconds": 3600,
     "span_validation_status": "SPAN_VALIDATED",
     "stable_sample_count": 0,
@@ -941,7 +984,7 @@
     "primary_action_label": "Stop review and inspect the blocker",
     "primary_blocker_code": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
     "one_line_blocker": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED: live orders remain blocked.",
-    "next_operator_action": "Reconcile BLOCKED regenerated replacements and quarantine mismatched or unpaired artifacts before evidence use.",
+    "next_operator_action": "Recheck ledger-only stale-loop replacements with the current PASS ledger/idempotency evidence; keep recovery-blocked replacements out of current evidence.",
     "safe_to_continue_paper": false,
     "paper_review_only": true,
     "live_review_blocked": true,
@@ -1568,16 +1611,16 @@
     "truth_role": "dashboard_serving_truth",
     "source": "summary.json",
     "freshness_status": "PASS",
-    "equity_display": "999,923 KRW",
-    "exposure_notional_display": "154,000 KRW",
-    "exposure_pct_display": "15.40%",
-    "drawdown_pct_display": "0.00%",
+    "equity_display": "UNVERIFIED",
+    "exposure_notional_display": "UNVERIFIED",
+    "exposure_pct_display": "UNVERIFIED",
+    "drawdown_pct_display": "UNVERIFIED",
     "exposure_review_cap_pct_display": "20.00% attention / 50.00% block",
     "drawdown_review_cap_pct_display": "2.00% attention / 5.00% block",
-    "open_position_count": 1,
+    "open_position_count": 0,
     "risk_review_scope": "PAPER_DISPLAY_ONLY",
-    "exposure_data_status": "COMPLETE",
-    "drawdown_data_status": "VERIFIED",
+    "exposure_data_status": "UNVERIFIED",
+    "drawdown_data_status": "UNVERIFIED",
     "paper_exposure_quality_status": "UNAVAILABLE",
     "paper_exposure_quality_source": "NOT_LOADED",
     "paper_exposure_quality_message": "No paper exposure quality report is loaded; scale-up remains blocked.",
@@ -1594,11 +1637,11 @@
     "live_order_allowed": false,
     "can_live_trade": false,
     "scale_up_allowed": false,
-    "status": "ATTENTION",
+    "status": "UNVERIFIED",
     "severity": "WARNING",
     "color_token": "yellow",
-    "primary_blocker_message": "No paper exposure quality report is loaded; scale-up remains blocked.",
-    "next_action": "Generate a scoped paper exposure quality report before treating risk as low."
+    "primary_blocker_message": "No verified PAPER portfolio source is loaded for exposure review.",
+    "next_action": "Run PAPER with a verified paper portfolio ledger before reviewing risk exposure."
   },
   "execution_feedback_snapshot": {
     "title": "Execution Feedback",
@@ -1642,8 +1685,8 @@
     "no_trade_reason": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
     "entry_status": "BLOCKED",
     "entry_reason": "No entry accepted; live orders are blocked and PAPER review must resolve blockers first",
-    "exit_status": "MONITORING",
-    "exit_reason": "Open PAPER position requires ledger-backed exit review",
+    "exit_status": "NO_POSITION",
+    "exit_reason": "No open PAPER position requires exit review",
     "next_action": "resolve blocking reason before trading",
     "recent_no_trade": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
     "display_only": true,
@@ -1677,14 +1720,7 @@
         "event_type": "EXIT_REVIEW",
         "severity": "INFO",
         "label": "Exit",
-        "message": "MONITORING: Open PAPER position requires ledger-backed exit review",
-        "source": "summary.json"
-      },
-      {
-        "event_type": "STATUS",
-        "severity": "INFO",
-        "label": "Position",
-        "message": "1 open PAPER position(s) displayed from summary",
+        "message": "NO_POSITION: No open PAPER position requires exit review",
         "source": "summary.json"
       }
     ],
@@ -1699,90 +1735,90 @@
   },
   "portfolio_snapshot": {
     "title": "Portfolio Snapshot",
-    "status": "VERIFIED",
+    "status": "UNVERIFIED",
     "truth_role": "dashboard_serving_truth",
     "source": "summary.json",
-    "source_runtime_cycle_id": "mvp4-upbit-paper-ledger-head-binding-guard-cycle-2",
-    "source_paper_ledger_head_hash": "2035343349418DA2D17D531C6D7BDA74CC50C4C902563974485395D8E98F45CD",
-    "source_snapshot_hash": "E61792D25EE97915A1B6F574A1D085EDA9081546724B650480AEA85BB8C54C4A",
-    "source_snapshot_status": "PASS",
-    "source_snapshot_generated_at_utc": "2026-05-02T04:42:58Z",
-    "source_snapshot_age_seconds": 0,
-    "source_snapshot_stale_after_seconds": 300,
-    "source_snapshot_freshness_message": "PAPER portfolio ledger values are verified for display by idempotency runtime evidence; current-evidence writes and live review remain blocked by STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED.",
-    "source_balance_kind": "SIMULATED_PAPER_LEDGER",
+    "source_runtime_cycle_id": null,
+    "source_paper_ledger_head_hash": null,
+    "source_snapshot_hash": null,
+    "source_snapshot_status": "BLOCKED",
+    "source_snapshot_generated_at_utc": null,
+    "source_snapshot_age_seconds": null,
+    "source_snapshot_stale_after_seconds": null,
+    "source_snapshot_freshness_message": "Configured PAPER capital is 1,000,000 KRW; stale-loop post-regeneration accepted 10 current-schema artifact(s), but 6 replacement(s) still require ledger/recovery reconciliation, so cash/equity remains unverified.",
+    "source_balance_kind": null,
     "configured_paper_capital": {
       "card_id": "configured_paper_capital",
       "label": "Configured PAPER Capital",
       "value_display": "1,000,000 KRW",
-      "detail": "Configured PAPER starting capital; current cash and equity come from the verified simulated ledger.",
-      "freshness_status": "PASS"
+      "detail": "Configured PAPER default only; not verified cash or equity.",
+      "freshness_status": "UNTESTED"
     },
     "cash": {
       "card_id": "cash",
       "label": "Cash",
-      "value_display": "845,923 KRW",
-      "detail": "Simulated PAPER ledger, not exchange balance",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "Configured PAPER capital is 1,000,000 KRW; cash remains unverified while 6 regenerated replacement(s) are excluded from current portfolio evidence.",
+      "freshness_status": "UNTESTED"
     },
     "equity": {
       "card_id": "equity",
       "label": "Equity",
-      "value_display": "999,923 KRW",
-      "detail": "Simulated PAPER ledger, not exchange balance",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "Configured PAPER capital is 1,000,000 KRW; equity remains unverified because 10 usable regenerated runtime artifact(s) are not portfolio cash/equity proof while reconciliation is blocked.",
+      "freshness_status": "UNTESTED"
     },
     "locked_cash": {
       "card_id": "locked_cash",
       "label": "Locked Cash",
-      "value_display": "0 KRW",
-      "detail": "Simulated PAPER funds reserved by open orders",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified locked-cash source loaded",
+      "freshness_status": "UNTESTED"
     },
     "realized_pnl": {
       "card_id": "realized_pnl",
       "label": "Realized PnL",
-      "value_display": "+0 KRW",
-      "detail": "Closed PAPER trade result from ledger summary",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified realized PnL source loaded",
+      "freshness_status": "UNTESTED"
     },
     "unrealized_pnl": {
       "card_id": "unrealized_pnl",
       "label": "Unrealized PnL",
-      "value_display": "-77 KRW",
-      "detail": "Open PAPER position mark-to-market estimate",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified unrealized PnL source loaded",
+      "freshness_status": "UNTESTED"
     },
     "total_pnl": {
       "card_id": "total_pnl",
       "label": "Total PnL",
-      "value_display": "-77 KRW",
-      "detail": "Realized plus unrealized PAPER PnL",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified total PnL source loaded",
+      "freshness_status": "UNTESTED"
     },
     "positions": {
       "card_id": "positions",
       "label": "Open Positions",
-      "value_display": "1",
-      "detail": "Open PAPER positions from summary",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified position source loaded",
+      "freshness_status": "UNTESTED"
     },
     "entry_candidates": {
       "card_id": "entry_candidates",
       "label": "Entry Candidates",
-      "value_display": "0",
-      "detail": "No entry candidates loaded from summary",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified candidate source loaded",
+      "freshness_status": "UNTESTED"
     },
     "return_pct": {
       "card_id": "return_pct",
       "label": "Return",
-      "value_display": "-0.01%",
-      "detail": "PAPER return from realized and unrealized PnL",
-      "freshness_status": "PASS"
+      "value_display": "UNVERIFIED",
+      "detail": "No verified return source loaded",
+      "freshness_status": "UNTESTED"
     },
     "blocking_reason": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
-    "next_action": "Use these PAPER ledger values for dashboard review only; keep current-evidence writes, live orders, and risk scale-up blocked until the reconciliation panel is resolved.",
+    "next_action": "Reconcile blocked stale-loop regenerated replacements before treating configured PAPER capital or regenerated artifacts as current portfolio cash/equity.",
     "display_only": true,
     "dashboard_truth_only": true,
     "live_order_ready": false,
@@ -1792,22 +1828,11 @@
   },
   "position_snapshot": {
     "title": "Open PAPER Positions",
-    "status": "OPEN",
+    "status": "NONE",
     "truth_role": "dashboard_serving_truth",
     "source": "summary.json",
-    "open_position_count": 1,
-    "rows": [
-      {
-        "symbol": "KRW-BTC",
-        "side": "LONG",
-        "quantity": "0.1539153427136239389929553994",
-        "avg_price": "1000550.025000000000000000002",
-        "mark_price": "1000550.025",
-        "market_value": "153999.9999999999999999999997",
-        "cost_basis": "154077",
-        "unrealized_pnl": "-77.0000000000000000000003"
-      }
-    ],
+    "open_position_count": 0,
+    "rows": [],
     "empty_message": "No open PAPER positions",
     "display_only": true,
     "dashboard_truth_only": true,
@@ -1858,5 +1883,5 @@
   "blocking_reason": "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
   "next_action": "continue read-only monitoring; resolve blockers before any trading review",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "F6210F8F63AE1E07D6753F938C982CAF15A040E3329E364E39ADA0199E017966"
+  "dashboard_hash": "366F20F526F911D4708D2287B33C7264103FE873DE8D16B3A250C15508B2B960"
 }
