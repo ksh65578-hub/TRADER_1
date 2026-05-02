@@ -1,0 +1,16 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-02T07:36:20Z",
+  "patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_EXECUTOR_RECONCILIATION_RECHECK_20260502_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_LEDGER_ROLLUP_EXECUTOR_RECHECK_CANDIDATE_ONLY_LIVE_BLOCKED",
+  "recheck_status": "BLOCKED",
+  "candidate_recheck_pass_count": 1,
+  "candidate_recheck_blocked_count": 4,
+  "strict_input_scope_blocked_count": 4,
+  "current_evidence_write_allowed_count": 0,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
