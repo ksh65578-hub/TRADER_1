@@ -45,6 +45,9 @@ from trader1.runtime.paper.upbit_paper_repair_operator_queue import (
 from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliation import (
     stale_loop_post_regeneration_reconciliation_hash,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation_operator_queue_closure import (
+    build_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
@@ -225,6 +228,7 @@ def build_dashboard(
     upbit_paper_post_repair_reconciliation_report=None,
     upbit_paper_repair_operator_queue_report=None,
     upbit_paper_stale_loop_post_regeneration_reconciliation_report=None,
+    upbit_paper_stale_loop_reconciliation_operator_queue_closure_report=None,
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
@@ -251,6 +255,7 @@ def build_dashboard(
         upbit_paper_post_repair_reconciliation_report=upbit_paper_post_repair_reconciliation_report,
         upbit_paper_repair_operator_queue_report=upbit_paper_repair_operator_queue_report,
         upbit_paper_stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
+        upbit_paper_stale_loop_reconciliation_operator_queue_closure_report=upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
@@ -619,6 +624,20 @@ def stale_loop_post_regeneration_reconciliation_fixture():
     )
 
 
+def stale_loop_operator_queue_closure_fixture(post_report=None, ledger_report=None):
+    post_report = post_report or stale_loop_post_regeneration_reconciliation_fixture()
+    ledger_report = ledger_report or build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+        root=ROOT,
+        session_id=post_report["session_id"],
+        evidence_id="test-dashboard-stale-loop-operator-queue-closure-ledger",
+    )
+    return build_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(
+        post_regeneration_reconciliation_report=post_report,
+        ledger_idempotency_evidence_report=ledger_report,
+        closure_id="test-dashboard-stale-loop-operator-queue-closure",
+    )
+
+
 def build_dashboard_with_post_rerun_blocker_rollup(report=None):
     report = report or post_rerun_blocker_rollup_fixture()
     session_id = report["session_id"]
@@ -819,6 +838,7 @@ def build_dashboard_with_stale_loop_post_regeneration_reconciliation(
     post_repair_report=None,
     with_paper_portfolio=True,
     ledger_idempotency_report=None,
+    stale_loop_operator_queue_closure_report=None,
     paper_portfolio_snapshot=None,
 ):
     report = report or stale_loop_post_regeneration_reconciliation_fixture()
@@ -838,6 +858,39 @@ def build_dashboard_with_stale_loop_post_regeneration_reconciliation(
         startup_probe=startup_probe,
         upbit_paper_post_repair_reconciliation_report=post_repair_report,
         upbit_paper_stale_loop_post_regeneration_reconciliation_report=report,
+        upbit_paper_stale_loop_reconciliation_operator_queue_closure_report=stale_loop_operator_queue_closure_report,
+        upbit_paper_ledger_idempotency_runtime_evidence_report=ledger_idempotency_report,
+    )
+
+
+def build_dashboard_with_stale_loop_operator_queue_closure(
+    report=None,
+    post_report=None,
+    ledger_idempotency_report=None,
+    with_paper_portfolio=True,
+):
+    post_report = post_report or stale_loop_post_regeneration_reconciliation_fixture()
+    ledger_idempotency_report = ledger_idempotency_report or build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+        root=ROOT,
+        session_id=post_report["session_id"],
+        evidence_id="test-dashboard-stale-loop-operator-queue-closure-ledger",
+    )
+    report = report or stale_loop_operator_queue_closure_fixture(post_report, ledger_idempotency_report)
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(
+        session_id=session_id,
+        with_paper_portfolio=with_paper_portfolio,
+    )
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_stale_loop_post_regeneration_reconciliation_report=post_report,
+        upbit_paper_stale_loop_reconciliation_operator_queue_closure_report=report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=ledger_idempotency_report,
     )
 
@@ -2563,6 +2616,60 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(reconciliation["live_order_allowed"])
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_projects_stale_loop_operator_queue_closure_for_operator_visibility(self):
+        dashboard = build_dashboard_with_stale_loop_operator_queue_closure()
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(
+            reconciliation["primary_blocker_code"],
+            "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+        )
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_status"], "BLOCKED")
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_validation_status"], "PASS")
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_item_count"], 6)
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_source_blocked_item_count"], 6)
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_ledger_recheck_ready_count"], 5)
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_recovery_guard_required_count"], 1)
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count"], 0)
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_operator_review_required_count"], 0)
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_current_evidence_write_allowed_count"], 0)
+        self.assertEqual(reconciliation["stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count"], 0)
+        self.assertIn(
+            "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING",
+            reconciliation["stale_loop_operator_queue_closure_blocker_codes"],
+        )
+        sources = [
+            source
+            for source in dashboard["source_artifacts"]
+            if source["artifact_id"] == "STALE_LOOP_OPERATOR_QUEUE_CLOSURE"
+        ]
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(sources[0]["freshness_status"], "PASS")
+        self.assertEqual(
+            sources[0]["filename"],
+            "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+        )
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Stale Loop Operator Queue Closure", html)
+        self.assertIn("ledger-ready=5", html)
+        self.assertIn("recovery=1", html)
+        self.assertIn("writes=0", html)
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_stale_loop_operator_queue_closure_evidence_write_drift(self):
+        dashboard = build_dashboard_with_stale_loop_operator_queue_closure()
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        reconciliation["stale_loop_operator_queue_closure_current_evidence_write_allowed_count"] = 1
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_dashboard_displays_bound_verified_portfolio_when_stale_loop_reconciliation_blocks_writes(self):
         report = stale_loop_post_regeneration_reconciliation_fixture()

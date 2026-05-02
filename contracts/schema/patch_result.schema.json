@@ -590,6 +590,29 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_operator_queue_closure_status": {
+      "type": "string"
+    },
+    "stale_loop_operator_queue_closure_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_operator_queue_closure_ledger_recheck_ready_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_operator_queue_closure_recovery_guard_required_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_operator_queue_closure_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0

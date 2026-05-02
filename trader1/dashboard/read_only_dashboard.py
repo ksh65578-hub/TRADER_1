@@ -49,6 +49,9 @@ from trader1.runtime.paper.upbit_paper_repair_operator_queue import (
 from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliation import (
     validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation_operator_queue_closure import (
+    validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
@@ -79,6 +82,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_post_repair_reconciliation_report.json",
     "upbit_paper_repair_operator_queue_report.json",
     "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+    "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
@@ -98,6 +102,7 @@ RECONCILIATION_RECOVERY_SOURCES = {
     "upbit_paper_post_repair_reconciliation_report.json",
     "upbit_paper_repair_operator_queue_report.json",
     "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+    "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
 }
 ORDER_AFFECTING_FINAL_ACTIONS = {
@@ -243,6 +248,8 @@ REPAIR_OPERATOR_QUEUE_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
 REPAIR_OPERATOR_QUEUE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 STALE_LOOP_POST_REGENERATION_RECONCILIATION_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
 STALE_LOOP_POST_REGENERATION_RECONCILIATION_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+STALE_LOOP_OPERATOR_QUEUE_CLOSURE_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "INVALID"}
+STALE_LOOP_OPERATOR_QUEUE_CLOSURE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_RERUN_RECONCILIATION_REPAIR_GATE_STATUSES = {"NOT_LOADED", "BLOCKED", "PASS", "FAIL"}
 POST_RERUN_RECONCILIATION_REPAIR_GATE_IDS = {
     "NOT_LOADED",
@@ -960,6 +967,8 @@ def _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary: dict
         return None
     if reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED":
         return "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+    if reconciliation_recovery_summary.get("stale_loop_operator_queue_closure_status") == "BLOCKED":
+        return "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING"
     if reconciliation_recovery_summary.get("repair_operator_queue_status") == "BLOCKED":
         return "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
     if reconciliation_recovery_summary.get("post_repair_reconciliation_status") == "BLOCKED":
@@ -1037,6 +1046,7 @@ def _portfolio_snapshot(
         or reconciliation_recovery_summary.get("post_repair_reconciliation_status") == "BLOCKED"
         or reconciliation_recovery_summary.get("repair_operator_queue_status") == "BLOCKED"
         or reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED"
+        or reconciliation_recovery_summary.get("stale_loop_operator_queue_closure_status") == "BLOCKED"
     )
     if mode == "PAPER" and isinstance(summary, dict) and not post_rerun_current_truth_blocked:
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
@@ -5882,6 +5892,7 @@ def _reconciliation_recovery_summary(
     post_repair_reconciliation_report: dict[str, Any] | None,
     repair_operator_queue_report: dict[str, Any] | None,
     stale_loop_post_regeneration_reconciliation_report: dict[str, Any] | None,
+    stale_loop_operator_queue_closure_report: dict[str, Any] | None,
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
     restart_loaded = isinstance(restart_recovery_report, dict)
@@ -5899,6 +5910,7 @@ def _reconciliation_recovery_summary(
         stale_loop_post_regeneration_reconciliation_report,
         dict,
     )
+    stale_loop_operator_queue_closure_loaded = isinstance(stale_loop_operator_queue_closure_report, dict)
     reconciliation_status = "NOT_LOADED"
     restart_status = "NOT_LOADED"
     ledger_idempotency_runtime_evidence_status = "NOT_LOADED"
@@ -6003,6 +6015,23 @@ def _reconciliation_recovery_summary(
     stale_loop_post_regeneration_primary_blocker_code = "NOT_LOADED"
     stale_loop_post_regeneration_operator_next_action = "NOT_LOADED"
     stale_loop_post_regeneration_blocker_codes: list[str] = []
+    stale_loop_operator_queue_closure_status = "NOT_LOADED"
+    stale_loop_operator_queue_closure_validation_status = "UNTESTED"
+    stale_loop_operator_queue_closure_item_count = 0
+    stale_loop_operator_queue_closure_source_blocked_item_count = 0
+    stale_loop_operator_queue_closure_ledger_recheck_ready_count = 0
+    stale_loop_operator_queue_closure_recovery_guard_required_count = 0
+    stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count = 0
+    stale_loop_operator_queue_closure_operator_review_required_count = 0
+    stale_loop_operator_queue_closure_unsafe_or_scope_blocked_count = 0
+    stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count = 0
+    stale_loop_operator_queue_closure_current_evidence_write_allowed_count = 0
+    stale_loop_operator_queue_closure_source_ledger_idempotency_status = "NOT_LOADED"
+    stale_loop_operator_queue_closure_source_ledger_reconciliation_status = "NOT_LOADED"
+    stale_loop_operator_queue_closure_source_ledger_mismatch_count = 0
+    stale_loop_operator_queue_closure_primary_blocker_code = "NOT_LOADED"
+    stale_loop_operator_queue_closure_next_action = "NOT_LOADED"
+    stale_loop_operator_queue_closure_blocker_codes: list[str] = []
     reconciliation_validation_status = "UNTESTED"
     restart_validation_status = "UNTESTED"
     post_rerun_rollup_validation_status = "UNTESTED"
@@ -6989,6 +7018,105 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Stale-loop post-regeneration reconciliation status is unknown.")
 
+    if stale_loop_operator_queue_closure_loaded:
+        if not stale_loop_post_regeneration_reconciliation_loaded:
+            source = "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json"
+        stale_loop_operator_queue_closure_status = str(
+            stale_loop_operator_queue_closure_report.get("closure_status", "INVALID")
+        )
+        stale_loop_closure_result = validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(
+            stale_loop_operator_queue_closure_report
+        )
+        stale_loop_operator_queue_closure_validation_status = stale_loop_closure_result.status
+        if stale_loop_closure_result.status != "PASS":
+            stale_loop_operator_queue_closure_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = stale_loop_closure_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(f"Stale-loop operator queue closure invalid: {stale_loop_closure_result.message}")
+        elif not _scope_matches(
+            stale_loop_operator_queue_closure_report,
+            exchange=exchange,
+            market_type=market_type,
+            mode=mode,
+            session_id=session_id,
+        ):
+            stale_loop_operator_queue_closure_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Stale-loop operator queue closure scope does not match this dashboard.")
+        elif stale_loop_operator_queue_closure_status in {"BLOCKED", "PASS"}:
+            stale_loop_operator_queue_closure_item_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("closure_item_count")
+            )
+            stale_loop_operator_queue_closure_source_blocked_item_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("source_blocked_item_count")
+            )
+            stale_loop_operator_queue_closure_ledger_recheck_ready_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("ledger_recheck_ready_count")
+            )
+            stale_loop_operator_queue_closure_recovery_guard_required_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("recovery_guard_required_count")
+            )
+            stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("runtime_cycle_rerun_required_count")
+            )
+            stale_loop_operator_queue_closure_operator_review_required_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("operator_review_required_count")
+            )
+            stale_loop_operator_queue_closure_unsafe_or_scope_blocked_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("unsafe_or_scope_blocked_count")
+            )
+            stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("current_evidence_usable_after_closure_count")
+            )
+            stale_loop_operator_queue_closure_current_evidence_write_allowed_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("current_evidence_write_allowed_count")
+            )
+            stale_loop_operator_queue_closure_source_ledger_idempotency_status = str(
+                stale_loop_operator_queue_closure_report.get("source_ledger_idempotency_status") or "UNKNOWN"
+            )
+            stale_loop_operator_queue_closure_source_ledger_reconciliation_status = str(
+                stale_loop_operator_queue_closure_report.get("source_ledger_reconciliation_status") or "UNKNOWN"
+            )
+            stale_loop_operator_queue_closure_source_ledger_mismatch_count = _safe_count(
+                stale_loop_operator_queue_closure_report.get("source_ledger_mismatch_count")
+            )
+            stale_loop_operator_queue_closure_primary_blocker_code = str(
+                stale_loop_operator_queue_closure_report.get("primary_blocker_code")
+                or ("LIVE_READY_MISSING" if stale_loop_operator_queue_closure_status == "PASS" else "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING")
+            )
+            stale_loop_operator_queue_closure_next_action = str(
+                stale_loop_operator_queue_closure_report.get("operator_next_action")
+                or "Review stale-loop operator queue closure before evidence use."
+            )
+            raw_codes = stale_loop_operator_queue_closure_report.get("blocker_codes", [])
+            stale_loop_operator_queue_closure_blocker_codes = (
+                [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            )
+            stale_loop_post_regeneration_blocker_codes = sorted(
+                {*stale_loop_post_regeneration_blocker_codes, *stale_loop_operator_queue_closure_blocker_codes}
+            )
+            if stale_loop_operator_queue_closure_status == "BLOCKED":
+                ledger_state = "RECONCILE_REQUIRED"
+                single_writer_state = "RECONCILE_REQUIRED"
+                idempotency_state = "RECONCILE_REQUIRED"
+                if stale_loop_post_regeneration_reconciliation_status != "BLOCKED":
+                    primary_blocker = stale_loop_operator_queue_closure_primary_blocker_code
+                issue_messages.append(
+                    "Stale-loop operator queue closure splits blocked replacements into ledger recheck and recovery lanes."
+                )
+        else:
+            stale_loop_operator_queue_closure_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Stale-loop operator queue closure status is unknown.")
+
     if (
         not reconciliation_loaded
         and not restart_loaded
@@ -7003,6 +7131,7 @@ def _reconciliation_recovery_summary(
         and not post_repair_reconciliation_loaded
         and not repair_operator_queue_loaded
         and not stale_loop_post_regeneration_reconciliation_loaded
+        and not stale_loop_operator_queue_closure_loaded
     ):
         status = "NOT_LOADED"
         severity = "WARNING"
@@ -7014,14 +7143,28 @@ def _reconciliation_recovery_summary(
         status = "BLOCKED"
         severity = "ERROR"
         color_token = "red"
+        closure_split = ""
+        if stale_loop_operator_queue_closure_status == "BLOCKED":
+            closure_split = (
+                f"; closure split ledger-ready={stale_loop_operator_queue_closure_ledger_recheck_ready_count}, "
+                f"recovery={stale_loop_operator_queue_closure_recovery_guard_required_count}, "
+                f"runtime-rerun={stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count}, "
+                f"operator-review={stale_loop_operator_queue_closure_operator_review_required_count}"
+            )
         one_line_blocker = (
             f"{primary_blocker}: stale-loop post-regeneration has "
-            f"{stale_loop_post_regeneration_blocked_reconciliation_count} blocked regenerated replacement(s)."
+            f"{stale_loop_post_regeneration_blocked_reconciliation_count} blocked regenerated replacement(s)"
+            f"{closure_split}."
         )
         next_action = (
-            stale_loop_post_regeneration_operator_next_action
-            if stale_loop_post_regeneration_operator_next_action != "NOT_LOADED"
-            else "Reconcile blocked stale-loop regenerated replacements before evidence use."
+            stale_loop_operator_queue_closure_next_action
+            if stale_loop_operator_queue_closure_status == "BLOCKED"
+            and stale_loop_operator_queue_closure_next_action != "NOT_LOADED"
+            else (
+                stale_loop_post_regeneration_operator_next_action
+                if stale_loop_post_regeneration_operator_next_action != "NOT_LOADED"
+                else "Reconcile blocked stale-loop regenerated replacements before evidence use."
+            )
         )
         message = (
             "Stale-loop post-regeneration reconciliation is active: "
@@ -7032,7 +7175,34 @@ def _reconciliation_recovery_summary(
             f"blocked={stale_loop_post_regeneration_blocked_reconciliation_count}, "
             f"invalid={stale_loop_post_regeneration_invalid_count}, "
             f"current-evidence usable={stale_loop_post_regeneration_current_evidence_usable_count}, "
-            f"excluded={stale_loop_post_regeneration_excluded_from_current_evidence_count}."
+            f"excluded={stale_loop_post_regeneration_excluded_from_current_evidence_count}; "
+            f"closure={stale_loop_operator_queue_closure_status}, "
+            f"ledger-ready={stale_loop_operator_queue_closure_ledger_recheck_ready_count}, "
+            f"recovery={stale_loop_operator_queue_closure_recovery_guard_required_count}, "
+            f"writes={stale_loop_operator_queue_closure_current_evidence_write_allowed_count}."
+        )
+    elif stale_loop_operator_queue_closure_status == "BLOCKED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = (
+            f"{primary_blocker}: stale-loop operator queue closure has "
+            f"{stale_loop_operator_queue_closure_item_count} blocked item(s)."
+        )
+        next_action = (
+            stale_loop_operator_queue_closure_next_action
+            if stale_loop_operator_queue_closure_next_action != "NOT_LOADED"
+            else "Review stale-loop operator queue closure before evidence use."
+        )
+        message = (
+            "Stale-loop operator queue closure is active: "
+            f"items={stale_loop_operator_queue_closure_item_count}, "
+            f"ledger-ready={stale_loop_operator_queue_closure_ledger_recheck_ready_count}, "
+            f"recovery={stale_loop_operator_queue_closure_recovery_guard_required_count}, "
+            f"cycle-rerun={stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count}, "
+            f"operator-review={stale_loop_operator_queue_closure_operator_review_required_count}, "
+            f"current-evidence writes allowed={stale_loop_operator_queue_closure_current_evidence_write_allowed_count}, "
+            f"current-evidence usable={stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count}."
         )
     elif repair_operator_queue_status == "BLOCKED":
         status = "BLOCKED"
@@ -7249,6 +7419,7 @@ def _reconciliation_recovery_summary(
             post_repair_reconciliation_status,
             repair_operator_queue_status,
             stale_loop_post_regeneration_reconciliation_status,
+            stale_loop_operator_queue_closure_status,
             ledger_idempotency_runtime_evidence_status,
         }
         or "FAIL"
@@ -7265,6 +7436,7 @@ def _reconciliation_recovery_summary(
             post_repair_reconciliation_validation_status,
             repair_operator_queue_validation_status,
             stale_loop_post_regeneration_reconciliation_validation_status,
+            stale_loop_operator_queue_closure_validation_status,
             ledger_idempotency_runtime_validation_status,
         }
         or "BLOCKED"
@@ -7280,6 +7452,7 @@ def _reconciliation_recovery_summary(
             post_repair_reconciliation_validation_status,
             repair_operator_queue_validation_status,
             stale_loop_post_regeneration_reconciliation_validation_status,
+            stale_loop_operator_queue_closure_validation_status,
             ledger_idempotency_runtime_validation_status if ledger_idempotency_runtime_evidence_status != "BLOCKED" else "PASS",
         }
     ):
@@ -7464,6 +7637,23 @@ def _reconciliation_recovery_summary(
         "stale_loop_post_regeneration_primary_blocker_code": stale_loop_post_regeneration_primary_blocker_code,
         "stale_loop_post_regeneration_operator_next_action": stale_loop_post_regeneration_operator_next_action,
         "stale_loop_post_regeneration_blocker_codes": stale_loop_post_regeneration_blocker_codes,
+        "stale_loop_operator_queue_closure_status": stale_loop_operator_queue_closure_status,
+        "stale_loop_operator_queue_closure_validation_status": stale_loop_operator_queue_closure_validation_status,
+        "stale_loop_operator_queue_closure_item_count": stale_loop_operator_queue_closure_item_count,
+        "stale_loop_operator_queue_closure_source_blocked_item_count": stale_loop_operator_queue_closure_source_blocked_item_count,
+        "stale_loop_operator_queue_closure_ledger_recheck_ready_count": stale_loop_operator_queue_closure_ledger_recheck_ready_count,
+        "stale_loop_operator_queue_closure_recovery_guard_required_count": stale_loop_operator_queue_closure_recovery_guard_required_count,
+        "stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count": stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count,
+        "stale_loop_operator_queue_closure_operator_review_required_count": stale_loop_operator_queue_closure_operator_review_required_count,
+        "stale_loop_operator_queue_closure_unsafe_or_scope_blocked_count": stale_loop_operator_queue_closure_unsafe_or_scope_blocked_count,
+        "stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count": stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count,
+        "stale_loop_operator_queue_closure_current_evidence_write_allowed_count": stale_loop_operator_queue_closure_current_evidence_write_allowed_count,
+        "stale_loop_operator_queue_closure_source_ledger_idempotency_status": stale_loop_operator_queue_closure_source_ledger_idempotency_status,
+        "stale_loop_operator_queue_closure_source_ledger_reconciliation_status": stale_loop_operator_queue_closure_source_ledger_reconciliation_status,
+        "stale_loop_operator_queue_closure_source_ledger_mismatch_count": stale_loop_operator_queue_closure_source_ledger_mismatch_count,
+        "stale_loop_operator_queue_closure_primary_blocker_code": stale_loop_operator_queue_closure_primary_blocker_code,
+        "stale_loop_operator_queue_closure_next_action": stale_loop_operator_queue_closure_next_action,
+        "stale_loop_operator_queue_closure_blocker_codes": stale_loop_operator_queue_closure_blocker_codes,
         "post_rerun_blocker_codes": post_rerun_blocker_codes,
         "ledger_state": ledger_state,
         "single_writer_state": single_writer_state,
@@ -7514,6 +7704,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_post_repair_reconciliation_report: dict[str, Any] | None = None,
     upbit_paper_repair_operator_queue_report: dict[str, Any] | None = None,
     upbit_paper_stale_loop_post_regeneration_reconciliation_report: dict[str, Any] | None = None,
+    upbit_paper_stale_loop_reconciliation_operator_queue_closure_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_persistent_loop_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
@@ -7553,6 +7744,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_post_repair_reconciliation": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_repair_reconciliation_report.json",
         "upbit_paper_repair_operator_queue": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repair_operator_queue_report.json",
         "upbit_paper_stale_loop_post_regeneration_reconciliation": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+        "upbit_paper_stale_loop_reconciliation_operator_queue_closure": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
@@ -7997,6 +8189,44 @@ def build_read_only_dashboard_shell(
                 stale_loop_post_regeneration_freshness,
             )
         )
+    if isinstance(upbit_paper_stale_loop_reconciliation_operator_queue_closure_report, dict):
+        stale_loop_operator_queue_closure_result = (
+            validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(
+                upbit_paper_stale_loop_reconciliation_operator_queue_closure_report
+            )
+        )
+        stale_loop_operator_queue_closure_freshness = (
+            "PASS"
+            if stale_loop_operator_queue_closure_result.status == "PASS"
+            and upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.get("closure_status")
+            in {"PASS", "BLOCKED"}
+            and upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.get("current_evidence_write_allowed")
+            is False
+            and upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.get(
+                "current_evidence_write_allowed_count"
+            )
+            == 0
+            and upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.get(
+                "current_evidence_usable_after_closure_count"
+            )
+            == 0
+            and upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.get("live_order_ready") is False
+            and upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.get("live_order_allowed") is False
+            and upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.get("can_live_trade") is False
+            and upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "STALE_LOOP_OPERATOR_QUEUE_CLOSURE",
+                paths.get(
+                    "upbit_paper_stale_loop_reconciliation_operator_queue_closure",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+                ),
+                True,
+                stale_loop_operator_queue_closure_freshness,
+            )
+        )
     if isinstance(upbit_paper_ledger_idempotency_runtime_evidence_report, dict):
         idempotency_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
             upbit_paper_ledger_idempotency_runtime_evidence_report
@@ -8064,6 +8294,7 @@ def build_read_only_dashboard_shell(
         post_repair_reconciliation_report=upbit_paper_post_repair_reconciliation_report,
         repair_operator_queue_report=upbit_paper_repair_operator_queue_report,
         stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
+        stale_loop_operator_queue_closure_report=upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
     )
     position_snapshot = _position_snapshot(summary, summary_freshness)
     portfolio_snapshot = _portfolio_snapshot(
@@ -8464,6 +8695,17 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "stale_loop_post_regeneration_excluded_from_current_evidence_count",
                 "stale_loop_post_regeneration_primary_blocker_code",
                 "stale_loop_post_regeneration_operator_next_action",
+                "stale_loop_operator_queue_closure_status",
+                "stale_loop_operator_queue_closure_validation_status",
+                "stale_loop_operator_queue_closure_item_count",
+                "stale_loop_operator_queue_closure_ledger_recheck_ready_count",
+                "stale_loop_operator_queue_closure_recovery_guard_required_count",
+                "stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count",
+                "stale_loop_operator_queue_closure_operator_review_required_count",
+                "stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count",
+                "stale_loop_operator_queue_closure_current_evidence_write_allowed_count",
+                "stale_loop_operator_queue_closure_primary_blocker_code",
+                "stale_loop_operator_queue_closure_next_action",
             )
         )
         for code in reconciliation.get("post_rerun_blocker_codes", []):
@@ -8471,6 +8713,8 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
         for code in reconciliation.get("post_repair_blocker_codes", []):
             values.append(str(code))
         for code in reconciliation.get("stale_loop_post_regeneration_blocker_codes", []):
+            values.append(str(code))
+        for code in reconciliation.get("stale_loop_operator_queue_closure_blocker_codes", []):
             values.append(str(code))
     stability = shell.get("stability_trends", {})
     if isinstance(stability, dict):
@@ -8995,6 +9239,14 @@ def validate_read_only_dashboard_shell(
         "stale_loop_post_regeneration_reconciliation_validation_status",
         "UNTESTED",
     )
+    stale_loop_operator_queue_closure_status = reconciliation.get(
+        "stale_loop_operator_queue_closure_status",
+        "NOT_LOADED",
+    )
+    stale_loop_operator_queue_closure_validation_status = reconciliation.get(
+        "stale_loop_operator_queue_closure_validation_status",
+        "UNTESTED",
+    )
     if post_rerun_rollup_status not in POST_RERUN_BLOCKER_ROLLUP_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun blocker rollup status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_rollup_validation_status not in POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES:
@@ -9038,6 +9290,10 @@ def validate_read_only_dashboard_shell(
         not in STALE_LOOP_POST_REGENERATION_RECONCILIATION_VALIDATION_STATUSES
     ):
         return DashboardValidationResult("FAIL", "stale-loop post-regeneration reconciliation validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if stale_loop_operator_queue_closure_status not in STALE_LOOP_OPERATOR_QUEUE_CLOSURE_STATUSES:
+        return DashboardValidationResult("FAIL", "stale-loop operator queue closure status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if stale_loop_operator_queue_closure_validation_status not in STALE_LOOP_OPERATOR_QUEUE_CLOSURE_VALIDATION_STATUSES:
+        return DashboardValidationResult("FAIL", "stale-loop operator queue closure validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("post_rerun_current_evidence_bridge_status", "NOT_LOADED") not in POST_RERUN_CURRENT_EVIDENCE_BRIDGE_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun current-evidence bridge status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if (
@@ -9138,6 +9394,16 @@ def validate_read_only_dashboard_shell(
         "stale_loop_post_regeneration_replacement_hash_mismatch_count",
         "stale_loop_post_regeneration_unpaired_artifact_count",
         "stale_loop_post_regeneration_duplicate_runtime_cycle_hash_count",
+        "stale_loop_operator_queue_closure_item_count",
+        "stale_loop_operator_queue_closure_source_blocked_item_count",
+        "stale_loop_operator_queue_closure_ledger_recheck_ready_count",
+        "stale_loop_operator_queue_closure_recovery_guard_required_count",
+        "stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count",
+        "stale_loop_operator_queue_closure_operator_review_required_count",
+        "stale_loop_operator_queue_closure_unsafe_or_scope_blocked_count",
+        "stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count",
+        "stale_loop_operator_queue_closure_current_evidence_write_allowed_count",
+        "stale_loop_operator_queue_closure_source_ledger_mismatch_count",
     )
     for field in post_rerun_count_fields:
         value = reconciliation.get(field, 0)
@@ -9179,6 +9445,16 @@ def validate_read_only_dashboard_shell(
         not isinstance(code, str) or not code for code in stale_loop_post_regeneration_blocker_codes
     ):
         return DashboardValidationResult("FAIL", "stale-loop post-regeneration blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
+    stale_loop_operator_queue_closure_blocker_codes = reconciliation.get(
+        "stale_loop_operator_queue_closure_blocker_codes",
+        [],
+    )
+    if stale_loop_operator_queue_closure_blocker_codes is None:
+        stale_loop_operator_queue_closure_blocker_codes = []
+    if not isinstance(stale_loop_operator_queue_closure_blocker_codes, list) or any(
+        not isinstance(code, str) or not code for code in stale_loop_operator_queue_closure_blocker_codes
+    ):
+        return DashboardValidationResult("FAIL", "stale-loop operator queue closure blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
     stale_loop_post_regeneration_reason_counts = reconciliation.get(
         "stale_loop_post_regeneration_blocked_repair_reason_counts",
         [],
@@ -9199,6 +9475,8 @@ def validate_read_only_dashboard_shell(
         allowed_post_rerun_primary_blockers.add("REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION")
     if stale_loop_post_regeneration_status == "BLOCKED":
         allowed_post_rerun_primary_blockers.add("STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
+    if stale_loop_operator_queue_closure_status == "BLOCKED":
+        allowed_post_rerun_primary_blockers.add("STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING")
     if (
         reconciliation.get("post_rerun_reconciliation_repair_path_first_gate_id", "NOT_LOADED")
         not in POST_RERUN_RECONCILIATION_REPAIR_GATE_IDS
@@ -9578,6 +9856,39 @@ def validate_read_only_dashboard_shell(
             or "LEDGER_ROLLUP_RECONCILIATION_REQUIRED" not in reason_codes
         ):
             return DashboardValidationResult("BLOCKED", "stale-loop post-regeneration reconciliation must render as a red blocked regenerated-source path", "LIVE_FINAL_GUARD_FAILED")
+    if stale_loop_operator_queue_closure_status == "BLOCKED":
+        item_count = reconciliation.get("stale_loop_operator_queue_closure_item_count", 0)
+        lane_count = (
+            reconciliation.get("stale_loop_operator_queue_closure_ledger_recheck_ready_count", 0)
+            + reconciliation.get("stale_loop_operator_queue_closure_recovery_guard_required_count", 0)
+            + reconciliation.get("stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count", 0)
+            + reconciliation.get("stale_loop_operator_queue_closure_operator_review_required_count", 0)
+            + reconciliation.get("stale_loop_operator_queue_closure_unsafe_or_scope_blocked_count", 0)
+        )
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source")
+            not in {
+                "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+                "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+            }
+            or reconciliation.get("primary_blocker_code")
+            not in {
+                "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+                "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING",
+            }
+            or reconciliation.get("stale_loop_operator_queue_closure_validation_status") != "PASS"
+            or item_count <= 0
+            or reconciliation.get("stale_loop_operator_queue_closure_source_blocked_item_count", 0) != item_count
+            or lane_count != item_count
+            or reconciliation.get("stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count", 0) != 0
+            or reconciliation.get("stale_loop_operator_queue_closure_current_evidence_write_allowed_count", 0) != 0
+            or "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING"
+            not in set(stale_loop_operator_queue_closure_blocker_codes)
+        ):
+            return DashboardValidationResult("BLOCKED", "stale-loop operator queue closure must render as a red display-only closure blocker", "LIVE_FINAL_GUARD_FAILED")
     if reconciliation.get("ledger_state") not in RECONCILIATION_RECOVERY_LEDGER_STATES:
         return DashboardValidationResult("FAIL", "ledger state display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("single_writer_state") not in RECONCILIATION_RECOVERY_WRITER_STATES:
@@ -11633,6 +11944,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<br>usable={safe_text(reconciliation.get('stale_loop_post_regeneration_current_evidence_usable_count', 0))}"
         f"<br>excluded={safe_text(reconciliation.get('stale_loop_post_regeneration_excluded_from_current_evidence_count', 0))}"
         f"<br>ledger-blocked={safe_text(_reason_count_value(reconciliation.get('stale_loop_post_regeneration_blocked_repair_reason_counts', []), 'LEDGER_ROLLUP_BLOCKED'))}</p></div>"
+        "<div><strong>Stale Loop Operator Queue Closure</strong>"
+        f"<p>closure={safe_text(reconciliation.get('stale_loop_operator_queue_closure_status', 'NOT_LOADED'))}"
+        f"<br>items={safe_text(reconciliation.get('stale_loop_operator_queue_closure_item_count', 0))}"
+        f"<br>ledger-ready={safe_text(reconciliation.get('stale_loop_operator_queue_closure_ledger_recheck_ready_count', 0))}"
+        f"<br>recovery={safe_text(reconciliation.get('stale_loop_operator_queue_closure_recovery_guard_required_count', 0))}"
+        f"<br>cycle-rerun={safe_text(reconciliation.get('stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count', 0))}"
+        f"<br>operator-review={safe_text(reconciliation.get('stale_loop_operator_queue_closure_operator_review_required_count', 0))}"
+        f"<br>writes={safe_text(reconciliation.get('stale_loop_operator_queue_closure_current_evidence_write_allowed_count', 0))}"
+        f"<br>usable-after-closure={safe_text(reconciliation.get('stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count', 0))}</p></div>"
         "<div><strong>Live Boundary</strong>"
         "<p><span class=\"pill safe-lock\">live_order_allowed=false</span><br><span class=\"pill safe-lock\">can_live_trade=false</span><br><span class=\"pill safe-lock\">scale_up_allowed=false</span></p></div>"
         "</section>"

@@ -97,6 +97,7 @@
             "POST_REPAIR_RECONCILIATION",
             "REPAIR_OPERATOR_QUEUE",
             "STALE_LOOP_POST_REGENERATION_RECONCILIATION",
+            "STALE_LOOP_OPERATOR_QUEUE_CLOSURE",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD"
@@ -128,6 +129,7 @@
             "upbit_paper_post_repair_reconciliation_report.json",
             "upbit_paper_repair_operator_queue_report.json",
             "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+            "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json"
@@ -503,6 +505,7 @@
             "upbit_paper_post_repair_reconciliation_report.json",
             "upbit_paper_repair_operator_queue_report.json",
             "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+            "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
           ]
         },
@@ -1329,6 +1332,86 @@
           "minLength": 1
         },
         "stale_loop_post_regeneration_blocker_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "stale_loop_operator_queue_closure_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "INVALID"
+          ]
+        },
+        "stale_loop_operator_queue_closure_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "stale_loop_operator_queue_closure_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_source_blocked_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_ledger_recheck_ready_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_recovery_guard_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_runtime_cycle_rerun_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_operator_review_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_unsafe_or_scope_blocked_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_current_evidence_write_allowed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_source_ledger_idempotency_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stale_loop_operator_queue_closure_source_ledger_reconciliation_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stale_loop_operator_queue_closure_source_ledger_mismatch_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stale_loop_operator_queue_closure_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stale_loop_operator_queue_closure_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stale_loop_operator_queue_closure_blocker_codes": {
           "type": "array",
           "items": {
             "type": "string",
