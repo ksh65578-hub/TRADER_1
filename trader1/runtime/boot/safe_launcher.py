@@ -76,6 +76,9 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_locked_output import (
     validate_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_implementation_prep import (
+    validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
@@ -574,6 +577,9 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report": base
         / "paper_runtime"
         / "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json",
+        "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report": base
+        / "paper_runtime"
+        / "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
         "upbit_paper_ledger_idempotency_runtime_evidence_report": base
         / "ledger"
         / "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
@@ -1035,6 +1041,26 @@ def load_scoped_upbit_paper_repaired_current_evidence_audited_writer_locked_outp
     return locked_output
 
 
+def load_scoped_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+    report: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    implementation_prep = _load_dashboard_json_artifact(
+        paths["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"]
+    )
+    if implementation_prep is None:
+        return None
+    result = validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+        implementation_prep
+    )
+    if result.status in {"PASS", "BLOCKED"}:
+        return implementation_prep
+    return implementation_prep
+
+
 def load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(
     report: dict[str, Any],
     root: Path = ROOT,
@@ -1446,6 +1472,10 @@ def build_launcher_dashboard_artifacts(
             paths["upbit_paper_repaired_current_evidence_audited_writer_locked_output_report"],
             root,
         ),
+        "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep": _runtime_display_path(
+            paths["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"],
+            root,
+        ),
         "upbit_paper_ledger_idempotency_runtime_evidence": _runtime_display_path(
             paths["upbit_paper_ledger_idempotency_runtime_evidence_report"], root
         ),
@@ -1515,6 +1545,9 @@ def build_launcher_dashboard_artifacts(
     upbit_paper_repaired_current_evidence_audited_writer_locked_output_report = (
         load_scoped_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report(report, root)
     )
+    upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report = (
+        load_scoped_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(report, root)
+    )
     upbit_paper_ledger_idempotency_runtime_evidence_report = (
         load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(report, root)
     )
@@ -1551,6 +1584,7 @@ def build_launcher_dashboard_artifacts(
         upbit_paper_repaired_current_evidence_audited_writer_precheck_report=upbit_paper_repaired_current_evidence_audited_writer_precheck_report,
         upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
         upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
+        upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,

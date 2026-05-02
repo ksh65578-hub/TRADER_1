@@ -1,7 +1,7 @@
 {
   "actual_long_run_evidence_created": false,
-  "audited_writer_implementation_prep_hash": "25907A4B7F932B1AE296F6E4C62929634687BF75950D19FE1AB70FE532AC4D31",
-  "audited_writer_implementation_prep_id": "upbit-paper-repaired-current-evidence-audited-writer-implementation-prep-20260502",
+  "audited_writer_implementation_prep_hash": "06DCE6A57900E07E0029969770BC9A399C9533796E9247000C2282D8A13158B0",
+  "audited_writer_implementation_prep_id": "upbit-paper-repaired-current-evidence-audited-writer-implementation-prep-dashboard-binding-20260502",
   "audited_writer_implementation_prep_role": "PAPER_RUNTIME_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP_REVIEW_ONLY",
   "blocker_codes": [
     "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
@@ -19,7 +19,7 @@
   "dashboard_truth_only": true,
   "display_only": true,
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-02T14:29:23Z",
+  "generated_at_utc": "2026-05-02T15:03:22Z",
   "idempotency_manifest_write_allowed": false,
   "idempotency_manifest_written": false,
   "implementation_prep_check_blocked_count": 1,

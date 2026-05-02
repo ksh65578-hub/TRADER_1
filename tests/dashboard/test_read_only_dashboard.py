@@ -66,6 +66,10 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
     build_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
     upbit_paper_repaired_current_evidence_audited_writer_locked_output_hash,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_implementation_prep import (
+    build_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
+    upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_hash,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
@@ -251,6 +255,7 @@ def build_dashboard(
     upbit_paper_repaired_current_evidence_audited_writer_precheck_report=None,
     upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=None,
     upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=None,
+    upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=None,
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
@@ -282,6 +287,7 @@ def build_dashboard(
         upbit_paper_repaired_current_evidence_audited_writer_precheck_report=upbit_paper_repaired_current_evidence_audited_writer_precheck_report,
         upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
         upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
+        upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
@@ -714,6 +720,14 @@ def audited_writer_locked_output_fixture(source_dry_run_report=None):
     )
 
 
+def audited_writer_implementation_prep_fixture(source_locked_output_report=None):
+    return build_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+        root=ROOT,
+        source_audited_writer_locked_output_report=source_locked_output_report or audited_writer_locked_output_fixture(),
+        audited_writer_implementation_prep_id="test-dashboard-audited-writer-implementation-prep",
+    )
+
+
 def build_dashboard_with_post_rerun_blocker_rollup(report=None):
     report = report or post_rerun_blocker_rollup_fixture()
     session_id = report["session_id"]
@@ -1062,6 +1076,38 @@ def build_dashboard_with_audited_writer_locked_output(
         upbit_paper_repaired_current_evidence_audited_writer_precheck_report=source_precheck_report,
         upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=source_dry_run_report,
         upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=report,
+    )
+
+
+def build_dashboard_with_audited_writer_implementation_prep(
+    report=None,
+    source_locked_output_report=None,
+    source_dry_run_report=None,
+    source_design_report=None,
+    source_precheck_report=None,
+    source_guard_report=None,
+):
+    source_guard_report = source_guard_report or stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_fixture()
+    source_precheck_report = source_precheck_report or audited_writer_precheck_fixture(source_guard_report)
+    source_design_report = source_design_report or audited_writer_design_fixture(source_precheck_report)
+    source_dry_run_report = source_dry_run_report or audited_writer_dry_run_fixture(source_design_report)
+    source_locked_output_report = source_locked_output_report or audited_writer_locked_output_fixture(source_dry_run_report)
+    report = report or audited_writer_implementation_prep_fixture(source_locked_output_report)
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=source_guard_report,
+        upbit_paper_repaired_current_evidence_audited_writer_precheck_report=source_precheck_report,
+        upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=source_dry_run_report,
+        upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=source_locked_output_report,
+        upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=report,
     )
 
 
@@ -3458,6 +3504,211 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         dashboard = build_dashboard_with_audited_writer_locked_output()
         dashboard["operator_workflow_summary"]["summary"] = (
             "Audited current-evidence writer dry-run is review-only; current evidence and portfolio truth writes remain blocked."
+        )
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_projects_audited_writer_implementation_prep_for_operator_visibility(self):
+        implementation_prep = audited_writer_implementation_prep_fixture()
+        dashboard = build_dashboard_with_audited_writer_implementation_prep(implementation_prep)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(
+            reconciliation["source"],
+            "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
+        )
+        self.assertEqual(reconciliation["primary_blocker_code"], "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_status"],
+            "BLOCKED_IMPLEMENTATION_PREP_WRITER_NOT_ENABLED",
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validation_status"],
+            "PASS",
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_check_count"],
+            11,
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_check_pass_count"],
+            10,
+        )
+        self.assertEqual(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_check_blocked_count"
+            ],
+            1,
+        )
+        self.assertTrue(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_inputs_clean"]
+        )
+        self.assertEqual(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_target_state_count"
+            ],
+            3,
+        )
+        self.assertEqual(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_target_state_hash"
+            ],
+            implementation_prep["target_state_hash"],
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_manifest_status"],
+            "PREPARED_NOT_WRITTEN",
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_manifest_hash"],
+            implementation_prep["pre_write_idempotency_manifest"]["manifest_hash"],
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_lock_path"],
+            "paper_runtime/locks/audited_current_evidence_writer.lock",
+        )
+        self.assertFalse(reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_passed"])
+        self.assertFalse(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_writer_enabled"]
+        )
+        self.assertFalse(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_writer_implementation_allowed"
+            ]
+        )
+        self.assertFalse(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_lock_acquire_attempted"
+            ]
+        )
+        self.assertFalse(reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_lock_acquired"])
+        self.assertFalse(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_lock_file_written"]
+        )
+        self.assertFalse(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_current_evidence_write_allowed"
+            ]
+        )
+        self.assertFalse(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_current_evidence_artifact_written"
+            ]
+        )
+        self.assertFalse(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_idempotency_manifest_write_allowed"
+            ]
+        )
+        self.assertFalse(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_idempotency_manifest_written"
+            ]
+        )
+        self.assertFalse(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_portfolio_truth_write_allowed"
+            ]
+        )
+        self.assertFalse(
+            reconciliation[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_portfolio_truth_artifact_written"
+            ]
+        )
+        self.assertIn(
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_blocker_codes"],
+        )
+
+        sources = [
+            source
+            for source in dashboard["source_artifacts"]
+            if source["artifact_id"] == "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP"
+        ]
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(
+            sources[0]["filename"],
+            "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
+        )
+        self.assertEqual(sources[0]["freshness_status"], "PASS")
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["blocking_reason"], "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+        self.assertIn("Configured PAPER capital is 1,000,000 KRW", portfolio["source_snapshot_freshness_message"])
+        self.assertIn("implementation prep", portfolio["source_snapshot_freshness_message"])
+
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["status"], "BLOCKED")
+        self.assertEqual(operator_action["primary_action"], "STOP_AND_INSPECT")
+        self.assertEqual(operator_action["primary_action_label"], "Inspect audited writer implementation prep")
+        self.assertIn(
+            "audited current-evidence writer implementation prep is review-only",
+            operator_action["one_line_blocker"],
+        )
+        self.assertIn("portfolio truth writes=0", operator_action["one_line_blocker"])
+        self.assertIn("idempotency manifest writes=0", operator_action["one_line_blocker"])
+        self.assertIn("lock writes=0", operator_action["one_line_blocker"])
+        self.assertIn("implementation prep", operator_action["next_operator_action"].lower())
+        self.assertFalse(operator_action["safe_to_continue_paper"])
+
+        workflow = dashboard["operator_workflow_summary"]
+        self.assertEqual(workflow["status"], "BLOCKED")
+        self.assertIn("Audited current-evidence writer implementation prep is review-only", workflow["summary"])
+        self.assertIn("target paths and idempotency manifest are previewed", workflow["steps"][1]["detail"])
+        self.assertIn("implementation-prep controls display-only", workflow["steps"][2]["detail"])
+        self.assertFalse(workflow["live_order_allowed"])
+        self.assertFalse(workflow["scale_up_allowed"])
+
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Inspect audited writer implementation prep", html)
+        self.assertIn("Audited Current Evidence Writer Implementation Prep", html)
+        self.assertIn("implementation-prep=BLOCKED_IMPLEMENTATION_PREP_WRITER_NOT_ENABLED", html)
+        self.assertIn("checks=10/11", html)
+        self.assertIn("blocked-checks=1", html)
+        self.assertIn("targets=3", html)
+        self.assertIn("manifest=PREPARED_NOT_WRITTEN", html)
+        self.assertIn("lock-acquire-attempted=False", html)
+        self.assertIn("idempotency-manifest-written=False", html)
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_audited_writer_implementation_prep_drift(self):
+        implementation_prep = audited_writer_implementation_prep_fixture()
+        implementation_prep["lock_acquire_attempted"] = True
+        implementation_prep["audited_writer_implementation_prep_hash"] = (
+            upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_hash(implementation_prep)
+        )
+        dashboard = build_dashboard_with_audited_writer_implementation_prep(implementation_prep)
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "INVALID")
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_status"],
+            "INVALID",
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_audited_writer_implementation_prep_operator_action_drift(self):
+        dashboard = build_dashboard_with_audited_writer_implementation_prep()
+        dashboard["operator_action_summary"]["primary_action_label"] = "Inspect audited writer locked output"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_blocks_audited_writer_implementation_prep_operator_workflow_drift(self):
+        dashboard = build_dashboard_with_audited_writer_implementation_prep()
+        dashboard["operator_workflow_summary"]["summary"] = (
+            "Audited current-evidence writer locked output is review-only; current evidence, portfolio truth, and lock writes remain blocked."
         )
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)

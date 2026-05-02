@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.startup_probe.v1",
-  "generated_at_utc": "2026-05-02T14:01:54Z",
+  "generated_at_utc": "2026-05-02T15:03:22Z",
   "project_id": "TRADER_1",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
@@ -8,8 +8,8 @@
   "session_id": "mvp1_upbit_paper_launcher",
   "config_hash": "4B45AF78B89DB73C6F6BD84FEE7117CE972783DE0DDB8844B18CF15DB23A0BF9",
   "registry_hash": "2DB1033039A65B4F2BEC55C3CF7A3EBF63A863D95C570C003078B6A683903E26",
-  "schema_bundle_hash": "D18FC9D03C152860DD613041709ED79E141E0C7EF7FF670A43E8C53BE8AB3280",
-  "source_tree_hash": "AE69D380180C669059420996E9DC80C3FE74F904E062670C07B20E50DF3A507B",
+  "schema_bundle_hash": "BBF699E9331D1E612D876CA2D896A874087A2D3D49B6D1999994D342B08054BB",
+  "source_tree_hash": "43A13C99F71E1322247F115A319ACEB3EF7E74C9EE26D130CFD3D53DD659D6DD",
   "engine_state_before": "BOOTSTRAP_READ_ONLY",
   "engine_state_after_probe": "SAFE_MODE",
   "startup_probe_phase": "STARTUP_PROBE_GATE_BLOCKED",
@@ -76,5 +76,5 @@
   ],
   "final_action": "NO_TRADE",
   "next_action": "provide missing hard truth and rerun startup probe",
-  "probe_hash": "40BB961B8F6469249E84DF8083F38934B5B90CF52F6D207F5CA87C7170FE6112"
+  "probe_hash": "B7AED62857F964FD25A6F66D4950E5B80576C0BB0EB0D980A6FCBEDE39C264C8"
 }
