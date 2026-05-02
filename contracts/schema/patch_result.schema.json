@@ -997,6 +997,41 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_isolated_event_id_scope_repair_executor_status": {
+      "type": "string"
+    },
+    "stale_loop_isolated_event_id_scope_repair_executor_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_executor_repair_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_executor_repair_cycle_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_executor_written_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_executor_event_id_updated_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_executor_hash_recalculation_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_executor_post_repair_duplicate_event_id_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_executor_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0

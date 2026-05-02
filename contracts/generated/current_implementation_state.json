@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-02T09:18:31Z",
+  "updated_at_utc": "2026-05-02T09:45:09Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -276,6 +276,7 @@
     "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY",
     "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-DUPLICATE-RECONCILIATION-RECHECK",
+    "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-EVENT-ID-SCOPE-REPAIR-EXECUTOR",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-EVENT-ID-SCOPE-REPAIR-PLAN",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-LEDGER-ROLLUP-REBUILD",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-LEDGER-INPUT-SCOPE-REPAIR-EXECUTOR",
@@ -412,6 +413,7 @@
     "trader1.upbit_paper_runtime_recovery_guard_report.v1",
     "trader1.upbit_paper_runtime_sample_history.v1",
     "trader1.upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report.v1",
+    "trader1.upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_report.v1",
     "trader1.upbit_paper_stale_loop_isolated_event_id_scope_repair_plan_report.v1",
     "trader1.upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_report.v1",
     "trader1.upbit_paper_stale_loop_ledger_input_scope_repair_executor_report.v1",
@@ -567,6 +569,7 @@
     "upbit_paper_runtime_sample_history_validator",
     "upbit_paper_stale_loop_execution_guard_validator",
     "upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_validator",
+    "upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_validator",
     "upbit_paper_stale_loop_isolated_event_id_scope_repair_plan_validator",
     "upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_validator",
     "upbit_paper_stale_loop_ledger_input_scope_repair_executor_validator",
@@ -614,12 +617,12 @@
     "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_PLAN_20260502_001",
-  "last_patch_result_hash": "A1E9B345F33A364C9D7B6CE2DCCE591F42EB2BF2FE2C148262B2372357E7B9BF",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_EXECUTOR",
+  "last_patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_EXECUTOR_20260502_001",
+  "last_patch_result_hash": "0133AFE018BF209B8FB9D0652479092B846106ECDCC0B78EBE79C97374D2DB84",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_ROLLUP_REBUILD",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "7E632D551DA07245841D4F93B9CFF7C8F309A24D4A9D98387128860EB1B05770"
+  "state_hash": "D3201605BCE027FA12B57F27618E5B343A298F2A1F4FC0F612240AA43C727E51"
 }

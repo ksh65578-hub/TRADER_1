@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "9BAA5C1479D0ED1F0F6F20B5A2A7246288B623043076E7C1249EB5CA95F853F0",
+      "sha256": "0EC3E9D808333A93A34A195DD98F4DEA521B1EAC6359609ACBCFBA365C3EC7BD",
       "size_bytes": 1096
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "contracts/schema/patch_result.schema.json",
-      "sha256": "CF7570E258A4F6AB102B14ADC53BE799FB16D4730A83AF8C3E629634B94EA73C",
-      "size_bytes": 31329
+      "sha256": "D676DACC4781257783CE3B0F81D5480D6B14D3F3FF0D636488578C9ABEE015E7",
+      "size_bytes": 32508
     },
     {
       "path": "contracts/schema/position_sizing_decision.schema.json",
@@ -552,6 +552,11 @@
       "path": "contracts/schema/upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report.schema.json",
       "sha256": "B709DA5B4C7A7C25A80A8FE49506887D467A5A6461ADDA52F3CAB29BAD840825",
       "size_bytes": 13654
+    },
+    {
+      "path": "contracts/schema/upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_report.schema.json",
+      "sha256": "0360A14ABE762F514A0799EA3822DF12B3CD79A65F471F15CC0BBAEB9DC18F1D",
+      "size_bytes": 13012
     },
     {
       "path": "contracts/schema/upbit_paper_stale_loop_isolated_event_id_scope_repair_plan_report.schema.json",
@@ -1222,6 +1227,11 @@
       "path": "tests/runtime/test_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck.py",
       "sha256": "FE766C12CBEE7D3659FCEBA162CEF4FD04EF9E65CCAB12AD9178EC1176C9B0FA",
       "size_bytes": 7719
+    },
+    {
+      "path": "tests/runtime/test_upbit_paper_stale_loop_isolated_event_id_scope_repair_executor.py",
+      "sha256": "AB3822C1A0B33DC311DD1612E761365DEC8BEFF2D9DDEA09BC916E1D8656B2CC",
+      "size_bytes": 10878
     },
     {
       "path": "tests/runtime/test_upbit_paper_stale_loop_isolated_event_id_scope_repair_plan.py",
@@ -3499,6 +3509,11 @@
       "size_bytes": 30551
     },
     {
+      "path": "tools/emit_upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_patch_evidence.py",
+      "sha256": "DCC57ABF26FD0654145C2D34CC64CFE29D2C1199E618AF4CE88E2F0DD95C7882",
+      "size_bytes": 32062
+    },
+    {
       "path": "tools/emit_upbit_paper_stale_loop_isolated_event_id_scope_repair_plan_patch_evidence.py",
       "sha256": "D3307A868607BF384457FA12C7C204157758357202BB4E47ADBD4D64972EDDEC",
       "size_bytes": 30460
@@ -4454,6 +4469,11 @@
       "size_bytes": 31701
     },
     {
+      "path": "trader1/runtime/paper/upbit_paper_stale_loop_isolated_event_id_scope_repair_executor.py",
+      "sha256": "43FC268A314203EBAC2FC80C73067CCECB17B40779855950ABBDCD89D9E8A70B",
+      "size_bytes": 36709
+    },
+    {
       "path": "trader1/runtime/paper/upbit_paper_stale_loop_isolated_event_id_scope_repair_plan.py",
       "sha256": "B8FF3E5BB53D4D0DFAE1622F7B9D71EFE6820CCD0F4DDB6D0252E22BA49A4448",
       "size_bytes": 30758
@@ -4670,8 +4690,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "5F2C1600E89689FD6A123A904A506D589EA1FB4A2CFF922FF1B197A7F43523A7",
-      "size_bytes": 1079056
+      "sha256": "29F70E8552B448BD2B3CB9E7D62AB6805F1F9C7CD0F1D356E8B30D8E49008E7C",
+      "size_bytes": 1089494
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -5450,6 +5470,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_DUPLICATE_RECONCILIATION_RECHECK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_EXECUTOR.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -8201,6 +8225,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_EXECUTOR.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_PLAN.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -9430,6 +9458,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_DUPLICATE_RECONCILIATION_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_EXECUTOR.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10689,6 +10721,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_EXECUTOR.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_PLAN.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -11942,6 +11978,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_DUPLICATE_RECONCILIATION_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIR_EXECUTOR.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
@@ -13353,11 +13393,27 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-mode-F277557B433B/eid_repair/mvp4-candidate-linkage-cost-mode-72F5403130CA.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-mode-F277557B433B/eid_repair/mvp4-candidate-linkage-cost-mode-731F6482DCB3.jsonl",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-72F5403130CA.paper_ledger_events.jsonl",
       "reason": "denied:system/"
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-731F6482DCB3.paper_ledger_events.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop--BDA276F47C50/eid_repair/mvp4-public-rest-transform-loop--0C2E6FE7456E.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop--BDA276F47C50/eid_repair/mvp4-public-rest-transform-loop--E519286B8CA6.jsonl",
       "reason": "denied:system/"
     },
     {
@@ -13378,6 +13434,14 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-sequence-regime-guard-loop-rege-540754AE515E/rollup/isolated_rollup.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-r-9E8DA72D4D7A/eid_repair/mvp4-upbit-recovery-guard-loop-c-05D1969A30F4.jsonl",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-r-9E8DA72D4D7A/eid_repair/mvp4-upbit-recovery-guard-loop-c-EF1A4C85DCAD.jsonl",
       "reason": "denied:system/"
     },
     {
@@ -13830,6 +13894,10 @@
     },
     {
       "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_isolated_event_id_scope_repair_executor_report.json",
       "reason": "denied:system/"
     },
     {
