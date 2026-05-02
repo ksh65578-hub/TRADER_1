@@ -663,6 +663,33 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_normalized_reconciliation_preview_status": {
+      "type": "string"
+    },
+    "stale_loop_normalized_reconciliation_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_schema_resolved_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_required_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_schema_mismatch_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_normalized_reconciliation_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
