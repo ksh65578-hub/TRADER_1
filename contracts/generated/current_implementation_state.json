@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-02T06:30:49Z",
+  "updated_at_utc": "2026-05-02T06:46:25Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -276,6 +276,7 @@
     "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY",
     "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-LEDGER-RECHECK-PREVIEW",
+    "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-LEDGER-ROLLUP-RECONCILIATION-RECHECK",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-NORMALIZED-RECONCILIATION-PREVIEW",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-NORMALIZED-RECONCILIATION-RECHECK",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-POST-REGENERATION-DASHBOARD-BINDING",
@@ -403,6 +404,7 @@
     "trader1.upbit_paper_runtime_recovery_guard_report.v1",
     "trader1.upbit_paper_runtime_sample_history.v1",
     "trader1.upbit_paper_stale_loop_ledger_recheck_preview_report.v1",
+    "trader1.upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_report.v1",
     "trader1.upbit_paper_stale_loop_normalized_reconciliation_preview_report.v1",
     "trader1.upbit_paper_stale_loop_normalized_reconciliation_recheck_report.v1",
     "trader1.upbit_paper_stale_loop_post_regeneration_reconciliation_report.v1",
@@ -549,6 +551,7 @@
     "upbit_paper_runtime_sample_history_validator",
     "upbit_paper_stale_loop_execution_guard_validator",
     "upbit_paper_stale_loop_ledger_recheck_preview_validator",
+    "upbit_paper_stale_loop_ledger_rollup_reconciliation_recheck_validator",
     "upbit_paper_stale_loop_normalized_reconciliation_preview_validator",
     "upbit_paper_stale_loop_normalized_reconciliation_recheck_validator",
     "upbit_paper_stale_loop_post_regeneration_reconciliation_validator",
@@ -587,12 +590,12 @@
     "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_NORMALIZED_RECONCILIATION_RECHECK_20260502_001",
-  "last_patch_result_hash": "6953F4EAEC620D99D6433A1E5FC52C077FE32D39E666F203189033A9033A399E",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_RECONCILIATION_RECHECK",
+  "last_patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_RECONCILIATION_RECHECK_20260502_001",
+  "last_patch_result_hash": "2BAC616F5329E1588750820470042530AA6B19D77ECFF194861CA819E44E711E",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_PLAN",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "DD8D1455274A1CF213DD090CC221E4DFDEC393AE3466BDC4D714A4290C917AAB"
+  "state_hash": "A135D389CDE13BF39DCAEEF5DC6032350CC3ABB83B51AB04375862C3A33C7E20"
 }
