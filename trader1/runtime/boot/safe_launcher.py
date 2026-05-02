@@ -73,6 +73,9 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_dry_run import (
     validate_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_locked_output import (
+    validate_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
@@ -568,6 +571,9 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "upbit_paper_repaired_current_evidence_audited_writer_dry_run_report": base
         / "paper_runtime"
         / "upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.json",
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report": base
+        / "paper_runtime"
+        / "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json",
         "upbit_paper_ledger_idempotency_runtime_evidence_report": base
         / "ledger"
         / "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
@@ -1013,6 +1019,22 @@ def load_scoped_upbit_paper_repaired_current_evidence_audited_writer_dry_run_rep
     return dry_run
 
 
+def load_scoped_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report(
+    report: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    paths = launcher_dashboard_paths(report, root)
+    locked_output = _load_dashboard_json_artifact(
+        paths["upbit_paper_repaired_current_evidence_audited_writer_locked_output_report"]
+    )
+    if locked_output is None:
+        return None
+    result = validate_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report(locked_output)
+    if result.status in {"PASS", "BLOCKED"}:
+        return locked_output
+    return locked_output
+
+
 def load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(
     report: dict[str, Any],
     root: Path = ROOT,
@@ -1420,6 +1442,10 @@ def build_launcher_dashboard_artifacts(
             paths["upbit_paper_repaired_current_evidence_audited_writer_dry_run_report"],
             root,
         ),
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output": _runtime_display_path(
+            paths["upbit_paper_repaired_current_evidence_audited_writer_locked_output_report"],
+            root,
+        ),
         "upbit_paper_ledger_idempotency_runtime_evidence": _runtime_display_path(
             paths["upbit_paper_ledger_idempotency_runtime_evidence_report"], root
         ),
@@ -1486,6 +1512,9 @@ def build_launcher_dashboard_artifacts(
     upbit_paper_repaired_current_evidence_audited_writer_dry_run_report = (
         load_scoped_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report(report, root)
     )
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_report = (
+        load_scoped_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report(report, root)
+    )
     upbit_paper_ledger_idempotency_runtime_evidence_report = (
         load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(report, root)
     )
@@ -1521,6 +1550,7 @@ def build_launcher_dashboard_artifacts(
         upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
         upbit_paper_repaired_current_evidence_audited_writer_precheck_report=upbit_paper_repaired_current_evidence_audited_writer_precheck_report,
         upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
+        upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,

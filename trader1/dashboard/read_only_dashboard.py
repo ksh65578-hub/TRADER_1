@@ -61,6 +61,9 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_dry_run import (
     validate_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_locked_output import (
+    validate_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
@@ -95,6 +98,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
     "upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json",
     "upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.json",
+    "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
@@ -118,6 +122,7 @@ RECONCILIATION_RECOVERY_SOURCES = {
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
     "upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json",
     "upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.json",
+    "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
 }
 ORDER_AFFECTING_FINAL_ACTIONS = {
@@ -295,6 +300,18 @@ UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_STATUSES = {
     "INVALID",
 }
 UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_VALIDATION_STATUSES = {
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+    "UNTESTED",
+}
+UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT_STATUSES = {
+    "NOT_LOADED",
+    "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED",
+    "BLOCKED_SOURCE_DRY_RUN_INVALID",
+    "INVALID",
+}
+UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT_VALIDATION_STATUSES = {
     "PASS",
     "FAIL",
     "BLOCKED",
@@ -1026,6 +1043,13 @@ def _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary: dict
     ):
         return "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
     if (
+        reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_locked_output_status"
+        )
+        == "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED"
+    ):
+        return "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+    if (
         reconciliation_recovery_summary.get("stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status")
         == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
     ):
@@ -1118,6 +1142,10 @@ def _portfolio_snapshot(
         == "BLOCKED_AUDITED_WRITER_DISABLED"
         or reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_dry_run_status")
         == "BLOCKED_DRY_RUN_ONLY_WRITER_NOT_ENABLED"
+        or reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_locked_output_status"
+        )
+        == "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED"
     )
     if mode == "PAPER" and isinstance(summary, dict) and not post_rerun_current_truth_blocked:
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
@@ -1177,6 +1205,53 @@ def _portfolio_snapshot(
     source_snapshot_status = "UNTESTED"
     blocking_reason = "HARD_TRUTH_MISSING"
     if (
+        isinstance(reconciliation_recovery_summary, dict)
+        and reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_locked_output_status"
+        )
+        == "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED"
+    ):
+        source_snapshot_status = "BLOCKED"
+        blocking_reason = "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+        configured_krw = reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw",
+            0,
+        )
+        control_pass_count = reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count",
+            0,
+        )
+        control_blocked_count = reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_blocked_count",
+            0,
+        )
+        if isinstance(configured_krw, int) and configured_krw > 0:
+            configured_display = f"{configured_krw:,} KRW"
+            unverified_message = (
+                f"Configured PAPER capital is {configured_display}; audited writer locked-output preview is "
+                "review-only, and cash/equity remain unverified until a separate audited writer writes reconciled truth."
+            )
+            cash_detail = (
+                f"Configured PAPER capital is {configured_display}; locked-output cash status is UNVERIFIED and no "
+                "current-evidence artifact was written."
+            )
+            equity_detail = (
+                f"Configured PAPER capital is {configured_display}; equity remains unverified because locked-output "
+                "controls do not write portfolio truth."
+            )
+            value_notes = {
+                "cash": (
+                    f"Configured PAPER capital is {configured_display}, but it is locked-output preview data only and not verified cash."
+                ),
+                "equity": "No verified equity source loaded; locked-output scaffold has not written portfolio truth.",
+                "total_pnl": "No verified total PnL source loaded; locked-output scaffold is not portfolio truth.",
+                "return_pct": "No verified return source loaded; configured PAPER capital is not a return base yet.",
+            }
+        next_required_evidence = (
+            "Implement the separate audited writer after locked-output controls are reviewed; "
+            f"locked controls pass={control_pass_count}, blocked={control_blocked_count}, writes=0."
+        )
+    elif (
         isinstance(reconciliation_recovery_summary, dict)
         and reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_dry_run_status")
         == "BLOCKED_DRY_RUN_ONLY_WRITER_NOT_ENABLED"
@@ -3711,6 +3786,12 @@ def _operator_action_summary(
         reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_dry_run_status")
         == "BLOCKED_DRY_RUN_ONLY_WRITER_NOT_ENABLED"
     )
+    audited_writer_locked_output_blocked = (
+        reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_locked_output_status"
+        )
+        == "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED"
+    )
 
     if (
         operation_severity == "ERROR"
@@ -3724,15 +3805,19 @@ def _operator_action_summary(
         primary_action = "STOP_AND_INSPECT"
         workflow_step = "INSPECT_DASHBOARD"
         label = (
-            "Inspect audited writer dry-run"
-            if audited_writer_dry_run_blocked
+            "Inspect audited writer locked output"
+            if audited_writer_locked_output_blocked
             else (
-                "Inspect audited writer precheck"
-                if audited_writer_precheck_blocked
+                "Inspect audited writer dry-run"
+                if audited_writer_dry_run_blocked
                 else (
-                    "Inspect repaired current-evidence blocker"
-                    if repaired_current_evidence_guard_blocked
-                    else "Stop review and inspect the blocker"
+                    "Inspect audited writer precheck"
+                    if audited_writer_precheck_blocked
+                    else (
+                        "Inspect repaired current-evidence blocker"
+                        if repaired_current_evidence_guard_blocked
+                        else "Stop review and inspect the blocker"
+                    )
                 )
             )
         )
@@ -3859,20 +3944,29 @@ def _operator_workflow_summary(
         and "audited current-evidence writer dry-run is review-only" in operator_blocker_text
         and "portfolio truth writes=0" in operator_blocker_text
     )
+    audited_writer_locked_output_blocked = (
+        action_status == "BLOCKED"
+        and "audited current-evidence writer locked output is review-only" in operator_blocker_text
+        and "portfolio truth writes=0" in operator_blocker_text
+    )
     if action_status == "BLOCKED":
         status = "BLOCKED"
         severity = "ERROR"
         color_token = "red"
         summary = (
-            "Audited current-evidence writer dry-run is review-only; current evidence and portfolio truth writes remain blocked."
-            if audited_writer_dry_run_blocked
+            "Audited current-evidence writer locked output is review-only; current evidence, portfolio truth, and lock writes remain blocked."
+            if audited_writer_locked_output_blocked
             else (
-                "Audited current-evidence writer is not implemented; current evidence and portfolio truth writes remain blocked."
-                if audited_writer_precheck_blocked
+                "Audited current-evidence writer dry-run is review-only; current evidence and portfolio truth writes remain blocked."
+                if audited_writer_dry_run_blocked
                 else (
-                    "Repaired isolated event-id candidates are review-only; current evidence and portfolio truth writes remain blocked."
-                    if repaired_current_evidence_guard_blocked
-                    else "Operator flow is blocked until the red dashboard issue is inspected."
+                    "Audited current-evidence writer is not implemented; current evidence and portfolio truth writes remain blocked."
+                    if audited_writer_precheck_blocked
+                    else (
+                        "Repaired isolated event-id candidates are review-only; current evidence and portfolio truth writes remain blocked."
+                        if repaired_current_evidence_guard_blocked
+                        else "Operator flow is blocked until the red dashboard issue is inspected."
+                    )
                 )
             )
         )
@@ -3917,7 +4011,14 @@ def _operator_workflow_summary(
 
     inspect_detail = "Check operation, portfolio, risk, no-trade reason, and source freshness."
     collect_detail = "Accumulate PAPER/SHADOW samples, execution feedback, and strategy evidence."
-    if audited_writer_dry_run_blocked:
+    if audited_writer_locked_output_blocked:
+        inspect_detail = (
+            "Inspect the audited writer locked-output scaffold; target paths are fixed but no cash, equity, or writer lock is verified."
+        )
+        collect_detail = (
+            "Keep locked-output controls display-only until a separate audited writer implementation is approved."
+        )
+    elif audited_writer_dry_run_blocked:
         inspect_detail = (
             "Inspect the audited writer dry-run; configured PAPER capital is config-only and not verified cash or equity."
         )
@@ -6191,6 +6292,7 @@ def _reconciliation_recovery_summary(
     stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report: dict[str, Any] | None,
     upbit_paper_repaired_current_evidence_audited_writer_precheck_report: dict[str, Any] | None,
     upbit_paper_repaired_current_evidence_audited_writer_dry_run_report: dict[str, Any] | None,
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_report: dict[str, Any] | None,
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
     restart_loaded = isinstance(restart_recovery_report, dict)
@@ -6219,6 +6321,10 @@ def _reconciliation_recovery_summary(
     )
     upbit_paper_repaired_current_evidence_audited_writer_dry_run_loaded = isinstance(
         upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
+        dict,
+    )
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_loaded = isinstance(
+        upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
         dict,
     )
     reconciliation_status = "NOT_LOADED"
@@ -6390,6 +6496,25 @@ def _reconciliation_recovery_summary(
     upbit_paper_repaired_current_evidence_audited_writer_dry_run_primary_blocker_code = "NOT_LOADED"
     upbit_paper_repaired_current_evidence_audited_writer_dry_run_next_action = "NOT_LOADED"
     upbit_paper_repaired_current_evidence_audited_writer_dry_run_blocker_codes: list[str] = []
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_status = "NOT_LOADED"
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_validation_status = "UNTESTED"
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count = 0
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count = 0
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_blocked_count = 0
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw = 0
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_cash_status = "NOT_LOADED"
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_path = "NOT_LOADED"
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_acquired = False
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_file_written = False
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_passed = False
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_writer_enabled = False
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_write_allowed = False
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_artifact_written = False
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_write_allowed = False
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_artifact_written = False
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_primary_blocker_code = "NOT_LOADED"
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_next_action = "NOT_LOADED"
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_blocker_codes: list[str] = []
     reconciliation_validation_status = "UNTESTED"
     restart_validation_status = "UNTESTED"
     post_rerun_rollup_validation_status = "UNTESTED"
@@ -7839,6 +7964,153 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Audited current-evidence writer dry-run status is unknown.")
 
+    if upbit_paper_repaired_current_evidence_audited_writer_locked_output_loaded:
+        source = "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json"
+        upbit_paper_repaired_current_evidence_audited_writer_locked_output_status = str(
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "locked_output_status",
+                "INVALID",
+            )
+        )
+        locked_output_result = validate_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report(
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_report
+        )
+        upbit_paper_repaired_current_evidence_audited_writer_locked_output_validation_status = (
+            locked_output_result.status
+        )
+        if locked_output_result.status != "PASS":
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = locked_output_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(
+                f"Audited current-evidence writer locked-output scaffold invalid: {locked_output_result.message}"
+            )
+        elif not _scope_matches(
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
+            exchange=exchange,
+            market_type=market_type,
+            mode=mode,
+            session_id=session_id,
+        ):
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Audited current-evidence writer locked-output scope does not match this dashboard.")
+        elif upbit_paper_repaired_current_evidence_audited_writer_locked_output_status in {
+            "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED",
+            "BLOCKED_SOURCE_DRY_RUN_INVALID",
+        }:
+            current_payload = upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "current_evidence_locked_payload",
+                {},
+            )
+            current_preview = current_payload.get("source_preview", {}) if isinstance(current_payload, dict) else {}
+            current_preview = current_preview if isinstance(current_preview, dict) else {}
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count = _safe_count(
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                    "locked_output_control_count"
+                )
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count = _safe_count(
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                    "locked_output_control_pass_count"
+                )
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_blocked_count = _safe_count(
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                    "locked_output_control_blocked_count"
+                )
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw = (
+                _safe_count(current_preview.get("configured_initial_cash_krw"))
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_cash_status = str(
+                current_preview.get("cash_status") or "NOT_LOADED"
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_path = str(
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("lock_path")
+                or "NOT_LOADED"
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_acquired = (
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("lock_acquired")
+                is True
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_file_written = (
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("lock_file_written")
+                is True
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_passed = (
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("locked_output_passed")
+                is True
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_writer_enabled = (
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("writer_enabled")
+                is True
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_write_allowed = (
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                    "current_evidence_write_allowed"
+                )
+                is True
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_artifact_written = (
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                    "current_evidence_artifact_written"
+                )
+                is True
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_write_allowed = (
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                    "portfolio_truth_write_allowed"
+                )
+                is True
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_artifact_written = (
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                    "portfolio_truth_artifact_written"
+                )
+                is True
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_primary_blocker_code = str(
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("primary_blocker_code")
+                or "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_next_action = str(
+                upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("operator_next_action")
+                or "Keep locked outputs display-only until an audited writer exists."
+            )
+            raw_codes = upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "blocker_codes",
+                [],
+            )
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_blocker_codes = (
+                [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            )
+            post_rerun_blocker_codes = sorted(
+                {
+                    *post_rerun_blocker_codes,
+                    *upbit_paper_repaired_current_evidence_audited_writer_locked_output_blocker_codes,
+                }
+            )
+            ledger_state = "RECONCILE_REQUIRED"
+            single_writer_state = "RECONCILE_REQUIRED"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = upbit_paper_repaired_current_evidence_audited_writer_locked_output_primary_blocker_code
+            issue_messages.append(
+                "Audited writer locked-output scaffold fixes future paths, but writes no current evidence, portfolio truth, or lock."
+            )
+        else:
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Audited current-evidence writer locked-output status is unknown.")
+
     if (
         not reconciliation_loaded
         and not restart_loaded
@@ -7857,6 +8129,7 @@ def _reconciliation_recovery_summary(
         and not stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_loaded
         and not upbit_paper_repaired_current_evidence_audited_writer_precheck_loaded
         and not upbit_paper_repaired_current_evidence_audited_writer_dry_run_loaded
+        and not upbit_paper_repaired_current_evidence_audited_writer_locked_output_loaded
     ):
         status = "NOT_LOADED"
         severity = "WARNING"
@@ -7864,6 +8137,58 @@ def _reconciliation_recovery_summary(
         one_line_blocker = "RECONCILIATION_REQUIRED: ledger/reconciliation and restart recovery evidence are not loaded."
         next_action = "Run PAPER with reconciliation and restart recovery artifacts, then review this panel before live review."
         message = "Ledger/reconciliation evidence is not loaded; portfolio values remain display-only."
+    elif upbit_paper_repaired_current_evidence_audited_writer_locked_output_status == "INVALID":
+        status = "INVALID"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = f"{primary_blocker}: audited current-evidence writer locked-output scaffold is invalid."
+        next_action = "Stop review and regenerate the audited writer locked-output scaffold with all write, lock, live, and scale flags false."
+        message = issue_messages[0] if issue_messages else "Audited writer locked-output scaffold is invalid."
+    elif (
+        upbit_paper_repaired_current_evidence_audited_writer_locked_output_status
+        == "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED"
+    ):
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = (
+            f"{primary_blocker}: audited current-evidence writer locked output is review-only; "
+            f"configured PAPER capital={upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw:,} KRW, "
+            f"locked controls={upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count}/"
+            f"{upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count}, "
+            "current-evidence writes=0, portfolio truth writes=0, lock writes=0."
+        )
+        next_action = (
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_next_action
+            if upbit_paper_repaired_current_evidence_audited_writer_locked_output_next_action != "NOT_LOADED"
+            else "Keep locked outputs display-only until an audited writer exists."
+        )
+        message = (
+            "Audited writer locked output is active: "
+            f"status={upbit_paper_repaired_current_evidence_audited_writer_locked_output_status}, "
+            f"validator={upbit_paper_repaired_current_evidence_audited_writer_locked_output_validation_status}, "
+            f"controls={upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count}/"
+            f"{upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count}, "
+            f"blocked-controls={upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_blocked_count}, "
+            f"configured-cash={upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw}, "
+            f"cash={upbit_paper_repaired_current_evidence_audited_writer_locked_output_cash_status}, "
+            f"lock={upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_path}, "
+            "writer-enabled=false, lock-acquired=false, current-evidence artifact=false, portfolio truth artifact=false."
+        )
+    elif (
+        upbit_paper_repaired_current_evidence_audited_writer_locked_output_status
+        == "BLOCKED_SOURCE_DRY_RUN_INVALID"
+    ):
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = f"{primary_blocker}: audited current-evidence writer locked-output source dry-run is blocked."
+        next_action = (
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_next_action
+            if upbit_paper_repaired_current_evidence_audited_writer_locked_output_next_action != "NOT_LOADED"
+            else "Regenerate the audited writer dry-run and keep locked outputs display-only."
+        )
+        message = issue_messages[0] if issue_messages else "Audited writer locked-output source dry-run is blocked."
     elif upbit_paper_repaired_current_evidence_audited_writer_dry_run_status == "INVALID":
         status = "INVALID"
         severity = "ERROR"
@@ -8553,6 +8878,25 @@ def _reconciliation_recovery_summary(
         "upbit_paper_repaired_current_evidence_audited_writer_dry_run_primary_blocker_code": upbit_paper_repaired_current_evidence_audited_writer_dry_run_primary_blocker_code,
         "upbit_paper_repaired_current_evidence_audited_writer_dry_run_next_action": upbit_paper_repaired_current_evidence_audited_writer_dry_run_next_action,
         "upbit_paper_repaired_current_evidence_audited_writer_dry_run_blocker_codes": upbit_paper_repaired_current_evidence_audited_writer_dry_run_blocker_codes,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_status": upbit_paper_repaired_current_evidence_audited_writer_locked_output_status,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_validation_status": upbit_paper_repaired_current_evidence_audited_writer_locked_output_validation_status,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count": upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count": upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_blocked_count": upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_blocked_count,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw": upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_cash_status": upbit_paper_repaired_current_evidence_audited_writer_locked_output_cash_status,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_path": upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_path,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_acquired": upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_acquired,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_file_written": upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_file_written,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_passed": upbit_paper_repaired_current_evidence_audited_writer_locked_output_passed,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_writer_enabled": upbit_paper_repaired_current_evidence_audited_writer_locked_output_writer_enabled,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_write_allowed": upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_write_allowed,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_artifact_written": upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_artifact_written,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_write_allowed": upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_write_allowed,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_artifact_written": upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_artifact_written,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_primary_blocker_code": upbit_paper_repaired_current_evidence_audited_writer_locked_output_primary_blocker_code,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_next_action": upbit_paper_repaired_current_evidence_audited_writer_locked_output_next_action,
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_blocker_codes": upbit_paper_repaired_current_evidence_audited_writer_locked_output_blocker_codes,
         "post_rerun_blocker_codes": post_rerun_blocker_codes,
         "ledger_state": ledger_state,
         "single_writer_state": single_writer_state,
@@ -8607,6 +8951,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report: dict[str, Any] | None = None,
     upbit_paper_repaired_current_evidence_audited_writer_precheck_report: dict[str, Any] | None = None,
     upbit_paper_repaired_current_evidence_audited_writer_dry_run_report: dict[str, Any] | None = None,
+    upbit_paper_repaired_current_evidence_audited_writer_locked_output_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_persistent_loop_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
@@ -8650,6 +8995,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json",
         "upbit_paper_repaired_current_evidence_audited_writer_precheck": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json",
         "upbit_paper_repaired_current_evidence_audited_writer_dry_run": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.json",
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
@@ -9282,6 +9628,79 @@ def build_read_only_dashboard_shell(
                 dry_run_freshness,
             )
         )
+    if isinstance(upbit_paper_repaired_current_evidence_audited_writer_locked_output_report, dict):
+        locked_output_result = validate_upbit_paper_repaired_current_evidence_audited_writer_locked_output_report(
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_report
+        )
+        current_payload = upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+            "current_evidence_locked_payload",
+            {},
+        )
+        current_payload = current_payload if isinstance(current_payload, dict) else {}
+        current_preview = current_payload.get("source_preview", {})
+        current_preview = current_preview if isinstance(current_preview, dict) else {}
+        locked_output_freshness = (
+            "PASS"
+            if locked_output_result.status == "PASS"
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "locked_output_status"
+            )
+            == "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED"
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "locked_output_control_count"
+            )
+            == 12
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "locked_output_control_pass_count"
+            )
+            == 11
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "locked_output_control_blocked_count"
+            )
+            == 1
+            and current_preview.get("configured_initial_cash_krw") == 1000000
+            and current_preview.get("cash_status") == "UNVERIFIED"
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("writer_enabled")
+            is False
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("lock_acquired")
+            is False
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("lock_file_written")
+            is False
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "current_evidence_write_allowed"
+            )
+            is False
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "current_evidence_artifact_written"
+            )
+            is False
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "portfolio_truth_write_allowed"
+            )
+            is False
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get(
+                "portfolio_truth_artifact_written"
+            )
+            is False
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("live_order_allowed")
+            is False
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("can_live_trade")
+            is False
+            and upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.get("scale_up_allowed")
+            is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT",
+                paths.get(
+                    "upbit_paper_repaired_current_evidence_audited_writer_locked_output",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json",
+                ),
+                True,
+                locked_output_freshness,
+            )
+        )
     if isinstance(upbit_paper_ledger_idempotency_runtime_evidence_report, dict):
         idempotency_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
             upbit_paper_ledger_idempotency_runtime_evidence_report
@@ -9353,6 +9772,7 @@ def build_read_only_dashboard_shell(
         stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
         upbit_paper_repaired_current_evidence_audited_writer_precheck_report=upbit_paper_repaired_current_evidence_audited_writer_precheck_report,
         upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
+        upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
     )
     position_snapshot = _position_snapshot(summary, summary_freshness)
     portfolio_snapshot = _portfolio_snapshot(
@@ -10329,6 +10749,14 @@ def validate_read_only_dashboard_shell(
         "upbit_paper_repaired_current_evidence_audited_writer_dry_run_validation_status",
         "UNTESTED",
     )
+    audited_writer_locked_output_status = reconciliation.get(
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_status",
+        "NOT_LOADED",
+    )
+    audited_writer_locked_output_validation_status = reconciliation.get(
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_validation_status",
+        "UNTESTED",
+    )
     if post_rerun_rollup_status not in POST_RERUN_BLOCKER_ROLLUP_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun blocker rollup status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_rollup_validation_status not in POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES:
@@ -10400,6 +10828,16 @@ def validate_read_only_dashboard_shell(
         not in UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_VALIDATION_STATUSES
     ):
         return DashboardValidationResult("FAIL", "audited writer dry-run validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        audited_writer_locked_output_status
+        not in UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT_STATUSES
+    ):
+        return DashboardValidationResult("FAIL", "audited writer locked-output status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        audited_writer_locked_output_validation_status
+        not in UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT_VALIDATION_STATUSES
+    ):
+        return DashboardValidationResult("FAIL", "audited writer locked-output validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("post_rerun_current_evidence_bridge_status", "NOT_LOADED") not in POST_RERUN_CURRENT_EVIDENCE_BRIDGE_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun current-evidence bridge status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if (
@@ -10529,6 +10967,10 @@ def validate_read_only_dashboard_shell(
         "upbit_paper_repaired_current_evidence_audited_writer_dry_run_check_pass_count",
         "upbit_paper_repaired_current_evidence_audited_writer_dry_run_check_blocked_count",
         "upbit_paper_repaired_current_evidence_audited_writer_dry_run_configured_initial_cash_krw",
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count",
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count",
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_blocked_count",
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw",
     )
     for field in post_rerun_count_fields:
         value = reconciliation.get(field, 0)
@@ -10634,7 +11076,15 @@ def validate_read_only_dashboard_shell(
         audited_writer_dry_run_status == "BLOCKED_DRY_RUN_ONLY_WRITER_NOT_ENABLED"
     )
     audited_writer_dry_run_loaded_for_display = audited_writer_dry_run_status != "NOT_LOADED"
-    if post_rerun_rollup_status == "BLOCKED" and not current_guard_blocks_current_evidence:
+    audited_writer_locked_output_blocks_current_evidence = (
+        audited_writer_locked_output_status == "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED"
+    )
+    audited_writer_locked_output_loaded_for_display = audited_writer_locked_output_status != "NOT_LOADED"
+    if (
+        post_rerun_rollup_status == "BLOCKED"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         allowed_rollup_sources = {"upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"}
         if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
             allowed_rollup_sources.add("upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json")
@@ -10673,7 +11123,11 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_candidate_current_evidence_usable_count", 0) != 0
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun blocker rollup cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED" and not current_guard_blocks_current_evidence:
+    if (
+        post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         allowed_guidance_sources = {"upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"}
         if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
             allowed_guidance_sources.add("upbit_paper_post_rerun_operator_resolution_audit_report.json")
@@ -10710,7 +11164,11 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_guidance_candidate_current_evidence_usable_count", 0) != 0
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun review guidance cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_operator_queue_status == "BLOCKED" and not current_guard_blocks_current_evidence:
+    if (
+        post_rerun_operator_queue_status == "BLOCKED"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         item_count = reconciliation.get("post_rerun_operator_queue_item_count", 0)
         allowed_operator_queue_sources = {"upbit_paper_post_rerun_operator_reconciliation_queue_report.json"}
         if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
@@ -10743,7 +11201,11 @@ def validate_read_only_dashboard_shell(
             or "POST_RERUN_RECONCILIATION_REQUIRED" not in set(post_rerun_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun operator queue must render as a red review-only reconciliation blocker", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY" and not current_guard_blocks_current_evidence:
+    if (
+        post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         allowed_resolution_sources = {"upbit_paper_post_rerun_operator_resolution_audit_report.json"}
         if post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED":
             allowed_resolution_sources.add("upbit_paper_post_rerun_resolution_current_evidence_closure_report.json")
@@ -10787,6 +11249,7 @@ def validate_read_only_dashboard_shell(
     if (
         post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED"
         and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
     ):
         source_unresolved_count = reconciliation.get("post_rerun_resolution_closure_source_unresolved_item_count", 0)
         closed_count = reconciliation.get("post_rerun_resolution_closure_closed_item_count", 0)
@@ -10832,7 +11295,11 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_resolution_closure_source_resolution_audit_file_hash_match") is not True
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun resolution current-evidence closure must keep source audit binding verified", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED" and not current_guard_blocks_current_evidence:
+    if (
+        post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         allowed_recheck_sources = {"upbit_paper_post_rerun_current_evidence_closure_recheck_report.json"}
         if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
             allowed_recheck_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
@@ -10871,7 +11338,11 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_current_evidence_closure_recheck_current_evidence_write_allowed") is not False
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun closure recheck cannot hide ledger or current-evidence write drift", "LIVE_FINAL_GUARD_FAILED")
-    if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED" and not current_guard_blocks_current_evidence:
+    if (
+        post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         allowed_repair_path_sources = {"upbit_paper_post_rerun_reconciliation_repair_path_report.json"}
         if post_repair_status == "BLOCKED":
             allowed_repair_path_sources.add("upbit_paper_post_repair_reconciliation_report.json")
@@ -10919,7 +11390,11 @@ def validate_read_only_dashboard_shell(
             != "BLOCKED_BY_POST_RERUN_CLOSURE"
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun repair path must keep closure/recheck source binding verified", "LIVE_FINAL_GUARD_FAILED")
-    if post_repair_status == "BLOCKED" and not current_guard_blocks_current_evidence:
+    if (
+        post_repair_status == "BLOCKED"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         item_count = reconciliation.get("post_repair_reconciliation_item_count", 0)
         allowed_post_repair_sources = {"upbit_paper_post_repair_reconciliation_report.json"}
         allowed_post_repair_blockers = {"POST_REPAIR_RECONCILIATION_REQUIRED"}
@@ -10945,7 +11420,11 @@ def validate_read_only_dashboard_shell(
             or "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED" not in set(post_repair_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "post-repair reconciliation must render as a red blocked repair-candidate path", "LIVE_FINAL_GUARD_FAILED")
-    if repair_operator_queue_status == "BLOCKED" and not current_guard_blocks_current_evidence:
+    if (
+        repair_operator_queue_status == "BLOCKED"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         item_count = reconciliation.get("repair_operator_queue_item_count", 0)
         allowed_repair_queue_sources = {"upbit_paper_repair_operator_queue_report.json"}
         if stale_loop_post_regeneration_status == "BLOCKED":
@@ -10969,7 +11448,11 @@ def validate_read_only_dashboard_shell(
             not in set(repair_operator_queue_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "repair operator queue must render as a red repair-review blocker", "LIVE_FINAL_GUARD_FAILED")
-    if stale_loop_post_regeneration_status == "BLOCKED" and not current_guard_blocks_current_evidence:
+    if (
+        stale_loop_post_regeneration_status == "BLOCKED"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         item_count = reconciliation.get("stale_loop_post_regeneration_item_count", 0)
         accepted_count = reconciliation.get("stale_loop_post_regeneration_accepted_count", 0)
         blocked_count = reconciliation.get("stale_loop_post_regeneration_blocked_reconciliation_count", 0)
@@ -11006,7 +11489,11 @@ def validate_read_only_dashboard_shell(
             or "LEDGER_ROLLUP_RECONCILIATION_REQUIRED" not in reason_codes
         ):
             return DashboardValidationResult("BLOCKED", "stale-loop post-regeneration reconciliation must render as a red blocked regenerated-source path", "LIVE_FINAL_GUARD_FAILED")
-    if stale_loop_operator_queue_closure_status == "BLOCKED" and not current_guard_blocks_current_evidence:
+    if (
+        stale_loop_operator_queue_closure_status == "BLOCKED"
+        and not current_guard_blocks_current_evidence
+        and not audited_writer_locked_output_blocks_current_evidence
+    ):
         item_count = reconciliation.get("stale_loop_operator_queue_closure_item_count", 0)
         lane_count = (
             reconciliation.get("stale_loop_operator_queue_closure_ledger_recheck_ready_count", 0)
@@ -11039,7 +11526,87 @@ def validate_read_only_dashboard_shell(
             not in set(stale_loop_operator_queue_closure_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "stale-loop operator queue closure must render as a red display-only closure blocker", "LIVE_FINAL_GUARD_FAILED")
-    if audited_writer_dry_run_blocks_current_evidence:
+    if audited_writer_locked_output_blocks_current_evidence:
+        control_count = reconciliation.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count",
+            0,
+        )
+        source_ids = {source.get("artifact_id"): source for source in source_artifacts if isinstance(source, dict)}
+        locked_output_source = source_ids.get("UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT")
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source")
+            != "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json"
+            or reconciliation.get("primary_blocker_code") != "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+            or reconciliation.get(
+                "upbit_paper_repaired_current_evidence_audited_writer_locked_output_validation_status"
+            )
+            != "PASS"
+            or control_count != 12
+            or reconciliation.get(
+                "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count",
+                0,
+            )
+            != 11
+            or reconciliation.get(
+                "upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_blocked_count",
+                0,
+            )
+            != 1
+            or reconciliation.get(
+                "upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw",
+                0,
+            )
+            != 1000000
+            or reconciliation.get("upbit_paper_repaired_current_evidence_audited_writer_locked_output_cash_status")
+            != "UNVERIFIED"
+            or reconciliation.get("upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_path")
+            != "paper_runtime/locks/audited_current_evidence_writer.lock"
+            or reconciliation.get("upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_acquired")
+            is not False
+            or reconciliation.get(
+                "upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_file_written"
+            )
+            is not False
+            or reconciliation.get("upbit_paper_repaired_current_evidence_audited_writer_locked_output_passed")
+            is not False
+            or reconciliation.get("upbit_paper_repaired_current_evidence_audited_writer_locked_output_writer_enabled")
+            is not False
+            or reconciliation.get(
+                "upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_write_allowed"
+            )
+            is not False
+            or reconciliation.get(
+                "upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_artifact_written"
+            )
+            is not False
+            or reconciliation.get(
+                "upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_write_allowed"
+            )
+            is not False
+            or reconciliation.get(
+                "upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_artifact_written"
+            )
+            is not False
+            or "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+            not in set(
+                reconciliation.get(
+                    "upbit_paper_repaired_current_evidence_audited_writer_locked_output_blocker_codes",
+                    [],
+                )
+            )
+            or "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED" not in set(post_rerun_blocker_codes)
+            or not isinstance(locked_output_source, dict)
+            or locked_output_source.get("freshness_status") != "PASS"
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "audited writer locked output must render as a red locked-output current-evidence blocker",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+    elif audited_writer_dry_run_blocks_current_evidence and not audited_writer_locked_output_loaded_for_display:
         check_count = reconciliation.get(
             "upbit_paper_repaired_current_evidence_audited_writer_dry_run_check_count",
             0,
@@ -11112,7 +11679,11 @@ def validate_read_only_dashboard_shell(
                 "audited writer dry-run must render as a red dry-run-only current-evidence blocker",
                 "LIVE_FINAL_GUARD_FAILED",
             )
-    elif audited_writer_precheck_blocks_current_evidence and not audited_writer_dry_run_loaded_for_display:
+    elif (
+        audited_writer_precheck_blocks_current_evidence
+        and not audited_writer_dry_run_loaded_for_display
+        and not audited_writer_locked_output_loaded_for_display
+    ):
         gate_count = reconciliation.get(
             "upbit_paper_repaired_current_evidence_audited_writer_precheck_gate_count",
             0,
@@ -11171,6 +11742,7 @@ def validate_read_only_dashboard_shell(
         current_guard_blocks_current_evidence
         and not audited_writer_precheck_blocks_current_evidence
         and not audited_writer_dry_run_loaded_for_display
+        and not audited_writer_locked_output_loaded_for_display
     ):
         candidate_count = reconciliation.get(
             "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count",
@@ -12151,7 +12723,25 @@ def validate_read_only_dashboard_shell(
         or operator_action.get("safe_to_continue_paper") is not False
     ):
         return DashboardValidationResult("BLOCKED", "operator action must surface blocked reconciliation or post-rerun blocker rollup", "HARD_TRUTH_MISSING")
-    if audited_writer_dry_run_blocks_current_evidence:
+    if audited_writer_locked_output_blocks_current_evidence:
+        operator_line = str(operator_action.get("one_line_blocker", ""))
+        operator_next = str(operator_action.get("next_operator_action", ""))
+        operator_next_lower = operator_next.lower()
+        if (
+            operator_action.get("status") != "BLOCKED"
+            or operator_action.get("severity") != "ERROR"
+            or operator_action.get("primary_action") != "STOP_AND_INSPECT"
+            or operator_action.get("workflow_step") != "INSPECT_DASHBOARD"
+            or operator_action.get("primary_action_label") != "Inspect audited writer locked output"
+            or "audited current-evidence writer locked output is review-only" not in operator_line
+            or "portfolio truth writes=0" not in operator_line
+            or "lock writes=0" not in operator_line
+            or "locked output" not in operator_next_lower
+            or "writer" not in operator_next_lower
+            or operator_action.get("safe_to_continue_paper") is not False
+        ):
+            return DashboardValidationResult("BLOCKED", "operator action must explain audited writer locked-output blocker", "HARD_TRUTH_MISSING")
+    elif audited_writer_dry_run_blocks_current_evidence and not audited_writer_locked_output_loaded_for_display:
         operator_line = str(operator_action.get("one_line_blocker", ""))
         operator_next = str(operator_action.get("next_operator_action", ""))
         operator_next_lower = operator_next.lower()
@@ -12168,7 +12758,11 @@ def validate_read_only_dashboard_shell(
             or operator_action.get("safe_to_continue_paper") is not False
         ):
             return DashboardValidationResult("BLOCKED", "operator action must explain audited writer dry-run blocker", "HARD_TRUTH_MISSING")
-    elif audited_writer_precheck_blocks_current_evidence and not audited_writer_dry_run_loaded_for_display:
+    elif (
+        audited_writer_precheck_blocks_current_evidence
+        and not audited_writer_dry_run_loaded_for_display
+        and not audited_writer_locked_output_loaded_for_display
+    ):
         operator_line = str(operator_action.get("one_line_blocker", ""))
         operator_next = str(operator_action.get("next_operator_action", ""))
         operator_next_lower = operator_next.lower()
@@ -12185,7 +12779,11 @@ def validate_read_only_dashboard_shell(
             or operator_action.get("safe_to_continue_paper") is not False
         ):
             return DashboardValidationResult("BLOCKED", "operator action must explain audited writer precheck blocker", "HARD_TRUTH_MISSING")
-    elif current_guard_blocks_current_evidence and not audited_writer_dry_run_loaded_for_display:
+    elif (
+        current_guard_blocks_current_evidence
+        and not audited_writer_dry_run_loaded_for_display
+        and not audited_writer_locked_output_loaded_for_display
+    ):
         operator_line = str(operator_action.get("one_line_blocker", ""))
         operator_next = str(operator_action.get("next_operator_action", ""))
         operator_next_lower = operator_next.lower()
@@ -12260,7 +12858,25 @@ def validate_read_only_dashboard_shell(
     live_step = steps[-1]
     if live_step.get("step_id") != "LIVE_REVIEW_BLOCKED" or live_step.get("status") != "BLOCKED" or live_step.get("current") is True:
         return DashboardValidationResult("BLOCKED", "live review workflow step must stay blocked and non-current", "LIVE_FINAL_GUARD_FAILED")
-    if audited_writer_dry_run_blocks_current_evidence:
+    if audited_writer_locked_output_blocks_current_evidence:
+        inspect_step = steps[1]
+        collect_step = steps[2]
+        if (
+            workflow.get("status") != "BLOCKED"
+            or workflow.get("severity") != "ERROR"
+            or "Audited current-evidence writer locked output is review-only" not in str(workflow.get("summary", ""))
+            or "current evidence, portfolio truth, and lock writes remain blocked" not in str(
+                workflow.get("summary", "")
+            )
+            or inspect_step.get("status") != "CURRENT"
+            or "target paths are fixed but no cash, equity, or writer lock is verified" not in str(
+                inspect_step.get("detail", "")
+            )
+            or collect_step.get("status") != "WAITING"
+            or "locked-output controls display-only" not in str(collect_step.get("detail", ""))
+        ):
+            return DashboardValidationResult("BLOCKED", "operator workflow must explain audited writer locked-output blocker", "HARD_TRUTH_MISSING")
+    elif audited_writer_dry_run_blocks_current_evidence and not audited_writer_locked_output_loaded_for_display:
         inspect_step = steps[1]
         collect_step = steps[2]
         if (
@@ -12274,7 +12890,11 @@ def validate_read_only_dashboard_shell(
             or "dry-run previews display-only" not in str(collect_step.get("detail", ""))
         ):
             return DashboardValidationResult("BLOCKED", "operator workflow must explain audited writer dry-run blocker", "HARD_TRUTH_MISSING")
-    elif audited_writer_precheck_blocks_current_evidence and not audited_writer_dry_run_loaded_for_display:
+    elif (
+        audited_writer_precheck_blocks_current_evidence
+        and not audited_writer_dry_run_loaded_for_display
+        and not audited_writer_locked_output_loaded_for_display
+    ):
         inspect_step = steps[1]
         collect_step = steps[2]
         if (
@@ -12288,7 +12908,11 @@ def validate_read_only_dashboard_shell(
             or "separate audited writer" not in str(collect_step.get("detail", ""))
         ):
             return DashboardValidationResult("BLOCKED", "operator workflow must explain audited writer precheck blocker", "HARD_TRUTH_MISSING")
-    elif current_guard_blocks_current_evidence and not audited_writer_dry_run_loaded_for_display:
+    elif (
+        current_guard_blocks_current_evidence
+        and not audited_writer_dry_run_loaded_for_display
+        and not audited_writer_locked_output_loaded_for_display
+    ):
         inspect_step = steps[1]
         collect_step = steps[2]
         if (
@@ -13431,6 +14055,20 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<br>current-written={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_dry_run_current_evidence_artifact_written', False))}"
         f"<br>portfolio-written={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_dry_run_portfolio_truth_artifact_written', False))}"
         f"<br>blocker={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_dry_run_primary_blocker_code', 'NOT_LOADED'))}</p></div>"
+        "<div><strong>Audited Current Evidence Writer Locked Output</strong>"
+        f"<p>locked-output={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_status', 'NOT_LOADED'))}"
+        f"<br>validator={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_validation_status', 'UNTESTED'))}"
+        f"<br>controls={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count', 0))}/"
+        f"{safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count', 0))}"
+        f"<br>blocked-controls={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_blocked_count', 0))}"
+        f"<br>configured-cash={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_configured_initial_cash_krw', 0))}"
+        f"<br>cash={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_cash_status', 'NOT_LOADED'))}"
+        f"<br>lock-path={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_path', 'NOT_LOADED'))}"
+        f"<br>lock-acquired={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_acquired', False))}"
+        f"<br>lock-written={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_lock_file_written', False))}"
+        f"<br>current-written={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_current_evidence_artifact_written', False))}"
+        f"<br>portfolio-written={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_portfolio_truth_artifact_written', False))}"
+        f"<br>blocker={safe_text(reconciliation.get('upbit_paper_repaired_current_evidence_audited_writer_locked_output_primary_blocker_code', 'NOT_LOADED'))}</p></div>"
         "<div><strong>Live Boundary</strong>"
         "<p><span class=\"pill safe-lock\">live_order_allowed=false</span><br><span class=\"pill safe-lock\">can_live_trade=false</span><br><span class=\"pill safe-lock\">scale_up_allowed=false</span></p></div>"
         "</section>"
