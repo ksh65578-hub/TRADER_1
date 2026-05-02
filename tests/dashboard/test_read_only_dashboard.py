@@ -54,6 +54,9 @@ from trader1.runtime.paper.upbit_public_rest_continuity_history import (
     build_upbit_public_rest_continuity_history_report,
     upbit_public_rest_continuity_history_hash,
 )
+from tools.run_upbit_paper_runtime_evidence_collection_profile import (
+    run_upbit_paper_runtime_evidence_collection_profile,
+)
 from trader1.runtime.readiness.readiness_surface import build_readiness_surface
 from trader1.runtime.reconciliation.reconciliation import build_reconciliation_report
 from trader1.research.shadow.shadow_observation import build_shadow_observation_report
@@ -202,6 +205,7 @@ def build_dashboard(
     restart_recovery_report=None,
     upbit_paper_persistent_loop_report=None,
     upbit_paper_runtime_recovery_guard_report=None,
+    upbit_paper_runtime_evidence_collection_profile_report=None,
     optimizer_feedback_report=None,
     convergence_assessment_report=None,
     exploration_exploitation_policy=None,
@@ -250,6 +254,7 @@ def build_dashboard(
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
+        upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
         optimizer_feedback_report=optimizer_feedback_report,
         convergence_assessment_report=convergence_assessment_report,
         exploration_exploitation_policy=exploration_exploitation_policy,
@@ -330,6 +335,22 @@ def build_dashboard_with_paper_runtime_recovery_guard(report=None):
         heartbeat=heartbeat,
         startup_probe=startup_probe,
         upbit_paper_runtime_recovery_guard_report=report,
+    )
+
+
+def build_dashboard_with_paper_runtime_evidence_collection_profile(report=None):
+    report = report or run_upbit_paper_runtime_evidence_collection_profile(requested_cycle_count=1)
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_runtime_evidence_collection_profile_report=report,
     )
 
 
@@ -1525,6 +1546,74 @@ class ReadOnlyDashboardTest(unittest.TestCase):
     def test_dashboard_blocks_paper_runtime_recovery_guard_false_long_run_eligibility(self):
         dashboard = build_dashboard_with_paper_runtime_recovery_guard()
         dashboard["paper_runtime_recovery_guard_status"]["long_run_evidence_eligible"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_projects_paper_runtime_evidence_profile_pass_display_only(self):
+        report = run_upbit_paper_runtime_evidence_collection_profile(requested_cycle_count=1)
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile(report)
+        result = validate_read_only_dashboard_shell(dashboard, set(registry()["enums"]["live_blocker_code"]["values"]))
+
+        self.assertEqual(result.status, "PASS")
+        profile = dashboard["paper_runtime_evidence_collection_profile_status"]
+        self.assertEqual(profile["title"], "PAPER Runtime Evidence Profile")
+        self.assertEqual(profile["status"], "PASS")
+        self.assertEqual(profile["severity"], "NORMAL")
+        self.assertEqual(profile["color_token"], "blue")
+        self.assertEqual(profile["completed_cycle_count"], 1)
+        self.assertEqual(profile["accepted_cycle_sample_count"], 1)
+        self.assertEqual(profile["component_pass_count"], profile["component_count"])
+        self.assertEqual(profile["component_blocked_count"], 0)
+        self.assertEqual(profile["ledger_runtime_evidence_status"], "PASS")
+        self.assertEqual(profile["idempotency_status"], "PASS")
+        self.assertEqual(profile["reconciliation_status"], "PASS")
+        self.assertEqual(profile["mismatch_count"], 0)
+        self.assertEqual(profile["runtime_evidence_role"], "BOUNDED_PAPER_RUNTIME_EVIDENCE_PROFILE_NOT_LONG_RUN")
+        self.assertFalse(profile["current_evidence_write_allowed"])
+        self.assertFalse(profile["actual_long_run_evidence_created"])
+        self.assertFalse(profile["long_run_evidence_eligible"])
+        self.assertEqual(profile["long_run_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+        self.assertFalse(profile["promotion_eligible"])
+        self.assertFalse(profile["live_order_ready"])
+        self.assertFalse(profile["live_order_allowed"])
+        self.assertFalse(profile["can_live_trade"])
+        self.assertFalse(profile["scale_up_allowed"])
+        self.assertTrue(
+            any(
+                item["artifact_id"] == "UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE"
+                for item in dashboard["source_artifacts"]
+            )
+        )
+        html = render_dashboard_html(dashboard)
+        self.assertIn("PAPER Runtime Evidence Profile", html)
+        self.assertIn("current writes=False", html)
+        self.assertIn("not LIVE_READY", html)
+        self.assertIn("LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT", html)
+
+    def test_dashboard_projects_paper_runtime_evidence_profile_duplicate_ledger_blocked(self):
+        report = run_upbit_paper_runtime_evidence_collection_profile(
+            requested_cycle_count=1,
+            duplicate_ledger_events=True,
+        )
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile(report)
+        result = validate_read_only_dashboard_shell(dashboard, set(registry()["enums"]["live_blocker_code"]["values"]))
+
+        self.assertEqual(result.status, "PASS")
+        profile = dashboard["paper_runtime_evidence_collection_profile_status"]
+        self.assertEqual(profile["status"], "BLOCKED")
+        self.assertEqual(profile["severity"], "ERROR")
+        self.assertEqual(profile["color_token"], "red")
+        self.assertEqual(profile["primary_blocker_code"], "RECONCILIATION_REQUIRED")
+        self.assertGreater(profile["duplicate_event_id_count"], 0)
+        self.assertEqual(profile["ledger_runtime_evidence_status"], "BLOCKED")
+        self.assertFalse(profile["current_evidence_write_allowed"])
+        self.assertFalse(profile["live_order_allowed"])
+
+    def test_dashboard_blocks_paper_runtime_evidence_profile_live_permission_mutation(self):
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
+        dashboard["paper_runtime_evidence_collection_profile_status"]["live_order_allowed"] = True
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")

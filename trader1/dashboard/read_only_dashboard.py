@@ -54,6 +54,9 @@ from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence impor
 )
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
+from tools.run_upbit_paper_runtime_evidence_collection_profile import (
+    validate_upbit_paper_runtime_evidence_collection_profile_report,
+)
 
 
 READ_ONLY_DASHBOARD_SCHEMA_ID = "trader1.read_only_dashboard_shell.v1"
@@ -65,6 +68,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "runtime_orchestration_report.json",
     "upbit_paper_persistent_loop_report.json",
     "upbit_paper_runtime_recovery_guard_report.json",
+    "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
     "upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
@@ -172,6 +176,12 @@ PAPER_PERSISTENT_LOOP_SOURCES = {"NOT_LOADED", "upbit_paper_persistent_loop_repo
 PAPER_PERSISTENT_LOOP_EVIDENCE_ROLES = {"NOT_LOADED", "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"}
 PAPER_RUNTIME_RECOVERY_GUARD_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
 PAPER_RUNTIME_RECOVERY_GUARD_SOURCES = {"NOT_LOADED", "upbit_paper_runtime_recovery_guard_report.json"}
+PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
+PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_SOURCES = {
+    "NOT_LOADED",
+    "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+}
+PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ROLE = "BOUNDED_PAPER_RUNTIME_EVIDENCE_PROFILE_NOT_LONG_RUN"
 MARKET_DATA_CONTINUITY_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
 MARKET_DATA_CONTINUITY_SOURCES = {"NOT_LOADED", "rest_continuity_history.json"}
 MARKET_DATA_CONTINUITY_EVIDENCE_ROLES = {"PAPER_DATA_CONTINUITY_HISTORY_ONLY_NOT_LIVE_READY"}
@@ -538,6 +548,20 @@ def _freshness_from_generated_at(payload: dict[str, Any] | None) -> str:
     if generated_at is None:
         return "STALE"
     age_seconds = (datetime.now(timezone.utc) - generated_at).total_seconds()
+    if age_seconds < -SOURCE_CLOCK_SKEW_ALLOWANCE_SECONDS:
+        return "STALE"
+    if age_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS:
+        return "STALE"
+    return "PASS"
+
+
+def _freshness_from_timestamp(payload: dict[str, Any] | None, field_name: str) -> str:
+    if not isinstance(payload, dict):
+        return "STALE"
+    timestamp = _parse_utc(payload.get(field_name))
+    if timestamp is None:
+        return "STALE"
+    age_seconds = (datetime.now(timezone.utc) - timestamp).total_seconds()
     if age_seconds < -SOURCE_CLOCK_SKEW_ALLOWANCE_SECONDS:
         return "STALE"
     if age_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS:
@@ -2618,6 +2642,187 @@ def _paper_runtime_recovery_guard_status(
             "long_run_blocker_code": str(report.get("long_run_blocker_code") or "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"),
             "long_run_next_action": str(report.get("long_run_next_action") or "Collect validated long-run PAPER and SHADOW runtime evidence before live review."),
             "promotion_eligible": False,
+            "primary_blocker_code": str(primary_blocker or "LIVE_READY_MISSING"),
+            "one_line_summary": summary,
+            "next_operator_action": next_action,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+    )
+    return base
+
+
+def _paper_runtime_evidence_collection_profile_status(
+    *,
+    report: dict[str, Any] | None,
+    exchange: str,
+    market_type: str,
+    mode: str,
+    session_id: str,
+) -> dict[str, Any]:
+    def safe_count(value: Any) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return 0
+        return parsed if parsed >= 0 else 0
+
+    base = {
+        "title": "PAPER Runtime Evidence Profile",
+        "status": "NOT_LOADED",
+        "severity": "WARNING",
+        "color_token": "yellow",
+        "truth_role": "dashboard_serving_truth",
+        "source": "NOT_LOADED",
+        "profile_id": "NOT_LOADED",
+        "profile_scope": "NOT_LOADED",
+        "loop_id": "NOT_LOADED",
+        "requested_cycle_count": 0,
+        "completed_cycle_count": 0,
+        "component_count": 0,
+        "component_pass_count": 0,
+        "component_blocked_count": 0,
+        "accepted_cycle_sample_count": 0,
+        "unique_runtime_cycle_hash_count": 0,
+        "duplicate_cycle_hash_count": 0,
+        "invalid_source_count": 0,
+        "observed_span_seconds": 0,
+        "span_floor_met": False,
+        "cycle_floor_met": False,
+        "ledger_runtime_evidence_status": "BLOCKED",
+        "idempotency_status": "BLOCKED",
+        "reconciliation_status": "BLOCKED",
+        "mismatch_count": 0,
+        "source_ledger_jsonl_count": 0,
+        "recomputed_ledger_event_count": 0,
+        "recomputed_filled_order_count": 0,
+        "duplicate_event_id_count": 0,
+        "duplicate_dedup_key_count": 0,
+        "duplicate_semantic_event_count": 0,
+        "duplicate_filled_order_key_count": 0,
+        "runtime_evidence_role": PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ROLE,
+        "actual_long_run_evidence_created": False,
+        "long_run_evidence_eligible": False,
+        "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        "promotion_eligible": False,
+        "current_evidence_write_allowed": False,
+        "primary_blocker_code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+        "one_line_summary": "No bounded Upbit PAPER runtime evidence collection profile is loaded.",
+        "next_operator_action": "Run the bounded PAPER runtime evidence collection profile before using this panel for runtime review.",
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return base
+
+    validation_result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
+    scope_matches = (
+        report.get("exchange") == exchange
+        and report.get("market_type") == market_type
+        and report.get("mode") == mode
+        and report.get("session_id") == session_id
+    )
+    freshness_status = _freshness_from_timestamp(report, "created_at_utc")
+    unsafe_permission = any(
+        report.get(field) is not False
+        for field in (
+            "actual_long_run_evidence_created",
+            "long_run_evidence_eligible",
+            "promotion_eligible",
+            "current_evidence_write_allowed",
+            "credential_load_attempted",
+            "private_endpoint_called",
+            "order_endpoint_called",
+            "order_adapter_called",
+            "live_key_loaded",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "can_submit_order",
+            "scale_up_allowed",
+        )
+    )
+
+    status = "PASS"
+    severity = "NORMAL"
+    color_token = "blue"
+    primary_blocker = "LIVE_READY_MISSING"
+    summary = "Bounded Upbit PAPER runtime evidence profile is current for operator review; it is not long-run evidence and cannot write current evidence or LIVE_READY."
+    next_action = "Use this as PAPER runtime evidence only; keep collecting longer PAPER/SHADOW windows before any live review."
+
+    if unsafe_permission:
+        status = "INVALID"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = "LIVE_FINAL_GUARD_FAILED"
+        summary = "Runtime evidence profile attempted live, private, order, current-evidence, promotion, long-run, or scale permission; dashboard blocked it."
+        next_action = "Inspect and regenerate the runtime evidence profile with all live and scale permissions false."
+    elif validation_result.status == "FAIL" or not scope_matches:
+        status = "INVALID"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = validation_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+        summary = "Runtime evidence profile is invalid or scoped to another runtime."
+        next_action = "Regenerate a scoped Upbit KRW_SPOT PAPER runtime evidence profile for this session."
+    elif validation_result.status == "BLOCKED" or report.get("status") == "BLOCKED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = validation_result.blocker_code or report.get("primary_blocker_code") or "RECONCILIATION_REQUIRED"
+        summary = "Runtime evidence profile is blocked; ledger idempotency, reconciliation, or runtime evidence requires review before PAPER evidence can be trusted."
+        next_action = "Inspect duplicate ledger, reconciliation, and runtime sample blockers, then rerun the bounded profile."
+    elif freshness_status != "PASS":
+        status = "STALE"
+        severity = "WARNING"
+        color_token = "yellow"
+        primary_blocker = "LATENCY_TTL_EXPIRED"
+        summary = "Runtime evidence profile is stale. It cannot prove current PAPER runtime evidence status."
+        next_action = "Rerun the bounded PAPER runtime evidence collection profile before trusting this panel."
+
+    base.update(
+        {
+            "status": status,
+            "severity": severity,
+            "color_token": color_token,
+            "source": "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+            "profile_id": str(report.get("profile_id") or "UNKNOWN"),
+            "profile_scope": str(report.get("profile_scope") or "UNKNOWN"),
+            "loop_id": str(report.get("loop_id") or "UNKNOWN"),
+            "requested_cycle_count": safe_count(report.get("requested_cycle_count")),
+            "completed_cycle_count": safe_count(report.get("completed_cycle_count")),
+            "component_count": safe_count(report.get("component_count")),
+            "component_pass_count": safe_count(report.get("component_pass_count")),
+            "component_blocked_count": safe_count(report.get("component_blocked_count")),
+            "accepted_cycle_sample_count": safe_count(report.get("accepted_cycle_sample_count")),
+            "unique_runtime_cycle_hash_count": safe_count(report.get("unique_runtime_cycle_hash_count")),
+            "duplicate_cycle_hash_count": safe_count(report.get("duplicate_cycle_hash_count")),
+            "invalid_source_count": safe_count(report.get("invalid_source_count")),
+            "observed_span_seconds": safe_count(report.get("observed_span_seconds")),
+            "span_floor_met": report.get("span_floor_met") is True,
+            "cycle_floor_met": report.get("cycle_floor_met") is True,
+            "ledger_runtime_evidence_status": str(report.get("ledger_runtime_evidence_status") or "BLOCKED"),
+            "idempotency_status": str(report.get("idempotency_status") or "BLOCKED"),
+            "reconciliation_status": str(report.get("reconciliation_status") or "BLOCKED"),
+            "mismatch_count": safe_count(report.get("mismatch_count")),
+            "source_ledger_jsonl_count": safe_count(report.get("source_ledger_jsonl_count")),
+            "recomputed_ledger_event_count": safe_count(report.get("recomputed_ledger_event_count")),
+            "recomputed_filled_order_count": safe_count(report.get("recomputed_filled_order_count")),
+            "duplicate_event_id_count": safe_count(report.get("duplicate_event_id_count")),
+            "duplicate_dedup_key_count": safe_count(report.get("duplicate_dedup_key_count")),
+            "duplicate_semantic_event_count": safe_count(report.get("duplicate_semantic_event_count")),
+            "duplicate_filled_order_key_count": safe_count(report.get("duplicate_filled_order_key_count")),
+            "runtime_evidence_role": PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ROLE,
+            "actual_long_run_evidence_created": False,
+            "long_run_evidence_eligible": False,
+            "long_run_blocker_code": str(report.get("long_run_blocker_code") or "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"),
+            "promotion_eligible": False,
+            "current_evidence_write_allowed": False,
             "primary_blocker_code": str(primary_blocker or "LIVE_READY_MISSING"),
             "one_line_summary": summary,
             "next_operator_action": next_action,
@@ -7207,6 +7412,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_persistent_loop_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
+    upbit_paper_runtime_evidence_collection_profile_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
     optimizer_feedback_report: dict[str, Any] | None = None,
     convergence_assessment_report: dict[str, Any] | None = None,
@@ -7231,6 +7437,7 @@ def build_read_only_dashboard_shell(
         "shadow_runtime_orchestration": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/runtime_orchestration_report.json",
         "upbit_paper_persistent_loop": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_persistent_loop_report.json",
         "upbit_paper_runtime_recovery_guard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
+        "upbit_paper_runtime_evidence_collection_profile": "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
         "upbit_paper_post_rerun_reconciliation_blocker_rollup": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
         "upbit_paper_post_rerun_operator_reconciliation_review_guidance": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
         "upbit_paper_post_rerun_operator_reconciliation_queue": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
@@ -7387,6 +7594,31 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 recovery_guard_freshness,
+            )
+        )
+    paper_runtime_evidence_collection_profile_status = _paper_runtime_evidence_collection_profile_status(
+        report=upbit_paper_runtime_evidence_collection_profile_report,
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+    )
+    if isinstance(upbit_paper_runtime_evidence_collection_profile_report, dict):
+        runtime_profile_freshness = (
+            "PASS"
+            if _freshness_from_timestamp(upbit_paper_runtime_evidence_collection_profile_report, "created_at_utc") == "PASS"
+            and paper_runtime_evidence_collection_profile_status["status"] in {"PASS", "BLOCKED"}
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE",
+                paths.get(
+                    "upbit_paper_runtime_evidence_collection_profile",
+                    "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+                ),
+                True,
+                runtime_profile_freshness,
             )
         )
     if isinstance(upbit_paper_post_rerun_reconciliation_blocker_rollup_report, dict):
@@ -7890,6 +8122,7 @@ def build_read_only_dashboard_shell(
         "shadow_persistent_runtime_status": shadow_persistent_runtime_status,
         "paper_persistent_loop_status": paper_persistent_loop_status,
         "paper_runtime_recovery_guard_status": paper_runtime_recovery_guard_status,
+        "paper_runtime_evidence_collection_profile_status": paper_runtime_evidence_collection_profile_status,
         "runtime_evidence_boundary": runtime_evidence_boundary,
         "shadow_runtime_orchestration_status": shadow_runtime_orchestration_status,
         "operator_action_summary": operator_action_summary,
@@ -8001,6 +8234,27 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "latest_cycle_status",
                 "resume_action",
                 "paper_runtime_resume_allowed",
+                "primary_blocker_code",
+                "one_line_summary",
+                "next_operator_action",
+            )
+        )
+    paper_runtime_profile = shell.get("paper_runtime_evidence_collection_profile_status", {})
+    if isinstance(paper_runtime_profile, dict):
+        values.extend(
+            str(paper_runtime_profile.get(key, ""))
+            for key in (
+                "status",
+                "profile_id",
+                "profile_scope",
+                "completed_cycle_count",
+                "component_pass_count",
+                "component_count",
+                "ledger_runtime_evidence_status",
+                "idempotency_status",
+                "reconciliation_status",
+                "current_evidence_write_allowed",
+                "long_run_evidence_eligible",
                 "primary_blocker_code",
                 "one_line_summary",
                 "next_operator_action",
@@ -9776,6 +10030,122 @@ def validate_read_only_dashboard_shell(
     if paper_recovery_guard.get("status") in {"NOT_LOADED", "STALE"} and paper_recovery_guard.get("paper_runtime_resume_allowed"):
         return DashboardValidationResult("BLOCKED", "not-loaded or stale paper recovery guard cannot allow resume", "RECONCILIATION_REQUIRED")
 
+    paper_runtime_profile = shell.get("paper_runtime_evidence_collection_profile_status")
+    if not isinstance(paper_runtime_profile, dict):
+        return DashboardValidationResult("FAIL", "dashboard paper_runtime_evidence_collection_profile_status missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        paper_runtime_profile.get("truth_role") != "dashboard_serving_truth"
+        or paper_runtime_profile.get("source") not in PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_SOURCES
+        or paper_runtime_profile.get("runtime_evidence_role") != PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ROLE
+    ):
+        return DashboardValidationResult("BLOCKED", "paper runtime evidence profile display cannot claim execution, live-readiness, or long-run truth", "LIVE_FINAL_GUARD_FAILED")
+    if paper_runtime_profile.get("display_only") is not True or paper_runtime_profile.get("dashboard_truth_only") is not True:
+        return DashboardValidationResult("BLOCKED", "paper runtime evidence profile display must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        paper_runtime_profile.get("live_order_ready")
+        or paper_runtime_profile.get("live_order_allowed")
+        or paper_runtime_profile.get("can_live_trade")
+        or paper_runtime_profile.get("scale_up_allowed")
+        or paper_runtime_profile.get("actual_long_run_evidence_created")
+        or paper_runtime_profile.get("long_run_evidence_eligible")
+        or paper_runtime_profile.get("promotion_eligible")
+        or paper_runtime_profile.get("current_evidence_write_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "paper runtime evidence profile attempted live, scale, current-evidence, promotion, or long-run permission", "LIVE_FINAL_GUARD_FAILED")
+    if paper_runtime_profile.get("status") not in PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_STATUSES:
+        return DashboardValidationResult("FAIL", "paper runtime evidence profile status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        paper_runtime_profile.get("severity") not in OPERATION_STATUS_LEVELS
+        or paper_runtime_profile.get("color_token") not in OPERATION_COLOR_TOKENS
+    ):
+        return DashboardValidationResult("FAIL", "paper runtime evidence profile severity or color is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_runtime_profile.get("severity") == "NORMAL" and paper_runtime_profile.get("color_token") not in {"green", "blue"}:
+        return DashboardValidationResult("FAIL", "normal paper runtime evidence profile must use green or blue", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_runtime_profile.get("severity") == "WARNING" and paper_runtime_profile.get("color_token") != "yellow":
+        return DashboardValidationResult("FAIL", "warning paper runtime evidence profile must use yellow", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_runtime_profile.get("severity") == "ERROR" and paper_runtime_profile.get("color_token") != "red":
+        return DashboardValidationResult("FAIL", "error paper runtime evidence profile must use red", "SCHEMA_IDENTITY_MISMATCH")
+    runtime_profile_source_loaded = (
+        paper_runtime_profile.get("source") == "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json"
+    )
+    runtime_profile_source_listed = (
+        "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json" in source_filenames
+    )
+    if runtime_profile_source_loaded and not runtime_profile_source_listed:
+        return DashboardValidationResult("BLOCKED", "paper runtime evidence profile status must be backed by a listed source artifact", "HARD_TRUTH_MISSING")
+    if not runtime_profile_source_loaded and runtime_profile_source_listed:
+        return DashboardValidationResult("BLOCKED", "paper runtime evidence profile source artifact is listed while status is not loaded", "SCHEMA_IDENTITY_MISMATCH")
+    for count_field in (
+        "requested_cycle_count",
+        "completed_cycle_count",
+        "component_count",
+        "component_pass_count",
+        "component_blocked_count",
+        "accepted_cycle_sample_count",
+        "unique_runtime_cycle_hash_count",
+        "duplicate_cycle_hash_count",
+        "invalid_source_count",
+        "observed_span_seconds",
+        "mismatch_count",
+        "source_ledger_jsonl_count",
+        "recomputed_ledger_event_count",
+        "recomputed_filled_order_count",
+        "duplicate_event_id_count",
+        "duplicate_dedup_key_count",
+        "duplicate_semantic_event_count",
+        "duplicate_filled_order_key_count",
+    ):
+        if not isinstance(paper_runtime_profile.get(count_field), int) or paper_runtime_profile.get(count_field) < 0:
+            return DashboardValidationResult("FAIL", f"paper runtime evidence profile count is invalid: {count_field}", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_runtime_profile.get("component_pass_count", 0) + paper_runtime_profile.get("component_blocked_count", 0) != paper_runtime_profile.get("component_count", 0):
+        return DashboardValidationResult("FAIL", "paper runtime evidence profile component counts are inconsistent", "SCHEMA_IDENTITY_MISMATCH")
+    for text_field in (
+        "profile_id",
+        "profile_scope",
+        "loop_id",
+        "ledger_runtime_evidence_status",
+        "idempotency_status",
+        "reconciliation_status",
+        "runtime_evidence_role",
+        "long_run_blocker_code",
+        "primary_blocker_code",
+        "one_line_summary",
+        "next_operator_action",
+    ):
+        if not isinstance(paper_runtime_profile.get(text_field), str) or not paper_runtime_profile.get(text_field, "").strip():
+            return DashboardValidationResult("FAIL", f"paper runtime evidence profile missing {text_field}", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_runtime_profile.get("long_run_blocker_code") != "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT":
+        return DashboardValidationResult("BLOCKED", "paper runtime evidence profile must expose the long-run evidence blocker", "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+    if paper_runtime_profile.get("status") == "PASS":
+        if (
+            paper_runtime_profile.get("source") != "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json"
+            or paper_runtime_profile.get("component_count", 0) <= 0
+            or paper_runtime_profile.get("component_pass_count") != paper_runtime_profile.get("component_count")
+            or paper_runtime_profile.get("component_blocked_count") != 0
+            or paper_runtime_profile.get("completed_cycle_count", 0) <= 0
+            or paper_runtime_profile.get("accepted_cycle_sample_count", 0) <= 0
+            or paper_runtime_profile.get("accepted_cycle_sample_count") != paper_runtime_profile.get("completed_cycle_count")
+            or paper_runtime_profile.get("ledger_runtime_evidence_status") != "PASS"
+            or paper_runtime_profile.get("idempotency_status") != "PASS"
+            or paper_runtime_profile.get("reconciliation_status") != "PASS"
+            or paper_runtime_profile.get("mismatch_count") != 0
+            or paper_runtime_profile.get("primary_blocker_code") != "LIVE_READY_MISSING"
+        ):
+            return DashboardValidationResult("BLOCKED", "PASS paper runtime evidence profile requires bounded PAPER evidence and live still blocked", "LIVE_FINAL_GUARD_FAILED")
+    duplicate_guard_count = (
+        paper_runtime_profile.get("duplicate_event_id_count", 0)
+        + paper_runtime_profile.get("duplicate_dedup_key_count", 0)
+        + paper_runtime_profile.get("duplicate_semantic_event_count", 0)
+        + paper_runtime_profile.get("duplicate_filled_order_key_count", 0)
+        + paper_runtime_profile.get("mismatch_count", 0)
+    )
+    if duplicate_guard_count > 0 and paper_runtime_profile.get("primary_blocker_code") != "RECONCILIATION_REQUIRED":
+        return DashboardValidationResult("BLOCKED", "paper runtime evidence profile duplicate or mismatch evidence must require reconciliation", "RECONCILIATION_REQUIRED")
+    if paper_runtime_profile.get("status") in {"BLOCKED", "INVALID"} and paper_runtime_profile.get("severity") != "ERROR":
+        return DashboardValidationResult("FAIL", "blocked or invalid paper runtime evidence profile must render as error", "SCHEMA_IDENTITY_MISMATCH")
+    if paper_runtime_profile.get("status") == "NOT_LOADED" and paper_runtime_profile.get("source") != "NOT_LOADED":
+        return DashboardValidationResult("FAIL", "not-loaded or stale paper runtime evidence profile must not cite a current profile source", "SCHEMA_IDENTITY_MISMATCH")
+
     runtime_boundary = shell.get("runtime_evidence_boundary")
     if not isinstance(runtime_boundary, dict):
         return DashboardValidationResult("FAIL", "dashboard runtime_evidence_boundary missing", "SCHEMA_IDENTITY_MISMATCH")
@@ -10984,6 +11354,12 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     paper_persistent_loop_status_display = str(paper_persistent_loop.get("status", "NOT_LOADED")).replace("_", " ").title()
     paper_recovery_guard = shell.get("paper_runtime_recovery_guard_status", {}) if isinstance(shell.get("paper_runtime_recovery_guard_status"), dict) else {}
     paper_recovery_guard_status_display = str(paper_recovery_guard.get("status", "NOT_LOADED")).replace("_", " ").title()
+    paper_runtime_profile = (
+        shell.get("paper_runtime_evidence_collection_profile_status", {})
+        if isinstance(shell.get("paper_runtime_evidence_collection_profile_status"), dict)
+        else {}
+    )
+    paper_runtime_profile_status_display = str(paper_runtime_profile.get("status", "NOT_LOADED")).replace("_", " ").title()
     market_data = shell.get("market_data_continuity_status", {}) if isinstance(shell.get("market_data_continuity_status"), dict) else {}
     market_data_status_display = str(market_data.get("status", "NOT_LOADED")).replace("_", " ").title()
     runtime_boundary = shell.get("runtime_evidence_boundary", {}) if isinstance(shell.get("runtime_evidence_boundary"), dict) else {}
@@ -11010,6 +11386,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Persistent runtime</dt><dd class=\"pill {status_class(shadow_persistent.get('status'))}\">{safe_text(shadow_persistent_status_display)}</dd></div>"
         f"<div><dt>PAPER loop</dt><dd class=\"pill {status_class(paper_persistent_loop.get('status'))}\">{safe_text(paper_persistent_loop_status_display)}</dd></div>"
         f"<div><dt>PAPER recovery</dt><dd class=\"pill {status_class(paper_recovery_guard.get('status'))}\">{safe_text(paper_recovery_guard_status_display)}</dd></div>"
+        f"<div><dt>PAPER profile</dt><dd class=\"pill {status_class(paper_runtime_profile.get('status'))}\">{safe_text(paper_runtime_profile_status_display)}</dd></div>"
         f"<div><dt>Source pairing</dt><dd class=\"pill {status_class(runtime_orchestration.get('status'))}\">{safe_text(runtime_orchestration_status_display)}</dd></div>"
         f"<div><dt>Actual long-run evidence</dt><dd class=\"pill {status_class(runtime_boundary.get('status'))}\">{safe_text(runtime_boundary_status_display)}</dd></div>"
         f"<div><dt>Live orders</dt><dd class=\"pill safe-lock\">blocked</dd></div>"
@@ -11297,6 +11674,34 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "</section>"
         f"<p class=\"next\">Next: {safe_text(paper_recovery_guard.get('next_operator_action', 'Run PAPER recovery guard before review.'))}</p>"
         f"<small>Source={safe_text(paper_recovery_guard.get('source', 'NOT_LOADED'))} | Guard={safe_text(paper_recovery_guard.get('guard_id', 'NOT_LOADED'))} | Loop={safe_text(paper_recovery_guard.get('loop_id', 'NOT_LOADED'))} | Blocker={safe_text(paper_recovery_guard.get('primary_blocker_code', 'RECONCILIATION_REQUIRED'))}. Display-only recovery status; it cannot approve live orders, promotion, long-run evidence, or risk scale-up.</small>"
+        "</section>"
+    )
+
+    paper_runtime_profile_color = safe_text(paper_runtime_profile.get("color_token", "yellow"))
+    paper_runtime_profile_html = (
+        f"<section class=\"paper-runtime-profile paper-runtime-profile-{paper_runtime_profile_color}\" aria-label=\"paper runtime evidence collection profile\">"
+        "<div class=\"portfolio-head\">"
+        "<div>"
+        "<span class=\"eyebrow\">PAPER Runtime Evidence</span>"
+        f"<h2>{safe_text(paper_runtime_profile.get('title', 'PAPER Runtime Evidence Profile'))}</h2>"
+        "</div>"
+        f"<p><span class=\"pill {status_class(paper_runtime_profile.get('status'))}\">{safe_text(paper_runtime_profile_status_display)}</span></p>"
+        "</div>"
+        f"<p>{safe_text(paper_runtime_profile.get('one_line_summary', 'No bounded PAPER runtime evidence profile is loaded.'))}</p>"
+        "<section class=\"decision-grid\">"
+        "<div><strong>Profile Cycles</strong>"
+        f"<p>completed={safe_text(paper_runtime_profile.get('completed_cycle_count', 0))}/{safe_text(paper_runtime_profile.get('requested_cycle_count', 0))}<br>accepted samples={safe_text(paper_runtime_profile.get('accepted_cycle_sample_count', 0))}<br>unique hashes={safe_text(paper_runtime_profile.get('unique_runtime_cycle_hash_count', 0))}</p></div>"
+        "<div><strong>Components</strong>"
+        f"<p>pass={safe_text(paper_runtime_profile.get('component_pass_count', 0))}/{safe_text(paper_runtime_profile.get('component_count', 0))}<br>blocked={safe_text(paper_runtime_profile.get('component_blocked_count', 0))}<br>invalid sources={safe_text(paper_runtime_profile.get('invalid_source_count', 0))}</p></div>"
+        "<div><strong>Ledger / Idempotency</strong>"
+        f"<p>ledger={safe_text(paper_runtime_profile.get('ledger_runtime_evidence_status', 'BLOCKED'))}<br>idempotency={safe_text(paper_runtime_profile.get('idempotency_status', 'BLOCKED'))}<br>reconciliation={safe_text(paper_runtime_profile.get('reconciliation_status', 'BLOCKED'))}<br>mismatches={safe_text(paper_runtime_profile.get('mismatch_count', 0))}</p></div>"
+        "<div><strong>Duplicate Guards</strong>"
+        f"<p>event_id={safe_text(paper_runtime_profile.get('duplicate_event_id_count', 0))}<br>dedup_key={safe_text(paper_runtime_profile.get('duplicate_dedup_key_count', 0))}<br>semantic={safe_text(paper_runtime_profile.get('duplicate_semantic_event_count', 0))}<br>filled_order={safe_text(paper_runtime_profile.get('duplicate_filled_order_key_count', 0))}</p></div>"
+        "<div><strong>Evidence Boundary</strong>"
+        f"<p>{safe_text(paper_runtime_profile.get('runtime_evidence_role', PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ROLE))}<br><span class=\"pill safe-lock\">not LIVE_READY</span><br><span class=\"pill safe-lock\">current writes={safe_text(paper_runtime_profile.get('current_evidence_write_allowed', False))}</span><br><span class=\"pill safe-lock\">long-run eligible={safe_text(paper_runtime_profile.get('long_run_evidence_eligible', False))}</span><br>blocker={safe_text(paper_runtime_profile.get('long_run_blocker_code', 'LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT'))}</p></div>"
+        "</section>"
+        f"<p class=\"next\">Next: {safe_text(paper_runtime_profile.get('next_operator_action', 'Run the bounded PAPER runtime evidence collection profile before review.'))}</p>"
+        f"<small>Source={safe_text(paper_runtime_profile.get('source', 'NOT_LOADED'))} | Profile={safe_text(paper_runtime_profile.get('profile_id', 'NOT_LOADED'))} | Loop={safe_text(paper_runtime_profile.get('loop_id', 'NOT_LOADED'))} | Blocker={safe_text(paper_runtime_profile.get('primary_blocker_code', 'ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING'))}. Display-only PAPER evidence profile; it cannot approve live orders, current-evidence writes, promotion, long-run evidence, or risk scale-up.</small>"
         "</section>"
     )
 
@@ -11953,8 +12358,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     main { display: grid; gap: 16px; padding: 16px; width: 100%; max-width: 1440px; margin: 0 auto; }
     h1, h2, h3, p, dl, dd, small, strong, span { overflow-wrap: anywhere; word-break: normal; }
     p, small, li, dd, td { line-height: 1.5; }
-    .summary-card, .live-readiness, .operation, .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { min-width: 0; }
-    .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { display: grid; align-content: start; gap: 12px; }
+    .summary-card, .live-readiness, .operation, .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { min-width: 0; }
+    .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { display: grid; align-content: start; gap: 12px; }
     .metric, .scope-item, .guard, .decision-grid div, .workflow-step, .dependency-check, .evidence-check, .maturity-component, .stability-metric { display: grid; align-content: start; gap: 6px; }
     .freshness-strip { display: grid; gap: 12px; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.8fr); align-items: center; background: var(--ok-bg); border: 1px solid #b9dfca; border-left: 8px solid var(--ok); border-radius: 8px; padding: 14px 16px; min-width: 0; }
     .freshness-strip h2 { margin-top: 4px; }
@@ -12066,6 +12471,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .paper-recovery-blue { border-left-color: var(--safe); background: var(--safe-bg); }
     .paper-recovery-yellow { border-left-color: var(--warn); background: var(--warn-bg); }
     .paper-recovery-red { border-left-color: var(--danger); background: var(--danger-bg); }
+    .paper-runtime-profile { background: white; border: 1px solid var(--line); border-left: 6px solid var(--safe); border-radius: 8px; padding: 14px; }
+    .paper-runtime-profile-green { border-left-color: var(--ok); background: var(--ok-bg); }
+    .paper-runtime-profile-blue { border-left-color: var(--safe); background: var(--safe-bg); }
+    .paper-runtime-profile-yellow { border-left-color: var(--warn); background: var(--warn-bg); }
+    .paper-runtime-profile-red { border-left-color: var(--danger); background: var(--danger-bg); }
     .runtime-boundary { background: white; border: 1px solid var(--line); border-left: 6px solid var(--safe); border-radius: 8px; padding: 14px; }
     .runtime-boundary-green { border-left-color: var(--ok); background: var(--ok-bg); }
     .runtime-boundary-blue { border-left-color: var(--safe); background: var(--safe-bg); }
@@ -12317,6 +12727,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         """ + market_data_html + """
         """ + paper_persistent_loop_html + """
         """ + paper_recovery_guard_html + """
+        """ + paper_runtime_profile_html + """
         """ + runtime_boundary_html + """
         """ + runtime_orchestration_html + """
         """ + shadow_harness_html + """

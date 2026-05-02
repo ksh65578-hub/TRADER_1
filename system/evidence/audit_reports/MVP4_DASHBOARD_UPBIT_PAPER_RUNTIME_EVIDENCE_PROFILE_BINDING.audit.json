@@ -1,0 +1,14 @@
+{
+  "profile_status": "STALE",
+  "component_count": 4,
+  "component_pass_count": 4,
+  "accepted_cycle_sample_count": 1,
+  "ledger_runtime_evidence_status": "PASS",
+  "mismatch_count": 0,
+  "current_evidence_write_allowed": false,
+  "long_run_evidence_eligible": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

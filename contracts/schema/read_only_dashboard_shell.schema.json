@@ -25,6 +25,7 @@
     "shadow_persistent_runtime_status",
     "paper_persistent_loop_status",
     "paper_runtime_recovery_guard_status",
+    "paper_runtime_evidence_collection_profile_status",
     "runtime_evidence_boundary",
     "operator_action_summary",
     "operator_workflow_summary",
@@ -85,6 +86,7 @@
             "SHADOW_RUNTIME_ORCHESTRATION",
             "PAPER_PERSISTENT_LOOP",
             "PAPER_RUNTIME_RECOVERY_GUARD",
+            "UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE",
             "POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP",
             "POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE",
             "POST_RERUN_OPERATOR_RECONCILIATION_QUEUE",
@@ -115,6 +117,7 @@
             "runtime_orchestration_report.json",
             "upbit_paper_persistent_loop_report.json",
             "upbit_paper_runtime_recovery_guard_report.json",
+            "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
             "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
             "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
             "upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
@@ -5651,6 +5654,253 @@
           "const": false
         }
       }
+    },
+    "paper_runtime_evidence_collection_profile_status": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "severity",
+        "color_token",
+        "truth_role",
+        "source",
+        "profile_id",
+        "profile_scope",
+        "loop_id",
+        "requested_cycle_count",
+        "completed_cycle_count",
+        "component_count",
+        "component_pass_count",
+        "component_blocked_count",
+        "accepted_cycle_sample_count",
+        "unique_runtime_cycle_hash_count",
+        "duplicate_cycle_hash_count",
+        "invalid_source_count",
+        "observed_span_seconds",
+        "span_floor_met",
+        "cycle_floor_met",
+        "ledger_runtime_evidence_status",
+        "idempotency_status",
+        "reconciliation_status",
+        "mismatch_count",
+        "source_ledger_jsonl_count",
+        "recomputed_ledger_event_count",
+        "recomputed_filled_order_count",
+        "duplicate_event_id_count",
+        "duplicate_dedup_key_count",
+        "duplicate_semantic_event_count",
+        "duplicate_filled_order_key_count",
+        "runtime_evidence_role",
+        "actual_long_run_evidence_created",
+        "long_run_evidence_eligible",
+        "long_run_blocker_code",
+        "promotion_eligible",
+        "current_evidence_write_allowed",
+        "primary_blocker_code",
+        "one_line_summary",
+        "next_operator_action",
+        "display_only",
+        "dashboard_truth_only",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "PAPER Runtime Evidence Profile"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "STALE",
+            "INVALID"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "NORMAL",
+            "WARNING",
+            "ERROR"
+          ]
+        },
+        "color_token": {
+          "enum": [
+            "green",
+            "blue",
+            "yellow",
+            "red"
+          ]
+        },
+        "truth_role": {
+          "const": "dashboard_serving_truth"
+        },
+        "source": {
+          "enum": [
+            "NOT_LOADED",
+            "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json"
+          ]
+        },
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "loop_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_cycle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completed_cycle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "component_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "component_pass_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "component_blocked_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accepted_cycle_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unique_runtime_cycle_hash_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_cycle_hash_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalid_source_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_span_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "span_floor_met": {
+          "type": "boolean"
+        },
+        "cycle_floor_met": {
+          "type": "boolean"
+        },
+        "ledger_runtime_evidence_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "idempotency_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "reconciliation_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "mismatch_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_ledger_jsonl_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recomputed_ledger_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recomputed_filled_order_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_event_id_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_dedup_key_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_semantic_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "duplicate_filled_order_key_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runtime_evidence_role": {
+          "const": "BOUNDED_PAPER_RUNTIME_EVIDENCE_PROFILE_NOT_LONG_RUN"
+        },
+        "actual_long_run_evidence_created": {
+          "const": false
+        },
+        "long_run_evidence_eligible": {
+          "const": false
+        },
+        "long_run_blocker_code": {
+          "const": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
+        },
+        "promotion_eligible": {
+          "const": false
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_operator_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
     }
   },
   "properties": {
@@ -5694,7 +5944,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 19,
+      "maxItems": 20,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -5725,6 +5975,9 @@
     },
     "paper_runtime_recovery_guard_status": {
       "$ref": "#/$defs/paper_runtime_recovery_guard_status"
+    },
+    "paper_runtime_evidence_collection_profile_status": {
+      "$ref": "#/$defs/paper_runtime_evidence_collection_profile_status"
     },
     "runtime_evidence_boundary": {
       "$ref": "#/$defs/runtime_evidence_boundary"
