@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.root_launcher_report.v1",
-  "generated_at_utc": "2026-05-02T11:07:16Z",
+  "generated_at_utc": "2026-05-02T11:24:17Z",
   "project_id": "TRADER_1",
   "launcher_name": "UPBIT_PAPER",
   "exchange": "UPBIT",
@@ -10,8 +10,8 @@
   "market_type_source": "NOT_APPLICABLE",
   "config_hash": "4B45AF78B89DB73C6F6BD84FEE7117CE972783DE0DDB8844B18CF15DB23A0BF9",
   "registry_hash": "2DB1033039A65B4F2BEC55C3CF7A3EBF63A863D95C570C003078B6A683903E26",
-  "schema_bundle_hash": "81A9F58EFA7C25609F1F9BF72D369F7675A1AD7E41DCFC23B157FFDFBB05827C",
-  "source_tree_hash": "6BC436FEE8D0DF4C58E0178B0BFD93A5F896184289B9CBEFDD915E819431A2F1",
+  "schema_bundle_hash": "71B8E9113E4898C5AD7BD50A1D6DAF000A8E6B20D81AF134E3EDEDF42BDB0BF5",
+  "source_tree_hash": "19E723B297EEFB7ECF139F0C57EA5CB6C9A23C49E4402DE68410880E1520A033",
   "config_status": "PASS",
   "startup_probe_status": "BLOCKED",
   "heartbeat_status": "PASS",
@@ -31,5 +31,5 @@
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
-  "report_hash": "5E413EBB121AF7D499B012318C08FBAA76A730A91202244455DCAC2C60A14E33"
+  "report_hash": "4EE542AF49F02CEA383AA9D6286933939D1AB0399CEA04C7DC018D8170341C96"
 }

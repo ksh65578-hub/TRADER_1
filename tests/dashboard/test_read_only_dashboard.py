@@ -2806,7 +2806,39 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Configured PAPER capital is 1,000,000 KRW", portfolio["source_snapshot_freshness_message"])
         self.assertIn("clean review-only evidence", portfolio["source_snapshot_freshness_message"])
 
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["status"], "BLOCKED")
+        self.assertEqual(operator_action["primary_action"], "STOP_AND_INSPECT")
+        self.assertEqual(operator_action["workflow_step"], "INSPECT_DASHBOARD")
+        self.assertEqual(operator_action["primary_action_label"], "Inspect repaired current-evidence blocker")
+        self.assertEqual(operator_action["primary_blocker_code"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        self.assertIn(
+            "isolated event-id repaired candidates are review-only",
+            operator_action["one_line_blocker"],
+        )
+        self.assertIn("current-evidence writes=0", operator_action["one_line_blocker"])
+        self.assertIn("Current evidence writes", operator_action["next_operator_action"])
+        self.assertIn("remain blocked", operator_action["next_operator_action"])
+        self.assertFalse(operator_action["safe_to_continue_paper"])
+        self.assertFalse(operator_action["live_order_allowed"])
+        self.assertFalse(operator_action["scale_up_allowed"])
+
+        workflow = dashboard["operator_workflow_summary"]
+        self.assertEqual(workflow["status"], "BLOCKED")
+        self.assertEqual(workflow["current_step"], "INSPECT_DASHBOARD")
+        self.assertIn("current evidence and portfolio truth writes remain blocked", workflow["summary"])
+        self.assertIn("configured PAPER capital is not verified cash or equity", workflow["steps"][1]["detail"])
+        self.assertEqual(workflow["steps"][1]["status"], "CURRENT")
+        self.assertIn("Keep repaired candidates review-only", workflow["steps"][2]["detail"])
+        self.assertEqual(workflow["steps"][2]["status"], "WAITING")
+        self.assertFalse(workflow["live_order_allowed"])
+        self.assertFalse(workflow["scale_up_allowed"])
+
         html = render_dashboard_html(dashboard)
+        self.assertIn("Inspect repaired current-evidence blocker", html)
+        self.assertIn("current-evidence writes=0", html)
+        self.assertIn("Current evidence writes", html)
+        self.assertIn("remain blocked", html)
         self.assertIn("Repaired Current Evidence Guard", html)
         self.assertIn("guard=BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED", html)
         self.assertIn("candidates=3/3", html)
@@ -2835,6 +2867,26 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS", result.message)
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_repaired_current_evidence_guard_operator_action_drift(self):
+        dashboard = build_dashboard_with_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard()
+        dashboard["operator_action_summary"]["one_line_blocker"] = (
+            "POST_RERUN_RECONCILIATION_REQUIRED: live orders remain blocked."
+        )
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_blocks_repaired_current_evidence_guard_operator_workflow_drift(self):
+        dashboard = build_dashboard_with_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard()
+        dashboard["operator_workflow_summary"]["summary"] = (
+            "Operator flow is blocked until the red dashboard issue is inspected."
+        )
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
 
     def test_dashboard_displays_bound_verified_portfolio_when_stale_loop_reconciliation_blocks_writes(self):
         report = stale_loop_post_regeneration_reconciliation_fixture()

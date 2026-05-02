@@ -3565,6 +3565,10 @@ def _operator_action_summary(
     maturity_status = profitability_maturity.get("status")
     feedback_status = execution_feedback_snapshot.get("status")
     reconciliation_status = reconciliation_recovery_summary.get("status")
+    repaired_current_evidence_guard_blocked = (
+        reconciliation_recovery_summary.get("stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status")
+        == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+    )
 
     if (
         operation_severity == "ERROR"
@@ -3577,7 +3581,11 @@ def _operator_action_summary(
         color_token = "red"
         primary_action = "STOP_AND_INSPECT"
         workflow_step = "INSPECT_DASHBOARD"
-        label = "Stop review and inspect the blocker"
+        label = (
+            "Inspect repaired current-evidence blocker"
+            if repaired_current_evidence_guard_blocked
+            else "Stop review and inspect the blocker"
+        )
         next_operator_action = (
             reconciliation_recovery_summary.get("next_operator_action")
             if reconciliation_status in {"BLOCKED", "INVALID"}
@@ -3616,6 +3624,14 @@ def _operator_action_summary(
         label = "Resolve dashboard blocker"
         next_operator_action = "Resolve the visible blocker, then rerun PAPER and recheck this dashboard."
 
+    one_line_blocker = f"{blocker}: live orders remain blocked."
+    if reconciliation_status in {"BLOCKED", "INVALID"}:
+        reconciliation_blocker_line = reconciliation_recovery_summary.get("one_line_blocker")
+        if isinstance(reconciliation_blocker_line, str) and reconciliation_blocker_line.strip():
+            one_line_blocker = reconciliation_blocker_line
+    if not isinstance(next_operator_action, str) or not next_operator_action.strip():
+        next_operator_action = "Resolve the visible blocker, then rerun PAPER and recheck this dashboard."
+
     return {
         "title": "Operator Next Action",
         "status": status,
@@ -3627,7 +3643,7 @@ def _operator_action_summary(
         "primary_action": primary_action,
         "primary_action_label": label,
         "primary_blocker_code": blocker,
-        "one_line_blocker": f"{blocker}: live orders remain blocked.",
+        "one_line_blocker": one_line_blocker,
         "next_operator_action": next_operator_action,
         "safe_to_continue_paper": status in {"PAPER_MONITORING", "PAPER_REVIEW_READY"},
         "paper_review_only": True,
@@ -3677,11 +3693,21 @@ def _operator_workflow_summary(
 ) -> dict[str, Any]:
     action_status = operator_action_summary.get("status")
     current_step = str(operator_action_summary.get("workflow_step", "INSPECT_DASHBOARD"))
+    operator_blocker_text = str(operator_action_summary.get("one_line_blocker", ""))
+    repaired_current_evidence_guard_blocked = (
+        action_status == "BLOCKED"
+        and "isolated event-id repaired candidates are review-only" in operator_blocker_text
+        and "current-evidence writes=0" in operator_blocker_text
+    )
     if action_status == "BLOCKED":
         status = "BLOCKED"
         severity = "ERROR"
         color_token = "red"
-        summary = "Operator flow is blocked until the red dashboard issue is inspected."
+        summary = (
+            "Repaired isolated event-id candidates are review-only; current evidence and portfolio truth writes remain blocked."
+            if repaired_current_evidence_guard_blocked
+            else "Operator flow is blocked until the red dashboard issue is inspected."
+        )
     elif action_status == "REFRESH_REQUIRED":
         status = "REFRESH_REQUIRED"
         severity = "WARNING"
@@ -3721,6 +3747,16 @@ def _operator_workflow_summary(
     else:
         collect_status = "WAITING"
 
+    inspect_detail = "Check operation, portfolio, risk, no-trade reason, and source freshness."
+    collect_detail = "Accumulate PAPER/SHADOW samples, execution feedback, and strategy evidence."
+    if repaired_current_evidence_guard_blocked:
+        inspect_detail = (
+            "Inspect the repaired current-evidence guard; configured PAPER capital is not verified cash or equity."
+        )
+        collect_detail = (
+            "Keep repaired candidates review-only; do not collect portfolio truth until current-evidence writes are audited."
+        )
+
     steps = [
         _workflow_step(
             "RUN_PAPER",
@@ -3734,7 +3770,7 @@ def _operator_workflow_summary(
             "INSPECT_DASHBOARD",
             "Inspect Dashboard",
             inspect_status,
-            "Check operation, portfolio, risk, no-trade reason, and source freshness.",
+            inspect_detail,
             "RESOLVE_BLOCKER" if status in {"ACTION_REQUIRED", "BLOCKED"} else "REVIEW_PAPER_EVIDENCE",
             current_step == "INSPECT_DASHBOARD" or status == "BLOCKED",
         ),
@@ -3742,7 +3778,7 @@ def _operator_workflow_summary(
             "COLLECT_EVIDENCE",
             "Collect Evidence",
             collect_status,
-            "Accumulate PAPER/SHADOW samples, execution feedback, and strategy evidence.",
+            collect_detail,
             "CONTINUE_PAPER",
             current_step == "COLLECT_EVIDENCE",
         ),
@@ -11235,6 +11271,23 @@ def validate_read_only_dashboard_shell(
         or operator_action.get("safe_to_continue_paper") is not False
     ):
         return DashboardValidationResult("BLOCKED", "operator action must surface blocked reconciliation or post-rerun blocker rollup", "HARD_TRUTH_MISSING")
+    if current_guard_blocks_current_evidence:
+        operator_line = str(operator_action.get("one_line_blocker", ""))
+        operator_next = str(operator_action.get("next_operator_action", ""))
+        operator_next_lower = operator_next.lower()
+        if (
+            operator_action.get("status") != "BLOCKED"
+            or operator_action.get("severity") != "ERROR"
+            or operator_action.get("primary_action") != "STOP_AND_INSPECT"
+            or operator_action.get("workflow_step") != "INSPECT_DASHBOARD"
+            or operator_action.get("primary_action_label") != "Inspect repaired current-evidence blocker"
+            or "isolated event-id repaired candidates are review-only" not in operator_line
+            or "current-evidence writes=0" not in operator_line
+            or "current evidence writes" not in operator_next_lower
+            or "blocked" not in operator_next_lower
+            or operator_action.get("safe_to_continue_paper") is not False
+        ):
+            return DashboardValidationResult("BLOCKED", "operator action must explain repaired current-evidence current-write blocker", "HARD_TRUTH_MISSING")
     risk_for_operator = shell.get("risk_exposure_snapshot") if isinstance(shell.get("risk_exposure_snapshot"), dict) else {}
     if operator_action.get("status") == "PAPER_MONITORING" and (
         operation.get("severity") != "NORMAL"
@@ -11293,6 +11346,19 @@ def validate_read_only_dashboard_shell(
     live_step = steps[-1]
     if live_step.get("step_id") != "LIVE_REVIEW_BLOCKED" or live_step.get("status") != "BLOCKED" or live_step.get("current") is True:
         return DashboardValidationResult("BLOCKED", "live review workflow step must stay blocked and non-current", "LIVE_FINAL_GUARD_FAILED")
+    if current_guard_blocks_current_evidence:
+        inspect_step = steps[1]
+        collect_step = steps[2]
+        if (
+            workflow.get("status") != "BLOCKED"
+            or workflow.get("severity") != "ERROR"
+            or "current evidence and portfolio truth writes remain blocked" not in str(workflow.get("summary", ""))
+            or inspect_step.get("status") != "CURRENT"
+            or "configured PAPER capital is not verified cash or equity" not in str(inspect_step.get("detail", ""))
+            or collect_step.get("status") != "WAITING"
+            or "Keep repaired candidates review-only" not in str(collect_step.get("detail", ""))
+        ):
+            return DashboardValidationResult("BLOCKED", "operator workflow must explain repaired current-evidence current-write blocker", "HARD_TRUTH_MISSING")
     if workflow.get("status") == "COLLECTING_EVIDENCE" and workflow.get("current_step") != "COLLECT_EVIDENCE":
         return DashboardValidationResult("FAIL", "collecting workflow must point to evidence collection", "SCHEMA_IDENTITY_MISMATCH")
     if workflow.get("status") == "REFRESH_REQUIRED" and workflow.get("current_step") != "RUN_PAPER":
