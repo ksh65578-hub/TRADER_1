@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-02T04:04:42Z",
+  "updated_at_utc": "2026-05-02T04:20:03Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -223,6 +223,7 @@
     "REQ-MVP4-UPBIT-PAPER-CONFIGURED-PORTFOLIO-UNVERIFIED-EXPLANATION",
     "REQ-MVP4-UPBIT-PAPER-LEDGER-HEAD-BINDING-GUARD",
     "REQ-MVP4-UPBIT-PAPER-LEDGER-IDEMPOTENCY-RUNTIME-EVIDENCE",
+    "REQ-MVP4-UPBIT-PAPER-LEDGER-IDEMPOTENCY-RUNTIME-EVIDENCE-REFRESH",
     "REQ-MVP4-UPBIT-PAPER-LEDGER-JSONL-RECOVERY",
     "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP",
     "REQ-MVP4-UPBIT-PAPER-LEDGER-ROLLUP-CONSISTENCY-GUARD",
@@ -376,6 +377,7 @@
     "trader1.upbit_paper_blocked_repair_plan_report.v1",
     "trader1.upbit_paper_bounded_rerun_staging_executor_report.v1",
     "trader1.upbit_paper_dry_run_report.v1",
+    "trader1.upbit_paper_ledger_idempotency_runtime_evidence_report.v1",
     "trader1.upbit_paper_ledger_rollup_repair_report.v1",
     "trader1.upbit_paper_missing_cycle_rerun_guard_report.v1",
     "trader1.upbit_paper_persistent_loop_report.v1",
@@ -516,6 +518,7 @@
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_bounded_rerun_staging_executor_validator",
     "upbit_paper_dry_run_validator",
+    "upbit_paper_ledger_idempotency_runtime_evidence_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_missing_cycle_rerun_guard_validator",
     "upbit_paper_persistent_loop_validator",
@@ -567,12 +570,12 @@
     "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_DASHBOARD_UPBIT_PAPER_RUNTIME_EVIDENCE_PROFILE_BINDING_20260502_001",
-  "last_patch_result_hash": "422E8962FDEEBF63B633562EC53C92D1E9E5B5351ABE2A2C7D1A8BA8BA6B0C99",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_RUNTIME_RECONCILIATION_EVIDENCE_DASHBOARD_BINDING_RECHECK",
+  "last_patch_id": "MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH_20260502_001",
+  "last_patch_result_hash": "1675FCC5B0511406C5BB997D4917A4EC8A06A7036C3EBD740FBC752E0AE43285",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_PORTFOLIO_TRUTH_RECONCILIATION_CLOSURE",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "602289489634BFD64777C132682E8077FFF01153FDE1A82E6DEE424852BE2F1D"
+  "state_hash": "280602CB408DDD79B3EC50EF5804B14661C3E860DAD3A78CBD96C5A8D85CB3D2"
 }

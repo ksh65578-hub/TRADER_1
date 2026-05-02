@@ -1,0 +1,16 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-02T04:20:03Z",
+  "patch_id": "MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_REFRESH_20260502_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_UPBIT_PAPER_IDEMPOTENCY_REFRESH_NO_LIVE_ORDERS",
+  "runtime_evidence_status": "PASS",
+  "idempotency_status": "PASS",
+  "reconciliation_status": "PASS",
+  "portfolio_provenance_status": "PASS",
+  "mismatch_count": 0,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
