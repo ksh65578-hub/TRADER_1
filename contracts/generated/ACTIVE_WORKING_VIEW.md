@@ -1,11 +1,11 @@
 # ACTIVE_WORKING_VIEW
 
-generated_at_utc: 2026-05-02T12:29:34Z
+generated_at_utc: 2026-05-02T12:45:54Z
 source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
 source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
 authority_status: READ_CACHE_NOT_AUTHORITY
 current_mvp: MVP-4
-last_patch_id: MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DESIGN_20260502_001
+last_patch_id: MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_20260502_001
 live_order_ready: false
 live_order_allowed: false
 can_live_trade: false
@@ -13,8 +13,8 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Upbit PAPER repaired current-evidence inputs now have a review-only audited writer design report. The design records the controls that a later writer must satisfy, but no writer is implemented and no current-evidence or portfolio truth write is permitted.
+Upbit PAPER repaired current-evidence inputs now have a review-only audited writer dry-run report. The dry-run previews the future current-evidence and portfolio truth payloads, including the configured 1,000,000 KRW PAPER capital as unverified config-only data, but no current-evidence or portfolio truth artifact is written.
 
 ## Next Safe Task
 
-MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_SCAFFOLD
+MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_DASHBOARD_BINDING

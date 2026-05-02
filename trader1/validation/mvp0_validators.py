@@ -364,6 +364,13 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
     validate_upbit_paper_repaired_current_evidence_audited_writer_design_report,
     write_upbit_paper_repaired_current_evidence_audited_writer_design_report,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_dry_run import (
+    AUDITED_WRITER_DRY_RUN_STATUS,
+    build_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
+    upbit_paper_repaired_current_evidence_audited_writer_dry_run_hash,
+    validate_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
+    write_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -9774,6 +9781,237 @@ def upbit_paper_repaired_current_evidence_audited_writer_design_validator() -> V
     return pass_result(
         validator_id,
         "Upbit PAPER repaired current-evidence audited writer design specifies writer controls while keeping writes, live, and scale-up blocked",
+        paths,
+    )
+
+
+def upbit_paper_repaired_current_evidence_audited_writer_dry_run_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_repaired_current_evidence_audited_writer_dry_run_validator"
+    schema_path = (
+        ROOT
+        / "contracts"
+        / "schema"
+        / "upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.schema.json"
+    )
+    module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_repaired_current_evidence_audited_writer_dry_run.py"
+    )
+    source_module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_repaired_current_evidence_audited_writer_design.py"
+    )
+    test_path = (
+        ROOT
+        / "tests"
+        / "runtime"
+        / "test_upbit_paper_repaired_current_evidence_audited_writer_dry_run.py"
+    )
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.json"
+        )
+    )
+    paths = [schema_path, module_path, source_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.v1":
+        return fail_result(
+            validator_id,
+            "audited writer dry-run schema_id mismatch",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    required = set(schema.get("required", []))
+    for field in (
+        "audited_writer_dry_run_role",
+        "source_audited_writer_design_hash",
+        "source_audited_writer_design_validator_status",
+        "dry_run_status",
+        "dry_run_passed",
+        "dry_run_check_count",
+        "dry_run_check_pass_count",
+        "dry_run_check_blocked_count",
+        "dry_run_checks",
+        "dry_run_manifest",
+        "current_evidence_snapshot_preview",
+        "portfolio_snapshot_preview",
+        "writer_enabled",
+        "current_evidence_write_allowed",
+        "current_evidence_artifact_written",
+        "portfolio_truth_write_allowed",
+        "portfolio_truth_artifact_written",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "audited_writer_dry_run_hash",
+    ):
+        if field not in required:
+            return fail_result(
+                validator_id,
+                f"audited writer dry-run schema missing required field {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+    source_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_repaired_current_evidence_audited_writer_design_report.json"
+    )
+    if not source_path.exists():
+        return blocked_result(
+            validator_id,
+            "audited writer dry-run source design report missing",
+            paths,
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+        )
+    source_report = load_json(source_path)
+    report = build_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report(
+        root=ROOT,
+        source_audited_writer_design_report=source_report,
+    )
+    result = validate_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report(report)
+    if result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"valid audited writer dry-run failed: {result.message}",
+            paths,
+            result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    if (
+        report.get("dry_run_status") != AUDITED_WRITER_DRY_RUN_STATUS
+        or report.get("primary_blocker_code") != AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED_BLOCKER_CODE
+        or report.get("source_design_control_pass_count") != 7
+        or report.get("source_design_control_blocked_count") != 1
+        or report.get("dry_run_check_count") != 10
+        or report.get("dry_run_check_pass_count") != 9
+        or report.get("dry_run_check_blocked_count") != 1
+        or report.get("dry_run_passed") is not False
+        or report.get("writer_enabled") is not False
+        or report.get("current_evidence_write_allowed") is not False
+        or report.get("current_evidence_artifact_written") is not False
+        or report.get("portfolio_truth_write_allowed") is not False
+        or report.get("portfolio_truth_artifact_written") is not False
+        or report.get("live_order_allowed") is not False
+        or report.get("can_live_trade") is not False
+        or report.get("scale_up_allowed") is not False
+    ):
+        return fail_result(
+            validator_id,
+            "audited writer dry-run did not preserve dry-run-only blocked boundary",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if (
+        report.get("current_evidence_snapshot_preview", {}).get("configured_initial_cash_krw") != 1000000
+        or report.get("current_evidence_snapshot_preview", {}).get("cash_status") != "UNVERIFIED"
+        or report.get("portfolio_snapshot_preview", {}).get("verified_cash_krw") is not None
+        or report.get("portfolio_snapshot_preview", {}).get("positions_verified") is not False
+    ):
+        return fail_result(
+            validator_id,
+            "audited writer dry-run incorrectly promoted configured capital to verified portfolio truth",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    writer_mutation = json.loads(json.dumps(report))
+    writer_mutation["current_evidence_artifact_written"] = True
+    writer_mutation["audited_writer_dry_run_hash"] = upbit_paper_repaired_current_evidence_audited_writer_dry_run_hash(
+        writer_mutation
+    )
+    writer_result = validate_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report(writer_mutation)
+    if writer_result.status != "BLOCKED" or writer_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "audited writer dry-run allowed current-evidence artifact mutation",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    false_aggregate = json.loads(json.dumps(report))
+    false_aggregate["dry_run_check_pass_count"] = 10
+    false_aggregate["audited_writer_dry_run_hash"] = upbit_paper_repaired_current_evidence_audited_writer_dry_run_hash(
+        false_aggregate
+    )
+    false_aggregate_result = validate_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report(
+        false_aggregate
+    )
+    if false_aggregate_result.status != "FAIL":
+        return fail_result(
+            validator_id,
+            "audited writer dry-run allowed false aggregate",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    live_check = json.loads(json.dumps(report))
+    live_check["dry_run_checks"][0]["live_order_allowed"] = True
+    live_check["audited_writer_dry_run_hash"] = upbit_paper_repaired_current_evidence_audited_writer_dry_run_hash(
+        live_check
+    )
+    live_check_result = validate_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report(live_check)
+    if live_check_result.status != "BLOCKED" or live_check_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "audited writer dry-run allowed live permission on a check",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report(
+            root=Path(tmp),
+            report=report,
+        )
+        if not written_path.exists():
+            return fail_result(
+                validator_id,
+                "audited writer dry-run writer did not create dry-run report artifact",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+        if (written_path.parent / "current_evidence").exists() or (written_path.parent / "portfolio").exists():
+            return fail_result(
+                validator_id,
+                "audited writer dry-run created current-evidence or portfolio truth directories",
+                paths,
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(
+                validator_id,
+                f"runtime audited writer dry-run artifact is not valid json: {rel(runtime_path)}: {exc}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        runtime_result = validate_upbit_paper_repaired_current_evidence_audited_writer_dry_run_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime audited writer dry-run artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER repaired current-evidence audited writer dry-run previews writer outputs while keeping current-evidence, portfolio truth, live, and scale-up writes blocked",
         paths,
     )
 
@@ -20985,6 +21223,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validator": upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validator,
     "upbit_paper_repaired_current_evidence_audited_writer_precheck_validator": upbit_paper_repaired_current_evidence_audited_writer_precheck_validator,
     "upbit_paper_repaired_current_evidence_audited_writer_design_validator": upbit_paper_repaired_current_evidence_audited_writer_design_validator,
+    "upbit_paper_repaired_current_evidence_audited_writer_dry_run_validator": upbit_paper_repaired_current_evidence_audited_writer_dry_run_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
