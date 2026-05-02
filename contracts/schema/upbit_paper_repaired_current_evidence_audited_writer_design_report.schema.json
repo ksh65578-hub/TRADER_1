@@ -1,0 +1,367 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.upbit_paper_repaired_current_evidence_audited_writer_design_report.v1",
+  "title": "Upbit PAPER Repaired Current Evidence Audited Writer Design Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "audited_writer_design_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "truth_role",
+    "audited_writer_design_role",
+    "source_audited_writer_precheck_hash",
+    "source_audited_writer_precheck_status",
+    "source_audited_writer_precheck_validator_status",
+    "source_audited_writer_candidate_ready_count",
+    "source_audit_gate_pass_count",
+    "source_audit_gate_blocked_count",
+    "source_current_evidence_write_allowed",
+    "source_portfolio_truth_write_allowed",
+    "design_status",
+    "design_passed",
+    "design_control_count",
+    "design_control_pass_count",
+    "design_control_blocked_count",
+    "design_controls",
+    "planned_write_targets",
+    "required_pre_write_checks",
+    "required_post_write_checks",
+    "primary_blocker_code",
+    "blocker_codes",
+    "operator_next_action",
+    "display_only",
+    "dashboard_truth_only",
+    "paper_only",
+    "design_only",
+    "separate_writer_patch_required",
+    "writer_implementation_allowed",
+    "writer_enabled",
+    "current_evidence_write_allowed",
+    "current_evidence_mutation_allowed",
+    "current_ledger_jsonl_write_allowed",
+    "latest_runtime_pointer_write_allowed",
+    "portfolio_truth_write_allowed",
+    "portfolio_snapshot_write_allowed",
+    "persistent_loop_mutation_allowed",
+    "source_delete_allowed",
+    "actual_long_run_evidence_created",
+    "long_run_evidence_eligible",
+    "promotion_eligible",
+    "credential_load_attempted",
+    "private_endpoint_called",
+    "order_endpoint_called",
+    "order_adapter_called",
+    "live_key_loaded",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "scale_up_allowed",
+    "audited_writer_design_hash"
+  ],
+  "$defs": {
+    "design_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_id",
+        "control_status",
+        "blocker_code",
+        "detail",
+        "current_evidence_write_allowed",
+        "portfolio_truth_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "control_id": {
+          "enum": [
+            "SOURCE_AUDITED_WRITER_PRECHECK_VALID",
+            "SINGLE_WRITER_LOCK_DISCIPLINE_SPECIFIED",
+            "IDEMPOTENCY_MANIFEST_SPECIFIED",
+            "ATOMIC_WRITE_RENAME_SPECIFIED",
+            "POST_WRITE_RECONCILIATION_SPECIFIED",
+            "PORTFOLIO_TRUTH_PROVENANCE_SPECIFIED",
+            "LIVE_AND_SCALE_BOUNDARY_SPECIFIED",
+            "WRITER_IMPLEMENTATION_APPROVED"
+          ]
+        },
+        "control_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_id": {
+      "const": "trader1.upbit_paper_repaired_current_evidence_audited_writer_design_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "audited_writer_design_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "const": "UPBIT"
+    },
+    "market_type": {
+      "const": "KRW_SPOT"
+    },
+    "mode": {
+      "const": "PAPER"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "truth_role": {
+      "const": "paper_runtime_repaired_current_evidence_audited_writer_design_truth"
+    },
+    "audited_writer_design_role": {
+      "const": "PAPER_RUNTIME_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DESIGN_REVIEW_ONLY"
+    },
+    "source_audited_writer_precheck_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_audited_writer_precheck_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_audited_writer_precheck_validator_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "source_audited_writer_candidate_ready_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_audit_gate_pass_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_audit_gate_blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_current_evidence_write_allowed": {
+      "const": false
+    },
+    "source_portfolio_truth_write_allowed": {
+      "const": false
+    },
+    "design_status": {
+      "enum": [
+        "BLOCKED_DESIGN_ONLY_WRITER_NOT_IMPLEMENTED",
+        "BLOCKED_SOURCE_PRECHECK_INVALID"
+      ]
+    },
+    "design_passed": {
+      "const": false
+    },
+    "design_control_count": {
+      "const": 8
+    },
+    "design_control_pass_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8
+    },
+    "design_control_blocked_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8
+    },
+    "design_controls": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/design_control"
+      }
+    },
+    "planned_write_targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "required_pre_write_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "required_post_write_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "primary_blocker_code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blocker_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "operator_next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "display_only": {
+      "const": true
+    },
+    "dashboard_truth_only": {
+      "const": true
+    },
+    "paper_only": {
+      "const": true
+    },
+    "design_only": {
+      "const": true
+    },
+    "separate_writer_patch_required": {
+      "const": true
+    },
+    "writer_implementation_allowed": {
+      "const": false
+    },
+    "writer_enabled": {
+      "const": false
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "current_evidence_mutation_allowed": {
+      "const": false
+    },
+    "current_ledger_jsonl_write_allowed": {
+      "const": false
+    },
+    "latest_runtime_pointer_write_allowed": {
+      "const": false
+    },
+    "portfolio_truth_write_allowed": {
+      "const": false
+    },
+    "portfolio_snapshot_write_allowed": {
+      "const": false
+    },
+    "persistent_loop_mutation_allowed": {
+      "const": false
+    },
+    "source_delete_allowed": {
+      "const": false
+    },
+    "actual_long_run_evidence_created": {
+      "const": false
+    },
+    "long_run_evidence_eligible": {
+      "const": false
+    },
+    "promotion_eligible": {
+      "const": false
+    },
+    "credential_load_attempted": {
+      "const": false
+    },
+    "private_endpoint_called": {
+      "const": false
+    },
+    "order_endpoint_called": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "live_key_loaded": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "audited_writer_design_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

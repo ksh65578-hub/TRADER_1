@@ -1,0 +1,45 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DESIGN_EVIDENCE",
+  "created_at_utc": "2026-05-02T12:29:34Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DESIGN_20260502_001",
+  "artifact_paths": [
+    "contracts/generated/context_pack/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DESIGN.md",
+    "contracts/schema/upbit_paper_repaired_current_evidence_audited_writer_design_report.schema.json",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DESIGN.patch_result.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DESIGN.stage_gate_result.json",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DESIGN.validator_run_log.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_design_report.json",
+    "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer_design.py",
+    "tools/emit_upbit_paper_repaired_current_evidence_audited_writer_design_patch_evidence.py",
+    "trader1/runtime/paper/upbit_paper_repaired_current_evidence_audited_writer_design.py",
+    "trader1/validation/mvp0_validators.py"
+  ],
+  "known_blockers": [
+    "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "design_status": "BLOCKED_DESIGN_ONLY_WRITER_NOT_IMPLEMENTED",
+  "primary_blocker_code": "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+  "design_control_pass_count": 7,
+  "design_control_blocked_count": 1,
+  "writer_enabled": false,
+  "current_evidence_write_allowed": false,
+  "portfolio_truth_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
