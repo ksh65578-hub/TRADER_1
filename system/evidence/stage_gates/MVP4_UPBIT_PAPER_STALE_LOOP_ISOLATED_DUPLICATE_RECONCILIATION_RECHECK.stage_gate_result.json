@@ -1,0 +1,18 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-02T08:59:39Z",
+  "patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_DUPLICATE_RECONCILIATION_RECHECK_20260502_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_ISOLATED_DUPLICATE_RECHECK_REPAIR_PLAN_REQUIRED",
+  "recheck_status": "BLOCKED_REPAIR_PLAN_REQUIRED",
+  "candidate_count": 4,
+  "affected_candidate_count": 3,
+  "duplicate_group_count": 6,
+  "duplicate_event_id_duplicate_count": 6,
+  "duplicate_occurrence_count": 12,
+  "current_evidence_write_allowed_count": 0,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

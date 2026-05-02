@@ -306,6 +306,14 @@ from trader1.runtime.paper.upbit_paper_stale_loop_isolated_ledger_rollup_rebuild
     validate_upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_report,
     write_upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck import (
+    EVENT_ID_SCOPE_REPAIR_REQUIRED_BLOCKER_CODE,
+    ISOLATED_DUPLICATE_RECONCILIATION_REQUIRED_BLOCKER_CODE,
+    build_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report,
+    upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_hash,
+    validate_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report,
+    write_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -589,6 +597,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_stale_loop_ledger_input_scope_repair_plan_validator",
     "upbit_paper_stale_loop_ledger_input_scope_repair_executor_validator",
     "upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_validator",
+    "upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_validator",
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_post_repair_reconciliation_validator",
@@ -7851,6 +7860,234 @@ def upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_validator() -> Validat
     return pass_result(
         validator_id,
         "Upbit PAPER isolated candidate ledger rollup rebuild preserves duplicate blockers and blocks current evidence/live",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_validator"
+    schema_path = (
+        ROOT
+        / "contracts"
+        / "schema"
+        / "upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report.schema.json"
+    )
+    module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck.py"
+    )
+    source_module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_stale_loop_isolated_ledger_rollup_rebuild.py"
+    )
+    test_path = (
+        ROOT
+        / "tests"
+        / "runtime"
+        / "test_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck.py"
+    )
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report.json"
+        )
+    )
+    paths = [schema_path, module_path, source_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report.v1":
+        return fail_result(
+            validator_id,
+            "isolated duplicate reconciliation recheck schema_id mismatch",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if schema.get("additionalProperties") is not False:
+        return fail_result(
+            validator_id,
+            "isolated duplicate reconciliation recheck schema must be strict",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    required = set(schema.get("required", []))
+    for field in (
+        "duplicate_reconciliation_recheck_role",
+        "source_isolated_ledger_rollup_rebuild_hash",
+        "candidate_count",
+        "affected_candidate_count",
+        "duplicate_group_count",
+        "duplicate_event_id_duplicate_count",
+        "duplicate_occurrence_count",
+        "current_evidence_write_allowed_count",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "duplicate_reconciliation_recheck_hash",
+    ):
+        if field not in required:
+            return fail_result(
+                validator_id,
+                f"isolated duplicate reconciliation recheck schema missing required field: {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+
+    source_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_report.json"
+    )
+    if not source_path.exists():
+        return fail_result(
+            validator_id,
+            "isolated duplicate recheck source rollup rebuild report is missing",
+            paths + [source_path],
+            "MEASUREMENT_MISSING",
+        )
+    source_report = load_json(source_path)
+    report = build_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report(
+        root=ROOT,
+        isolated_ledger_rollup_rebuild_report=source_report,
+    )
+    result = validate_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report(report)
+    if result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"valid isolated duplicate reconciliation recheck failed: {result.message}",
+            paths,
+            result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    if (
+        report.get("recheck_status") != "BLOCKED_REPAIR_PLAN_REQUIRED"
+        or report.get("primary_blocker_code") != ISOLATED_DUPLICATE_RECONCILIATION_REQUIRED_BLOCKER_CODE
+        or EVENT_ID_SCOPE_REPAIR_REQUIRED_BLOCKER_CODE not in report.get("blocker_codes", [])
+        or report.get("candidate_count") != 4
+        or report.get("affected_candidate_count") != 3
+        or report.get("pass_candidate_count") != 1
+        or report.get("blocked_candidate_count") != 3
+        or report.get("ledger_jsonl_count") != 8
+        or report.get("ledger_event_count") != 42
+        or report.get("filled_order_count") != 7
+        or report.get("duplicate_group_count") != 6
+        or report.get("duplicate_event_id_group_count") != 6
+        or report.get("duplicate_event_id_duplicate_count") != 6
+        or report.get("duplicate_total_count") != 6
+        or report.get("duplicate_occurrence_count") != 12
+        or report.get("current_evidence_write_allowed_count") != 0
+    ):
+        return fail_result(
+            validator_id,
+            "isolated duplicate reconciliation recheck counts drifted",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    for item in report.get("items", []):
+        if not isinstance(item, dict):
+            return fail_result(validator_id, "isolated duplicate recheck item must be object", paths, "SCHEMA_IDENTITY_MISMATCH")
+        if item.get("duplicate_group_count", 0) > 0:
+            if item.get("candidate_recheck_status") != "BLOCKED_EVENT_ID_SCOPE_REPAIR_REQUIRED":
+                return fail_result(
+                    validator_id,
+                    "isolated duplicate recheck did not block affected candidate",
+                    paths,
+                    "RECONCILIATION_REQUIRED",
+                )
+            for group in item.get("duplicate_groups", []):
+                if group.get("duplicate_key_type") != "EVENT_ID" or group.get("dedup_keys_unique") is not True:
+                    return fail_result(
+                        validator_id,
+                        "isolated duplicate recheck did not isolate event_id-only duplicate pattern",
+                        paths,
+                        "RECONCILIATION_REQUIRED",
+                    )
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["live_order_allowed"] = True
+    live_mutation["duplicate_reconciliation_recheck_hash"] = (
+        upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_hash(live_mutation)
+    )
+    live_result = validate_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "isolated duplicate reconciliation recheck live mutation was not blocked",
+            paths,
+            live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    false_count = json.loads(json.dumps(report))
+    false_count["current_evidence_write_allowed_count"] = 1
+    false_count["duplicate_reconciliation_recheck_hash"] = (
+        upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_hash(false_count)
+    )
+    false_count_result = validate_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report(false_count)
+    if false_count_result.status != "BLOCKED" or false_count_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "isolated duplicate reconciliation recheck allowed current evidence count drift",
+            paths,
+            false_count_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    false_aggregate = json.loads(json.dumps(report))
+    false_aggregate["duplicate_group_count"] = 0
+    false_aggregate["duplicate_reconciliation_recheck_hash"] = (
+        upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_hash(false_aggregate)
+    )
+    false_aggregate_result = validate_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report(false_aggregate)
+    if false_aggregate_result.status != "FAIL":
+        return fail_result(
+            validator_id,
+            "isolated duplicate reconciliation recheck allowed false aggregate count",
+            paths,
+            false_aggregate_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report(
+            root=Path(tmp),
+            report=report,
+        )
+        if not written_path.exists():
+            return fail_result(
+                validator_id,
+                "isolated duplicate reconciliation recheck writer did not create report artifact",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(
+                validator_id,
+                f"runtime isolated duplicate reconciliation recheck artifact is not valid json: {rel(runtime_path)}: {exc}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        runtime_result = validate_upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime isolated duplicate reconciliation recheck artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER isolated duplicate reconciliation recheck maps event_id duplicates and blocks current evidence/live",
         paths,
     )
 
@@ -19054,6 +19291,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_ledger_input_scope_repair_plan_validator": upbit_paper_stale_loop_ledger_input_scope_repair_plan_validator,
     "upbit_paper_stale_loop_ledger_input_scope_repair_executor_validator": upbit_paper_stale_loop_ledger_input_scope_repair_executor_validator,
     "upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_validator": upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_validator,
+    "upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_validator": upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
