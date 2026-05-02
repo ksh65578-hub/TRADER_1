@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "1EE73DFD53E590EAD8B0A0F8B31C91679775C6C7DFA09AE27445D7C6153DBA04",
+      "sha256": "6E72F0F33BF78DA4BCB4E86F339F78A8AE833ABDB84B92532BE2B7CB973E7E9B",
       "size_bytes": 1096
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "contracts/schema/patch_result.schema.json",
-      "sha256": "ABBD9488C47FC9A3F2E5BE1D5D0C11AC863A0D0D52367EEF15182F727FE417F8",
-      "size_bytes": 17371
+      "sha256": "800124AF61D7DE222719F197C857DFD8A3F8140AAE6E24540E99E6793C039931",
+      "size_bytes": 17850
     },
     {
       "path": "contracts/schema/position_sizing_decision.schema.json",
@@ -387,6 +387,11 @@
       "path": "contracts/schema/shadow_observation_stream_report.schema.json",
       "sha256": "643DC4E74187AAD2784C1E4E7368F428D473106F7673999097E8864FCA5DC7F6",
       "size_bytes": 5731
+    },
+    {
+      "path": "contracts/schema/source_release_proof_profile_report.schema.json",
+      "sha256": "5E6A75C7225CC0485B6681D289B2602770E1769970157A364B0DCF063858441F",
+      "size_bytes": 3851
     },
     {
       "path": "contracts/schema/startup_probe.schema.json",
@@ -1017,6 +1022,11 @@
       "path": "tests/runtime/test_safety_control.py",
       "sha256": "6CBF2684F1F0DC6451A2D2D3FE3A2D544336EB4754F9AEAF3494927FFCF5C2F7",
       "size_bytes": 3735
+    },
+    {
+      "path": "tests/runtime/test_source_release_proof_profile.py",
+      "sha256": "B2A8A140C106E376D58E036747A413F45E2F32C9C06C8B9F6591FCBDAACE79E5",
+      "size_bytes": 4491
     },
     {
       "path": "tests/runtime/test_stability_history.py",
@@ -2964,6 +2974,11 @@
       "size_bytes": 25164
     },
     {
+      "path": "tools/emit_source_release_bundle_proof_profile_patch_evidence.py",
+      "sha256": "E46E4BD02C870125FF9D025EDE193BFE5D4640AED2EB4725289045B3928E6629",
+      "size_bytes": 25231
+    },
+    {
       "path": "tools/emit_stale_heartbeat_recovery_guidance_patch_evidence.py",
       "sha256": "AFF69D6A5F0157F6A52D1AE6EE5FB80ECE1AF6DF450677923D8E802F62FD3D64",
       "size_bytes": 20847
@@ -3405,8 +3420,8 @@
     },
     {
       "path": "tools/run_bundle_security_validators.py",
-      "sha256": "5729AEFC1959FFE0AD28A1433D00F57DD1F0DBA03856C39557CCB23E727D2290",
-      "size_bytes": 650
+      "sha256": "0187A3C92652E18DA892F8D110F9C954C5D6E59043023B9DCBDF28CC143ECC21",
+      "size_bytes": 713
     },
     {
       "path": "tools/run_bytecode_free_syntax_check.py",
@@ -3632,6 +3647,11 @@
       "path": "tools/run_safety_control_validators.py",
       "sha256": "0F27E4FD8C24A387A7C3877C22830918EEFFC0702E77FCD9FB38400E3F06B560",
       "size_bytes": 844
+    },
+    {
+      "path": "tools/run_source_release_proof_profile.py",
+      "sha256": "C41C0FF4AAADE88CCAF49163DD0DE04533B044FC9AD21BA353910361DF4B1C14",
+      "size_bytes": 7864
     },
     {
       "path": "tools/run_stale_heartbeat_recovery_guidance_validators.py",
@@ -4849,6 +4869,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -6196,6 +6220,14 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.audit.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE_20260502.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_STABILITY_HISTORY_MIN_SPAN_GUARD.audit_report.json",
       "reason": "denied:system/"
     },
@@ -7408,6 +7440,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_STABILITY_HISTORY_DISTINCT_SNAPSHOT_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -8560,6 +8596,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/patch_results/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/patch_results/MVP4_STABILITY_HISTORY_DISTINCT_SNAPSHOT_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
@@ -8929,6 +8969,14 @@
     },
     {
       "path": "system/evidence/runtime_checks/MVP4_SOURCE_PACKAGE_HYGIENE_SAFE_PYTEST_RUNNER.hygiene_safe_pytest_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/runtime_checks/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.hygiene_safe_pytest_report.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/runtime_checks/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.report.json",
       "reason": "denied:system/"
     },
     {
@@ -9721,6 +9769,10 @@
     },
     {
       "path": "system/evidence/stage_gates/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/stage_gates/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.stage_gate_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10897,6 +10949,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_SOURCE_RELEASE_BUNDLE_PATH_SECRET_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

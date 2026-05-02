@@ -7026,6 +7026,40 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-SOURCE-RELEASE-BUNDLE-PROOF-PROFILE",
+      "section_id": "SECTION_SOURCE_BUNDLE_HYGIENE",
+      "schema_files": [
+        "contracts/schema/source_release_proof_profile_report.schema.json"
+      ],
+      "validator_files": [
+        "tools/run_source_release_proof_profile.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_source_release_proof_profile.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [],
+      "evidence_artifacts": [
+        "system/evidence/runtime_checks/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.report.json",
+        "contracts/security/source_bundle_manifest.json",
+        "system/evidence/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_SOURCE_RELEASE_BUNDLE_PROOF_PROFILE.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "tests_run",
+        "validators_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-STABILITY-HISTORY-DISTINCT-SNAPSHOT-GUARD",
       "section_id": "SECTION_LONG_RUN_OPERATION",
       "schema_files": [
@@ -10694,7 +10728,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-02T02:26:57Z",
+  "updated_at_utc": "2026-05-02T03:06:54Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

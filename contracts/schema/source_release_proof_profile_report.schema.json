@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.source_release_proof_profile_report.v1",
+  "title": "TRADER_1 Source Release Proof Profile Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "created_at_utc",
+    "profile_id",
+    "profile_scope",
+    "status",
+    "command_count",
+    "command_pass_count",
+    "command_fail_count",
+    "commands",
+    "preexisting_cache_artifact_count",
+    "post_run_cache_artifact_count",
+    "preexisting_cache_artifacts",
+    "post_run_cache_artifacts",
+    "source_bundle_summary",
+    "blockers",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed"
+  ],
+  "properties": {
+    "schema_id": { "const": "trader1.source_release_proof_profile_report.v1" },
+    "created_at_utc": { "type": "string" },
+    "profile_id": { "const": "SOURCE_RELEASE_BUNDLE_PROOF_V1" },
+    "profile_scope": { "const": "SOURCE_RELEASE_BUNDLE_PROOF_ONLY_NO_LIVE" },
+    "status": { "enum": ["PASS", "FAIL"] },
+    "command_count": { "type": "integer", "minimum": 0 },
+    "command_pass_count": { "type": "integer", "minimum": 0 },
+    "command_fail_count": { "type": "integer", "minimum": 0 },
+    "commands": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/command_result" }
+    },
+    "preexisting_cache_artifact_count": { "type": "integer", "minimum": 0 },
+    "post_run_cache_artifact_count": { "type": "integer", "minimum": 0 },
+    "preexisting_cache_artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/cache_artifact" }
+    },
+    "post_run_cache_artifacts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/cache_artifact" }
+    },
+    "source_bundle_summary": { "$ref": "#/$defs/source_bundle_summary" },
+    "blockers": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "live_order_ready": { "const": false },
+    "live_order_allowed": { "const": false },
+    "can_live_trade": { "const": false },
+    "scale_up_allowed": { "const": false }
+  },
+  "$defs": {
+    "command_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "status", "returncode", "duration_ms", "stdout_tail", "stderr_tail"],
+      "properties": {
+        "command": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["PASS", "FAIL", "TIMEOUT"] },
+        "returncode": { "type": "integer" },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "stdout_tail": { "type": "string" },
+        "stderr_tail": { "type": "string" }
+      }
+    },
+    "cache_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "reason"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "source_bundle_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "included_count",
+        "excluded_count",
+        "forbidden_count",
+        "shipped_forbidden_count",
+        "contains_secret",
+        "repo_secret_findings_count",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade"
+      ],
+      "properties": {
+        "included_count": { "type": "integer", "minimum": 0 },
+        "excluded_count": { "type": "integer", "minimum": 0 },
+        "forbidden_count": { "type": "integer", "minimum": 0 },
+        "shipped_forbidden_count": { "type": "integer", "minimum": 0 },
+        "contains_secret": { "type": "boolean" },
+        "repo_secret_findings_count": { "type": "integer", "minimum": 0 },
+        "live_order_ready": { "type": "boolean" },
+        "live_order_allowed": { "type": "boolean" },
+        "can_live_trade": { "type": "boolean" }
+      }
+    }
+  }
+}

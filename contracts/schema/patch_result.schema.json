@@ -695,6 +695,25 @@
     },
     "scale_up_allowed_after": {
       "type": "boolean"
+    },
+    "source_release_profile_status": {
+      "type": "string"
+    },
+    "source_release_profile_command_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_release_profile_command_pass_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_release_profile_cache_artifact_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_release_profile_shipped_forbidden_count": {
+      "type": "integer",
+      "minimum": 0
     }
   }
 }

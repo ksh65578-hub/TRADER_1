@@ -11,8 +11,11 @@ if str(ROOT) not in sys.path:
 from trader1.validation.mvp0_validators import run_validators
 
 
+VALIDATORS = ["source_bundle_hygiene_validator", "shipped_package_hygiene_validator", "secret_scan_validator"]
+
+
 def main() -> int:
-    results = run_validators(["source_bundle_hygiene_validator", "secret_scan_validator"])
+    results = run_validators(VALIDATORS)
     status = "PASS" if all(result["status"] == "PASS" for result in results) else "FAIL"
     print(json.dumps({"status": status, "validators": results, "live_order_allowed": False}, indent=2))
     return 0 if status == "PASS" else 1
