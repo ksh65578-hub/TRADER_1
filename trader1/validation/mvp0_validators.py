@@ -229,6 +229,13 @@ from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation_operator_queue_
     validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
     write_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_ledger_recheck_preview import (
+    PERSISTENT_LOOP_SCHEMA_RECHECK_FAILED_BLOCKER_CODE,
+    build_upbit_paper_stale_loop_ledger_recheck_preview_report,
+    upbit_paper_stale_loop_ledger_recheck_preview_hash,
+    validate_upbit_paper_stale_loop_ledger_recheck_preview_report,
+    write_upbit_paper_stale_loop_ledger_recheck_preview_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -501,6 +508,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_stale_loop_safe_regeneration_executor_validator",
     "upbit_paper_stale_loop_post_regeneration_reconciliation_validator",
     "upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator",
+    "upbit_paper_stale_loop_ledger_recheck_preview_validator",
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_post_repair_reconciliation_validator",
@@ -6198,6 +6206,146 @@ def upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator() -> 
     return pass_result(
         validator_id,
         "Upbit PAPER stale-loop operator queue closure separates ledger-recheck-ready replacements from recovery/rerun blockers without current evidence writes or live permission",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_ledger_recheck_preview_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_stale_loop_ledger_recheck_preview_validator"
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_stale_loop_ledger_recheck_preview_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_ledger_recheck_preview.py"
+    closure_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_reconciliation_operator_queue_closure.py"
+    ledger_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_ledger_idempotency_runtime_evidence.py"
+    persistent_loop_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_persistent_loop.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_stale_loop_ledger_recheck_preview.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_stale_loop_ledger_recheck_preview_report.json"
+        )
+    )
+    paths = [
+        schema_path,
+        module_path,
+        closure_module_path,
+        ledger_module_path,
+        persistent_loop_module_path,
+        test_path,
+        *runtime_report_paths,
+    ]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_stale_loop_ledger_recheck_preview_report.v1":
+        return fail_result(validator_id, "stale-loop ledger recheck preview schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "stale-loop ledger recheck preview schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "preview_role",
+        "source_closure_hash",
+        "source_ledger_idempotency_evidence_hash",
+        "ledger_recheck_candidate_count",
+        "ledger_binding_pass_count",
+        "replacement_validation_fail_count",
+        "current_evidence_usable_after_preview_count",
+        "current_evidence_write_allowed_count",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "preview_hash",
+    ):
+        if field not in required:
+            return fail_result(validator_id, f"stale-loop ledger recheck preview schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    closure_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json"
+    )
+    ledger_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "ledger"
+        / "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
+    )
+    if not closure_path.exists() or not ledger_path.exists():
+        return fail_result(validator_id, "stale-loop ledger recheck preview source reports are missing", paths + [closure_path, ledger_path], "MEASUREMENT_MISSING")
+    closure_report = load_json(closure_path)
+    ledger_report = load_json(ledger_path)
+    report = build_upbit_paper_stale_loop_ledger_recheck_preview_report(
+        root=ROOT,
+        closure_report=closure_report,
+        ledger_idempotency_evidence_report=ledger_report,
+    )
+    result = validate_upbit_paper_stale_loop_ledger_recheck_preview_report(report)
+    if result.status != "PASS":
+        return fail_result(validator_id, f"valid stale-loop ledger recheck preview failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
+    if (
+        report.get("preview_status") != "BLOCKED"
+        or report.get("ledger_recheck_candidate_count") != 5
+        or report.get("ledger_binding_pass_count") != 5
+        or report.get("replacement_validation_fail_count") != 5
+        or report.get("current_evidence_usable_after_preview_count") != 0
+        or report.get("current_evidence_write_allowed_count") != 0
+    ):
+        return fail_result(validator_id, "stale-loop ledger recheck preview did not preserve expected blocked preview counts", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("primary_blocker_code") != PERSISTENT_LOOP_SCHEMA_RECHECK_FAILED_BLOCKER_CODE:
+        return fail_result(validator_id, "stale-loop ledger recheck preview did not expose replacement schema blocker", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    live_mutation = json.loads(json.dumps(report))
+    live_mutation["live_order_allowed"] = True
+    live_mutation["preview_hash"] = upbit_paper_stale_loop_ledger_recheck_preview_hash(live_mutation)
+    live_result = validate_upbit_paper_stale_loop_ledger_recheck_preview_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "stale-loop ledger recheck preview live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_usable = json.loads(json.dumps(report))
+    false_usable["current_evidence_usable_after_preview_count"] = 1
+    false_usable["preview_hash"] = upbit_paper_stale_loop_ledger_recheck_preview_hash(false_usable)
+    usable_result = validate_upbit_paper_stale_loop_ledger_recheck_preview_report(false_usable)
+    if usable_result.status != "BLOCKED" or usable_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "stale-loop ledger recheck preview allowed current evidence usability", paths, usable_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_pass = json.loads(json.dumps(report))
+    false_pass["items"][0]["preview_item_status"] = "PASS_PREVIEW_ONLY"
+    false_pass["preview_pass_count"] = 1
+    false_pass["preview_blocked_count"] = 4
+    false_pass["preview_hash"] = upbit_paper_stale_loop_ledger_recheck_preview_hash(false_pass)
+    false_pass_result = validate_upbit_paper_stale_loop_ledger_recheck_preview_report(false_pass)
+    if false_pass_result.status != "FAIL":
+        return fail_result(validator_id, "stale-loop ledger recheck preview allowed false pass before replacement schema PASS", paths, false_pass_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_stale_loop_ledger_recheck_preview_report(root=Path(tmp), report=report)
+        if not written_path.exists():
+            return fail_result(validator_id, "stale-loop ledger recheck preview writer did not create report artifact", paths, "MEASUREMENT_MISSING")
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(validator_id, f"runtime stale-loop ledger recheck preview artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_stale_loop_ledger_recheck_preview_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime stale-loop ledger recheck preview artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER stale-loop ledger recheck preview verifies ledger bindings while keeping replacement schema failures blocked and current-evidence writes disabled",
         paths,
     )
 
@@ -17390,6 +17538,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_safe_regeneration_executor_validator": upbit_paper_stale_loop_safe_regeneration_executor_validator,
     "upbit_paper_stale_loop_post_regeneration_reconciliation_validator": upbit_paper_stale_loop_post_regeneration_reconciliation_validator,
     "upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator": upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator,
+    "upbit_paper_stale_loop_ledger_recheck_preview_validator": upbit_paper_stale_loop_ledger_recheck_preview_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
