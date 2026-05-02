@@ -14502,6 +14502,74 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-EVENT-ID-SCOPE-REPAIRED-DUPLICATE-RECHECK",
+      "source_section_id": "SECTION_LEDGER_VALIDATOR_IDS",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER stale-loop isolated event-id repaired duplicate recheck",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-EVENT-ID-SCOPE-REPAIRED-DUPLICATE-RECHECK: repaired candidate rollups must be duplicate-clean before any current-evidence guard",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Verify event-id repaired candidate rollups are duplicate-clean without current evidence promotion",
+      "requirement_kind": "RUNTIME_RECONCILIATION_RECHECK_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator",
+        "upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DUPLICATE_RECHECK.md",
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_report.schema.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-mode-F277557B433B/eid_repair/mvp4-candidate-linkage-cost-mode-72F5403130CA.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-mode-F277557B433B/eid_repair/mvp4-candidate-linkage-cost-mode-731F6482DCB3.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-mode-F277557B433B/eid_repair/rollup/repaired_isolated_rollup.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop--BDA276F47C50/eid_repair/mvp4-public-rest-transform-loop--0C2E6FE7456E.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop--BDA276F47C50/eid_repair/mvp4-public-rest-transform-loop--E519286B8CA6.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop--BDA276F47C50/eid_repair/rollup/repaired_isolated_rollup.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-r-9E8DA72D4D7A/eid_repair/mvp4-upbit-recovery-guard-loop-c-05D1969A30F4.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-r-9E8DA72D4D7A/eid_repair/mvp4-upbit-recovery-guard-loop-c-EF1A4C85DCAD.jsonl",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-r-9E8DA72D4D7A/eid_repair/rollup/repaired_isolated_rollup.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report.json",
+        "tests/runtime/test_upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck.py",
+        "tools/emit_upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_patch_evidence.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_LEDGER_VALIDATOR_IDS",
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-EVENT-ID-SCOPE-REPAIRED-ROLLUP-REBUILD",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "7F7B993EBE9E9E0FD50E873C951A6F1B11972CE8B0571DA867613FFA4A46F8E2",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_REPAIRED_DUPLICATE_RECHECK_CLEAN_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-ISOLATED-EVENT-ID-SCOPE-REPAIRED-ROLLUP-REBUILD",
       "source_section_id": "SECTION_LEDGER_VALIDATOR_IDS",
       "source_file": "TRADER_1.md",
@@ -16311,5 +16379,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T10:06:12Z"
+  "updated_at_utc": "2026-05-02T10:24:36Z"
 }
