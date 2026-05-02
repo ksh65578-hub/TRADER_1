@@ -1,0 +1,18 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-02T07:02:22Z",
+  "patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_PLAN_20260502_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_LEDGER_ROLLUP_REGENERATION_PLAN_LIVE_BLOCKED",
+  "plan_status": "READY_PLAN_ONLY",
+  "plan_candidate_count": 5,
+  "plan_ready_count": 5,
+  "planned_cycle_count": 9,
+  "automatic_execution_allowed": false,
+  "ledger_rollup_write_allowed": false,
+  "current_evidence_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

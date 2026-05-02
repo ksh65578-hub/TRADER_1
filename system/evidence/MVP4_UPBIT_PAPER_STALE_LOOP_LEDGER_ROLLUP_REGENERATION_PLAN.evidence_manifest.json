@@ -1,0 +1,48 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_PLAN_EVIDENCE",
+  "created_at_utc": "2026-05-02T07:02:22Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_PLAN_20260502_001",
+  "artifact_paths": [
+    "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_PLAN.md",
+    "contracts/schema/patch_result.schema.json",
+    "contracts/schema/upbit_paper_stale_loop_ledger_rollup_regeneration_plan_report.schema.json",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_PLAN.patch_result.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_PLAN.stage_gate_result.json",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_PLAN.validator_run_log.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_ledger_rollup_regeneration_plan_report.json",
+    "tests/runtime/test_upbit_paper_stale_loop_ledger_rollup_regeneration_plan.py",
+    "tools/emit_upbit_paper_stale_loop_ledger_rollup_regeneration_plan_patch_evidence.py",
+    "trader1/runtime/paper/upbit_paper_stale_loop_ledger_rollup_regeneration_plan.py",
+    "trader1/validation/mvp0_validators.py"
+  ],
+  "known_blockers": [
+    "LEDGER_ROLLUP_REGENERATION_PLAN_ONLY_EXECUTION_REQUIRED",
+    "LEDGER_ROLLUP_RECHECK_REQUIRES_ROLLUP_ARTIFACT",
+    "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+    "NORMALIZED_RECONCILIATION_RECHECK_REQUIRES_LEDGER_ROLLUP",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "plan_status": "READY_PLAN_ONLY",
+  "plan_candidate_count": 5,
+  "planned_cycle_count": 9,
+  "automatic_execution_allowed": false,
+  "ledger_rollup_write_allowed": false,
+  "current_evidence_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
