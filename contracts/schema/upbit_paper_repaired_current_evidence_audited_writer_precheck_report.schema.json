@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.upbit_paper_repaired_current_evidence_audited_writer_precheck_report.v1",
+  "title": "Upbit PAPER Repaired Current Evidence Audited Writer Precheck Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "audited_writer_precheck_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "truth_role",
+    "audited_writer_precheck_role",
+    "source_current_evidence_guard_hash",
+    "source_current_evidence_guard_status",
+    "source_current_evidence_guard_validator_status",
+    "source_candidate_count",
+    "source_guard_review_ready_count",
+    "source_clean_candidate_count",
+    "source_duplicate_total_count",
+    "source_ledger_jsonl_count",
+    "source_ledger_event_count",
+    "source_filled_order_count",
+    "source_current_evidence_write_allowed_count",
+    "source_candidate_current_evidence_usable_count",
+    "source_portfolio_truth_write_allowed_count",
+    "source_operator_guidance_current_evidence_write_allowed_count",
+    "audit_gate_count",
+    "audit_gate_pass_count",
+    "audit_gate_blocked_count",
+    "audit_inputs_clean",
+    "audited_writer_precheck_status",
+    "audited_writer_precheck_passed",
+    "audited_writer_enabled",
+    "audited_writer_candidate_ready_count",
+    "audit_gates",
+    "primary_blocker_code",
+    "blocker_codes",
+    "operator_next_action",
+    "display_only",
+    "dashboard_truth_only",
+    "paper_only",
+    "candidate_only",
+    "writer_precheck_only",
+    "separate_writer_patch_required",
+    "write_lock_required",
+    "atomic_write_required",
+    "idempotency_manifest_required",
+    "post_write_reconciliation_required",
+    "current_evidence_write_allowed",
+    "current_evidence_mutation_allowed",
+    "current_ledger_jsonl_write_allowed",
+    "latest_runtime_pointer_write_allowed",
+    "portfolio_truth_write_allowed",
+    "portfolio_snapshot_write_allowed",
+    "persistent_loop_mutation_allowed",
+    "source_delete_allowed",
+    "actual_long_run_evidence_created",
+    "long_run_evidence_eligible",
+    "promotion_eligible",
+    "credential_load_attempted",
+    "private_endpoint_called",
+    "order_endpoint_called",
+    "order_adapter_called",
+    "live_key_loaded",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "scale_up_allowed",
+    "audited_writer_precheck_hash"
+  ],
+  "$defs": {
+    "audit_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "gate_status",
+        "gate_blocker_code",
+        "detail",
+        "current_evidence_write_allowed",
+        "portfolio_truth_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "gate_id": {
+          "enum": [
+            "SOURCE_CURRENT_EVIDENCE_GUARD_VALID",
+            "CLEAN_REPAIRED_CANDIDATES_PRESENT",
+            "DUPLICATE_TOTAL_ZERO",
+            "LEDGER_COUNTS_PRESENT",
+            "SOURCE_WRITE_COUNTS_ZERO",
+            "SOURCE_LIVE_AND_SCALE_FALSE",
+            "AUDITED_WRITER_IMPLEMENTATION_PRESENT"
+          ]
+        },
+        "gate_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "gate_blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_id": {
+      "const": "trader1.upbit_paper_repaired_current_evidence_audited_writer_precheck_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "audited_writer_precheck_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "const": "UPBIT"
+    },
+    "market_type": {
+      "const": "KRW_SPOT"
+    },
+    "mode": {
+      "const": "PAPER"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "truth_role": {
+      "const": "paper_runtime_repaired_current_evidence_audited_writer_precheck_truth"
+    },
+    "audited_writer_precheck_role": {
+      "const": "PAPER_RUNTIME_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_PRECHECK_REVIEW_ONLY"
+    },
+    "source_current_evidence_guard_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_current_evidence_guard_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_current_evidence_guard_validator_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "source_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_guard_review_ready_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_clean_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_duplicate_total_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_ledger_jsonl_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_ledger_event_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_filled_order_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_current_evidence_write_allowed_count": {
+      "const": 0
+    },
+    "source_candidate_current_evidence_usable_count": {
+      "const": 0
+    },
+    "source_portfolio_truth_write_allowed_count": {
+      "const": 0
+    },
+    "source_operator_guidance_current_evidence_write_allowed_count": {
+      "const": 0
+    },
+    "audit_gate_count": {
+      "const": 7
+    },
+    "audit_gate_pass_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 7
+    },
+    "audit_gate_blocked_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 7
+    },
+    "audit_inputs_clean": {
+      "type": "boolean"
+    },
+    "audited_writer_precheck_status": {
+      "enum": [
+        "BLOCKED_AUDITED_WRITER_DISABLED",
+        "BLOCKED_SOURCE_GUARD_INVALID"
+      ]
+    },
+    "audited_writer_precheck_passed": {
+      "const": false
+    },
+    "audited_writer_enabled": {
+      "const": false
+    },
+    "audited_writer_candidate_ready_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "audit_gates": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "$ref": "#/$defs/audit_gate"
+      }
+    },
+    "primary_blocker_code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blocker_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "operator_next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "display_only": {
+      "const": true
+    },
+    "dashboard_truth_only": {
+      "const": true
+    },
+    "paper_only": {
+      "const": true
+    },
+    "candidate_only": {
+      "const": true
+    },
+    "writer_precheck_only": {
+      "const": true
+    },
+    "separate_writer_patch_required": {
+      "const": true
+    },
+    "write_lock_required": {
+      "const": true
+    },
+    "atomic_write_required": {
+      "const": true
+    },
+    "idempotency_manifest_required": {
+      "const": true
+    },
+    "post_write_reconciliation_required": {
+      "const": true
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "current_evidence_mutation_allowed": {
+      "const": false
+    },
+    "current_ledger_jsonl_write_allowed": {
+      "const": false
+    },
+    "latest_runtime_pointer_write_allowed": {
+      "const": false
+    },
+    "portfolio_truth_write_allowed": {
+      "const": false
+    },
+    "portfolio_snapshot_write_allowed": {
+      "const": false
+    },
+    "persistent_loop_mutation_allowed": {
+      "const": false
+    },
+    "source_delete_allowed": {
+      "const": false
+    },
+    "actual_long_run_evidence_created": {
+      "const": false
+    },
+    "long_run_evidence_eligible": {
+      "const": false
+    },
+    "promotion_eligible": {
+      "const": false
+    },
+    "credential_load_attempted": {
+      "const": false
+    },
+    "private_endpoint_called": {
+      "const": false
+    },
+    "order_endpoint_called": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "live_key_loaded": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "audited_writer_precheck_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

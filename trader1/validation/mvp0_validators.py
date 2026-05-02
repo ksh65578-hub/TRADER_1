@@ -349,6 +349,14 @@ from trader1.runtime.paper.upbit_paper_stale_loop_isolated_event_id_scope_repair
     validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
     write_upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_precheck import (
+    AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED_BLOCKER_CODE,
+    AUDITED_CURRENT_EVIDENCE_WRITER_PRECHECK_STATUS,
+    build_upbit_paper_repaired_current_evidence_audited_writer_precheck_report,
+    upbit_paper_repaired_current_evidence_audited_writer_precheck_hash,
+    validate_upbit_paper_repaired_current_evidence_audited_writer_precheck_report,
+    write_upbit_paper_repaired_current_evidence_audited_writer_precheck_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -9309,6 +9317,247 @@ def upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_gua
     return pass_result(
         validator_id,
         "Upbit PAPER isolated repaired current-evidence guard keeps clean candidates review-only and live blocked",
+        paths,
+    )
+
+
+def upbit_paper_repaired_current_evidence_audited_writer_precheck_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_repaired_current_evidence_audited_writer_precheck_validator"
+    schema_path = (
+        ROOT
+        / "contracts"
+        / "schema"
+        / "upbit_paper_repaired_current_evidence_audited_writer_precheck_report.schema.json"
+    )
+    module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_repaired_current_evidence_audited_writer_precheck.py"
+    )
+    source_module_path = (
+        ROOT
+        / "trader1"
+        / "runtime"
+        / "paper"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard.py"
+    )
+    test_path = (
+        ROOT
+        / "tests"
+        / "runtime"
+        / "test_upbit_paper_repaired_current_evidence_audited_writer_precheck.py"
+    )
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json"
+        )
+    )
+    paths = [schema_path, module_path, source_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_repaired_current_evidence_audited_writer_precheck_report.v1":
+        return fail_result(
+            validator_id,
+            "audited writer precheck schema_id mismatch",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if schema.get("additionalProperties") is not False:
+        return fail_result(
+            validator_id,
+            "audited writer precheck schema must be strict",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    required = set(schema.get("required", []))
+    for field in (
+        "audited_writer_precheck_role",
+        "source_current_evidence_guard_hash",
+        "source_current_evidence_guard_validator_status",
+        "audit_gate_count",
+        "audit_gate_pass_count",
+        "audit_gate_blocked_count",
+        "audit_inputs_clean",
+        "audited_writer_precheck_status",
+        "audited_writer_precheck_passed",
+        "audited_writer_enabled",
+        "audited_writer_candidate_ready_count",
+        "audit_gates",
+        "current_evidence_write_allowed",
+        "portfolio_truth_write_allowed",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "audited_writer_precheck_hash",
+    ):
+        if field not in required:
+            return fail_result(
+                validator_id,
+                f"audited writer precheck schema missing required field: {field}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+    source_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report.json"
+    )
+    if not source_path.exists():
+        return blocked_result(
+            validator_id,
+            "audited writer precheck source current-evidence guard report is missing",
+            paths,
+            "MEASUREMENT_MISSING",
+        )
+    source_report = load_json(source_path)
+    report = build_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(
+        root=ROOT,
+        source_current_evidence_guard_report=source_report,
+    )
+    result = validate_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(report)
+    if result.status != "PASS":
+        return fail_result(
+            validator_id,
+            f"valid audited writer precheck failed: {result.message}",
+            paths,
+            result.blocker_code or "UNKNOWN_BLOCKED",
+        )
+    if (
+        report.get("audited_writer_precheck_status") != AUDITED_CURRENT_EVIDENCE_WRITER_PRECHECK_STATUS
+        or report.get("primary_blocker_code") != AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED_BLOCKER_CODE
+        or report.get("source_candidate_count") != 3
+        or report.get("source_guard_review_ready_count") != 3
+        or report.get("source_clean_candidate_count") != 3
+        or report.get("source_duplicate_total_count") != 0
+        or report.get("source_ledger_jsonl_count") != 6
+        or report.get("source_ledger_event_count") != 36
+        or report.get("source_filled_order_count") != 6
+        or report.get("audit_gate_count") != 7
+        or report.get("audit_gate_pass_count") != 6
+        or report.get("audit_gate_blocked_count") != 1
+        or report.get("audited_writer_candidate_ready_count") != 3
+        or report.get("audited_writer_precheck_passed") is not False
+        or report.get("audited_writer_enabled") is not False
+        or report.get("current_evidence_write_allowed") is not False
+        or report.get("portfolio_truth_write_allowed") is not False
+        or report.get("live_order_allowed") is not False
+        or report.get("scale_up_allowed") is not False
+    ):
+        return fail_result(
+            validator_id,
+            "audited writer precheck did not preserve blocked writer and source counts",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    writer_mutation = json.loads(json.dumps(report))
+    writer_mutation["audited_writer_enabled"] = True
+    writer_mutation["audited_writer_precheck_hash"] = upbit_paper_repaired_current_evidence_audited_writer_precheck_hash(
+        writer_mutation
+    )
+    writer_result = validate_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(writer_mutation)
+    if writer_result.status != "BLOCKED" or writer_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "audited writer precheck allowed writer enablement mutation",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    false_gate = json.loads(json.dumps(report))
+    false_gate["audit_gate_pass_count"] = 7
+    false_gate["audited_writer_precheck_hash"] = upbit_paper_repaired_current_evidence_audited_writer_precheck_hash(
+        false_gate
+    )
+    false_gate_result = validate_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(false_gate)
+    if false_gate_result.status != "FAIL":
+        return fail_result(
+            validator_id,
+            "audited writer precheck allowed false gate aggregate",
+            paths,
+            false_gate_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    live_gate = json.loads(json.dumps(report))
+    live_gate["audit_gates"][0]["live_order_allowed"] = True
+    live_gate["audited_writer_precheck_hash"] = upbit_paper_repaired_current_evidence_audited_writer_precheck_hash(
+        live_gate
+    )
+    live_gate_result = validate_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(live_gate)
+    if live_gate_result.status != "BLOCKED" or live_gate_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "audited writer precheck allowed live permission on a gate",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    invalid_source = json.loads(json.dumps(source_report))
+    invalid_source["current_evidence_write_allowed_count"] = 1
+    invalid_source["event_id_scope_repaired_current_evidence_guard_hash"] = (
+        upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_hash(invalid_source)
+    )
+    invalid_report = build_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(
+        root=ROOT,
+        source_current_evidence_guard_report=invalid_source,
+    )
+    invalid_result = validate_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(invalid_report)
+    if (
+        invalid_result.status != "BLOCKED"
+        or invalid_result.blocker_code != "LIVE_FINAL_GUARD_FAILED"
+        or invalid_report.get("audited_writer_precheck_status") != "BLOCKED_SOURCE_GUARD_INVALID"
+        or invalid_report.get("audited_writer_precheck_passed") is not False
+        or invalid_report.get("current_evidence_write_allowed") is not False
+    ):
+        return fail_result(
+            validator_id,
+            "audited writer precheck did not keep invalid source blocked",
+            paths,
+            invalid_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(
+            root=Path(tmp),
+            report=report,
+        )
+        if not written_path.exists():
+            return fail_result(
+                validator_id,
+                "audited writer precheck writer did not create report artifact",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(
+                validator_id,
+                f"runtime audited writer precheck artifact is not valid json: {rel(runtime_path)}: {exc}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        runtime_result = validate_upbit_paper_repaired_current_evidence_audited_writer_precheck_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime audited writer precheck artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER repaired current-evidence audited writer precheck validates clean inputs while keeping writer, portfolio truth, live, and scale-up blocked",
         paths,
     )
 
@@ -20518,6 +20767,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator": upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_validator,
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_validator": upbit_paper_stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_validator,
     "upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validator": upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_validator,
+    "upbit_paper_repaired_current_evidence_audited_writer_precheck_validator": upbit_paper_repaired_current_evidence_audited_writer_precheck_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
