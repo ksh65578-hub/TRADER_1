@@ -970,6 +970,33 @@
       "type": "integer",
       "minimum": 0
     },
+    "stale_loop_isolated_event_id_scope_repair_plan_status": {
+      "type": "string"
+    },
+    "stale_loop_isolated_event_id_scope_repair_plan_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_plan_repair_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_plan_duplicate_group_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_plan_event_id_update_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_plan_hash_recalculation_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_isolated_event_id_scope_repair_plan_current_evidence_write_allowed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "candidate_current_evidence_usable_count": {
       "type": "integer",
       "minimum": 0
