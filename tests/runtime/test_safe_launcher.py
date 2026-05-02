@@ -238,6 +238,37 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertEqual(summary["positions"][0]["source"], "PAPER_LEDGER_ROLLUP")
             self.assertFalse(summary["live_ready"]["live_order_allowed"])
 
+    def test_launcher_dashboard_binds_scoped_upbit_paper_persistent_loop_status(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-launcher-paper-persistent-loop-status",
+                session_id=report["session_id"],
+                requested_cycle_count=1,
+            )
+
+            dashboard_paths = write_launcher_dashboard(report, root)
+            dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+            canonical_path = launcher_dashboard_paths(report, root)["upbit_paper_persistent_loop_report"]
+
+            self.assertTrue(canonical_path.exists())
+            self.assertEqual(load_json(canonical_path)["loop_hash"], loop["loop_hash"])
+            status = dashboard_shell["paper_persistent_loop_status"]
+            self.assertEqual(status["status"], "PASS")
+            self.assertEqual(status["source"], "upbit_paper_persistent_loop_report.json")
+            self.assertEqual(status["completed_cycle_count"], 1)
+            self.assertEqual(status["runtime_evidence_role"], "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE")
+            self.assertFalse(status["long_run_evidence_eligible"])
+            self.assertFalse(status["promotion_eligible"])
+            self.assertFalse(status["live_order_allowed"])
+            self.assertFalse(status["can_live_trade"])
+            self.assertFalse(status["scale_up_allowed"])
+            source_files = {source["filename"] for source in dashboard_shell["source_artifacts"]}
+            self.assertIn("upbit_paper_persistent_loop_report.json", source_files)
+            self.assertFalse(dashboard_shell["live_order_allowed"])
+
     def test_launcher_dashboard_does_not_prefer_stale_paper_ledger_rollup_as_verified_portfolio(self):
         report = build_launcher_report("UPBIT_PAPER")
         with TemporaryDirectory() as tmp:

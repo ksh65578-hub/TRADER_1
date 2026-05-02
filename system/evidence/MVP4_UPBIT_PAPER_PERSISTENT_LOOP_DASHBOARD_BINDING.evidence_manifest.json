@@ -1,0 +1,59 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-05-02T01:56:25Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_PERSISTENT_LOOP_DASHBOARD_BINDING_EVIDENCE",
+  "artifact_paths": [
+    "contracts/schema/read_only_dashboard_shell.schema.json",
+    "trader1/dashboard/read_only_dashboard.py",
+    "trader1/runtime/boot/safe_launcher.py",
+    "trader1/runtime/paper/upbit_paper_persistent_loop.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tests/integration/test_upbit_public_collection_persistent_loop.py",
+    "tests/runtime/test_safe_launcher.py",
+    "tools/emit_upbit_paper_persistent_loop_dashboard_binding_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_UPBIT_PAPER_PERSISTENT_LOOP_DASHBOARD_BINDING.md",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_PERSISTENT_LOOP_DASHBOARD_BINDING.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_PERSISTENT_LOOP_DASHBOARD_BINDING.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_PERSISTENT_LOOP_DASHBOARD_BINDING.patch_result.json"
+  ],
+  "dashboard_projection": {
+    "loop_hash": "A9A293821B2EBD813D644966E3CC18F454AC14D9D319F675FE89D097DB0FAF18",
+    "dashboard_hash": "BCF9A77B4769CE6C17AD809C7E6FD247F4962152BE69DFD83159A256261A66B2",
+    "paper_persistent_loop_status": "PASS",
+    "runtime_evidence_role": "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE",
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "launcher_projection": {
+    "loop_hash": "94BE5CA37023981E10864864E3C501AF25E922E7A34B1D8E77DA92A3DB0AB4CD",
+    "canonical_loop_path": "C:\\Users\\ksh65\\AppData\\Local\\Temp\\tmpfc32y71v\\system\\runtime\\upbit\\krw_spot\\paper\\mvp1_upbit_paper_launcher\\paper_runtime\\upbit_paper_persistent_loop_report.json",
+    "dashboard_shell_path": "C:\\Users\\ksh65\\AppData\\Local\\Temp\\tmpfc32y71v\\system\\runtime\\upbit\\krw_spot\\paper\\mvp1_upbit_paper_launcher\\dashboard_shell.json",
+    "dashboard_hash": "600E6F66C247CB9991463985ED5D969F5C81C21DAA764B107ACD3D4CE21487B6",
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "known_blockers": [
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,29 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-02T01:56:25Z",
+  "patch_id": "MVP4_UPBIT_PAPER_PERSISTENT_LOOP_DASHBOARD_BINDING_20260502_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_UPBIT_PAPER_PERSISTENT_LOOP_DASHBOARD_BINDING_LIVE_BLOCKED",
+  "dashboard_projection": {
+    "loop_hash": "A9A293821B2EBD813D644966E3CC18F454AC14D9D319F675FE89D097DB0FAF18",
+    "dashboard_hash": "BCF9A77B4769CE6C17AD809C7E6FD247F4962152BE69DFD83159A256261A66B2",
+    "paper_persistent_loop_status": "PASS",
+    "runtime_evidence_role": "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE",
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "launcher_projection": {
+    "loop_hash": "94BE5CA37023981E10864864E3C501AF25E922E7A34B1D8E77DA92A3DB0AB4CD",
+    "canonical_loop_path": "C:\\Users\\ksh65\\AppData\\Local\\Temp\\tmpfc32y71v\\system\\runtime\\upbit\\krw_spot\\paper\\mvp1_upbit_paper_launcher\\paper_runtime\\upbit_paper_persistent_loop_report.json",
+    "dashboard_shell_path": "C:\\Users\\ksh65\\AppData\\Local\\Temp\\tmpfc32y71v\\system\\runtime\\upbit\\krw_spot\\paper\\mvp1_upbit_paper_launcher\\dashboard_shell.json",
+    "dashboard_hash": "600E6F66C247CB9991463985ED5D969F5C81C21DAA764B107ACD3D4CE21487B6",
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
