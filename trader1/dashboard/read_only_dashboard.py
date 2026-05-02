@@ -22,6 +22,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup 
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_review_guidance import (
     validate_upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
 )
+from trader1.runtime.paper.upbit_paper_post_rerun_operator_reconciliation_queue import (
+    validate_upbit_paper_post_rerun_operator_reconciliation_queue_report,
+)
 from trader1.runtime.paper.upbit_paper_post_rerun_operator_resolution_audit import (
     validate_upbit_paper_post_rerun_operator_resolution_audit_report,
 )
@@ -36,6 +39,9 @@ from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_repair_path imp
 )
 from trader1.runtime.paper.upbit_paper_post_repair_reconciliation import (
     validate_upbit_paper_post_repair_reconciliation_report,
+)
+from trader1.runtime.paper.upbit_paper_repair_operator_queue import (
+    validate_upbit_paper_repair_operator_queue_report,
 )
 from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliation import (
     validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report,
@@ -57,11 +63,13 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_runtime_recovery_guard_report.json",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+    "upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
     "upbit_paper_post_rerun_operator_resolution_audit_report.json",
     "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
     "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
     "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
     "upbit_paper_post_repair_reconciliation_report.json",
+    "upbit_paper_repair_operator_queue_report.json",
     "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
@@ -74,11 +82,13 @@ RECONCILIATION_RECOVERY_SOURCES = {
     "restart_recovery_report.json",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+    "upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
     "upbit_paper_post_rerun_operator_resolution_audit_report.json",
     "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
     "upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
     "upbit_paper_post_rerun_reconciliation_repair_path_report.json",
     "upbit_paper_post_repair_reconciliation_report.json",
+    "upbit_paper_repair_operator_queue_report.json",
     "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
 }
@@ -195,6 +205,8 @@ POST_RERUN_BLOCKER_ROLLUP_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
 POST_RERUN_BLOCKER_ROLLUP_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_RERUN_REVIEW_GUIDANCE_STATUSES = {"NOT_LOADED", "BLOCKED_RECONCILIATION_REVIEW_REQUIRED", "INVALID"}
 POST_RERUN_REVIEW_GUIDANCE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+POST_RERUN_OPERATOR_RECONCILIATION_QUEUE_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
+POST_RERUN_OPERATOR_RECONCILIATION_QUEUE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_RERUN_RESOLUTION_AUDIT_STATUSES = {"NOT_LOADED", "UNRESOLVED_RECONCILIATION_REVIEW_ONLY", "INVALID"}
 POST_RERUN_RESOLUTION_AUDIT_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_RERUN_RESOLUTION_CLOSURE_STATUSES = {"NOT_LOADED", "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED", "INVALID"}
@@ -210,6 +222,8 @@ POST_RERUN_RECONCILIATION_REPAIR_PATH_STATUSES = {"NOT_LOADED", "BLOCKED_REPAIR_
 POST_RERUN_RECONCILIATION_REPAIR_PATH_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_REPAIR_RECONCILIATION_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
 POST_REPAIR_RECONCILIATION_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
+REPAIR_OPERATOR_QUEUE_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
+REPAIR_OPERATOR_QUEUE_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 STALE_LOOP_POST_REGENERATION_RECONCILIATION_STATUSES = {"NOT_LOADED", "BLOCKED", "INVALID"}
 STALE_LOOP_POST_REGENERATION_RECONCILIATION_VALIDATION_STATUSES = {"PASS", "FAIL", "BLOCKED", "UNTESTED"}
 POST_RERUN_RECONCILIATION_REPAIR_GATE_STATUSES = {"NOT_LOADED", "BLOCKED", "PASS", "FAIL"}
@@ -926,7 +940,9 @@ def _portfolio_snapshot(
         == "BLOCKED_REPAIR_PATH_DECLARED"
         or reconciliation_recovery_summary.get("post_rerun_current_evidence_closure_recheck_status")
         == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED"
+        or reconciliation_recovery_summary.get("post_rerun_operator_reconciliation_queue_status") == "BLOCKED"
         or reconciliation_recovery_summary.get("post_repair_reconciliation_status") == "BLOCKED"
+        or reconciliation_recovery_summary.get("repair_operator_queue_status") == "BLOCKED"
         or reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED"
     )
     if mode == "PAPER" and isinstance(summary, dict) and not post_rerun_current_truth_blocked:
@@ -1005,6 +1021,43 @@ def _portfolio_snapshot(
         next_action = (
             "Reconcile blocked stale-loop regenerated replacements before treating configured PAPER capital or "
             "regenerated artifacts as current portfolio cash/equity."
+        )
+    elif (
+        isinstance(reconciliation_recovery_summary, dict)
+        and reconciliation_recovery_summary.get("repair_operator_queue_status") == "BLOCKED"
+    ):
+        source_snapshot_status = "BLOCKED"
+        blocking_reason = "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
+        queue_count = reconciliation_recovery_summary.get("repair_operator_queue_item_count", 0)
+        ledger_ready_count = reconciliation_recovery_summary.get("repair_operator_queue_ledger_candidate_review_ready_count", 0)
+        rerun_count = reconciliation_recovery_summary.get("repair_operator_queue_runtime_cycle_rerun_required_count", 0)
+        usable_count = reconciliation_recovery_summary.get("repair_operator_queue_candidate_current_evidence_usable_count", 0)
+        if isinstance(configured_display, str) and configured_display != "UNVERIFIED":
+            unverified_message = (
+                f"Configured PAPER capital is {configured_display}; repair operator queue has "
+                f"{queue_count} blocked repair item(s), including {ledger_ready_count} ledger-candidate review item(s), "
+                "so cash/equity remains unverified."
+            )
+            cash_detail = (
+                f"Configured PAPER capital is {configured_display}; cash remains unverified while "
+                f"{rerun_count} repair item(s) still require PAPER cycle rerun."
+            )
+            equity_detail = (
+                f"Configured PAPER capital is {configured_display}; equity remains unverified because "
+                f"{usable_count} repair candidate(s) are usable as current evidence."
+            )
+        else:
+            unverified_message = (
+                f"Portfolio current evidence remains blocked by repair operator queue: {queue_count} item(s), "
+                f"{ledger_ready_count} ready for ledger-candidate review."
+            )
+            cash_detail = f"Cash remains unverified while {rerun_count} repair item(s) require PAPER cycle rerun."
+            equity_detail = (
+                f"Equity remains unverified while repair queue keeps current-evidence usable count at {usable_count}."
+            )
+        next_action = (
+            "Follow the repair operator queue; do not treat configured PAPER capital or repaired candidates as "
+            "cash/equity until ledger/recovery reconciliation passes."
         )
     elif (
         isinstance(reconciliation_recovery_summary, dict)
@@ -1100,6 +1153,45 @@ def _portfolio_snapshot(
         next_action = (
             "Complete the blocked post-rerun repair gates with a separate validated current ledger rebuild before "
             "treating configured PAPER capital as current portfolio cash/equity."
+        )
+    elif (
+        isinstance(reconciliation_recovery_summary, dict)
+        and reconciliation_recovery_summary.get("post_rerun_operator_reconciliation_queue_status") == "BLOCKED"
+    ):
+        source_snapshot_status = "BLOCKED"
+        blocking_reason = "POST_RERUN_RECONCILIATION_REQUIRED"
+        queue_count = reconciliation_recovery_summary.get("post_rerun_operator_queue_item_count", 0)
+        review_ready_count = reconciliation_recovery_summary.get(
+            "post_rerun_operator_queue_review_ready_reconciliation_item_count",
+            0,
+        )
+        write_count = reconciliation_recovery_summary.get(
+            "post_rerun_operator_queue_current_evidence_write_allowed_count",
+            0,
+        )
+        if isinstance(configured_display, str) and configured_display != "UNVERIFIED":
+            unverified_message = (
+                f"Configured PAPER capital is {configured_display}; post-rerun operator queue has "
+                f"{queue_count} reconciliation item(s), so portfolio cash/equity remains unverified."
+            )
+            cash_detail = (
+                f"Configured PAPER capital is {configured_display}; cash remains unverified while "
+                f"{review_ready_count} post-rerun candidate rollup(s) need operator reconciliation."
+            )
+            equity_detail = (
+                f"Configured PAPER capital is {configured_display}; equity remains blocked because current-evidence "
+                f"writes allowed remains {write_count}."
+            )
+        else:
+            unverified_message = (
+                f"Portfolio current evidence remains blocked by post-rerun operator queue: {queue_count} item(s)."
+            )
+            cash_detail = (
+                f"Cash remains unverified while {review_ready_count} candidate rollup(s) need reconciliation."
+            )
+            equity_detail = f"Equity remains unverified; current-evidence writes allowed={write_count}."
+        next_action = (
+            "Review post-rerun candidate rollups only; keep current evidence, portfolio truth, live, and scale-up blocked."
         )
     elif (
         isinstance(reconciliation_recovery_summary, dict)
@@ -5321,11 +5413,13 @@ def _reconciliation_recovery_summary(
     ledger_idempotency_runtime_evidence_report: dict[str, Any] | None,
     post_rerun_blocker_rollup_report: dict[str, Any] | None,
     post_rerun_review_guidance_report: dict[str, Any] | None,
+    post_rerun_operator_reconciliation_queue_report: dict[str, Any] | None,
     post_rerun_resolution_audit_report: dict[str, Any] | None,
     post_rerun_resolution_closure_report: dict[str, Any] | None,
     post_rerun_current_evidence_closure_recheck_report: dict[str, Any] | None,
     post_rerun_reconciliation_repair_path_report: dict[str, Any] | None,
     post_repair_reconciliation_report: dict[str, Any] | None,
+    repair_operator_queue_report: dict[str, Any] | None,
     stale_loop_post_regeneration_reconciliation_report: dict[str, Any] | None,
 ) -> dict[str, Any]:
     reconciliation_loaded = isinstance(reconciliation_report, dict)
@@ -5333,11 +5427,13 @@ def _reconciliation_recovery_summary(
     ledger_idempotency_evidence_loaded = isinstance(ledger_idempotency_runtime_evidence_report, dict)
     post_rerun_rollup_loaded = isinstance(post_rerun_blocker_rollup_report, dict)
     post_rerun_guidance_loaded = isinstance(post_rerun_review_guidance_report, dict)
+    post_rerun_operator_queue_loaded = isinstance(post_rerun_operator_reconciliation_queue_report, dict)
     post_rerun_resolution_loaded = isinstance(post_rerun_resolution_audit_report, dict)
     post_rerun_resolution_closure_loaded = isinstance(post_rerun_resolution_closure_report, dict)
     post_rerun_closure_recheck_loaded = isinstance(post_rerun_current_evidence_closure_recheck_report, dict)
     post_rerun_repair_path_loaded = isinstance(post_rerun_reconciliation_repair_path_report, dict)
     post_repair_reconciliation_loaded = isinstance(post_repair_reconciliation_report, dict)
+    repair_operator_queue_loaded = isinstance(repair_operator_queue_report, dict)
     stale_loop_post_regeneration_reconciliation_loaded = isinstance(
         stale_loop_post_regeneration_reconciliation_report,
         dict,
@@ -5358,6 +5454,17 @@ def _reconciliation_recovery_summary(
     ledger_idempotency_runtime_primary_blocker_code = "NOT_LOADED"
     post_rerun_rollup_status = "NOT_LOADED"
     post_rerun_review_guidance_status = "NOT_LOADED"
+    post_rerun_operator_reconciliation_queue_status = "NOT_LOADED"
+    post_rerun_operator_reconciliation_queue_validation_status = "UNTESTED"
+    post_rerun_operator_queue_item_count = 0
+    post_rerun_operator_queue_required_count = 0
+    post_rerun_operator_queue_review_ready_reconciliation_item_count = 0
+    post_rerun_operator_queue_blocked_pre_review_item_count = 0
+    post_rerun_operator_queue_current_evidence_write_allowed_count = 0
+    post_rerun_operator_queue_candidate_current_evidence_usable_count = 0
+    post_rerun_operator_queue_primary_blocker_code = "NOT_LOADED"
+    post_rerun_operator_queue_next_action = "NOT_LOADED"
+    post_rerun_operator_queue_blocker_codes: list[str] = []
     post_rerun_resolution_audit_status = "NOT_LOADED"
     post_rerun_resolution_closure_status = "NOT_LOADED"
     post_rerun_current_evidence_closure_recheck_status = "NOT_LOADED"
@@ -5405,6 +5512,17 @@ def _reconciliation_recovery_summary(
     post_repair_primary_blocker_code = "NOT_LOADED"
     post_repair_operator_next_action = "NOT_LOADED"
     post_repair_blocker_codes: list[str] = []
+    repair_operator_queue_status = "NOT_LOADED"
+    repair_operator_queue_validation_status = "UNTESTED"
+    repair_operator_queue_item_count = 0
+    repair_operator_queue_ledger_candidate_review_ready_count = 0
+    repair_operator_queue_runtime_cycle_rerun_required_count = 0
+    repair_operator_queue_recovery_guard_rerun_required_count = 0
+    repair_operator_queue_hash_operator_reconciliation_required_count = 0
+    repair_operator_queue_candidate_current_evidence_usable_count = 0
+    repair_operator_queue_primary_blocker_code = "NOT_LOADED"
+    repair_operator_queue_next_action = "NOT_LOADED"
+    repair_operator_queue_blocker_codes: list[str] = []
     stale_loop_post_regeneration_reconciliation_status = "NOT_LOADED"
     stale_loop_post_regeneration_reconciliation_validation_status = "UNTESTED"
     stale_loop_post_regeneration_item_count = 0
@@ -5730,6 +5848,82 @@ def _reconciliation_recovery_summary(
             idempotency_state = "INVALID"
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Post-rerun review guidance status is unknown.")
+
+    if post_rerun_operator_queue_loaded:
+        source = "upbit_paper_post_rerun_operator_reconciliation_queue_report.json"
+        post_rerun_operator_reconciliation_queue_status = str(
+            post_rerun_operator_reconciliation_queue_report.get("queue_status", "INVALID")
+        )
+        operator_queue_result = validate_upbit_paper_post_rerun_operator_reconciliation_queue_report(
+            post_rerun_operator_reconciliation_queue_report
+        )
+        post_rerun_operator_reconciliation_queue_validation_status = operator_queue_result.status
+        if operator_queue_result.status != "PASS":
+            post_rerun_operator_reconciliation_queue_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = operator_queue_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(f"Post-rerun operator reconciliation queue invalid: {operator_queue_result.message}")
+        elif not _scope_matches(
+            post_rerun_operator_reconciliation_queue_report,
+            exchange=exchange,
+            market_type=market_type,
+            mode=mode,
+            session_id=session_id,
+        ):
+            post_rerun_operator_reconciliation_queue_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Post-rerun operator reconciliation queue scope does not match this dashboard.")
+        elif post_rerun_operator_reconciliation_queue_status == "BLOCKED":
+            post_rerun_operator_queue_item_count = _safe_count(
+                post_rerun_operator_reconciliation_queue_report.get("queue_item_count")
+            )
+            post_rerun_operator_queue_required_count = _safe_count(
+                post_rerun_operator_reconciliation_queue_report.get("operator_reconciliation_required_count")
+            )
+            post_rerun_operator_queue_review_ready_reconciliation_item_count = _safe_count(
+                post_rerun_operator_reconciliation_queue_report.get("review_ready_reconciliation_item_count")
+            )
+            post_rerun_operator_queue_blocked_pre_review_item_count = _safe_count(
+                post_rerun_operator_reconciliation_queue_report.get("blocked_pre_review_item_count")
+            )
+            post_rerun_operator_queue_current_evidence_write_allowed_count = _safe_count(
+                post_rerun_operator_reconciliation_queue_report.get("current_evidence_write_allowed_count")
+            )
+            post_rerun_operator_queue_candidate_current_evidence_usable_count = _safe_count(
+                post_rerun_operator_reconciliation_queue_report.get("candidate_current_evidence_usable_count")
+            )
+            post_rerun_operator_queue_primary_blocker_code = str(
+                post_rerun_operator_reconciliation_queue_report.get("primary_blocker_code")
+                or "POST_RERUN_RECONCILIATION_REQUIRED"
+            )
+            post_rerun_operator_queue_next_action = str(
+                post_rerun_operator_reconciliation_queue_report.get("operator_next_action")
+                or "Review candidate rollups only; keep current evidence writes blocked."
+            )
+            raw_codes = post_rerun_operator_reconciliation_queue_report.get("blocker_codes", [])
+            post_rerun_operator_queue_blocker_codes = (
+                [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            )
+            post_rerun_blocker_codes = sorted({*post_rerun_blocker_codes, *post_rerun_operator_queue_blocker_codes})
+            ledger_state = "RECONCILE_REQUIRED"
+            single_writer_state = "RECONCILE_REQUIRED"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = post_rerun_operator_queue_primary_blocker_code
+            issue_messages.append(
+                "Post-rerun operator reconciliation queue lists review-only candidates while current evidence writes remain blocked."
+            )
+        else:
+            post_rerun_operator_reconciliation_queue_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Post-rerun operator reconciliation queue status is unknown.")
 
     if post_rerun_resolution_loaded:
         source = "upbit_paper_post_rerun_operator_resolution_audit_report.json"
@@ -6161,6 +6355,74 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
             issue_messages.append("Post-repair reconciliation status is unknown.")
 
+    if repair_operator_queue_loaded:
+        source = "upbit_paper_repair_operator_queue_report.json"
+        repair_operator_queue_status = str(repair_operator_queue_report.get("queue_status", "INVALID"))
+        repair_queue_result = validate_upbit_paper_repair_operator_queue_report(repair_operator_queue_report)
+        repair_operator_queue_validation_status = repair_queue_result.status
+        if repair_queue_result.status != "PASS":
+            repair_operator_queue_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = repair_queue_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append(f"Repair operator queue invalid: {repair_queue_result.message}")
+        elif not _scope_matches(
+            repair_operator_queue_report,
+            exchange=exchange,
+            market_type=market_type,
+            mode=mode,
+            session_id=session_id,
+        ):
+            repair_operator_queue_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
+            issue_messages.append("Repair operator queue scope does not match this dashboard.")
+        elif repair_operator_queue_status == "BLOCKED":
+            repair_operator_queue_item_count = _safe_count(repair_operator_queue_report.get("queue_item_count"))
+            repair_operator_queue_ledger_candidate_review_ready_count = _safe_count(
+                repair_operator_queue_report.get("ledger_candidate_review_ready_count")
+            )
+            repair_operator_queue_runtime_cycle_rerun_required_count = _safe_count(
+                repair_operator_queue_report.get("runtime_cycle_rerun_required_count")
+            )
+            repair_operator_queue_recovery_guard_rerun_required_count = _safe_count(
+                repair_operator_queue_report.get("recovery_guard_rerun_required_count")
+            )
+            repair_operator_queue_hash_operator_reconciliation_required_count = _safe_count(
+                repair_operator_queue_report.get("hash_operator_reconciliation_required_count")
+            )
+            repair_operator_queue_candidate_current_evidence_usable_count = _safe_count(
+                repair_operator_queue_report.get("candidate_current_evidence_usable_count")
+            )
+            repair_operator_queue_primary_blocker_code = str(
+                repair_operator_queue_report.get("primary_blocker_code")
+                or "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
+            )
+            repair_operator_queue_next_action = str(
+                repair_operator_queue_report.get("operator_next_action")
+                or "Review blocked repair candidates before evidence use."
+            )
+            raw_codes = repair_operator_queue_report.get("blocker_codes", [])
+            repair_operator_queue_blocker_codes = [str(code) for code in raw_codes if code] if isinstance(raw_codes, list) else []
+            post_repair_blocker_codes = sorted({*post_repair_blocker_codes, *repair_operator_queue_blocker_codes})
+            ledger_state = "RECONCILE_REQUIRED"
+            single_writer_state = "RECONCILE_REQUIRED"
+            idempotency_state = "RECONCILE_REQUIRED"
+            primary_blocker = repair_operator_queue_primary_blocker_code
+            issue_messages.append(
+                "Repair operator queue prioritizes blocked repairs without treating candidates as current evidence."
+            )
+        else:
+            repair_operator_queue_status = "INVALID"
+            ledger_state = "INVALID"
+            single_writer_state = "INVALID"
+            idempotency_state = "INVALID"
+            primary_blocker = "SCHEMA_IDENTITY_MISMATCH"
+            issue_messages.append("Repair operator queue status is unknown.")
+
     if stale_loop_post_regeneration_reconciliation_loaded:
         source = "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json"
         stale_loop_post_regeneration_reconciliation_status = str(
@@ -6272,11 +6534,13 @@ def _reconciliation_recovery_summary(
         and not ledger_idempotency_evidence_loaded
         and not post_rerun_rollup_loaded
         and not post_rerun_guidance_loaded
+        and not post_rerun_operator_queue_loaded
         and not post_rerun_resolution_loaded
         and not post_rerun_resolution_closure_loaded
         and not post_rerun_closure_recheck_loaded
         and not post_rerun_repair_path_loaded
         and not post_repair_reconciliation_loaded
+        and not repair_operator_queue_loaded
         and not stale_loop_post_regeneration_reconciliation_loaded
     ):
         status = "NOT_LOADED"
@@ -6308,6 +6572,27 @@ def _reconciliation_recovery_summary(
             f"invalid={stale_loop_post_regeneration_invalid_count}, "
             f"current-evidence usable={stale_loop_post_regeneration_current_evidence_usable_count}, "
             f"excluded={stale_loop_post_regeneration_excluded_from_current_evidence_count}."
+        )
+    elif repair_operator_queue_status == "BLOCKED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = (
+            f"{primary_blocker}: repair operator queue has {repair_operator_queue_item_count} blocked item(s)."
+        )
+        next_action = (
+            repair_operator_queue_next_action
+            if repair_operator_queue_next_action != "NOT_LOADED"
+            else "Review blocked repair candidates before evidence use."
+        )
+        message = (
+            "Repair operator queue is active: "
+            f"items={repair_operator_queue_item_count}, "
+            f"ledger-ready={repair_operator_queue_ledger_candidate_review_ready_count}, "
+            f"cycle-rerun={repair_operator_queue_runtime_cycle_rerun_required_count}, "
+            f"recovery-guard-rerun={repair_operator_queue_recovery_guard_rerun_required_count}, "
+            f"hash-operator={repair_operator_queue_hash_operator_reconciliation_required_count}, "
+            f"current-evidence usable={repair_operator_queue_candidate_current_evidence_usable_count}."
         )
     elif post_repair_reconciliation_status == "BLOCKED":
         status = "BLOCKED"
@@ -6359,6 +6644,28 @@ def _reconciliation_recovery_summary(
             f"bridge={post_rerun_reconciliation_repair_path_source_recheck_bridge_status}, "
             f"current-evidence writes allowed="
             f"{post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count}."
+        )
+    elif post_rerun_operator_reconciliation_queue_status == "BLOCKED":
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        one_line_blocker = (
+            f"{primary_blocker}: post-rerun operator queue has "
+            f"{post_rerun_operator_queue_item_count} reconciliation item(s)."
+        )
+        next_action = (
+            post_rerun_operator_queue_next_action
+            if post_rerun_operator_queue_next_action != "NOT_LOADED"
+            else "Review candidate rollups only; keep current evidence writes blocked."
+        )
+        message = (
+            "Post-rerun operator reconciliation queue is active: "
+            f"items={post_rerun_operator_queue_item_count}, "
+            f"required={post_rerun_operator_queue_required_count}, "
+            f"review-ready={post_rerun_operator_queue_review_ready_reconciliation_item_count}, "
+            f"blocked-pre-review={post_rerun_operator_queue_blocked_pre_review_item_count}, "
+            f"current-evidence writes allowed={post_rerun_operator_queue_current_evidence_write_allowed_count}, "
+            f"current-evidence usable={post_rerun_operator_queue_candidate_current_evidence_usable_count}."
         )
     elif post_rerun_current_evidence_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
         status = "BLOCKED"
@@ -6473,11 +6780,13 @@ def _reconciliation_recovery_summary(
             restart_status,
             post_rerun_rollup_status,
             post_rerun_review_guidance_status,
+            post_rerun_operator_reconciliation_queue_status,
             post_rerun_resolution_audit_status,
             post_rerun_resolution_closure_status,
             post_rerun_current_evidence_closure_recheck_status,
             post_rerun_reconciliation_repair_path_status,
             post_repair_reconciliation_status,
+            repair_operator_queue_status,
             stale_loop_post_regeneration_reconciliation_status,
             ledger_idempotency_runtime_evidence_status,
         }
@@ -6487,11 +6796,13 @@ def _reconciliation_recovery_summary(
             restart_validation_status,
             post_rerun_rollup_validation_status,
             post_rerun_review_guidance_validation_status,
+            post_rerun_operator_reconciliation_queue_validation_status,
             post_rerun_resolution_audit_validation_status,
             post_rerun_resolution_closure_validation_status,
             post_rerun_current_evidence_closure_recheck_validation_status,
             post_rerun_reconciliation_repair_path_validation_status,
             post_repair_reconciliation_validation_status,
+            repair_operator_queue_validation_status,
             stale_loop_post_regeneration_reconciliation_validation_status,
             ledger_idempotency_runtime_validation_status,
         }
@@ -6501,10 +6812,12 @@ def _reconciliation_recovery_summary(
             restart_validation_status,
             post_rerun_rollup_validation_status,
             post_rerun_review_guidance_validation_status,
+            post_rerun_operator_reconciliation_queue_validation_status,
             post_rerun_resolution_audit_validation_status,
             post_rerun_resolution_closure_validation_status,
             post_rerun_reconciliation_repair_path_validation_status,
             post_repair_reconciliation_validation_status,
+            repair_operator_queue_validation_status,
             stale_loop_post_regeneration_reconciliation_validation_status,
             ledger_idempotency_runtime_validation_status if ledger_idempotency_runtime_evidence_status != "BLOCKED" else "PASS",
         }
@@ -6576,6 +6889,17 @@ def _reconciliation_recovery_summary(
         "post_rerun_guidance_current_evidence_write_authorized_count": post_rerun_guidance_current_evidence_write_authorized_count,
         "post_rerun_guidance_current_evidence_write_allowed_count": post_rerun_guidance_current_evidence_write_allowed_count,
         "post_rerun_guidance_candidate_current_evidence_usable_count": post_rerun_guidance_candidate_current_evidence_usable_count,
+        "post_rerun_operator_reconciliation_queue_status": post_rerun_operator_reconciliation_queue_status,
+        "post_rerun_operator_reconciliation_queue_validation_status": post_rerun_operator_reconciliation_queue_validation_status,
+        "post_rerun_operator_queue_item_count": post_rerun_operator_queue_item_count,
+        "post_rerun_operator_queue_required_count": post_rerun_operator_queue_required_count,
+        "post_rerun_operator_queue_review_ready_reconciliation_item_count": post_rerun_operator_queue_review_ready_reconciliation_item_count,
+        "post_rerun_operator_queue_blocked_pre_review_item_count": post_rerun_operator_queue_blocked_pre_review_item_count,
+        "post_rerun_operator_queue_current_evidence_write_allowed_count": post_rerun_operator_queue_current_evidence_write_allowed_count,
+        "post_rerun_operator_queue_candidate_current_evidence_usable_count": post_rerun_operator_queue_candidate_current_evidence_usable_count,
+        "post_rerun_operator_queue_primary_blocker_code": post_rerun_operator_queue_primary_blocker_code,
+        "post_rerun_operator_queue_next_action": post_rerun_operator_queue_next_action,
+        "post_rerun_operator_queue_blocker_codes": post_rerun_operator_queue_blocker_codes,
         "post_rerun_resolution_audit_status": post_rerun_resolution_audit_status,
         "post_rerun_resolution_audit_validation_status": post_rerun_resolution_audit_validation_status,
         "post_rerun_resolution_unresolved_item_count": post_rerun_resolution_unresolved_item_count,
@@ -6649,6 +6973,17 @@ def _reconciliation_recovery_summary(
         "post_repair_primary_blocker_code": post_repair_primary_blocker_code,
         "post_repair_operator_next_action": post_repair_operator_next_action,
         "post_repair_blocker_codes": post_repair_blocker_codes,
+        "repair_operator_queue_status": repair_operator_queue_status,
+        "repair_operator_queue_validation_status": repair_operator_queue_validation_status,
+        "repair_operator_queue_item_count": repair_operator_queue_item_count,
+        "repair_operator_queue_ledger_candidate_review_ready_count": repair_operator_queue_ledger_candidate_review_ready_count,
+        "repair_operator_queue_runtime_cycle_rerun_required_count": repair_operator_queue_runtime_cycle_rerun_required_count,
+        "repair_operator_queue_recovery_guard_rerun_required_count": repair_operator_queue_recovery_guard_rerun_required_count,
+        "repair_operator_queue_hash_operator_reconciliation_required_count": repair_operator_queue_hash_operator_reconciliation_required_count,
+        "repair_operator_queue_candidate_current_evidence_usable_count": repair_operator_queue_candidate_current_evidence_usable_count,
+        "repair_operator_queue_primary_blocker_code": repair_operator_queue_primary_blocker_code,
+        "repair_operator_queue_next_action": repair_operator_queue_next_action,
+        "repair_operator_queue_blocker_codes": repair_operator_queue_blocker_codes,
         "stale_loop_post_regeneration_reconciliation_status": stale_loop_post_regeneration_reconciliation_status,
         "stale_loop_post_regeneration_reconciliation_validation_status": stale_loop_post_regeneration_reconciliation_validation_status,
         "stale_loop_post_regeneration_item_count": stale_loop_post_regeneration_item_count,
@@ -6710,11 +7045,13 @@ def build_read_only_dashboard_shell(
     restart_recovery_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_reconciliation_blocker_rollup_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_operator_reconciliation_review_guidance_report: dict[str, Any] | None = None,
+    upbit_paper_post_rerun_operator_reconciliation_queue_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_operator_resolution_audit_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_resolution_current_evidence_closure_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_current_evidence_closure_recheck_report: dict[str, Any] | None = None,
     upbit_paper_post_rerun_reconciliation_repair_path_report: dict[str, Any] | None = None,
     upbit_paper_post_repair_reconciliation_report: dict[str, Any] | None = None,
+    upbit_paper_repair_operator_queue_report: dict[str, Any] | None = None,
     upbit_paper_stale_loop_post_regeneration_reconciliation_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
@@ -6743,11 +7080,13 @@ def build_read_only_dashboard_shell(
         "upbit_paper_runtime_recovery_guard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_runtime_recovery_guard_report.json",
         "upbit_paper_post_rerun_reconciliation_blocker_rollup": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
         "upbit_paper_post_rerun_operator_reconciliation_review_guidance": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+        "upbit_paper_post_rerun_operator_reconciliation_queue": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
         "upbit_paper_post_rerun_operator_resolution_audit": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
         "upbit_paper_post_rerun_resolution_current_evidence_closure": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
         "upbit_paper_post_rerun_current_evidence_closure_recheck": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
         "upbit_paper_post_rerun_reconciliation_repair_path": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_reconciliation_repair_path_report.json",
         "upbit_paper_post_repair_reconciliation": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_repair_reconciliation_report.json",
+        "upbit_paper_repair_operator_queue": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repair_operator_queue_report.json",
         "upbit_paper_stale_loop_post_regeneration_reconciliation": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
@@ -6921,6 +7260,34 @@ def build_read_only_dashboard_shell(
                 guidance_freshness,
             )
         )
+    if isinstance(upbit_paper_post_rerun_operator_reconciliation_queue_report, dict):
+        operator_queue_result = validate_upbit_paper_post_rerun_operator_reconciliation_queue_report(
+            upbit_paper_post_rerun_operator_reconciliation_queue_report
+        )
+        operator_queue_freshness = (
+            "PASS"
+            if operator_queue_result.status == "PASS"
+            and upbit_paper_post_rerun_operator_reconciliation_queue_report.get("queue_status") == "BLOCKED"
+            and upbit_paper_post_rerun_operator_reconciliation_queue_report.get("current_evidence_write_allowed") is False
+            and upbit_paper_post_rerun_operator_reconciliation_queue_report.get("current_evidence_write_allowed_count") == 0
+            and upbit_paper_post_rerun_operator_reconciliation_queue_report.get("candidate_current_evidence_usable_count") == 0
+            and upbit_paper_post_rerun_operator_reconciliation_queue_report.get("live_order_ready") is False
+            and upbit_paper_post_rerun_operator_reconciliation_queue_report.get("live_order_allowed") is False
+            and upbit_paper_post_rerun_operator_reconciliation_queue_report.get("can_live_trade") is False
+            and upbit_paper_post_rerun_operator_reconciliation_queue_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "POST_RERUN_OPERATOR_RECONCILIATION_QUEUE",
+                paths.get(
+                    "upbit_paper_post_rerun_operator_reconciliation_queue",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
+                ),
+                True,
+                operator_queue_freshness,
+            )
+        )
     if isinstance(upbit_paper_post_rerun_operator_resolution_audit_report, dict):
         resolution_result = validate_upbit_paper_post_rerun_operator_resolution_audit_report(
             upbit_paper_post_rerun_operator_resolution_audit_report
@@ -7055,6 +7422,35 @@ def build_read_only_dashboard_shell(
                 post_repair_freshness,
             )
         )
+    if isinstance(upbit_paper_repair_operator_queue_report, dict):
+        repair_queue_result = validate_upbit_paper_repair_operator_queue_report(
+            upbit_paper_repair_operator_queue_report
+        )
+        repair_queue_freshness = (
+            "PASS"
+            if repair_queue_result.status == "PASS"
+            and upbit_paper_repair_operator_queue_report.get("queue_status") == "BLOCKED"
+            and upbit_paper_repair_operator_queue_report.get("current_evidence_mutation_allowed") is False
+            and upbit_paper_repair_operator_queue_report.get("persistent_loop_mutation_allowed") is False
+            and upbit_paper_repair_operator_queue_report.get("source_delete_allowed") is False
+            and upbit_paper_repair_operator_queue_report.get("candidate_current_evidence_usable_count") == 0
+            and upbit_paper_repair_operator_queue_report.get("live_order_ready") is False
+            and upbit_paper_repair_operator_queue_report.get("live_order_allowed") is False
+            and upbit_paper_repair_operator_queue_report.get("can_live_trade") is False
+            and upbit_paper_repair_operator_queue_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "REPAIR_OPERATOR_QUEUE",
+                paths.get(
+                    "upbit_paper_repair_operator_queue",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repair_operator_queue_report.json",
+                ),
+                True,
+                repair_queue_freshness,
+            )
+        )
     if isinstance(upbit_paper_stale_loop_post_regeneration_reconciliation_report, dict):
         stale_loop_post_regeneration_result = validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(
             upbit_paper_stale_loop_post_regeneration_reconciliation_report
@@ -7145,11 +7541,13 @@ def build_read_only_dashboard_shell(
         ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         post_rerun_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
         post_rerun_review_guidance_report=upbit_paper_post_rerun_operator_reconciliation_review_guidance_report,
+        post_rerun_operator_reconciliation_queue_report=upbit_paper_post_rerun_operator_reconciliation_queue_report,
         post_rerun_resolution_audit_report=upbit_paper_post_rerun_operator_resolution_audit_report,
         post_rerun_resolution_closure_report=upbit_paper_post_rerun_resolution_current_evidence_closure_report,
         post_rerun_current_evidence_closure_recheck_report=upbit_paper_post_rerun_current_evidence_closure_recheck_report,
         post_rerun_reconciliation_repair_path_report=upbit_paper_post_rerun_reconciliation_repair_path_report,
         post_repair_reconciliation_report=upbit_paper_post_repair_reconciliation_report,
+        repair_operator_queue_report=upbit_paper_repair_operator_queue_report,
         stale_loop_post_regeneration_reconciliation_report=upbit_paper_stale_loop_post_regeneration_reconciliation_report,
     )
     position_snapshot = _position_snapshot(summary, summary_freshness)
@@ -7986,6 +8384,14 @@ def validate_read_only_dashboard_shell(
     post_rerun_rollup_validation_status = reconciliation.get("post_rerun_blocker_rollup_validation_status", "UNTESTED")
     post_rerun_guidance_status = reconciliation.get("post_rerun_review_guidance_status", "NOT_LOADED")
     post_rerun_guidance_validation_status = reconciliation.get("post_rerun_review_guidance_validation_status", "UNTESTED")
+    post_rerun_operator_queue_status = reconciliation.get(
+        "post_rerun_operator_reconciliation_queue_status",
+        "NOT_LOADED",
+    )
+    post_rerun_operator_queue_validation_status = reconciliation.get(
+        "post_rerun_operator_reconciliation_queue_validation_status",
+        "UNTESTED",
+    )
     post_rerun_resolution_status = reconciliation.get("post_rerun_resolution_audit_status", "NOT_LOADED")
     post_rerun_resolution_validation_status = reconciliation.get(
         "post_rerun_resolution_audit_validation_status",
@@ -8017,6 +8423,11 @@ def validate_read_only_dashboard_shell(
         "post_repair_reconciliation_validation_status",
         "UNTESTED",
     )
+    repair_operator_queue_status = reconciliation.get("repair_operator_queue_status", "NOT_LOADED")
+    repair_operator_queue_validation_status = reconciliation.get(
+        "repair_operator_queue_validation_status",
+        "UNTESTED",
+    )
     stale_loop_post_regeneration_status = reconciliation.get(
         "stale_loop_post_regeneration_reconciliation_status",
         "NOT_LOADED",
@@ -8033,6 +8444,10 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "post-rerun review guidance status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_guidance_validation_status not in POST_RERUN_REVIEW_GUIDANCE_VALIDATION_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun review guidance validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_operator_queue_status not in POST_RERUN_OPERATOR_RECONCILIATION_QUEUE_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun operator reconciliation queue status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if post_rerun_operator_queue_validation_status not in POST_RERUN_OPERATOR_RECONCILIATION_QUEUE_VALIDATION_STATUSES:
+        return DashboardValidationResult("FAIL", "post-rerun operator reconciliation queue validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_resolution_status not in POST_RERUN_RESOLUTION_AUDIT_STATUSES:
         return DashboardValidationResult("FAIL", "post-rerun resolution audit status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_rerun_resolution_validation_status not in POST_RERUN_RESOLUTION_AUDIT_VALIDATION_STATUSES:
@@ -8053,6 +8468,10 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "post-repair reconciliation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if post_repair_validation_status not in POST_REPAIR_RECONCILIATION_VALIDATION_STATUSES:
         return DashboardValidationResult("FAIL", "post-repair reconciliation validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if repair_operator_queue_status not in REPAIR_OPERATOR_QUEUE_STATUSES:
+        return DashboardValidationResult("FAIL", "repair operator queue status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if repair_operator_queue_validation_status not in REPAIR_OPERATOR_QUEUE_VALIDATION_STATUSES:
+        return DashboardValidationResult("FAIL", "repair operator queue validation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if stale_loop_post_regeneration_status not in STALE_LOOP_POST_REGENERATION_RECONCILIATION_STATUSES:
         return DashboardValidationResult("FAIL", "stale-loop post-regeneration reconciliation status display is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if (
@@ -8102,6 +8521,12 @@ def validate_read_only_dashboard_shell(
         "post_rerun_guidance_current_evidence_write_authorized_count",
         "post_rerun_guidance_current_evidence_write_allowed_count",
         "post_rerun_guidance_candidate_current_evidence_usable_count",
+        "post_rerun_operator_queue_item_count",
+        "post_rerun_operator_queue_required_count",
+        "post_rerun_operator_queue_review_ready_reconciliation_item_count",
+        "post_rerun_operator_queue_blocked_pre_review_item_count",
+        "post_rerun_operator_queue_current_evidence_write_allowed_count",
+        "post_rerun_operator_queue_candidate_current_evidence_usable_count",
         "post_rerun_resolution_unresolved_item_count",
         "post_rerun_resolution_resolved_item_count",
         "post_rerun_resolution_control_count",
@@ -8135,6 +8560,12 @@ def validate_read_only_dashboard_shell(
         "post_repair_hash_reconciliation_operator_action_required_count",
         "post_repair_candidate_current_evidence_usable_count",
         "post_repair_candidate_current_evidence_blocked_count",
+        "repair_operator_queue_item_count",
+        "repair_operator_queue_ledger_candidate_review_ready_count",
+        "repair_operator_queue_runtime_cycle_rerun_required_count",
+        "repair_operator_queue_recovery_guard_rerun_required_count",
+        "repair_operator_queue_hash_operator_reconciliation_required_count",
+        "repair_operator_queue_candidate_current_evidence_usable_count",
         "stale_loop_post_regeneration_item_count",
         "stale_loop_post_regeneration_planned_item_count",
         "stale_loop_post_regeneration_accepted_count",
@@ -8158,6 +8589,13 @@ def validate_read_only_dashboard_shell(
         post_rerun_blocker_codes = []
     if not isinstance(post_rerun_blocker_codes, list) or any(not isinstance(code, str) or not code for code in post_rerun_blocker_codes):
         return DashboardValidationResult("FAIL", "post-rerun blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
+    post_rerun_operator_queue_blocker_codes = reconciliation.get("post_rerun_operator_queue_blocker_codes", [])
+    if post_rerun_operator_queue_blocker_codes is None:
+        post_rerun_operator_queue_blocker_codes = []
+    if not isinstance(post_rerun_operator_queue_blocker_codes, list) or any(
+        not isinstance(code, str) or not code for code in post_rerun_operator_queue_blocker_codes
+    ):
+        return DashboardValidationResult("FAIL", "post-rerun operator queue blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
     post_repair_blocker_codes = reconciliation.get("post_repair_blocker_codes", [])
     if post_repair_blocker_codes is None:
         post_repair_blocker_codes = []
@@ -8165,6 +8603,13 @@ def validate_read_only_dashboard_shell(
         not isinstance(code, str) or not code for code in post_repair_blocker_codes
     ):
         return DashboardValidationResult("FAIL", "post-repair blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
+    repair_operator_queue_blocker_codes = reconciliation.get("repair_operator_queue_blocker_codes", [])
+    if repair_operator_queue_blocker_codes is None:
+        repair_operator_queue_blocker_codes = []
+    if not isinstance(repair_operator_queue_blocker_codes, list) or any(
+        not isinstance(code, str) or not code for code in repair_operator_queue_blocker_codes
+    ):
+        return DashboardValidationResult("FAIL", "repair operator queue blocker codes must be strings", "SCHEMA_IDENTITY_MISMATCH")
     stale_loop_post_regeneration_blocker_codes = reconciliation.get(
         "stale_loop_post_regeneration_blocker_codes",
         [],
@@ -8191,6 +8636,8 @@ def validate_read_only_dashboard_shell(
     allowed_post_rerun_primary_blockers = {"POST_RERUN_RECONCILIATION_REQUIRED"}
     if post_repair_status == "BLOCKED":
         allowed_post_rerun_primary_blockers.add("POST_REPAIR_RECONCILIATION_REQUIRED")
+    if repair_operator_queue_status == "BLOCKED":
+        allowed_post_rerun_primary_blockers.add("REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION")
     if stale_loop_post_regeneration_status == "BLOCKED":
         allowed_post_rerun_primary_blockers.add("STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
     if (
@@ -8207,6 +8654,8 @@ def validate_read_only_dashboard_shell(
         allowed_rollup_sources = {"upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json"}
         if post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED":
             allowed_rollup_sources.add("upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json")
+        if post_rerun_operator_queue_status == "BLOCKED":
+            allowed_rollup_sources.add("upbit_paper_post_rerun_operator_reconciliation_queue_report.json")
         if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
             allowed_rollup_sources.add("upbit_paper_post_rerun_operator_resolution_audit_report.json")
         if post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED":
@@ -8217,6 +8666,8 @@ def validate_read_only_dashboard_shell(
             allowed_rollup_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_rollup_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if repair_operator_queue_status == "BLOCKED":
+            allowed_rollup_sources.add("upbit_paper_repair_operator_queue_report.json")
         if stale_loop_post_regeneration_status == "BLOCKED":
             allowed_rollup_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
@@ -8242,6 +8693,8 @@ def validate_read_only_dashboard_shell(
         allowed_guidance_sources = {"upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json"}
         if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
             allowed_guidance_sources.add("upbit_paper_post_rerun_operator_resolution_audit_report.json")
+        if post_rerun_operator_queue_status == "BLOCKED":
+            allowed_guidance_sources.add("upbit_paper_post_rerun_operator_reconciliation_queue_report.json")
         if post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED":
             allowed_guidance_sources.add("upbit_paper_post_rerun_resolution_current_evidence_closure_report.json")
         if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
@@ -8250,6 +8703,8 @@ def validate_read_only_dashboard_shell(
             allowed_guidance_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_guidance_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if repair_operator_queue_status == "BLOCKED":
+            allowed_guidance_sources.add("upbit_paper_repair_operator_queue_report.json")
         if stale_loop_post_regeneration_status == "BLOCKED":
             allowed_guidance_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
@@ -8271,6 +8726,39 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("post_rerun_guidance_candidate_current_evidence_usable_count", 0) != 0
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun review guidance cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
+    if post_rerun_operator_queue_status == "BLOCKED":
+        item_count = reconciliation.get("post_rerun_operator_queue_item_count", 0)
+        allowed_operator_queue_sources = {"upbit_paper_post_rerun_operator_reconciliation_queue_report.json"}
+        if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
+            allowed_operator_queue_sources.add("upbit_paper_post_rerun_operator_resolution_audit_report.json")
+        if post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED":
+            allowed_operator_queue_sources.add("upbit_paper_post_rerun_resolution_current_evidence_closure_report.json")
+        if post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED":
+            allowed_operator_queue_sources.add("upbit_paper_post_rerun_current_evidence_closure_recheck_report.json")
+        if post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED":
+            allowed_operator_queue_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
+        if post_repair_status == "BLOCKED":
+            allowed_operator_queue_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if repair_operator_queue_status == "BLOCKED":
+            allowed_operator_queue_sources.add("upbit_paper_repair_operator_queue_report.json")
+        if stale_loop_post_regeneration_status == "BLOCKED":
+            allowed_operator_queue_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source") not in allowed_operator_queue_sources
+            or reconciliation.get("primary_blocker_code") not in allowed_post_rerun_primary_blockers
+            or reconciliation.get("post_rerun_operator_reconciliation_queue_validation_status") != "PASS"
+            or item_count <= 0
+            or reconciliation.get("post_rerun_operator_queue_required_count", 0) != item_count
+            or reconciliation.get("post_rerun_operator_queue_review_ready_reconciliation_item_count", 0) <= 0
+            or reconciliation.get("post_rerun_operator_queue_current_evidence_write_allowed_count", 0) != 0
+            or reconciliation.get("post_rerun_operator_queue_candidate_current_evidence_usable_count", 0) != 0
+            or "POST_RERUN_RECONCILIATION_REQUIRED" not in set(post_rerun_operator_queue_blocker_codes)
+            or "POST_RERUN_RECONCILIATION_REQUIRED" not in set(post_rerun_blocker_codes)
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun operator queue must render as a red review-only reconciliation blocker", "LIVE_FINAL_GUARD_FAILED")
     if post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
         allowed_resolution_sources = {"upbit_paper_post_rerun_operator_resolution_audit_report.json"}
         if post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED":
@@ -8281,6 +8769,8 @@ def validate_read_only_dashboard_shell(
             allowed_resolution_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_resolution_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if repair_operator_queue_status == "BLOCKED":
+            allowed_resolution_sources.add("upbit_paper_repair_operator_queue_report.json")
         if stale_loop_post_regeneration_status == "BLOCKED":
             allowed_resolution_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
@@ -8321,6 +8811,8 @@ def validate_read_only_dashboard_shell(
             allowed_closure_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_closure_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if repair_operator_queue_status == "BLOCKED":
+            allowed_closure_sources.add("upbit_paper_repair_operator_queue_report.json")
         if stale_loop_post_regeneration_status == "BLOCKED":
             allowed_closure_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
@@ -8359,6 +8851,8 @@ def validate_read_only_dashboard_shell(
             allowed_recheck_sources.add("upbit_paper_post_rerun_reconciliation_repair_path_report.json")
         if post_repair_status == "BLOCKED":
             allowed_recheck_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if repair_operator_queue_status == "BLOCKED":
+            allowed_recheck_sources.add("upbit_paper_repair_operator_queue_report.json")
         if stale_loop_post_regeneration_status == "BLOCKED":
             allowed_recheck_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
@@ -8394,6 +8888,8 @@ def validate_read_only_dashboard_shell(
         allowed_repair_path_sources = {"upbit_paper_post_rerun_reconciliation_repair_path_report.json"}
         if post_repair_status == "BLOCKED":
             allowed_repair_path_sources.add("upbit_paper_post_repair_reconciliation_report.json")
+        if repair_operator_queue_status == "BLOCKED":
+            allowed_repair_path_sources.add("upbit_paper_repair_operator_queue_report.json")
         if stale_loop_post_regeneration_status == "BLOCKED":
             allowed_repair_path_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
         if (
@@ -8404,6 +8900,7 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("primary_blocker_code") not in {
                 "POST_RERUN_RECONCILIATION_REQUIRED",
                 "POST_REPAIR_RECONCILIATION_REQUIRED",
+                "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
                 "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
             }
             or reconciliation.get("post_rerun_reconciliation_repair_path_validation_status") != "PASS"
@@ -8442,6 +8939,9 @@ def validate_read_only_dashboard_shell(
         if stale_loop_post_regeneration_status == "BLOCKED":
             allowed_post_repair_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
             allowed_post_repair_blockers.add("STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
+        if repair_operator_queue_status == "BLOCKED":
+            allowed_post_repair_sources.add("upbit_paper_repair_operator_queue_report.json")
+            allowed_post_repair_blockers.add("REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION")
         if (
             reconciliation.get("status") != "BLOCKED"
             or reconciliation.get("severity") != "ERROR"
@@ -8458,6 +8958,30 @@ def validate_read_only_dashboard_shell(
             or "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED" not in set(post_repair_blocker_codes)
         ):
             return DashboardValidationResult("BLOCKED", "post-repair reconciliation must render as a red blocked repair-candidate path", "LIVE_FINAL_GUARD_FAILED")
+    if repair_operator_queue_status == "BLOCKED":
+        item_count = reconciliation.get("repair_operator_queue_item_count", 0)
+        allowed_repair_queue_sources = {"upbit_paper_repair_operator_queue_report.json"}
+        if stale_loop_post_regeneration_status == "BLOCKED":
+            allowed_repair_queue_sources.add("upbit_paper_stale_loop_post_regeneration_reconciliation_report.json")
+        if (
+            reconciliation.get("status") != "BLOCKED"
+            or reconciliation.get("severity") != "ERROR"
+            or reconciliation.get("color_token") != "red"
+            or reconciliation.get("source") not in allowed_repair_queue_sources
+            or reconciliation.get("primary_blocker_code")
+            not in {
+                "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+                "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+            }
+            or reconciliation.get("repair_operator_queue_validation_status") != "PASS"
+            or item_count <= 0
+            or reconciliation.get("repair_operator_queue_ledger_candidate_review_ready_count", 0) <= 0
+            or reconciliation.get("repair_operator_queue_runtime_cycle_rerun_required_count", 0) <= 0
+            or reconciliation.get("repair_operator_queue_candidate_current_evidence_usable_count", 0) != 0
+            or "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
+            not in set(repair_operator_queue_blocker_codes)
+        ):
+            return DashboardValidationResult("BLOCKED", "repair operator queue must render as a red repair-review blocker", "LIVE_FINAL_GUARD_FAILED")
     if stale_loop_post_regeneration_status == "BLOCKED":
         item_count = reconciliation.get("stale_loop_post_regeneration_item_count", 0)
         accepted_count = reconciliation.get("stale_loop_post_regeneration_accepted_count", 0)
@@ -10279,6 +10803,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<br>steps={safe_text(reconciliation.get('post_rerun_review_step_count', 0))}"
         f"<br>forbidden={safe_text(reconciliation.get('post_rerun_forbidden_output_count', 0))}"
         f"<br>guidance-writes={safe_text(reconciliation.get('post_rerun_guidance_current_evidence_write_allowed_count', 0))}"
+        "<br><strong>Post-Rerun Operator Queue</strong>"
+        f"<br>queue={safe_text(reconciliation.get('post_rerun_operator_reconciliation_queue_status', 'NOT_LOADED'))}"
+        f"<br>items={safe_text(reconciliation.get('post_rerun_operator_queue_item_count', 0))}"
+        f"<br>review-ready={safe_text(reconciliation.get('post_rerun_operator_queue_review_ready_reconciliation_item_count', 0))}"
+        f"<br>pre-review-blocked={safe_text(reconciliation.get('post_rerun_operator_queue_blocked_pre_review_item_count', 0))}"
+        f"<br>queue-writes={safe_text(reconciliation.get('post_rerun_operator_queue_current_evidence_write_allowed_count', 0))}"
+        f"<br>queue-usable={safe_text(reconciliation.get('post_rerun_operator_queue_candidate_current_evidence_usable_count', 0))}"
         "<br><strong>Post-Rerun Resolution</strong>"
         f"<br>resolution={safe_text(reconciliation.get('post_rerun_resolution_audit_status', 'NOT_LOADED'))}"
         f"<br>unresolved={safe_text(reconciliation.get('post_rerun_resolution_unresolved_item_count', 0))}"
@@ -10321,7 +10852,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<br>candidates={safe_text(reconciliation.get('post_repair_repair_candidate_count', 0))}"
         f"<br>hash-mismatch={safe_text(reconciliation.get('post_repair_source_loop_expected_rollup_hash_mismatch_count', 0))}"
         f"<br>operator-action={safe_text(reconciliation.get('post_repair_hash_reconciliation_operator_action_required_count', 0))}"
-        f"<br>usable={safe_text(reconciliation.get('post_repair_candidate_current_evidence_usable_count', 0))}</p></div>"
+        f"<br>usable={safe_text(reconciliation.get('post_repair_candidate_current_evidence_usable_count', 0))}"
+        "<br><strong>Repair Operator Queue</strong>"
+        f"<br>queue={safe_text(reconciliation.get('repair_operator_queue_status', 'NOT_LOADED'))}"
+        f"<br>items={safe_text(reconciliation.get('repair_operator_queue_item_count', 0))}"
+        f"<br>ledger-ready={safe_text(reconciliation.get('repair_operator_queue_ledger_candidate_review_ready_count', 0))}"
+        f"<br>cycle-rerun={safe_text(reconciliation.get('repair_operator_queue_runtime_cycle_rerun_required_count', 0))}"
+        f"<br>recovery-rerun={safe_text(reconciliation.get('repair_operator_queue_recovery_guard_rerun_required_count', 0))}"
+        f"<br>hash-operator={safe_text(reconciliation.get('repair_operator_queue_hash_operator_reconciliation_required_count', 0))}"
+        f"<br>queue-usable={safe_text(reconciliation.get('repair_operator_queue_candidate_current_evidence_usable_count', 0))}</p></div>"
         "<div><strong>Stale Loop Post Regeneration</strong>"
         f"<p>post-regeneration={safe_text(reconciliation.get('stale_loop_post_regeneration_reconciliation_status', 'NOT_LOADED'))}"
         f"<br>accepted={safe_text(reconciliation.get('stale_loop_post_regeneration_accepted_count', 0))}"
