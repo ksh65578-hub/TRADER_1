@@ -1,0 +1,23 @@
+{
+  "audit_schema_id": "trader1.upbit_paper_runtime_evidence_collection_profile_audit.v1",
+  "status": "PASS",
+  "blockers": [],
+  "profile_report_path": "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+  "profile_status": "PASS",
+  "component_count": 4,
+  "component_pass_count": 4,
+  "accepted_cycle_sample_count": 2,
+  "runtime_sample_status": "COLLECTING",
+  "ledger_runtime_evidence_status": "PASS",
+  "idempotency_status": "PASS",
+  "reconciliation_status": "PASS",
+  "mismatch_count": 0,
+  "cache_artifact_count": 0,
+  "shipped_forbidden_count": 0,
+  "contains_secret": false,
+  "long_run_evidence_eligible": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
