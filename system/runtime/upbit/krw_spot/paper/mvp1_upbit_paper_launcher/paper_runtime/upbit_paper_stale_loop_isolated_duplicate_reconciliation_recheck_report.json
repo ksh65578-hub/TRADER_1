@@ -1,0 +1,602 @@
+{
+  "actual_long_run_evidence_created": false,
+  "affected_candidate_count": 3,
+  "blocked_candidate_count": 3,
+  "blocker_codes": [
+    "EVENT_ID_SCOPE_REPAIR_REQUIRED",
+    "ISOLATED_DUPLICATE_RECHECK_CURRENT_EVIDENCE_BLOCKED",
+    "ISOLATED_DUPLICATE_RECONCILIATION_REQUIRED",
+    "RECONCILIATION_REQUIRED"
+  ],
+  "can_live_trade": false,
+  "can_submit_order": false,
+  "candidate_count": 4,
+  "candidate_current_evidence_usable": false,
+  "candidate_current_evidence_usable_count": 0,
+  "candidate_only": true,
+  "credential_load_attempted": false,
+  "current_evidence_write_allowed": false,
+  "current_evidence_write_allowed_count": 0,
+  "dashboard_truth_only": true,
+  "display_only": true,
+  "duplicate_dedup_key_duplicate_count": 0,
+  "duplicate_dedup_key_group_count": 0,
+  "duplicate_event_id_duplicate_count": 6,
+  "duplicate_event_id_group_count": 6,
+  "duplicate_filled_order_duplicate_count": 0,
+  "duplicate_filled_order_group_count": 0,
+  "duplicate_group_count": 6,
+  "duplicate_occurrence_count": 12,
+  "duplicate_reconciliation_recheck_hash": "F951DC525745649D09F99DC79CC29B18D86B8DAF3B5018B748B3B8574B33B1CA",
+  "duplicate_reconciliation_recheck_id": "upbit-paper-stale-loop-isolated-duplicate-reconciliation-recheck-20260502",
+  "duplicate_reconciliation_recheck_role": "PAPER_RUNTIME_STALE_LOOP_ISOLATED_DUPLICATE_RECONCILIATION_RECHECK_CANDIDATE_ONLY",
+  "duplicate_semantic_duplicate_count": 0,
+  "duplicate_semantic_group_count": 0,
+  "duplicate_total_count": 6,
+  "exchange": "UPBIT",
+  "filled_order_count": 7,
+  "generated_at_utc": "2026-05-02T08:59:39Z",
+  "items": [
+    {
+      "blocker_codes": [
+        "EVENT_ID_SCOPE_REPAIR_REQUIRED",
+        "ISOLATED_DUPLICATE_RECHECK_CURRENT_EVIDENCE_BLOCKED",
+        "ISOLATED_DUPLICATE_RECONCILIATION_REQUIRED",
+        "RECONCILIATION_REQUIRED"
+      ],
+      "candidate_current_evidence_usable": false,
+      "candidate_recheck_status": "BLOCKED_EVENT_ID_SCOPE_REPAIR_REQUIRED",
+      "current_evidence_write_allowed": false,
+      "cycles": [
+        {
+          "current_evidence_write_allowed": false,
+          "cycle_id": "mvp4-candidate-linkage-cost-model-cycle-1",
+          "live_permission_created": false,
+          "mirror_ledger_event_count": 6,
+          "mirror_ledger_load_status": "PASS",
+          "mirror_ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-731F6482DCB3.paper_ledger_events.jsonl",
+          "mirror_ledger_path_allowed": true,
+          "quarantine_path": null
+        },
+        {
+          "current_evidence_write_allowed": false,
+          "cycle_id": "mvp4-candidate-linkage-cost-model-cycle-2",
+          "live_permission_created": false,
+          "mirror_ledger_event_count": 6,
+          "mirror_ledger_load_status": "PASS",
+          "mirror_ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-72F5403130CA.paper_ledger_events.jsonl",
+          "mirror_ledger_path_allowed": true,
+          "quarantine_path": null
+        }
+      ],
+      "duplicate_dedup_key_duplicate_count": 0,
+      "duplicate_dedup_key_group_count": 0,
+      "duplicate_event_id_duplicate_count": 2,
+      "duplicate_event_id_group_count": 2,
+      "duplicate_filled_order_duplicate_count": 0,
+      "duplicate_filled_order_group_count": 0,
+      "duplicate_group_count": 2,
+      "duplicate_groups": [
+        {
+          "affected_cycle_ids": [
+            "mvp4-candidate-linkage-cost-model-cycle-1",
+            "mvp4-candidate-linkage-cost-model-cycle-2"
+          ],
+          "affected_ledger_paths": [
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-72F5403130CA.paper_ledger_events.jsonl",
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-731F6482DCB3.paper_ledger_events.jsonl"
+          ],
+          "current_evidence_write_allowed": false,
+          "dedup_keys_unique": true,
+          "duplicate_count": 1,
+          "duplicate_key_type": "EVENT_ID",
+          "duplicate_key_value": "mvp1_upbit_paper_launcher-intent",
+          "event_hashes_unique": true,
+          "event_types": [
+            "ORDER_INTENT_CREATED"
+          ],
+          "live_permission_created": false,
+          "occurrence_count": 2,
+          "occurrences": [
+            {
+              "client_order_id": "F1980D096A46596A999E8403",
+              "cycle_id": "mvp4-candidate-linkage-cost-model-cycle-1",
+              "dedup_key": "intent:mvp4-candidate-linkage-cost-model-cycle-1-intent",
+              "event_hash": "1CD68DE752A7D84191FBC001BE3261263AA096E36616A168929305A2477D84C2",
+              "event_id": "mvp1_upbit_paper_launcher-intent",
+              "event_index": 0,
+              "event_type": "ORDER_INTENT_CREATED",
+              "intent_id": "mvp4-candidate-linkage-cost-model-cycle-1-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-731F6482DCB3.paper_ledger_events.jsonl",
+              "order_id": null
+            },
+            {
+              "client_order_id": "E264E9B51C6333CB84B7664C",
+              "cycle_id": "mvp4-candidate-linkage-cost-model-cycle-2",
+              "dedup_key": "intent:mvp4-candidate-linkage-cost-model-cycle-2-intent",
+              "event_hash": "67B34E3FFEC5588B50E95FC6F6FF7AB2287EDF2806993F4EDF73C8FD1D88B7F1",
+              "event_id": "mvp1_upbit_paper_launcher-intent",
+              "event_index": 0,
+              "event_type": "ORDER_INTENT_CREATED",
+              "intent_id": "mvp4-candidate-linkage-cost-model-cycle-2-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-72F5403130CA.paper_ledger_events.jsonl",
+              "order_id": null
+            }
+          ],
+          "resolution_hint": "REGENERATE_EVENT_ID_WITH_CYCLE_SCOPE_IN_CANDIDATE_MIRROR_ONLY"
+        },
+        {
+          "affected_cycle_ids": [
+            "mvp4-candidate-linkage-cost-model-cycle-1",
+            "mvp4-candidate-linkage-cost-model-cycle-2"
+          ],
+          "affected_ledger_paths": [
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-72F5403130CA.paper_ledger_events.jsonl",
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-731F6482DCB3.paper_ledger_events.jsonl"
+          ],
+          "current_evidence_write_allowed": false,
+          "dedup_keys_unique": true,
+          "duplicate_count": 1,
+          "duplicate_key_type": "EVENT_ID",
+          "duplicate_key_value": "mvp1_upbit_paper_launcher-reserve",
+          "event_hashes_unique": true,
+          "event_types": [
+            "BUDGET_RESERVED"
+          ],
+          "live_permission_created": false,
+          "occurrence_count": 2,
+          "occurrences": [
+            {
+              "client_order_id": "F1980D096A46596A999E8403",
+              "cycle_id": "mvp4-candidate-linkage-cost-model-cycle-1",
+              "dedup_key": "reserve:mvp4-candidate-linkage-cost-model-cycle-1-intent",
+              "event_hash": "24A52444F87339A490439958966FB41DEA057E4A593CA131F6A70CBA8A62C5E4",
+              "event_id": "mvp1_upbit_paper_launcher-reserve",
+              "event_index": 1,
+              "event_type": "BUDGET_RESERVED",
+              "intent_id": "mvp4-candidate-linkage-cost-model-cycle-1-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-731F6482DCB3.paper_ledger_events.jsonl",
+              "order_id": null
+            },
+            {
+              "client_order_id": "E264E9B51C6333CB84B7664C",
+              "cycle_id": "mvp4-candidate-linkage-cost-model-cycle-2",
+              "dedup_key": "reserve:mvp4-candidate-linkage-cost-model-cycle-2-intent",
+              "event_hash": "D593C212E4BF87F8D16C9C19E842C36DBD2A4A558445316FF5BB092414F36720",
+              "event_id": "mvp1_upbit_paper_launcher-reserve",
+              "event_index": 1,
+              "event_type": "BUDGET_RESERVED",
+              "intent_id": "mvp4-candidate-linkage-cost-model-cycle-2-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-candidate-linkage-cost-model-re-F277557B433B/ledger/mvp4-candidate-linkage-cost-model-cy-72F5403130CA.paper_ledger_events.jsonl",
+              "order_id": null
+            }
+          ],
+          "resolution_hint": "REGENERATE_EVENT_ID_WITH_CYCLE_SCOPE_IN_CANDIDATE_MIRROR_ONLY"
+        }
+      ],
+      "duplicate_occurrence_count": 4,
+      "duplicate_semantic_duplicate_count": 0,
+      "duplicate_semantic_group_count": 0,
+      "duplicate_total_count": 2,
+      "filled_order_count": 2,
+      "ledger_event_count": 12,
+      "ledger_jsonl_count": 2,
+      "live_permission_created": false,
+      "load_blockers": [],
+      "persistent_loop_mutation_allowed": false,
+      "primary_blocker_code": "EVENT_ID_SCOPE_REPAIR_REQUIRED",
+      "priority_order": 1,
+      "promotion_eligible": false,
+      "recommended_next_action": "repair duplicate event_id scope in isolated candidate mirrors only",
+      "replacement_loop_id": "mvp4-candidate-linkage-cost-model-regenerated-current-schema",
+      "replacement_write_allowed": false,
+      "scale_up_allowed": false,
+      "source_candidate_rollup_status": "BLOCKED",
+      "source_delete_allowed": false,
+      "target_rollup_write_allowed": false
+    },
+    {
+      "blocker_codes": [
+        "EVENT_ID_SCOPE_REPAIR_REQUIRED",
+        "ISOLATED_DUPLICATE_RECHECK_CURRENT_EVIDENCE_BLOCKED",
+        "ISOLATED_DUPLICATE_RECONCILIATION_REQUIRED",
+        "RECONCILIATION_REQUIRED"
+      ],
+      "candidate_current_evidence_usable": false,
+      "candidate_recheck_status": "BLOCKED_EVENT_ID_SCOPE_REPAIR_REQUIRED",
+      "current_evidence_write_allowed": false,
+      "cycles": [
+        {
+          "current_evidence_write_allowed": false,
+          "cycle_id": "mvp4-public-rest-transform-loop-cycle-1",
+          "live_permission_created": false,
+          "mirror_ledger_event_count": 6,
+          "mirror_ledger_load_status": "PASS",
+          "mirror_ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-E519286B8CA6.paper_ledger_events.jsonl",
+          "mirror_ledger_path_allowed": true,
+          "quarantine_path": null
+        },
+        {
+          "current_evidence_write_allowed": false,
+          "cycle_id": "mvp4-public-rest-transform-loop-cycle-2",
+          "live_permission_created": false,
+          "mirror_ledger_event_count": 6,
+          "mirror_ledger_load_status": "PASS",
+          "mirror_ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-0C2E6FE7456E.paper_ledger_events.jsonl",
+          "mirror_ledger_path_allowed": true,
+          "quarantine_path": null
+        }
+      ],
+      "duplicate_dedup_key_duplicate_count": 0,
+      "duplicate_dedup_key_group_count": 0,
+      "duplicate_event_id_duplicate_count": 2,
+      "duplicate_event_id_group_count": 2,
+      "duplicate_filled_order_duplicate_count": 0,
+      "duplicate_filled_order_group_count": 0,
+      "duplicate_group_count": 2,
+      "duplicate_groups": [
+        {
+          "affected_cycle_ids": [
+            "mvp4-public-rest-transform-loop-cycle-1",
+            "mvp4-public-rest-transform-loop-cycle-2"
+          ],
+          "affected_ledger_paths": [
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-0C2E6FE7456E.paper_ledger_events.jsonl",
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-E519286B8CA6.paper_ledger_events.jsonl"
+          ],
+          "current_evidence_write_allowed": false,
+          "dedup_keys_unique": true,
+          "duplicate_count": 1,
+          "duplicate_key_type": "EVENT_ID",
+          "duplicate_key_value": "mvp1_upbit_paper_launcher-intent",
+          "event_hashes_unique": true,
+          "event_types": [
+            "ORDER_INTENT_CREATED"
+          ],
+          "live_permission_created": false,
+          "occurrence_count": 2,
+          "occurrences": [
+            {
+              "client_order_id": "468AE8DEFB00DB1FE51E8BEC",
+              "cycle_id": "mvp4-public-rest-transform-loop-cycle-1",
+              "dedup_key": "intent:mvp4-public-rest-transform-loop-cycle-1-intent",
+              "event_hash": "03E57FFA90F8928358D72ECA8E9F0C1FEE8012E62454B23818360868F2777E5A",
+              "event_id": "mvp1_upbit_paper_launcher-intent",
+              "event_index": 0,
+              "event_type": "ORDER_INTENT_CREATED",
+              "intent_id": "mvp4-public-rest-transform-loop-cycle-1-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-E519286B8CA6.paper_ledger_events.jsonl",
+              "order_id": null
+            },
+            {
+              "client_order_id": "5F626CFB7D89A6650527002A",
+              "cycle_id": "mvp4-public-rest-transform-loop-cycle-2",
+              "dedup_key": "intent:mvp4-public-rest-transform-loop-cycle-2-intent",
+              "event_hash": "B3CEC0E14F4C7FCB4EDC7FAE175CC244C7910C2A7D7BD2EAB31240BE29A240EF",
+              "event_id": "mvp1_upbit_paper_launcher-intent",
+              "event_index": 0,
+              "event_type": "ORDER_INTENT_CREATED",
+              "intent_id": "mvp4-public-rest-transform-loop-cycle-2-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-0C2E6FE7456E.paper_ledger_events.jsonl",
+              "order_id": null
+            }
+          ],
+          "resolution_hint": "REGENERATE_EVENT_ID_WITH_CYCLE_SCOPE_IN_CANDIDATE_MIRROR_ONLY"
+        },
+        {
+          "affected_cycle_ids": [
+            "mvp4-public-rest-transform-loop-cycle-1",
+            "mvp4-public-rest-transform-loop-cycle-2"
+          ],
+          "affected_ledger_paths": [
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-0C2E6FE7456E.paper_ledger_events.jsonl",
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-E519286B8CA6.paper_ledger_events.jsonl"
+          ],
+          "current_evidence_write_allowed": false,
+          "dedup_keys_unique": true,
+          "duplicate_count": 1,
+          "duplicate_key_type": "EVENT_ID",
+          "duplicate_key_value": "mvp1_upbit_paper_launcher-reserve",
+          "event_hashes_unique": true,
+          "event_types": [
+            "BUDGET_RESERVED"
+          ],
+          "live_permission_created": false,
+          "occurrence_count": 2,
+          "occurrences": [
+            {
+              "client_order_id": "468AE8DEFB00DB1FE51E8BEC",
+              "cycle_id": "mvp4-public-rest-transform-loop-cycle-1",
+              "dedup_key": "reserve:mvp4-public-rest-transform-loop-cycle-1-intent",
+              "event_hash": "462609B0C0D8FC8B6ECF315484EC80EBED220EE150FB6AC7C9705A356AA66BA1",
+              "event_id": "mvp1_upbit_paper_launcher-reserve",
+              "event_index": 1,
+              "event_type": "BUDGET_RESERVED",
+              "intent_id": "mvp4-public-rest-transform-loop-cycle-1-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-E519286B8CA6.paper_ledger_events.jsonl",
+              "order_id": null
+            },
+            {
+              "client_order_id": "5F626CFB7D89A6650527002A",
+              "cycle_id": "mvp4-public-rest-transform-loop-cycle-2",
+              "dedup_key": "reserve:mvp4-public-rest-transform-loop-cycle-2-intent",
+              "event_hash": "CB57A0B88EF43513332D02E63E3CDA3D94DFFD596B20A5453CD0D2A1F0D809D8",
+              "event_id": "mvp1_upbit_paper_launcher-reserve",
+              "event_index": 1,
+              "event_type": "BUDGET_RESERVED",
+              "intent_id": "mvp4-public-rest-transform-loop-cycle-2-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-public-rest-transform-loop-rege-BDA276F47C50/ledger/mvp4-public-rest-transform-loop-cycl-0C2E6FE7456E.paper_ledger_events.jsonl",
+              "order_id": null
+            }
+          ],
+          "resolution_hint": "REGENERATE_EVENT_ID_WITH_CYCLE_SCOPE_IN_CANDIDATE_MIRROR_ONLY"
+        }
+      ],
+      "duplicate_occurrence_count": 4,
+      "duplicate_semantic_duplicate_count": 0,
+      "duplicate_semantic_group_count": 0,
+      "duplicate_total_count": 2,
+      "filled_order_count": 2,
+      "ledger_event_count": 12,
+      "ledger_jsonl_count": 2,
+      "live_permission_created": false,
+      "load_blockers": [],
+      "persistent_loop_mutation_allowed": false,
+      "primary_blocker_code": "EVENT_ID_SCOPE_REPAIR_REQUIRED",
+      "priority_order": 2,
+      "promotion_eligible": false,
+      "recommended_next_action": "repair duplicate event_id scope in isolated candidate mirrors only",
+      "replacement_loop_id": "mvp4-public-rest-transform-loop-regenerated-current-schema",
+      "replacement_write_allowed": false,
+      "scale_up_allowed": false,
+      "source_candidate_rollup_status": "BLOCKED",
+      "source_delete_allowed": false,
+      "target_rollup_write_allowed": false
+    },
+    {
+      "blocker_codes": [
+        "ISOLATED_DUPLICATE_RECHECK_CURRENT_EVIDENCE_BLOCKED"
+      ],
+      "candidate_current_evidence_usable": false,
+      "candidate_recheck_status": "PASS_CURRENT_EVIDENCE_BLOCKED",
+      "current_evidence_write_allowed": false,
+      "cycles": [
+        {
+          "current_evidence_write_allowed": false,
+          "cycle_id": "mvp4-sequence-regime-guard-loop-cycle-1",
+          "live_permission_created": false,
+          "mirror_ledger_event_count": 6,
+          "mirror_ledger_load_status": "PASS",
+          "mirror_ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-sequence-regime-guard-loop-rege-540754AE515E/ledger/mvp4-sequence-regime-guard-loop-cycl-D1C9D10FC6E9.paper_ledger_events.jsonl",
+          "mirror_ledger_path_allowed": true,
+          "quarantine_path": null
+        },
+        {
+          "current_evidence_write_allowed": false,
+          "cycle_id": "mvp4-sequence-regime-guard-loop-cycle-2",
+          "live_permission_created": false,
+          "mirror_ledger_event_count": 0,
+          "mirror_ledger_load_status": "PASS",
+          "mirror_ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-sequence-regime-guard-loop-rege-540754AE515E/ledger/mvp4-sequence-regime-guard-loop-cycl-CE6B92B20272.paper_ledger_events.jsonl",
+          "mirror_ledger_path_allowed": true,
+          "quarantine_path": null
+        }
+      ],
+      "duplicate_dedup_key_duplicate_count": 0,
+      "duplicate_dedup_key_group_count": 0,
+      "duplicate_event_id_duplicate_count": 0,
+      "duplicate_event_id_group_count": 0,
+      "duplicate_filled_order_duplicate_count": 0,
+      "duplicate_filled_order_group_count": 0,
+      "duplicate_group_count": 0,
+      "duplicate_groups": [],
+      "duplicate_occurrence_count": 0,
+      "duplicate_semantic_duplicate_count": 0,
+      "duplicate_semantic_group_count": 0,
+      "duplicate_total_count": 0,
+      "filled_order_count": 1,
+      "ledger_event_count": 6,
+      "ledger_jsonl_count": 2,
+      "live_permission_created": false,
+      "load_blockers": [],
+      "persistent_loop_mutation_allowed": false,
+      "primary_blocker_code": "ISOLATED_DUPLICATE_RECHECK_CURRENT_EVIDENCE_BLOCKED",
+      "priority_order": 3,
+      "promotion_eligible": false,
+      "recommended_next_action": "keep candidate-only evidence blocked from current promotion",
+      "replacement_loop_id": "mvp4-sequence-regime-guard-loop-regenerated-current-schema",
+      "replacement_write_allowed": false,
+      "scale_up_allowed": false,
+      "source_candidate_rollup_status": "PASS_CURRENT_EVIDENCE_BLOCKED",
+      "source_delete_allowed": false,
+      "target_rollup_write_allowed": false
+    },
+    {
+      "blocker_codes": [
+        "EVENT_ID_SCOPE_REPAIR_REQUIRED",
+        "ISOLATED_DUPLICATE_RECHECK_CURRENT_EVIDENCE_BLOCKED",
+        "ISOLATED_DUPLICATE_RECONCILIATION_REQUIRED",
+        "RECONCILIATION_REQUIRED"
+      ],
+      "candidate_current_evidence_usable": false,
+      "candidate_recheck_status": "BLOCKED_EVENT_ID_SCOPE_REPAIR_REQUIRED",
+      "current_evidence_write_allowed": false,
+      "cycles": [
+        {
+          "current_evidence_write_allowed": false,
+          "cycle_id": "mvp4-upbit-recovery-guard-loop-cycle-1",
+          "live_permission_created": false,
+          "mirror_ledger_event_count": 6,
+          "mirror_ledger_load_status": "PASS",
+          "mirror_ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-05D1969A30F4.paper_ledger_events.jsonl",
+          "mirror_ledger_path_allowed": true,
+          "quarantine_path": null
+        },
+        {
+          "current_evidence_write_allowed": false,
+          "cycle_id": "mvp4-upbit-recovery-guard-loop-cycle-2",
+          "live_permission_created": false,
+          "mirror_ledger_event_count": 6,
+          "mirror_ledger_load_status": "PASS",
+          "mirror_ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-EF1A4C85DCAD.paper_ledger_events.jsonl",
+          "mirror_ledger_path_allowed": true,
+          "quarantine_path": null
+        }
+      ],
+      "duplicate_dedup_key_duplicate_count": 0,
+      "duplicate_dedup_key_group_count": 0,
+      "duplicate_event_id_duplicate_count": 2,
+      "duplicate_event_id_group_count": 2,
+      "duplicate_filled_order_duplicate_count": 0,
+      "duplicate_filled_order_group_count": 0,
+      "duplicate_group_count": 2,
+      "duplicate_groups": [
+        {
+          "affected_cycle_ids": [
+            "mvp4-upbit-recovery-guard-loop-cycle-1",
+            "mvp4-upbit-recovery-guard-loop-cycle-2"
+          ],
+          "affected_ledger_paths": [
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-05D1969A30F4.paper_ledger_events.jsonl",
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-EF1A4C85DCAD.paper_ledger_events.jsonl"
+          ],
+          "current_evidence_write_allowed": false,
+          "dedup_keys_unique": true,
+          "duplicate_count": 1,
+          "duplicate_key_type": "EVENT_ID",
+          "duplicate_key_value": "mvp1_upbit_paper_launcher-intent",
+          "event_hashes_unique": true,
+          "event_types": [
+            "ORDER_INTENT_CREATED"
+          ],
+          "live_permission_created": false,
+          "occurrence_count": 2,
+          "occurrences": [
+            {
+              "client_order_id": "C42E2D12CB336CA8B6E3BA5C",
+              "cycle_id": "mvp4-upbit-recovery-guard-loop-cycle-1",
+              "dedup_key": "intent:mvp4-upbit-recovery-guard-loop-cycle-1-intent",
+              "event_hash": "E4FAE92C6EDAE21F594527CBD232CFE3EE148D75DDB948371678719C03864B64",
+              "event_id": "mvp1_upbit_paper_launcher-intent",
+              "event_index": 0,
+              "event_type": "ORDER_INTENT_CREATED",
+              "intent_id": "mvp4-upbit-recovery-guard-loop-cycle-1-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-05D1969A30F4.paper_ledger_events.jsonl",
+              "order_id": null
+            },
+            {
+              "client_order_id": "1627E00CD6C67FF99FD9CF9C",
+              "cycle_id": "mvp4-upbit-recovery-guard-loop-cycle-2",
+              "dedup_key": "intent:mvp4-upbit-recovery-guard-loop-cycle-2-intent",
+              "event_hash": "7F8A68AB62B023E477B965F10B965DBDC382B3737F58B463FEBF296B31D0A2E9",
+              "event_id": "mvp1_upbit_paper_launcher-intent",
+              "event_index": 0,
+              "event_type": "ORDER_INTENT_CREATED",
+              "intent_id": "mvp4-upbit-recovery-guard-loop-cycle-2-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-EF1A4C85DCAD.paper_ledger_events.jsonl",
+              "order_id": null
+            }
+          ],
+          "resolution_hint": "REGENERATE_EVENT_ID_WITH_CYCLE_SCOPE_IN_CANDIDATE_MIRROR_ONLY"
+        },
+        {
+          "affected_cycle_ids": [
+            "mvp4-upbit-recovery-guard-loop-cycle-1",
+            "mvp4-upbit-recovery-guard-loop-cycle-2"
+          ],
+          "affected_ledger_paths": [
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-05D1969A30F4.paper_ledger_events.jsonl",
+            "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-EF1A4C85DCAD.paper_ledger_events.jsonl"
+          ],
+          "current_evidence_write_allowed": false,
+          "dedup_keys_unique": true,
+          "duplicate_count": 1,
+          "duplicate_key_type": "EVENT_ID",
+          "duplicate_key_value": "mvp1_upbit_paper_launcher-reserve",
+          "event_hashes_unique": true,
+          "event_types": [
+            "BUDGET_RESERVED"
+          ],
+          "live_permission_created": false,
+          "occurrence_count": 2,
+          "occurrences": [
+            {
+              "client_order_id": "C42E2D12CB336CA8B6E3BA5C",
+              "cycle_id": "mvp4-upbit-recovery-guard-loop-cycle-1",
+              "dedup_key": "reserve:mvp4-upbit-recovery-guard-loop-cycle-1-intent",
+              "event_hash": "4960F7F60C3762733A10040C3343300DFE434881361BC310BF7534E6E2D50C98",
+              "event_id": "mvp1_upbit_paper_launcher-reserve",
+              "event_index": 1,
+              "event_type": "BUDGET_RESERVED",
+              "intent_id": "mvp4-upbit-recovery-guard-loop-cycle-1-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-05D1969A30F4.paper_ledger_events.jsonl",
+              "order_id": null
+            },
+            {
+              "client_order_id": "1627E00CD6C67FF99FD9CF9C",
+              "cycle_id": "mvp4-upbit-recovery-guard-loop-cycle-2",
+              "dedup_key": "reserve:mvp4-upbit-recovery-guard-loop-cycle-2-intent",
+              "event_hash": "EA6052985C75372580CDECFE7B086C526B6408160902047229FA78219D52A1B7",
+              "event_id": "mvp1_upbit_paper_launcher-reserve",
+              "event_index": 1,
+              "event_type": "BUDGET_RESERVED",
+              "intent_id": "mvp4-upbit-recovery-guard-loop-cycle-2-intent",
+              "ledger_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/ledger_input_scope_repair_candidates/mvp4-upbit-recovery-guard-loop-regen-9E8DA72D4D7A/ledger/mvp4-upbit-recovery-guard-loop-cycle-EF1A4C85DCAD.paper_ledger_events.jsonl",
+              "order_id": null
+            }
+          ],
+          "resolution_hint": "REGENERATE_EVENT_ID_WITH_CYCLE_SCOPE_IN_CANDIDATE_MIRROR_ONLY"
+        }
+      ],
+      "duplicate_occurrence_count": 4,
+      "duplicate_semantic_duplicate_count": 0,
+      "duplicate_semantic_group_count": 0,
+      "duplicate_total_count": 2,
+      "filled_order_count": 2,
+      "ledger_event_count": 12,
+      "ledger_jsonl_count": 2,
+      "live_permission_created": false,
+      "load_blockers": [],
+      "persistent_loop_mutation_allowed": false,
+      "primary_blocker_code": "EVENT_ID_SCOPE_REPAIR_REQUIRED",
+      "priority_order": 4,
+      "promotion_eligible": false,
+      "recommended_next_action": "repair duplicate event_id scope in isolated candidate mirrors only",
+      "replacement_loop_id": "mvp4-upbit-recovery-guard-loop-regenerated-current-schema",
+      "replacement_write_allowed": false,
+      "scale_up_allowed": false,
+      "source_candidate_rollup_status": "BLOCKED",
+      "source_delete_allowed": false,
+      "target_rollup_write_allowed": false
+    }
+  ],
+  "ledger_event_count": 42,
+  "ledger_jsonl_count": 8,
+  "live_key_loaded": false,
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "long_run_evidence_eligible": false,
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "operator_next_action": "Build an isolated candidate-only event-id repair plan; do not promote mirror ledgers to current evidence.",
+  "order_adapter_called": false,
+  "order_endpoint_called": false,
+  "paper_only": true,
+  "pass_candidate_count": 1,
+  "persistent_loop_mutation_allowed": false,
+  "primary_blocker_code": "ISOLATED_DUPLICATE_RECONCILIATION_REQUIRED",
+  "private_endpoint_called": false,
+  "project_id": "TRADER_1",
+  "promotion_eligible": false,
+  "recheck_status": "BLOCKED_REPAIR_PLAN_REQUIRED",
+  "replacement_write_allowed": false,
+  "scale_up_allowed": false,
+  "schema_id": "trader1.upbit_paper_stale_loop_isolated_duplicate_reconciliation_recheck_report.v1",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source_delete_allowed": false,
+  "source_isolated_ledger_rollup_rebuild_hash": "9F557DCC367D22E9E59A00A75B628D586E2B10640A097F912794EC7778899519",
+  "source_isolated_ledger_rollup_rebuild_status": "BLOCKED",
+  "source_isolated_ledger_rollup_rebuild_validator_status": "PASS",
+  "target_rollup_write_allowed": false,
+  "target_rollup_write_allowed_count": 0
+}
