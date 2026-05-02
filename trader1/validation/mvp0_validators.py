@@ -223,6 +223,12 @@ from trader1.runtime.paper.upbit_paper_stale_loop_post_regeneration_reconciliati
     validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report,
     write_upbit_paper_stale_loop_post_regeneration_reconciliation_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation_operator_queue_closure import (
+    build_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
+    upbit_paper_stale_loop_reconciliation_operator_queue_closure_hash,
+    validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
+    write_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -494,6 +500,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_stale_loop_execution_guard_validator",
     "upbit_paper_stale_loop_safe_regeneration_executor_validator",
     "upbit_paper_stale_loop_post_regeneration_reconciliation_validator",
+    "upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator",
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_post_repair_reconciliation_validator",
@@ -5975,6 +5982,222 @@ def upbit_paper_stale_loop_post_regeneration_reconciliation_validator() -> Valid
     return pass_result(
         "upbit_paper_stale_loop_post_regeneration_reconciliation_validator",
         "Upbit PAPER post-regeneration reconciliation accepts only PASS regenerated current-schema replacements, excludes sources and blocked repairs, and keeps live/scale permissions false",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator"
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_reconciliation_operator_queue_closure.py"
+    post_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_post_regeneration_reconciliation.py"
+    ledger_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_ledger_idempotency_runtime_evidence.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_stale_loop_reconciliation_operator_queue_closure.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json"
+        )
+    )
+    paths = [schema_path, module_path, post_module_path, ledger_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.v1":
+        return fail_result(validator_id, "stale-loop operator queue closure schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "stale-loop operator queue closure schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "closure_role",
+        "source_post_regeneration_reconciliation_hash",
+        "source_ledger_idempotency_evidence_hash",
+        "source_ledger_reconciliation_status",
+        "source_ledger_idempotency_status",
+        "source_ledger_mismatch_count",
+        "ledger_recheck_ready_count",
+        "recovery_guard_required_count",
+        "current_evidence_usable_after_closure_count",
+        "current_evidence_write_allowed_count",
+        "current_evidence_write_allowed",
+        "persistent_loop_mutation_allowed",
+        "replacement_write_allowed",
+        "source_delete_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    ):
+        if field not in required:
+            return fail_result(validator_id, f"stale-loop operator queue closure schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+    item_schema = schema.get("$defs", {}).get("closure_item", {})
+    if item_schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "stale-loop operator queue closure item schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        current = run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="validator-stale-loop-operator-queue-current",
+            requested_cycle_count=1,
+        )
+        legacy = json.loads(json.dumps(current))
+        legacy["loop_id"] = "validator-stale-loop-operator-queue-legacy"
+        legacy.pop("paper_ledger_rollup_hash", None)
+        legacy["loop_hash"] = upbit_paper_persistent_loop_hash(legacy)
+        legacy_path = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "paper_runtime" / "validator-stale-loop-operator-queue-legacy.persistent_loop_report.json"
+        legacy_path.write_text(json.dumps(legacy, indent=2), encoding="utf-8")
+        reconciliation = build_upbit_paper_stale_loop_reconciliation_report(root=root, session_id="mvp1_upbit_paper_launcher")
+        plan = build_upbit_paper_stale_loop_regeneration_plan(root=root, reconciliation_report=reconciliation)
+        guard = build_upbit_paper_stale_loop_execution_guard(root=root, plan=plan)
+        executor = build_upbit_paper_stale_loop_safe_regeneration_executor_report(root=root, guard=guard)
+        post_report = build_upbit_paper_stale_loop_post_regeneration_reconciliation_report(root=root, executor_report=executor)
+        ledger_evidence = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root)
+        ledger_only = json.loads(json.dumps(post_report))
+        item = ledger_only["items"][0]
+        ledger_reasons = [
+            "LEDGER_ROLLUP_BLOCKED",
+            "LEDGER_ROLLUP_RECONCILIATION_REQUIRED",
+            "LOOP_RECONCILIATION_REQUIRED",
+            "LOOP_STATUS_BLOCKED",
+        ]
+        item["classification"] = "REGENERATED_CURRENT_BLOCKED_RECONCILIATION_REQUIRED"
+        item["evidence_usable_current"] = False
+        item["replacement_validation_status"] = "BLOCKED"
+        item["replacement_validation_blocker_code"] = "RECONCILIATION_REQUIRED"
+        item["replacement_validation_message"] = "ledger rollup requires recheck"
+        item["recommended_action"] = "RECONCILE_LEDGER_AND_RECOVERY_BEFORE_EVIDENCE_USE"
+        item["item_blocker_code"] = "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+        item["blocked_repair_reason_codes"] = ledger_reasons
+        item["blocked_repair_reason_summary"] = "Paper ledger rollup is blocked; keep this replacement out of current evidence until ledger reconciliation passes."
+        item["ledger_reconciliation_status"] = "BLOCKED"
+        item["recovery_reconciliation_status"] = "PASS"
+        item["cycle_reconciliation_status"] = "PASS"
+        item["operator_repair_action"] = "Before evidence use, rebuild or reconcile the PAPER ledger rollup."
+        ledger_only["regenerated_current_accepted_count"] = 0
+        ledger_only["regenerated_current_blocked_reconciliation_count"] = 1
+        ledger_only["current_evidence_usable_count"] = 0
+        ledger_only["excluded_from_current_evidence_count"] = 1
+        ledger_only["blocked_repair_reason_counts"] = [{"reason_code": code, "count": 1} for code in sorted(ledger_reasons)]
+        ledger_only["post_reconciliation_status"] = "BLOCKED"
+        ledger_only["primary_blocker_code"] = "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+        ledger_only["blocker_codes"] = ["STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"]
+        ledger_only["post_reconciliation_hash"] = stale_loop_post_regeneration_reconciliation_hash(ledger_only)
+        source_result = validate_upbit_paper_stale_loop_post_regeneration_reconciliation_report(ledger_only)
+        if source_result.status != "PASS":
+            return fail_result(validator_id, f"ledger-only source fixture failed: {source_result.message}", paths, source_result.blocker_code or "UNKNOWN_BLOCKED")
+
+        report = build_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(
+            post_regeneration_reconciliation_report=ledger_only,
+            ledger_idempotency_evidence_report=ledger_evidence,
+        )
+        result = validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(report)
+        if result.status != "PASS":
+            return fail_result(validator_id, f"valid stale-loop operator queue closure failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
+        if (
+            report.get("closure_status") != "BLOCKED"
+            or report.get("ledger_recheck_ready_count") != 1
+            or report.get("current_evidence_usable_after_closure_count") != 0
+            or report.get("current_evidence_write_allowed_count") != 0
+            or report.get("items", [{}])[0].get("closure_lane") != "LEDGER_RECHECK_READY"
+        ):
+            return fail_result(validator_id, "ledger-only stale-loop blocker was not isolated as recheck-ready display-only closure", paths, "MEASUREMENT_MISSING")
+        if any(report.get(field) for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "can_submit_order", "scale_up_allowed")):
+            return fail_result(validator_id, "stale-loop operator queue closure created live or scale-up permission", paths, "LIVE_FINAL_GUARD_FAILED")
+
+        recovery_root = root / "recovery_fixture"
+        older_current = run_upbit_paper_persistent_loop(
+            root=recovery_root,
+            loop_id="validator-stale-loop-operator-queue-recovery-current",
+            requested_cycle_count=1,
+        )
+        older = json.loads(json.dumps(older_current))
+        older["loop_id"] = "validator-stale-loop-operator-queue-recovery-legacy"
+        for field in (
+            "recovery_guard_status",
+            "recovery_guard_hash",
+            "recovery_guard_primary_blocker_code",
+            "runtime_recovery_guard_path",
+            "paper_runtime_resume_allowed",
+            "partial_write_recovery_required",
+            "paper_ledger_rollup_status",
+            "paper_ledger_rollup_hash",
+            "paper_ledger_rollup_primary_blocker_code",
+            "paper_ledger_rollup_path",
+        ):
+            older.pop(field, None)
+        older["loop_hash"] = upbit_paper_persistent_loop_hash(older)
+        older_path = recovery_root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "paper_runtime" / "validator-stale-loop-operator-queue-recovery-legacy.persistent_loop_report.json"
+        older_path.write_text(json.dumps(older, indent=2), encoding="utf-8")
+        recovery_reconciliation = build_upbit_paper_stale_loop_reconciliation_report(root=recovery_root, session_id="mvp1_upbit_paper_launcher")
+        recovery_plan = build_upbit_paper_stale_loop_regeneration_plan(root=recovery_root, reconciliation_report=recovery_reconciliation)
+        recovery_guard = build_upbit_paper_stale_loop_execution_guard(root=recovery_root, plan=recovery_plan)
+        recovery_executor = build_upbit_paper_stale_loop_safe_regeneration_executor_report(root=recovery_root, guard=recovery_guard)
+        recovery_post = build_upbit_paper_stale_loop_post_regeneration_reconciliation_report(root=recovery_root, executor_report=recovery_executor)
+        recovery_ledger = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=recovery_root)
+        recovery_report = build_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(
+            post_regeneration_reconciliation_report=recovery_post,
+            ledger_idempotency_evidence_report=recovery_ledger,
+        )
+        recovery_result = validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(recovery_report)
+        if (
+            recovery_result.status != "PASS"
+            or recovery_report.get("ledger_recheck_ready_count") != 0
+            or recovery_report.get("recovery_guard_required_count") != 1
+            or recovery_report.get("items", [{}])[0].get("closure_lane") != "RECOVERY_GUARD_REQUIRED"
+        ):
+            return fail_result(validator_id, "recovery-blocked stale-loop item was not kept out of the ledger recheck lane", paths, recovery_result.blocker_code or "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING")
+
+        blocked_ledger = json.loads(json.dumps(ledger_evidence))
+        blocked_ledger["runtime_evidence_status"] = "BLOCKED"
+        blocked_ledger["idempotency_status"] = "BLOCKED"
+        blocked_ledger["reconciliation_status"] = "BLOCKED"
+        blocked_ledger["primary_blocker_code"] = "RECONCILIATION_REQUIRED"
+        blocked_ledger["blockers"] = [{"code": "RECONCILIATION_REQUIRED", "severity": "HIGH", "message": "validator blocked ledger"}]
+        blocked_ledger["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(blocked_ledger)
+        blocked_ledger_report = build_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(
+            post_regeneration_reconciliation_report=ledger_only,
+            ledger_idempotency_evidence_report=blocked_ledger,
+        )
+        if (
+            validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(blocked_ledger_report).status != "PASS"
+            or blocked_ledger_report.get("ledger_recheck_ready_count") != 0
+            or blocked_ledger_report.get("operator_review_required_count") != 1
+        ):
+            return fail_result(validator_id, "blocked current ledger evidence still produced a ledger-ready stale-loop closure item", paths, "LEDGER_INTEGRITY_FAIL")
+
+        live_mutation = json.loads(json.dumps(report))
+        live_mutation["live_order_allowed"] = True
+        live_mutation["closure_hash"] = upbit_paper_stale_loop_reconciliation_operator_queue_closure_hash(live_mutation)
+        live_result = validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(live_mutation)
+        if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+            return fail_result(validator_id, "stale-loop operator queue closure live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+        false_ready = json.loads(json.dumps(recovery_report))
+        false_ready["items"][0]["closure_recheck_ready"] = True
+        false_ready["closure_hash"] = upbit_paper_stale_loop_reconciliation_operator_queue_closure_hash(false_ready)
+        false_ready_result = validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(false_ready)
+        if false_ready_result.status != "FAIL":
+            return fail_result(validator_id, "recovery-blocked item was allowed as ledger recheck ready", paths, false_ready_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+
+        written_path = write_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(root=root, report=report)
+        if not written_path.exists():
+            return fail_result(validator_id, "stale-loop operator queue closure writer did not create report artifact", paths, "MEASUREMENT_MISSING")
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(validator_id, f"runtime stale-loop operator queue closure artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime stale-loop operator queue closure artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER stale-loop operator queue closure separates ledger-recheck-ready replacements from recovery/rerun blockers without current evidence writes or live permission",
         paths,
     )
 
@@ -17166,6 +17389,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_execution_guard_validator": upbit_paper_stale_loop_execution_guard_validator,
     "upbit_paper_stale_loop_safe_regeneration_executor_validator": upbit_paper_stale_loop_safe_regeneration_executor_validator,
     "upbit_paper_stale_loop_post_regeneration_reconciliation_validator": upbit_paper_stale_loop_post_regeneration_reconciliation_validator,
+    "upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator": upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,

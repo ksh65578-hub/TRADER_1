@@ -14519,6 +14519,59 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-CLOSURE",
+      "source_section_id": "SECTION_LEDGER_VALIDATOR_IDS",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER stale-loop reconciliation operator queue closure",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-CLOSURE: classify stale-loop blocked replacements without current evidence writes or live permission",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Classify stale-loop blocked replacements into safe operator closure lanes",
+      "requirement_kind": "RUNTIME_RECONCILIATION_EVIDENCE_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_stale_loop_reconciliation_operator_queue_closure_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "secret_scan_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.schema.json",
+        "trader1/runtime/paper/upbit_paper_stale_loop_reconciliation_operator_queue_closure.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_upbit_paper_stale_loop_reconciliation_operator_queue_closure.py",
+        "tools/emit_upbit_paper_stale_loop_reconciliation_operator_queue_closure_patch_evidence.py",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_CLOSURE.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_stale_loop_reconciliation_operator_queue_closure.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_LEDGER_VALIDATOR_IDS",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-POST-REGENERATION-RECONCILIATION",
+        "REQ-MVP4-UPBIT-PAPER-LEDGER-IDEMPOTENCY-RUNTIME-EVIDENCE-REFRESH",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "94DBBB73102A6820FF1B933241E23FD9D3D911AC718808E99ECCDA17BA63E607",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_RUNTIME_EVIDENCE_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-REGENERATION-EXECUTION-GUARD",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -15228,5 +15281,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T04:42:52Z"
+  "updated_at_utc": "2026-05-02T05:02:56Z"
 }
