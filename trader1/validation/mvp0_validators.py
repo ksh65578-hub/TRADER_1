@@ -292,6 +292,13 @@ from trader1.runtime.paper.upbit_paper_stale_loop_ledger_input_scope_repair_plan
     validate_upbit_paper_stale_loop_ledger_input_scope_repair_plan_report,
     write_upbit_paper_stale_loop_ledger_input_scope_repair_plan_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_ledger_input_scope_repair_executor import (
+    LEDGER_INPUT_SCOPE_REPAIR_EXECUTOR_BLOCKER_CODE,
+    build_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report,
+    upbit_paper_stale_loop_ledger_input_scope_repair_executor_hash,
+    validate_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report,
+    write_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report,
+)
 from trader1.runtime.paper.upbit_paper_blocked_repair_plan import (
     build_upbit_paper_blocked_repair_plan_report,
     upbit_paper_blocked_repair_plan_hash,
@@ -573,6 +580,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_paper_stale_loop_ledger_rollup_regeneration_executor_validator",
     "upbit_paper_stale_loop_ledger_rollup_executor_reconciliation_recheck_validator",
     "upbit_paper_stale_loop_ledger_input_scope_repair_plan_validator",
+    "upbit_paper_stale_loop_ledger_input_scope_repair_executor_validator",
     "upbit_paper_blocked_repair_plan_validator",
     "upbit_paper_ledger_rollup_repair_validator",
     "upbit_paper_post_repair_reconciliation_validator",
@@ -7428,6 +7436,160 @@ def upbit_paper_stale_loop_ledger_input_scope_repair_plan_validator() -> Validat
     return pass_result(
         validator_id,
         "Upbit PAPER ledger input scope repair plan maps staged ledgers into isolated candidate roots without writes",
+        paths,
+    )
+
+
+def upbit_paper_stale_loop_ledger_input_scope_repair_executor_validator() -> ValidatorResult:
+    validator_id = "upbit_paper_stale_loop_ledger_input_scope_repair_executor_validator"
+    schema_path = ROOT / "contracts" / "schema" / "upbit_paper_stale_loop_ledger_input_scope_repair_executor_report.schema.json"
+    module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_ledger_input_scope_repair_executor.py"
+    plan_module_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_stale_loop_ledger_input_scope_repair_plan.py"
+    test_path = ROOT / "tests" / "runtime" / "test_upbit_paper_stale_loop_ledger_input_scope_repair_executor.py"
+    runtime_report_paths = sorted(
+        (ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper").glob(
+            "*/paper_runtime/upbit_paper_stale_loop_ledger_input_scope_repair_executor_report.json"
+        )
+    )
+    paths = [schema_path, module_path, plan_module_path, test_path, *runtime_report_paths]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.upbit_paper_stale_loop_ledger_input_scope_repair_executor_report.v1":
+        return fail_result(validator_id, "ledger input scope repair executor schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result(validator_id, "ledger input scope repair executor schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "ledger_input_scope_repair_executor_role",
+        "source_ledger_input_scope_repair_plan_hash",
+        "repair_executor_candidate_count",
+        "candidate_mirror_cycle_attempt_count",
+        "candidate_mirror_ready_count",
+        "candidate_mirror_written_count",
+        "current_evidence_write_allowed_count",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "ledger_input_scope_repair_executor_hash",
+    ):
+        if field not in required:
+            return fail_result(validator_id, f"ledger input scope repair executor schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    plan_path = (
+        ROOT
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / "mvp1_upbit_paper_launcher"
+        / "paper_runtime"
+        / "upbit_paper_stale_loop_ledger_input_scope_repair_plan_report.json"
+    )
+    if not plan_path.exists():
+        return fail_result(validator_id, "ledger input scope repair executor source plan is missing", paths + [plan_path], "MEASUREMENT_MISSING")
+    plan = load_json(plan_path)
+    disabled_report = build_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report(
+        root=ROOT,
+        ledger_input_scope_repair_plan_report=plan,
+        candidate_mirror_write_enabled=False,
+    )
+    disabled_result = validate_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report(disabled_report)
+    if disabled_result.status != "PASS":
+        return fail_result(validator_id, f"valid disabled ledger input scope repair executor failed: {disabled_result.message}", paths, disabled_result.blocker_code or "UNKNOWN_BLOCKED")
+    if (
+        disabled_report.get("executor_status") != "WRITE_DISABLED_CURRENT_EVIDENCE_BLOCKED"
+        or disabled_report.get("repair_executor_candidate_count") != 4
+        or disabled_report.get("candidate_mirror_cycle_attempt_count") != 8
+        or disabled_report.get("candidate_mirror_ready_count") != 0
+        or disabled_report.get("candidate_mirror_blocked_count") != 8
+        or disabled_report.get("source_hash_match_count") != 8
+        or disabled_report.get("source_ledger_event_count") != 42
+        or disabled_report.get("current_evidence_write_allowed_count") != 0
+    ):
+        return fail_result(validator_id, "ledger input scope repair executor disabled counts drifted", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    def rooted(root: Path, relative_path: str) -> Path:
+        return root.joinpath(*[part for part in relative_path.replace("\\", "/").split("/") if part])
+
+    with TemporaryDirectory() as tmp:
+        tmp_root = Path(tmp)
+        for item in plan.get("items", []):
+            for cycle in item.get("cycles", []):
+                relative_path = str(cycle.get("source_selected_ledger_path") or "")
+                source = rooted(ROOT, relative_path)
+                target = rooted(tmp_root, relative_path)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(source.read_bytes())
+        enabled_report = build_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report(
+            root=tmp_root,
+            ledger_input_scope_repair_plan_report=plan,
+            candidate_mirror_write_enabled=True,
+        )
+        enabled_result = validate_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report(enabled_report)
+        if enabled_result.status != "PASS":
+            return fail_result(validator_id, f"enabled ledger input scope repair executor failed: {enabled_result.message}", paths, enabled_result.blocker_code or "UNKNOWN_BLOCKED")
+        if (
+            enabled_report.get("executor_status") != "CANDIDATE_MIRROR_READY_CURRENT_EVIDENCE_BLOCKED"
+            or enabled_report.get("candidate_mirror_ready_count") != 8
+            or enabled_report.get("candidate_mirror_written_count") != 8
+            or enabled_report.get("candidate_mirror_artifact_ready_count") != 8
+            or enabled_report.get("current_evidence_write_allowed_count") != 0
+        ):
+            return fail_result(validator_id, "ledger input scope repair executor enabled mirror counts drifted", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    live_mutation = json.loads(json.dumps(disabled_report))
+    live_mutation["live_order_allowed"] = True
+    live_mutation["ledger_input_scope_repair_executor_hash"] = (
+        upbit_paper_stale_loop_ledger_input_scope_repair_executor_hash(live_mutation)
+    )
+    live_result = validate_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "ledger input scope repair executor live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_count = json.loads(json.dumps(disabled_report))
+    false_count["current_evidence_write_allowed_count"] = 1
+    false_count["ledger_input_scope_repair_executor_hash"] = (
+        upbit_paper_stale_loop_ledger_input_scope_repair_executor_hash(false_count)
+    )
+    false_count_result = validate_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report(false_count)
+    if false_count_result.status != "BLOCKED" or false_count_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(validator_id, "ledger input scope repair executor allowed current evidence count drift", paths, false_count_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    false_hash_count = json.loads(json.dumps(disabled_report))
+    false_hash_count["source_hash_match_count"] = 0
+    false_hash_count["ledger_input_scope_repair_executor_hash"] = (
+        upbit_paper_stale_loop_ledger_input_scope_repair_executor_hash(false_hash_count)
+    )
+    false_hash_result = validate_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report(false_hash_count)
+    if false_hash_result.status != "FAIL":
+        return fail_result(validator_id, "ledger input scope repair executor allowed false source hash count", paths, false_hash_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH")
+
+    with TemporaryDirectory() as tmp:
+        written_path = write_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report(
+            root=Path(tmp),
+            report=disabled_report,
+        )
+        if not written_path.exists():
+            return fail_result(validator_id, "ledger input scope repair executor writer did not create report artifact", paths, "MEASUREMENT_MISSING")
+
+    for runtime_path in runtime_report_paths:
+        try:
+            runtime_report = load_json(runtime_path)
+        except Exception as exc:
+            return fail_result(validator_id, f"runtime ledger input scope repair executor artifact is not valid json: {rel(runtime_path)}: {exc}", paths, "SCHEMA_IDENTITY_MISMATCH")
+        runtime_result = validate_upbit_paper_stale_loop_ledger_input_scope_repair_executor_report(runtime_report)
+        if runtime_result.status != "PASS":
+            return fail_result(
+                validator_id,
+                f"runtime ledger input scope repair executor artifact failed validation: {rel(runtime_path)}: {runtime_result.message}",
+                paths,
+                runtime_result.blocker_code or "UNKNOWN_BLOCKED",
+            )
+
+    return pass_result(
+        validator_id,
+        "Upbit PAPER ledger input scope repair executor writes only isolated candidate mirrors and blocks current evidence/live",
         paths,
     )
 
@@ -18629,6 +18791,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_paper_stale_loop_ledger_rollup_regeneration_executor_validator": upbit_paper_stale_loop_ledger_rollup_regeneration_executor_validator,
     "upbit_paper_stale_loop_ledger_rollup_executor_reconciliation_recheck_validator": upbit_paper_stale_loop_ledger_rollup_executor_reconciliation_recheck_validator,
     "upbit_paper_stale_loop_ledger_input_scope_repair_plan_validator": upbit_paper_stale_loop_ledger_input_scope_repair_plan_validator,
+    "upbit_paper_stale_loop_ledger_input_scope_repair_executor_validator": upbit_paper_stale_loop_ledger_input_scope_repair_executor_validator,
     "upbit_paper_blocked_repair_plan_validator": upbit_paper_blocked_repair_plan_validator,
     "upbit_paper_ledger_rollup_repair_validator": upbit_paper_ledger_rollup_repair_validator,
     "upbit_paper_post_repair_reconciliation_validator": upbit_paper_post_repair_reconciliation_validator,
