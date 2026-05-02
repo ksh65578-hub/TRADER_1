@@ -13940,6 +13940,64 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-IMPLEMENTATION-PREP",
+      "source_section_id": "SECTION_LEDGER_RECONCILIATION",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER repaired current-evidence audited writer implementation prep",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-IMPLEMENTATION-PREP: audited writer implementation prep must verify scoped final/temp paths, target absence, idempotency preview, and lock preconditions while keeping writes blocked",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER audited writer implementation prep",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_repaired_current_evidence_audited_writer_locked_output_validator",
+        "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.schema.json",
+        "trader1/runtime/paper/upbit_paper_repaired_current_evidence_audited_writer_implementation_prep.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep.py",
+        "tools/emit_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP.md",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_PORTFOLIO_TRUTH",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-LOCKED-OUTPUT",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "16A81B8C4BF9FFB6CB3CD8CFFAD66E61BC0E951D9D4B61BB179071DD5C2C1718",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_IMPLEMENTATION_PREP_WRITER_DISABLED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-LOCKED-OUTPUT",
       "source_section_id": "SECTION_PORTFOLIO_TRUTH",
       "source_file": "TRADER_1.md",
@@ -17173,5 +17231,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T14:01:47Z"
+  "updated_at_utc": "2026-05-02T14:29:16Z"
 }
