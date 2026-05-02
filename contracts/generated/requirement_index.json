@@ -14418,6 +14418,65 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-NORMALIZED-RECONCILIATION-RECHECK",
+      "source_section_id": "SECTION_LEDGER_VALIDATOR_IDS",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER stale-loop normalized reconciliation recheck",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-NORMALIZED-RECONCILIATION-RECHECK: normalized stale-loop reconciliation recheck must remain display-only without writes or live permission",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Recheck normalized stale-loop reconciliation blockers without writes",
+      "requirement_kind": "RUNTIME_RECONCILIATION_EVIDENCE_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_stale_loop_normalized_reconciliation_recheck_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_stale_loop_normalized_reconciliation_preview_validator",
+        "upbit_paper_stale_loop_normalized_reconciliation_recheck_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_stale_loop_normalized_reconciliation_recheck_report.schema.json",
+        "trader1/runtime/paper/upbit_paper_stale_loop_normalized_reconciliation_recheck.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_upbit_paper_stale_loop_normalized_reconciliation_recheck.py",
+        "tools/emit_upbit_paper_stale_loop_normalized_reconciliation_recheck_patch_evidence.py",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_normalized_reconciliation_recheck_report.json",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_STALE_LOOP_NORMALIZED_RECONCILIATION_RECHECK.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_stale_loop_normalized_reconciliation_recheck.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_LEDGER_VALIDATOR_IDS",
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-NORMALIZED-RECONCILIATION-PREVIEW",
+        "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-REPLACEMENT-SCHEMA-NORMALIZATION-PREVIEW",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "3ED1937BC7B2F36EFA130FFD712E1021AA674426CD8B2A0250F4829071B5C6F3",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_RUNTIME_RECHECK_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-POST-REGENERATION-DASHBOARD-BINDING",
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
@@ -15559,5 +15618,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T06:14:41Z"
+  "updated_at_utc": "2026-05-02T06:30:49Z"
 }
