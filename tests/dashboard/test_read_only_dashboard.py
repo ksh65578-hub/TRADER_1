@@ -818,12 +818,15 @@ def build_dashboard_with_stale_loop_post_regeneration_reconciliation(
     report=None,
     post_repair_report=None,
     with_paper_portfolio=True,
+    ledger_idempotency_report=None,
+    paper_portfolio_snapshot=None,
 ):
     report = report or stale_loop_post_regeneration_reconciliation_fixture()
     session_id = report["session_id"]
     summary, heartbeat, startup_probe = build_inputs(
         session_id=session_id,
         with_paper_portfolio=with_paper_portfolio,
+        paper_portfolio_snapshot=paper_portfolio_snapshot,
     )
     return build_read_only_dashboard_shell(
         exchange=report["exchange"],
@@ -835,6 +838,7 @@ def build_dashboard_with_stale_loop_post_regeneration_reconciliation(
         startup_probe=startup_probe,
         upbit_paper_post_repair_reconciliation_report=post_repair_report,
         upbit_paper_stale_loop_post_regeneration_reconciliation_report=report,
+        upbit_paper_ledger_idempotency_runtime_evidence_report=ledger_idempotency_report,
     )
 
 
@@ -2557,6 +2561,80 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("blocked=6", html)
         self.assertIn("ledger-blocked=6", html)
         self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_displays_bound_verified_portfolio_when_stale_loop_reconciliation_blocks_writes(self):
+        report = stale_loop_post_regeneration_reconciliation_fixture()
+        ledger_report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            root=ROOT,
+            session_id=report["session_id"],
+            evidence_id="test-dashboard-bound-portfolio-truth-reconciliation",
+        )
+        paper_portfolio = build_initial_paper_portfolio_snapshot(
+            exchange=report["exchange"],
+            market_type=report["market_type"],
+            session_id=report["session_id"],
+            source_runtime_cycle_id=ledger_report["portfolio_source_runtime_cycle_id"],
+            source_paper_ledger_head_hash=ledger_report["portfolio_source_paper_ledger_head_hash"],
+        )
+        dashboard = build_dashboard_with_stale_loop_post_regeneration_reconciliation(
+            report=report,
+            ledger_idempotency_report=ledger_report,
+            paper_portfolio_snapshot=paper_portfolio,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "VERIFIED")
+        self.assertEqual(portfolio["source_snapshot_status"], "PASS")
+        self.assertEqual(portfolio["source_paper_ledger_head_hash"], ledger_report["portfolio_source_paper_ledger_head_hash"])
+        self.assertEqual(portfolio["cash"]["value_display"], "1,000,000 KRW")
+        self.assertEqual(portfolio["equity"]["value_display"], "1,000,000 KRW")
+        self.assertEqual(portfolio["blocking_reason"], "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
+        self.assertIn("current-evidence writes and live review remain blocked", portfolio["source_snapshot_freshness_message"])
+
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_evidence_status"], "PASS")
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_reconciliation_status"], "PASS")
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_portfolio_provenance_status"], "PASS")
+        self.assertEqual(dashboard["operation_status"]["status"], "CHECKING_SAFE_MODE")
+        self.assertEqual(dashboard["operation_status"]["portfolio_status"], "VERIFIED")
+        self.assertEqual(
+            dashboard["operation_status"]["primary_blocker"],
+            "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+        )
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_keeps_stale_loop_portfolio_unverified_when_ledger_evidence_is_not_bound(self):
+        report = stale_loop_post_regeneration_reconciliation_fixture()
+        ledger_report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            root=ROOT,
+            session_id=report["session_id"],
+            evidence_id="test-dashboard-unbound-portfolio-truth-reconciliation",
+        )
+        paper_portfolio = build_initial_paper_portfolio_snapshot(
+            exchange=report["exchange"],
+            market_type=report["market_type"],
+            session_id=report["session_id"],
+        )
+        dashboard = build_dashboard_with_stale_loop_post_regeneration_reconciliation(
+            report=report,
+            ledger_idempotency_report=ledger_report,
+            paper_portfolio_snapshot=paper_portfolio,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["blocking_reason"], "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED")
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
 

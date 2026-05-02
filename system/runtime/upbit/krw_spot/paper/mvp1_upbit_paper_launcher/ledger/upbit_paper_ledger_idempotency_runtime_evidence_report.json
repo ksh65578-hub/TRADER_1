@@ -11,11 +11,11 @@
   "duplicate_event_id_count": 0,
   "duplicate_filled_order_key_count": 0,
   "duplicate_semantic_event_count": 0,
-  "evidence_hash": "344FA76AFF19B7ACC2C5011D59C22877371010BD0CF8D20A323C416DA5BD1B91",
-  "evidence_id": "upbit-paper-ledger-idempotency-runtime-evidence-refresh",
+  "evidence_hash": "F908CEE4480FE24BCE84AAA6E9E84E843DDA62FC6612948379A8C14A665BA498",
+  "evidence_id": "upbit-paper-portfolio-truth-reconciliation-closure",
   "evidence_role": "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_CURRENT_ROLLUP_ONLY",
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-02T04:20:36Z",
+  "generated_at_utc": "2026-05-02T04:42:58Z",
   "idempotency_status": "PASS",
   "ledger_head_binding_status": "PASS",
   "ledger_validation_fail_count": 0,
@@ -90,10 +90,10 @@
     "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/cycles/mvp4_upbit_scorecard_bridge_current_refresh-cycle-2.paper_ledger_events.jsonl"
   ],
   "source_rollup_blocker_code": null,
-  "source_rollup_hash": "EE22FBDB5E5CF02689C688A2B34FFD47BAE17222EBA9194DBBE13B343ADD8A48",
+  "source_rollup_hash": "89A1CBB96557CA1F76688750BA5EC72FC34DF33434E93AF90FB90AD8E6118979",
   "source_rollup_hash_self_check": "PASS",
   "source_rollup_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/paper_ledger_rollup_report.json",
-  "source_rollup_recomputed_hash": "EE22FBDB5E5CF02689C688A2B34FFD47BAE17222EBA9194DBBE13B343ADD8A48",
+  "source_rollup_recomputed_hash": "89A1CBB96557CA1F76688750BA5EC72FC34DF33434E93AF90FB90AD8E6118979",
   "source_rollup_status": "PASS",
   "source_rollup_validation_status": "PASS"
 }
