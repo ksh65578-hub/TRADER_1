@@ -1,0 +1,557 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.v1",
+  "title": "Upbit PAPER Repaired Current Evidence Audited Writer Dry Run Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "audited_writer_dry_run_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "truth_role",
+    "audited_writer_dry_run_role",
+    "source_audited_writer_design_hash",
+    "source_audited_writer_design_status",
+    "source_audited_writer_design_validator_status",
+    "source_design_control_pass_count",
+    "source_design_control_blocked_count",
+    "source_design_current_evidence_write_allowed",
+    "source_design_portfolio_truth_write_allowed",
+    "dry_run_status",
+    "dry_run_passed",
+    "dry_run_check_count",
+    "dry_run_check_pass_count",
+    "dry_run_check_blocked_count",
+    "dry_run_checks",
+    "dry_run_manifest",
+    "current_evidence_snapshot_preview",
+    "portfolio_snapshot_preview",
+    "current_evidence_snapshot_preview_hash",
+    "portfolio_snapshot_preview_hash",
+    "planned_artifact_paths",
+    "primary_blocker_code",
+    "blocker_codes",
+    "operator_next_action",
+    "display_only",
+    "dashboard_truth_only",
+    "paper_only",
+    "dry_run_only",
+    "separate_writer_patch_required",
+    "writer_implementation_allowed",
+    "writer_enabled",
+    "current_evidence_write_allowed",
+    "current_evidence_mutation_allowed",
+    "current_evidence_artifact_written",
+    "current_ledger_jsonl_write_allowed",
+    "latest_runtime_pointer_write_allowed",
+    "portfolio_truth_write_allowed",
+    "portfolio_snapshot_write_allowed",
+    "portfolio_truth_artifact_written",
+    "persistent_loop_mutation_allowed",
+    "source_delete_allowed",
+    "actual_long_run_evidence_created",
+    "long_run_evidence_eligible",
+    "promotion_eligible",
+    "credential_load_attempted",
+    "private_endpoint_called",
+    "order_endpoint_called",
+    "order_adapter_called",
+    "live_key_loaded",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "scale_up_allowed",
+    "audited_writer_dry_run_hash"
+  ],
+  "$defs": {
+    "dry_run_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "check_status",
+        "blocker_code",
+        "detail",
+        "current_evidence_write_allowed",
+        "portfolio_truth_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "check_id": {
+          "enum": [
+            "SOURCE_AUDITED_WRITER_DESIGN_VALID",
+            "PLANNED_WRITE_TARGETS_PRESENT",
+            "PRE_WRITE_CHECKS_PRESENT",
+            "POST_WRITE_CHECKS_PRESENT",
+            "IDEMPOTENCY_DRY_RUN_DIGEST_CREATED",
+            "CURRENT_EVIDENCE_SNAPSHOT_PREVIEW_CREATED",
+            "PORTFOLIO_TRUTH_PREVIEW_CREATED",
+            "ATOMIC_WRITE_PLAN_PREVIEW_CREATED",
+            "LIVE_AND_SCALE_BOUNDARY_CONFIRMED",
+            "CURRENT_EVIDENCE_WRITE_APPROVAL_GRANTED"
+          ]
+        },
+        "check_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "properties": {
+    "schema_id": {
+      "const": "trader1.upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "audited_writer_dry_run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "const": "UPBIT"
+    },
+    "market_type": {
+      "const": "KRW_SPOT"
+    },
+    "mode": {
+      "const": "PAPER"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "truth_role": {
+      "const": "paper_runtime_repaired_current_evidence_audited_writer_dry_run_truth"
+    },
+    "audited_writer_dry_run_role": {
+      "const": "PAPER_RUNTIME_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_REVIEW_ONLY"
+    },
+    "source_audited_writer_design_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_audited_writer_design_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_audited_writer_design_validator_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "source_design_control_pass_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_design_control_blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_design_current_evidence_write_allowed": {
+      "const": false
+    },
+    "source_design_portfolio_truth_write_allowed": {
+      "const": false
+    },
+    "dry_run_status": {
+      "enum": [
+        "BLOCKED_DRY_RUN_ONLY_WRITER_NOT_ENABLED",
+        "BLOCKED_SOURCE_DESIGN_INVALID"
+      ]
+    },
+    "dry_run_passed": {
+      "const": false
+    },
+    "dry_run_check_count": {
+      "const": 10
+    },
+    "dry_run_check_pass_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "dry_run_check_blocked_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "dry_run_checks": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "$ref": "#/$defs/dry_run_check"
+      }
+    },
+    "dry_run_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_schema_id",
+        "source_design_hash",
+        "planned_write_targets",
+        "required_pre_write_checks",
+        "required_post_write_checks",
+        "current_evidence_snapshot_preview_hash",
+        "portfolio_snapshot_preview_hash",
+        "manifest_write_allowed",
+        "manifest_hash"
+      ],
+      "properties": {
+        "manifest_schema_id": {
+          "const": "trader1.upbit_paper_audited_writer_dry_run_manifest.v1"
+        },
+        "source_design_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "planned_write_targets": {
+          "$ref": "#/$defs/string_list"
+        },
+        "required_pre_write_checks": {
+          "$ref": "#/$defs/string_list"
+        },
+        "required_post_write_checks": {
+          "$ref": "#/$defs/string_list"
+        },
+        "current_evidence_snapshot_preview_hash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "portfolio_snapshot_preview_hash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "manifest_write_allowed": {
+          "const": false
+        },
+        "manifest_hash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        }
+      }
+    },
+    "current_evidence_snapshot_preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preview_schema_id",
+        "preview_status",
+        "exchange",
+        "market_type",
+        "mode",
+        "session_id",
+        "configured_initial_cash_krw",
+        "configured_initial_cash_source",
+        "cash_status",
+        "equity_status",
+        "portfolio_truth_status",
+        "ledger_head_status",
+        "runtime_cycle_status",
+        "current_evidence_write_allowed",
+        "portfolio_truth_write_allowed",
+        "live_order_allowed",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "preview_schema_id": {
+          "const": "trader1.upbit_paper_current_evidence_snapshot_preview.v1"
+        },
+        "preview_status": {
+          "const": "DRY_RUN_ONLY_NOT_WRITTEN"
+        },
+        "exchange": {
+          "const": "UPBIT"
+        },
+        "market_type": {
+          "const": "KRW_SPOT"
+        },
+        "mode": {
+          "const": "PAPER"
+        },
+        "session_id": {
+          "type": "string"
+        },
+        "configured_initial_cash_krw": {
+          "const": 1000000
+        },
+        "configured_initial_cash_source": {
+          "const": "PAPER_CONFIG_ONLY_UNVERIFIED"
+        },
+        "cash_status": {
+          "const": "UNVERIFIED"
+        },
+        "equity_status": {
+          "const": "UNVERIFIED"
+        },
+        "portfolio_truth_status": {
+          "const": "DRY_RUN_ONLY_UNVERIFIED"
+        },
+        "ledger_head_status": {
+          "const": "NOT_WRITTEN_BY_DRY_RUN"
+        },
+        "runtime_cycle_status": {
+          "const": "NOT_WRITTEN_BY_DRY_RUN"
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "portfolio_snapshot_preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preview_schema_id",
+        "preview_status",
+        "portfolio_source_status",
+        "configured_initial_cash_krw",
+        "verified_cash_krw",
+        "verified_equity_krw",
+        "verified_total_pnl_krw",
+        "verified_return_pct",
+        "positions_verified",
+        "candidates_verified",
+        "current_evidence_write_allowed",
+        "portfolio_truth_write_allowed",
+        "live_order_allowed",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "preview_schema_id": {
+          "const": "trader1.upbit_paper_portfolio_truth_preview.v1"
+        },
+        "preview_status": {
+          "const": "DRY_RUN_ONLY_NOT_WRITTEN"
+        },
+        "portfolio_source_status": {
+          "const": "UNVERIFIED_UNTIL_AUDITED_WRITER"
+        },
+        "configured_initial_cash_krw": {
+          "const": 1000000
+        },
+        "verified_cash_krw": {
+          "type": "null"
+        },
+        "verified_equity_krw": {
+          "type": "null"
+        },
+        "verified_total_pnl_krw": {
+          "type": "null"
+        },
+        "verified_return_pct": {
+          "type": "null"
+        },
+        "positions_verified": {
+          "const": false
+        },
+        "candidates_verified": {
+          "const": false
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "current_evidence_snapshot_preview_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "portfolio_snapshot_preview_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "planned_artifact_paths": {
+      "$ref": "#/$defs/string_list"
+    },
+    "primary_blocker_code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blocker_codes": {
+      "$ref": "#/$defs/string_list"
+    },
+    "operator_next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "display_only": {
+      "const": true
+    },
+    "dashboard_truth_only": {
+      "const": true
+    },
+    "paper_only": {
+      "const": true
+    },
+    "dry_run_only": {
+      "const": true
+    },
+    "separate_writer_patch_required": {
+      "const": true
+    },
+    "writer_implementation_allowed": {
+      "const": false
+    },
+    "writer_enabled": {
+      "const": false
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "current_evidence_mutation_allowed": {
+      "const": false
+    },
+    "current_evidence_artifact_written": {
+      "const": false
+    },
+    "current_ledger_jsonl_write_allowed": {
+      "const": false
+    },
+    "latest_runtime_pointer_write_allowed": {
+      "const": false
+    },
+    "portfolio_truth_write_allowed": {
+      "const": false
+    },
+    "portfolio_snapshot_write_allowed": {
+      "const": false
+    },
+    "portfolio_truth_artifact_written": {
+      "const": false
+    },
+    "persistent_loop_mutation_allowed": {
+      "const": false
+    },
+    "source_delete_allowed": {
+      "const": false
+    },
+    "actual_long_run_evidence_created": {
+      "const": false
+    },
+    "long_run_evidence_eligible": {
+      "const": false
+    },
+    "promotion_eligible": {
+      "const": false
+    },
+    "credential_load_attempted": {
+      "const": false
+    },
+    "private_endpoint_called": {
+      "const": false
+    },
+    "order_endpoint_called": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "live_key_loaded": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "audited_writer_dry_run_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

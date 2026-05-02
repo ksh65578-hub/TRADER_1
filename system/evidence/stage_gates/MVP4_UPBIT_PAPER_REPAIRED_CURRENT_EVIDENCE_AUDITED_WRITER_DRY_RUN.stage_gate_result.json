@@ -1,0 +1,19 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-02T12:45:54Z",
+  "patch_id": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_20260502_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_AUDITED_WRITER_DRY_RUN_CREATED_WRITER_DISABLED",
+  "dry_run_status": "BLOCKED_DRY_RUN_ONLY_WRITER_NOT_ENABLED",
+  "primary_blocker_code": "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+  "dry_run_check_pass_count": 9,
+  "dry_run_check_blocked_count": 1,
+  "configured_initial_cash_krw": 1000000,
+  "cash_status": "UNVERIFIED",
+  "current_evidence_artifact_written": false,
+  "portfolio_truth_artifact_written": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

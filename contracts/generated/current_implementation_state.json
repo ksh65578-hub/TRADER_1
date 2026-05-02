@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-02T12:29:34Z",
+  "updated_at_utc": "2026-05-02T12:45:54Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -265,6 +265,7 @@
     "REQ-MVP4-UPBIT-PAPER-REPAIR-HASH-RECONCILIATION-POLICY",
     "REQ-MVP4-UPBIT-PAPER-REPAIR-OPERATOR-QUEUE",
     "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-DESIGN",
+    "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-DRY-RUN",
     "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-PRECHECK",
     "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-PRECHECK-DASHBOARD-BINDING",
     "REQ-MVP4-UPBIT-PAPER-RUNTIME-CANDIDATE-LINKAGE-COST-MODEL",
@@ -417,6 +418,7 @@
     "trader1.upbit_paper_post_rerun_resolution_current_evidence_closure_report.v1",
     "trader1.upbit_paper_repair_operator_queue_report.v1",
     "trader1.upbit_paper_repaired_current_evidence_audited_writer_design_report.v1",
+    "trader1.upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.v1",
     "trader1.upbit_paper_repaired_current_evidence_audited_writer_precheck_report.v1",
     "trader1.upbit_paper_runtime_cycle_report.v1",
     "trader1.upbit_paper_runtime_evidence_collection_profile_report.v1",
@@ -578,6 +580,7 @@
     "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
     "upbit_paper_repair_operator_queue_validator",
     "upbit_paper_repaired_current_evidence_audited_writer_design_validator",
+    "upbit_paper_repaired_current_evidence_audited_writer_dry_run_validator",
     "upbit_paper_repaired_current_evidence_audited_writer_precheck_validator",
     "upbit_paper_runtime_cycle_validator",
     "upbit_paper_runtime_recovery_guard_validator",
@@ -635,12 +638,12 @@
     "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
     "STALE_LOOP_REGENERATION_REQUIRED"
   ],
-  "last_patch_id": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DESIGN_20260502_001",
-  "last_patch_result_hash": "87033AE613F5D1AB54F06A39E34F7FF67E97141C2293CF7D9B389599B412706F",
-  "next_allowed_task_class": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_SCAFFOLD",
+  "last_patch_id": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_20260502_001",
+  "last_patch_result_hash": "741AFBCFB86BC3034EC99242CD3968A2D39BC7E093C9D05FA5100167F5EF1660",
+  "next_allowed_task_class": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN_DASHBOARD_BINDING",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "7AF5474A456CAF251664E954C6833A5EFB87349C4FAE382C4AE01085EBB206EE"
+  "state_hash": "2CC77AD95D7377EB26E38E45613127F5973DD7360E6CCD07F63FF7D416C4079D"
 }
