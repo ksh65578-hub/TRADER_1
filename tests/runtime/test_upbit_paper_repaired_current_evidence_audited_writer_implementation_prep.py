@@ -37,7 +37,10 @@ def load_json(path: Path) -> dict:
 
 
 class UpbitPaperRepairedCurrentEvidenceAuditedWriterImplementationPrepTest(unittest.TestCase):
-    def build_report(self, root: Path = ROOT) -> dict:
+    def build_report(self, root: Path | None = None) -> dict:
+        if root is None:
+            with TemporaryDirectory() as tmp:
+                return self.build_report(root=Path(tmp))
         return build_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
             root=root,
             source_audited_writer_locked_output_report=load_json(SOURCE_LOCKED_OUTPUT_PATH),
