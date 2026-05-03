@@ -280,8 +280,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "581D408AA45CE9F646D5A00575E5D201CE843DE2965653B27662E7E8B79C08A8",
-      "size_bytes": 176813
+      "sha256": "0403234A0FB8A70DF4E433A1B5702352B6FEA8AE9CB1770272AFCD2E4D84AAA2",
+      "size_bytes": 176912
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -855,8 +855,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "6727DBAE4E4390E35EF61ABF3674F3CBED2BE456F75D773B7A1D483F34300A51",
-      "size_bytes": 344136
+      "sha256": "2112AB8943AD446886D442355EE394E36D6604193D3CD6C096FB9ED358EE7133",
+      "size_bytes": 346182
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -4330,8 +4330,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "E16AA3E1B44FAB2B36C2071B1B587BA2B2BF2D502E4A7ABB8A006049FA797EB0",
-      "size_bytes": 1048852
+      "sha256": "62CB65F443DEF267A97C9D020E8A84EF1E401835BE9872A800E9FCAB788DFF45",
+      "size_bytes": 1049343
     },
     {
       "path": "trader1/dashboard/summary_writer.py",

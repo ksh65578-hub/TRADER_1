@@ -4831,7 +4831,8 @@
           "enum": [
             "summary.json",
             "heartbeat.json",
-            "startup_probe.json"
+            "startup_probe.json",
+            "paper_portfolio_snapshot.json"
           ]
         },
         "open_position_count": {
@@ -4965,7 +4966,8 @@
           "enum": [
             "summary.json",
             "heartbeat.json",
-            "startup_probe.json"
+            "startup_probe.json",
+            "audited_current_evidence_snapshot.json"
           ]
         },
         "source_runtime_cycle_id": {
@@ -6539,7 +6541,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 25,
+      "maxItems": 28,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
