@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.patch_result.v1",
   "patch_id": "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK_20260504_001",
-  "created_at_utc": "2026-05-03T17:05:22Z",
+  "created_at_utc": "2026-05-03T18:26:16Z",
   "target_mvp_level": "MVP-4",
   "patch_class": "VALIDATOR_PATCH",
   "input_authority_files": [
@@ -300,5 +300,5 @@
   "convergence_live_mutation_detected": false,
   "convergence_live_order_allowed_after": false,
   "scale_up_eligibility_changed": false,
-  "result_hash": "8F864E5AE9B86D1D21FE9E598E1BB6FFBAE9C9D67CD9E13E710507FFB3D91851"
+  "result_hash": "6B41602EB01EB1E787C26DFD5E1A758AFD1D8F033FC3F0E13EE9EE257C709AA3"
 }
