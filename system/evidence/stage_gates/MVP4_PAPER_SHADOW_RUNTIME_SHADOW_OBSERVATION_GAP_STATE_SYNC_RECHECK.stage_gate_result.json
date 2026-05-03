@@ -1,6 +1,6 @@
 {
   "stage_gate_schema_id": "trader1.stage_gate_result.v1",
-  "created_at_utc": "2026-05-03T19:27:33Z",
+  "created_at_utc": "2026-05-03T20:46:47Z",
   "patch_id": "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK_20260504_001",
   "target_mvp_level": "MVP-4",
   "stage_gate_status": "PASS_STATE_SYNC_RECHECK_PAPER_SHADOW_RUNTIME_GAP_REMAINS_LIVE_BLOCKING",
