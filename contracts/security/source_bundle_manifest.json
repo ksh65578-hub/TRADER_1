@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "535DDD544DE6689157D65D10F8A0D0A0BBFF82705B4FDD3C98143498CF2453CC",
+      "sha256": "9FA1D7E26C0B11F58719131E54A745CF8099DDBBC89A6E5FBAAFB2124EE28C08",
       "size_bytes": 1096
     },
     {
@@ -809,6 +809,11 @@
       "size_bytes": 660
     },
     {
+      "path": "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+      "sha256": "8D4697587647EF5305677DE8D0E15A555B4DA52F6EDD9641CDFE5A534B4EC032",
+      "size_bytes": 5216
+    },
+    {
       "path": "tests/contract/test_mvp0_contract_scaffold.py",
       "sha256": "E96F5B5AB1141954BE6117B820EE35FF2B4ECCCFCDA049DE30E9045A81FDB259",
       "size_bytes": 2095
@@ -825,8 +830,8 @@
     },
     {
       "path": "tests/contract/test_paper_shadow_runtime_shadow_observation_gap_recheck.py",
-      "sha256": "4F5B92C29A7AB3C0FFDABF492FEE8FA2FC20A6CF2FC4A69E40D1CBC75CC0B781",
-      "size_bytes": 4207
+      "sha256": "071745EF6BCD46205E77BF5FAE60E1D2C52981135572CE3B200B260460661DFC",
+      "size_bytes": 4370
     },
     {
       "path": "tests/contract/test_paper_shadow_separation.py",
@@ -2892,6 +2897,11 @@
       "path": "tools/emit_market_regime_adaptation_schema_hardening_patch_evidence.py",
       "sha256": "2019EA77646FB5FE331995F38B25C1D4ED3CC64AD13C976C7B3F0FC9C837543A",
       "size_bytes": 31168
+    },
+    {
+      "path": "tools/emit_missing_cycle_ledger_rerun_required_state_sync_recheck_patch_evidence.py",
+      "sha256": "42422C43E79F48ED4EA8B95CFDF32AEE9C6A2E8B8215B49F1895499625215CF3",
+      "size_bytes": 35284
     },
     {
       "path": "tools/emit_model_drift_schema_hardening_patch_evidence.py",
@@ -5334,6 +5344,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_LONG_RUN_EVIDENCE_THRESHOLD_FLOOR.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -7953,6 +7967,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_MODEL_DRIFT_SCHEMA_HARDENING.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -9290,6 +9308,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_MARKET_REGIME_ADAPTATION_SCHEMA_HARDENING.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10657,6 +10679,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_MODEL_DRIFT_SCHEMA_HARDENING.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12014,6 +12040,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_MARKET_REGIME_ADAPTATION_SCHEMA_HARDENING.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
