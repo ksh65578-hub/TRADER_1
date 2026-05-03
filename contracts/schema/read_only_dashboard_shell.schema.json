@@ -1090,6 +1090,53 @@
             "INVALID"
           ]
         },
+        "post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_validation_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "FAIL",
+            "INVALID"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_hash_self_check": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "MISMATCH",
+            "INVALID"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_head_cycle_in_persistent_loop": {
+          "type": "boolean"
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_runtime_input_role": {
+          "enum": [
+            "NOT_LOADED",
+            "PUBLIC_MARKET_DATA_COLLECTION",
+            "INVALID"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_runtime_public_data_hash_match": {
+          "type": "boolean"
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_canonical_event_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS",
+            "BLOCKED",
+            "FAIL",
+            "INVALID"
+          ]
+        },
+        "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count": {
+          "type": "integer",
+          "minimum": 0
+        },
         "post_rerun_reconciliation_repair_path_repair_gate_count": {
           "type": "integer",
           "minimum": 0

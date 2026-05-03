@@ -41,6 +41,20 @@ REPAIR_GATE_IDS = (
     "VALIDATED_SOURCE_HASH_RECONCILIATION",
     "VALIDATED_NO_LIVE_OR_SCALE_MUTATION",
 )
+RECHECK_RUNTIME_DEPTH_HASH_FIELDS = (
+    "source_recheck_ledger_source_persistent_loop_hash",
+    "source_recheck_ledger_head_runtime_cycle_hash",
+    "source_recheck_ledger_source_public_market_data_hash",
+    "source_recheck_ledger_source_runtime_public_market_data_hash",
+    "source_recheck_ledger_source_feature_snapshot_hash",
+    "source_recheck_ledger_source_strategy_regime_cost_linkage_hash",
+)
+RECHECK_STRATEGY_REGIME_COST_LINKAGE_FALSE_FIELDS = (
+    "source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_ready",
+    "source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_allowed",
+    "source_recheck_ledger_source_strategy_regime_cost_linkage_can_live_trade",
+    "source_recheck_ledger_source_strategy_regime_cost_linkage_scale_up_allowed",
+)
 
 
 @dataclass(frozen=True)
@@ -109,6 +123,17 @@ def _safe_load_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     if not isinstance(value, dict):
         return None, "NOT_OBJECT"
     return value, None
+
+
+def _safe_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _is_hash64(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64
 
 
 def _load_source(
@@ -295,6 +320,55 @@ def build_upbit_paper_post_rerun_reconciliation_repair_path_report(
         "source_recheck_ledger_portfolio_provenance_status": str(
             recheck.get("ledger_portfolio_provenance_status") or "NOT_LOADED"
         ),
+        "source_recheck_ledger_source_persistent_loop_path": str(
+            recheck.get("ledger_source_persistent_loop_path") or "NOT_LOADED"
+        ),
+        "source_recheck_ledger_source_persistent_loop_hash": recheck.get("ledger_source_persistent_loop_hash"),
+        "source_recheck_ledger_source_persistent_loop_validation_status": str(
+            recheck.get("ledger_source_persistent_loop_validation_status") or "NOT_LOADED"
+        ),
+        "source_recheck_ledger_source_persistent_loop_hash_self_check": str(
+            recheck.get("ledger_source_persistent_loop_hash_self_check") or "NOT_LOADED"
+        ),
+        "source_recheck_ledger_head_cycle_in_persistent_loop": bool(
+            recheck.get("ledger_head_cycle_in_persistent_loop") is True
+        ),
+        "source_recheck_ledger_head_runtime_cycle_hash": recheck.get("ledger_head_runtime_cycle_hash"),
+        "source_recheck_ledger_source_runtime_input_role": str(
+            recheck.get("ledger_source_runtime_input_role") or "NOT_LOADED"
+        ),
+        "source_recheck_ledger_source_public_market_data_hash": recheck.get("ledger_source_public_market_data_hash"),
+        "source_recheck_ledger_source_runtime_public_market_data_hash": recheck.get(
+            "ledger_source_runtime_public_market_data_hash"
+        ),
+        "source_recheck_ledger_source_feature_snapshot_hash": recheck.get("ledger_source_feature_snapshot_hash"),
+        "source_recheck_ledger_source_canonical_event_count": _safe_int(
+            recheck.get("ledger_source_canonical_event_count")
+        ),
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_hash": recheck.get(
+            "ledger_source_strategy_regime_cost_linkage_hash"
+        ),
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_ready": bool(
+            recheck.get("ledger_source_strategy_regime_cost_linkage_live_order_ready") is True
+        ),
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_allowed": bool(
+            recheck.get("ledger_source_strategy_regime_cost_linkage_live_order_allowed") is True
+        ),
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_can_live_trade": bool(
+            recheck.get("ledger_source_strategy_regime_cost_linkage_can_live_trade") is True
+        ),
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_scale_up_allowed": bool(
+            recheck.get("ledger_source_strategy_regime_cost_linkage_scale_up_allowed") is True
+        ),
+        "source_recheck_ledger_source_runtime_depth_status": str(
+            recheck.get("ledger_source_runtime_depth_status") or "NOT_LOADED"
+        ),
+        "source_recheck_ledger_source_runtime_depth_blocker_code": recheck.get(
+            "ledger_source_runtime_depth_blocker_code"
+        ),
+        "source_recheck_ledger_source_runtime_depth_mismatch_count": _safe_int(
+            recheck.get("ledger_source_runtime_depth_mismatch_count")
+        ),
         "repair_gate_count": len(gates),
         "satisfied_repair_gate_count": 0,
         "blocked_repair_gate_count": len(gates),
@@ -387,6 +461,25 @@ def validate_upbit_paper_post_rerun_reconciliation_repair_path_report(
         "source_recheck_ledger_reconciliation_status",
         "source_recheck_ledger_idempotency_status",
         "source_recheck_ledger_portfolio_provenance_status",
+        "source_recheck_ledger_source_persistent_loop_path",
+        "source_recheck_ledger_source_persistent_loop_hash",
+        "source_recheck_ledger_source_persistent_loop_validation_status",
+        "source_recheck_ledger_source_persistent_loop_hash_self_check",
+        "source_recheck_ledger_head_cycle_in_persistent_loop",
+        "source_recheck_ledger_head_runtime_cycle_hash",
+        "source_recheck_ledger_source_runtime_input_role",
+        "source_recheck_ledger_source_public_market_data_hash",
+        "source_recheck_ledger_source_runtime_public_market_data_hash",
+        "source_recheck_ledger_source_feature_snapshot_hash",
+        "source_recheck_ledger_source_canonical_event_count",
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_hash",
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_ready",
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_allowed",
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_can_live_trade",
+        "source_recheck_ledger_source_strategy_regime_cost_linkage_scale_up_allowed",
+        "source_recheck_ledger_source_runtime_depth_status",
+        "source_recheck_ledger_source_runtime_depth_blocker_code",
+        "source_recheck_ledger_source_runtime_depth_mismatch_count",
         "repair_gate_count",
         "satisfied_repair_gate_count",
         "blocked_repair_gate_count",
@@ -561,6 +654,35 @@ def validate_upbit_paper_post_rerun_reconciliation_repair_path_report(
             "BLOCKED",
             "post-rerun repair path recheck ledger support is not clean",
             "RECONCILIATION_REQUIRED",
+        )
+    if any(not _is_hash64(report.get(field)) for field in RECHECK_RUNTIME_DEPTH_HASH_FIELDS):
+        return UpbitPaperPostRerunReconciliationRepairPathValidationResult(
+            "BLOCKED",
+            "post-rerun repair path recheck runtime-depth hashes are missing",
+            POST_RERUN_RECONCILIATION_REPAIR_PATH_SOURCE_BINDING_REQUIRED,
+        )
+    if any(report.get(field) for field in RECHECK_STRATEGY_REGIME_COST_LINKAGE_FALSE_FIELDS):
+        return UpbitPaperPostRerunReconciliationRepairPathValidationResult(
+            "BLOCKED",
+            "post-rerun repair path recheck source linkage attempted live or scale permission",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if (
+        report.get("source_recheck_ledger_source_persistent_loop_validation_status") != "PASS"
+        or report.get("source_recheck_ledger_source_persistent_loop_hash_self_check") != "PASS"
+        or report.get("source_recheck_ledger_head_cycle_in_persistent_loop") is not True
+        or report.get("source_recheck_ledger_source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION"
+        or report.get("source_recheck_ledger_source_public_market_data_hash")
+        != report.get("source_recheck_ledger_source_runtime_public_market_data_hash")
+        or report.get("source_recheck_ledger_source_canonical_event_count", 0) < 5
+        or report.get("source_recheck_ledger_source_runtime_depth_status") != "PASS"
+        or report.get("source_recheck_ledger_source_runtime_depth_blocker_code") is not None
+        or report.get("source_recheck_ledger_source_runtime_depth_mismatch_count") != 0
+    ):
+        return UpbitPaperPostRerunReconciliationRepairPathValidationResult(
+            "BLOCKED",
+            "post-rerun repair path recheck runtime-depth binding is not clean",
+            POST_RERUN_RECONCILIATION_REPAIR_PATH_SOURCE_BINDING_REQUIRED,
         )
     if (
         report.get("repair_path_status") != POST_RERUN_RECONCILIATION_REPAIR_PATH_STATUS

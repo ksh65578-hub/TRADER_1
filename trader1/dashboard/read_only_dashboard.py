@@ -6883,6 +6883,14 @@ def _reconciliation_recovery_summary(
     post_rerun_reconciliation_repair_path_source_closure_status = "NOT_LOADED"
     post_rerun_reconciliation_repair_path_source_recheck_status = "NOT_LOADED"
     post_rerun_reconciliation_repair_path_source_recheck_bridge_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_validation_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_hash_self_check = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_source_recheck_head_cycle_in_persistent_loop = False
+    post_rerun_reconciliation_repair_path_source_recheck_runtime_input_role = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_source_recheck_runtime_public_data_hash_match = False
+    post_rerun_reconciliation_repair_path_source_recheck_canonical_event_count = 0
+    post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status = "NOT_LOADED"
+    post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count = 0
     post_rerun_reconciliation_repair_path_repair_gate_count = 0
     post_rerun_reconciliation_repair_path_satisfied_gate_count = 0
     post_rerun_reconciliation_repair_path_blocked_gate_count = 0
@@ -7748,6 +7756,50 @@ def _reconciliation_recovery_summary(
             )
             post_rerun_reconciliation_repair_path_source_recheck_bridge_status = str(
                 post_rerun_reconciliation_repair_path_report.get("source_recheck_bridge_status") or "INVALID"
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_validation_status = str(
+                post_rerun_reconciliation_repair_path_report.get(
+                    "source_recheck_ledger_source_persistent_loop_validation_status"
+                )
+                or "INVALID"
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_hash_self_check = str(
+                post_rerun_reconciliation_repair_path_report.get(
+                    "source_recheck_ledger_source_persistent_loop_hash_self_check"
+                )
+                or "INVALID"
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_head_cycle_in_persistent_loop = bool(
+                post_rerun_reconciliation_repair_path_report.get(
+                    "source_recheck_ledger_head_cycle_in_persistent_loop"
+                )
+                is True
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_runtime_input_role = str(
+                post_rerun_reconciliation_repair_path_report.get("source_recheck_ledger_source_runtime_input_role")
+                or "INVALID"
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_runtime_public_data_hash_match = bool(
+                post_rerun_reconciliation_repair_path_report.get(
+                    "source_recheck_ledger_source_public_market_data_hash"
+                )
+                == post_rerun_reconciliation_repair_path_report.get(
+                    "source_recheck_ledger_source_runtime_public_market_data_hash"
+                )
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_canonical_event_count = _safe_count(
+                post_rerun_reconciliation_repair_path_report.get(
+                    "source_recheck_ledger_source_canonical_event_count"
+                )
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status = str(
+                post_rerun_reconciliation_repair_path_report.get("source_recheck_ledger_source_runtime_depth_status")
+                or "INVALID"
+            )
+            post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count = _safe_count(
+                post_rerun_reconciliation_repair_path_report.get(
+                    "source_recheck_ledger_source_runtime_depth_mismatch_count"
+                )
             )
             post_rerun_reconciliation_repair_path_repair_gate_count = _safe_count(
                 post_rerun_reconciliation_repair_path_report.get("repair_gate_count")
@@ -9411,6 +9463,9 @@ def _reconciliation_recovery_summary(
             f"closure={post_rerun_reconciliation_repair_path_source_closure_status}, "
             f"recheck={post_rerun_reconciliation_repair_path_source_recheck_status}, "
             f"bridge={post_rerun_reconciliation_repair_path_source_recheck_bridge_status}, "
+            f"runtime-depth={post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status}, "
+            f"runtime-mismatch="
+            f"{post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count}, "
             f"current-evidence writes allowed="
             f"{post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count}."
         )
@@ -9734,6 +9789,14 @@ def _reconciliation_recovery_summary(
         "post_rerun_reconciliation_repair_path_source_closure_status": post_rerun_reconciliation_repair_path_source_closure_status,
         "post_rerun_reconciliation_repair_path_source_recheck_status": post_rerun_reconciliation_repair_path_source_recheck_status,
         "post_rerun_reconciliation_repair_path_source_recheck_bridge_status": post_rerun_reconciliation_repair_path_source_recheck_bridge_status,
+        "post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_validation_status": post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_validation_status,
+        "post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_hash_self_check": post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_hash_self_check,
+        "post_rerun_reconciliation_repair_path_source_recheck_head_cycle_in_persistent_loop": post_rerun_reconciliation_repair_path_source_recheck_head_cycle_in_persistent_loop,
+        "post_rerun_reconciliation_repair_path_source_recheck_runtime_input_role": post_rerun_reconciliation_repair_path_source_recheck_runtime_input_role,
+        "post_rerun_reconciliation_repair_path_source_recheck_runtime_public_data_hash_match": post_rerun_reconciliation_repair_path_source_recheck_runtime_public_data_hash_match,
+        "post_rerun_reconciliation_repair_path_source_recheck_canonical_event_count": post_rerun_reconciliation_repair_path_source_recheck_canonical_event_count,
+        "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status": post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status,
+        "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count": post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count,
         "post_rerun_reconciliation_repair_path_repair_gate_count": post_rerun_reconciliation_repair_path_repair_gate_count,
         "post_rerun_reconciliation_repair_path_satisfied_gate_count": post_rerun_reconciliation_repair_path_satisfied_gate_count,
         "post_rerun_reconciliation_repair_path_blocked_gate_count": post_rerun_reconciliation_repair_path_blocked_gate_count,
@@ -12743,6 +12806,34 @@ def validate_read_only_dashboard_shell(
             != "BLOCKED_BY_POST_RERUN_CLOSURE"
         ):
             return DashboardValidationResult("BLOCKED", "post-rerun repair path must keep closure/recheck source binding verified", "LIVE_FINAL_GUARD_FAILED")
+        if (
+            reconciliation.get(
+                "post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_validation_status"
+            )
+            != "PASS"
+            or reconciliation.get(
+                "post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_hash_self_check"
+            )
+            != "PASS"
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_recheck_head_cycle_in_persistent_loop")
+            is not True
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_recheck_runtime_input_role")
+            != "PUBLIC_MARKET_DATA_COLLECTION"
+            or reconciliation.get(
+                "post_rerun_reconciliation_repair_path_source_recheck_runtime_public_data_hash_match"
+            )
+            is not True
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_recheck_canonical_event_count", 0)
+            < 5
+            or reconciliation.get("post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status")
+            != "PASS"
+            or reconciliation.get(
+                "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count",
+                0,
+            )
+            != 0
+        ):
+            return DashboardValidationResult("BLOCKED", "post-rerun repair path must show clean recheck runtime-depth binding", "LIVE_FINAL_GUARD_FAILED")
     if (
         post_repair_status == "BLOCKED"
         and not current_guard_blocks_current_evidence
@@ -15503,6 +15594,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<br>repair-sources={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_closure_file_load_status', 'NOT_LOADED'))}/"
         f"{safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_recheck_file_load_status', 'NOT_LOADED'))}"
         f"<br>repair-bridge={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_recheck_bridge_status', 'NOT_LOADED'))}"
+        f"<br>repair-runtime-depth={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status', 'NOT_LOADED'))}"
+        f"<br>repair-loop={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_validation_status', 'NOT_LOADED'))}/"
+        f"{safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_hash_self_check', 'NOT_LOADED'))}"
+        f"<br>repair-runtime-mismatch={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count', 0))}"
         f"<br>repair-writes={safe_text(reconciliation.get('post_rerun_reconciliation_repair_path_current_evidence_write_allowed_count', 0))}"
         "<br><strong>Post Repair</strong>"
         f"<br>post-repair={safe_text(reconciliation.get('post_repair_reconciliation_status', 'NOT_LOADED'))}"

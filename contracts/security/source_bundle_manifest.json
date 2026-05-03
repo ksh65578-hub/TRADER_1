@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "38E2A05CD1072F57BDF0F55DAE080176F742BD8080B051D83D2B0028EA0EAB2C",
+      "sha256": "52B0327D2EC8959A55EA8D32356CFBF9A0CD9707CE72BDDC7F7BF99F72763779",
       "size_bytes": 1096
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "contracts/schema/patch_result.schema.json",
-      "sha256": "62413C357CE0658FEE74B4077727E9B93A5BF215426FA869AE87B952E02EB319",
-      "size_bytes": 36518
+      "sha256": "92BA4A80284B0C4AE6B1E89C690843D23DFF853E801245325791150DF2439CC3",
+      "size_bytes": 36773
     },
     {
       "path": "contracts/schema/position_sizing_decision.schema.json",
@@ -280,8 +280,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "EF3CB508146906220EDF1855799C6B213CCFA235626DB07122948FB3D38FFC05",
-      "size_bytes": 176966
+      "sha256": "AD68154F8AA5A0803A14B860E14F93F87E718BB4A356ECB8C1D206E2E9F64A2F",
+      "size_bytes": 178495
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -515,8 +515,8 @@
     },
     {
       "path": "contracts/schema/upbit_paper_post_rerun_reconciliation_repair_path_report.schema.json",
-      "sha256": "8983C98F7F14767F71763F9E8745F554BA9F62D9197F5BF19A627CA01B5DF618",
-      "size_bytes": 9652
+      "sha256": "6241F8247DA2E9D364745626C37956B521D74F92F76D7E719302BE511E67B0A4",
+      "size_bytes": 13204
     },
     {
       "path": "contracts/schema/upbit_paper_post_rerun_resolution_current_evidence_closure_report.schema.json",
@@ -855,8 +855,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "15E9271E19989266089AF4B6A7CC06A2EAA63B036BD7EB11292D1A907BA4C269",
-      "size_bytes": 348654
+      "sha256": "ED8F8949EE6EFEE2CD50202F7574EC46965478F5A7EB1DC09F722C3FC095DB06",
+      "size_bytes": 351399
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -1240,8 +1240,8 @@
     },
     {
       "path": "tests/runtime/test_upbit_paper_post_rerun_reconciliation_repair_path.py",
-      "sha256": "500F0B7FEDE41FE14577863B1FF3E9A5FC293783671853C1222553EA118CEEAA",
-      "size_bytes": 6820
+      "sha256": "F1EF536ED1E6BFC19840B48FE05BB57D7131637729BE1D2606B286358427F2E4",
+      "size_bytes": 9802
     },
     {
       "path": "tests/runtime/test_upbit_paper_post_rerun_resolution_current_evidence_closure.py",
@@ -3520,8 +3520,8 @@
     },
     {
       "path": "tools/emit_upbit_paper_post_rerun_reconciliation_repair_path_dashboard_binding_patch_evidence.py",
-      "sha256": "58923C5DC2EE0ECD9B10157A72B37727AFCB1B257CB0178E53F8D412599785DD",
-      "size_bytes": 32360
+      "sha256": "35C8A844D57010D593148F3C5AE07A951F1E93E2ED36DE4CA1D92F818FE7E395",
+      "size_bytes": 37639
     },
     {
       "path": "tools/emit_upbit_paper_post_rerun_reconciliation_repair_path_patch_evidence.py",
@@ -4350,8 +4350,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "7A6ED45E1C87E62AFBA2D2625292DD0815AC96C25FB46266E7062DCEB52C7F51",
-      "size_bytes": 1052121
+      "sha256": "65EA61E72B8A680F4C562B5C39FBC099EA04F8F80FB66D0356C72FB55C240745",
+      "size_bytes": 1059020
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -4620,8 +4620,8 @@
     },
     {
       "path": "trader1/runtime/paper/upbit_paper_post_rerun_reconciliation_repair_path.py",
-      "sha256": "E40A2D585EB5490FC44BFBC476669AD597CF42FEE6A0B5FD260C30AFF20875B3",
-      "size_bytes": 28474
+      "sha256": "29E21DB2F7BAC1D043AD3EA71414CBD4180BCCC3CF5A331AE98C512EF0792696",
+      "size_bytes": 35661
     },
     {
       "path": "trader1/runtime/paper/upbit_paper_post_rerun_resolution_current_evidence_closure.py",
@@ -4920,8 +4920,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "0BB5149BC4A786901BAC193F0FE02886E1B81BC4DE8D3F0F3F7B5FC08AC70A12",
-      "size_bytes": 1204173
+      "sha256": "BAA2EE95A8B72F1CF288F9EEE89438EA2EC8B1584BA5A95DA511F33D70BB3C53",
+      "size_bytes": 1207632
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -5640,6 +5640,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_DASHBOARD_BINDING.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_RUNTIME_DEPTH_DASHBOARD_BINDING.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -7231,6 +7235,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_RUNTIME_DEPTH_DASHBOARD_BINDING_20260503.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_GUARD_20260502.md",
       "reason": "denied:system/"
     },
@@ -8484,6 +8492,10 @@
     },
     {
       "path": "system/evidence/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_DASHBOARD_BINDING.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_RUNTIME_DEPTH_DASHBOARD_BINDING.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -9796,6 +9808,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_DASHBOARD_BINDING.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_RUNTIME_DEPTH_DASHBOARD_BINDING.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -11135,6 +11151,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_RUNTIME_DEPTH_DASHBOARD_BINDING.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_AUDIT_SOURCE_BINDING_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12468,6 +12488,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_DASHBOARD_BINDING.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_RUNTIME_DEPTH_DASHBOARD_BINDING.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

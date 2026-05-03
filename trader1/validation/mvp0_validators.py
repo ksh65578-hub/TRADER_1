@@ -14350,6 +14350,12 @@ def upbit_paper_post_rerun_reconciliation_repair_path_validator() -> ValidatorRe
         "source_closure_file_load_status",
         "source_recheck_path",
         "source_recheck_file_load_status",
+        "source_recheck_ledger_source_persistent_loop_validation_status",
+        "source_recheck_ledger_source_persistent_loop_hash_self_check",
+        "source_recheck_ledger_head_cycle_in_persistent_loop",
+        "source_recheck_ledger_source_runtime_input_role",
+        "source_recheck_ledger_source_runtime_depth_status",
+        "source_recheck_ledger_source_runtime_depth_mismatch_count",
         "repair_path_status",
         "repair_gate_count",
         "satisfied_repair_gate_count",
@@ -14398,6 +14404,20 @@ def upbit_paper_post_rerun_reconciliation_repair_path_validator() -> ValidatorRe
         or report.get("source_closure_status") != "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED"
         or report.get("source_recheck_status") != POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_STATUS
         or report.get("source_recheck_bridge_status") != "BLOCKED_BY_POST_RERUN_CLOSURE"
+        or report.get("source_recheck_ledger_source_persistent_loop_validation_status") != "PASS"
+        or report.get("source_recheck_ledger_source_persistent_loop_hash_self_check") != "PASS"
+        or report.get("source_recheck_ledger_head_cycle_in_persistent_loop") is not True
+        or report.get("source_recheck_ledger_source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION"
+        or report.get("source_recheck_ledger_source_public_market_data_hash")
+        != report.get("source_recheck_ledger_source_runtime_public_market_data_hash")
+        or report.get("source_recheck_ledger_source_canonical_event_count", 0) < 5
+        or report.get("source_recheck_ledger_source_runtime_depth_status") != "PASS"
+        or report.get("source_recheck_ledger_source_runtime_depth_blocker_code") is not None
+        or report.get("source_recheck_ledger_source_runtime_depth_mismatch_count") != 0
+        or report.get("source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_ready")
+        or report.get("source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_allowed")
+        or report.get("source_recheck_ledger_source_strategy_regime_cost_linkage_can_live_trade")
+        or report.get("source_recheck_ledger_source_strategy_regime_cost_linkage_scale_up_allowed")
         or report.get("repair_gate_count") != 4
         or report.get("satisfied_repair_gate_count") != 0
         or report.get("blocked_repair_gate_count") != 4
@@ -14521,6 +14541,40 @@ def upbit_paper_post_rerun_reconciliation_repair_path_validator() -> ValidatorRe
             "post-rerun reconciliation repair path escape was not blocked",
             paths,
             path_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH",
+        )
+
+    runtime_depth_mutation = json.loads(json.dumps(report))
+    runtime_depth_mutation["source_recheck_ledger_source_runtime_depth_status"] = "BLOCKED"
+    runtime_depth_mutation["source_recheck_ledger_source_runtime_depth_mismatch_count"] = 1
+    runtime_depth_mutation["repair_path_hash"] = upbit_paper_post_rerun_reconciliation_repair_path_hash(
+        runtime_depth_mutation
+    )
+    runtime_depth_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(
+        runtime_depth_mutation
+    )
+    if (
+        runtime_depth_result.status != "BLOCKED"
+        or runtime_depth_result.blocker_code != POST_RERUN_RECONCILIATION_REPAIR_PATH_SOURCE_BINDING_REQUIRED
+    ):
+        return fail_result(
+            validator_id,
+            "post-rerun reconciliation repair path runtime-depth drift was not blocked",
+            paths,
+            runtime_depth_result.blocker_code or POST_RERUN_RECONCILIATION_REPAIR_PATH_SOURCE_BINDING_REQUIRED,
+        )
+
+    source_live_linkage = json.loads(json.dumps(report))
+    source_live_linkage["source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_allowed"] = True
+    source_live_linkage["repair_path_hash"] = upbit_paper_post_rerun_reconciliation_repair_path_hash(
+        source_live_linkage
+    )
+    source_live_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(source_live_linkage)
+    if source_live_result.status != "BLOCKED" or source_live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "post-rerun reconciliation repair path source live-linkage drift was not blocked",
+            paths,
+            source_live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
         )
 
     for runtime_path in runtime_report_paths:
