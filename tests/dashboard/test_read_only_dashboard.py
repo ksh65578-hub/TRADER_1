@@ -3923,6 +3923,24 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(positions["open_position_count"], 0)
         self.assertEqual(positions["rows"], [])
         self.assertIn("stale", positions["empty_message"])
+        source_status = {
+            source["artifact_id"]: source["freshness_status"]
+            for source in dashboard["source_artifacts"]
+            if source["artifact_id"]
+            in {
+                "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER",
+                "AUDITED_CURRENT_EVIDENCE_SNAPSHOT",
+                "AUDITED_PAPER_PORTFOLIO_SNAPSHOT",
+            }
+        }
+        self.assertEqual(
+            source_status,
+            {
+                "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER": "PASS",
+                "AUDITED_CURRENT_EVIDENCE_SNAPSHOT": "STALE",
+                "AUDITED_PAPER_PORTFOLIO_SNAPSHOT": "PASS",
+            },
+        )
         self.assertFalse(dashboard["live_order_ready"])
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["can_live_trade"])

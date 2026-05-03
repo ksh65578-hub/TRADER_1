@@ -10849,6 +10849,8 @@ def build_read_only_dashboard_shell(
         audited_writer_freshness = (
             "PASS"
             if audited_writer_result.status == "PASS"
+            and _freshness_from_generated_at(upbit_paper_repaired_current_evidence_audited_writer_report)
+            == "PASS"
             and upbit_paper_repaired_current_evidence_audited_writer_report.get("writer_status")
             in {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS}
             and upbit_paper_repaired_current_evidence_audited_writer_report.get("writer_passed") is True
@@ -10882,6 +10884,7 @@ def build_read_only_dashboard_shell(
         audited_current_freshness = (
             "PASS"
             if audited_current_result.status == "PASS"
+            and _freshness_from_generated_at(audited_current_evidence_snapshot) == "PASS"
             and audited_current_evidence_snapshot.get("current_evidence_status") == "PASS"
             and audited_current_evidence_snapshot.get("portfolio_truth_status") == "VERIFIED_PAPER_LEDGER_ROLLUP"
             and audited_current_evidence_snapshot.get("live_order_ready") is False

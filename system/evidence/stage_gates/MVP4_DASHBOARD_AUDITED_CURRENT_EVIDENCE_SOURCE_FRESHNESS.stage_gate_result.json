@@ -1,0 +1,24 @@
+{
+  "schema_id": "trader1.stage_gate_result.v1",
+  "generated_at_utc": "2026-05-03T11:45:33Z",
+  "patch_id": "MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS_20260503_001",
+  "stage": "MVP-4",
+  "status": "PASS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY"
+  ]
+}

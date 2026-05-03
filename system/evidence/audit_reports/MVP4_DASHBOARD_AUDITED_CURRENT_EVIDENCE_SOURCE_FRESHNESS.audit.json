@@ -1,0 +1,25 @@
+{
+  "audit_schema_id": "trader1.dashboard_audited_current_evidence_source_freshness_audit.v1",
+  "generated_at_utc": "2026-05-03T11:45:33Z",
+  "patch_id": "MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS_20260503_001",
+  "status": "PASS",
+  "checks": {
+    "audited_current_evidence_portfolio_stale_fail_closed": true,
+    "audited_current_evidence_source_artifact_marks_stale": true,
+    "audited_writer_source_artifact_keeps_live_false": true,
+    "portfolio_and_position_values_unverified_when_current_evidence_stale": true
+  },
+  "hidden_defects": [
+    {
+      "classification": "dashboard_source_artifact_freshness_mismatch",
+      "condition": "stale audited_current_evidence_snapshot data could demote portfolio and position values while source_artifacts still displayed the current-evidence source as PASS",
+      "impact": "operator source evidence display could disagree with the fail-closed portfolio truth surface",
+      "fix": "source_artifacts now applies generated_at_utc freshness to audited current-evidence snapshots",
+      "live_safety_impact": "stale audited evidence remains unusable for live readiness, live orders, or scale-up"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

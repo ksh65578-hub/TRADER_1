@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "0AEC6830D6BFAD72F739CB0552C78F35AB7AA4F6AFF8452CB7B10AEC63CF50D5",
+      "sha256": "05682B655D0100D4DF113450FF2533FCE12337D572E28FBD4DD588F43A97FD3B",
       "size_bytes": 1096
     },
     {
@@ -855,8 +855,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "2742F9840AB8578DC907DF2AC9938B05303012EE3BE7F26DAC456A0DE6A0DD32",
-      "size_bytes": 346859
+      "sha256": "8C3E7529CF7EFAEC1783DAB7736B04FB7ACF4D6389D0BA729B35E55E329A4664",
+      "size_bytes": 347552
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -2582,6 +2582,11 @@
       "path": "tools/emit_dashboard_actual_long_run_floor_ux_patch_evidence.py",
       "sha256": "B433ED8D4B38348687B364FC30FEAD893096FEC739DBEC8EC6A0DD53152A78BF",
       "size_bytes": 22347
+    },
+    {
+      "path": "tools/emit_dashboard_audited_current_evidence_source_freshness_patch_evidence.py",
+      "sha256": "D562E37639274AA0478155F47E3FF8349C7B17D9EA716DD6F61A71BB8E0D5FD3",
+      "size_bytes": 25074
     },
     {
       "path": "tools/emit_dashboard_convergence_assessment_visibility_patch_evidence.py",
@@ -4330,8 +4335,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "C06F9C4BEFD972F19B3CB700B911B9FE451824779190D7011C27B56750C83CED",
-      "size_bytes": 1051903
+      "sha256": "7A6ED45E1C87E62AFBA2D2625292DD0815AC96C25FB46266E7062DCEB52C7F51",
+      "size_bytes": 1052121
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -5196,6 +5201,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_DASHBOARD_ACTUAL_LONG_RUN_FLOOR_UX.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -6272,6 +6281,10 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_DASHBOARD_ACTUAL_LONG_RUN_FLOOR_UX_20260430.md",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.audit.json",
       "reason": "denied:system/"
     },
     {
@@ -7548,6 +7561,10 @@
     },
     {
       "path": "system/evidence/MVP4_DASHBOARD_ACTUAL_LONG_RUN_FLOOR_UX.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -8844,6 +8861,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_DASHBOARD_ACTUAL_LONG_RUN_FLOOR_UX.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10167,6 +10188,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_DASHBOARD_CONVERGENCE_ASSESSMENT_VISIBILITY.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -11480,6 +11505,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_DASHBOARD_ACTUAL_LONG_RUN_FLOOR_UX.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

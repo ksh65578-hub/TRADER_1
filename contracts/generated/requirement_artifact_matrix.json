@@ -1611,6 +1611,42 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-AUDITED-CURRENT-EVIDENCE-SOURCE-FRESHNESS",
+      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "schema_files": [
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.patch_result.json",
+        "system/evidence/audit_reports/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.audit.json"
+      ],
+      "dashboard_artifacts": [
+        "system/runtime/*/*/*/*/dashboard_shell.json"
+      ],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-CONVERGENCE-ASSESSMENT-VISIBILITY",
       "section_id": "SECTION_DASHBOARD_CONVERGENCE_ASSESSMENT",
       "schema_files": [
@@ -12615,7 +12651,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-03T09:47:32Z",
+  "updated_at_utc": "2026-05-03T11:45:33Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
