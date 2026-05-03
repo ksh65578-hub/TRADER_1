@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "87AB3D84B2657699DC5DE9FEAEA917989C3AFC9754E0C2EEF37B4533E636BE6A",
+      "sha256": "158F23C158E1B261430157C8C0E97F8DAB5591AE083CD15244EDB26E3D153767",
       "size_bytes": 1096
     },
     {
@@ -2450,8 +2450,8 @@
     },
     {
       "path": "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
-      "sha256": "377D9DC270E097FADA8C0F0585785CD81F8360DEFDDAC80B2FDE7BD9E47E12AA",
-      "size_bytes": 5978
+      "sha256": "B76996A298A3AA34E2B60DBFF37AF6235E4EC7B3BC6B042E4E523E8CDB18AC98",
+      "size_bytes": 8198
     },
     {
       "path": "tests/validators/test_rolling_window_default_validator.py",
@@ -3072,6 +3072,11 @@
       "path": "tools/emit_profitability_optimizer_evidence_gap_patch_evidence.py",
       "sha256": "F0A14C0EC134D0C17F9B45B73A10B747D7EB8ACBF21A9AE340CF35868E7B4CF0",
       "size_bytes": 30931
+    },
+    {
+      "path": "tools/emit_profitability_optimizer_evidence_gap_state_sync_recheck_patch_evidence.py",
+      "sha256": "00C91111781FCCC4ABA90ADDE261C779623F86E7ADB980CFCCE8F53AF81FD684",
+      "size_bytes": 30410
     },
     {
       "path": "tools/emit_read_only_dashboard_patch_evidence.py",
@@ -5389,6 +5394,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -8108,6 +8117,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -9433,6 +9446,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_AUDIT.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10788,6 +10805,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12133,6 +12154,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_AUDIT.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
