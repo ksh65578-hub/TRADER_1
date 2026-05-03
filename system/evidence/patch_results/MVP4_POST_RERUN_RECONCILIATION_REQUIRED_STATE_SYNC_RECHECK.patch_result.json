@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.patch_result.v1",
   "patch_id": "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_STATE_SYNC_RECHECK_20260504_001",
-  "created_at_utc": "2026-05-03T17:36:39Z",
+  "created_at_utc": "2026-05-03T18:42:56Z",
   "target_mvp_level": "MVP-4",
   "patch_class": "VALIDATOR_PATCH",
   "input_authority_files": [
@@ -252,6 +252,6 @@
   "convergence_live_mutation_detected": false,
   "convergence_live_order_allowed_after": false,
   "scale_up_eligibility_changed": false,
-  "result_hash": "F715DBD1A6FDF24496FA829FA038B8C20FED80D46E79C3EB53A0E1B38B15EFA5",
+  "result_hash": "944B5E3012A13D72FE2B479D92CDCFC5F8B14DB3376A0DC65B8019397123711B",
   "convergence_layer_changed": false
 }
