@@ -2074,6 +2074,59 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-AUDITED-CURRENT-EVIDENCE-SOURCE-FRESHNESS",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard audited current-evidence source freshness",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-AUDITED-CURRENT-EVIDENCE-SOURCE-FRESHNESS: audited current-evidence dashboard source artifacts must not show PASS when current evidence is stale",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard audited current evidence source freshness fail-closed binding",
+      "requirement_kind": "DASHBOARD_UX_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_dashboard_audited_current_evidence_source_freshness_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_AUDITED_CURRENT_EVIDENCE_SOURCE_FRESHNESS.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "PORTFOLIO_TRUTH",
+        "LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER",
+        "REQ-MVP4-DASHBOARD-POSITION-DETAIL-TRUTH-GUARD"
+      ],
+      "source_text_sha256": "FB37C7EE35D56C3B96C0FF1BC57DDA76E4375B623B60BAB97FDB0C9B46F7BFD4",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-CONVERGENCE-ASSESSMENT-VISIBILITY",
       "source_section_id": "SECTION_DASHBOARD_CONVERGENCE_ASSESSMENT",
       "source_file": "TRADER_1.md",
@@ -17404,5 +17457,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-03T09:47:32Z"
+  "updated_at_utc": "2026-05-03T11:45:33Z"
 }
