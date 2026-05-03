@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "2D1B08F8C4CB68EE613698A052997DEF5C0EBD56593546A70903993AE728776B",
+      "sha256": "3D777736E61C9F16CCD13DC4E1792173510A623C50564AF509DDD135A4042F5F",
       "size_bytes": 1096
     },
     {
@@ -842,6 +842,11 @@
       "path": "tests/contract/test_patch_result_runtime_schema_validation.py",
       "sha256": "D84C053AEF054708BEA2F6CDFF8C0A69FD7657368FDD6EB01B11EF59ECD80E64",
       "size_bytes": 6163
+    },
+    {
+      "path": "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+      "sha256": "6E11DD4E7C9D9318CBCE5BF50FF697BA412F6F6E97857955620CE49421F17C43",
+      "size_bytes": 6623
     },
     {
       "path": "tests/contract/test_post_rerun_reconciliation_required_recheck.py",
@@ -3087,6 +3092,11 @@
       "path": "tools/emit_placeholder_readiness_surface_guard_patch_evidence.py",
       "sha256": "1A64C02041F7AF643BDB1266F08FBC9D12F5FB663A5363B9E5CC560AAB0C8794",
       "size_bytes": 24547
+    },
+    {
+      "path": "tools/emit_post_rerun_current_evidence_write_blocked_recheck_patch_evidence.py",
+      "sha256": "F5C9D7DC032FB6EDF659284ACBB3ED8502DFC8D92D7866CDBB7D0CF59096B10D",
+      "size_bytes": 39323
     },
     {
       "path": "tools/emit_post_rerun_reconciliation_required_state_sync_recheck_patch_evidence.py",
@@ -5438,6 +5448,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -8161,6 +8175,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_POST_RERUN_RECONCILIATION_REQUIRED_STATE_SYNC_RECHECK.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -9506,6 +9524,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10881,6 +10903,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_POST_RERUN_RECONCILIATION_REQUIRED_STATE_SYNC_RECHECK.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12246,6 +12272,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_PLACEHOLDER_READINESS_SURFACE_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
