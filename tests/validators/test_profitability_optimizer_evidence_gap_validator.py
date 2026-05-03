@@ -14,6 +14,17 @@ from trader1.validation.mvp0_validators import (
 
 ROOT = Path(__file__).resolve().parents[2]
 AUDIT_PATH = ROOT / "system" / "evidence" / "audit_reports" / "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_AUDIT.json"
+CONTRACT_GAP_PATH = (
+    ROOT / "system" / "evidence" / "contract_gaps" / "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json"
+)
+STATE_PATH = ROOT / "contracts" / "generated" / "current_implementation_state.json"
+STATE_SYNC_PATCH_PATH = (
+    ROOT
+    / "system"
+    / "evidence"
+    / "patch_results"
+    / "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.patch_result.json"
+)
 ROLLUP_FIXTURE_PATH = ROOT / "tests" / "validators" / "fixtures" / "profitability_evidence_maturity_rollup_pass.json"
 
 
@@ -57,6 +68,46 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         self.assertEqual(inspected, PROFITABILITY_EVIDENCE_REQUIRED_COMPONENTS)
         self.assertEqual(gap_components, PROFITABILITY_EVIDENCE_REQUIRED_COMPONENTS)
+
+    def test_contract_gap_remains_open_live_affecting_and_not_scale_eligible(self):
+        gap = load_json(CONTRACT_GAP_PATH)
+
+        self.assertEqual(gap["status"], "OPEN")
+        self.assertTrue(gap["live_affecting"])
+        self.assertFalse(gap.get("live_order_allowed", False))
+        self.assertFalse(gap.get("scale_up_allowed", False))
+        blocker_codes = {item["code"] for item in gap["blockers"]}
+        self.assertIn("CONTRACT_GAP_HIGH", blocker_codes)
+        self.assertIn("OOS_WALK_FORWARD_BOOTSTRAP_EVIDENCE_MISSING", blocker_codes)
+        self.assertIn("ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED", blocker_codes)
+
+    def test_state_sync_recheck_keeps_gap_open_and_routes_to_long_run_boundary(self):
+        state = load_json(STATE_PATH)
+        patch_result = load_json(STATE_SYNC_PATCH_PATH)
+
+        self.assertEqual(
+            patch_result["patch_id"],
+            "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK_20260504_001",
+        )
+        self.assertEqual(
+            patch_result["next_task_class"],
+            "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_RECHECK",
+        )
+        self.assertEqual(
+            state["next_allowed_task_class"],
+            "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_RECHECK",
+        )
+        self.assertIn("PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY", state["open_contract_gap_ids"])
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(state[field])
+        for field in (
+            "live_order_ready_after",
+            "live_order_allowed_after",
+            "can_live_trade_after",
+            "scale_up_allowed_after",
+            "convergence_live_order_allowed_after",
+        ):
+            self.assertFalse(patch_result[field])
 
     def test_maturity_rollup_validator_passes_current_rollup(self):
         result = profitability_evidence_maturity_rollup_validator().as_dict()
