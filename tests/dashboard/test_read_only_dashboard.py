@@ -75,6 +75,7 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
     AUDITED_WRITER_WRITTEN_STATUS,
     build_upbit_paper_repaired_current_evidence_audited_writer_report,
     upbit_paper_audited_current_evidence_snapshot_hash,
+    upbit_paper_repaired_current_evidence_audited_writer_report_hash,
 )
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
@@ -3876,6 +3877,40 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
         self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
         self.assertEqual(portfolio["blocking_reason"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_keeps_stale_audited_current_evidence_portfolio_unverified(self):
+        writer_report, current_evidence, paper_portfolio, implementation_prep = audited_writer_output_fixture()
+        current_evidence = dict(current_evidence)
+        writer_report = dict(writer_report)
+        writer_report["artifacts"] = [
+            dict(artifact) if isinstance(artifact, dict) else artifact
+            for artifact in writer_report.get("artifacts", [])
+        ]
+        current_evidence["generated_at_utc"] = "2026-01-01T00:00:00Z"
+        current_evidence["snapshot_hash"] = upbit_paper_audited_current_evidence_snapshot_hash(current_evidence)
+        for artifact in writer_report["artifacts"]:
+            if artifact.get("artifact_id") == "AUDITED_CURRENT_EVIDENCE_SNAPSHOT":
+                artifact["payload_hash"] = current_evidence["snapshot_hash"]
+        writer_report["audited_writer_report_hash"] = upbit_paper_repaired_current_evidence_audited_writer_report_hash(
+            writer_report
+        )
+
+        dashboard = build_dashboard_with_audited_current_evidence_writer(
+            (writer_report, current_evidence, paper_portfolio, implementation_prep)
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["blocking_reason"], "LATENCY_TTL_EXPIRED")
         self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
         self.assertFalse(dashboard["live_order_ready"])
         self.assertFalse(dashboard["live_order_allowed"])

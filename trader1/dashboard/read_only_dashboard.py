@@ -1195,6 +1195,16 @@ def _audited_current_evidence_portfolio_snapshot(
             message="Audited PAPER current-evidence portfolio hashes do not bind to the writer report.",
         )
 
+    source_age_seconds = _snapshot_age_seconds(audited_current_evidence_snapshot.get("generated_at_utc"))
+    if source_age_seconds is None or source_age_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS:
+        return _audited_current_evidence_unverified_portfolio_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            summary=summary,
+            blocker_code="LATENCY_TTL_EXPIRED",
+            message="Audited PAPER current-evidence portfolio source is stale; regenerate audited PAPER evidence before trusting portfolio values.",
+        )
+
     currency = str(audited_paper_portfolio_snapshot.get("currency") or _currency_for_scope(exchange, market_type))
     positions = audited_paper_portfolio_snapshot.get("positions", [])
     positions = positions if isinstance(positions, list) else []
@@ -1214,9 +1224,7 @@ def _audited_current_evidence_portfolio_snapshot(
         "source_snapshot_hash": current_hash,
         "source_snapshot_status": "PASS",
         "source_snapshot_generated_at_utc": audited_current_evidence_snapshot.get("generated_at_utc"),
-        "source_snapshot_age_seconds": _snapshot_age_seconds(
-            audited_current_evidence_snapshot.get("generated_at_utc")
-        ),
+        "source_snapshot_age_seconds": source_age_seconds,
         "source_snapshot_stale_after_seconds": SOURCE_FRESHNESS_MAX_AGE_SECONDS,
         "source_snapshot_freshness_message": (
             "Audited PAPER current evidence verifies cash, equity, PnL, and positions from the PAPER ledger rollup; "
