@@ -34,4 +34,4 @@ known_omissions_by_design:
 
 conflict_resolution_rule:
 TRADER_1.md active authority wins over this context pack. This context pack is read cache only.
-generated_at_utc: 2026-05-03T19:08:50Z
+generated_at_utc: 2026-05-03T20:21:44Z
