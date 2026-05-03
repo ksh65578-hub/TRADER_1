@@ -7760,6 +7760,55 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-PROFITABILITY-MATURITY-SOURCE-ARTIFACT-PATH-GUARD",
+      "source_section_id": "SECTION_STRATEGY_PROFITABILITY",
+      "source_file": "TRADER_1.md",
+      "source_heading": "profitability maturity source artifact path guard",
+      "full_text_marker": "REQ-MVP4-PROFITABILITY-MATURITY-SOURCE-ARTIFACT-PATH-GUARD: profitability maturity component source artifact paths must be existing repo-relative evidence references and cannot imply live readiness",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Profitability maturity source artifact path guard",
+      "requirement_kind": "VALIDATOR_IMPLEMENTATION",
+      "schema_ids": [
+        "trader1.profitability_evidence_maturity_rollup.v1"
+      ],
+      "validator_ids": [
+        "profitability_evidence_maturity_rollup_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.md",
+        "system/evidence/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+        "system/evidence/patch_results/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.validator_run_log.json",
+        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+        "tools/emit_profitability_maturity_source_artifact_path_guard_patch_evidence.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_ids": [
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_STRATEGY_PROFITABILITY",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT",
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-ROLLUP-VALIDATOR",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "EE90A8426A21FA74F426E79A881609A732F9D04C27DA2368FF3B8265C55167FF",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_WITH_OPEN_CONTRACT_GAP",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT",
       "source_section_id": "SECTION_STRATEGY_PROFITABILITY",
       "source_file": "TRADER_1.md",
@@ -18351,5 +18400,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-03T21:25:41Z"
+  "updated_at_utc": "2026-05-03T22:02:02Z"
 }

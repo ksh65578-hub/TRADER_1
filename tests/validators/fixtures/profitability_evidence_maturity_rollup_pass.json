@@ -235,7 +235,7 @@
       "validator_status": "PASS",
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
-        "trader1/dashboard/static/read_only_dashboard.html"
+        "trader1/dashboard/read_only_dashboard.py"
       ],
       "source_evidence_ids": [],
       "sample_count": 1,
@@ -259,7 +259,7 @@
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
   "next_operator_action": "Use PAPER runtime-linked strategy/regime/cost evidence only as PAPER scorecard input; collect longer PAPER/SHADOW windows, OOS, walk-forward, bootstrap, read-only burn-in, manual order evidence, and operator approval while live remains blocked.",
-  "rollup_hash": "C7726CCD47921FA0EA865BDC1827F75F15CA8F4086C9722E85329303DB339CDD",
+  "rollup_hash": "5538A80E7065A4A938685E50D7C434854E7A2B82E6DD2E4853F76D83ECEB64C2",
   "runtime_linkage_evidence": {
     "status": "PASS",
     "source_runtime_cycle_path": "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",

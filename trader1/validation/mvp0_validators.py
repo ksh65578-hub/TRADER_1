@@ -19176,6 +19176,26 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
             errors.append(f"rollup component #{index} is not an object")
             continue
         component_id = component.get("component_id", f"component#{index}")
+        source_artifact_paths = component.get("source_artifact_paths", [])
+        if not isinstance(source_artifact_paths, list) or not source_artifact_paths:
+            errors.append(f"rollup component {component_id} must list source artifact paths")
+        else:
+            root = ROOT.resolve()
+            for path_index, source_artifact_path in enumerate(source_artifact_paths):
+                if not isinstance(source_artifact_path, str) or not source_artifact_path:
+                    errors.append(
+                        f"rollup component {component_id} source artifact path #{path_index} is not a non-empty string"
+                    )
+                    continue
+                source_path = Path(source_artifact_path)
+                if source_path.is_absolute():
+                    errors.append(f"rollup component {component_id} source artifact path must be repo-relative")
+                    continue
+                resolved_source_path = (ROOT / source_path).resolve()
+                if resolved_source_path != root and root not in resolved_source_path.parents:
+                    errors.append(f"rollup component {component_id} source artifact path escapes repository root")
+                elif not resolved_source_path.is_file():
+                    errors.append(f"rollup component {component_id} source artifact path is missing")
         if component.get("validator_status") in {"FAIL", "UNTESTED", "STALE", "TIMEOUT"}:
             errors.append(f"rollup component {component_id} has unusable validator_status")
         if component.get("freshness_status") in {"STALE", "UNTESTED", "TIMEOUT"}:
