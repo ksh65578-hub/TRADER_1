@@ -10,17 +10,17 @@ sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
-PATCH_BASENAME = "MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_RUNTIME_DEPTH_DASHBOARD_BINDING"
+PATCH_BASENAME = "MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_OPERATOR_UX_RECHECK"
 PATCH_ID = f"{PATCH_BASENAME}_20260503_001"
-REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-REPAIR-PATH-RUNTIME-DEPTH-DASHBOARD-BINDING"
-NEXT_TASK_CLASS = "MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_OPERATOR_UX_RECHECK"
+REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-REPAIR-PATH-OPERATOR-UX-RECHECK"
+NEXT_TASK_CLASS = "MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK"
 SESSION_ID = "mvp1_upbit_paper_launcher"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import tools.emit_persistent_runtime_resource_boundary_patch_evidence as base  # noqa: E402
-from trader1.dashboard.read_only_dashboard import validate_read_only_dashboard_shell  # noqa: E402
+from trader1.dashboard.read_only_dashboard import build_read_only_dashboard_shell, validate_read_only_dashboard_shell  # noqa: E402
 from trader1.runtime.boot.safe_launcher import build_launcher_report, write_launcher_runtime_bundle  # noqa: E402
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_repair_path import (  # noqa: E402
     build_upbit_paper_post_rerun_reconciliation_repair_path_report,
@@ -50,14 +50,8 @@ VALIDATORS_REQUIRED = [
 
 CHANGED_ARTIFACTS = [
     "contracts/schema/patch_result.schema.json",
-    "contracts/schema/read_only_dashboard_shell.schema.json",
-    "contracts/schema/upbit_paper_post_rerun_reconciliation_repair_path_report.schema.json",
     "trader1/dashboard/read_only_dashboard.py",
-    "trader1/runtime/paper/upbit_paper_post_rerun_reconciliation_repair_path.py",
-    "trader1/runtime/boot/safe_launcher.py",
     "tests/dashboard/test_read_only_dashboard.py",
-    "tests/runtime/test_upbit_paper_post_rerun_reconciliation_repair_path.py",
-    "tests/runtime/test_safe_launcher.py",
     "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_repair_path_report.json",
     "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
     "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
@@ -115,7 +109,7 @@ def load_repair_path_report() -> dict[str, Any]:
     report = build_upbit_paper_post_rerun_reconciliation_repair_path_report(
         root=ROOT,
         session_id=SESSION_ID,
-        repair_path_id="mvp4-upbit-paper-post-rerun-repair-path-runtime-depth-dashboard-binding",
+        repair_path_id="mvp4-upbit-paper-post-rerun-repair-path-operator-ux-recheck",
     )
     write_upbit_paper_post_rerun_reconciliation_repair_path_report(root=ROOT, report=report)
     result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(report)
@@ -125,6 +119,40 @@ def load_repair_path_report() -> dict[str, Any]:
             f"{result.status} {result.blocker_code} {result.message}"
         )
     return report
+
+
+def load_runtime_artifact(relative_path: str) -> dict[str, Any]:
+    value = load_json(ROOT / relative_path)
+    if not isinstance(value, dict):
+        raise RuntimeError(f"runtime artifact is not an object: {relative_path}")
+    return value
+
+
+def build_repair_path_operator_dashboard(repair_path: dict[str, Any]) -> dict[str, Any]:
+    recheck = load_runtime_artifact(str(repair_path["source_recheck_path"]))
+    return build_read_only_dashboard_shell(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id=SESSION_ID,
+        summary=load_runtime_artifact(
+            f"system/runtime/upbit/krw_spot/paper/{SESSION_ID}/summary.json"
+        ),
+        heartbeat=load_runtime_artifact(
+            f"system/runtime/upbit/krw_spot/paper/{SESSION_ID}/heartbeat.json"
+        ),
+        startup_probe=load_runtime_artifact(
+            f"system/runtime/upbit/krw_spot/paper/{SESSION_ID}/startup_probe.json"
+        ),
+        upbit_paper_post_rerun_resolution_current_evidence_closure_report=load_runtime_artifact(
+            str(repair_path["source_closure_path"])
+        ),
+        upbit_paper_post_rerun_current_evidence_closure_recheck_report=recheck,
+        upbit_paper_post_rerun_reconciliation_repair_path_report=repair_path,
+        upbit_paper_ledger_idempotency_runtime_evidence_report=load_runtime_artifact(
+            str(recheck["source_ledger_idempotency_path"])
+        ),
+    )
 
 
 def validate_dashboard_projection(dashboard: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
@@ -184,6 +212,58 @@ def validate_dashboard_projection(dashboard: dict[str, Any]) -> tuple[dict[str, 
     return reconciliation, operator_action, portfolio
 
 
+def validate_repair_path_operator_projection(
+    dashboard: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    result = validate_read_only_dashboard_shell(dashboard)
+    if result.status != "PASS":
+        raise RuntimeError(
+            f"repair path operator dashboard validation failed: {result.status} {result.blocker_code} {result.message}"
+        )
+    reconciliation = dashboard.get("reconciliation_recovery_summary")
+    operator_action = dashboard.get("operator_action_summary")
+    workflow = dashboard.get("operator_workflow_summary")
+    portfolio = dashboard.get("portfolio_snapshot")
+    if not all(isinstance(item, dict) for item in (reconciliation, operator_action, workflow, portfolio)):
+        raise RuntimeError("repair path operator projection missing dashboard sections")
+    if dashboard.get("blocking_reason") != "POST_RERUN_RECONCILIATION_REQUIRED":
+        raise RuntimeError("repair path operator projection did not keep POST_RERUN_RECONCILIATION_REQUIRED")
+    if reconciliation.get("source") != "upbit_paper_post_rerun_reconciliation_repair_path_report.json":
+        raise RuntimeError("repair path operator projection did not prefer repair path source")
+    if operator_action.get("primary_action_label") != "Inspect post-rerun repair path":
+        raise RuntimeError("repair path operator action label was not specific")
+    operator_line = str(operator_action.get("one_line_blocker", ""))
+    if (
+        "post-rerun repair path has 0/4 satisfied repair gates" not in operator_line
+        or "runtime-depth=PASS" not in operator_line
+        or "current-evidence writes=0" not in operator_line
+    ):
+        raise RuntimeError("repair path operator action did not include gate/runtime-depth/write state")
+    if (
+        "operator resolution acceptance" not in str(operator_action.get("next_operator_action", ""))
+        or "current-evidence rebuild" not in str(operator_action.get("next_operator_action", ""))
+    ):
+        raise RuntimeError("repair path operator action did not preserve next repair action")
+    if (
+        workflow.get("status") != "BLOCKED"
+        or workflow.get("current_step") != "INSPECT_DASHBOARD"
+        or "Post-rerun repair path is blocked" not in str(workflow.get("summary", ""))
+        or "runtime-depth support is visible" not in str(workflow.get("steps", [{}, {}])[1].get("detail", ""))
+    ):
+        raise RuntimeError("repair path operator workflow did not explain repair path blocker")
+    if portfolio.get("status") != "UNVERIFIED" or portfolio.get("source_snapshot_status") != "BLOCKED":
+        raise RuntimeError("repair path operator projection promoted portfolio truth")
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if (
+            dashboard.get(field) is not False
+            or reconciliation.get(field) is not False
+            or operator_action.get(field) is not False
+            or workflow.get(field) is not False
+        ):
+            raise RuntimeError(f"repair path operator projection attempted forbidden permission: {field}")
+    return reconciliation, operator_action, workflow, portfolio
+
+
 def write_launcher_artifacts() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], list[str]]:
     report = build_launcher_report("UPBIT_PAPER")
     report_path, dashboard_paths = write_launcher_runtime_bundle(report)
@@ -198,13 +278,21 @@ def write_launcher_artifacts() -> tuple[dict[str, Any], dict[str, Any], dict[str
     return dashboard, reconciliation, operator_action, portfolio, sorted(set(artifact_paths))
 
 
-def write_context(now: str, trader_hash: str, agents_hash: str, dashboard: dict[str, Any], repair_path: dict[str, Any]) -> None:
+def write_context(
+    now: str,
+    trader_hash: str,
+    agents_hash: str,
+    dashboard: dict[str, Any],
+    repair_path: dict[str, Any],
+    repair_operator_action: dict[str, Any],
+    repair_workflow: dict[str, Any],
+) -> None:
     base.write_text(
         ROOT / "contracts" / "generated" / "context_pack" / f"{PATCH_BASENAME}.md",
         f"""# {PATCH_BASENAME}
 
 context_pack_id: {PATCH_BASENAME}
-task_class: MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_DASHBOARD_BINDING
+task_class: MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_OPERATOR_UX_RECHECK
 source_trader1_sha256: {trader_hash}
 source_agents_sha256: {agents_hash}
 included_section_ids: ["SECTION_DASHBOARD_OPERATOR_UX", "SECTION_UPBIT_PAPER_RUNTIME", "SECTION_LEDGER_RECONCILIATION", "SECTION_LIVE_FINAL_GUARD"]
@@ -214,10 +302,10 @@ included_validator_ids: {json.dumps(VALIDATORS_REQUIRED)}
 included_artifact_ids: {json.dumps(CHANGED_ARTIFACTS)}
 
 acceptance_checklist:
-- The Upbit PAPER dashboard loads the validated post-rerun reconciliation repair path report.
-- The repair path preserves the closure recheck runtime-depth binding from persistent loop, public data, feature snapshot, strategy/regime/cost linkage, and mismatch-count evidence.
-- The repair path is displayed as dashboard truth only, not current evidence, execution truth, or live readiness.
-- Repair gate count, satisfied count, blocked count, first gate, source bindings, runtime-depth status, and zero write allowance are visible.
+- The Upbit PAPER dashboard keeps the validated post-rerun reconciliation repair path operator-visible.
+- Operator action uses a repair-path-specific label, gate/runtime-depth/write state, and next repair action.
+- Operator workflow explains that runtime-depth support is visible but no repair gate authorizes current evidence.
+- Current evidence writes, portfolio truth, live orders, and scale-up remain blocked.
 - Portfolio cash/equity stay UNVERIFIED while repair gates are blocked, even when configured PAPER capital is 1,000,000 KRW.
 - Current evidence writes, live orders, and scale-up remain blocked.
 
@@ -238,6 +326,9 @@ runtime_summary:
 - source_recheck_runtime_depth_status: {repair_path["source_recheck_ledger_source_runtime_depth_status"]}
 - source_recheck_runtime_depth_mismatch_count: {repair_path["source_recheck_ledger_source_runtime_depth_mismatch_count"]}
 - source_recheck_persistent_loop_validation_status: {repair_path["source_recheck_ledger_source_persistent_loop_validation_status"]}
+- operator_action_label: {repair_operator_action["primary_action_label"]}
+- operator_workflow_status: {repair_workflow["status"]}
+- operator_workflow_current_step: {repair_workflow["current_step"]}
 - current_evidence_write_allowed: false
 - live_order_ready: false
 - live_order_allowed: false
@@ -266,7 +357,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Upbit PAPER post-rerun repair path is visible in the read-only dashboard with closure recheck runtime-depth binding. Portfolio values remain UNVERIFIED current evidence until the separate repair gates are satisfied by a future validated repair path.
+Upbit PAPER post-rerun repair path is visible in the read-only dashboard with repair-path-specific operator action and workflow guidance. Portfolio values remain UNVERIFIED current evidence until the separate repair gates are satisfied by a future validated repair path.
 
 ## Next Safe Task
 
@@ -287,13 +378,13 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
             "requirement_id": REQUIREMENT_ID,
             "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
             "source_file": "TRADER_1.md",
-            "source_heading": "Upbit PAPER post-rerun reconciliation repair path runtime-depth dashboard binding",
+            "source_heading": "Upbit PAPER post-rerun reconciliation repair path operator UX recheck",
             "full_text_marker": (
-                f"{REQUIREMENT_ID}: repair path gates must be visible in the operator dashboard "
-                "with closure recheck runtime-depth binding and without creating current evidence, live order, or scale-up permission"
+                f"{REQUIREMENT_ID}: repair path operator action and workflow must identify blocked repair gates, "
+                "runtime-depth support, zero current-evidence writes, and next repair evidence without live or scale permission"
             ),
             "authority_level": "ACTIVE_AUTHORITY",
-            "requirement_title": "Upbit PAPER post-rerun reconciliation repair path runtime-depth dashboard binding",
+            "requirement_title": "Upbit PAPER post-rerun reconciliation repair path operator UX recheck",
             "requirement_kind": "DASHBOARD_UX_PATCH",
             "schema_ids": [
                 "trader1.read_only_dashboard_shell.v1",
@@ -318,14 +409,14 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
             ],
             "depends_on": [
                 "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-REPAIR-PATH",
-                "REQ-MVP4-UPBIT-PAPER-POST-RERUN-CURRENT-EVIDENCE-CLOSURE-RECHECK-DASHBOARD-BINDING",
+                "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-REPAIR-PATH-RUNTIME-DEPTH-DASHBOARD-BINDING",
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
             "source_text_sha256": base.sha256_bytes(
-                b"post rerun reconciliation repair path runtime depth binding visible in operator dashboard without current evidence live order or scale up permission"
+                b"post rerun reconciliation repair path operator action workflow visible without current evidence live order or scale up permission"
             ),
             "source_authority_sha256": trader_hash,
-            "implementation_status": "IMPLEMENTED_RUNTIME_DEPTH_DASHBOARD_VISIBLE_LIVE_BLOCKED",
+            "implementation_status": "IMPLEMENTED_OPERATOR_UX_RECHECK_LIVE_BLOCKED",
             "test_status": "PASS",
         }
     )
@@ -383,6 +474,11 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
                 "reconciliation_recovery_summary.post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status",
                 "reconciliation_recovery_summary.post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count",
                 "reconciliation_recovery_summary.post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_validation_status",
+                "operator_action_summary.primary_action_label",
+                "operator_action_summary.one_line_blocker",
+                "operator_action_summary.next_operator_action",
+                "operator_workflow_summary.summary",
+                "operator_workflow_summary.steps",
                 "source_artifacts.POST_RERUN_RECONCILIATION_REPAIR_PATH",
                 "portfolio_snapshot.source_snapshot_status",
                 "operator_action_summary.primary_blocker_code",
@@ -395,6 +491,9 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
                 "post_rerun_reconciliation_repair_gate_blocked_count",
                 "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status",
                 "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count",
+                "post_rerun_reconciliation_repair_path_operator_action_label",
+                "post_rerun_reconciliation_repair_path_operator_workflow_status",
+                "post_rerun_reconciliation_repair_path_operator_workflow_current_step",
                 "live_order_ready_after",
                 "live_order_allowed_after",
                 "can_live_trade_after",
@@ -402,7 +501,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
             ],
             "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
             "live_affecting": True,
-            "status": "IMPLEMENTED_RUNTIME_DEPTH_DASHBOARD_VISIBLE_LIVE_BLOCKED",
+            "status": "IMPLEMENTED_OPERATOR_UX_RECHECK_LIVE_BLOCKED",
         }
     )
     matrix.update(
@@ -422,6 +521,8 @@ def build_patch_result(
     validators_run: list[dict[str, Any]],
     dashboard: dict[str, Any],
     repair_path: dict[str, Any],
+    repair_operator_action: dict[str, Any],
+    repair_workflow: dict[str, Any],
 ) -> dict[str, Any]:
     template = load_json(
         ROOT
@@ -483,10 +584,11 @@ def build_patch_result(
                 "current_implementation_state",
                 "post-rerun reconciliation repair path report",
                 "read-only dashboard shell",
+                "repair-path-specific operator action and workflow projection",
                 "safe launcher dashboard binding",
                 "live final guard",
             ],
-            "task_class": "MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_DASHBOARD_BINDING",
+            "task_class": "MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_REPAIR_PATH_OPERATOR_UX_RECHECK",
             "required_section_ids": [
                 "SECTION_DASHBOARD_OPERATOR_UX",
                 "SECTION_UPBIT_PAPER_RUNTIME",
@@ -505,9 +607,9 @@ def build_patch_result(
             "read_cache_manifest_status": "UPDATED",
             "context_pack_status": "UPDATED",
             "current_implementation_state_status": "UPDATED",
-            "optimizer_status_after": "PAPER_SCORECARD_INPUT_ONLY_POST_RERUN_REPAIR_PATH_VISIBLE_IN_DASHBOARD",
+            "optimizer_status_after": "PAPER_SCORECARD_INPUT_ONLY_POST_RERUN_REPAIR_PATH_OPERATOR_UX_VISIBLE",
             "optimizer_guardrail_result": "PASS_DASHBOARD_DOES_NOT_MUTATE_CURRENT_EVIDENCE",
-            "convergence_state_after": "POST_RERUN_REPAIR_PATH_DASHBOARD_VISIBLE_LIVE_BLOCKED",
+            "convergence_state_after": "POST_RERUN_REPAIR_PATH_OPERATOR_UX_VISIBLE_LIVE_BLOCKED",
             "convergence_guardrail_result": "PASS_NO_LIVE_PERMISSION_NO_CURRENT_EVIDENCE_MUTATION_NO_SCALE_UP",
             "convergence_validators_required": VALIDATORS_REQUIRED,
             "convergence_validators_run": validators_run,
@@ -521,6 +623,11 @@ def build_patch_result(
             "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count": repair_path[
                 "source_recheck_ledger_source_runtime_depth_mismatch_count"
             ],
+            "post_rerun_reconciliation_repair_path_operator_action_label": repair_operator_action[
+                "primary_action_label"
+            ],
+            "post_rerun_reconciliation_repair_path_operator_workflow_status": repair_workflow["status"],
+            "post_rerun_reconciliation_repair_path_operator_workflow_current_step": repair_workflow["current_step"],
             "post_rerun_current_evidence_write_allowed_count": 0,
             "candidate_current_evidence_usable_count": 0,
         }
@@ -538,6 +645,8 @@ def write_evidence(
     patch_result: dict[str, Any],
     dashboard: dict[str, Any],
     repair_path: dict[str, Any],
+    repair_operator_action: dict[str, Any],
+    repair_workflow: dict[str, Any],
     launcher_artifacts: list[str],
 ) -> None:
     reconciliation = dashboard["reconciliation_recovery_summary"]
@@ -581,6 +690,9 @@ def write_evidence(
             "source_recheck_runtime_depth_mismatch_count": reconciliation[
                 "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count"
             ],
+            "repair_path_operator_action_label": repair_operator_action["primary_action_label"],
+            "repair_path_operator_workflow_status": repair_workflow["status"],
+            "repair_path_operator_workflow_current_step": repair_workflow["current_step"],
             "current_evidence_mutation_allowed": False,
             "live_order_ready": False,
             "live_order_allowed": False,
@@ -622,6 +734,9 @@ def write_evidence(
             "source_recheck_runtime_depth_mismatch_count": repair_path[
                 "source_recheck_ledger_source_runtime_depth_mismatch_count"
             ],
+            "repair_path_operator_action_label": repair_operator_action["primary_action_label"],
+            "repair_path_operator_workflow_status": repair_workflow["status"],
+            "repair_path_operator_workflow_current_step": repair_workflow["current_step"],
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
@@ -630,7 +745,7 @@ def write_evidence(
     )
     base.write_text(
         ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260503.md",
-        f"""# MVP4 Upbit PAPER Post-Rerun Reconciliation Repair Path Runtime-Depth Dashboard Binding Audit
+        f"""# MVP4 Upbit PAPER Post-Rerun Reconciliation Repair Path Operator UX Recheck Audit
 
 created_at_utc: {now}
 patch_id: {PATCH_ID}
@@ -638,7 +753,7 @@ patch_id: {PATCH_ID}
 Patch:
 - Bound the post-rerun reconciliation repair path report into the read-only dashboard and safe launcher source map.
 - Preserved the closure recheck runtime-depth fields in the repair path report.
-- Surfaced repair status, gate counts, first blocked gate, source bindings, runtime-depth status, and zero current-evidence write allowance.
+- Surfaced repair-specific operator action and workflow guidance with gate counts, runtime-depth status, and zero current-evidence write allowance.
 - Kept portfolio cash/equity UNVERIFIED while repair gates are blocked, even when configured PAPER capital is visible.
 - Kept a known live-blocking dashboard/operator blocker while POST_RERUN_RECONCILIATION_REQUIRED remains in the blocker set.
 
@@ -651,6 +766,9 @@ Runtime evidence:
 - source_recheck_runtime_depth_mismatch_count={repair_path["source_recheck_ledger_source_runtime_depth_mismatch_count"]}
 - source_recheck_persistent_loop_validation_status={repair_path["source_recheck_ledger_source_persistent_loop_validation_status"]}
 - dashboard_source={reconciliation["source"]}
+- repair_path_operator_action_label={repair_operator_action["primary_action_label"]}
+- repair_path_operator_workflow_status={repair_workflow["status"]}
+- repair_path_operator_workflow_current_step={repair_workflow["current_step"]}
 - portfolio_status={portfolio["status"]}
 
 Safety:
@@ -672,10 +790,22 @@ def write_patch_artifacts(
     patch_result: dict[str, Any],
     dashboard: dict[str, Any],
     repair_path: dict[str, Any],
+    repair_operator_action: dict[str, Any],
+    repair_workflow: dict[str, Any],
     launcher_artifacts: list[str],
 ) -> None:
     patch_path = ROOT / "system" / "evidence" / "patch_results" / f"{PATCH_BASENAME}.patch_result.json"
-    write_evidence(now, trader_hash, agents_hash, patch_result, dashboard, repair_path, launcher_artifacts)
+    write_evidence(
+        now,
+        trader_hash,
+        agents_hash,
+        patch_result,
+        dashboard,
+        repair_path,
+        repair_operator_action,
+        repair_workflow,
+        launcher_artifacts,
+    )
     base.write_json(patch_path, patch_result)
     base.update_state_and_ledger(now, patch_result)
     base.update_read_cache(now, trader_hash, agents_hash)
@@ -690,7 +820,11 @@ def main() -> int:
     base.update_authority_manifest(now)
     repair_path = load_repair_path_report()
     dashboard, reconciliation, operator_action, _portfolio, launcher_artifacts = write_launcher_artifacts()
-    write_context(now, trader_hash, agents_hash, dashboard, repair_path)
+    repair_operator_dashboard = build_repair_path_operator_dashboard(repair_path)
+    _repair_reconciliation, repair_operator_action, repair_workflow, _repair_portfolio = (
+        validate_repair_path_operator_projection(repair_operator_dashboard)
+    )
+    write_context(now, trader_hash, agents_hash, dashboard, repair_path, repair_operator_action, repair_workflow)
     update_requirement_artifacts(now, trader_hash, agents_hash, launcher_artifacts)
 
     tests_run = [
@@ -712,13 +846,49 @@ def main() -> int:
         base.run_command([sys.executable, "-B", "tools/run_runtime_schema_instance_validators.py"]),
     ]
     validators_run = base.summarize_validators(run_validators(VALIDATORS_REQUIRED))
-    patch_result = build_patch_result(now, tests_run, validators_run, dashboard, repair_path)
-    write_patch_artifacts(now, trader_hash, agents_hash, patch_result, dashboard, repair_path, launcher_artifacts)
+    patch_result = build_patch_result(
+        now,
+        tests_run,
+        validators_run,
+        dashboard,
+        repair_path,
+        repair_operator_action,
+        repair_workflow,
+    )
+    write_patch_artifacts(
+        now,
+        trader_hash,
+        agents_hash,
+        patch_result,
+        dashboard,
+        repair_path,
+        repair_operator_action,
+        repair_workflow,
+        launcher_artifacts,
+    )
 
     tests_run.append(base.run_command([sys.executable, "-B", "tools/run_patch_result_runtime_schema_validators.py"]))
     validators_run = base.summarize_validators(run_validators(VALIDATORS_REQUIRED))
-    patch_result = build_patch_result(now, tests_run, validators_run, dashboard, repair_path)
-    write_patch_artifacts(now, trader_hash, agents_hash, patch_result, dashboard, repair_path, launcher_artifacts)
+    patch_result = build_patch_result(
+        now,
+        tests_run,
+        validators_run,
+        dashboard,
+        repair_path,
+        repair_operator_action,
+        repair_workflow,
+    )
+    write_patch_artifacts(
+        now,
+        trader_hash,
+        agents_hash,
+        patch_result,
+        dashboard,
+        repair_path,
+        repair_operator_action,
+        repair_workflow,
+        launcher_artifacts,
+    )
 
     failed = [item for item in patch_result["tests_run"] + patch_result["validators_run"] if item.get("status") != "PASS"]
     patch_path = ROOT / "system" / "evidence" / "patch_results" / f"{PATCH_BASENAME}.patch_result.json"
@@ -730,6 +900,7 @@ def main() -> int:
                 "patch_result_path": base.rel(patch_path),
                 "result_hash": patch_result["result_hash"],
                 "dashboard_source": reconciliation["source"],
+                "repair_path_operator_action_label": repair_operator_action["primary_action_label"],
                 "operator_action_status": operator_action["status"],
                 "live_order_ready": False,
                 "live_order_allowed": False,

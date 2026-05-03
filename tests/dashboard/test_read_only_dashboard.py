@@ -953,12 +953,14 @@ def build_dashboard_with_post_rerun_reconciliation_repair_path(
     recheck_report=None,
     ledger_idempotency_report=None,
     with_paper_portfolio=True,
+    paper_portfolio_snapshot=None,
 ):
     report = report or post_rerun_reconciliation_repair_path_fixture()
     session_id = report["session_id"]
     summary, heartbeat, startup_probe = build_inputs(
         session_id=session_id,
         with_paper_portfolio=with_paper_portfolio,
+        paper_portfolio_snapshot=paper_portfolio_snapshot,
     )
     return build_read_only_dashboard_shell(
         exchange=report["exchange"],
@@ -2749,13 +2751,77 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["blocking_reason"], "POST_RERUN_RECONCILIATION_REQUIRED")
         self.assertIn("Configured PAPER capital is 1,000,000 KRW", portfolio["source_snapshot_freshness_message"])
         self.assertIn("repair gates are 0/4 satisfied", portfolio["source_snapshot_freshness_message"])
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["status"], "BLOCKED")
+        self.assertEqual(operator_action["primary_action"], "STOP_AND_INSPECT")
+        self.assertEqual(operator_action["workflow_step"], "INSPECT_DASHBOARD")
+        self.assertEqual(operator_action["primary_action_label"], "Inspect post-rerun repair path")
+        self.assertEqual(operator_action["primary_blocker_code"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        self.assertIn("post-rerun repair path has 0/4 satisfied repair gates", operator_action["one_line_blocker"])
+        self.assertIn("runtime-depth=PASS", operator_action["one_line_blocker"])
+        self.assertIn("current-evidence writes=0", operator_action["one_line_blocker"])
+        self.assertIn("operator resolution acceptance", operator_action["next_operator_action"])
+        self.assertIn("current-evidence rebuild", operator_action["next_operator_action"])
+        self.assertFalse(operator_action["safe_to_continue_paper"])
+        self.assertFalse(operator_action["live_order_allowed"])
+        self.assertFalse(operator_action["scale_up_allowed"])
+        workflow = dashboard["operator_workflow_summary"]
+        self.assertEqual(workflow["status"], "BLOCKED")
+        self.assertEqual(workflow["current_step"], "INSPECT_DASHBOARD")
+        self.assertIn("Post-rerun repair path is blocked", workflow["summary"])
+        self.assertIn("current evidence and portfolio truth writes remain blocked", workflow["summary"])
+        self.assertEqual(workflow["steps"][1]["status"], "CURRENT")
+        self.assertIn("runtime-depth support is visible", workflow["steps"][1]["detail"])
+        self.assertIn("no repair gate has authorized current evidence", workflow["steps"][1]["detail"])
+        self.assertEqual(workflow["steps"][2]["status"], "WAITING")
+        self.assertIn("operator resolution and current-ledger rebuild evidence", workflow["steps"][2]["detail"])
+        self.assertFalse(workflow["live_order_allowed"])
+        self.assertFalse(workflow["scale_up_allowed"])
         html = render_dashboard_html(dashboard)
         self.assertIn("Repair Path", html)
+        self.assertIn("Inspect post-rerun repair path", html)
         self.assertIn("repair=BLOCKED_REPAIR_PATH_DECLARED", html)
         self.assertIn("gates=0/4", html)
         self.assertIn("repair-runtime-depth=PASS", html)
         self.assertIn("repair-runtime-mismatch=0", html)
+        self.assertIn("current-evidence writes=0", html)
         self.assertIn("repair-writes=0", html)
+
+    def test_dashboard_keeps_post_rerun_repair_path_portfolio_unverified_when_ledger_evidence_is_bound(self):
+        report = post_rerun_reconciliation_repair_path_fixture()
+        ledger_report = ledger_idempotency_runtime_evidence_fixture(
+            session_id=report["session_id"],
+            evidence_id="test-dashboard-post-rerun-repair-path-bound-ledger",
+        )
+        paper_portfolio = build_initial_paper_portfolio_snapshot(
+            exchange=report["exchange"],
+            market_type=report["market_type"],
+            session_id=report["session_id"],
+            source_runtime_cycle_id=ledger_report["portfolio_source_runtime_cycle_id"],
+            source_paper_ledger_head_hash=ledger_report["portfolio_source_paper_ledger_head_hash"],
+        )
+
+        dashboard = build_dashboard_with_post_rerun_reconciliation_repair_path(
+            report=report,
+            closure_report=post_rerun_resolution_current_evidence_closure_fixture(),
+            recheck_report=post_rerun_current_evidence_closure_recheck_fixture(),
+            ledger_idempotency_report=ledger_report,
+            paper_portfolio_snapshot=paper_portfolio,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["blocking_reason"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        self.assertIsNone(portfolio["source_runtime_cycle_id"])
+        self.assertIsNone(portfolio["source_paper_ledger_head_hash"])
+        self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
+        self.assertEqual(portfolio["equity"]["value_display"], "UNVERIFIED")
+        self.assertIn("repair gates are 0/4 satisfied", portfolio["source_snapshot_freshness_message"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
 
     def test_dashboard_blocks_post_rerun_reconciliation_repair_path_live_or_write_drift(self):
         report = post_rerun_reconciliation_repair_path_fixture()
@@ -2791,6 +2857,21 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         )
         self.assertFalse(reconciliation["live_order_allowed"])
         self.assertFalse(dashboard["live_order_allowed"])
+
+    def test_dashboard_blocks_post_rerun_reconciliation_repair_path_operator_action_drift(self):
+        dashboard = build_dashboard_with_post_rerun_reconciliation_repair_path(
+            closure_report=post_rerun_resolution_current_evidence_closure_fixture(),
+            recheck_report=post_rerun_current_evidence_closure_recheck_fixture(),
+            ledger_idempotency_report=ledger_idempotency_runtime_evidence_fixture(
+                session_id="mvp1_upbit_paper_launcher",
+                evidence_id="test-dashboard-post-rerun-repair-path-operator-drift-ledger",
+            ),
+        )
+        dashboard["operator_action_summary"]["primary_action_label"] = "Stop review and inspect the blocker"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
 
     def test_dashboard_projects_post_repair_reconciliation_for_operator_visibility(self):
         dashboard = build_dashboard_with_post_repair_reconciliation(
