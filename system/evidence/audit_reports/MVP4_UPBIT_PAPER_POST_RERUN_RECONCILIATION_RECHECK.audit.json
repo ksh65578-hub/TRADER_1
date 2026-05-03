@@ -1,0 +1,21 @@
+{
+  "audit_schema_id": "trader1.audit_report.v1",
+  "audit_id": "MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_RECHECK_AUDIT",
+  "patch_id": "MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_RECHECK_20260503_001",
+  "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-RECHECK",
+  "status": "PASS",
+  "checks": {
+    "schema_requires_runtime_depth_fields": true,
+    "module_requires_runtime_depth_for_ledger_pass": true,
+    "validator_blocks_depth_and_live_linkage_regressions": true,
+    "tests_cover_depth_regression_and_live_linkage": true,
+    "runtime_recheck_records_depth_pass": true,
+    "live_and_scale_flags_false": true
+  },
+  "finding": "Post-rerun current-evidence closure recheck consumed ledger idempotency PASS, but did not expose or independently enforce the new persistent-loop runtime-depth binding fields.",
+  "fix": "The recheck now records persistent-loop source hash, ledger-head cycle binding, public data source/runtime hash equality, canonical depth, and strategy/regime/cost live-linkage flags, and it blocks runtime-depth or live-linkage regressions before any current evidence bridge can pass.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

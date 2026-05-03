@@ -57,6 +57,7 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
     def test_writer_publishes_verified_paper_current_evidence(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
+            source_portfolio = self.source_ledger_rollup()["portfolio_snapshot"]
             report = self.build_report(root)
             result = validate_upbit_paper_repaired_current_evidence_audited_writer_report(report)
 
@@ -88,8 +89,10 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             self.assertEqual(current_evidence["configured_initial_cash_krw"], "1000000")
             self.assertEqual(portfolio["source"], "PAPER_LEDGER_ROLLUP")
             self.assertEqual(portfolio["starting_cash"], "1000000")
-            self.assertEqual(portfolio["cash_available"], "845923")
-            self.assertEqual(portfolio["open_position_count"], 1)
+            self.assertEqual(portfolio["cash_available"], source_portfolio["cash_available"])
+            self.assertEqual(current_evidence["verified_cash_krw"], source_portfolio["cash_available"])
+            self.assertEqual(current_evidence["verified_equity_krw"], source_portfolio["equity"])
+            self.assertEqual(portfolio["open_position_count"], source_portfolio["open_position_count"])
 
             written_path = write_upbit_paper_repaired_current_evidence_audited_writer_report(
                 root=root,

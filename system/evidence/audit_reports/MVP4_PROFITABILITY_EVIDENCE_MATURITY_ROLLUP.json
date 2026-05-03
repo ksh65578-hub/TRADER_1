@@ -278,7 +278,7 @@
   "rollup_hash": "DC90A611F6AE4157768C1BD9DBA8203D7099F98549427054251B0D9EB612D3BF",
   "runtime_linkage_evidence": {
     "status": "PASS",
-    "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json",
+    "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-paper-ledger-head-binding-guard-cycle-2.runtime_cycle.json",
     "source_runtime_cycle_id": "mvp4-upbit-paper-ledger-head-binding-guard-cycle-2",
     "source_runtime_cycle_hash": "3541E6B1858DA72F83381254312D93187E565BE05C6096C9F231E8A8F974A9D8",
     "runtime_input_role": "PUBLIC_MARKET_DATA_COLLECTION",

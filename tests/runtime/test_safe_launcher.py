@@ -1,4 +1,5 @@
 from contextlib import redirect_stdout
+from decimal import Decimal
 from io import StringIO
 import json
 import os
@@ -55,6 +56,10 @@ from trader1.research.shadow.shadow_observation_runtime_orchestration import (
 )
 from trader1.research.shadow.shadow_observation_scheduler import build_shadow_observation_scheduler_guard_report
 from trader1.research.shadow.shadow_observation_stream import build_shadow_observation_stream_report
+
+
+def krw_display(value):
+    return f"{Decimal(str(value)):,.0f} KRW"
 
 
 class SafeLauncherTest(unittest.TestCase):
@@ -163,6 +168,10 @@ class SafeLauncherTest(unittest.TestCase):
                 root=root,
                 report=writer_report,
             )
+            audited_snapshot = load_json(target_paths["audited_current_evidence_snapshot"])
+            expected_cash_display = krw_display(audited_snapshot["verified_cash_krw"])
+            expected_equity_display = krw_display(audited_snapshot["verified_equity_krw"])
+            expected_total_pnl_display = krw_display(audited_snapshot["verified_total_pnl_krw"])
 
             dashboard_paths = write_launcher_dashboard(report, root)
             dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
@@ -171,9 +180,9 @@ class SafeLauncherTest(unittest.TestCase):
         self.assertEqual(portfolio["status"], "VERIFIED")
         self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
         self.assertEqual(portfolio["configured_paper_capital"]["value_display"], "1,000,000 KRW")
-        self.assertEqual(portfolio["cash"]["value_display"], "845,923 KRW")
-        self.assertEqual(portfolio["equity"]["value_display"], "999,923 KRW")
-        self.assertEqual(portfolio["total_pnl"]["value_display"], "-77 KRW")
+        self.assertEqual(portfolio["cash"]["value_display"], expected_cash_display)
+        self.assertEqual(portfolio["equity"]["value_display"], expected_equity_display)
+        self.assertEqual(portfolio["total_pnl"]["value_display"], expected_total_pnl_display)
         self.assertFalse(dashboard_shell["live_order_ready"])
         self.assertFalse(dashboard_shell["live_order_allowed"])
         self.assertFalse(dashboard_shell["can_live_trade"])
