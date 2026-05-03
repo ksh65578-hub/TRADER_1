@@ -1,0 +1,52 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK_EVIDENCE",
+  "created_at_utc": "2026-05-03T15:49:46Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK_20260504_001",
+  "artifact_paths": [
+    "contracts/generated/context_pack/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.md",
+    "contracts/schema/patch_result.schema.json",
+    "system/evidence/dashboard_snapshots/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.dashboard_shell.json",
+    "system/evidence/dashboard_snapshots/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.index.html",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.patch_result.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.stage_gate_result.json",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.validator_run_log.json",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tools/emit_upbit_paper_post_repair_reconciliation_dashboard_binding_patch_evidence.py",
+    "trader1/dashboard/read_only_dashboard.py"
+  ],
+  "known_blockers": [
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "dashboard_blocking_reason": "POST_REPAIR_RECONCILIATION_REQUIRED",
+  "operator_action_status": "BLOCKED",
+  "operator_primary_blocker_code": "POST_REPAIR_RECONCILIATION_REQUIRED",
+  "operator_primary_action_label": "Inspect post-repair reconciliation",
+  "operator_workflow_status": "BLOCKED",
+  "operator_workflow_current_step": "INSPECT_DASHBOARD",
+  "portfolio_status": "UNVERIFIED",
+  "post_repair_reconciliation_status": "BLOCKED",
+  "repair_candidate_count": 1,
+  "reconciliation_item_count": 1,
+  "source_loop_expected_rollup_hash_mismatch_count": 1,
+  "candidate_current_evidence_usable_count": 0,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

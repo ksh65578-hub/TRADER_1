@@ -1502,10 +1502,15 @@ def _portfolio_snapshot(
         and reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_status")
         == "BLOCKED_REPAIR_PATH_DECLARED"
     )
+    post_repair_current_truth_blocked = (
+        isinstance(reconciliation_recovery_summary, dict)
+        and reconciliation_recovery_summary.get("post_repair_reconciliation_status") == "BLOCKED"
+    )
     if (
         mode == "PAPER"
         and isinstance(summary, dict)
         and not repair_path_current_truth_blocked
+        and not post_repair_current_truth_blocked
         and _runtime_ledger_portfolio_truth_reconciled(
             summary,
             reconciliation_recovery_summary,
@@ -4282,6 +4287,11 @@ def _operator_action_summary(
         and reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_validation_status") == "PASS"
         and reconciliation_recovery_summary.get("primary_blocker_code") == "POST_RERUN_RECONCILIATION_REQUIRED"
     )
+    post_repair_reconciliation_blocked = (
+        reconciliation_recovery_summary.get("post_repair_reconciliation_status") == "BLOCKED"
+        and reconciliation_recovery_summary.get("post_repair_reconciliation_validation_status") == "PASS"
+        and reconciliation_recovery_summary.get("primary_blocker_code") == "POST_REPAIR_RECONCILIATION_REQUIRED"
+    )
 
     if (
         operation_severity == "ERROR"
@@ -4304,6 +4314,8 @@ def _operator_action_summary(
             label = "Inspect audited writer precheck"
         elif repaired_current_evidence_guard_blocked:
             label = "Inspect repaired current-evidence blocker"
+        elif post_repair_reconciliation_blocked:
+            label = "Inspect post-repair reconciliation"
         elif post_rerun_repair_path_blocked:
             label = "Inspect post-rerun repair path"
         else:
@@ -4351,7 +4363,19 @@ def _operator_action_summary(
         reconciliation_blocker_line = reconciliation_recovery_summary.get("one_line_blocker")
         if isinstance(reconciliation_blocker_line, str) and reconciliation_blocker_line.strip():
             one_line_blocker = reconciliation_blocker_line
-        if post_rerun_repair_path_blocked:
+        if post_repair_reconciliation_blocked:
+            item_count = _safe_count(reconciliation_recovery_summary.get("post_repair_reconciliation_item_count"))
+            hash_mismatch_count = _safe_count(
+                reconciliation_recovery_summary.get("post_repair_source_loop_expected_rollup_hash_mismatch_count")
+            )
+            usable_count = _safe_count(
+                reconciliation_recovery_summary.get("post_repair_candidate_current_evidence_usable_count")
+            )
+            one_line_blocker = (
+                f"{blocker}: post-repair reconciliation has {item_count} operator action item(s); "
+                f"hash-mismatch={hash_mismatch_count}; current-evidence usable={usable_count}."
+            )
+        elif post_rerun_repair_path_blocked:
             gate_count = _safe_count(
                 reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_repair_gate_count")
             )
@@ -4470,6 +4494,12 @@ def _operator_workflow_summary(
         and "runtime-depth=PASS" in operator_blocker_text
         and "current-evidence writes=0" in operator_blocker_text
     )
+    post_repair_reconciliation_blocked = (
+        action_status == "BLOCKED"
+        and "post-repair reconciliation" in operator_blocker_text
+        and "hash-mismatch=" in operator_blocker_text
+        and "current-evidence usable=0" in operator_blocker_text
+    )
     if action_status == "BLOCKED":
         status = "BLOCKED"
         severity = "ERROR"
@@ -4498,6 +4528,11 @@ def _operator_workflow_summary(
             summary = (
                 "Repaired isolated event-id candidates are review-only; current evidence and portfolio truth writes "
                 "remain blocked."
+            )
+        elif post_repair_reconciliation_blocked:
+            summary = (
+                "Post-repair reconciliation is blocked; repaired candidates remain review-only while current evidence "
+                "and portfolio truth writes remain blocked."
             )
         elif post_rerun_repair_path_blocked:
             summary = (
@@ -4581,6 +4616,13 @@ def _operator_workflow_summary(
         )
         collect_detail = (
             "Keep repaired candidates review-only; do not collect portfolio truth until current-evidence writes are audited."
+        )
+    elif post_repair_reconciliation_blocked:
+        inspect_detail = (
+            "Inspect the post-repair hash reconciliation; repaired candidates remain blocked by hash mismatch and cannot become current evidence."
+        )
+        collect_detail = (
+            "Collect explicit operator hash reconciliation evidence before any current-evidence update or portfolio truth write."
         )
     elif post_rerun_repair_path_blocked:
         inspect_detail = (
@@ -12493,6 +12535,12 @@ def validate_read_only_dashboard_shell(
         and reconciliation.get("primary_blocker_code") == "POST_RERUN_RECONCILIATION_REQUIRED"
         and shell.get("blocking_reason") == "POST_RERUN_RECONCILIATION_REQUIRED"
     )
+    post_repair_reconciliation_blocks_current_evidence = (
+        post_repair_status == "BLOCKED"
+        and post_repair_validation_status == "PASS"
+        and reconciliation.get("primary_blocker_code") == "POST_REPAIR_RECONCILIATION_REQUIRED"
+        and shell.get("blocking_reason") == "POST_REPAIR_RECONCILIATION_REQUIRED"
+    )
     audited_writer_verified_for_display = (
         audited_writer_status in {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS}
         and audited_writer_validation_status == "PASS"
@@ -14471,6 +14519,31 @@ def validate_read_only_dashboard_shell(
             or operator_action.get("safe_to_continue_paper") is not False
         ):
             return DashboardValidationResult("BLOCKED", "operator action must explain post-rerun repair path blocker", "HARD_TRUTH_MISSING")
+    elif (
+        post_repair_reconciliation_blocks_current_evidence
+        and not audited_writer_precheck_blocks_current_evidence
+        and not audited_writer_dry_run_loaded_for_display
+        and not audited_writer_locked_output_loaded_for_display
+        and not current_guard_blocks_current_evidence
+    ):
+        operator_line = str(operator_action.get("one_line_blocker", ""))
+        operator_next = str(operator_action.get("next_operator_action", ""))
+        operator_next_lower = operator_next.lower()
+        if (
+            operator_action.get("status") != "BLOCKED"
+            or operator_action.get("severity") != "ERROR"
+            or operator_action.get("primary_action") != "STOP_AND_INSPECT"
+            or operator_action.get("workflow_step") != "INSPECT_DASHBOARD"
+            or operator_action.get("primary_action_label") != "Inspect post-repair reconciliation"
+            or "post-repair reconciliation has 1 operator action item(s)" not in operator_line
+            or "hash-mismatch=1" not in operator_line
+            or "current-evidence usable=0" not in operator_line
+            or "hash mismatch" not in operator_next_lower
+            or "explicit operator reconciliation" not in operator_next_lower
+            or "current-evidence update" not in operator_next_lower
+            or operator_action.get("safe_to_continue_paper") is not False
+        ):
+            return DashboardValidationResult("BLOCKED", "operator action must explain post-repair reconciliation blocker", "HARD_TRUTH_MISSING")
     risk_for_operator = shell.get("risk_exposure_snapshot") if isinstance(shell.get("risk_exposure_snapshot"), dict) else {}
     if operator_action.get("status") == "PAPER_MONITORING" and (
         operation.get("severity") != "NORMAL"
@@ -14636,6 +14709,28 @@ def validate_read_only_dashboard_shell(
             or "operator resolution and current-ledger rebuild evidence" not in str(collect_step.get("detail", ""))
         ):
             return DashboardValidationResult("BLOCKED", "operator workflow must explain post-rerun repair path blocker", "HARD_TRUTH_MISSING")
+    elif (
+        post_repair_reconciliation_blocks_current_evidence
+        and not audited_writer_precheck_blocks_current_evidence
+        and not audited_writer_dry_run_loaded_for_display
+        and not audited_writer_locked_output_loaded_for_display
+        and not current_guard_blocks_current_evidence
+    ):
+        inspect_step = steps[1]
+        collect_step = steps[2]
+        if (
+            workflow.get("status") != "BLOCKED"
+            or workflow.get("severity") != "ERROR"
+            or "Post-repair reconciliation is blocked" not in str(workflow.get("summary", ""))
+            or "current evidence and portfolio truth writes remain blocked" not in str(workflow.get("summary", ""))
+            or inspect_step.get("status") != "CURRENT"
+            or "repaired candidates remain blocked by hash mismatch" not in str(inspect_step.get("detail", ""))
+            or "cannot become current evidence" not in str(inspect_step.get("detail", ""))
+            or collect_step.get("status") != "WAITING"
+            or "operator hash reconciliation evidence" not in str(collect_step.get("detail", ""))
+            or "portfolio truth write" not in str(collect_step.get("detail", ""))
+        ):
+            return DashboardValidationResult("BLOCKED", "operator workflow must explain post-repair reconciliation blocker", "HARD_TRUTH_MISSING")
     if workflow.get("status") == "COLLECTING_EVIDENCE" and workflow.get("current_step") != "COLLECT_EVIDENCE":
         return DashboardValidationResult("FAIL", "collecting workflow must point to evidence collection", "SCHEMA_IDENTITY_MISMATCH")
     if workflow.get("status") == "REFRESH_REQUIRED" and workflow.get("current_step") != "RUN_PAPER":
