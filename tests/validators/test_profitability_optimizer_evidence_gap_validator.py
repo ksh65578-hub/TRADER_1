@@ -194,6 +194,26 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         self.assertTrue(any("cycle hash" in error for error in errors), errors)
 
+    def test_maturity_rollup_helper_rejects_missing_component_source_artifact(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["components"][0]["source_artifact_paths"] = [
+            "system/evidence/missing-profitability-source-artifact.json"
+        ]
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("source artifact path is missing" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_component_source_artifact_escape(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["components"][0]["source_artifact_paths"] = ["../outside-repo-artifact.json"]
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("source artifact path escapes repository root" in error for error in errors), errors)
+
 
 if __name__ == "__main__":
     unittest.main()

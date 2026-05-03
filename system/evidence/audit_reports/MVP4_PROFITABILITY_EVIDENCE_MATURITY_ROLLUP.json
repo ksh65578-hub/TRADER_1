@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-01T23:27:51Z",
+  "generated_at_utc": "2026-05-03T22:02:02Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -249,7 +249,7 @@
       "validator_status": "PASS",
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
-        "trader1/dashboard/static/read_only_dashboard.html"
+        "trader1/dashboard/read_only_dashboard.py"
       ],
       "source_evidence_ids": [
         "REQ-MVP4-DASHBOARD-PROFITABILITY-MATURITY-UX-HARDENING"
@@ -275,7 +275,7 @@
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
   "next_operator_action": "Use PAPER runtime-linked strategy/regime/cost evidence only as PAPER scorecard input; collect longer PAPER/SHADOW windows, OOS, walk-forward, bootstrap, read-only burn-in, manual order evidence, and operator approval while live remains blocked.",
-  "rollup_hash": "DC90A611F6AE4157768C1BD9DBA8203D7099F98549427054251B0D9EB612D3BF",
+  "rollup_hash": "C62932899AF944EE8EC0C051D5F91AB37C9A74B17FED8810F3BBC7315C612816",
   "runtime_linkage_evidence": {
     "status": "PASS",
     "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-paper-ledger-head-binding-guard-cycle-2.runtime_cycle.json",

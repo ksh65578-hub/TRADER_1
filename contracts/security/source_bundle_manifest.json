@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "B689600D831A08CF8F19F53D1D4320D297E4926465CD96CE1FBA3BF825673C4F",
+      "sha256": "893BDC154922A056F8FCFECD1F2BC857644FF57517FEE987C59E8781037324AC",
       "size_bytes": 1096
     },
     {
@@ -2205,8 +2205,8 @@
     },
     {
       "path": "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
-      "sha256": "5870DB9DAA7A5BC64054EEE277861C3FECFABDAB570AAD16BE254F64C3DFE4B7",
-      "size_bytes": 12043
+      "sha256": "1A07C3886FE243BAB4066BD3298342C9F5BB911609184BD56CD128BE92621F5B",
+      "size_bytes": 12034
     },
     {
       "path": "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
@@ -2475,8 +2475,8 @@
     },
     {
       "path": "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
-      "sha256": "B3CABA4A01EA7CE2C4F08FF3167110DCBE6C034F70937E2D4FC202508267CDC0",
-      "size_bytes": 8277
+      "sha256": "A108CA2E98D66A83ABF1F3499B2EF29A4D11882083AC4B39FECE1B4304B26619",
+      "size_bytes": 9234
     },
     {
       "path": "tests/validators/test_rolling_window_default_validator.py",
@@ -3117,6 +3117,11 @@
       "path": "tools/emit_profitability_maturity_gap_recheck_patch_evidence.py",
       "sha256": "4C16CDF7B640157D3EB1EE1A70FBD96D69D2906B480D483D56DDCA66434B5A3A",
       "size_bytes": 26706
+    },
+    {
+      "path": "tools/emit_profitability_maturity_source_artifact_path_guard_patch_evidence.py",
+      "sha256": "FF82BD8AC7BD529F0BE69A73A905D6406CC14084A4960752AC8D920A93DD19D9",
+      "size_bytes": 28716
     },
     {
       "path": "tools/emit_profitability_optimizer_evidence_gap_patch_evidence.py",
@@ -4980,8 +4985,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "BAA2EE95A8B72F1CF288F9EEE89438EA2EC8B1584BA5A95DA511F33D70BB3C53",
-      "size_bytes": 1207632
+      "sha256": "57F78DB8A111966BE3DFE734AAE8E684336A515CA70D636A9F1162B484C29A3D",
+      "size_bytes": 1208999
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -5464,6 +5469,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_PROFITABILITY_EVIDENCE_MATURITY_RUNTIME_LINKAGE.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -8203,6 +8212,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_AUDIT.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -9552,6 +9565,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PROFITABILITY_MATURITY_GAP_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10931,6 +10948,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_AUDIT.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12300,6 +12321,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_MATURITY_GAP_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_MATURITY_SOURCE_ARTIFACT_PATH_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
