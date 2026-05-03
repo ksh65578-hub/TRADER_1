@@ -3799,6 +3799,57 @@
       "status": "IMPLEMENTED"
     },
     {
+      "requirement_id": "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-STATE-SYNC-RECHECK",
+      "section_id": "SECTION_LEDGER_RECONCILIATION",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_missing_cycle_rerun_guard_report.schema.json",
+        "contracts/schema/upbit_paper_bounded_rerun_staging_executor_report.schema.json",
+        "contracts/schema/upbit_paper_post_rerun_ledger_rollup_reconciliation_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py"
+      ],
+      "fixture_files": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_missing_cycle_rerun_guard_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_bounded_rerun_staging_executor_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_ledger_rollup_reconciliation_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_MISSING_CYCLE_RERUN_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_BOUNDED_RERUN_STAGING_EXECUTOR.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_LEDGER_ROLLUP_RECONCILIATION.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_CURRENT_EVIDENCE_PROMOTION_GUARD.patch_result.json"
+      ],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_missing_cycle_rerun_guard.py",
+        "trader1/runtime/paper/upbit_paper_bounded_rerun_staging_executor.py",
+        "trader1/runtime/paper/upbit_paper_post_rerun_ledger_rollup_reconciliation.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_required",
+        "validators_run",
+        "tests_run",
+        "next_task_class",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_STATE_SYNC_RECHECK_GAP_OPEN"
+    },
+    {
       "requirement_id": "REQ-MVP4-MODEL-DRIFT-SCHEMA-HARDENING",
       "section_id": "SECTION_MODEL_DRIFT",
       "schema_files": [
@@ -13134,7 +13185,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-03T17:05:22Z",
+  "updated_at_utc": "2026-05-03T17:24:25Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
