@@ -1,0 +1,41 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_EVIDENCE",
+  "created_at_utc": "2026-05-03T09:47:32Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_20260503_001",
+  "artifact_paths": [
+    "contracts/schema/upbit_paper_repaired_current_evidence_audited_writer_report.schema.json",
+    "trader1/runtime/paper/upbit_paper_repaired_current_evidence_audited_writer.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py",
+    "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tools/emit_upbit_paper_repaired_current_evidence_audited_writer_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER.md",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/current_evidence/audited_current_evidence_idempotency_manifest.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/portfolio/paper_portfolio_snapshot.json",
+    "system/evidence/validator_runs/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -721,11 +721,12 @@ def audited_writer_locked_output_fixture(source_dry_run_report=None):
 
 
 def audited_writer_implementation_prep_fixture(source_locked_output_report=None):
-    return build_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
-        root=ROOT,
-        source_audited_writer_locked_output_report=source_locked_output_report or audited_writer_locked_output_fixture(),
-        audited_writer_implementation_prep_id="test-dashboard-audited-writer-implementation-prep",
-    )
+    with TemporaryDirectory() as tmp:
+        return build_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(
+            root=Path(tmp),
+            source_audited_writer_locked_output_report=source_locked_output_report or audited_writer_locked_output_fixture(),
+            audited_writer_implementation_prep_id="test-dashboard-audited-writer-implementation-prep",
+        )
 
 
 def build_dashboard_with_post_rerun_blocker_rollup(report=None):

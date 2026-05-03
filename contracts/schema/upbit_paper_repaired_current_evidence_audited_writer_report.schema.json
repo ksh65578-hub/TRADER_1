@@ -1,0 +1,508 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.upbit_paper_repaired_current_evidence_audited_writer_report.v1",
+  "title": "Upbit PAPER Repaired Current Evidence Audited Writer Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "audited_writer_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "truth_role",
+    "audited_writer_role",
+    "source_implementation_prep_hash",
+    "source_implementation_prep_status",
+    "source_implementation_prep_validator_status",
+    "source_locked_output_hash",
+    "source_ledger_rollup_hash",
+    "source_ledger_rollup_status",
+    "source_ledger_rollup_validator_status",
+    "source_paper_ledger_head_hash",
+    "source_runtime_cycle_id",
+    "writer_status",
+    "writer_passed",
+    "writer_control_count",
+    "writer_control_pass_count",
+    "writer_control_blocked_count",
+    "writer_controls",
+    "planned_artifact_paths",
+    "planned_temp_paths",
+    "lock_path",
+    "target_states_before",
+    "artifacts",
+    "artifact_written_count",
+    "artifact_reused_count",
+    "idempotent_replay",
+    "lock_acquire_attempted",
+    "lock_acquired",
+    "lock_file_written",
+    "lock_released",
+    "lock_present_after_run",
+    "primary_blocker_code",
+    "blocker_codes",
+    "operator_next_action",
+    "display_only",
+    "dashboard_truth_only",
+    "paper_only",
+    "writer_single_run_only",
+    "current_evidence_artifact_written",
+    "idempotency_manifest_written",
+    "portfolio_truth_artifact_written",
+    "current_evidence_write_allowed",
+    "portfolio_truth_write_allowed",
+    "current_ledger_jsonl_write_allowed",
+    "latest_runtime_pointer_write_allowed",
+    "persistent_loop_mutation_allowed",
+    "source_delete_allowed",
+    "actual_long_run_evidence_created",
+    "long_run_evidence_eligible",
+    "promotion_eligible",
+    "credential_load_attempted",
+    "private_endpoint_called",
+    "order_endpoint_called",
+    "order_adapter_called",
+    "live_key_loaded",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "can_submit_order",
+    "scale_up_allowed",
+    "audited_writer_report_hash"
+  ],
+  "$defs": {
+    "hash_or_null": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "string_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "writer_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_id",
+        "control_status",
+        "blocker_code",
+        "detail",
+        "artifact_written",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "control_id": {
+          "enum": [
+            "SOURCE_IMPLEMENTATION_PREP_VALID",
+            "SOURCE_LEDGER_ROLLUP_VALID",
+            "TARGET_PATHS_WITHIN_SESSION",
+            "TEMP_PATHS_CLEAR",
+            "SINGLE_WRITER_LOCK_ACQUIRED",
+            "CURRENT_EVIDENCE_SNAPSHOT_PUBLISHED",
+            "IDEMPOTENCY_MANIFEST_PUBLISHED",
+            "PORTFOLIO_TRUTH_PUBLISHED",
+            "POST_WRITE_HASHES_MATCH",
+            "POST_WRITE_SCHEMA_VALIDATED",
+            "LIVE_AND_SCALE_BOUNDARY_CONFIRMED"
+          ]
+        },
+        "control_status": {
+          "enum": [
+            "PASS",
+            "BLOCKED"
+          ]
+        },
+        "blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_written": {
+          "type": "boolean"
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "target_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_final_path",
+        "relative_temp_path",
+        "final_path_resolves_under_session",
+        "temp_path_resolves_under_session",
+        "final_exists_before",
+        "temp_exists_before"
+      ],
+      "properties": {
+        "relative_final_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relative_temp_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "final_path_resolves_under_session": {
+          "type": "boolean"
+        },
+        "temp_path_resolves_under_session": {
+          "type": "boolean"
+        },
+        "final_exists_before": {
+          "type": "boolean"
+        },
+        "temp_exists_before": {
+          "type": "boolean"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "relative_final_path",
+        "relative_temp_path",
+        "payload_hash",
+        "file_hash",
+        "file_exists",
+        "artifact_written",
+        "temp_exists_after_write",
+        "live_order_allowed",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "artifact_id": {
+          "enum": [
+            "AUDITED_CURRENT_EVIDENCE_SNAPSHOT",
+            "AUDITED_CURRENT_EVIDENCE_IDEMPOTENCY_MANIFEST",
+            "AUDITED_PORTFOLIO_TRUTH_SNAPSHOT"
+          ]
+        },
+        "relative_final_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relative_temp_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "file_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "file_exists": {
+          "type": "boolean"
+        },
+        "artifact_written": {
+          "type": "boolean"
+        },
+        "temp_exists_after_write": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    }
+  },
+  "properties": {
+    "schema_id": {
+      "const": "trader1.upbit_paper_repaired_current_evidence_audited_writer_report.v1"
+    },
+    "generated_at_utc": {
+      "type": "string"
+    },
+    "project_id": {
+      "const": "TRADER_1"
+    },
+    "audited_writer_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exchange": {
+      "const": "UPBIT"
+    },
+    "market_type": {
+      "const": "KRW_SPOT"
+    },
+    "mode": {
+      "const": "PAPER"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "truth_role": {
+      "const": "paper_runtime_repaired_current_evidence_audited_writer_truth"
+    },
+    "audited_writer_role": {
+      "const": "PAPER_RUNTIME_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_SINGLE_RUN"
+    },
+    "source_implementation_prep_hash": {
+      "$ref": "#/$defs/hash_or_null"
+    },
+    "source_implementation_prep_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_implementation_prep_validator_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "source_locked_output_hash": {
+      "$ref": "#/$defs/hash_or_null"
+    },
+    "source_ledger_rollup_hash": {
+      "$ref": "#/$defs/hash_or_null"
+    },
+    "source_ledger_rollup_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_ledger_rollup_validator_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "BLOCKED"
+      ]
+    },
+    "source_paper_ledger_head_hash": {
+      "$ref": "#/$defs/hash_or_null"
+    },
+    "source_runtime_cycle_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "writer_status": {
+      "enum": [
+        "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN",
+        "PASS_AUDITED_CURRENT_EVIDENCE_ALREADY_WRITTEN",
+        "BLOCKED_SOURCE_IMPLEMENTATION_PREP_INVALID",
+        "BLOCKED_SOURCE_LEDGER_ROLLUP_INVALID",
+        "BLOCKED_AUDITED_CURRENT_EVIDENCE_TARGET_DIRTY",
+        "BLOCKED_AUDITED_CURRENT_EVIDENCE_WRITER_LOCKED"
+      ]
+    },
+    "writer_passed": {
+      "type": "boolean"
+    },
+    "writer_control_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "writer_control_pass_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "writer_control_blocked_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "writer_controls": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/writer_control"
+      }
+    },
+    "planned_artifact_paths": {
+      "$ref": "#/$defs/string_list"
+    },
+    "planned_temp_paths": {
+      "$ref": "#/$defs/string_list"
+    },
+    "lock_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "target_states_before": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/target_state"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "artifact_written_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "artifact_reused_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "idempotent_replay": {
+      "type": "boolean"
+    },
+    "lock_acquire_attempted": {
+      "type": "boolean"
+    },
+    "lock_acquired": {
+      "type": "boolean"
+    },
+    "lock_file_written": {
+      "type": "boolean"
+    },
+    "lock_released": {
+      "type": "boolean"
+    },
+    "lock_present_after_run": {
+      "const": false
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "blocker_codes": {
+      "$ref": "#/$defs/string_list"
+    },
+    "operator_next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "display_only": {
+      "const": true
+    },
+    "dashboard_truth_only": {
+      "const": true
+    },
+    "paper_only": {
+      "const": true
+    },
+    "writer_single_run_only": {
+      "const": true
+    },
+    "current_evidence_artifact_written": {
+      "type": "boolean"
+    },
+    "idempotency_manifest_written": {
+      "type": "boolean"
+    },
+    "portfolio_truth_artifact_written": {
+      "type": "boolean"
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "portfolio_truth_write_allowed": {
+      "const": false
+    },
+    "current_ledger_jsonl_write_allowed": {
+      "const": false
+    },
+    "latest_runtime_pointer_write_allowed": {
+      "const": false
+    },
+    "persistent_loop_mutation_allowed": {
+      "const": false
+    },
+    "source_delete_allowed": {
+      "const": false
+    },
+    "actual_long_run_evidence_created": {
+      "const": false
+    },
+    "long_run_evidence_eligible": {
+      "const": false
+    },
+    "promotion_eligible": {
+      "const": false
+    },
+    "credential_load_attempted": {
+      "const": false
+    },
+    "private_endpoint_called": {
+      "const": false
+    },
+    "order_endpoint_called": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "live_key_loaded": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "can_submit_order": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "audited_writer_report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}

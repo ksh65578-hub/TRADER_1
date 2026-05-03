@@ -13722,6 +13722,74 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER",
+      "source_section_id": "SECTION_PORTFOLIO_TRUTH",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER repaired current-evidence audited writer",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER: audited writer must publish verified PAPER current evidence and portfolio truth from validated ledger rollup sources with idempotency, locks, and live-blocked boundaries",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER audited current evidence writer",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_repaired_current_evidence_audited_writer_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validator",
+        "paper_ledger_rollup_validator",
+        "paper_portfolio_snapshot_validator",
+        "upbit_paper_repaired_current_evidence_audited_writer_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_repaired_current_evidence_audited_writer_report.schema.json",
+        "trader1/runtime/paper/upbit_paper_repaired_current_evidence_audited_writer.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py",
+        "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_upbit_paper_repaired_current_evidence_audited_writer_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER.md",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/current_evidence/audited_current_evidence_idempotency_manifest.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/portfolio/paper_portfolio_snapshot.json"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py",
+        "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_PORTFOLIO_TRUTH",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-IMPLEMENTATION-PREP",
+        "REQ-MVP4-UPBIT-PAPER-PORTFOLIO-TRUTH-RECONCILIATION",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "7E86B7A37115E7464DBA6DF5B3735643106C39E88AC4CEFDAEC1AC83CF73F3F8",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_AUDITED_PAPER_CURRENT_EVIDENCE_WRITER_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-DESIGN",
       "source_section_id": "SECTION_LEDGER_RECONCILIATION",
       "source_file": "TRADER_1.md",
@@ -17336,5 +17404,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-02T15:03:16Z"
+  "updated_at_utc": "2026-05-03T09:47:32Z"
 }

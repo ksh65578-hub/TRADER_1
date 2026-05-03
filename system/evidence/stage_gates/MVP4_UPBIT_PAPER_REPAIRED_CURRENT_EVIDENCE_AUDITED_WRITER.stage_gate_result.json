@@ -1,0 +1,18 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-03T09:47:32Z",
+  "patch_id": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_20260503_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_AUDITED_CURRENT_EVIDENCE_WRITER_PAPER_ONLY",
+  "writer_status": "PASS_AUDITED_CURRENT_EVIDENCE_ALREADY_WRITTEN",
+  "artifact_written_count": 0,
+  "artifact_reused_count": 3,
+  "lock_present_after_run": false,
+  "current_evidence_artifact_written": true,
+  "idempotency_manifest_written": true,
+  "portfolio_truth_artifact_written": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

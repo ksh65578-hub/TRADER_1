@@ -1,0 +1,436 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_20260503_001",
+  "created_at_utc": "2026-05-03T09:47:32Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "MATCH",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER",
+    "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER-IMPLEMENTATION-PREP",
+    "REQ-MVP4-LIVE-FINAL-GUARD"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER"
+  ],
+  "new_or_changed_schema_ids": [
+    "trader1.upbit_paper_repaired_current_evidence_audited_writer_report.v1"
+  ],
+  "validators_required": [
+    "schema_validator",
+    "registry_validator",
+    "runtime_schema_instance_validator",
+    "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validator",
+    "paper_ledger_rollup_validator",
+    "paper_portfolio_snapshot_validator",
+    "upbit_paper_repaired_current_evidence_audited_writer_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator",
+    "source_bundle_hygiene_validator",
+    "shipped_package_hygiene_validator",
+    "secret_scan_validator",
+    "coverage_index_validator",
+    "live_final_guard_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_ledger_rollup_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_portfolio_snapshot_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_repaired_current_evidence_audited_writer_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep.py -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_projects_audited_writer_implementation_prep_for_operator_visibility tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_blocks_audited_writer_implementation_prep_operator_action_drift tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_blocks_audited_writer_implementation_prep_operator_workflow_drift -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "UPDATED_PASS",
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "LIVE_IMPACT_RECHECKED_NO_ARCHIVE_AUTHORITY",
+  "read_cache_update_required": true,
+  "context_pack_update_required": true,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING",
+  "next_required_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_PORTFOLIO_TRUTH",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_CURRENT_EVIDENCE_WRITER"
+  ],
+  "next_forbidden_default_sections": [
+    "LIVE_ENABLING_PATCH",
+    "LIVE_CONFIG_MUTATION",
+    "RISK_SCALE_UP",
+    "RETAINED_ARCHIVE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "current_implementation_state",
+    "audited writer implementation-prep report",
+    "paper ledger rollup report",
+    "live final guard"
+  ],
+  "task_class": "MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER",
+  "required_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_PORTFOLIO_TRUTH",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_PORTFOLIO_TRUTH",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "UNCHANGED",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED_PASS",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "UPDATED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "NO_OPTIMIZER_RUNTIME_CHANGE_AUDITED_PAPER_CURRENT_EVIDENCE_WRITER",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "NO_CONVERGENCE_RUNTIME_CHANGE",
+  "convergence_layer_changed": false,
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "result_hash": "3C78728D603C4DC97E1591F73C781EAFB589F05E5EB983297097A4EA55C1940F",
+  "stale_loop_operator_queue_closure_status": "BLOCKED",
+  "stale_loop_operator_queue_closure_item_count": 6,
+  "stale_loop_operator_queue_closure_ledger_recheck_ready_count": 5,
+  "stale_loop_operator_queue_closure_recovery_guard_required_count": 1,
+  "stale_loop_operator_queue_closure_current_evidence_write_allowed_count": 0,
+  "stale_loop_operator_queue_closure_current_evidence_usable_after_closure_count": 0,
+  "stale_loop_ledger_recheck_preview_status": "BLOCKED",
+  "stale_loop_ledger_recheck_candidate_count": 5,
+  "stale_loop_ledger_recheck_replacement_validation_fail_count": 5,
+  "stale_loop_ledger_recheck_preview_blocked_count": 5,
+  "stale_loop_ledger_recheck_current_evidence_write_allowed_count": 0,
+  "stale_loop_ledger_recheck_current_evidence_usable_after_preview_count": 0,
+  "stale_loop_replacement_schema_normalization_preview_status": "BLOCKED",
+  "stale_loop_replacement_schema_normalization_candidate_count": 5,
+  "stale_loop_replacement_schema_missing_field_total_count": 35,
+  "stale_loop_replacement_schema_normalized_schema_fail_count": 0,
+  "stale_loop_replacement_schema_normalized_reconciliation_blocked_count": 5,
+  "stale_loop_replacement_schema_normalization_write_allowed_count": 0,
+  "stale_loop_replacement_schema_current_evidence_write_allowed_count": 0,
+  "stale_loop_normalized_reconciliation_preview_status": "BLOCKED",
+  "stale_loop_normalized_reconciliation_candidate_count": 5,
+  "stale_loop_normalized_reconciliation_schema_resolved_count": 5,
+  "stale_loop_normalized_reconciliation_required_count": 5,
+  "stale_loop_normalized_reconciliation_schema_mismatch_count": 0,
+  "stale_loop_normalized_reconciliation_write_allowed_count": 0,
+  "stale_loop_normalized_reconciliation_current_evidence_write_allowed_count": 0,
+  "stale_loop_normalized_reconciliation_recheck_status": "BLOCKED",
+  "stale_loop_normalized_reconciliation_recheck_candidate_count": 5,
+  "stale_loop_normalized_reconciliation_recheck_hash_match_count": 5,
+  "stale_loop_normalized_reconciliation_recheck_validation_blocked_count": 5,
+  "stale_loop_normalized_reconciliation_recheck_ledger_rollup_required_count": 5,
+  "stale_loop_normalized_reconciliation_recheck_write_allowed_count": 0,
+  "stale_loop_normalized_reconciliation_recheck_current_evidence_write_allowed_count": 0,
+  "stale_loop_ledger_rollup_reconciliation_recheck_status": "BLOCKED",
+  "stale_loop_ledger_rollup_reconciliation_recheck_candidate_count": 5,
+  "stale_loop_ledger_rollup_reconciliation_recheck_artifact_exists_count": 0,
+  "stale_loop_ledger_rollup_reconciliation_recheck_artifact_missing_count": 5,
+  "stale_loop_ledger_rollup_reconciliation_recheck_hash_match_count": 0,
+  "stale_loop_ledger_rollup_reconciliation_recheck_validator_pass_count": 0,
+  "stale_loop_ledger_rollup_reconciliation_recheck_blocked_count": 5,
+  "stale_loop_ledger_rollup_reconciliation_recheck_write_allowed_count": 0,
+  "stale_loop_ledger_rollup_reconciliation_recheck_current_evidence_write_allowed_count": 0,
+  "stale_loop_ledger_rollup_regeneration_plan_status": "READY_PLAN_ONLY",
+  "stale_loop_ledger_rollup_regeneration_plan_candidate_count": 5,
+  "stale_loop_ledger_rollup_regeneration_plan_ready_count": 5,
+  "stale_loop_ledger_rollup_regeneration_plan_blocked_count": 0,
+  "stale_loop_ledger_rollup_regeneration_plan_cycle_count": 9,
+  "stale_loop_ledger_rollup_regeneration_plan_input_ready_count": 9,
+  "stale_loop_ledger_rollup_regeneration_plan_missing_input_count": 0,
+  "stale_loop_ledger_rollup_regeneration_plan_execution_allowed": false,
+  "stale_loop_ledger_rollup_regeneration_plan_write_allowed": false,
+  "stale_loop_ledger_rollup_regeneration_executor_status": "BLOCKED",
+  "stale_loop_ledger_rollup_regeneration_executor_candidate_count": 5,
+  "stale_loop_ledger_rollup_regeneration_executor_pass_count": 1,
+  "stale_loop_ledger_rollup_regeneration_executor_blocked_count": 4,
+  "stale_loop_ledger_rollup_regeneration_executor_strict_input_scope_blocked_count": 4,
+  "stale_loop_ledger_rollup_regeneration_executor_artifact_ready_count": 1,
+  "stale_loop_ledger_rollup_regeneration_executor_current_evidence_write_allowed_count": 0,
+  "stale_loop_ledger_rollup_regeneration_executor_candidate_write_enabled": true,
+  "stale_loop_ledger_rollup_executor_reconciliation_recheck_status": "BLOCKED",
+  "stale_loop_ledger_rollup_executor_reconciliation_recheck_candidate_count": 5,
+  "stale_loop_ledger_rollup_executor_reconciliation_recheck_pass_count": 1,
+  "stale_loop_ledger_rollup_executor_reconciliation_recheck_blocked_count": 4,
+  "stale_loop_ledger_rollup_executor_reconciliation_recheck_artifact_exists_count": 1,
+  "stale_loop_ledger_rollup_executor_reconciliation_recheck_hash_match_count": 1,
+  "stale_loop_ledger_rollup_executor_reconciliation_recheck_strict_input_scope_blocked_count": 4,
+  "stale_loop_ledger_rollup_executor_reconciliation_recheck_current_evidence_write_allowed_count": 0,
+  "stale_loop_ledger_input_scope_repair_plan_status": "READY_PLAN_ONLY",
+  "stale_loop_ledger_input_scope_repair_plan_candidate_count": 4,
+  "stale_loop_ledger_input_scope_repair_plan_ready_count": 4,
+  "stale_loop_ledger_input_scope_repair_plan_blocked_count": 0,
+  "stale_loop_ledger_input_scope_repair_plan_cycle_count": 8,
+  "stale_loop_ledger_input_scope_repair_plan_cycle_ready_count": 8,
+  "stale_loop_ledger_input_scope_repair_plan_mirror_ledger_count": 8,
+  "stale_loop_ledger_input_scope_repair_plan_current_canonical_write_allowed_count": 0,
+  "stale_loop_ledger_input_scope_repair_executor_status": "CANDIDATE_MIRROR_READY_CURRENT_EVIDENCE_BLOCKED",
+  "stale_loop_ledger_input_scope_repair_executor_candidate_count": 4,
+  "stale_loop_ledger_input_scope_repair_executor_cycle_count": 8,
+  "stale_loop_ledger_input_scope_repair_executor_ready_count": 8,
+  "stale_loop_ledger_input_scope_repair_executor_written_count": 8,
+  "stale_loop_ledger_input_scope_repair_executor_reused_count": 0,
+  "stale_loop_ledger_input_scope_repair_executor_current_evidence_write_allowed_count": 0,
+  "stale_loop_isolated_ledger_rollup_rebuild_status": "BLOCKED",
+  "stale_loop_isolated_ledger_rollup_rebuild_candidate_count": 4,
+  "stale_loop_isolated_ledger_rollup_rebuild_candidate_pass_count": 1,
+  "stale_loop_isolated_ledger_rollup_rebuild_candidate_blocked_count": 3,
+  "stale_loop_isolated_ledger_rollup_rebuild_candidate_artifact_ready_count": 1,
+  "stale_loop_isolated_ledger_rollup_rebuild_ledger_jsonl_count": 8,
+  "stale_loop_isolated_ledger_rollup_rebuild_ledger_event_count": 42,
+  "stale_loop_isolated_ledger_rollup_rebuild_filled_order_count": 7,
+  "stale_loop_isolated_ledger_rollup_rebuild_duplicate_event_count": 6,
+  "stale_loop_isolated_ledger_rollup_rebuild_current_evidence_write_allowed_count": 0,
+  "stale_loop_isolated_duplicate_reconciliation_recheck_status": "BLOCKED_REPAIR_PLAN_REQUIRED",
+  "stale_loop_isolated_duplicate_reconciliation_recheck_candidate_count": 4,
+  "stale_loop_isolated_duplicate_reconciliation_recheck_affected_candidate_count": 3,
+  "stale_loop_isolated_duplicate_reconciliation_recheck_duplicate_group_count": 6,
+  "stale_loop_isolated_duplicate_reconciliation_recheck_duplicate_event_id_duplicate_count": 6,
+  "stale_loop_isolated_duplicate_reconciliation_recheck_duplicate_occurrence_count": 12,
+  "stale_loop_isolated_duplicate_reconciliation_recheck_current_evidence_write_allowed_count": 0,
+  "stale_loop_isolated_event_id_scope_repair_plan_status": "READY_PLAN_ONLY",
+  "stale_loop_isolated_event_id_scope_repair_plan_candidate_count": 4,
+  "stale_loop_isolated_event_id_scope_repair_plan_repair_candidate_count": 3,
+  "stale_loop_isolated_event_id_scope_repair_plan_duplicate_group_count": 6,
+  "stale_loop_isolated_event_id_scope_repair_plan_event_id_update_count": 12,
+  "stale_loop_isolated_event_id_scope_repair_plan_hash_recalculation_count": 12,
+  "stale_loop_isolated_event_id_scope_repair_plan_current_evidence_write_allowed_count": 0,
+  "stale_loop_isolated_event_id_scope_repair_executor_status": "CANDIDATE_REPAIR_READY_CURRENT_EVIDENCE_BLOCKED",
+  "stale_loop_isolated_event_id_scope_repair_executor_candidate_count": 4,
+  "stale_loop_isolated_event_id_scope_repair_executor_repair_candidate_count": 3,
+  "stale_loop_isolated_event_id_scope_repair_executor_repair_cycle_count": 6,
+  "stale_loop_isolated_event_id_scope_repair_executor_written_count": 6,
+  "stale_loop_isolated_event_id_scope_repair_executor_event_id_updated_count": 12,
+  "stale_loop_isolated_event_id_scope_repair_executor_hash_recalculation_count": 36,
+  "stale_loop_isolated_event_id_scope_repair_executor_post_repair_duplicate_event_id_count": 0,
+  "stale_loop_isolated_event_id_scope_repair_executor_current_evidence_write_allowed_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_status": "REPAIRED_CANDIDATE_ROLLUPS_READY_CURRENT_EVIDENCE_BLOCKED",
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_candidate_count": 3,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_candidate_pass_count": 3,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_candidate_blocked_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_candidate_artifact_ready_count": 3,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_ledger_jsonl_count": 6,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_ledger_event_count": 36,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_filled_order_count": 6,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_duplicate_event_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_event_id_updated_count": 12,
+  "stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_current_evidence_write_allowed_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_status": "REPAIRED_DUPLICATE_RECHECK_PASS_CURRENT_EVIDENCE_BLOCKED",
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_candidate_count": 3,
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_clean_candidate_count": 3,
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_affected_candidate_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_group_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_event_id_duplicate_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_dedup_key_duplicate_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_filled_order_duplicate_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_duplicate_occurrence_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_duplicate_recheck_current_evidence_write_allowed_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status": "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED",
+  "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_candidate_count": 3,
+  "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_review_ready_count": 3,
+  "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_blocked_count": 3,
+  "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_duplicate_total_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_current_evidence_write_allowed_count": 0,
+  "stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_portfolio_truth_write_allowed_count": 0,
+  "optimizer_status_after": "REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT_BLOCKED",
+  "optimizer_guardrail_result": "PASS_LOCKED_OUTPUT_DOES_NOT_MUTATE_CURRENT_EVIDENCE",
+  "convergence_state_after": "REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT_LIVE_BLOCKED",
+  "convergence_guardrail_result": "PASS_NO_LIVE_PERMISSION_NO_CURRENT_EVIDENCE_MUTATION_NO_SCALE_UP",
+  "convergence_validators_required": [
+    "schema_validator",
+    "registry_validator",
+    "runtime_schema_instance_validator",
+    "upbit_paper_repaired_current_evidence_audited_writer_dry_run_validator",
+    "upbit_paper_repaired_current_evidence_audited_writer_locked_output_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator",
+    "source_bundle_hygiene_validator",
+    "shipped_package_hygiene_validator",
+    "secret_scan_validator",
+    "coverage_index_validator",
+    "live_final_guard_validator"
+  ],
+  "convergence_validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_repaired_current_evidence_audited_writer_dry_run_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_repaired_current_evidence_audited_writer_locked_output_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "candidate_current_evidence_usable_count": 0
+}
