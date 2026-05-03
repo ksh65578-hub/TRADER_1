@@ -1,6 +1,6 @@
 {
   "stage_gate_schema_id": "trader1.stage_gate_result.v1",
-  "created_at_utc": "2026-05-03T18:17:57Z",
+  "created_at_utc": "2026-05-03T19:18:31Z",
   "patch_id": "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK_20260504_001",
   "target_mvp_level": "MVP-4",
   "stage_gate_status": "PASS_STATE_SYNC_RECHECK_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_REMAINS_OPEN",
