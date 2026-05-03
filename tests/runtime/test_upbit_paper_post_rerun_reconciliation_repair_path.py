@@ -38,6 +38,22 @@ class UpbitPaperPostRerunReconciliationRepairPathTest(unittest.TestCase):
         self.assertEqual(report["source_closure_current_evidence_write_allowed_count"], 0)
         self.assertEqual(report["source_closure_candidate_current_evidence_usable_count"], 0)
         self.assertEqual(report["source_recheck_bridge_status"], "BLOCKED_BY_POST_RERUN_CLOSURE")
+        self.assertEqual(report["source_recheck_ledger_source_persistent_loop_validation_status"], "PASS")
+        self.assertEqual(report["source_recheck_ledger_source_persistent_loop_hash_self_check"], "PASS")
+        self.assertTrue(report["source_recheck_ledger_head_cycle_in_persistent_loop"])
+        self.assertEqual(report["source_recheck_ledger_source_runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
+        self.assertEqual(
+            report["source_recheck_ledger_source_public_market_data_hash"],
+            report["source_recheck_ledger_source_runtime_public_market_data_hash"],
+        )
+        self.assertGreaterEqual(report["source_recheck_ledger_source_canonical_event_count"], 5)
+        self.assertEqual(report["source_recheck_ledger_source_runtime_depth_status"], "PASS")
+        self.assertIsNone(report["source_recheck_ledger_source_runtime_depth_blocker_code"])
+        self.assertEqual(report["source_recheck_ledger_source_runtime_depth_mismatch_count"], 0)
+        self.assertFalse(report["source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_ready"])
+        self.assertFalse(report["source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_allowed"])
+        self.assertFalse(report["source_recheck_ledger_source_strategy_regime_cost_linkage_can_live_trade"])
+        self.assertFalse(report["source_recheck_ledger_source_strategy_regime_cost_linkage_scale_up_allowed"])
         self.assertEqual(report["repair_gate_count"], 4)
         self.assertEqual(report["satisfied_repair_gate_count"], 0)
         self.assertEqual(report["blocked_repair_gate_count"], 4)
@@ -126,6 +142,33 @@ class UpbitPaperPostRerunReconciliationRepairPathTest(unittest.TestCase):
         path_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(path_escape)
         self.assertEqual(path_result.status, "BLOCKED")
         self.assertEqual(path_result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_repair_path_blocks_recheck_runtime_depth_and_live_linkage_drift(self):
+        report = build_upbit_paper_post_rerun_reconciliation_repair_path_report(
+            root=ROOT,
+            session_id=SESSION_ID,
+        )
+
+        runtime_depth_drift = json.loads(json.dumps(report))
+        runtime_depth_drift["source_recheck_ledger_source_runtime_depth_status"] = "BLOCKED"
+        runtime_depth_drift["source_recheck_ledger_source_runtime_depth_mismatch_count"] = 1
+        runtime_depth_drift["repair_path_hash"] = upbit_paper_post_rerun_reconciliation_repair_path_hash(
+            runtime_depth_drift
+        )
+        runtime_depth_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(
+            runtime_depth_drift
+        )
+        self.assertEqual(runtime_depth_result.status, "BLOCKED")
+        self.assertEqual(runtime_depth_result.blocker_code, POST_RERUN_RECONCILIATION_REPAIR_PATH_SOURCE_BINDING_REQUIRED)
+
+        live_linkage_drift = json.loads(json.dumps(report))
+        live_linkage_drift["source_recheck_ledger_source_strategy_regime_cost_linkage_live_order_allowed"] = True
+        live_linkage_drift["repair_path_hash"] = upbit_paper_post_rerun_reconciliation_repair_path_hash(
+            live_linkage_drift
+        )
+        live_linkage_result = validate_upbit_paper_post_rerun_reconciliation_repair_path_report(live_linkage_drift)
+        self.assertEqual(live_linkage_result.status, "BLOCKED")
+        self.assertEqual(live_linkage_result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_validator_passes_current_contract(self):
         results = run_validators(["upbit_paper_post_rerun_reconciliation_repair_path_validator"])

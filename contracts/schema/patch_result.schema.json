@@ -537,6 +537,13 @@
       "type": "integer",
       "minimum": 0
     },
+    "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status": {
+      "type": "string"
+    },
+    "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "post_repair_reconciliation_status": {
       "type": "string"
     },

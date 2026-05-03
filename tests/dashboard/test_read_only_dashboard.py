@@ -2696,6 +2696,40 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(reconciliation["post_rerun_reconciliation_repair_path_source_recheck_file_load_status"], "PASS")
         self.assertTrue(reconciliation["post_rerun_reconciliation_repair_path_source_closure_file_hash_match"])
         self.assertTrue(reconciliation["post_rerun_reconciliation_repair_path_source_recheck_file_hash_match"])
+        self.assertEqual(
+            reconciliation[
+                "post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_validation_status"
+            ],
+            "PASS",
+        )
+        self.assertEqual(
+            reconciliation["post_rerun_reconciliation_repair_path_source_recheck_persistent_loop_hash_self_check"],
+            "PASS",
+        )
+        self.assertTrue(
+            reconciliation["post_rerun_reconciliation_repair_path_source_recheck_head_cycle_in_persistent_loop"]
+        )
+        self.assertEqual(
+            reconciliation["post_rerun_reconciliation_repair_path_source_recheck_runtime_input_role"],
+            "PUBLIC_MARKET_DATA_COLLECTION",
+        )
+        self.assertTrue(
+            reconciliation[
+                "post_rerun_reconciliation_repair_path_source_recheck_runtime_public_data_hash_match"
+            ]
+        )
+        self.assertGreaterEqual(
+            reconciliation["post_rerun_reconciliation_repair_path_source_recheck_canonical_event_count"],
+            5,
+        )
+        self.assertEqual(
+            reconciliation["post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status"],
+            "PASS",
+        )
+        self.assertEqual(
+            reconciliation["post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count"],
+            0,
+        )
         self.assertFalse(reconciliation["live_order_allowed"])
         self.assertFalse(dashboard["live_order_allowed"])
         sources = [
@@ -2719,6 +2753,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Repair Path", html)
         self.assertIn("repair=BLOCKED_REPAIR_PATH_DECLARED", html)
         self.assertIn("gates=0/4", html)
+        self.assertIn("repair-runtime-depth=PASS", html)
+        self.assertIn("repair-runtime-mismatch=0", html)
         self.assertIn("repair-writes=0", html)
 
     def test_dashboard_blocks_post_rerun_reconciliation_repair_path_live_or_write_drift(self):
@@ -2734,6 +2770,25 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(reconciliation["post_rerun_reconciliation_repair_path_validation_status"], "BLOCKED")
         self.assertEqual(reconciliation["status"], "INVALID")
         self.assertEqual(reconciliation["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
+
+    def test_dashboard_blocks_post_rerun_reconciliation_repair_path_runtime_depth_drift(self):
+        report = post_rerun_reconciliation_repair_path_fixture()
+        report["source_recheck_ledger_source_runtime_depth_status"] = "BLOCKED"
+        report["source_recheck_ledger_source_runtime_depth_mismatch_count"] = 1
+        report["repair_path_hash"] = upbit_paper_post_rerun_reconciliation_repair_path_hash(report)
+        dashboard = build_dashboard_with_post_rerun_reconciliation_repair_path(report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["post_rerun_reconciliation_repair_path_status"], "INVALID")
+        self.assertEqual(reconciliation["post_rerun_reconciliation_repair_path_validation_status"], "BLOCKED")
+        self.assertEqual(reconciliation["status"], "INVALID")
+        self.assertEqual(
+            reconciliation["primary_blocker_code"],
+            "POST_RERUN_RECONCILIATION_REPAIR_PATH_SOURCE_BINDING_REQUIRED",
+        )
         self.assertFalse(reconciliation["live_order_allowed"])
         self.assertFalse(dashboard["live_order_allowed"])
 
