@@ -1,6 +1,7 @@
 import json
 import unittest
 from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -121,6 +122,10 @@ def hashes():
         {path.relative_to(ROOT).as_posix(): sha256_file(path) for path in sorted((ROOT / "trader1").rglob("*.py")) if "__pycache__" not in path.parts}
     )
     return registry_hash, schema_bundle_hash, source_tree_hash
+
+
+def krw_display(value):
+    return f"{Decimal(str(value)):,.0f} KRW"
 
 
 def build_inputs(
@@ -3806,7 +3811,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
 
     def test_dashboard_projects_audited_current_evidence_writer_portfolio_truth(self):
-        dashboard = build_dashboard_with_audited_current_evidence_writer()
+        outputs = audited_writer_output_fixture()
+        _writer_report, current_evidence, _paper_portfolio, _implementation_prep = outputs
+        dashboard = build_dashboard_with_audited_current_evidence_writer(outputs)
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "PASS", result.message)
 
@@ -3816,9 +3823,12 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["source_snapshot_status"], "PASS")
         self.assertEqual(portfolio["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
         self.assertEqual(portfolio["configured_paper_capital"]["value_display"], "1,000,000 KRW")
-        self.assertEqual(portfolio["cash"]["value_display"], "845,923 KRW")
-        self.assertEqual(portfolio["equity"]["value_display"], "999,923 KRW")
-        self.assertEqual(portfolio["total_pnl"]["value_display"], "-77 KRW")
+        expected_cash_display = krw_display(current_evidence["verified_cash_krw"])
+        expected_equity_display = krw_display(current_evidence["verified_equity_krw"])
+        expected_total_pnl_display = krw_display(current_evidence["verified_total_pnl_krw"])
+        self.assertEqual(portfolio["cash"]["value_display"], expected_cash_display)
+        self.assertEqual(portfolio["equity"]["value_display"], expected_equity_display)
+        self.assertEqual(portfolio["total_pnl"]["value_display"], expected_total_pnl_display)
         self.assertEqual(portfolio["positions"]["value_display"], "1")
         self.assertEqual(portfolio["blocking_reason"], "LIVE_READY_MISSING")
 
@@ -3864,8 +3874,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         html = render_dashboard_html(dashboard)
         self.assertIn("Audited Current Evidence Writer", html)
         self.assertIn("writer=PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN", html)
-        self.assertIn("845,923 KRW", html)
-        self.assertIn("999,923 KRW", html)
+        self.assertIn(expected_cash_display, html)
+        self.assertIn(expected_equity_display, html)
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
 

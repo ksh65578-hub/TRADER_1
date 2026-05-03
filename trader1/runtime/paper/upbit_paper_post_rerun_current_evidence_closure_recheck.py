@@ -202,6 +202,15 @@ def build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
         blocker_codes.add(closure_result.blocker_code or POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE)
     if ledger_result.status != "PASS":
         blocker_codes.add(ledger_result.blocker_code or "RECONCILIATION_REQUIRED")
+    if ledger.get("source_runtime_depth_status") != "PASS":
+        blocker_codes.add(ledger.get("source_runtime_depth_blocker_code") or "RECONCILIATION_REQUIRED")
+    if (
+        ledger.get("source_strategy_regime_cost_linkage_live_order_ready")
+        or ledger.get("source_strategy_regime_cost_linkage_live_order_allowed")
+        or ledger.get("source_strategy_regime_cost_linkage_can_live_trade")
+        or ledger.get("source_strategy_regime_cost_linkage_scale_up_allowed")
+    ):
+        blocker_codes.add("LIVE_FINAL_GUARD_FAILED")
 
     ledger_duplicate_total = (
         int(ledger.get("duplicate_event_id_count") or 0)
@@ -215,6 +224,16 @@ def build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
         and ledger.get("reconciliation_status") == "PASS"
         and ledger.get("idempotency_status") == "PASS"
         and ledger.get("portfolio_provenance_status") == "PASS"
+        and ledger.get("source_persistent_loop_validation_status") == "PASS"
+        and ledger.get("source_persistent_loop_hash_self_check") == "PASS"
+        and ledger.get("source_runtime_depth_status") == "PASS"
+        and ledger.get("source_runtime_depth_mismatch_count") == 0
+        and ledger.get("ledger_head_cycle_in_persistent_loop") is True
+        and ledger.get("source_runtime_input_role") == "PUBLIC_MARKET_DATA_COLLECTION"
+        and ledger.get("source_strategy_regime_cost_linkage_live_order_ready") is False
+        and ledger.get("source_strategy_regime_cost_linkage_live_order_allowed") is False
+        and ledger.get("source_strategy_regime_cost_linkage_can_live_trade") is False
+        and ledger.get("source_strategy_regime_cost_linkage_scale_up_allowed") is False
     )
     closure_confirmed = (
         closure_result.status == "PASS"
@@ -263,6 +282,37 @@ def build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
         "ledger_reconciliation_status": str(ledger.get("reconciliation_status") or "NOT_LOADED"),
         "ledger_idempotency_status": str(ledger.get("idempotency_status") or "NOT_LOADED"),
         "ledger_portfolio_provenance_status": str(ledger.get("portfolio_provenance_status") or "NOT_LOADED"),
+        "ledger_source_persistent_loop_path": ledger.get("source_persistent_loop_path"),
+        "ledger_source_persistent_loop_hash": ledger.get("source_persistent_loop_hash"),
+        "ledger_source_persistent_loop_validation_status": str(
+            ledger.get("source_persistent_loop_validation_status") or "NOT_LOADED"
+        ),
+        "ledger_source_persistent_loop_hash_self_check": str(
+            ledger.get("source_persistent_loop_hash_self_check") or "NOT_LOADED"
+        ),
+        "ledger_head_cycle_in_persistent_loop": bool(ledger.get("ledger_head_cycle_in_persistent_loop")),
+        "ledger_head_runtime_cycle_hash": ledger.get("ledger_head_runtime_cycle_hash"),
+        "ledger_source_runtime_input_role": str(ledger.get("source_runtime_input_role") or "NOT_LOADED"),
+        "ledger_source_public_market_data_hash": ledger.get("source_public_market_data_hash"),
+        "ledger_source_runtime_public_market_data_hash": ledger.get("source_runtime_public_market_data_hash"),
+        "ledger_source_feature_snapshot_hash": ledger.get("source_feature_snapshot_hash"),
+        "ledger_source_canonical_event_count": int(ledger.get("source_canonical_event_count") or 0),
+        "ledger_source_strategy_regime_cost_linkage_hash": ledger.get("source_strategy_regime_cost_linkage_hash"),
+        "ledger_source_strategy_regime_cost_linkage_live_order_ready": bool(
+            ledger.get("source_strategy_regime_cost_linkage_live_order_ready")
+        ),
+        "ledger_source_strategy_regime_cost_linkage_live_order_allowed": bool(
+            ledger.get("source_strategy_regime_cost_linkage_live_order_allowed")
+        ),
+        "ledger_source_strategy_regime_cost_linkage_can_live_trade": bool(
+            ledger.get("source_strategy_regime_cost_linkage_can_live_trade")
+        ),
+        "ledger_source_strategy_regime_cost_linkage_scale_up_allowed": bool(
+            ledger.get("source_strategy_regime_cost_linkage_scale_up_allowed")
+        ),
+        "ledger_source_runtime_depth_status": str(ledger.get("source_runtime_depth_status") or "NOT_LOADED"),
+        "ledger_source_runtime_depth_blocker_code": ledger.get("source_runtime_depth_blocker_code"),
+        "ledger_source_runtime_depth_mismatch_count": int(ledger.get("source_runtime_depth_mismatch_count") or 0),
         "ledger_source_ledger_jsonl_count": int(ledger.get("source_ledger_jsonl_count") or 0),
         "ledger_recomputed_ledger_event_count": int(ledger.get("recomputed_ledger_event_count") or 0),
         "ledger_duplicate_total_count": ledger_duplicate_total,
@@ -356,6 +406,25 @@ def validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
         "ledger_reconciliation_status",
         "ledger_idempotency_status",
         "ledger_portfolio_provenance_status",
+        "ledger_source_persistent_loop_path",
+        "ledger_source_persistent_loop_hash",
+        "ledger_source_persistent_loop_validation_status",
+        "ledger_source_persistent_loop_hash_self_check",
+        "ledger_head_cycle_in_persistent_loop",
+        "ledger_head_runtime_cycle_hash",
+        "ledger_source_runtime_input_role",
+        "ledger_source_public_market_data_hash",
+        "ledger_source_runtime_public_market_data_hash",
+        "ledger_source_feature_snapshot_hash",
+        "ledger_source_canonical_event_count",
+        "ledger_source_strategy_regime_cost_linkage_hash",
+        "ledger_source_strategy_regime_cost_linkage_live_order_ready",
+        "ledger_source_strategy_regime_cost_linkage_live_order_allowed",
+        "ledger_source_strategy_regime_cost_linkage_can_live_trade",
+        "ledger_source_strategy_regime_cost_linkage_scale_up_allowed",
+        "ledger_source_runtime_depth_status",
+        "ledger_source_runtime_depth_blocker_code",
+        "ledger_source_runtime_depth_mismatch_count",
         "ledger_source_ledger_jsonl_count",
         "ledger_recomputed_ledger_event_count",
         "ledger_duplicate_total_count",
@@ -509,10 +578,30 @@ def validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
             POST_RERUN_RECONCILIATION_REQUIRED_BLOCKER_CODE,
         )
     if (
+        report.get("ledger_source_strategy_regime_cost_linkage_live_order_ready") is not False
+        or report.get("ledger_source_strategy_regime_cost_linkage_live_order_allowed") is not False
+        or report.get("ledger_source_strategy_regime_cost_linkage_can_live_trade") is not False
+        or report.get("ledger_source_strategy_regime_cost_linkage_scale_up_allowed") is not False
+    ):
+        return UpbitPaperPostRerunCurrentEvidenceClosureRecheckValidationResult(
+            "BLOCKED",
+            "ledger runtime-depth linkage created forbidden live or scale permission",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if (
         report.get("ledger_runtime_evidence_status") != "PASS"
         or report.get("ledger_reconciliation_status") != "PASS"
         or report.get("ledger_idempotency_status") != "PASS"
         or report.get("ledger_portfolio_provenance_status") != "PASS"
+        or report.get("ledger_source_persistent_loop_validation_status") != "PASS"
+        or report.get("ledger_source_persistent_loop_hash_self_check") != "PASS"
+        or report.get("ledger_source_runtime_depth_status") != "PASS"
+        or report.get("ledger_source_runtime_depth_blocker_code") is not None
+        or report.get("ledger_source_runtime_depth_mismatch_count") != 0
+        or report.get("ledger_head_cycle_in_persistent_loop") is not True
+        or report.get("ledger_source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION"
+        or report.get("ledger_source_public_market_data_hash") != report.get("ledger_source_runtime_public_market_data_hash")
+        or report.get("ledger_source_canonical_event_count") < 5
         or report.get("ledger_duplicate_total_count") != 0
         or report.get("ledger_mismatch_count") != 0
         or report.get("ledger_source_ledger_jsonl_count") < 1

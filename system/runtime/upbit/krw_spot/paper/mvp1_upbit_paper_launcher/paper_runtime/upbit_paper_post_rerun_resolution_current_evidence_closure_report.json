@@ -14,7 +14,7 @@
   "closure_control_count": 4,
   "closure_controls_satisfied_count": 0,
   "closure_guard_id": "mvp4-upbit-paper-post-rerun-current-evidence-closure-recheck-source-closure",
-  "closure_hash": "C43125CCCD6345EE195FC0DE144B0BDFD3EB09B3D00A53859B5F6B9F3CCAAB31",
+  "closure_hash": "C47EBE4219685014453C47DF2EB31FC9349EC4275AC514DF252585CA5B92CB09",
   "closure_items": [
     {
       "actual_long_run_evidence_created": false,
@@ -389,7 +389,7 @@
   "current_evidence_write_authorized_count": 0,
   "current_ledger_jsonl_write_allowed": false,
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-01T22:34:37Z",
+  "generated_at_utc": "2026-05-03T14:08:01Z",
   "latest_runtime_pointer_write_allowed": false,
   "live_key_loaded": false,
   "live_order_allowed": false,

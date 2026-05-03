@@ -14066,6 +14066,16 @@ def upbit_paper_post_rerun_current_evidence_closure_recheck_validator() -> Valid
         "ledger_reconciliation_status",
         "ledger_idempotency_status",
         "ledger_portfolio_provenance_status",
+        "ledger_source_persistent_loop_validation_status",
+        "ledger_source_persistent_loop_hash_self_check",
+        "ledger_head_cycle_in_persistent_loop",
+        "ledger_source_runtime_input_role",
+        "ledger_source_public_market_data_hash",
+        "ledger_source_runtime_public_market_data_hash",
+        "ledger_source_canonical_event_count",
+        "ledger_source_runtime_depth_status",
+        "ledger_source_runtime_depth_blocker_code",
+        "ledger_source_runtime_depth_mismatch_count",
         "recheck_status",
         "current_evidence_bridge_status",
         "portfolio_truth_recheck_status",
@@ -14140,6 +14150,15 @@ def upbit_paper_post_rerun_current_evidence_closure_recheck_validator() -> Valid
         or report.get("ledger_reconciliation_status") != "PASS"
         or report.get("ledger_idempotency_status") != "PASS"
         or report.get("ledger_portfolio_provenance_status") != "PASS"
+        or report.get("ledger_source_persistent_loop_validation_status") != "PASS"
+        or report.get("ledger_source_persistent_loop_hash_self_check") != "PASS"
+        or report.get("ledger_head_cycle_in_persistent_loop") is not True
+        or report.get("ledger_source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION"
+        or report.get("ledger_source_public_market_data_hash") != report.get("ledger_source_runtime_public_market_data_hash")
+        or report.get("ledger_source_canonical_event_count", 0) < 5
+        or report.get("ledger_source_runtime_depth_status") != "PASS"
+        or report.get("ledger_source_runtime_depth_blocker_code") is not None
+        or report.get("ledger_source_runtime_depth_mismatch_count") != 0
         or report.get("ledger_duplicate_total_count") != 0
         or report.get("ledger_mismatch_count") != 0
         or report.get("current_evidence_bridge_status") != "BLOCKED_BY_POST_RERUN_CLOSURE"
@@ -14199,6 +14218,58 @@ def upbit_paper_post_rerun_current_evidence_closure_recheck_validator() -> Valid
             "post-rerun current-evidence closure recheck missing ledger source was not blocked",
             paths,
             missing_result.blocker_code or POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_SOURCE_BINDING_REQUIRED,
+        )
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        session_id = "mvp1_upbit_paper_launcher"
+        closure_source_path = ROOT / str(report["source_closure_path"])
+        closure_target_path = root / str(report["source_closure_path"])
+        closure_target_path.parent.mkdir(parents=True, exist_ok=True)
+        closure_target_path.write_text(closure_source_path.read_text(encoding="utf-8"), encoding="utf-8")
+        run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="validator-post-rerun-closure-recheck-depth-negative",
+            session_id=session_id,
+            requested_cycle_count=1,
+        )
+        depth_ledger = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            root=root,
+            session_id=session_id,
+            evidence_id="validator-post-rerun-closure-recheck-depth-negative",
+        )
+        depth_ledger["source_runtime_depth_status"] = "BLOCKED"
+        depth_ledger["source_runtime_depth_blocker_code"] = "MEASUREMENT_MISSING"
+        depth_ledger["source_runtime_depth_mismatch_count"] = 1
+        depth_ledger["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(depth_ledger)
+        write_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root, report=depth_ledger)
+        depth_report = build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
+            root=root,
+            session_id=session_id,
+        )
+    depth_result = validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(depth_report)
+    if (
+        depth_report.get("ledger_source_runtime_depth_status") != "BLOCKED"
+        or depth_report.get("recheck_status") != "BLOCKED_CURRENT_LEDGER_IDEMPOTENCY_RECHECK_REQUIRED"
+        or depth_result.status != "BLOCKED"
+    ):
+        return fail_result(
+            validator_id,
+            "post-rerun current-evidence closure recheck did not block ledger runtime-depth regression",
+            paths,
+            depth_result.blocker_code or "MEASUREMENT_MISSING",
+        )
+
+    linkage_mutation = json.loads(json.dumps(report))
+    linkage_mutation["ledger_source_strategy_regime_cost_linkage_live_order_allowed"] = True
+    linkage_mutation["recheck_hash"] = upbit_paper_post_rerun_current_evidence_closure_recheck_hash(linkage_mutation)
+    linkage_result = validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(linkage_mutation)
+    if linkage_result.status != "BLOCKED" or linkage_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            validator_id,
+            "post-rerun current-evidence closure recheck did not block ledger runtime-depth live linkage mutation",
+            paths,
+            linkage_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
         )
 
     live_mutation = json.loads(json.dumps(report))
