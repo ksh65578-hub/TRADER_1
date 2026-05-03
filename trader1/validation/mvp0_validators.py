@@ -527,6 +527,7 @@ from trader1.research.shadow.shadow_runner import (
     paper_shadow_actual_runtime_source_id_errors,
     paper_shadow_actual_runtime_requirement_status_errors,
     paper_shadow_evidence_hash,
+    paper_shadow_expected_artifact_paths,
     paper_shadow_paired_supporting_window_count,
     paper_shadow_separation_hash,
     validate_paper_shadow_evidence_accumulation_report,
@@ -19526,6 +19527,11 @@ def _paper_shadow_evidence_accumulation_errors(report: dict[str, Any]) -> list[s
 
     blockers = report.get("blockers", [])
     blocker_codes = {blocker.get("code") for blocker in blockers if isinstance(blocker, dict)}
+    expected_paper_path, expected_shadow_path = paper_shadow_expected_artifact_paths(report)
+    if report.get("paper_artifact_path") != expected_paper_path or report.get("shadow_artifact_path") != expected_shadow_path:
+        errors.append("paper/shadow evidence artifact path scope mismatch")
+        if "SNAPSHOT_SCOPE_MISMATCH" not in blocker_codes:
+            errors.append("artifact path scope mismatch must carry SNAPSHOT_SCOPE_MISMATCH blocker")
     if int(report.get("paper_sample_count", 0)) < int(report.get("min_required_sample_count", 1)) or int(report.get("shadow_sample_count", 0)) < int(report.get("min_required_sample_count", 1)):
         errors.append("sample count below min_required_sample_count")
         if "SAMPLE_INSUFFICIENT" not in blocker_codes:

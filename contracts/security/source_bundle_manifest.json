@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "893BDC154922A056F8FCFECD1F2BC857644FF57517FEE987C59E8781037324AC",
+      "sha256": "463EECC2BC7AA8575EEA96F85255B10C75D4B0D6ED52A0B1FD623284231426CE",
       "size_bytes": 1096
     },
     {
@@ -230,8 +230,8 @@
     },
     {
       "path": "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json",
-      "sha256": "E27D3850240822E1E581BDFB8ECB4F907663A788B06A7BC92CD41AEE5BAEE82E",
-      "size_bytes": 8982
+      "sha256": "0721559459B6552CCA155A62FD7B4AD99C447FA9A79182BACE44B04C9039D382",
+      "size_bytes": 8990
     },
     {
       "path": "contracts/schema/paper_shadow_separation_report.schema.json",
@@ -2455,8 +2455,8 @@
     },
     {
       "path": "tests/validators/test_paper_shadow_evidence_accumulation_validator.py",
-      "sha256": "0AE92CB5B48B529663453D7226958BD61B04A5A677F0DFB33BF6597E7C92DC96",
-      "size_bytes": 26327
+      "sha256": "B58A302D89CFE0F26023672B91BF07B98998A283DCA527E6E52DD86CA823F700",
+      "size_bytes": 27757
     },
     {
       "path": "tests/validators/test_parameter_narrowing_validator.py",
@@ -2522,6 +2522,11 @@
       "path": "tools/emit_actual_long_run_runtime_evidence_boundary_state_sync_recheck_patch_evidence.py",
       "sha256": "347BC07E84A511D03218D103542A4E21CC128607501846096BF0A023E385735A",
       "size_bytes": 29794
+    },
+    {
+      "path": "tools/emit_actual_long_run_source_artifact_path_scope_guard_patch_evidence.py",
+      "sha256": "760EC5F0AA9DE75658E4D4DE8FCE5F25F36A242B8FDC72083B45F71351212249",
+      "size_bytes": 28361
     },
     {
       "path": "tools/emit_actual_runtime_harness_threshold_floor_patch_evidence.py",
@@ -4520,8 +4525,8 @@
     },
     {
       "path": "trader1/research/shadow/shadow_runner.py",
-      "sha256": "D46D3C4788E97FC74BDD932DD1D4E8F29D35F3D3AF4A01049314569F9DBD2209",
-      "size_bytes": 42107
+      "sha256": "BB8470AD719B7D99D31A23118C64402627B94253395D8A6A0EA45F78404B0DE4",
+      "size_bytes": 42894
     },
     {
       "path": "trader1/runtime/__init__.py",
@@ -4985,8 +4990,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "57F78DB8A111966BE3DFE734AAE8E684336A515CA70D636A9F1162B484C29A3D",
-      "size_bytes": 1208999
+      "sha256": "AE1D622833929D34DAF5D883B58DDB3D22924D87CA309D21D2C8D77F3576B420",
+      "size_bytes": 1209497
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -5249,6 +5254,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -6349,6 +6358,10 @@
     },
     {
       "path": "system/evidence/audit_reports/EVIDENCE_WRITE_HELPER_COVERAGE_AUDIT.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.md",
       "reason": "denied:system/"
     },
     {
@@ -7665,6 +7678,10 @@
     },
     {
       "path": "system/evidence/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -9021,6 +9038,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10404,6 +10425,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_ACTUAL_RUNTIME_HARNESS_THRESHOLD_FLOOR.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -11777,6 +11802,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

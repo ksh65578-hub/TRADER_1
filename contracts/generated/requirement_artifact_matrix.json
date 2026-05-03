@@ -1152,6 +1152,44 @@
       "status": "IMPLEMENTED_STATE_SYNC_RECHECK_CONTRACT_GAP_OPEN"
     },
     {
+      "requirement_id": "REQ-MVP4-ACTUAL-LONG-RUN-SOURCE-ARTIFACT-PATH-SCOPE-GUARD",
+      "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
+      "schema_files": [
+        "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/research/shadow/shadow_runner.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/validators/test_paper_shadow_evidence_accumulation_validator.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/research/shadow/shadow_runner.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.patch_result.json",
+        "system/evidence/stage_gates/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_ACTUAL_LONG_RUN_SOURCE_ARTIFACT_PATH_SCOPE_GUARD.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_required",
+        "validators_run",
+        "tests_run",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_WITH_OPEN_CONTRACT_GAP"
+    },
+    {
       "requirement_id": "REQ-MVP4-ACTUAL-RUNTIME-HARNESS-THRESHOLD-FLOOR",
       "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "schema_files": [
@@ -13343,7 +13381,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-03T22:02:02Z",
+  "updated_at_utc": "2026-05-03T22:26:01Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

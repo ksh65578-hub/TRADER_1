@@ -173,6 +173,15 @@ def _default_artifact_paths(
     )
 
 
+def paper_shadow_expected_artifact_paths(report: dict[str, Any]) -> tuple[str, str]:
+    return _default_artifact_paths(
+        exchange=str(report.get("exchange") or ""),
+        market_type=str(report.get("market_type") or ""),
+        paper_session_id=str(report.get("paper_session_id") or ""),
+        shadow_session_id=str(report.get("shadow_session_id") or ""),
+    )
+
+
 def build_paper_shadow_separation_report(
     *,
     separation_report_id: str,
@@ -601,6 +610,13 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
         return PaperShadowEvidenceValidationResult("BLOCKED", "paper and shadow evidence sessions must be distinct", "SNAPSHOT_SCOPE_MISMATCH")
     if "/paper/" not in report.get("paper_artifact_path", "") or "/shadow/" not in report.get("shadow_artifact_path", ""):
         return PaperShadowEvidenceValidationResult("BLOCKED", "paper/shadow evidence paths lack namespace separation", "SNAPSHOT_SCOPE_MISMATCH")
+    expected_paper_path, expected_shadow_path = paper_shadow_expected_artifact_paths(report)
+    if report.get("paper_artifact_path") != expected_paper_path or report.get("shadow_artifact_path") != expected_shadow_path:
+        return PaperShadowEvidenceValidationResult(
+            "BLOCKED",
+            "paper/shadow evidence artifact path scope mismatch",
+            "SNAPSHOT_SCOPE_MISMATCH",
+        )
     if report.get("paper_artifact_hash") == report.get("shadow_artifact_hash") or report.get("session_hashes_distinct") is not True:
         return PaperShadowEvidenceValidationResult("BLOCKED", "paper/shadow evidence hashes must be distinct", "SNAPSHOT_SCOPE_MISMATCH")
     if report.get("raw_join_attempted"):

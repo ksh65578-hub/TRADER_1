@@ -106,11 +106,11 @@
     "shadow_session_id": {"type": "string", "minLength": 1},
     "paper_artifact_path": {
       "type": "string",
-      "pattern": "^system/runtime/upbit/krw_spot/paper/.+paper_operation_gate_report\\.json$"
+      "pattern": "^system/runtime/upbit/krw_spot/paper/[^/]+/paper_operation_gate_report\\.json$"
     },
     "shadow_artifact_path": {
       "type": "string",
-      "pattern": "^system/runtime/upbit/krw_spot/shadow/.+shadow_projection\\.json$"
+      "pattern": "^system/runtime/upbit/krw_spot/shadow/[^/]+/shadow_projection\\.json$"
     },
     "paper_artifact_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
     "shadow_artifact_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
