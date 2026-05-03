@@ -64,6 +64,7 @@ class UpbitPaperStaleLoopNormalizedReconciliationRecheckTest(unittest.TestCase):
         self.assertEqual(reason_counts["LEDGER_ROLLUP_BLOCKED"], 5)
         self.assertEqual(reason_counts["LEDGER_ROLLUP_RECONCILIATION_REQUIRED"], 5)
         self.assertEqual(reason_counts["NORMALIZED_RECONCILIATION_REQUIRED"], 5)
+        self.assertEqual(reason_counts["RUNTIME_DEPTH_RECHECK_REQUIRED"], 5)
         self.assertTrue(all(item["ledger_rollup_recheck_required"] for item in report["items"]))
         self.assertTrue(all(item["normalized_hash_match"] for item in report["items"]))
         self.assertTrue(all(not item["preview_current_evidence_usable"] for item in report["items"]))

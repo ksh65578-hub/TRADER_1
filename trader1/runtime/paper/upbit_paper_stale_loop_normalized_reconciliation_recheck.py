@@ -31,6 +31,7 @@ NORMALIZED_RECONCILIATION_RECHECK_BLOCKER_CODE = "NORMALIZED_RECONCILIATION_RECH
 NORMALIZED_RECONCILIATION_RECHECK_REQUIRES_LEDGER_ROLLUP_BLOCKER_CODE = (
     "NORMALIZED_RECONCILIATION_RECHECK_REQUIRES_LEDGER_ROLLUP"
 )
+RUNTIME_DEPTH_RECHECK_REQUIRED_REASON_CODE = "RUNTIME_DEPTH_RECHECK_REQUIRED"
 
 
 @dataclass(frozen=True)
@@ -116,8 +117,10 @@ def _reason_codes(candidate: dict[str, Any], validation_status: str, blocker_cod
         reasons.append("LEDGER_ROLLUP_BLOCKED")
     if candidate.get("paper_ledger_rollup_primary_blocker_code") == "RECONCILIATION_REQUIRED":
         reasons.append("LEDGER_ROLLUP_RECONCILIATION_REQUIRED")
-    if validation_status == "BLOCKED" and blocker_code == "RECONCILIATION_REQUIRED":
+    if validation_status == "BLOCKED" and blocker_code in {"RECONCILIATION_REQUIRED", "MEASUREMENT_MISSING"}:
         reasons.append(NORMALIZED_RECONCILIATION_REQUIRED_BLOCKER_CODE)
+    if validation_status == "BLOCKED" and blocker_code == "MEASUREMENT_MISSING":
+        reasons.append(RUNTIME_DEPTH_RECHECK_REQUIRED_REASON_CODE)
     if not reasons:
         reasons.append("NORMALIZED_RECONCILIATION_RECHECK_UNKNOWN_BLOCKER")
     return sorted(set(str(reason) for reason in reasons))
@@ -516,9 +519,11 @@ def validate_upbit_paper_stale_loop_normalized_reconciliation_recheck_report(
             expected_hash_match_count += 1
         if item.get("normalized_validation_status") == "BLOCKED":
             expected_blocked_count += 1
-            if item.get("normalized_validation_blocker_code") != "RECONCILIATION_REQUIRED":
+            if item.get("normalized_validation_blocker_code") not in {"RECONCILIATION_REQUIRED", "MEASUREMENT_MISSING"}:
                 return UpbitPaperStaleLoopNormalizedReconciliationRecheckValidationResult(
-                    "FAIL", "blocked normalized recheck item must be reconciliation blocked", "SCHEMA_IDENTITY_MISMATCH"
+                    "FAIL",
+                    "blocked normalized recheck item must be reconciliation or runtime-depth blocked",
+                    "SCHEMA_IDENTITY_MISMATCH",
                 )
         if item.get("ledger_rollup_recheck_required"):
             expected_ledger_required_count += 1
