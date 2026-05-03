@@ -38,6 +38,10 @@ from trader1.runtime.paper.operational_cycle import build_upbit_operational_pape
 from trader1.runtime.ledger.paper_ledger_rollup import paper_ledger_rollup_hash
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
+    build_upbit_paper_repaired_current_evidence_audited_writer_report,
+    write_upbit_paper_repaired_current_evidence_audited_writer_report,
+)
 from trader1.runtime.reconciliation.reconciliation import build_reconciliation_report
 from trader1.research.shadow.shadow_observation_actual_runtime_harness import (
     build_shadow_observation_actual_runtime_harness_report,
@@ -132,6 +136,66 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertIn("live_order_allowed=false", message)
             self.assertIn(str(path), message)
             self.assertIn(str(dashboard_paths["dashboard_html"]), message)
+
+    def test_launcher_dashboard_loads_audited_current_evidence_portfolio_truth(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_paths = launcher_dashboard_paths(report)
+            target_paths = launcher_dashboard_paths(report, root)
+            implementation_prep = load_json(
+                source_paths["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"]
+            )
+            ledger_rollup = load_json(source_paths["paper_ledger_rollup_report"])
+            target_paths[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"
+            ].parent.mkdir(parents=True, exist_ok=True)
+            target_paths[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"
+            ].write_text(json.dumps(implementation_prep, sort_keys=True), encoding="utf-8")
+            writer_report = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+                root=root,
+                source_implementation_prep_report=implementation_prep,
+                source_ledger_rollup_report=ledger_rollup,
+                audited_writer_id="test-safe-launcher-audited-current-evidence-writer",
+            )
+            write_upbit_paper_repaired_current_evidence_audited_writer_report(
+                root=root,
+                report=writer_report,
+            )
+
+            dashboard_paths = write_launcher_dashboard(report, root)
+            dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+
+        portfolio = dashboard_shell["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "VERIFIED")
+        self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
+        self.assertEqual(portfolio["configured_paper_capital"]["value_display"], "1,000,000 KRW")
+        self.assertEqual(portfolio["cash"]["value_display"], "845,923 KRW")
+        self.assertEqual(portfolio["equity"]["value_display"], "999,923 KRW")
+        self.assertEqual(portfolio["total_pnl"]["value_display"], "-77 KRW")
+        self.assertFalse(dashboard_shell["live_order_ready"])
+        self.assertFalse(dashboard_shell["live_order_allowed"])
+        self.assertFalse(dashboard_shell["can_live_trade"])
+        self.assertFalse(dashboard_shell["scale_up_allowed"])
+        source_status = {
+            source["artifact_id"]: source["freshness_status"]
+            for source in dashboard_shell["source_artifacts"]
+            if source["artifact_id"]
+            in {
+                "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER",
+                "AUDITED_CURRENT_EVIDENCE_SNAPSHOT",
+                "AUDITED_PAPER_PORTFOLIO_SNAPSHOT",
+            }
+        }
+        self.assertEqual(
+            source_status,
+            {
+                "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER": "PASS",
+                "AUDITED_CURRENT_EVIDENCE_SNAPSHOT": "PASS",
+                "AUDITED_PAPER_PORTFOLIO_SNAPSHOT": "PASS",
+            },
+        )
 
     def test_launcher_runtime_bundle_writes_under_single_session_lock(self):
         report = build_launcher_report("UPBIT_PAPER")

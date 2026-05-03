@@ -103,6 +103,9 @@
             "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_DRY_RUN",
             "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_LOCKED_OUTPUT",
             "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP",
+            "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER",
+            "AUDITED_CURRENT_EVIDENCE_SNAPSHOT",
+            "AUDITED_PAPER_PORTFOLIO_SNAPSHOT",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD"
@@ -140,6 +143,9 @@
             "upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.json",
             "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json",
             "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
+            "upbit_paper_repaired_current_evidence_audited_writer_report.json",
+            "audited_current_evidence_snapshot.json",
+            "paper_portfolio_snapshot.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json"
@@ -521,6 +527,7 @@
             "upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.json",
             "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json",
             "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
+            "upbit_paper_repaired_current_evidence_audited_writer_report.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
           ]
         },
@@ -1443,6 +1450,100 @@
           "minLength": 1
         },
         "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_blocker_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN",
+            "PASS_AUDITED_CURRENT_EVIDENCE_ALREADY_WRITTEN",
+            "BLOCKED_SOURCE_IMPLEMENTATION_PREP_INVALID",
+            "BLOCKED_SOURCE_LEDGER_ROLLUP_INVALID",
+            "BLOCKED_AUDITED_CURRENT_EVIDENCE_TARGET_DIRTY",
+            "BLOCKED_AUDITED_CURRENT_EVIDENCE_WRITER_LOCKED",
+            "INVALID"
+          ]
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_passed": {
+          "type": "boolean"
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_verified_for_display": {
+          "type": "boolean"
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_control_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_control_pass_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_control_blocked_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_artifact_written_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_artifact_reused_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_idempotent_replay": {
+          "type": "boolean"
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_lock_present_after_run": {
+          "type": "boolean"
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_current_evidence_artifact_written": {
+          "type": "boolean"
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_idempotency_manifest_written": {
+          "type": "boolean"
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_portfolio_truth_artifact_written": {
+          "type": "boolean"
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_source_ledger_rollup_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_source_paper_ledger_head_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_source_runtime_cycle_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "upbit_paper_repaired_current_evidence_audited_writer_blocker_codes": {
           "type": "array",
           "items": {
             "type": "string",

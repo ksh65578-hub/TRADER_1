@@ -79,12 +79,19 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_implementation_prep import (
     validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
+    validate_upbit_paper_audited_current_evidence_snapshot,
+    validate_upbit_paper_repaired_current_evidence_audited_writer_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
-from trader1.runtime.portfolio.paper_portfolio import build_initial_paper_portfolio_snapshot
+from trader1.runtime.portfolio.paper_portfolio import (
+    build_initial_paper_portfolio_snapshot,
+    validate_paper_portfolio_snapshot,
+)
 from trader1.runtime.readiness.readiness_surface import build_readiness_surface
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
 from trader1.research.shadow.shadow_observation_actual_runtime_harness import (
@@ -580,6 +587,17 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report": base
         / "paper_runtime"
         / "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
+        "upbit_paper_repaired_current_evidence_audited_writer_report": base
+        / "paper_runtime"
+        / "upbit_paper_repaired_current_evidence_audited_writer_report.json",
+        "audited_current_evidence_snapshot": base
+        / "paper_runtime"
+        / "current_evidence"
+        / "audited_current_evidence_snapshot.json",
+        "audited_paper_portfolio_snapshot": base
+        / "paper_runtime"
+        / "portfolio"
+        / "paper_portfolio_snapshot.json",
         "upbit_paper_ledger_idempotency_runtime_evidence_report": base
         / "ledger"
         / "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
@@ -1061,6 +1079,73 @@ def load_scoped_upbit_paper_repaired_current_evidence_audited_writer_implementat
     return implementation_prep
 
 
+def load_scoped_upbit_paper_repaired_current_evidence_audited_writer_report(
+    report: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    writer_report = _load_dashboard_json_artifact(
+        paths["upbit_paper_repaired_current_evidence_audited_writer_report"]
+    )
+    if writer_report is None:
+        return None
+    validate_upbit_paper_repaired_current_evidence_audited_writer_report(writer_report)
+    return writer_report
+
+
+def load_scoped_audited_current_evidence_snapshot(
+    report: dict[str, Any],
+    writer_report: dict[str, Any] | None,
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    current_evidence = _load_dashboard_json_artifact(paths["audited_current_evidence_snapshot"])
+    if current_evidence is None:
+        return None
+    validate_upbit_paper_audited_current_evidence_snapshot(current_evidence)
+    if not isinstance(writer_report, dict):
+        return current_evidence
+    if (
+        current_evidence.get("source_ledger_rollup_hash") != writer_report.get("source_ledger_rollup_hash")
+        or current_evidence.get("source_paper_ledger_head_hash")
+        != writer_report.get("source_paper_ledger_head_hash")
+        or current_evidence.get("source_runtime_cycle_id") != writer_report.get("source_runtime_cycle_id")
+    ):
+        return current_evidence
+    return current_evidence
+
+
+def load_scoped_audited_paper_portfolio_snapshot(
+    report: dict[str, Any],
+    writer_report: dict[str, Any] | None,
+    current_evidence: dict[str, Any] | None,
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    portfolio = _load_dashboard_json_artifact(paths["audited_paper_portfolio_snapshot"])
+    if portfolio is None:
+        return None
+    validate_paper_portfolio_snapshot(portfolio)
+    if isinstance(writer_report, dict) and (
+        portfolio.get("source_paper_ledger_head_hash") != writer_report.get("source_paper_ledger_head_hash")
+        or portfolio.get("source_runtime_cycle_id") != writer_report.get("source_runtime_cycle_id")
+    ):
+        return portfolio
+    if isinstance(current_evidence, dict) and (
+        current_evidence.get("source_portfolio_snapshot_hash") != portfolio.get("snapshot_hash")
+        or current_evidence.get("source_paper_ledger_head_hash") != portfolio.get("source_paper_ledger_head_hash")
+        or current_evidence.get("source_runtime_cycle_id") != portfolio.get("source_runtime_cycle_id")
+    ):
+        return portfolio
+    return portfolio
+
+
 def load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(
     report: dict[str, Any],
     root: Path = ROOT,
@@ -1476,6 +1561,18 @@ def build_launcher_dashboard_artifacts(
             paths["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"],
             root,
         ),
+        "upbit_paper_repaired_current_evidence_audited_writer": _runtime_display_path(
+            paths["upbit_paper_repaired_current_evidence_audited_writer_report"],
+            root,
+        ),
+        "audited_current_evidence_snapshot": _runtime_display_path(
+            paths["audited_current_evidence_snapshot"],
+            root,
+        ),
+        "audited_paper_portfolio_snapshot": _runtime_display_path(
+            paths["audited_paper_portfolio_snapshot"],
+            root,
+        ),
         "upbit_paper_ledger_idempotency_runtime_evidence": _runtime_display_path(
             paths["upbit_paper_ledger_idempotency_runtime_evidence_report"], root
         ),
@@ -1548,6 +1645,20 @@ def build_launcher_dashboard_artifacts(
     upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report = (
         load_scoped_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(report, root)
     )
+    upbit_paper_repaired_current_evidence_audited_writer_report = (
+        load_scoped_upbit_paper_repaired_current_evidence_audited_writer_report(report, root)
+    )
+    audited_current_evidence_snapshot = load_scoped_audited_current_evidence_snapshot(
+        report,
+        upbit_paper_repaired_current_evidence_audited_writer_report,
+        root,
+    )
+    audited_paper_portfolio_snapshot = load_scoped_audited_paper_portfolio_snapshot(
+        report,
+        upbit_paper_repaired_current_evidence_audited_writer_report,
+        audited_current_evidence_snapshot,
+        root,
+    )
     upbit_paper_ledger_idempotency_runtime_evidence_report = (
         load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(report, root)
     )
@@ -1585,6 +1696,9 @@ def build_launcher_dashboard_artifacts(
         upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
         upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
         upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
+        upbit_paper_repaired_current_evidence_audited_writer_report=upbit_paper_repaired_current_evidence_audited_writer_report,
+        audited_current_evidence_snapshot=audited_current_evidence_snapshot,
+        audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
@@ -1600,6 +1714,8 @@ def build_launcher_dashboard_artifacts(
         "startup_probe": startup_probe,
         "heartbeat": heartbeat,
         "paper_portfolio_snapshot": paper_portfolio,
+        "audited_current_evidence_snapshot": audited_current_evidence_snapshot,
+        "audited_paper_portfolio_snapshot": audited_paper_portfolio_snapshot,
         "summary": summary,
         "dashboard_shell": dashboard,
         "dashboard_html": render_dashboard_html(dashboard),
