@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "3E2E4DA6C2D51E4B3456426EA6FB72275DB3C5B90E95AC7ABDA996C7B18CE390",
+      "sha256": "87AB3D84B2657699DC5DE9FEAEA917989C3AFC9754E0C2EEF37B4533E636BE6A",
       "size_bytes": 1096
     },
     {
@@ -825,8 +825,8 @@
     },
     {
       "path": "tests/contract/test_patch_result_runtime_schema_validation.py",
-      "sha256": "5075B3FBD6E6AC7BAA4EBF55D2AC2672E3CCC6CDC69C0BD6A75D052112699303",
-      "size_bytes": 4001
+      "sha256": "D84C053AEF054708BEA2F6CDFF8C0A69FD7657368FDD6EB01B11EF59ECD80E64",
+      "size_bytes": 6163
     },
     {
       "path": "tests/contract/test_review_plan_reflection_status.py",
@@ -3032,6 +3032,11 @@
       "path": "tools/emit_patch_result_validator_run_gap_recheck_patch_evidence.py",
       "sha256": "4DF5E8B308B2ACE2B2DDC46DC70D0A3958F5A0CB1964F854D16C64B04E1575E2",
       "size_bytes": 28134
+    },
+    {
+      "path": "tools/emit_patch_result_validator_run_gap_state_sync_recheck_patch_evidence.py",
+      "sha256": "FB43588C274C46A44E9BEB3745E42EE7CABFDD76610CA6ACDAA28B68C34F20E5",
+      "size_bytes": 26154
     },
     {
       "path": "tools/emit_persistent_runtime_budget_guard_patch_evidence.py",
@@ -5352,6 +5357,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_PAPER_SHADOW_UPBIT_SCOPE_BOUNDARY.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -8051,6 +8060,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_PERSISTENT_RUNTIME_BUDGET_GUARD.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -9372,6 +9385,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10723,6 +10740,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_PERSISTENT_RUNTIME_BUDGET_GUARD.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12064,6 +12085,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

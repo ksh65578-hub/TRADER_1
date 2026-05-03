@@ -6885,6 +6885,62 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-STATE-SYNC-RECHECK",
+      "source_section_id": "SECTION_PATCH_RESULT",
+      "source_file": "TRADER_1.md",
+      "source_heading": "patch_result validator-run gap state sync recheck",
+      "full_text_marker": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-STATE-SYNC-RECHECK: recognize existing sealed patch_result validator-run gap recheck and advance the next safe task without resolving the live-blocking historical gap",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Patch result validator-run gap state sync recheck",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.contract_gap.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.md",
+        "system/evidence/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.validator_run_log.json",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tools/emit_patch_result_validator_run_gap_state_sync_recheck_patch_evidence.py"
+      ],
+      "test_ids": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_3_NEGATIVE_FIXTURES",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_PATCH_RESULT",
+        "SECTION_VALIDATOR_DEPENDENCY_CHAIN",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-RECHECK",
+        "REQ-MVP4-PATCH-RESULT-RUNTIME-SCHEMA-VALIDATION",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "3FF9087E13F9BA8CC4A31B65769BA8802919D18EFE57430B6A1E1AC18C0BD632",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_STATE_SYNC_RECHECK_HISTORICAL_GAP_OPEN",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PERSISTENT-RUNTIME-BUDGET-GUARD",
       "source_section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "source_file": "TRADER_1.md",
@@ -17911,5 +17967,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-03T15:49:46Z"
+  "updated_at_utc": "2026-05-03T16:10:46Z"
 }
