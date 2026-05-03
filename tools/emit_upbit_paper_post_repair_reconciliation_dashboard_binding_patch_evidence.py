@@ -11,17 +11,21 @@ sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
-PATCH_BASENAME = "MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_DASHBOARD_BINDING"
-PATCH_ID = f"{PATCH_BASENAME}_20260502_001"
-REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION-DASHBOARD-BINDING"
-NEXT_TASK_CLASS = "MVP4_UPBIT_PAPER_PERSISTENT_RUNTIME_RECOVERY"
+PATCH_BASENAME = "MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK"
+PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
+REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION-OPERATOR-UX-RECHECK"
+NEXT_TASK_CLASS = "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK"
 SESSION_ID = "mvp1_upbit_paper_launcher"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import tools.emit_persistent_runtime_resource_boundary_patch_evidence as base  # noqa: E402
-from trader1.dashboard.read_only_dashboard import validate_read_only_dashboard_shell  # noqa: E402
+from trader1.dashboard.read_only_dashboard import (  # noqa: E402
+    build_read_only_dashboard_shell,
+    render_dashboard_html,
+    validate_read_only_dashboard_shell,
+)
 from trader1.runtime.boot.safe_launcher import build_launcher_report, write_launcher_runtime_bundle  # noqa: E402
 from trader1.runtime.paper.upbit_paper_post_repair_reconciliation import (  # noqa: E402
     validate_upbit_paper_post_repair_reconciliation_report,
@@ -49,11 +53,8 @@ VALIDATORS_REQUIRED = [
 
 CHANGED_ARTIFACTS = [
     "contracts/schema/patch_result.schema.json",
-    "contracts/schema/read_only_dashboard_shell.schema.json",
     "trader1/dashboard/read_only_dashboard.py",
-    "trader1/runtime/boot/safe_launcher.py",
     "tests/dashboard/test_read_only_dashboard.py",
-    "tests/runtime/test_safe_launcher.py",
     "tools/emit_upbit_paper_post_repair_reconciliation_dashboard_binding_patch_evidence.py",
     f"contracts/generated/context_pack/{PATCH_BASENAME}.md",
 ]
@@ -92,11 +93,15 @@ def run_command(args: list[str]) -> dict[str, Any]:
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     completed = subprocess.run(args, cwd=ROOT, text=True, capture_output=True, env=env)
-    return {
+    result = {
         "command": " ".join(args),
         "status": "PASS" if completed.returncode == 0 else "FAIL",
         "returncode": completed.returncode,
     }
+    if completed.returncode != 0:
+        result["stdout_tail"] = completed.stdout[-4000:]
+        result["stderr_tail"] = completed.stderr[-4000:]
+    return result
 
 
 def summarize_validators(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -104,17 +109,11 @@ def summarize_validators(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def runtime_post_repair_path() -> Path:
-    return (
-        ROOT
-        / "system"
-        / "runtime"
-        / "upbit"
-        / "krw_spot"
-        / "paper"
-        / SESSION_ID
-        / "paper_runtime"
-        / "upbit_paper_post_repair_reconciliation_report.json"
-    )
+    return runtime_base_path() / "paper_runtime" / "upbit_paper_post_repair_reconciliation_report.json"
+
+
+def runtime_base_path() -> Path:
+    return ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
 
 
 def load_post_repair_report() -> dict[str, Any]:
@@ -128,15 +127,30 @@ def load_post_repair_report() -> dict[str, Any]:
     return report
 
 
+def load_runtime_dashboard_inputs() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    base_path = runtime_base_path()
+    return (
+        load_json(base_path / "summary.json"),
+        load_json(base_path / "heartbeat.json"),
+        load_json(base_path / "startup_probe.json"),
+    )
+
+
 def validate_dashboard_projection(dashboard: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     result = validate_read_only_dashboard_shell(dashboard)
     if result.status != "PASS":
         raise RuntimeError(f"dashboard validation failed: {result.status} {result.blocker_code} {result.message}")
     reconciliation = dashboard.get("reconciliation_recovery_summary")
     operator_action = dashboard.get("operator_action_summary")
+    workflow = dashboard.get("operator_workflow_summary")
     portfolio = dashboard.get("portfolio_snapshot")
-    if not isinstance(reconciliation, dict) or not isinstance(operator_action, dict) or not isinstance(portfolio, dict):
-        raise RuntimeError("dashboard missing reconciliation, operator action, or portfolio summary")
+    if (
+        not isinstance(reconciliation, dict)
+        or not isinstance(operator_action, dict)
+        or not isinstance(workflow, dict)
+        or not isinstance(portfolio, dict)
+    ):
+        raise RuntimeError("dashboard missing reconciliation, operator action, workflow, or portfolio summary")
     if dashboard.get("blocking_reason") != "POST_REPAIR_RECONCILIATION_REQUIRED":
         raise RuntimeError("dashboard did not keep POST_REPAIR_RECONCILIATION_REQUIRED as the primary blocker")
     if reconciliation.get("source") != "upbit_paper_post_repair_reconciliation_report.json":
@@ -157,25 +171,90 @@ def validate_dashboard_projection(dashboard: dict[str, Any]) -> tuple[dict[str, 
         raise RuntimeError("dashboard did not publish the post-repair source artifact as PASS")
     if portfolio.get("status") != "UNVERIFIED" or portfolio.get("source_snapshot_status") != "BLOCKED":
         raise RuntimeError("portfolio was incorrectly promoted while post-repair reconciliation is blocked")
-    if operator_action.get("status") != "BLOCKED" or operator_action.get("safe_to_continue_paper") is not False:
-        raise RuntimeError("operator action did not fail closed for post-repair reconciliation")
+    operator_line = str(operator_action.get("one_line_blocker", ""))
+    operator_next = str(operator_action.get("next_operator_action", "")).lower()
+    if (
+        operator_action.get("status") != "BLOCKED"
+        or operator_action.get("primary_action") != "STOP_AND_INSPECT"
+        or operator_action.get("workflow_step") != "INSPECT_DASHBOARD"
+        or operator_action.get("primary_action_label") != "Inspect post-repair reconciliation"
+        or operator_action.get("primary_blocker_code") != "POST_REPAIR_RECONCILIATION_REQUIRED"
+        or "post-repair reconciliation has 1 operator action item(s)" not in operator_line
+        or "hash-mismatch=1" not in operator_line
+        or "current-evidence usable=0" not in operator_line
+        or "hash mismatch" not in operator_next
+        or "explicit operator reconciliation" not in operator_next
+        or "current-evidence update" not in operator_next
+        or operator_action.get("safe_to_continue_paper") is not False
+    ):
+        raise RuntimeError("operator action did not explain post-repair reconciliation")
+    steps = workflow.get("steps")
+    if not isinstance(steps, list) or len(steps) < 3:
+        raise RuntimeError("operator workflow did not publish the post-repair workflow steps")
+    if (
+        workflow.get("status") != "BLOCKED"
+        or workflow.get("current_step") != "INSPECT_DASHBOARD"
+        or "Post-repair reconciliation is blocked" not in str(workflow.get("summary", ""))
+        or "current evidence and portfolio truth writes remain blocked" not in str(workflow.get("summary", ""))
+        or steps[1].get("status") != "CURRENT"
+        or "repaired candidates remain blocked by hash mismatch" not in str(steps[1].get("detail", ""))
+        or "cannot become current evidence" not in str(steps[1].get("detail", ""))
+        or steps[2].get("status") != "WAITING"
+        or "operator hash reconciliation evidence" not in str(steps[2].get("detail", ""))
+        or "portfolio truth write" not in str(steps[2].get("detail", ""))
+    ):
+        raise RuntimeError("operator workflow did not explain post-repair reconciliation")
     for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
-        if dashboard.get(field) is not False or reconciliation.get(field) is not False or operator_action.get(field) is not False:
+        if (
+            dashboard.get(field) is not False
+            or reconciliation.get(field) is not False
+            or operator_action.get(field) is not False
+            or workflow.get(field) is not False
+        ):
             raise RuntimeError(f"dashboard attempted forbidden live or scale permission: {field}")
     return reconciliation, operator_action, portfolio
 
 
-def write_launcher_artifacts() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], list[str]]:
+def write_launcher_artifacts(
+    post_repair: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], list[str]]:
     report = build_launcher_report("UPBIT_PAPER")
     report_path, dashboard_paths = write_launcher_runtime_bundle(report)
-    dashboard = load_json(dashboard_paths["dashboard_shell"])
-    reconciliation, operator_action, portfolio = validate_dashboard_projection(dashboard)
+    actual_dashboard = load_json(dashboard_paths["dashboard_shell"])
+    actual_result = validate_read_only_dashboard_shell(actual_dashboard)
+    if actual_result.status != "PASS":
+        raise RuntimeError(
+            f"launcher dashboard validation failed: {actual_result.status} "
+            f"{actual_result.blocker_code} {actual_result.message}"
+        )
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if actual_dashboard.get(field) is not False:
+            raise RuntimeError(f"launcher dashboard attempted forbidden live or scale permission: {field}")
 
     html_path = dashboard_paths["dashboard_html"]
     legacy_html_path = ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "dashboard" / "index.html"
     base.write_text(legacy_html_path, html_path.read_text(encoding="utf-8"))
 
-    artifact_paths = [base.rel(report_path), *(base.rel(path) for path in dashboard_paths.values()), base.rel(legacy_html_path)]
+    summary, heartbeat, startup_probe = load_runtime_dashboard_inputs()
+    dashboard = build_read_only_dashboard_shell(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id=SESSION_ID,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_post_repair_reconciliation_report=post_repair,
+    )
+    reconciliation, operator_action, portfolio = validate_dashboard_projection(dashboard)
+
+    snapshot_dir = ROOT / "system" / "evidence" / "dashboard_snapshots"
+    dashboard_snapshot_path = snapshot_dir / f"{PATCH_BASENAME}.dashboard_shell.json"
+    dashboard_html_snapshot_path = snapshot_dir / f"{PATCH_BASENAME}.index.html"
+    base.write_json(dashboard_snapshot_path, dashboard)
+    base.write_text(dashboard_html_snapshot_path, render_dashboard_html(dashboard))
+
+    artifact_paths = [base.rel(dashboard_snapshot_path), base.rel(dashboard_html_snapshot_path)]
     return dashboard, reconciliation, operator_action, portfolio, sorted(set(artifact_paths))
 
 
@@ -185,7 +264,7 @@ def write_context(now: str, trader_hash: str, agents_hash: str, dashboard: dict[
         f"""# {PATCH_BASENAME}
 
 context_pack_id: {PATCH_BASENAME}
-task_class: MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_DASHBOARD_BINDING
+task_class: MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK
 source_trader1_sha256: {trader_hash}
 source_agents_sha256: {agents_hash}
 included_section_ids: ["SECTION_DASHBOARD_OPERATOR_UX", "SECTION_UPBIT_PAPER_RUNTIME", "SECTION_LEDGER_RECONCILIATION", "SECTION_LIVE_FINAL_GUARD"]
@@ -196,6 +275,8 @@ included_artifact_ids: {json.dumps(CHANGED_ARTIFACTS)}
 
 acceptance_checklist:
 - The Upbit PAPER dashboard loads the validated post-repair reconciliation report.
+- The primary operator action says "Inspect post-repair reconciliation" instead of a generic blocker label.
+- The workflow summary explains that current evidence and portfolio truth writes remain blocked.
 - The post-repair repair candidate remains dashboard truth only, not current evidence, execution truth, LIVE_READY, or live permission.
 - Candidate count, hash mismatch count, operator-action count, and zero current-evidence usable count are visible.
 - Portfolio cash/equity stay UNVERIFIED while post-repair reconciliation is blocked.
@@ -209,6 +290,9 @@ known_omissions_by_design:
 runtime_summary:
 - dashboard_blocking_reason: {dashboard["blocking_reason"]}
 - operator_action_status: {dashboard["operator_action_summary"]["status"]}
+- operator_action_label: {dashboard["operator_action_summary"]["primary_action_label"]}
+- operator_workflow_status: {dashboard["operator_workflow_summary"]["status"]}
+- operator_workflow_current_step: {dashboard["operator_workflow_summary"]["current_step"]}
 - post_repair_reconciliation_status: {post_repair["post_repair_reconciliation_status"]}
 - repair_candidate_count: {post_repair["repair_candidate_count"]}
 - reconciliation_item_count: {post_repair["reconciliation_item_count"]}
@@ -262,13 +346,13 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
             "requirement_id": REQUIREMENT_ID,
             "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
             "source_file": "TRADER_1.md",
-            "source_heading": "Upbit PAPER post-repair reconciliation dashboard binding",
+            "source_heading": "Upbit PAPER post-repair reconciliation operator UX recheck",
             "full_text_marker": (
-                f"{REQUIREMENT_ID}: post-repair reconciliation status and blocked repair candidates must be visible "
-                "in the operator dashboard without creating current evidence, live order, or scale-up permission"
+                f"{REQUIREMENT_ID}: post-repair reconciliation blockers must have specific operator action and "
+                "workflow guidance without creating current evidence, live order, or scale-up permission"
             ),
             "authority_level": "ACTIVE_AUTHORITY",
-            "requirement_title": "Upbit PAPER post-repair reconciliation dashboard binding",
+            "requirement_title": "Upbit PAPER post-repair reconciliation operator UX recheck",
             "requirement_kind": "DASHBOARD_UX_PATCH",
             "schema_ids": ["trader1.read_only_dashboard_shell.v1", "trader1.upbit_paper_post_repair_reconciliation_report.v1"],
             "validator_ids": VALIDATORS_REQUIRED,
@@ -281,14 +365,15 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
             "read_when": ["SECTION_DASHBOARD_OPERATOR_UX", "SECTION_UPBIT_PAPER_RUNTIME", "SECTION_LEDGER_RECONCILIATION", "SECTION_LIVE_FINAL_GUARD"],
             "depends_on": [
                 "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION",
+                "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION-DASHBOARD-BINDING",
                 "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-REPAIR-PATH-DASHBOARD-BINDING",
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
             "source_text_sha256": base.sha256_bytes(
-                b"post repair reconciliation visible in operator dashboard without current evidence live order or scale up permission"
+                b"post repair reconciliation operator action workflow guidance without current evidence live order scale up permission"
             ),
             "source_authority_sha256": trader_hash,
-            "implementation_status": "IMPLEMENTED_DASHBOARD_VISIBLE_LIVE_BLOCKED",
+            "implementation_status": "IMPLEMENTED_OPERATOR_UX_RECHECK_LIVE_BLOCKED",
             "test_status": "PASS",
         }
     )
@@ -336,6 +421,11 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
                 "source_artifacts.POST_REPAIR_RECONCILIATION",
                 "portfolio_snapshot.source_snapshot_status",
                 "operator_action_summary.primary_blocker_code",
+                "operator_action_summary.primary_action_label",
+                "operator_action_summary.one_line_blocker",
+                "operator_action_summary.next_operator_action",
+                "operator_workflow_summary.summary",
+                "operator_workflow_summary.steps",
                 "blocking_reason",
             ],
             "patch_result_fields": [
@@ -343,6 +433,11 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
                 "post_repair_reconciliation_item_count",
                 "post_repair_source_loop_expected_rollup_hash_mismatch_count",
                 "post_repair_candidate_current_evidence_usable_count",
+                "post_repair_reconciliation_operator_action_label",
+                "post_repair_reconciliation_operator_workflow_status",
+                "post_repair_reconciliation_operator_workflow_current_step",
+                "post_repair_reconciliation_operator_hash_mismatch_count",
+                "post_repair_reconciliation_operator_action_item_count",
                 "live_order_ready_after",
                 "live_order_allowed_after",
                 "can_live_trade_after",
@@ -350,7 +445,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str, l
             ],
             "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
             "live_affecting": True,
-            "status": "IMPLEMENTED_DASHBOARD_VISIBLE_LIVE_BLOCKED",
+            "status": "IMPLEMENTED_OPERATOR_UX_RECHECK_LIVE_BLOCKED",
         }
     )
     matrix.update(
@@ -434,7 +529,7 @@ def build_patch_result(
                 "safe launcher dashboard binding",
                 "live final guard",
             ],
-            "task_class": "MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_DASHBOARD_BINDING",
+            "task_class": "MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK",
             "required_section_ids": [
                 "SECTION_DASHBOARD_OPERATOR_UX",
                 "SECTION_UPBIT_PAPER_RUNTIME",
@@ -453,9 +548,9 @@ def build_patch_result(
             "read_cache_manifest_status": "UPDATED",
             "context_pack_status": "UPDATED",
             "current_implementation_state_status": "UPDATED",
-            "optimizer_status_after": "PAPER_SCORECARD_INPUT_ONLY_POST_REPAIR_RECONCILIATION_VISIBLE_IN_DASHBOARD",
+            "optimizer_status_after": "PAPER_SCORECARD_INPUT_ONLY_POST_REPAIR_RECONCILIATION_OPERATOR_UX_VISIBLE",
             "optimizer_guardrail_result": "PASS_DASHBOARD_DOES_NOT_MUTATE_CURRENT_EVIDENCE",
-            "convergence_state_after": "POST_REPAIR_RECONCILIATION_DASHBOARD_VISIBLE_LIVE_BLOCKED",
+            "convergence_state_after": "POST_REPAIR_RECONCILIATION_OPERATOR_UX_VISIBLE_LIVE_BLOCKED",
             "convergence_guardrail_result": "PASS_NO_LIVE_PERMISSION_NO_CURRENT_EVIDENCE_MUTATION_NO_SCALE_UP",
             "convergence_validators_required": VALIDATORS_REQUIRED,
             "convergence_validators_run": validators_run,
@@ -467,6 +562,17 @@ def build_patch_result(
             "post_repair_candidate_current_evidence_usable_count": post_repair[
                 "candidate_current_evidence_usable_count"
             ],
+            "post_repair_reconciliation_operator_action_label": dashboard["operator_action_summary"][
+                "primary_action_label"
+            ],
+            "post_repair_reconciliation_operator_workflow_status": dashboard["operator_workflow_summary"]["status"],
+            "post_repair_reconciliation_operator_workflow_current_step": dashboard["operator_workflow_summary"][
+                "current_step"
+            ],
+            "post_repair_reconciliation_operator_hash_mismatch_count": post_repair[
+                "source_loop_expected_rollup_hash_mismatch_count"
+            ],
+            "post_repair_reconciliation_operator_action_item_count": post_repair["reconciliation_item_count"],
             "candidate_current_evidence_usable_count": 0,
         }
     )
@@ -513,6 +619,9 @@ def write_evidence(
             "dashboard_blocking_reason": dashboard["blocking_reason"],
             "operator_action_status": operator_action["status"],
             "operator_primary_blocker_code": operator_action["primary_blocker_code"],
+            "operator_primary_action_label": operator_action["primary_action_label"],
+            "operator_workflow_status": dashboard["operator_workflow_summary"]["status"],
+            "operator_workflow_current_step": dashboard["operator_workflow_summary"]["current_step"],
             "portfolio_status": portfolio["status"],
             "portfolio_source_snapshot_status": portfolio["source_snapshot_status"],
             "reconciliation_status": reconciliation["status"],
@@ -554,6 +663,9 @@ def write_evidence(
             "dashboard_blocking_reason": dashboard["blocking_reason"],
             "operator_action_status": operator_action["status"],
             "operator_primary_blocker_code": operator_action["primary_blocker_code"],
+            "operator_primary_action_label": operator_action["primary_action_label"],
+            "operator_workflow_status": dashboard["operator_workflow_summary"]["status"],
+            "operator_workflow_current_step": dashboard["operator_workflow_summary"]["current_step"],
             "portfolio_status": portfolio["status"],
             "post_repair_reconciliation_status": post_repair["post_repair_reconciliation_status"],
             "repair_candidate_count": post_repair["repair_candidate_count"],
@@ -579,7 +691,7 @@ def main() -> int:
     write_source_bundle_manifest()
     base.update_authority_manifest(now)
     post_repair = load_post_repair_report()
-    dashboard, _, _, _, launcher_artifacts = write_launcher_artifacts()
+    dashboard, _, _, _, launcher_artifacts = write_launcher_artifacts(post_repair)
     write_context(now, trader_hash, agents_hash, dashboard, post_repair)
     update_requirement_artifacts(now, trader_hash, agents_hash, launcher_artifacts)
 
@@ -606,6 +718,8 @@ def main() -> int:
     base.update_state_and_ledger(now, patch_result)
     base.update_read_cache(now, trader_hash, agents_hash)
 
+    tests_run.append(run_command([sys.executable, "-B", "tools/run_runtime_schema_instance_validators.py"]))
+    tests_run.append(run_command([sys.executable, "-B", "-m", "pytest", "-p", "no:cacheprovider", "-q"]))
     tests_run.append(run_command([sys.executable, "-B", "tools/run_patch_result_runtime_schema_validators.py"]))
     validators_run = summarize_validators(run_validators(VALIDATORS_REQUIRED))
     patch_result = build_patch_result(now, tests_run, validators_run, dashboard, post_repair)

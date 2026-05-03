@@ -981,12 +981,14 @@ def build_dashboard_with_post_repair_reconciliation(
     report=None,
     repair_path_report=None,
     with_paper_portfolio=True,
+    paper_portfolio_snapshot=None,
 ):
     report = report or post_repair_reconciliation_fixture()
     session_id = report["session_id"]
     summary, heartbeat, startup_probe = build_inputs(
         session_id=session_id,
         with_paper_portfolio=with_paper_portfolio,
+        paper_portfolio_snapshot=paper_portfolio_snapshot,
     )
     return build_read_only_dashboard_shell(
         exchange=report["exchange"],
@@ -2913,11 +2915,83 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["blocking_reason"], "POST_REPAIR_RECONCILIATION_REQUIRED")
         self.assertIn("Configured PAPER capital is 1,000,000 KRW", portfolio["source_snapshot_freshness_message"])
         self.assertIn("post-repair reconciliation keeps 1 repair candidate", portfolio["source_snapshot_freshness_message"])
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["status"], "BLOCKED")
+        self.assertEqual(operator_action["primary_action"], "STOP_AND_INSPECT")
+        self.assertEqual(operator_action["workflow_step"], "INSPECT_DASHBOARD")
+        self.assertEqual(operator_action["primary_action_label"], "Inspect post-repair reconciliation")
+        self.assertEqual(operator_action["primary_blocker_code"], "POST_REPAIR_RECONCILIATION_REQUIRED")
+        self.assertIn("post-repair reconciliation has 1 operator action item(s)", operator_action["one_line_blocker"])
+        self.assertIn("hash-mismatch=1", operator_action["one_line_blocker"])
+        self.assertIn("current-evidence usable=0", operator_action["one_line_blocker"])
+        self.assertIn("hash mismatch", operator_action["next_operator_action"])
+        self.assertIn("explicit operator reconciliation", operator_action["next_operator_action"])
+        self.assertFalse(operator_action["safe_to_continue_paper"])
+        self.assertFalse(operator_action["live_order_allowed"])
+        self.assertFalse(operator_action["scale_up_allowed"])
+        workflow = dashboard["operator_workflow_summary"]
+        self.assertEqual(workflow["status"], "BLOCKED")
+        self.assertEqual(workflow["current_step"], "INSPECT_DASHBOARD")
+        self.assertIn("Post-repair reconciliation is blocked", workflow["summary"])
+        self.assertIn("current evidence and portfolio truth writes remain blocked", workflow["summary"])
+        self.assertEqual(workflow["steps"][1]["status"], "CURRENT")
+        self.assertIn("repaired candidates remain blocked by hash mismatch", workflow["steps"][1]["detail"])
+        self.assertIn("cannot become current evidence", workflow["steps"][1]["detail"])
+        self.assertEqual(workflow["steps"][2]["status"], "WAITING")
+        self.assertIn("operator hash reconciliation evidence", workflow["steps"][2]["detail"])
+        self.assertIn("portfolio truth write", workflow["steps"][2]["detail"])
+        self.assertFalse(workflow["live_order_allowed"])
+        self.assertFalse(workflow["scale_up_allowed"])
         html = render_dashboard_html(dashboard)
         self.assertIn("Post Repair", html)
+        self.assertIn("Inspect post-repair reconciliation", html)
         self.assertIn("post-repair=BLOCKED", html)
         self.assertIn("hash-mismatch=1", html)
         self.assertIn("usable=0", html)
+
+    def test_dashboard_keeps_post_repair_portfolio_unverified_when_ledger_evidence_is_bound(self):
+        report = post_repair_reconciliation_fixture()
+        ledger_report = ledger_idempotency_runtime_evidence_fixture(
+            session_id=report["session_id"],
+            evidence_id="test-dashboard-post-repair-bound-ledger",
+        )
+        paper_portfolio = build_initial_paper_portfolio_snapshot(
+            exchange=report["exchange"],
+            market_type=report["market_type"],
+            session_id=report["session_id"],
+            source_runtime_cycle_id=ledger_report["portfolio_source_runtime_cycle_id"],
+            source_paper_ledger_head_hash=ledger_report["portfolio_source_paper_ledger_head_hash"],
+        )
+
+        dashboard = build_dashboard_with_post_repair_reconciliation(
+            report=report,
+            repair_path_report=post_rerun_reconciliation_repair_path_fixture(),
+            paper_portfolio_snapshot=paper_portfolio,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["blocking_reason"], "POST_REPAIR_RECONCILIATION_REQUIRED")
+        self.assertIsNone(portfolio["source_runtime_cycle_id"])
+        self.assertIsNone(portfolio["source_paper_ledger_head_hash"])
+        self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
+        self.assertEqual(portfolio["equity"]["value_display"], "UNVERIFIED")
+        self.assertIn("post-repair reconciliation keeps 1 repair candidate", portfolio["source_snapshot_freshness_message"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_post_repair_reconciliation_operator_action_drift(self):
+        dashboard = build_dashboard_with_post_repair_reconciliation(
+            repair_path_report=post_rerun_reconciliation_repair_path_fixture()
+        )
+        dashboard["operator_action_summary"]["primary_action_label"] = "Stop review and inspect the blocker"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
 
     def test_dashboard_blocks_post_repair_reconciliation_live_or_current_evidence_drift(self):
         report = post_repair_reconciliation_fixture()

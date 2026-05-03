@@ -568,6 +568,23 @@
       "type": "integer",
       "minimum": 0
     },
+    "post_repair_reconciliation_operator_action_label": {
+      "type": "string"
+    },
+    "post_repair_reconciliation_operator_workflow_status": {
+      "type": "string"
+    },
+    "post_repair_reconciliation_operator_workflow_current_step": {
+      "type": "string"
+    },
+    "post_repair_reconciliation_operator_hash_mismatch_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "post_repair_reconciliation_operator_action_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "repair_operator_queue_status": {
       "type": "string"
     },

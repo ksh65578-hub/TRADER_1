@@ -12056,6 +12056,69 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION-OPERATOR-UX-RECHECK",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER post-repair reconciliation operator UX recheck",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION-OPERATOR-UX-RECHECK: post-repair reconciliation blockers must have specific operator action and workflow guidance without creating current evidence, live order, or scale-up permission",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER post-repair reconciliation operator UX recheck",
+      "requirement_kind": "DASHBOARD_UX_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.upbit_paper_post_repair_reconciliation_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "upbit_paper_post_repair_reconciliation_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.md",
+        "contracts/schema/patch_result.schema.json",
+        "system/evidence/dashboard_snapshots/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.dashboard_shell.json",
+        "system/evidence/dashboard_snapshots/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.index.html",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_upbit_paper_post_repair_reconciliation_dashboard_binding_patch_evidence.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_safe_launcher.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION",
+        "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION-DASHBOARD-BINDING",
+        "REQ-MVP4-UPBIT-PAPER-POST-RERUN-RECONCILIATION-REPAIR-PATH-DASHBOARD-BINDING",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "5B35FC34B9B4BAC48286B8786D8670799BB5A4035AEF3B52494DD66319DCDF9A",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_OPERATOR_UX_RECHECK_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-POST-RERUN-BLOCKER-ROLLUP-SOURCE-BINDING-GUARD",
       "source_section_id": "SECTION_LEDGER_RECONCILIATION",
       "source_file": "TRADER_1.md",
@@ -17848,5 +17911,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-03T15:07:34Z"
+  "updated_at_utc": "2026-05-03T15:49:46Z"
 }
