@@ -12,6 +12,6 @@
   "generated_trader_projection_sha256": null,
   "generated_agents_projection_sha256": null,
   "manifest_hash_policy": "sha256 of manifest JSON with manifest_sha256 omitted",
-  "updated_at_utc": "2026-05-03T21:07:43Z",
-  "manifest_sha256": "C8D07C443512AC6B94515002B1829102ABC0BDC6CA5E8E0C589DEA334509E28B"
+  "updated_at_utc": "2026-05-03T21:16:34Z",
+  "manifest_sha256": "404E31A12181673B51D5AE1E2935175305C9EFBCE32A382BC43F6727D382B5FD"
 }
