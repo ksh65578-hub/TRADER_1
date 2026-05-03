@@ -15611,10 +15611,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     refresh_policy = shell.get("dashboard_refresh_policy", {}) if isinstance(shell.get("dashboard_refresh_policy"), dict) else {}
     refresh_seconds = positive_int(refresh_policy.get("auto_refresh_interval_seconds"), DASHBOARD_AUTO_REFRESH_SECONDS)
     stale_after_seconds = positive_int(refresh_policy.get("stale_after_seconds"), SOURCE_FRESHNESS_MAX_AGE_SECONDS)
-    source_status_text = ", ".join(
-        f"{source.get('artifact_id', 'UNKNOWN')}={source.get('freshness_status', 'STALE')}"
-        for source in shell.get("source_artifacts", [])
-        if isinstance(source, dict)
+    source_artifacts = [source for source in shell.get("source_artifacts", []) if isinstance(source, dict)]
+    source_pass_count = sum(1 for source in source_artifacts if str(source.get("freshness_status", "STALE")).upper() == "PASS")
+    source_attention_count = len(source_artifacts) - source_pass_count
+    source_summary_html = (
+        f"<span class=\"source-count source-count-total\">Total {safe_text(len(source_artifacts))}</span>"
+        f"<span class=\"source-count source-count-pass\">PASS {safe_text(source_pass_count)}</span>"
+        f"<span class=\"source-count source-count-attention\">Attention {safe_text(source_attention_count)}</span>"
     )
     freshness_html = (
         "<section class=\"freshness-strip\" data-dashboard-freshness "
@@ -15630,7 +15633,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Updated</dt><dd>{safe_text(shell.get('generated_at_utc', 'UNKNOWN'))}</dd></div>"
         "<div><dt>Age</dt><dd data-dashboard-age>0s</dd></div>"
         f"<div><dt>Auto Refresh</dt><dd>{safe_text(refresh_seconds)}s</dd></div>"
-        f"<div><dt>Sources</dt><dd>{safe_text(source_status_text or 'STALE')}</dd></div>"
+        f"<div><dt>Sources</dt><dd class=\"source-summary\">{source_summary_html}</dd></div>"
         "</dl>"
         f"<p data-stale-warning>{safe_text(refresh_policy.get('next_action', 'Keep PAPER safe monitor running before trusting dashboard values.'))}</p>"
         "</section>"
@@ -16702,12 +16705,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "</section>"
         )
     source_html = []
-    for source in shell.get("source_artifacts", []):
+    for source in source_artifacts:
+        artifact_id = str(source.get("artifact_id", ""))
+        freshness_status = str(source.get("freshness_status", ""))
+        source_status_token = f"{artifact_id}={freshness_status}"
         source_html.append(
-            "<tr>"
-            f"<td>{safe_text(source.get('artifact_id', ''))}</td>"
+            f"<tr data-source-status=\"{safe_text(source_status_token)}\">"
+            f"<td>{safe_text(artifact_id)}</td>"
             f"<td>{safe_text(source.get('filename', ''))}</td>"
-            f"<td>{safe_text(source.get('freshness_status', ''))}</td>"
+            f"<td>{safe_text(freshness_status)}</td>"
             f"<td>{safe_text(source.get('truth_role', ''))}</td>"
             "</tr>"
         )
@@ -16746,12 +16752,18 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .summary-card, .live-readiness, .operation, .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { min-width: 0; }
     .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { display: grid; align-content: start; gap: 12px; }
     .metric, .scope-item, .guard, .decision-grid div, .workflow-step, .dependency-check, .evidence-check, .maturity-component, .stability-metric { display: grid; align-content: start; gap: 6px; }
-    .freshness-strip { display: grid; gap: 12px; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.8fr); align-items: center; background: var(--ok-bg); border: 1px solid #b9dfca; border-left: 8px solid var(--ok); border-radius: 8px; padding: 14px 16px; min-width: 0; }
-    .freshness-strip h2 { margin-top: 4px; }
-    .freshness-strip dl { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 0; min-width: 0; }
+    .freshness-strip { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start; background: var(--ok-bg); border: 1px solid #b9dfca; border-left: 8px solid var(--ok); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+    .freshness-strip h2 { margin-top: 4px; font-size: 18px; }
+    .freshness-strip dl { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); margin: 0; min-width: 0; }
+    .freshness-strip dl div { min-width: 0; }
     .freshness-strip dt { color: var(--muted); font-size: 12px; font-weight: 700; }
-    .freshness-strip dd { margin: 4px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+    .freshness-strip dd { margin: 4px 0 0; font-size: 14px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
     .freshness-strip p { grid-column: 1 / -1; color: #354153; }
+    .source-summary { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; white-space: normal; overflow-wrap: normal; }
+    .source-count { display: inline-flex; align-items: center; max-width: 100%; border: 1px solid #cfd6df; border-radius: 999px; padding: 3px 7px; background: #ffffff; color: var(--ink); font-size: 12px; line-height: 1.2; font-weight: 700; white-space: nowrap; overflow-wrap: normal; }
+    .source-count-total { color: var(--muted); }
+    .source-count-pass { border-color: #b9dfca; background: #f6fff9; color: var(--ok); }
+    .source-count-attention { border-color: #f2c75c; background: #fff8e6; color: var(--warn); }
     .freshness-fresh { background: var(--ok-bg); border-left-color: var(--ok); }
     .freshness-stale { background: var(--warn-bg); border-color: #f2c75c; border-left-color: var(--warn); }
     .summary-grid { display: grid; gap: 16px; grid-template-columns: minmax(420px, 1.35fr) minmax(320px, 1fr); align-items: stretch; }
@@ -16944,6 +16956,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     summary { cursor: pointer; font-weight: 700; }
     .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 860px; }
+    .source-artifacts-table { min-width: 760px; table-layout: fixed; }
+    .source-artifacts-table th:nth-child(1), .source-artifacts-table td:nth-child(1) { width: 34%; }
+    .source-artifacts-table th:nth-child(2), .source-artifacts-table td:nth-child(2) { width: 30%; }
+    .source-artifacts-table th:nth-child(3), .source-artifacts-table td:nth-child(3) { width: 14%; }
+    .source-artifacts-table th:nth-child(4), .source-artifacts-table td:nth-child(4) { width: 22%; }
     th, td { border-bottom: 1px solid #e2e6eb; padding: 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
     .empty-row { color: var(--muted); text-align: center; }
     h1, h2, p { margin: 0; }
@@ -17153,7 +17170,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         </details>
         <details data-detail-key="source-artifacts">
           <summary>Source Artifacts</summary>
-          <div class="table-wrap"><table>
+          <div class="table-wrap"><table class="source-artifacts-table">
             <thead><tr><th>Artifact</th><th>File</th><th>Freshness</th><th>Truth Role</th></tr></thead>
             <tbody>
               """ + "\n          ".join(source_html) + """
@@ -17172,6 +17189,10 @@ def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationR
     required_fragments = {
         "page_width_bound": "main { display: grid; gap: 16px; padding: 16px; width: 100%; max-width: 1440px; margin: 0 auto; }",
         "comfortable_line_height": "p, small, li, dd, td { line-height: 1.5; }",
+        "freshness_single_column": ".freshness-strip { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start;",
+        "freshness_auto_fit": ".freshness-strip dl { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));",
+        "freshness_source_summary_wrap": ".source-summary { display: flex; flex-wrap: wrap; gap: 6px; align-items: center;",
+        "freshness_source_count_bound": ".source-count { display: inline-flex; align-items: center; max-width: 100%;",
         "two_column_first_screen": ".summary-grid { display: grid; gap: 16px; grid-template-columns: minmax(420px, 1.35fr) minmax(320px, 1fr);",
         "portfolio_summary_span": ".portfolio-summary { grid-row: span 2; }",
         "kpi_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr));",
@@ -17193,6 +17214,8 @@ def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationR
         "no_horizontal_body_scroll": "overflow-x: hidden",
         "table_scroll_wrapper": ".table-wrap { width: 100%; max-width: 100%; overflow-x: auto; }",
         "position_table_width": "min-width: 860px;",
+        "source_table_width": ".source-artifacts-table { min-width: 760px; table-layout: fixed; }",
+        "source_status_trace": "data-source-status=\"",
         "no_default_open_details": '<details class="detail-drawer" data-detail-key="main-detail-drawer">',
     }
     missing = [name for name, fragment in required_fragments.items() if fragment not in html]
