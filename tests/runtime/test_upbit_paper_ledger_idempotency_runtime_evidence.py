@@ -38,6 +38,15 @@ class UpbitPaperLedgerIdempotencyRuntimeEvidenceTest(unittest.TestCase):
             self.assertEqual(report["reconciliation_status"], "PASS")
             self.assertEqual(report["portfolio_provenance_status"], "PASS")
             self.assertEqual(report["ledger_head_binding_status"], "PASS")
+            self.assertEqual(report["source_persistent_loop_validation_status"], "PASS")
+            self.assertEqual(report["source_persistent_loop_hash_self_check"], "PASS")
+            self.assertEqual(report["source_runtime_depth_status"], "PASS")
+            self.assertTrue(report["ledger_head_cycle_in_persistent_loop"])
+            self.assertIn(report["source_ledger_head_cycle_id"], report["source_runtime_cycle_ids"])
+            self.assertIn(report["ledger_head_runtime_cycle_hash"], report["source_runtime_cycle_hashes"])
+            self.assertEqual(report["source_runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
+            self.assertEqual(report["source_public_market_data_hash"], report["source_runtime_public_market_data_hash"])
+            self.assertGreaterEqual(report["source_canonical_event_count"], 5)
             self.assertEqual(report["source_ledger_jsonl_count"], 2)
             self.assertEqual(report["recomputed_filled_order_count"], 2)
             self.assertEqual(report["duplicate_event_id_count"], 0)
@@ -102,6 +111,70 @@ class UpbitPaperLedgerIdempotencyRuntimeEvidenceTest(unittest.TestCase):
 
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_evidence_blocks_missing_persistent_loop_runtime_depth(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-upbit-paper-idempotency-missing-persistent-loop",
+                requested_cycle_count=1,
+            )
+            persistent_loop_path = (
+                root
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / "mvp1_upbit_paper_launcher"
+                / "paper_runtime"
+                / "upbit_paper_persistent_loop_report.json"
+            )
+            persistent_loop_path.unlink()
+
+            report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root)
+            result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(report)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "MEASUREMENT_MISSING")
+            self.assertEqual(report["runtime_evidence_status"], "BLOCKED")
+            self.assertEqual(report["source_runtime_depth_status"], "BLOCKED")
+            self.assertFalse(report["live_order_allowed"])
+
+    def test_evidence_blocks_runtime_depth_hash_mismatch_mutation(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-upbit-paper-idempotency-depth-hash-mismatch",
+                requested_cycle_count=1,
+            )
+            report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root)
+
+        report["source_runtime_public_market_data_hash"] = "A" * 64
+        report["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(report)
+        result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_evidence_blocks_runtime_depth_linkage_live_mutation(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-upbit-paper-idempotency-depth-linkage-live",
+                requested_cycle_count=1,
+            )
+            report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root)
+
+        report["source_strategy_regime_cost_linkage_live_order_allowed"] = True
+        report["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(report)
+        result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_evidence_blocks_live_permission_and_path_escape_mutations(self):
         with TemporaryDirectory() as tmp:

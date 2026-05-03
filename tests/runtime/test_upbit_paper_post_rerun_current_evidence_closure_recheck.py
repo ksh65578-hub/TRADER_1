@@ -11,6 +11,11 @@ from trader1.runtime.paper.upbit_paper_post_rerun_current_evidence_closure_reche
     validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report,
     write_upbit_paper_post_rerun_current_evidence_closure_recheck_report,
 )
+from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
+    build_upbit_paper_ledger_idempotency_runtime_evidence_report,
+    write_upbit_paper_ledger_idempotency_runtime_evidence_report,
+)
+from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
 from trader1.validation.mvp0_validators import run_validators
 
 
@@ -20,10 +25,38 @@ SESSION_ID = "mvp1_upbit_paper_launcher"
 
 class UpbitPaperPostRerunCurrentEvidenceClosureRecheckTest(unittest.TestCase):
     def test_recheck_confirms_ledger_pass_cannot_override_post_rerun_closure(self):
-        report = build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
-            root=ROOT,
-            session_id=SESSION_ID,
-        )
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            closure_source = (
+                ROOT
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / SESSION_ID
+                / "paper_runtime"
+                / "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json"
+            )
+            closure_target = root / closure_source.relative_to(ROOT)
+            closure_target.parent.mkdir(parents=True, exist_ok=True)
+            closure_target.write_text(closure_source.read_text(encoding="utf-8"), encoding="utf-8")
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-post-rerun-closure-recheck-ledger-pass",
+                session_id=SESSION_ID,
+                requested_cycle_count=1,
+            )
+            ledger_report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+                root=root,
+                session_id=SESSION_ID,
+                evidence_id="test-post-rerun-closure-recheck-ledger-pass",
+            )
+            write_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root, report=ledger_report)
+            report = build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
+                root=root,
+                session_id=SESSION_ID,
+            )
         result = validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(report)
 
         self.assertEqual(result.status, "PASS")

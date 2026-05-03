@@ -10698,6 +10698,71 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-LEDGER-IDEMPOTENCY-RUNTIME-DEPTH-RECHECK",
+      "source_section_id": "SECTION_LEDGER_RECONCILIATION_IDEMPOTENCY",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER ledger idempotency runtime-depth binding",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-LEDGER-IDEMPOTENCY-RUNTIME-DEPTH-RECHECK: ledger idempotency evidence must bind ledger head cycle to persistent loop runtime depth",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Bind ledger idempotency evidence to persistent-loop runtime depth",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_ledger_idempotency_runtime_evidence_report.v1",
+        "trader1.upbit_paper_persistent_loop_report.v1",
+        "trader1.patch_result.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+        "upbit_paper_persistent_loop_validator",
+        "paper_ledger_rollup_validator",
+        "reconciliation_validator",
+        "ledger_reconciliation_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_ledger_idempotency_runtime_evidence_report.schema.json",
+        "trader1/runtime/paper/upbit_paper_ledger_idempotency_runtime_evidence.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/runtime/test_upbit_paper_ledger_idempotency_runtime_evidence.py",
+        "tests/runtime/test_upbit_paper_ledger_idempotency_runtime_evidence_refresh.py",
+        "tools/emit_upbit_paper_ledger_idempotency_runtime_depth_recheck_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_DEPTH_RECHECK.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_ledger_idempotency_runtime_evidence.py",
+        "tests/runtime/test_upbit_paper_ledger_idempotency_runtime_evidence_refresh.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LEDGER_RECONCILIATION_IDEMPOTENCY",
+        "SECTION_STRATEGY_REGIME_COST_RUNTIME_LINKAGE",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-LEDGER-IDEMPOTENCY-RUNTIME-EVIDENCE",
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-DEPTH-RECHECK",
+        "REQ-MVP4-STRATEGY-REGIME-COST-RUNTIME-LINKAGE"
+      ],
+      "source_text_sha256": "ABB076CD904C792BC46798A820ABA638D4E087730E775C877E8260E8CCDD55F3",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-LEDGER-IDEMPOTENCY-RUNTIME-EVIDENCE",
       "source_section_id": "SECTION_LEDGER_RECONCILIATION",
       "source_file": "TRADER_1.md",
@@ -17518,5 +17583,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-03T12:25:31Z"
+  "updated_at_utc": "2026-05-03T13:22:09Z"
 }
