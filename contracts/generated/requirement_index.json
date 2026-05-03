@@ -6436,6 +6436,73 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-STATE-SYNC-RECHECK",
+      "source_section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "paper shadow runtime shadow observation gap state sync recheck",
+      "full_text_marker": "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-STATE-SYNC-RECHECK: recognize existing PAPER/SHADOW runtime guard evidence, keep the shadow observation gap open, and route to the next ledger/reconciliation evidence task",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Paper shadow runtime shadow observation gap state sync recheck",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.contract_gap.v1",
+        "trader1.patch_result.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "shadow_observation_runtime_validator",
+        "shadow_observation_stream_validator",
+        "shadow_observation_scheduler_guard_validator",
+        "shadow_observation_persistent_runtime_validator",
+        "shadow_observation_actual_runtime_blocker_validator",
+        "shadow_observation_actual_runtime_harness_validator",
+        "paper_shadow_evidence_accumulation_validator",
+        "optimizer_guardrail_validator",
+        "convergence_assessment_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.md",
+        "system/evidence/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.validator_run_log.json",
+        "tests/contract/test_paper_shadow_runtime_shadow_observation_gap_recheck.py",
+        "tools/emit_paper_shadow_runtime_shadow_observation_gap_state_sync_recheck_patch_evidence.py"
+      ],
+      "test_ids": [
+        "tests/contract/test_paper_shadow_runtime_shadow_observation_gap_recheck.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_PAPER_SHADOW_EVIDENCE",
+        "SECTION_SHADOW_OBSERVATION_RUNTIME",
+        "SECTION_LONG_RUN_RUNTIME_EVIDENCE",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-SHADOW-OBSERVATION-ACTUAL-RUNTIME-BLOCKER-RECHECK",
+        "REQ-MVP4-SHADOW-OBSERVATION-ACTUAL-RUNTIME-HARNESS",
+        "REQ-MVP4-PAPER-SHADOW-LONG-RUN-SOURCE-COVERAGE-RECHECK",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "DB886C33A214581C8D8921EFDF8865973001B3A0028913EF2DA7029861770113",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_STATE_SYNC_RECHECK_CONTRACT_GAP_OPEN",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PAPER-SHADOW-RUNTIME-SOURCE-REQUIRED-FIELDS",
       "source_section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "source_file": "TRADER_1.md",
@@ -18082,5 +18149,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-03T16:45:02Z"
+  "updated_at_utc": "2026-05-03T17:05:22Z"
 }

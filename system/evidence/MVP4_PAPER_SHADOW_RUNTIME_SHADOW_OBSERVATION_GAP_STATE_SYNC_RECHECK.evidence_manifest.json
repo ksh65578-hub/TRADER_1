@@ -1,0 +1,65 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK_EVIDENCE",
+  "created_at_utc": "2026-05-03T17:05:22Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK_20260504_001",
+  "artifact_paths": [
+    "contracts/generated/ACTIVE_WORKING_VIEW.md",
+    "contracts/generated/context_pack/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.md",
+    "contracts/generated/current_implementation_state.json",
+    "contracts/generated/read_cache_manifest.json",
+    "contracts/generated/requirement_artifact_matrix.json",
+    "contracts/generated/requirement_index.json",
+    "contracts/security/source_bundle_manifest.json",
+    "system/evidence/contract_gaps/PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP.contract_gap.json",
+    "system/evidence/implementation_patch_ledger.json",
+    "system/evidence/patch_results/MVP4_PAPER_SHADOW_LONG_RUN_SOURCE_COVERAGE_RECHECK.patch_result.json",
+    "system/evidence/patch_results/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.patch_result.json",
+    "system/evidence/patch_results/MVP4_SHADOW_OBSERVATION_ACTUAL_RUNTIME_BLOCKER_RECHECK.patch_result.json",
+    "system/evidence/patch_results/MVP4_SHADOW_OBSERVATION_ACTUAL_RUNTIME_HARNESS.patch_result.json",
+    "system/evidence/stage_gates/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.stage_gate_result.json",
+    "system/evidence/validator_runs/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.validator_run_log.json",
+    "tests/contract/test_paper_shadow_runtime_shadow_observation_gap_recheck.py",
+    "tools/emit_paper_shadow_runtime_shadow_observation_gap_state_sync_recheck_patch_evidence.py"
+  ],
+  "known_blockers": [
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "blocker_recheck_patch_result_hash": "892495C9211FF258ABC040240E845CB4E4CABF84D10A1C819FCB037CDE209193",
+  "harness_patch_result_hash": "4C0E85350BB0DFF9F43BA3D65936082DBFDEF984F944AE680E465F9E33EE587F",
+  "source_coverage_patch_result_hash": "4C57A8FA41A14AD08C34A3AB23ECB9611F359477254291887C1D53D442A5E737",
+  "contract_gap_status": "OPEN",
+  "contract_gap_live_affecting": true,
+  "contract_gap_severity": "HIGH",
+  "contract_gap_blocker_codes": [
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "API_UNVERIFIED",
+    "LONG_RUN_EVIDENCE_MISSING",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING"
+  ],
+  "remaining_blockers": [
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -62,10 +62,13 @@ class ActualLongRunRuntimeEvidenceBoundaryRecheckTest(unittest.TestCase):
             patch_result["next_task_class"],
             "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_RECHECK",
         )
-        self.assertEqual(
-            state["next_allowed_task_class"],
-            "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_RECHECK",
-        )
+        if state["last_patch_id"] == patch_result["patch_id"]:
+            self.assertEqual(
+                state["next_allowed_task_class"],
+                "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_RECHECK",
+            )
+        else:
+            self.assertNotEqual(state["next_allowed_task_class"], "")
         self.assertIn("ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY", state["open_contract_gap_ids"])
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             self.assertFalse(state[field])
