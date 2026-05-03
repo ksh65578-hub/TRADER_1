@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-03T17:51:24Z",
+  "updated_at_utc": "2026-05-03T18:00:58Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -3700,17 +3700,6 @@
       "scale_up_allowed_after": false
     },
     {
-      "patch_id": "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK_20260504_001",
-      "patch_class": "VALIDATOR_PATCH",
-      "target_mvp_level": "MVP-4",
-      "patch_result_path": "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.patch_result.json",
-      "patch_result_hash": "9BA842007E5D153261502D4CA768C1DEC517BDBCAADD79E17A26BAE9E6380E54",
-      "live_order_ready_after": false,
-      "live_order_allowed_after": false,
-      "can_live_trade_after": false,
-      "scale_up_allowed_after": false
-    },
-    {
       "patch_id": "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK_20260504_001",
       "patch_class": "VALIDATOR_PATCH",
       "target_mvp_level": "MVP-4",
@@ -3771,6 +3760,17 @@
       "target_mvp_level": "MVP-4",
       "patch_result_path": "system/evidence/patch_results/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.patch_result.json",
       "patch_result_hash": "E5B00AF3E004ED759AF0246D3FD6369893DAA6D81BBA4DFE42A146A1FA3CD12F",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK_20260504_001",
+      "patch_class": "VALIDATOR_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.patch_result.json",
+      "patch_result_hash": "660B895BBD52496EB8529CEC944BFCC6E871CA2FCC151C0F0E1E6665D5A0456C",
       "live_order_ready_after": false,
       "live_order_allowed_after": false,
       "can_live_trade_after": false,
