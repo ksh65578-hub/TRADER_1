@@ -2103,9 +2103,28 @@ def _position_row(position: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _unverified_position_snapshot(*, source: str, empty_message: str) -> dict[str, Any]:
+    return {
+        "title": "Open PAPER Positions",
+        "status": "UNVERIFIED",
+        "truth_role": "dashboard_serving_truth",
+        "source": source,
+        "open_position_count": 0,
+        "rows": [],
+        "empty_message": empty_message,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def _position_snapshot(
     summary: dict[str, Any] | None,
     summary_freshness: str,
+    audited_current_evidence_snapshot: dict[str, Any] | None = None,
     audited_paper_portfolio_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     positions = summary.get("positions", []) if isinstance(summary, dict) else []
@@ -2125,6 +2144,36 @@ def _position_snapshot(
             "can_live_trade": False,
             "scale_up_allowed": False,
         }
+    if isinstance(audited_current_evidence_snapshot, dict):
+        current_result = validate_upbit_paper_audited_current_evidence_snapshot(audited_current_evidence_snapshot)
+        if current_result.status != "PASS":
+            return _unverified_position_snapshot(
+                source="audited_current_evidence_snapshot.json",
+                empty_message=(
+                    "Position detail hidden because audited PAPER current evidence failed validation; "
+                    "regenerate audited PAPER evidence before trusting positions."
+                ),
+            )
+        source_age_seconds = _snapshot_age_seconds(audited_current_evidence_snapshot.get("generated_at_utc"))
+        if source_age_seconds is None or source_age_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS:
+            return _unverified_position_snapshot(
+                source="audited_current_evidence_snapshot.json",
+                empty_message=(
+                    "Position detail hidden because audited PAPER current evidence is stale; "
+                    "regenerate audited PAPER evidence before trusting positions."
+                ),
+            )
+        if isinstance(audited_paper_portfolio_snapshot, dict):
+            current_portfolio_hash = audited_current_evidence_snapshot.get("source_portfolio_snapshot_hash")
+            portfolio_hash = audited_paper_portfolio_snapshot.get("snapshot_hash")
+            if not current_portfolio_hash or current_portfolio_hash != portfolio_hash:
+                return _unverified_position_snapshot(
+                    source="audited_current_evidence_snapshot.json",
+                    empty_message=(
+                        "Position detail hidden because audited PAPER current evidence is not bound to "
+                        "the loaded portfolio snapshot."
+                    ),
+                )
     if isinstance(audited_paper_portfolio_snapshot, dict):
         portfolio_result = validate_paper_portfolio_snapshot(audited_paper_portfolio_snapshot)
         if portfolio_result.status == "PASS" and audited_paper_portfolio_snapshot.get("snapshot_status") == "PASS":
@@ -10954,6 +11003,7 @@ def build_read_only_dashboard_shell(
     position_snapshot = _position_snapshot(
         summary,
         summary_freshness,
+        audited_current_evidence_snapshot=audited_current_evidence_snapshot,
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
     )
     portfolio_snapshot = _portfolio_snapshot(
