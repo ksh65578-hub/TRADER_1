@@ -5165,6 +5165,16 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         "runtime_cycle_hash",
         "runtime_writer_status",
         "final_decision",
+        "runtime_input_role",
+        "source_collection_report_hash",
+        "source_public_market_data_hash",
+        "canonical_event_count",
+        "runtime_public_market_data_hash",
+        "feature_snapshot_hash",
+        "regime",
+        "selected_candidate_id",
+        "selected_candidate_net_ev_after_cost_bps",
+        "strategy_regime_cost_linkage",
         "artifact_paths",
         "live_order_allowed",
         "can_live_trade",
@@ -5217,6 +5227,35 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
             return fail_result("upbit_paper_persistent_loop_validator", "valid persistent loop did not pass recovery guard", paths, "RECONCILIATION_REQUIRED")
         if loop.get("paper_ledger_rollup_status") != "PASS" or loop.get("paper_ledger_rollup_primary_blocker_code") is not None:
             return fail_result("upbit_paper_persistent_loop_validator", "valid persistent loop did not pass ledger rollup", paths, "RECONCILIATION_REQUIRED")
+        for cycle_result in loop.get("cycle_results", []):
+            if cycle_result.get("runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION":
+                return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cycle summary is not public-collection bound", paths, "MEASUREMENT_MISSING")
+            for hash_field in (
+                "source_collection_report_hash",
+                "source_public_market_data_hash",
+                "runtime_public_market_data_hash",
+                "feature_snapshot_hash",
+            ):
+                if not isinstance(cycle_result.get(hash_field), str) or len(cycle_result[hash_field]) != 64:
+                    return fail_result("upbit_paper_persistent_loop_validator", f"persistent loop cycle summary missing hash: {hash_field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+            if cycle_result.get("source_public_market_data_hash") != cycle_result.get("runtime_public_market_data_hash"):
+                return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cycle summary source/runtime hash mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+            if not isinstance(cycle_result.get("canonical_event_count"), int) or cycle_result["canonical_event_count"] < 5:
+                return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cycle summary lacks canonical event depth", paths, "MEASUREMENT_MISSING")
+            linkage = cycle_result.get("strategy_regime_cost_linkage")
+            if not isinstance(linkage, dict):
+                return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cycle summary missing strategy/regime/cost linkage", paths, "SCHEMA_IDENTITY_MISMATCH")
+            if (
+                linkage.get("source_runtime_cycle_id") != cycle_result.get("cycle_id")
+                or linkage.get("runtime_input_role") != cycle_result.get("runtime_input_role")
+                or linkage.get("runtime_public_market_data_hash") != cycle_result.get("runtime_public_market_data_hash")
+                or linkage.get("feature_snapshot_hash") != cycle_result.get("feature_snapshot_hash")
+                or linkage.get("selected_candidate_id") != cycle_result.get("selected_candidate_id")
+                or linkage.get("selected_candidate_net_ev_after_cost_bps") != cycle_result.get("selected_candidate_net_ev_after_cost_bps")
+            ):
+                return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cycle summary linkage mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+            if linkage.get("live_order_allowed") or linkage.get("can_live_trade") or linkage.get("scale_up_allowed"):
+                return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cycle summary linkage created live or scale-up permission", paths, "LIVE_FINAL_GUARD_FAILED")
         guard_path = Path(tmp) / str(loop["runtime_recovery_guard_path"])
         if not guard_path.exists():
             return fail_result("upbit_paper_persistent_loop_validator", "persistent loop did not write recovery guard artifact", paths, "MEASUREMENT_MISSING")
@@ -5310,6 +5349,32 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
     false_runtime_result = validate_upbit_paper_persistent_loop_report(false_runtime)
     if false_runtime_result.status != "BLOCKED" or false_runtime_result.blocker_code != "MEASUREMENT_MISSING":
         return fail_result("upbit_paper_persistent_loop_validator", "persistent loop false runtime execution flag was not blocked", paths, false_runtime_result.blocker_code or "MEASUREMENT_MISSING")
+
+    with TemporaryDirectory() as tmp:
+        false_source_depth = run_upbit_paper_persistent_loop(
+            root=Path(tmp),
+            loop_id="validator-upbit-paper-loop-false-source-depth",
+            session_id="mvp1_upbit_paper_launcher",
+            requested_cycle_count=1,
+        )
+    false_source_depth["cycle_results"][0]["runtime_input_role"] = "STATIC_FIXTURE"
+    false_source_depth["loop_hash"] = upbit_paper_persistent_loop_hash(false_source_depth)
+    false_source_depth_result = validate_upbit_paper_persistent_loop_report(false_source_depth)
+    if false_source_depth_result.status != "BLOCKED" or false_source_depth_result.blocker_code != "MEASUREMENT_MISSING":
+        return fail_result("upbit_paper_persistent_loop_validator", "persistent loop source-depth summary mutation was not blocked", paths, false_source_depth_result.blocker_code or "MEASUREMENT_MISSING")
+
+    with TemporaryDirectory() as tmp:
+        false_linkage_live = run_upbit_paper_persistent_loop(
+            root=Path(tmp),
+            loop_id="validator-upbit-paper-loop-false-linkage-live",
+            session_id="mvp1_upbit_paper_launcher",
+            requested_cycle_count=1,
+        )
+    false_linkage_live["cycle_results"][0]["strategy_regime_cost_linkage"]["live_order_allowed"] = True
+    false_linkage_live["loop_hash"] = upbit_paper_persistent_loop_hash(false_linkage_live)
+    false_linkage_live_result = validate_upbit_paper_persistent_loop_report(false_linkage_live)
+    if false_linkage_live_result.status != "BLOCKED" or false_linkage_live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result("upbit_paper_persistent_loop_validator", "persistent loop linkage live mutation was not blocked", paths, false_linkage_live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
 
     with TemporaryDirectory() as tmp:
         false_boundary = run_upbit_paper_persistent_loop(

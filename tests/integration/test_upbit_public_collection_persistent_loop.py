@@ -259,6 +259,23 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             latest = json.loads(latest_path.read_text(encoding="utf-8"))
             self.assertEqual(latest["runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
             self.assertFalse(latest["live_order_allowed"])
+            for cycle_result in loop["cycle_results"]:
+                self.assertEqual(cycle_result["runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
+                self.assertEqual(len(cycle_result["source_collection_report_hash"]), 64)
+                self.assertEqual(len(cycle_result["source_public_market_data_hash"]), 64)
+                self.assertEqual(cycle_result["source_public_market_data_hash"], cycle_result["runtime_public_market_data_hash"])
+                self.assertGreaterEqual(cycle_result["canonical_event_count"], 5)
+                self.assertEqual(len(cycle_result["feature_snapshot_hash"]), 64)
+                self.assertEqual(cycle_result["strategy_regime_cost_linkage"]["source_runtime_cycle_id"], cycle_result["cycle_id"])
+                self.assertEqual(
+                    cycle_result["strategy_regime_cost_linkage"]["runtime_public_market_data_hash"],
+                    cycle_result["runtime_public_market_data_hash"],
+                )
+                self.assertEqual(
+                    cycle_result["strategy_regime_cost_linkage"]["selected_candidate_id"],
+                    cycle_result["selected_candidate_id"],
+                )
+                self.assertFalse(cycle_result["strategy_regime_cost_linkage"]["live_order_allowed"])
             ledger_artifacts = [
                 artifact_path
                 for cycle_result in loop["cycle_results"]
@@ -524,6 +541,66 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
 
             self.assertEqual(result.status, "BLOCKED")
             self.assertEqual(result.blocker_code, "MEASUREMENT_MISSING")
+
+    def test_persistent_loop_blocks_static_fixture_cycle_summary_role(self):
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="bounded-paper-loop-static-summary-role",
+                requested_cycle_count=1,
+            )
+            loop["cycle_results"][0]["runtime_input_role"] = "STATIC_FIXTURE"
+            loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
+
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "MEASUREMENT_MISSING")
+
+    def test_persistent_loop_blocks_missing_cycle_summary_canonical_depth(self):
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="bounded-paper-loop-missing-summary-depth",
+                requested_cycle_count=1,
+            )
+            loop["cycle_results"][0]["canonical_event_count"] = 0
+            loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
+
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "MEASUREMENT_MISSING")
+
+    def test_persistent_loop_blocks_summary_source_runtime_hash_mismatch(self):
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="bounded-paper-loop-summary-hash-mismatch",
+                requested_cycle_count=1,
+            )
+            loop["cycle_results"][0]["source_public_market_data_hash"] = "A" * 64
+            loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
+
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+            self.assertEqual(result.status, "FAIL")
+            self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_persistent_loop_blocks_strategy_regime_cost_linkage_live_flag(self):
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="bounded-paper-loop-summary-linkage-live-flag",
+                requested_cycle_count=1,
+            )
+            loop["cycle_results"][0]["strategy_regime_cost_linkage"]["live_order_allowed"] = True
+            loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
+
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_persistent_loop_blocks_duplicate_cycle_identity(self):
         with TemporaryDirectory() as tmp:

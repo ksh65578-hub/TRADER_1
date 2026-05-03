@@ -55,6 +55,10 @@ def _sha256_json(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")).hexdigest().upper()
 
 
+def _is_sha256(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64
+
+
 def upbit_paper_persistent_loop_hash(report: dict[str, Any]) -> str:
     payload = dict(report)
     payload.pop("loop_hash", None)
@@ -412,6 +416,9 @@ def run_upbit_paper_persistent_loop(
                 blockers.append({"code": collection_result.blocker_code or "DATA_UNAVAILABLE", "severity": "HIGH", "message": collection_result.message})
             if cycle_result_status != "PASS":
                 blockers.append({"code": cycle_result_blocker or "UNKNOWN_BLOCKED", "severity": "HIGH", "message": "PAPER runtime cycle did not pass"})
+            selected_candidate = cycle.get("selected_candidate") if isinstance(cycle, dict) else None
+            if not isinstance(selected_candidate, dict):
+                selected_candidate = {}
             cycle_results.append(
                 {
                     "cycle_index": index + 1,
@@ -424,6 +431,16 @@ def run_upbit_paper_persistent_loop(
                     "runtime_cycle_hash": cycle.get("cycle_hash") if isinstance(cycle, dict) else None,
                     "runtime_writer_status": cycle_writer.get("writer_status") if isinstance(cycle_writer, dict) else "NOT_WRITTEN",
                     "final_decision": cycle.get("final_decision") if isinstance(cycle, dict) else "BLOCKED",
+                    "runtime_input_role": cycle.get("runtime_input_role") if isinstance(cycle, dict) else None,
+                    "source_collection_report_hash": cycle.get("source_collection_report_hash") if isinstance(cycle, dict) else None,
+                    "source_public_market_data_hash": cycle.get("source_public_market_data_hash") if isinstance(cycle, dict) else None,
+                    "canonical_event_count": cycle.get("canonical_event_count") if isinstance(cycle, dict) else None,
+                    "runtime_public_market_data_hash": cycle.get("runtime_public_market_data_hash") if isinstance(cycle, dict) else None,
+                    "feature_snapshot_hash": cycle.get("feature_snapshot_hash") if isinstance(cycle, dict) else None,
+                    "regime": cycle.get("regime") if isinstance(cycle, dict) else None,
+                    "selected_candidate_id": selected_candidate.get("candidate_id"),
+                    "selected_candidate_net_ev_after_cost_bps": selected_candidate.get("net_ev_after_cost_bps"),
+                    "strategy_regime_cost_linkage": cycle.get("strategy_regime_cost_linkage") if isinstance(cycle, dict) else None,
                     "artifact_paths": [*(collection_writer.get("artifact_paths") or []), *(cycle_writer.get("artifact_paths") if isinstance(cycle_writer, dict) else [])],
                     "live_order_ready": False,
                     "live_order_allowed": False,
@@ -720,6 +737,65 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
             return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop runtime cycle did not pass", "RECONCILIATION_REQUIRED")
         if item.get("live_order_ready") or item.get("live_order_allowed") or item.get("can_live_trade") or item.get("scale_up_allowed"):
             return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop cycle result attempted live or scale-up permission", "LIVE_FINAL_GUARD_FAILED")
+        if item.get("runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION":
+            return UpbitPaperPersistentLoopValidationResult(
+                "BLOCKED",
+                "persistent loop cycle result is not bound to public market data collection input",
+                "MEASUREMENT_MISSING",
+            )
+        for hash_field in (
+            "source_collection_report_hash",
+            "source_public_market_data_hash",
+            "runtime_public_market_data_hash",
+            "feature_snapshot_hash",
+        ):
+            if not _is_sha256(item.get(hash_field)):
+                return UpbitPaperPersistentLoopValidationResult(
+                    "FAIL",
+                    f"persistent loop cycle result missing runtime depth hash field: {hash_field}",
+                    "SCHEMA_IDENTITY_MISMATCH",
+                )
+        if item.get("source_public_market_data_hash") != item.get("runtime_public_market_data_hash"):
+            return UpbitPaperPersistentLoopValidationResult(
+                "FAIL",
+                "persistent loop cycle result source/runtime market data hash mismatch",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if not isinstance(item.get("canonical_event_count"), int) or item["canonical_event_count"] < 5:
+            return UpbitPaperPersistentLoopValidationResult(
+                "BLOCKED",
+                "persistent loop cycle result lacks public canonical event depth",
+                "MEASUREMENT_MISSING",
+            )
+        linkage = item.get("strategy_regime_cost_linkage")
+        if not isinstance(linkage, dict):
+            return UpbitPaperPersistentLoopValidationResult(
+                "FAIL",
+                "persistent loop cycle result missing strategy/regime/cost linkage",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if linkage.get("live_order_ready") or linkage.get("live_order_allowed") or linkage.get("can_live_trade") or linkage.get("scale_up_allowed"):
+            return UpbitPaperPersistentLoopValidationResult(
+                "BLOCKED",
+                "persistent loop strategy/regime/cost linkage attempted live or scale-up permission",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+        expected_linkage = {
+            "source_runtime_cycle_id": item.get("cycle_id"),
+            "runtime_input_role": item.get("runtime_input_role"),
+            "runtime_public_market_data_hash": item.get("runtime_public_market_data_hash"),
+            "feature_snapshot_hash": item.get("feature_snapshot_hash"),
+            "report_regime": item.get("regime"),
+            "selected_candidate_id": item.get("selected_candidate_id"),
+            "selected_candidate_net_ev_after_cost_bps": item.get("selected_candidate_net_ev_after_cost_bps"),
+        }
+        for field_name, expected_value in expected_linkage.items():
+            if linkage.get(field_name) != expected_value:
+                return UpbitPaperPersistentLoopValidationResult(
+                    "FAIL",
+                    f"persistent loop strategy/regime/cost linkage mismatch: {field_name}",
+                    "SCHEMA_IDENTITY_MISMATCH",
+                )
         pass_count += 1
     if report.get("completed_cycle_count") != pass_count:
         return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop completed count mismatch", "SCHEMA_IDENTITY_MISMATCH")

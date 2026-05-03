@@ -14587,6 +14587,67 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-UPBIT-PAPER-RUNTIME-DEPTH-RECHECK",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Upbit PAPER runtime depth recheck",
+      "full_text_marker": "REQ-MVP4-UPBIT-PAPER-RUNTIME-DEPTH-RECHECK:persistent loop summaries must preserve public runtime depth evidence",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Upbit PAPER persistent loop summaries must preserve public runtime depth evidence",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_persistent_loop_report.v1",
+        "trader1.patch_result.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_persistent_loop_validator",
+        "upbit_paper_runtime_cycle_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_persistent_loop_report.schema.json",
+        "trader1/runtime/paper/upbit_paper_persistent_loop.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_normalized_reconciliation_recheck.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/runtime/test_upbit_paper_stale_loop_normalized_reconciliation_recheck.py",
+        "tools/emit_upbit_paper_runtime_depth_recheck_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_UPBIT_PAPER_RUNTIME_DEPTH_RECHECK.md"
+      ],
+      "test_ids": [
+        "tests/integration/test_upbit_public_collection_persistent_loop.py",
+        "tests/runtime/test_upbit_paper_stale_loop_normalized_reconciliation_recheck.py",
+        "tests/validators/test_mvp0_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-PERSISTENT-LOOP-BOUNDED",
+        "REQ-MVP4-STRATEGY-REGIME-COST-RUNTIME-LINKAGE",
+        "REQ-MVP4-CANDIDATE-SCORECARD-RUNTIME-LINKAGE-BINDING"
+      ],
+      "source_text_sha256": "E0157CDB4199207703F632D71F2D919567A2FB40D0CA440F8C705D10FAEE518D",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-UPBIT-PAPER-RUNTIME-E2E-CONSISTENCY-GUARD",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -17457,5 +17518,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-03T11:45:33Z"
+  "updated_at_utc": "2026-05-03T12:25:31Z"
 }
