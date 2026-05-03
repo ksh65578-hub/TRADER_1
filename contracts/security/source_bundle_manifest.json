@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "158F23C158E1B261430157C8C0E97F8DAB5591AE083CD15244EDB26E3D153767",
+      "sha256": "4529B6F00A802BA11E80FBD850AFE13739F5947A4F6B7666A3C38E7B6BC497FF",
       "size_bytes": 1096
     },
     {
@@ -797,6 +797,11 @@
       "path": "tests/contract/__init__.py",
       "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
       "size_bytes": 0
+    },
+    {
+      "path": "tests/contract/test_actual_long_run_runtime_evidence_boundary_recheck.py",
+      "sha256": "F89B348D955A40615D70168EE238676A00A82D22E7E4A4C9512B92C2A2873B18",
+      "size_bytes": 3462
     },
     {
       "path": "tests/contract/test_final_decision_schema.py",
@@ -2450,8 +2455,8 @@
     },
     {
       "path": "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
-      "sha256": "B76996A298A3AA34E2B60DBFF37AF6235E4EC7B3BC6B042E4E523E8CDB18AC98",
-      "size_bytes": 8198
+      "sha256": "B3CABA4A01EA7CE2C4F08FF3167110DCBE6C034F70937E2D4FC202508267CDC0",
+      "size_bytes": 8277
     },
     {
       "path": "tests/validators/test_rolling_window_default_validator.py",
@@ -2492,6 +2497,11 @@
       "path": "tools/build_source_bundle_manifest.py",
       "sha256": "B06F12E9BB5E584AAE5087FA6BCBBD08B998C56693BED42762400600A64F8DB1",
       "size_bytes": 997
+    },
+    {
+      "path": "tools/emit_actual_long_run_runtime_evidence_boundary_state_sync_recheck_patch_evidence.py",
+      "sha256": "347BC07E84A511D03218D103542A4E21CC128607501846096BF0A023E385735A",
+      "size_bytes": 29794
     },
     {
       "path": "tools/emit_actual_runtime_harness_threshold_floor_patch_evidence.py",
@@ -5193,6 +5203,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_ACTUAL_RUNTIME_HARNESS_THRESHOLD_FLOOR.md",
       "reason": "denied:contracts/generated/"
     },
@@ -7585,6 +7599,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_ACTUAL_RUNTIME_HARNESS_THRESHOLD_FLOOR.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -8914,6 +8932,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP3_OPERATIONAL_UPBIT_PAPER.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10273,6 +10295,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_ACTUAL_RUNTIME_HARNESS_THRESHOLD_FLOOR.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -11622,6 +11648,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP3_OPERATIONAL_UPBIT_PAPER.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
