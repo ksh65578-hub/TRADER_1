@@ -4832,7 +4832,8 @@
             "summary.json",
             "heartbeat.json",
             "startup_probe.json",
-            "paper_portfolio_snapshot.json"
+            "paper_portfolio_snapshot.json",
+            "audited_current_evidence_snapshot.json"
           ]
         },
         "open_position_count": {
