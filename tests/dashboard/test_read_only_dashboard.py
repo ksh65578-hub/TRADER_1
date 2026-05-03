@@ -70,6 +70,12 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
     build_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
     upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_hash,
 )
+from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
+    AUDITED_WRITER_IDEMPOTENT_STATUS,
+    AUDITED_WRITER_WRITTEN_STATUS,
+    build_upbit_paper_repaired_current_evidence_audited_writer_report,
+    upbit_paper_audited_current_evidence_snapshot_hash,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
@@ -256,6 +262,9 @@ def build_dashboard(
     upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=None,
     upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=None,
     upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=None,
+    upbit_paper_repaired_current_evidence_audited_writer_report=None,
+    audited_current_evidence_snapshot=None,
+    audited_paper_portfolio_snapshot=None,
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
@@ -288,6 +297,9 @@ def build_dashboard(
         upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=upbit_paper_repaired_current_evidence_audited_writer_dry_run_report,
         upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=upbit_paper_repaired_current_evidence_audited_writer_locked_output_report,
         upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
+        upbit_paper_repaired_current_evidence_audited_writer_report=upbit_paper_repaired_current_evidence_audited_writer_report,
+        audited_current_evidence_snapshot=audited_current_evidence_snapshot,
+        audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
@@ -727,6 +739,73 @@ def audited_writer_implementation_prep_fixture(source_locked_output_report=None)
             source_audited_writer_locked_output_report=source_locked_output_report or audited_writer_locked_output_fixture(),
             audited_writer_implementation_prep_id="test-dashboard-audited-writer-implementation-prep",
         )
+
+
+def audited_writer_output_fixture():
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        implementation_prep = audited_writer_implementation_prep_fixture()
+        ledger_rollup = json.loads(
+            (
+                ROOT
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / "mvp1_upbit_paper_launcher"
+                / "ledger"
+                / "paper_ledger_rollup_report.json"
+            ).read_text(encoding="utf-8")
+        )
+        writer_report = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+            root=root,
+            source_implementation_prep_report=implementation_prep,
+            source_ledger_rollup_report=ledger_rollup,
+            audited_writer_id="test-dashboard-audited-current-evidence-writer",
+        )
+        runtime_base = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / implementation_prep["session_id"]
+        )
+        current_evidence = json.loads(
+            (
+                runtime_base
+                / "paper_runtime"
+                / "current_evidence"
+                / "audited_current_evidence_snapshot.json"
+            ).read_text(encoding="utf-8")
+        )
+        paper_portfolio = json.loads(
+            (runtime_base / "paper_runtime" / "portfolio" / "paper_portfolio_snapshot.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        return writer_report, current_evidence, paper_portfolio, implementation_prep
+
+
+def build_dashboard_with_audited_current_evidence_writer(outputs=None):
+    writer_report, current_evidence, paper_portfolio, implementation_prep = outputs or audited_writer_output_fixture()
+    session_id = writer_report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id, with_paper_portfolio=False)
+    return build_read_only_dashboard_shell(
+        exchange=writer_report["exchange"],
+        market_type=writer_report["market_type"],
+        mode=writer_report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=implementation_prep,
+        upbit_paper_repaired_current_evidence_audited_writer_report=writer_report,
+        audited_current_evidence_snapshot=current_evidence,
+        audited_paper_portfolio_snapshot=paper_portfolio,
+    )
 
 
 def build_dashboard_with_post_rerun_blocker_rollup(report=None):
@@ -3715,6 +3794,93 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_projects_audited_current_evidence_writer_portfolio_truth(self):
+        dashboard = build_dashboard_with_audited_current_evidence_writer()
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "VERIFIED")
+        self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
+        self.assertEqual(portfolio["source_snapshot_status"], "PASS")
+        self.assertEqual(portfolio["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
+        self.assertEqual(portfolio["configured_paper_capital"]["value_display"], "1,000,000 KRW")
+        self.assertEqual(portfolio["cash"]["value_display"], "845,923 KRW")
+        self.assertEqual(portfolio["equity"]["value_display"], "999,923 KRW")
+        self.assertEqual(portfolio["total_pnl"]["value_display"], "-77 KRW")
+        self.assertEqual(portfolio["positions"]["value_display"], "1")
+        self.assertEqual(portfolio["blocking_reason"], "LIVE_READY_MISSING")
+
+        positions = dashboard["position_snapshot"]
+        self.assertEqual(positions["source"], "paper_portfolio_snapshot.json")
+        self.assertEqual(positions["status"], "OPEN")
+        self.assertEqual(positions["open_position_count"], 1)
+
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertIn(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_status"],
+            {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS},
+        )
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_validation_status"],
+            "PASS",
+        )
+        self.assertTrue(reconciliation["upbit_paper_repaired_current_evidence_audited_writer_verified_for_display"])
+        self.assertFalse(reconciliation["live_order_ready"])
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(reconciliation["can_live_trade"])
+        self.assertFalse(reconciliation["scale_up_allowed"])
+
+        source_status = {
+            source["artifact_id"]: source["freshness_status"]
+            for source in dashboard["source_artifacts"]
+            if source["artifact_id"]
+            in {
+                "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER",
+                "AUDITED_CURRENT_EVIDENCE_SNAPSHOT",
+                "AUDITED_PAPER_PORTFOLIO_SNAPSHOT",
+            }
+        }
+        self.assertEqual(
+            source_status,
+            {
+                "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER": "PASS",
+                "AUDITED_CURRENT_EVIDENCE_SNAPSHOT": "PASS",
+                "AUDITED_PAPER_PORTFOLIO_SNAPSHOT": "PASS",
+            },
+        )
+
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Audited Current Evidence Writer", html)
+        self.assertIn("writer=PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN", html)
+        self.assertIn("845,923 KRW", html)
+        self.assertIn("999,923 KRW", html)
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_keeps_audited_current_evidence_writer_portfolio_unverified_on_live_drift(self):
+        writer_report, current_evidence, paper_portfolio, implementation_prep = audited_writer_output_fixture()
+        current_evidence = dict(current_evidence)
+        current_evidence["live_order_allowed"] = True
+        current_evidence["snapshot_hash"] = upbit_paper_audited_current_evidence_snapshot_hash(current_evidence)
+
+        dashboard = build_dashboard_with_audited_current_evidence_writer(
+            (writer_report, current_evidence, paper_portfolio, implementation_prep)
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
+        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["blocking_reason"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
 
     def test_dashboard_displays_bound_verified_portfolio_when_stale_loop_reconciliation_blocks_writes(self):
         report = stale_loop_post_regeneration_reconciliation_fixture()

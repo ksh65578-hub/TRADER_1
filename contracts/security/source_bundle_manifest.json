@@ -280,8 +280,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "0E04590304BD0E7DC320ABAB91636CD2A54E3AF2C7DF6F24FC0F56773FC6800E",
-      "size_bytes": 172989
+      "sha256": "581D408AA45CE9F646D5A00575E5D201CE843DE2965653B27662E7E8B79C08A8",
+      "size_bytes": 176813
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -855,8 +855,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "D3B1A772998B047B5EE1D57C4B262984B128FCC213CC41241D6E4F88F8A0B1E8",
-      "size_bytes": 336176
+      "sha256": "6727DBAE4E4390E35EF61ABF3674F3CBED2BE456F75D773B7A1D483F34300A51",
+      "size_bytes": 344136
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -1135,8 +1135,8 @@
     },
     {
       "path": "tests/runtime/test_safe_launcher.py",
-      "sha256": "9519AD9CDF5A23F6A050129B8885FAF0DE730EC1DEB5CA4823B8DF6857FBDC84",
-      "size_bytes": 74086
+      "sha256": "6E5F877D8175173A85CA425CE1507D5C86368017B4135DB5B7991ABF55BA8980",
+      "size_bytes": 77444
     },
     {
       "path": "tests/runtime/test_safe_smoke.py",
@@ -4330,8 +4330,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "FF54044BC863639D29FA242203DB3094F89B7BC382D25361289F571C8402A3AC",
-      "size_bytes": 1006210
+      "sha256": "E16AA3E1B44FAB2B36C2071B1B587BA2B2BF2D502E4A7ABB8A006049FA797EB0",
+      "size_bytes": 1048852
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -4460,8 +4460,8 @@
     },
     {
       "path": "trader1/runtime/boot/safe_launcher.py",
-      "sha256": "9AECB54B0D8F34B11D33A17CD66A111B930073CB9C67822FE42C726BF5562C9F",
-      "size_bytes": 85469
+      "sha256": "F7177E198A68CEA8E51E6C648505F7250949A7523AD5B81EDCF0A6DC679F73AB",
+      "size_bytes": 90774
     },
     {
       "path": "trader1/runtime/boot/startup_probe.py",
