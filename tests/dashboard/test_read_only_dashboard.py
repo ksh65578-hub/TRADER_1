@@ -6400,6 +6400,12 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("data-client-freshness-pill", html)
         self.assertIn("data-dashboard-age", html)
         self.assertIn("Auto Refresh", html)
+        self.assertIn("source-summary", html)
+        self.assertIn("source-count-total", html)
+        self.assertIn("source-count-pass", html)
+        self.assertIn("source-count-attention", html)
+        self.assertIn("data-source-status=\"SUMMARY=PASS\"", html)
+        self.assertIn("source-artifacts-table", html)
         self.assertIn("This dashboard page is older than the freshness limit", html)
         self.assertIn("window.location.reload", html)
         self.assertIn("trader1.dashboard.detailsOpen.", html)
@@ -6472,12 +6478,37 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS", result.message)
 
         cramped = html.replace(
-            "grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));",
+            "grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));",
             "grid-template-columns: repeat(5, minmax(0, 1fr));",
         )
         result = validate_dashboard_visual_layout_contract(cramped)
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_dashboard_freshness_header_summarizes_long_source_list(self):
+        dashboard = build_dashboard()
+        dashboard["source_artifacts"] = [
+            {
+                "artifact_id": f"SOURCE_{index}_WITH_LONG_NAME",
+                "filename": f"source_{index}_with_long_name.json",
+                "freshness_status": "PASS" if index % 2 == 0 else "STALE",
+                "truth_role": "dashboard_serving_truth",
+            }
+            for index in range(24)
+        ]
+        html = render_dashboard_html(dashboard)
+        result = validate_dashboard_visual_layout_contract(html)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        freshness_start = html.index('<section class="freshness-strip" data-dashboard-freshness')
+        freshness_end = html.index("</section>", freshness_start)
+        freshness_section = html[freshness_start:freshness_end]
+        self.assertIn("Total 24", freshness_section)
+        self.assertIn("PASS 12", freshness_section)
+        self.assertIn("Attention 12", freshness_section)
+        self.assertNotIn("SOURCE_0_WITH_LONG_NAME=PASS", freshness_section)
+        self.assertNotIn("SOURCE_23_WITH_LONG_NAME=STALE", freshness_section)
+        self.assertIn('data-source-status="SOURCE_23_WITH_LONG_NAME=STALE"', html)
 
     def test_dashboard_visual_layout_contract_requires_persistent_detail_keys(self):
         html = render_dashboard_html(build_dashboard())
