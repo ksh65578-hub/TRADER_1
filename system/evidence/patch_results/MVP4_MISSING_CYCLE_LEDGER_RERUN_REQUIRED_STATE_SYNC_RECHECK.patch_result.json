@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.patch_result.v1",
   "patch_id": "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK_20260504_001",
-  "created_at_utc": "2026-05-03T19:35:54Z",
+  "created_at_utc": "2026-05-03T20:55:50Z",
   "target_mvp_level": "MVP-4",
   "patch_class": "VALIDATOR_PATCH",
   "input_authority_files": [
@@ -342,7 +342,7 @@
   "convergence_live_order_allowed_after": false,
   "scale_up_eligibility_changed": false,
   "scale_up_allowed_after": false,
-  "result_hash": "29F347BF734DD364E15A3A1A17E4C31B9D7C1D9F00EFCC96CF0228F2FB5E01C3",
+  "result_hash": "83A16E9D5330665DED4586D3E1B96E4C1F0404A80D89E725757595ADDB5CF0D5",
   "merged_requirements": [],
   "coverage_index_result": "UPDATED_PASS",
   "scale_up_allowed_before": false,
