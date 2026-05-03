@@ -414,6 +414,25 @@ def paper_persistent_loop_fixture(session_id="test_read_only_dashboard"):
         )
 
 
+def ledger_idempotency_runtime_evidence_fixture(
+    session_id="mvp1_upbit_paper_launcher",
+    evidence_id="test-dashboard-ledger-idempotency-runtime-evidence",
+):
+    with TemporaryDirectory() as tmp:
+        runtime_root = Path(tmp)
+        run_upbit_paper_persistent_loop(
+            root=runtime_root,
+            loop_id=evidence_id,
+            session_id=session_id,
+            requested_cycle_count=1,
+        )
+        return build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            root=runtime_root,
+            session_id=session_id,
+            evidence_id=evidence_id,
+        )
+
+
 def build_dashboard_with_paper_persistent_loop(report=None):
     report = report or paper_persistent_loop_fixture()
     session_id = report["session_id"]
@@ -490,11 +509,7 @@ def build_dashboard_with_reconciliation(reconciliation_report=None, restart_reco
 
 
 def build_dashboard_with_ledger_idempotency_runtime_evidence(report=None):
-    report = report or build_upbit_paper_ledger_idempotency_runtime_evidence_report(
-        root=ROOT,
-        session_id="mvp1_upbit_paper_launcher",
-        evidence_id="test-dashboard-ledger-idempotency-runtime-evidence",
-    )
+    report = report or ledger_idempotency_runtime_evidence_fixture()
     session_id = report["session_id"]
     summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
     return build_read_only_dashboard_shell(
@@ -671,8 +686,7 @@ def stale_loop_post_regeneration_reconciliation_fixture():
 
 def stale_loop_operator_queue_closure_fixture(post_report=None, ledger_report=None):
     post_report = post_report or stale_loop_post_regeneration_reconciliation_fixture()
-    ledger_report = ledger_report or build_upbit_paper_ledger_idempotency_runtime_evidence_report(
-        root=ROOT,
+    ledger_report = ledger_report or ledger_idempotency_runtime_evidence_fixture(
         session_id=post_report["session_id"],
         evidence_id="test-dashboard-stale-loop-operator-queue-closure-ledger",
     )
@@ -1041,8 +1055,7 @@ def build_dashboard_with_stale_loop_operator_queue_closure(
     with_paper_portfolio=True,
 ):
     post_report = post_report or stale_loop_post_regeneration_reconciliation_fixture()
-    ledger_idempotency_report = ledger_idempotency_report or build_upbit_paper_ledger_idempotency_runtime_evidence_report(
-        root=ROOT,
+    ledger_idempotency_report = ledger_idempotency_report or ledger_idempotency_runtime_evidence_fixture(
         session_id=post_report["session_id"],
         evidence_id="test-dashboard-stale-loop-operator-queue-closure-ledger",
     )
@@ -2179,8 +2192,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("count-mismatch=0", html)
 
     def test_dashboard_blocks_ledger_idempotency_runtime_evidence_live_mutation(self):
-        report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
-            root=ROOT,
+        report = ledger_idempotency_runtime_evidence_fixture(
             session_id="mvp1_upbit_paper_launcher",
             evidence_id="test-dashboard-ledger-idempotency-live-mutation",
         )
@@ -2548,8 +2560,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
     def test_dashboard_projects_post_rerun_closure_recheck_for_operator_visibility(self):
         dashboard = build_dashboard_with_post_rerun_current_evidence_closure_recheck(
             closure_report=post_rerun_resolution_current_evidence_closure_fixture(),
-            ledger_idempotency_report=build_upbit_paper_ledger_idempotency_runtime_evidence_report(
-                root=ROOT,
+            ledger_idempotency_report=ledger_idempotency_runtime_evidence_fixture(
                 session_id="mvp1_upbit_paper_launcher",
                 evidence_id="test-dashboard-post-rerun-closure-recheck-ledger",
             ),
@@ -2608,8 +2619,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
     def test_dashboard_explains_unverified_portfolio_when_recheck_blocks_current_evidence(self):
         dashboard = build_dashboard_with_post_rerun_current_evidence_closure_recheck(
             closure_report=post_rerun_resolution_current_evidence_closure_fixture(),
-            ledger_idempotency_report=build_upbit_paper_ledger_idempotency_runtime_evidence_report(
-                root=ROOT,
+            ledger_idempotency_report=ledger_idempotency_runtime_evidence_fixture(
                 session_id="mvp1_upbit_paper_launcher",
                 evidence_id="test-dashboard-post-rerun-closure-recheck-ledger-unverified-portfolio",
             ),
@@ -2652,8 +2662,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         dashboard = build_dashboard_with_post_rerun_reconciliation_repair_path(
             closure_report=post_rerun_resolution_current_evidence_closure_fixture(),
             recheck_report=post_rerun_current_evidence_closure_recheck_fixture(),
-            ledger_idempotency_report=build_upbit_paper_ledger_idempotency_runtime_evidence_report(
-                root=ROOT,
+            ledger_idempotency_report=ledger_idempotency_runtime_evidence_fixture(
                 session_id="mvp1_upbit_paper_launcher",
                 evidence_id="test-dashboard-post-rerun-repair-path-ledger",
             ),
@@ -3948,11 +3957,19 @@ class ReadOnlyDashboardTest(unittest.TestCase):
 
     def test_dashboard_displays_bound_verified_portfolio_when_stale_loop_reconciliation_blocks_writes(self):
         report = stale_loop_post_regeneration_reconciliation_fixture()
-        ledger_report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
-            root=ROOT,
-            session_id=report["session_id"],
-            evidence_id="test-dashboard-bound-portfolio-truth-reconciliation",
-        )
+        with TemporaryDirectory() as tmp:
+            runtime_root = Path(tmp)
+            run_upbit_paper_persistent_loop(
+                root=runtime_root,
+                loop_id="test-dashboard-bound-portfolio-truth-reconciliation",
+                session_id=report["session_id"],
+                requested_cycle_count=1,
+            )
+            ledger_report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+                root=runtime_root,
+                session_id=report["session_id"],
+                evidence_id="test-dashboard-bound-portfolio-truth-reconciliation",
+            )
         paper_portfolio = build_initial_paper_portfolio_snapshot(
             exchange=report["exchange"],
             market_type=report["market_type"],
@@ -3995,8 +4012,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
 
     def test_dashboard_keeps_stale_loop_portfolio_unverified_when_ledger_evidence_is_not_bound(self):
         report = stale_loop_post_regeneration_reconciliation_fixture()
-        ledger_report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
-            root=ROOT,
+        ledger_report = ledger_idempotency_runtime_evidence_fixture(
             session_id=report["session_id"],
             evidence_id="test-dashboard-unbound-portfolio-truth-reconciliation",
         )

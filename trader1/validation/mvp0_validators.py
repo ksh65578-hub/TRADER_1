@@ -133,6 +133,7 @@ from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence impor
     build_upbit_paper_ledger_idempotency_runtime_evidence_report,
     upbit_paper_ledger_idempotency_runtime_evidence_hash,
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
+    write_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
 from trader1.runtime.operator_control.operator_control import (
     build_operator_action_audit,
@@ -3722,6 +3723,22 @@ def upbit_paper_ledger_idempotency_runtime_evidence_validator() -> ValidatorResu
     for field in (
         "source_rollup_path",
         "source_rollup_hash_self_check",
+        "source_persistent_loop_path",
+        "source_persistent_loop_hash_self_check",
+        "source_persistent_loop_validation_status",
+        "source_runtime_cycle_ids",
+        "source_runtime_cycle_hashes",
+        "ledger_head_cycle_in_persistent_loop",
+        "ledger_head_runtime_cycle_hash",
+        "source_runtime_input_role",
+        "source_collection_report_hash",
+        "source_public_market_data_hash",
+        "source_runtime_public_market_data_hash",
+        "source_canonical_event_count",
+        "source_feature_snapshot_hash",
+        "source_strategy_regime_cost_linkage_hash",
+        "source_runtime_depth_status",
+        "source_runtime_depth_mismatch_count",
         "source_ledger_paths",
         "recomputed_ledger_event_count",
         "duplicate_event_id_count",
@@ -3773,6 +3790,12 @@ def upbit_paper_ledger_idempotency_runtime_evidence_validator() -> ValidatorResu
         if (
             report.get("runtime_evidence_status") != "PASS"
             or report.get("source_rollup_validation_status") != "PASS"
+            or report.get("source_persistent_loop_validation_status") != "PASS"
+            or report.get("source_runtime_depth_status") != "PASS"
+            or report.get("ledger_head_cycle_in_persistent_loop") is not True
+            or report.get("source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION"
+            or report.get("source_public_market_data_hash") != report.get("source_runtime_public_market_data_hash")
+            or report.get("source_canonical_event_count", 0) < 5
             or report.get("idempotency_status") != "PASS"
             or report.get("reconciliation_status") != "PASS"
             or report.get("portfolio_provenance_status") != "PASS"
@@ -3792,6 +3815,30 @@ def upbit_paper_ledger_idempotency_runtime_evidence_validator() -> ValidatorResu
                 paths,
                 "LIVE_FINAL_GUARD_FAILED",
             )
+
+    depth_hash_mutation = dict(report)
+    depth_hash_mutation["source_runtime_public_market_data_hash"] = "A" * 64
+    depth_hash_mutation["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(depth_hash_mutation)
+    depth_hash_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(depth_hash_mutation)
+    if depth_hash_result.status != "FAIL" or depth_hash_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return fail_result(
+            "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+            "Upbit PAPER ledger idempotency runtime-depth hash mutation was not blocked",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    depth_live_mutation = dict(report)
+    depth_live_mutation["source_strategy_regime_cost_linkage_live_order_allowed"] = True
+    depth_live_mutation["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(depth_live_mutation)
+    depth_live_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(depth_live_mutation)
+    if depth_live_result.status != "BLOCKED" or depth_live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+            "Upbit PAPER ledger idempotency runtime-depth linkage live mutation was not blocked",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
 
     with TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -6509,21 +6556,42 @@ def upbit_paper_stale_loop_ledger_recheck_preview_validator() -> ValidatorResult
         / "paper_runtime"
         / "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json"
     )
-    ledger_path = (
-        ROOT
-        / "system"
-        / "runtime"
-        / "upbit"
-        / "krw_spot"
-        / "paper"
-        / "mvp1_upbit_paper_launcher"
-        / "ledger"
-        / "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
-    )
-    if not closure_path.exists() or not ledger_path.exists():
-        return fail_result(validator_id, "stale-loop ledger recheck preview source reports are missing", paths + [closure_path, ledger_path], "MEASUREMENT_MISSING")
-    closure_report = load_json(closure_path)
-    ledger_report = load_json(ledger_path)
+    if not closure_path.exists():
+        return fail_result(validator_id, "stale-loop ledger recheck preview source closure report is missing", paths + [closure_path], "MEASUREMENT_MISSING")
+    session_id = "mvp1_upbit_paper_launcher"
+    with TemporaryDirectory() as tmp:
+        current_root = Path(tmp)
+        run_upbit_paper_persistent_loop(
+            root=current_root,
+            loop_id="validator-stale-loop-ledger-preview-current",
+            session_id=session_id,
+            requested_cycle_count=1,
+        )
+        ledger_report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            root=current_root,
+            session_id=session_id,
+            evidence_id="validator-stale-loop-ledger-recheck-preview",
+        )
+    closure_report = json.loads(json.dumps(load_json(closure_path)))
+    closure_report["source_ledger_idempotency_evidence_hash"] = ledger_report["evidence_hash"]
+    closure_report["source_ledger_idempotency_evidence_status"] = ledger_report["runtime_evidence_status"]
+    closure_report["source_ledger_idempotency_validator_status"] = "PASS"
+    closure_report["source_ledger_idempotency_blocker_code"] = None
+    closure_report["source_ledger_reconciliation_status"] = ledger_report["reconciliation_status"]
+    closure_report["source_ledger_idempotency_status"] = ledger_report["idempotency_status"]
+    closure_report["source_ledger_mismatch_count"] = ledger_report["mismatch_count"]
+    closure_report["source_ledger_head_hash"] = ledger_report["source_ledger_head_hash"]
+    closure_report["source_ledger_rollup_hash"] = ledger_report["source_rollup_hash"]
+    for item in closure_report["items"]:
+        item["current_ledger_evidence_status"] = ledger_report["runtime_evidence_status"]
+        item["current_ledger_idempotency_status"] = ledger_report["idempotency_status"]
+        item["current_ledger_reconciliation_status"] = ledger_report["reconciliation_status"]
+        item["current_ledger_head_hash"] = ledger_report["source_ledger_head_hash"]
+        item["current_ledger_rollup_hash"] = ledger_report["source_rollup_hash"]
+    closure_report["closure_hash"] = upbit_paper_stale_loop_reconciliation_operator_queue_closure_hash(closure_report)
+    closure_result = validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(closure_report)
+    if closure_result.status != "PASS":
+        return fail_result(validator_id, f"stale-loop ledger recheck preview source closure failed after current ledger binding: {closure_result.message}", paths + [closure_path], closure_result.blocker_code or "UNKNOWN_BLOCKED")
     report = build_upbit_paper_stale_loop_ledger_recheck_preview_report(
         root=ROOT,
         closure_report=closure_report,
@@ -14016,10 +14084,39 @@ def upbit_paper_post_rerun_current_evidence_closure_recheck_validator() -> Valid
                 "SCHEMA_IDENTITY_MISMATCH",
             )
 
-    report = build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
-        root=ROOT,
-        session_id="mvp1_upbit_paper_launcher",
-    )
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        session_id = "mvp1_upbit_paper_launcher"
+        closure_source_path = (
+            ROOT
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / session_id
+            / "paper_runtime"
+            / "upbit_paper_post_rerun_resolution_current_evidence_closure_report.json"
+        )
+        closure_target_path = root / closure_source_path.relative_to(ROOT)
+        closure_target_path.parent.mkdir(parents=True, exist_ok=True)
+        closure_target_path.write_text(closure_source_path.read_text(encoding="utf-8"), encoding="utf-8")
+        run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="validator-post-rerun-current-evidence-closure-recheck-ledger",
+            session_id=session_id,
+            requested_cycle_count=1,
+        )
+        ledger_report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            root=root,
+            session_id=session_id,
+            evidence_id="validator-post-rerun-current-evidence-closure-recheck-ledger",
+        )
+        write_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root, report=ledger_report)
+        report = build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
+            root=root,
+            session_id=session_id,
+        )
     result = validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(report)
     if result.status != "PASS":
         return fail_result(

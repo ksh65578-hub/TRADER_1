@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 from trader1.runtime.paper.upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild import (
     ISOLATED_EVENT_ID_SCOPE_REPAIRED_ROLLUP_REBUILD_BLOCKER_CODE,
     build_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report,
+    event_id_repaired_candidate_rollup_hash,
     upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_hash,
     validate_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report,
     write_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report,
@@ -119,6 +120,19 @@ class UpbitPaperStaleLoopIsolatedEventIdScopeRepairedRollupRebuildTest(unittest.
                 event_id_scope_repaired_rollup_rebuild_id="test-event-id-repaired-rollup-rebuild",
                 candidate_rollup_write_enabled=True,
             )
+            for artifact_path in (
+                rooted(tmp_root, item["candidate_rollup_artifact_path"])
+                for item in build_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
+                    root=tmp_root,
+                    event_id_scope_repair_executor_report=executor_report,
+                    event_id_scope_repaired_rollup_rebuild_id="test-event-id-repaired-rollup-rebuild",
+                    candidate_rollup_write_enabled=False,
+                )["items"]
+            ):
+                candidate_rollup = load_json(artifact_path)
+                candidate_rollup["generated_at_utc"] = "2000-01-01T00:00:00Z"
+                candidate_rollup["candidate_rollup_hash"] = event_id_repaired_candidate_rollup_hash(candidate_rollup)
+                artifact_path.write_text(json.dumps(candidate_rollup, indent=2, sort_keys=True), encoding="utf-8")
 
             report = build_upbit_paper_stale_loop_isolated_event_id_scope_repaired_rollup_rebuild_report(
                 root=tmp_root,

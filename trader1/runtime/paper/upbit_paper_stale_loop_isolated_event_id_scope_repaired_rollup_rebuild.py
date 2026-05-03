@@ -68,6 +68,13 @@ def event_id_repaired_candidate_rollup_hash(report: dict[str, Any]) -> str:
     return _sha256_json(payload)
 
 
+def _event_id_repaired_candidate_rollup_semantic_hash(report: dict[str, Any]) -> str:
+    payload = dict(report)
+    payload.pop("generated_at_utc", None)
+    payload.pop("candidate_rollup_hash", None)
+    return _sha256_json(payload)
+
+
 def _runtime_base(root: Path, session_id: str) -> Path:
     return Path(root).resolve() / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
@@ -162,6 +169,10 @@ def _write_candidate_rollup(*, root: Path, path: str, candidate_rollup: dict[str
         if isinstance(existing, dict) and existing.get("candidate_rollup_hash") == candidate_rollup.get(
             "candidate_rollup_hash"
         ):
+            return "REUSED_EXISTING_MATCH", False, True
+        if isinstance(existing, dict) and _event_id_repaired_candidate_rollup_semantic_hash(
+            existing
+        ) == _event_id_repaired_candidate_rollup_semantic_hash(candidate_rollup):
             return "REUSED_EXISTING_MATCH", False, True
         return "BLOCKED_EXISTING_MISMATCH", False, False
     durable_atomic_write_json(target, candidate_rollup)

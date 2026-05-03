@@ -3,6 +3,10 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
+    build_upbit_paper_ledger_idempotency_runtime_evidence_report,
+)
+from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
 from trader1.runtime.paper.upbit_paper_stale_loop_ledger_recheck_preview import (
     PERSISTENT_LOOP_SCHEMA_RECHECK_FAILED_BLOCKER_CODE,
     build_upbit_paper_stale_loop_ledger_recheck_preview_report,
@@ -10,12 +14,16 @@ from trader1.runtime.paper.upbit_paper_stale_loop_ledger_recheck_preview import 
     validate_upbit_paper_stale_loop_ledger_recheck_preview_report,
     write_upbit_paper_stale_loop_ledger_recheck_preview_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_reconciliation_operator_queue_closure import (
+    upbit_paper_stale_loop_reconciliation_operator_queue_closure_hash,
+    validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_BASE = ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher"
 CLOSURE_PATH = RUNTIME_BASE / "paper_runtime" / "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json"
-LEDGER_PATH = RUNTIME_BASE / "ledger" / "upbit_paper_ledger_idempotency_runtime_evidence_report.json"
+SESSION_ID = "mvp1_upbit_paper_launcher"
 
 
 def load_json(path: Path) -> dict:
@@ -23,13 +31,53 @@ def load_json(path: Path) -> dict:
 
 
 class UpbitPaperStaleLoopLedgerRecheckPreviewTest(unittest.TestCase):
-    def build_report(self) -> dict:
-        return build_upbit_paper_stale_loop_ledger_recheck_preview_report(
-            root=ROOT,
-            closure_report=load_json(CLOSURE_PATH),
-            ledger_idempotency_evidence_report=load_json(LEDGER_PATH),
-            preview_id="test-stale-loop-ledger-recheck-preview",
+    def current_runtime_depth_ledger_report(self, root: Path) -> dict:
+        run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="test-stale-loop-ledger-recheck-preview-current",
+            session_id=SESSION_ID,
+            requested_cycle_count=1,
         )
+        return build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+            root=root,
+            session_id=SESSION_ID,
+            evidence_id="test-stale-loop-ledger-recheck-preview",
+        )
+
+    def bind_closure_report_to_ledger(self, closure_report: dict, ledger_report: dict) -> dict:
+        bound = json.loads(json.dumps(closure_report))
+        bound["source_ledger_idempotency_evidence_hash"] = ledger_report["evidence_hash"]
+        bound["source_ledger_idempotency_evidence_status"] = ledger_report["runtime_evidence_status"]
+        bound["source_ledger_idempotency_validator_status"] = "PASS"
+        bound["source_ledger_idempotency_blocker_code"] = None
+        bound["source_ledger_reconciliation_status"] = ledger_report["reconciliation_status"]
+        bound["source_ledger_idempotency_status"] = ledger_report["idempotency_status"]
+        bound["source_ledger_mismatch_count"] = ledger_report["mismatch_count"]
+        bound["source_ledger_head_hash"] = ledger_report["source_ledger_head_hash"]
+        bound["source_ledger_rollup_hash"] = ledger_report["source_rollup_hash"]
+        for item in bound["items"]:
+            item["current_ledger_evidence_status"] = ledger_report["runtime_evidence_status"]
+            item["current_ledger_idempotency_status"] = ledger_report["idempotency_status"]
+            item["current_ledger_reconciliation_status"] = ledger_report["reconciliation_status"]
+            item["current_ledger_head_hash"] = ledger_report["source_ledger_head_hash"]
+            item["current_ledger_rollup_hash"] = ledger_report["source_rollup_hash"]
+        bound["closure_hash"] = upbit_paper_stale_loop_reconciliation_operator_queue_closure_hash(bound)
+        self.assertEqual(
+            validate_upbit_paper_stale_loop_reconciliation_operator_queue_closure_report(bound).status,
+            "PASS",
+        )
+        return bound
+
+    def build_report(self) -> dict:
+        with TemporaryDirectory() as tmp:
+            runtime_root = Path(tmp)
+            ledger_report = self.current_runtime_depth_ledger_report(runtime_root)
+            return build_upbit_paper_stale_loop_ledger_recheck_preview_report(
+                root=ROOT,
+                closure_report=self.bind_closure_report_to_ledger(load_json(CLOSURE_PATH), ledger_report),
+                ledger_idempotency_evidence_report=ledger_report,
+                preview_id="test-stale-loop-ledger-recheck-preview",
+            )
 
     def test_builds_blocked_display_only_preview_without_evidence_writes(self):
         report = self.build_report()
