@@ -66,6 +66,36 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
 
+    def test_artifact_paths_must_match_session_scope(self):
+        report = build_paper_shadow_evidence_accumulation_report(
+            evidence_report_id="paper-shadow-artifact-path-scope-drift"
+        )
+        drifted_paper_path = (
+            f"system/runtime/upbit/krw_spot/paper/{report['paper_session_id']}_drift/"
+            "paper_operation_gate_report.json"
+        )
+        report["paper_artifact_path"] = drifted_paper_path
+        report["source_evidence_bindings"][0]["artifact_path"] = drifted_paper_path
+        report["blockers"] = [
+            {
+                "code": "SNAPSHOT_SCOPE_MISMATCH",
+                "severity": "HIGH",
+                "message": "paper/shadow evidence artifact path scope mismatch",
+            }
+        ]
+        report["primary_blocker_code"] = "SNAPSHOT_SCOPE_MISMATCH"
+        report["evidence_chain_complete"] = False
+        report["scorecard_input_eligible"] = False
+        report["optimizer_ranking_action"] = "BLOCK_RANKING"
+        report["evidence_hash"] = paper_shadow_evidence_hash(report)
+
+        result = validate_paper_shadow_evidence_accumulation_report(report)
+        errors = _paper_shadow_evidence_accumulation_errors(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+        self.assertTrue(any("artifact path scope mismatch" in error for error in errors), errors)
+
     def test_stale_artifact_blocks_scorecard_input(self):
         report = build_paper_shadow_evidence_accumulation_report(
             evidence_report_id="paper-shadow-stale",
