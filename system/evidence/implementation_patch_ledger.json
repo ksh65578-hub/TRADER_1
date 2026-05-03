@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-03T20:21:44Z",
+  "updated_at_utc": "2026-05-03T20:37:19Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -3700,17 +3700,6 @@
       "scale_up_allowed_after": false
     },
     {
-      "patch_id": "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK_20260504_001",
-      "patch_class": "VALIDATOR_PATCH",
-      "target_mvp_level": "MVP-4",
-      "patch_result_path": "system/evidence/patch_results/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.patch_result.json",
-      "patch_result_hash": "6A3D5E85175A91962CFAAEC7D6FB97E1B88C0AC16E9FCBD5ADEDBD18953F75D8",
-      "live_order_ready_after": false,
-      "live_order_allowed_after": false,
-      "can_live_trade_after": false,
-      "scale_up_allowed_after": false
-    },
-    {
       "patch_id": "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK_20260504_001",
       "patch_class": "VALIDATOR_PATCH",
       "target_mvp_level": "MVP-4",
@@ -3771,6 +3760,17 @@
       "target_mvp_level": "MVP-4",
       "patch_result_path": "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.patch_result.json",
       "patch_result_hash": "428719D14287A90FEC02687BE1AE34D4BBAF7D8A0C0D13B9FDAFBE2FF800EF7E",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK_20260504_001",
+      "patch_class": "VALIDATOR_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_STATE_SYNC_RECHECK.patch_result.json",
+      "patch_result_hash": "7A38267128B36E03FC61C0F777A66817EF96AC43E76EEB1615452ABD249AB687",
       "live_order_ready_after": false,
       "live_order_allowed_after": false,
       "can_live_trade_after": false,
