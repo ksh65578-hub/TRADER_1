@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.patch_result.v1",
   "patch_id": "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK_20260504_001",
-  "created_at_utc": "2026-05-03T19:08:50Z",
+  "created_at_utc": "2026-05-03T20:21:44Z",
   "target_mvp_level": "MVP-4",
   "patch_class": "VALIDATOR_PATCH",
   "input_authority_files": [
@@ -539,7 +539,7 @@
   "convergence_live_order_allowed_after": false,
   "scale_up_eligibility_changed": false,
   "scale_up_allowed_after": false,
-  "result_hash": "6BC4C8D1E633A8DCC7542582433A45D24A40AA3C4D487F4DB4366357A7F493EF",
+  "result_hash": "428719D14287A90FEC02687BE1AE34D4BBAF7D8A0C0D13B9FDAFBE2FF800EF7E",
   "merged_requirements": [],
   "coverage_index_result": "UPDATED_PASS",
   "scale_up_allowed_before": false
