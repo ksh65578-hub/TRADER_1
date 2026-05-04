@@ -1,0 +1,132 @@
+import json
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+STATE_PATH = ROOT / "contracts" / "generated" / "current_implementation_state.json"
+PATCH_PATH = (
+    ROOT
+    / "system"
+    / "evidence"
+    / "patch_results"
+    / "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK.patch_result.json"
+)
+POST_REPAIR_REPORT_PATH = (
+    ROOT
+    / "system"
+    / "runtime"
+    / "upbit"
+    / "krw_spot"
+    / "paper"
+    / "mvp1_upbit_paper_launcher"
+    / "paper_runtime"
+    / "upbit_paper_post_repair_reconciliation_report.json"
+)
+REPAIR_QUEUE_REPORT_PATH = (
+    ROOT
+    / "system"
+    / "runtime"
+    / "upbit"
+    / "krw_spot"
+    / "paper"
+    / "mvp1_upbit_paper_launcher"
+    / "paper_runtime"
+    / "upbit_paper_repair_operator_queue_report.json"
+)
+REQUIREMENT_ID = "REQ-MVP4-REPAIR-CANDIDATE-HASH-MISMATCH-RECONCILIATION-REQUIRED-RECHECK"
+BLOCKER = "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED"
+EXPECTED_NEXT_TASK = "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK"
+
+
+def load_json(path: Path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+class RepairCandidateHashMismatchReconciliationRequiredRecheckTest(unittest.TestCase):
+    def test_post_repair_item_exposes_missing_source_expected_rollup_artifact(self):
+        report = load_json(POST_REPAIR_REPORT_PATH)
+
+        self.assertEqual(report["post_repair_reconciliation_status"], "BLOCKED")
+        self.assertEqual(report["source_loop_expected_rollup_hash_mismatch_count"], 1)
+        self.assertEqual(report["hash_reconciliation_operator_action_required_count"], 1)
+        self.assertEqual(report["candidate_current_evidence_usable_count"], 0)
+        self.assertIn(BLOCKER, report["blocker_codes"])
+
+        item = report["items"][0]
+        self.assertEqual(item["item_blocker_code"], BLOCKER)
+        self.assertEqual(item["candidate_classification"], "REPAIR_CANDIDATE_BLOCKED_HASH_MISMATCH")
+        self.assertEqual(item["hash_reconciliation_status"], "SOURCE_EXPECTED_ROLLUP_ARTIFACT_MISSING")
+        self.assertEqual(item["hash_reconciliation_blocker_code"], BLOCKER)
+        self.assertTrue(item["hash_reconciliation_requires_operator_action"])
+        self.assertFalse(item["source_loop_expected_rollup_artifact_exists"])
+        self.assertEqual(item["source_loop_expected_rollup_artifact_load_status"], "MISSING")
+        self.assertFalse(item["source_loop_expected_rollup_hash_match"])
+        self.assertIsNone(item["source_loop_expected_rollup_recomputed_hash"])
+        self.assertEqual(item["candidate_rollup_hash_self_check"], "PASS")
+        self.assertEqual(item["candidate_rollup_recomputed_hash"], item["candidate_rollup_hash"])
+        self.assertFalse(item["candidate_current_evidence_usable"])
+        self.assertFalse(item["current_evidence_mutation_allowed"])
+
+    def test_repair_operator_queue_keeps_hash_mismatch_review_only(self):
+        queue = load_json(REPAIR_QUEUE_REPORT_PATH)
+
+        self.assertEqual(queue["queue_status"], "BLOCKED")
+        self.assertEqual(queue["hash_operator_reconciliation_required_count"], 1)
+        self.assertEqual(queue["candidate_current_evidence_usable_count"], 0)
+        self.assertFalse(queue["current_evidence_mutation_allowed"])
+        self.assertFalse(queue["persistent_loop_mutation_allowed"])
+        self.assertFalse(queue["source_delete_allowed"])
+
+        item = next(item for item in queue["items"] if item.get("post_repair_item_blocker_code") == BLOCKER)
+        self.assertEqual(item["safe_repair_lane"], "LEDGER_ROLLUP_REBUILD_READY")
+        self.assertTrue(item["ready_for_operator_ledger_candidate_review"])
+        self.assertTrue(item["requires_hash_operator_reconciliation"])
+        self.assertFalse(item["requires_runtime_cycle_rerun"])
+        self.assertFalse(item["requires_recovery_guard_rerun"])
+        self.assertFalse(item["candidate_current_evidence_usable"])
+        self.assertFalse(item["current_evidence_mutation_allowed"])
+        self.assertFalse(item["persistent_loop_mutation_allowed"])
+        self.assertFalse(item["source_delete_allowed"])
+        self.assertFalse(item["live_permission_created"])
+        self.assertIn(BLOCKER, item["blocking_codes"])
+
+    def test_recheck_patch_advances_without_resolving_hash_mismatch_gap(self):
+        if not PATCH_PATH.exists():
+            self.skipTest("hash mismatch recheck patch has not been generated yet")
+        state = load_json(STATE_PATH)
+        patch_result = load_json(PATCH_PATH)
+
+        self.assertEqual(
+            patch_result["patch_id"],
+            "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK_20260504_001",
+        )
+        self.assertEqual(patch_result["next_task_class"], EXPECTED_NEXT_TASK)
+        self.assertIn(BLOCKER, patch_result["remaining_blockers"])
+        self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", patch_result["remaining_blockers"])
+        self.assertEqual(patch_result["post_repair_reconciliation_status"], "BLOCKED")
+        self.assertEqual(patch_result["post_repair_source_loop_expected_rollup_hash_mismatch_count"], 1)
+        self.assertEqual(patch_result["repair_operator_queue_status"], "BLOCKED")
+        self.assertEqual(patch_result["repair_operator_queue_ledger_candidate_review_ready_count"], 1)
+        self.assertEqual(patch_result["repair_operator_queue_candidate_current_evidence_usable_count"], 0)
+
+        if REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["next_allowed_task_class"], EXPECTED_NEXT_TASK)
+        self.assertIn(BLOCKER, state["open_contract_gap_ids"])
+        self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
+
+        for field in (
+            "live_order_ready_after",
+            "live_order_allowed_after",
+            "can_live_trade_after",
+            "scale_up_allowed_after",
+            "convergence_live_order_allowed_after",
+            "optimizer_live_order_allowed_after",
+        ):
+            self.assertFalse(patch_result[field])
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(state[field])
+
+
+if __name__ == "__main__":
+    unittest.main()
