@@ -1,0 +1,427 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_20260504_001",
+  "created_at_utc": "2026-05-04T11:53:44Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "VALIDATOR_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "PASS",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
+    "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-NEXT-TASK-RESTORE",
+    "REQ-MVP4-UPBIT-PAPER-MISSING-CYCLE-RERUN-GUARD",
+    "REQ-MVP4-LIVE-FINAL-GUARD"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER",
+  "removed_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
+    "system/evidence/audit_reports/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.json",
+    "system/evidence/contract_gaps/MISSING_CYCLE_LEDGER_RERUN_REQUIRED.contract_gap.json"
+  ],
+  "new_or_changed_schema_ids": [],
+  "validators_required": [
+    "schema_validator",
+    "registry_validator",
+    "runtime_schema_instance_validator",
+    "upbit_paper_missing_cycle_rerun_guard_validator",
+    "upbit_paper_bounded_rerun_staging_executor_validator",
+    "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
+    "upbit_paper_post_rerun_reconciliation_blocker_rollup_validator",
+    "upbit_paper_post_rerun_current_evidence_promotion_guard_validator",
+    "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
+    "upbit_paper_post_rerun_reconciliation_decision_audit_validator",
+    "upbit_paper_post_rerun_operator_resolution_audit_validator",
+    "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
+    "upbit_paper_post_rerun_reconciliation_repair_path_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator",
+    "coverage_index_validator",
+    "live_final_guard_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_missing_cycle_rerun_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_bounded_rerun_staging_executor_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_reconciliation_blocker_rollup_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_current_evidence_promotion_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_reconciliation_decision_audit_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_operator_resolution_audit_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_rerun_reconciliation_repair_path_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py tests/contract/test_patch_result_runtime_schema_validation.py -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py tests/contract/test_completed_recheck_route_depth_guard.py tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py tests/contract/test_open_contract_gap_implementation_priority_recheck.py tests/contract/test_patch_result_runtime_schema_validation.py tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py tests/contract/test_post_repair_reconciliation_required_recheck.py tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py tests/contract/test_stale_loop_regeneration_execution_required_recheck.py tests/contract/test_stale_loop_regeneration_required_recheck.py -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/runtime/test_upbit_paper_missing_cycle_rerun_guard.py tests/runtime/test_upbit_paper_bounded_rerun_staging_executor.py tests/runtime/test_upbit_paper_post_rerun_ledger_rollup_reconciliation.py tests/runtime/test_upbit_paper_post_rerun_reconciliation_blocker_rollup.py -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "UNCHANGED_NOT_READ",
+  "read_cache_update_required": true,
+  "context_pack_update_required": true,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK",
+  "next_required_section_ids": [
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_RUNTIME_IDEMPOTENCY",
+    "SECTION_CURRENT_EVIDENCE_CLOSURE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_PORTFOLIO_TRUTH"
+  ],
+  "next_forbidden_default_sections": [
+    "LIVE_ENABLING_PATCH",
+    "LIVE_CONFIG_MUTATION",
+    "RISK_SCALE_UP"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "remaining_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "API_UNVERIFIED",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "OPERATOR_APPROVAL_MISSING",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "current_implementation_state",
+    "system/evidence/audit_reports/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_missing_cycle_rerun_guard_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_bounded_rerun_staging_executor_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_ledger_rollup_reconciliation_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_current_evidence_promotion_guard_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_decision_audit_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_repair_path_report.json",
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_CURRENT_EVIDENCE_CLOSURE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "task_class": "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK",
+  "required_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_RUNTIME_IDEMPOTENCY",
+    "SECTION_CURRENT_EVIDENCE_CLOSURE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_UPBIT_PAPER_RUNTIME",
+    "SECTION_LEDGER_RECONCILIATION",
+    "SECTION_RUNTIME_IDEMPOTENCY",
+    "SECTION_CURRENT_EVIDENCE_CLOSURE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "REUSED_HASH_MATCH",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED_PASS",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "UPDATED",
+  "current_implementation_state_status": "UPDATED_DEPTH_RECHECK_NEXT_TASK_ADVANCED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "NOT_OPTIMIZER_PATCH",
+  "optimizer_stage": "MVP-4_PAPER_SCORECARD_INPUT_ONLY",
+  "optimizer_status_before": "LIVE_BLOCKED_ROUTE_REGRESSION_DETECTED",
+  "optimizer_status_after": "POST_REPAIR_RECONCILIATION_RECHECK_NEXT_LIVE_BLOCKED",
+  "optimizer_maturity_level_before": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_maturity_level_after": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_output_type": "PAPER_SCORECARD_INPUT_ONLY",
+  "optimizer_validators_required": [],
+  "optimizer_validators_run": [],
+  "optimizer_guardrail_result": "PASS_NO_LIVE_MUTATION_NO_CURRENT_EVIDENCE_PROMOTION",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "NO_CONVERGENCE_RUNTIME_CHANGE",
+  "convergence_layer_changed": false,
+  "convergence_state_before": "LIVE_BLOCKED_ROUTE_REGRESSION_DETECTED",
+  "convergence_state_after": "POST_REPAIR_RECONCILIATION_RECHECK_NEXT_LIVE_BLOCKED",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_CHANGED",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "schema_validator",
+    "registry_validator",
+    "runtime_schema_instance_validator",
+    "upbit_paper_post_repair_reconciliation_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator",
+    "coverage_index_validator",
+    "source_bundle_hygiene_validator",
+    "shipped_package_hygiene_validator",
+    "secret_scan_validator",
+    "live_final_guard_validator"
+  ],
+  "convergence_validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_post_repair_reconciliation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "convergence_guardrail_result": "PASS_NO_LIVE_PERMISSION_NO_SCALE_UP",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "scale_up_allowed_after": false,
+  "result_hash": "AC82D3FE322AF101FC188187C24DA9BDC810F6D24E7A496EB1E3651B84BEEEB8",
+  "merged_requirements": [],
+  "coverage_index_result": "UPDATED_PASS",
+  "scale_up_allowed_before": false,
+  "guard_status": "BLOCKED",
+  "guard_item_count": 5,
+  "rerun_ready_item_count": 4,
+  "recovery_guard_blocked_item_count": 1,
+  "missing_cycle_ledger_jsonl_total_count": 10,
+  "planned_staging_artifact_total_count": 30,
+  "actual_rerun_executed": false,
+  "rerun_executor_created": true,
+  "staging_status": "PASS",
+  "staged_cycle_count": 8,
+  "staged_artifact_count": 24,
+  "staging_reused_existing_artifact_count": 24,
+  "staging_executor_created": true,
+  "post_staging_ledger_rollup_required": true,
+  "post_staging_reconciliation_required": true,
+  "post_rerun_ledger_rollup_status": "PASS",
+  "post_rerun_reconciliation_status": "BLOCKED",
+  "post_rerun_candidate_rollup_count": 8,
+  "post_rerun_candidate_rollup_written_count": 0,
+  "post_rerun_candidate_rollup_reused_existing_count": 8,
+  "candidate_current_evidence_usable_count": 0,
+  "post_rerun_current_evidence_promotion_guard_status": "BLOCKED",
+  "post_rerun_promotion_review_ready_count": 8,
+  "post_rerun_promotion_candidate_verified_count": 8,
+  "post_rerun_current_evidence_write_allowed_count": 0,
+  "post_rerun_operator_reconciliation_queue_status": "BLOCKED",
+  "post_rerun_operator_reconciliation_queue_item_count": 8,
+  "post_rerun_operator_reconciliation_required_count": 8,
+  "post_rerun_review_ready_reconciliation_item_count": 8,
+  "post_rerun_reconciliation_decision_audit_status": "BLOCKED",
+  "post_rerun_reconciliation_decision_item_count": 8,
+  "post_rerun_reconciliation_write_denied_count": 8,
+  "post_rerun_current_evidence_write_authorized_count": 0,
+  "post_rerun_reconciliation_blocker_rollup_status": "BLOCKED",
+  "post_rerun_reconciliation_blocker_rollup_item_count": 8,
+  "post_rerun_reconciliation_unique_blocker_count": 5,
+  "post_rerun_reconciliation_primary_blocker_item_count": 8,
+  "post_rerun_operator_reconciliation_review_guidance_status": "BLOCKED_RECONCILIATION_REVIEW_REQUIRED",
+  "post_rerun_operator_reconciliation_review_guidance_item_count": 8,
+  "post_rerun_operator_reconciliation_review_step_count": 4,
+  "post_rerun_operator_reconciliation_forbidden_output_count": 6,
+  "post_rerun_operator_resolution_audit_status": "UNRESOLVED_RECONCILIATION_REVIEW_ONLY",
+  "post_rerun_operator_resolution_source_review_guidance_file_load_status": "PASS",
+  "post_rerun_operator_resolution_source_review_guidance_file_hash_match": true,
+  "post_rerun_operator_resolution_source_decision_audit_file_load_status": "PASS",
+  "post_rerun_operator_resolution_source_decision_audit_file_hash_match": true,
+  "post_rerun_operator_resolution_unresolved_item_count": 8,
+  "post_rerun_operator_resolution_resolved_item_count": 0,
+  "post_rerun_operator_resolution_control_count": 4,
+  "post_rerun_operator_resolution_controls_satisfied_count": 0,
+  "post_rerun_resolution_current_evidence_closure_status": "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED",
+  "post_rerun_resolution_closure_source_resolution_audit_file_load_status": "PASS",
+  "post_rerun_resolution_closure_source_resolution_audit_file_hash_match": true,
+  "post_rerun_resolution_closure_source_unresolved_item_count": 8,
+  "post_rerun_resolution_closure_source_resolved_item_count": 0,
+  "post_rerun_resolution_closure_closed_item_count": 8,
+  "post_rerun_resolution_closure_current_evidence_closed_count": 8,
+  "post_rerun_resolution_closure_controls_satisfied_count": 0,
+  "post_rerun_reconciliation_repair_path_status": "BLOCKED_REPAIR_PATH_DECLARED",
+  "post_rerun_reconciliation_repair_gate_count": 4,
+  "post_rerun_reconciliation_repair_gate_satisfied_count": 0,
+  "post_rerun_reconciliation_repair_gate_blocked_count": 4,
+  "post_repair_reconciliation_status": "BLOCKED",
+  "post_repair_reconciliation_item_count": 1,
+  "post_repair_source_loop_expected_rollup_hash_mismatch_count": 1,
+  "post_repair_candidate_current_evidence_usable_count": 0,
+  "post_repair_reconciliation_operator_action_label": "Inspect post-repair reconciliation",
+  "post_repair_reconciliation_operator_workflow_status": "BLOCKED",
+  "post_repair_reconciliation_operator_workflow_current_step": "INSPECT_DASHBOARD",
+  "post_repair_reconciliation_operator_hash_mismatch_count": 1,
+  "post_repair_reconciliation_operator_action_item_count": 1,
+  "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_status": "PASS",
+  "post_rerun_reconciliation_repair_path_source_recheck_runtime_depth_mismatch_count": 0
+}
