@@ -32,6 +32,11 @@ NEXT_TASK_CLASS = "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK"
 ROUTE_DEPTH_GUARD_REQUIREMENT_ID = "REQ-MVP4-COMPLETED-RECHECK-ROUTE-DEPTH-GUARD"
 ROUTE_DEPTH_GUARD_PATCH_ID = "MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD_20260504_001"
 ROUTE_DEPTH_GUARD_NEXT_TASK_CLASS = "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK"
+OPEN_GAP_PRIORITY_RECHECK_REQUIREMENT_ID = "REQ-MVP4-OPEN-CONTRACT-GAP-IMPLEMENTATION-PRIORITY-RECHECK"
+OPEN_GAP_PRIORITY_RECHECK_PATCH_ID = "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK_20260504_001"
+OPEN_GAP_PRIORITY_RECHECK_NEXT_TASK_CLASS = (
+    "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK"
+)
 
 
 def load_json(path: Path):
@@ -102,7 +107,10 @@ class PatchResultValidatorRunGapBaselineReconciliationRecheckTest(unittest.TestC
         self.assertEqual(patch_result["patch_id"], PATCH_ID)
         self.assertIn(REQUIREMENT_ID, patch_result["affected_contract_ids"])
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
-        if ROUTE_DEPTH_GUARD_REQUIREMENT_ID in state["completed_requirement_ids"]:
+        if OPEN_GAP_PRIORITY_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["last_patch_id"], OPEN_GAP_PRIORITY_RECHECK_PATCH_ID)
+            self.assertEqual(state["next_allowed_task_class"], OPEN_GAP_PRIORITY_RECHECK_NEXT_TASK_CLASS)
+        elif ROUTE_DEPTH_GUARD_REQUIREMENT_ID in state["completed_requirement_ids"]:
             self.assertEqual(state["last_patch_id"], ROUTE_DEPTH_GUARD_PATCH_ID)
             self.assertEqual(state["next_allowed_task_class"], ROUTE_DEPTH_GUARD_NEXT_TASK_CLASS)
         else:
