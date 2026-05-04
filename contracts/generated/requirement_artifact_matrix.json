@@ -8165,6 +8165,60 @@
       "status": "IMPLEMENTED_RECHECK_OPERATOR_QUEUE_PENDING"
     },
     {
+      "requirement_id": "REQ-MVP4-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-PENDING-RECHECK",
+      "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.schema.json",
+        "contracts/schema/upbit_paper_stale_loop_ledger_recheck_preview_report.schema.json",
+        "contracts/schema/upbit_paper_stale_loop_normalized_reconciliation_recheck_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_reconciliation_operator_queue_closure.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_ledger_recheck_preview.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_normalized_reconciliation_recheck.py"
+      ],
+      "test_files": [
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/runtime/test_upbit_paper_stale_loop_reconciliation_operator_queue_closure.py",
+        "tests/runtime/test_upbit_paper_stale_loop_ledger_recheck_preview.py",
+        "tests/runtime/test_upbit_paper_stale_loop_normalized_reconciliation_recheck.py",
+        "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_stale_loop_reconciliation_operator_queue_closure.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_ledger_recheck_preview.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_normalized_reconciliation_recheck.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/patch_results/MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK.patch_result.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_ledger_recheck_preview_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_normalized_reconciliation_recheck_report.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER.patch_result.json",
+        "system/evidence/MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "stale_loop_operator_queue_closure_status",
+        "stale_loop_ledger_recheck_preview_status",
+        "stale_loop_normalized_reconciliation_recheck_status",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RECHECK_OPERATOR_QUEUE_PENDING_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK",
       "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "schema_files": [
@@ -13974,7 +14028,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T03:29:37Z",
+  "updated_at_utc": "2026-05-04T03:59:43Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

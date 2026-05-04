@@ -35,7 +35,11 @@ CLOSURE_PATH = (
     / "upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json"
 )
 REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-RECONCILIATION-AFTER-REGENERATION-REQUIRED-RECHECK"
+OPERATOR_QUEUE_PENDING_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-PENDING-RECHECK"
+)
 NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK"
+AUDITED_WRITER_DASHBOARD_NEXT_TASK = "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING"
 CLOSED_BLOCKER = "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
 NEXT_BLOCKER = "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING"
 
@@ -111,7 +115,11 @@ class StaleLoopReconciliationAfterRegenerationRequiredRecheckTest(unittest.TestC
         self.assertIn(NEXT_BLOCKER, patch_result["remaining_blockers"])
         self.assertNotIn(CLOSED_BLOCKER, patch_result["remaining_blockers"])
 
-        if REQUIREMENT_ID in state["completed_requirement_ids"]:
+        if OPERATOR_QUEUE_PENDING_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["next_allowed_task_class"], AUDITED_WRITER_DASHBOARD_NEXT_TASK)
+            self.assertNotIn(NEXT_BLOCKER, state["open_contract_gap_ids"])
+            self.assertNotIn(CLOSED_BLOCKER, state["open_contract_gap_ids"])
+        elif REQUIREMENT_ID in state["completed_requirement_ids"]:
             self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
             self.assertIn(NEXT_BLOCKER, state["open_contract_gap_ids"])
             self.assertNotIn(CLOSED_BLOCKER, state["open_contract_gap_ids"])
