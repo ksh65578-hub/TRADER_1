@@ -17212,6 +17212,21 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "</section>"
         for label, display, status in health_signal_items
     )
+    operation_quick_status = "OK" if operation_color in {"green", "blue"} else "Check"
+    portfolio_quick_status = (
+        "Verified PAPER"
+        if str(portfolio_status).startswith("PAPER LEDGER VERIFIED")
+        else "Stale"
+        if str(portfolio_status).startswith("STALE")
+        else str(portfolio_status or "UNVERIFIED").replace("_", " ").title()
+    )
+    portfolio_quick_class = (
+        "blue"
+        if str(portfolio_status).startswith("PAPER LEDGER VERIFIED")
+        else "yellow"
+        if str(portfolio_status).startswith(("STALE", "UNVERIFIED"))
+        else status_class(portfolio_status)
+    )
     return """<!doctype html>
 <html lang="en">
 <head>
@@ -17236,12 +17251,12 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     }
     html { box-sizing: border-box; max-width: 100%; overflow-x: hidden; }
     *, *::before, *::after { box-sizing: inherit; }
-    body { margin: 0; max-width: 100%; overflow-x: hidden; background: #f7f8fa; color: #1d2430; line-height: 1.45; }
+    body { margin: 0; max-width: 100%; overflow-x: hidden; background: #f7f8fa; color: #1d2430; font-size: 16px; line-height: 1.5; }
     header { padding: 22px 24px; background: #102235; color: white; border-bottom: 5px solid var(--safe); }
-    main { display: grid; gap: 16px; padding: 16px; width: 100%; max-width: 1440px; margin: 0 auto; }
+    main { display: grid; gap: 18px; padding: 18px; width: 100%; max-width: 1440px; margin: 0 auto; }
     h1, h2, h3, p, dl, dd, small, strong, span { overflow-wrap: anywhere; word-break: normal; }
     p, small, li, dd, td { line-height: 1.5; }
-    .operator-answer-card, .summary-card, .live-readiness, .operation, .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { min-width: 0; }
+    .operator-answer-card, .summary-card, .live-readiness, .primary-portfolio-detail, .operation, .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { min-width: 0; }
     .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { display: grid; align-content: start; gap: 12px; }
     .metric, .scope-item, .guard, .decision-grid div, .workflow-step, .dependency-check, .evidence-check, .maturity-component, .stability-metric { display: grid; align-content: start; gap: 6px; }
     .freshness-strip { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start; background: var(--ok-bg); border: 1px solid #b9dfca; border-left: 8px solid var(--ok); border-radius: 8px; padding: 14px 16px; min-width: 0; }
@@ -17258,24 +17273,35 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .source-count-attention { border-color: #f2c75c; background: #fff8e6; color: var(--warn); }
     .freshness-fresh { background: var(--ok-bg); border-left-color: var(--ok); }
     .freshness-stale { background: var(--warn-bg); border-color: #f2c75c; border-left-color: var(--warn); }
-    .operator-answer-grid { display: grid; gap: 16px; grid-template-columns: minmax(300px, 0.95fr) minmax(360px, 1.25fr) minmax(280px, 0.9fr); align-items: stretch; }
-    .operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-height: 236px; min-width: 0; overflow-wrap: anywhere; }
-    .operator-answer-card h2, .summary-card h2, .live-readiness h2 { font-size: 22px; margin: 2px 0 8px; }
-    .answer-verdict { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
-    .answer-note { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .operator-quick-status { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); }
+    .quick-status-tile { display: grid; gap: 5px; min-width: 0; background: #ffffff; border: 1px solid var(--line); border-left: 6px solid var(--safe); border-radius: 8px; padding: 11px 12px; }
+    .quick-status-green { border-left-color: var(--ok); background: var(--ok-bg); }
+    .quick-status-blue { border-left-color: var(--safe); background: var(--safe-bg); }
+    .quick-status-yellow { border-left-color: var(--warn); background: var(--warn-bg); }
+    .quick-status-red { border-left-color: var(--danger); background: var(--danger-bg); }
+    .quick-status-warn { border-left-color: var(--warn); background: var(--warn-bg); }
+    .quick-status-ok { border-left-color: var(--ok); background: var(--ok-bg); }
+    .quick-status-neutral { border-left-color: #98a2b3; background: #ffffff; }
+    .quick-status-tile strong { font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
+    .quick-status-tile small { margin-top: 0; font-size: 12px; line-height: 1.3; }
+    .operator-answer-grid { display: grid; gap: 18px; grid-template-columns: minmax(min(100%, 300px), 0.9fr) minmax(min(100%, 420px), 1.35fr) minmax(min(100%, 280px), 0.85fr); align-items: stretch; }
+    .operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 18px; min-height: 0; min-width: 0; overflow-wrap: anywhere; }
+    .operator-answer-card h2, .summary-card h2, .live-readiness h2 { font-size: 24px; line-height: 1.18; margin: 2px 0 10px; }
+    .answer-verdict { font-size: 18px; line-height: 1.35; font-weight: 700; margin-bottom: 10px; }
+    .answer-note { color: var(--muted); font-size: 14px; line-height: 1.5; }
     .answer-signal-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin-top: 12px; }
     .answer-signal { display: grid; gap: 6px; align-content: start; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(255,255,255,.76); }
-    .answer-signal strong { color: var(--muted); font-size: 12px; }
+    .answer-signal strong { color: var(--muted); font-size: 13px; }
     .health-summary { border-left: 8px solid var(--ok); background: var(--ok-bg); }
     .health-summary-green { border-left-color: var(--ok); background: var(--ok-bg); }
     .health-summary-blue { border-left-color: var(--safe); background: var(--safe-bg); }
     .health-summary-yellow { border-left-color: var(--warn); background: var(--warn-bg); }
     .health-summary-red { border-left-color: var(--danger); background: var(--danger-bg); }
-    .summary-card .portfolio-kpi-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr)); margin-top: 12px; }
-    .summary-card .metric { min-height: 78px; padding: 10px; }
-    .summary-card .metric h2 { font-size: 13px; margin: 0; color: var(--muted); }
-    .summary-card .metric-value { font-size: 18px; }
-    .source-line { margin-top: -4px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; line-height: 1.45; }
+    .summary-card .portfolio-kpi-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); margin-top: 14px; }
+    .summary-card .metric { min-height: 82px; padding: 12px; }
+    .summary-card .metric h2 { font-size: 14px; margin: 0; color: var(--muted); }
+    .summary-card .metric-value { font-size: 20px; }
+    .source-line { margin-top: -2px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; line-height: 1.5; }
     .portfolio-ledger { display: grid; gap: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin: 12px 0 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #ffffff; }
     .portfolio-ledger div { display: grid; gap: 4px; padding: 9px 10px; border-right: 1px solid var(--line); min-width: 0; }
     .portfolio-ledger div:last-child { border-right: 0; }
@@ -17285,7 +17311,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .portfolio-quicklook section { background: #f8fafc; border: 1px solid var(--line); border-radius: 6px; padding: 10px; min-width: 0; }
     .portfolio-quicklook h3 { margin: 0; font-size: 13px; color: var(--muted); }
     .portfolio-quicklook ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-    .portfolio-quicklook li { font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; color: var(--ink); }
+    .portfolio-quicklook li { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; color: var(--ink); }
+    .primary-portfolio-detail { display: grid; gap: 14px; background: #ffffff; border: 1px solid #cfd6df; border-left: 8px solid var(--safe); border-radius: 8px; padding: 16px; }
+    .primary-portfolio-detail .portfolio-detail-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
+    .primary-portfolio-detail .positions { border-color: var(--line); }
     .live-readiness { border-left: 8px solid var(--warn); background: var(--warn-bg); }
     .live-readiness-green { border-left-color: var(--ok); background: var(--ok-bg); }
     .live-readiness-blue { border-left-color: var(--safe); background: var(--safe-bg); }
@@ -17574,6 +17603,23 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     <p>""" + safe_text(shell.get("primary_status_text", "")) + """</p>
   </header>
   <main>
+    <section class="operator-quick-status" aria-label="operator quick status">
+      <section class="quick-status-tile quick-status-""" + operation_color + """" aria-label="running state quick answer">
+        <span class="eyebrow">Run</span>
+        <strong>""" + safe_text(operation_quick_status) + """</strong>
+        <small>""" + safe_text(operation.get("heartbeat_status", "STALE")) + """ heartbeat</small>
+      </section>
+      <section class="quick-status-tile quick-status-""" + safe_text(portfolio_quick_class) + """" aria-label="portfolio quick answer">
+        <span class="eyebrow">Portfolio</span>
+        <strong>""" + safe_text(portfolio_quick_status) + """</strong>
+        <small>""" + portfolio_value("equity") + """ equity</small>
+      </section>
+      <section class="quick-status-tile quick-status-yellow" aria-label="live execution quick answer">
+        <span class="eyebrow">Live</span>
+        <strong>Blocked</strong>
+        <small>live_order_allowed=false</small>
+      </section>
+    </section>
     <section class="operator-answer-grid" aria-label="operator priority answers">
       <section class="operator-answer-card health-summary health-summary-""" + operation_color + """" aria-label="system health summary">
         <span class="eyebrow">System Health</span>
@@ -17594,21 +17640,6 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <section class="portfolio-kpi-grid">
           """ + portfolio_kpi_html + """
         </section>
-        """ + portfolio_ledger_html + """
-        <section class="portfolio-quicklook" aria-label="portfolio positions and entry candidates">
-          <section>
-            <h3>Held Positions</h3>
-            <ul>""" + position_preview_html + """</ul>
-          </section>
-          <section>
-            <h3>Entry Candidates</h3>
-            <ul>""" + candidate_preview_html + """</ul>
-          </section>
-          <section>
-            <h3>PAPER Scorecard</h3>
-            <ul>""" + scorecard_quicklook_html + """</ul>
-          </section>
-        </section>
         <p class="summary-note">""" + safe_text(portfolio.get("next_action", "Provide verified portfolio evidence before values can be trusted")) + """</p>
       </section>
       <section class="operator-answer-card live-readiness live-readiness-yellow" aria-label="live execution summary">
@@ -17625,13 +17656,41 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="summary-note">Dashboard display truth only. Engine, ledger, and exchange truth remain separate.</p>
       </section>
     </section>
-    """ + freshness_html + """
-    <section class="scopebar" aria-label="runtime scope">
-      """ + scope_html + """
+    <section class="primary-portfolio-detail" aria-label="primary portfolio detail">
+      <div class="portfolio-head">
+        <div>
+          <span class="eyebrow">Portfolio Detail</span>
+          <h2>PAPER Portfolio Details</h2>
+        </div>
+        <p>Status: """ + safe_text(portfolio_status) + """<br>Source: """ + safe_text(portfolio.get("source", "summary.json")) + """</p>
+      </div>
+      """ + portfolio_ledger_html + """
+      <section class="portfolio-detail-grid">
+        """ + portfolio_detail_html + """
+      </section>
+      <section class="portfolio-quicklook" aria-label="portfolio positions and entry candidates">
+        <section>
+          <h3>Held Positions</h3>
+          <ul>""" + position_preview_html + """</ul>
+        </section>
+        <section>
+          <h3>Entry Candidates</h3>
+          <ul>""" + candidate_preview_html + """</ul>
+        </section>
+        <section>
+          <h3>PAPER Scorecard</h3>
+          <ul>""" + scorecard_quicklook_html + """</ul>
+        </section>
+      </section>
+      """ + position_html + """
     </section>
     <details class="detail-drawer" data-detail-key="main-detail-drawer">
       <summary>Detailed status, evidence, and validator logs</summary>
       <section class="detail-stack">
+        """ + freshness_html + """
+        <section class="scopebar" aria-label="runtime scope">
+          """ + scope_html + """
+        </section>
         """ + operation_html + """
         """ + operator_html + """
         """ + reconciliation_html + """
@@ -17660,16 +17719,6 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         </section>
         """ + decision_html + """
         """ + recent_events_html + """
-        <section class="portfolio" aria-label="portfolio detail metrics">
-          <div class="portfolio-head">
-            <h2>Portfolio Details</h2>
-            <p>Secondary PAPER metrics are kept here so the first screen stays readable.</p>
-          </div>
-          <section class="portfolio-detail-grid">
-            """ + portfolio_detail_html + """
-          </section>
-        </section>
-        """ + position_html + """
         <section class="guard-grid" aria-label="live safety flags">
           """ + guard_html + """
         </section>
@@ -17698,18 +17747,22 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
 
 def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationResult:
     required_fragments = {
-        "page_width_bound": "main { display: grid; gap: 16px; padding: 16px; width: 100%; max-width: 1440px; margin: 0 auto; }",
+        "page_width_bound": "main { display: grid; gap: 18px; padding: 18px; width: 100%; max-width: 1440px; margin: 0 auto; }",
+        "readable_base_font": "font-size: 16px; line-height: 1.5;",
         "comfortable_line_height": "p, small, li, dd, td { line-height: 1.5; }",
         "freshness_single_column": ".freshness-strip { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start;",
         "freshness_auto_fit": ".freshness-strip dl { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));",
         "freshness_source_summary_wrap": ".source-summary { display: flex; flex-wrap: wrap; gap: 6px; align-items: center;",
         "freshness_source_count_bound": ".source-count { display: inline-flex; align-items: center; max-width: 100%;",
-        "three_answer_first_screen": ".operator-answer-grid { display: grid; gap: 16px; grid-template-columns: minmax(300px, 0.95fr) minmax(360px, 1.25fr) minmax(280px, 0.9fr);",
-        "answer_card_bound": ".operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px;",
+        "operator_quick_status": ".operator-quick-status { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));",
+        "operator_quick_status_markup": '<section class="operator-quick-status" aria-label="operator quick status">',
+        "three_answer_first_screen": ".operator-answer-grid { display: grid; gap: 18px; grid-template-columns: minmax(min(100%, 300px), 0.9fr) minmax(min(100%, 420px), 1.35fr) minmax(min(100%, 280px), 0.85fr);",
+        "answer_card_bound": ".operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 18px;",
         "health_signal_auto_fit": ".answer-signal-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));",
-        "kpi_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr));",
+        "kpi_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));",
         "ledger_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));",
         "quicklook_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));",
+        "primary_portfolio_visible": '<section class="primary-portfolio-detail" aria-label="primary portfolio detail">',
         "operation_spacing": ".operation dl { display: grid; column-gap: 36px; row-gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));",
         "operation_text_spacing": ".operation dd:not(.pill) { font-size: 14px; line-height: 1.4;",
         "detail_stable_key_js": 'detail.getAttribute("data-detail-key")',

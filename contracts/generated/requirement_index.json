@@ -3056,6 +3056,67 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-OPERATOR-FOCUS-SIMPLIFICATION",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard operator focus and portfolio-first visibility",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-OPERATOR-FOCUS-SIMPLIFICATION: dashboard must answer running status, portfolio detail, and live availability before technical evidence",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard answers Run, Portfolio, and Live first",
+      "requirement_kind": "DASHBOARD_UX_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "runtime_schema_instance_validator",
+        "schema_validator",
+        "registry_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_dashboard_operator_focus_simplification_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATOR_FOCUS_SIMPLIFICATION.md",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+        "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+        "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard/index.html",
+        "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard/index.html"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/run_dashboard_visual_layout_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_SHELL",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-FIRST-SCREEN-SIMPLIFICATION",
+        "REQ-MVP4-DASHBOARD-VISIBILITY-LAYOUT-FIX",
+        "REQ-MVP1-READ-ONLY-DASHBOARD-SHELL",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "10E455D270E4996E4824A48DD66542E1335B3B2D4D42CBDF0E5FA66F32193793",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-PAPER-EXPOSURE-QUALITY-BINDING",
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
@@ -20041,5 +20102,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-04T10:49:50Z"
+  "updated_at_utc": "2026-05-04T11:30:01Z"
 }
