@@ -1,0 +1,89 @@
+import json
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+STATE_PATH = ROOT / "contracts" / "generated" / "current_implementation_state.json"
+PATCH_PATH = (
+    ROOT
+    / "system"
+    / "evidence"
+    / "patch_results"
+    / "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK.patch_result.json"
+)
+POST_REPAIR_REPORT_PATH = (
+    ROOT
+    / "system"
+    / "runtime"
+    / "upbit"
+    / "krw_spot"
+    / "paper"
+    / "mvp1_upbit_paper_launcher"
+    / "paper_runtime"
+    / "upbit_paper_post_repair_reconciliation_report.json"
+)
+REQUIREMENT_ID = "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK"
+EXPECTED_NEXT_TASK = "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK"
+
+
+def load_json(path: Path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+class PostRepairReconciliationRequiredRecheckTest(unittest.TestCase):
+    def test_post_repair_report_remains_blocked_without_current_evidence(self):
+        report = load_json(POST_REPAIR_REPORT_PATH)
+
+        self.assertEqual(report["post_repair_reconciliation_status"], "BLOCKED")
+        self.assertEqual(report["primary_blocker_code"], "POST_REPAIR_RECONCILIATION_REQUIRED")
+        self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", report["blocker_codes"])
+        self.assertIn("REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED", report["blocker_codes"])
+        self.assertEqual(report["source_loop_expected_rollup_hash_mismatch_count"], 1)
+        self.assertEqual(report["hash_reconciliation_operator_action_required_count"], 1)
+        self.assertEqual(report["candidate_current_evidence_usable_count"], 0)
+        self.assertFalse(report["current_evidence_mutation_allowed"])
+        self.assertFalse(report["persistent_loop_mutation_allowed"])
+        self.assertFalse(report["source_delete_allowed"])
+
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(report[field])
+
+    def test_recheck_patch_routes_to_hash_mismatch_gap_without_resolving_post_repair_gap(self):
+        if not PATCH_PATH.exists():
+            self.skipTest("post-repair reconciliation required recheck patch has not been generated yet")
+        state = load_json(STATE_PATH)
+        patch_result = load_json(PATCH_PATH)
+
+        self.assertEqual(
+            patch_result["patch_id"],
+            "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK_20260504_001",
+        )
+        self.assertEqual(patch_result["next_task_class"], EXPECTED_NEXT_TASK)
+        self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", patch_result["remaining_blockers"])
+        self.assertIn("REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED", patch_result["remaining_blockers"])
+        self.assertEqual(patch_result["post_repair_reconciliation_status"], "BLOCKED")
+        self.assertEqual(patch_result["post_repair_source_loop_expected_rollup_hash_mismatch_count"], 1)
+        self.assertEqual(patch_result["post_repair_candidate_current_evidence_usable_count"], 0)
+        self.assertEqual(patch_result["candidate_current_evidence_usable_count"], 0)
+
+        if REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["next_allowed_task_class"], EXPECTED_NEXT_TASK)
+        self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
+        self.assertIn("REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
+
+        for field in (
+            "live_order_ready_after",
+            "live_order_allowed_after",
+            "can_live_trade_after",
+            "scale_up_allowed_after",
+            "convergence_live_order_allowed_after",
+            "optimizer_live_order_allowed_after",
+        ):
+            self.assertFalse(patch_result[field])
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(state[field])
+
+
+if __name__ == "__main__":
+    unittest.main()

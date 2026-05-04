@@ -14,6 +14,8 @@ from trader1.validation.schema_instance import load_schema_bundle
 
 ROOT = Path(__file__).resolve().parents[2]
 EXPECTED_POST_REPAIR_NEXT_TASK = "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK"
+EXPECTED_HASH_MISMATCH_NEXT_TASK = "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK"
+COMPLETED_POST_REPAIR_RECHECK_REQUIREMENT_ID = "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK"
 COMPLETED_ROUTE_REQUIREMENT_IDS = {
     "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-STATE-SYNC-RECHECK",
     "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-STATE-SYNC-RECHECK",
@@ -139,7 +141,12 @@ class PatchResultRuntimeSchemaValidationTest(unittest.TestCase):
 
         self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
         self.assertNotIn(state["next_allowed_task_class"], COMPLETED_ROUTE_TASK_CLASSES)
-        self.assertEqual(state["next_allowed_task_class"], EXPECTED_POST_REPAIR_NEXT_TASK)
+        expected_next_task = (
+            EXPECTED_HASH_MISMATCH_NEXT_TASK
+            if COMPLETED_POST_REPAIR_RECHECK_REQUIREMENT_ID in completed
+            else EXPECTED_POST_REPAIR_NEXT_TASK
+        )
+        self.assertEqual(state["next_allowed_task_class"], expected_next_task)
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             self.assertFalse(state[field])
 

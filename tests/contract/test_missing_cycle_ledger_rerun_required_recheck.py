@@ -19,9 +19,13 @@ COMPLETED_POST_RERUN_RECONCILIATION_REQUIREMENT_ID = (
 COMPLETED_POST_RERUN_WRITE_BLOCKED_REQUIREMENT_ID = (
     "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK"
 )
+COMPLETED_POST_REPAIR_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK"
+)
 BACKWARD_NEXT_TASK = "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_RECHECK"
 EXPECTED_NEXT_TASK = "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK"
 EXPECTED_DOWNSTREAM_NEXT_TASK = "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK"
+EXPECTED_POST_REPAIR_NEXT_TASK = "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK"
 RUNTIME_BASE = (
     ROOT
     / "system"
@@ -131,7 +135,12 @@ class MissingCycleLedgerRerunRequiredRecheckTest(unittest.TestCase):
                 "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK",
             },
         )
-        self.assertEqual(state["next_allowed_task_class"], EXPECTED_DOWNSTREAM_NEXT_TASK)
+        expected_next_task = (
+            EXPECTED_POST_REPAIR_NEXT_TASK
+            if COMPLETED_POST_REPAIR_RECHECK_REQUIREMENT_ID in completed
+            else EXPECTED_DOWNSTREAM_NEXT_TASK
+        )
+        self.assertEqual(state["next_allowed_task_class"], expected_next_task)
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             self.assertFalse(state[field])
 
