@@ -1,0 +1,24 @@
+{
+  "schema_id": "trader1.contract_gap.v1",
+  "generated_at_utc": "2026-05-04T14:10:22Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "status": "OPEN",
+  "blockers": [
+    {
+      "code": "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+      "message": "Blocked repair plan remains live-blocking: six PAPER repair items require operator reconciliation, ledger rollup rebuild, runtime cycle rerun, or recovery guard rerun before any regenerated current evidence can be considered."
+    }
+  ],
+  "notes": "Depth recheck only; no current evidence write, live order, credentialed API call, live config mutation, or scale-up permission is created.",
+  "contract_gap_id": "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+  "severity": "HIGH",
+  "source_section_id": "SECTION_LEDGER_RECONCILIATION",
+  "live_affecting": true
+}

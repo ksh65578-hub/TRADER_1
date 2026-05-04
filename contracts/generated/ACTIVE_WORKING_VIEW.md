@@ -44,3 +44,16 @@ scale_up_allowed: false
 Repair candidate hash mismatch depth has been rechecked as blocked. The candidate rollup self-check still passes, the source expected rollup artifact is still missing, current evidence remains unusable, and the next task is:
 
 MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK
+
+## MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK
+
+updated_at_utc: 2026-05-04T14:10:22Z
+last_patch_id: MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK_20260504_001
+live_order_ready: false
+live_order_allowed: false
+can_live_trade: false
+scale_up_allowed: false
+
+Blocked repair plan depth has been rechecked as operator-action-required. The plan still has six fail-closed repair items, the repair queue still exposes no usable current evidence, and the next task is:
+
+MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK
