@@ -8113,6 +8113,65 @@
       "status": "IMPLEMENTED"
     },
     {
+      "requirement_id": "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-RECHECK",
+      "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_stale_loop_regeneration_plan.schema.json",
+        "contracts/schema/upbit_paper_stale_loop_reconciliation_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_regeneration.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_reconciliation.py"
+      ],
+      "test_files": [
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tests/runtime/test_upbit_paper_stale_loop_regeneration.py",
+        "tests/runtime/test_upbit_paper_stale_loop_reconciliation.py"
+      ],
+      "fixture_files": [
+        "system/evidence/patch_results/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.patch_result.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_reconciliation_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_regeneration_plan.json"
+      ],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_stale_loop_regeneration.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_reconciliation.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_STALE_LOOP_REGENERATION_REQUIRED_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_STALE_LOOP_REGENERATION_REQUIRED_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_STALE_LOOP_REGENERATION_REQUIRED_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_STALE_LOOP_REGENERATION_REQUIRED_RECHECK.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "next_task_class",
+        "remaining_blockers",
+        "stale_loop_regeneration_plan_status",
+        "stale_loop_regeneration_source_loop_report_count",
+        "stale_loop_regeneration_source_current_accepted_count",
+        "stale_loop_regeneration_source_excluded_count",
+        "stale_loop_regeneration_legacy_schema_drift_count",
+        "stale_loop_regeneration_item_count",
+        "stale_loop_regeneration_operator_review_item_count",
+        "stale_loop_regeneration_duplicate_replacement_path_count",
+        "stale_loop_regeneration_overwrite_or_delete_count",
+        "stale_loop_regeneration_actual_regeneration_performed",
+        "stale_loop_regeneration_automatic_regeneration_allowed",
+        "stale_loop_regeneration_delete_source_allowed",
+        "stale_loop_regeneration_overwrite_source_allowed",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RECHECK_STALE_LOOP_REGENERATION_PLAN_EXECUTION_REQUIRED"
+    },
+    {
       "requirement_id": "REQ-MVP4-STRATEGY-CONDITION-MATRIX-SCHEMA-HARDENING",
       "section_id": "SECTION_STRATEGY_ENTRY_EXIT_NO_TRADE",
       "schema_files": [
@@ -13816,7 +13875,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T02:25:10Z",
+  "updated_at_utc": "2026-05-04T02:41:23Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

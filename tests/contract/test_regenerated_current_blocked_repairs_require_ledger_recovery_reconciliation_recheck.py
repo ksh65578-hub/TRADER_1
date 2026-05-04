@@ -38,8 +38,10 @@ REQUIREMENT_ID = (
     "REQ-MVP4-REGENERATED-CURRENT-BLOCKED-REPAIRS-REQUIRE-LEDGER-RECOVERY-"
     "RECONCILIATION-RECHECK"
 )
+STALE_LOOP_REGENERATION_REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-RECHECK"
 BLOCKER = "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
 NEXT_TASK = "MVP4_STALE_LOOP_REGENERATION_REQUIRED_RECHECK"
+STALE_LOOP_EXECUTION_NEXT_TASK = "MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK"
 
 
 def load_json(path: Path):
@@ -129,7 +131,10 @@ class RegeneratedCurrentBlockedRepairsRecheckTest(unittest.TestCase):
         self.assertEqual(patch_result["repair_operator_queue_hash_operator_reconciliation_required_count"], 1)
         self.assertEqual(patch_result["repair_operator_queue_candidate_current_evidence_usable_count"], 0)
 
-        if REQUIREMENT_ID in state["completed_requirement_ids"]:
+        completed = set(state["completed_requirement_ids"])
+        if STALE_LOOP_REGENERATION_REQUIREMENT_ID in completed:
+            self.assertEqual(state["next_allowed_task_class"], STALE_LOOP_EXECUTION_NEXT_TASK)
+        elif REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
         self.assertIn(BLOCKER, state["open_contract_gap_ids"])
         for field in (
