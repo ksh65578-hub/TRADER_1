@@ -12,6 +12,9 @@ PATCH_PATH = (
     / "patch_results"
     / "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.patch_result.json"
 )
+COMPLETED_REQUIREMENT_ID = "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-STATE-SYNC-RECHECK"
+BACKWARD_NEXT_TASK = "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_RECHECK"
+EXPECTED_NEXT_TASK = "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK"
 RUNTIME_BASE = (
     ROOT
     / "system"
@@ -71,9 +74,9 @@ class MissingCycleLedgerRerunRequiredRecheckTest(unittest.TestCase):
             patch_result["patch_id"],
             "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK_20260504_001",
         )
-        self.assertEqual(patch_result["next_task_class"], "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK")
+        self.assertEqual(patch_result["next_task_class"], EXPECTED_NEXT_TASK)
         if state["last_patch_id"] == patch_result["patch_id"]:
-            self.assertEqual(state["next_allowed_task_class"], "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK")
+            self.assertEqual(state["next_allowed_task_class"], EXPECTED_NEXT_TASK)
         else:
             self.assertNotEqual(state["next_allowed_task_class"], "")
         self.assertIn("MISSING_CYCLE_LEDGER_RERUN_REQUIRED", state["open_contract_gap_ids"])
@@ -90,6 +93,17 @@ class MissingCycleLedgerRerunRequiredRecheckTest(unittest.TestCase):
             "optimizer_live_order_allowed_after",
         ):
             self.assertFalse(patch_result[field])
+
+    def test_completed_missing_cycle_recheck_does_not_route_backward(self):
+        state = load_json(STATE_PATH)
+        if COMPLETED_REQUIREMENT_ID not in state["completed_requirement_ids"]:
+            self.skipTest("missing-cycle ledger rerun state-sync recheck has not completed yet")
+
+        self.assertIn("MISSING_CYCLE_LEDGER_RERUN_REQUIRED", state["open_contract_gap_ids"])
+        self.assertIn("POST_RERUN_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
+        self.assertNotEqual(state["next_allowed_task_class"], BACKWARD_NEXT_TASK)
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(state[field])
 
     def test_historical_missing_cycle_patch_results_remain_live_blocked(self):
         patch_names = [
