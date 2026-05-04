@@ -5836,6 +5836,52 @@
       "status": "IMPLEMENTED_BASELINE_RECONCILED_HISTORICAL_GAP_OPEN"
     },
     {
+      "requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-IMPLEMENTATION-DEPTH-RECHECK",
+      "section_id": "SECTION_PATCH_RESULT",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/contract_gap.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py"
+      ],
+      "fixture_files": [
+        "system/evidence/audit_reports/PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE.json",
+        "system/evidence/audit_reports/PATCH_RESULT_VALIDATOR_RUN_GAP_AUDIT.json",
+        "system/evidence/contract_gaps/PATCH_RESULT_VALIDATOR_RUN_GAP.contract_gap.json",
+        "system/evidence/audit_reports/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK.json"
+      ],
+      "runtime_modules": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK_20260504.md",
+        "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK.validator_run_log.json",
+        "system/evidence/audit_reports/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_required",
+        "validators_run",
+        "tests_run",
+        "remaining_blockers",
+        "next_task_class",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_DEPTH_5_BASELINE_ARTIFACT_GUARDRAILS_GAP_OPEN"
+    },
+    {
       "requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-NEXT-TASK-RESTORE",
       "section_id": "SECTION_PATCH_RESULT",
       "schema_files": [
@@ -14462,7 +14508,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T09:40:08Z",
+  "updated_at_utc": "2026-05-04T10:49:50Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
