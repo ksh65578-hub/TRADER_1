@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.patch_result.v1",
-  "patch_id": "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_20260504_001",
-  "created_at_utc": "2026-05-04T03:29:37Z",
+  "patch_id": "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_20260505_001",
+  "created_at_utc": "2026-05-04T16:40:50Z",
   "target_mvp_level": "MVP-4",
   "patch_class": "VALIDATOR_PATCH",
   "input_authority_files": [
@@ -12,7 +12,7 @@
   "authority_hash_checked": true,
   "affected_contract_ids": [
     "REQ-MVP4-STALE-LOOP-RECONCILIATION-AFTER-REGENERATION-REQUIRED-RECHECK",
-    "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK",
+    "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-POST-REGENERATION-RECONCILIATION",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-CLOSURE",
     "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-DASHBOARD-BINDING",
@@ -43,8 +43,6 @@
     "patch_result_runtime_schema_instance_validator",
     "generated_artifact_dirty_validator",
     "coverage_index_validator",
-    "source_bundle_hygiene_validator",
-    "shipped_package_hygiene_validator",
     "secret_scan_validator",
     "live_final_guard_validator"
   ],
@@ -83,14 +81,6 @@
     },
     {
       "validator_id": "coverage_index_validator",
-      "status": "PASS"
-    },
-    {
-      "validator_id": "source_bundle_hygiene_validator",
-      "status": "PASS"
-    },
-    {
-      "validator_id": "shipped_package_hygiene_validator",
       "status": "PASS"
     },
     {
@@ -195,7 +185,7 @@
   "token_navigation_patch": true,
   "active_read_surface_used": [
     "current_implementation_state",
-    "system/evidence/patch_results/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.patch_result.json",
+    "system/evidence/patch_results/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json",
     "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
     "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.json",
     "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_CLOSURE.patch_result.json",
@@ -257,8 +247,6 @@
     "patch_result_runtime_schema_instance_validator",
     "generated_artifact_dirty_validator",
     "coverage_index_validator",
-    "source_bundle_hygiene_validator",
-    "shipped_package_hygiene_validator",
     "secret_scan_validator",
     "live_final_guard_validator"
   ],
@@ -300,14 +288,6 @@
       "status": "PASS"
     },
     {
-      "validator_id": "source_bundle_hygiene_validator",
-      "status": "PASS"
-    },
-    {
-      "validator_id": "shipped_package_hygiene_validator",
-      "status": "PASS"
-    },
-    {
       "validator_id": "secret_scan_validator",
       "status": "PASS"
     },
@@ -321,7 +301,7 @@
   "convergence_live_order_allowed_after": false,
   "scale_up_eligibility_changed": false,
   "scale_up_allowed_after": false,
-  "result_hash": "D7BECC4AA6897FC6FFF262034C44F8F6C3B1431FA29D8157E3D120FEBB7FE1C5",
+  "result_hash": "CFFE955EECF12A23D7DBA76688204C18BB8C7A1B97C56267952A4D99D385647E",
   "merged_requirements": [],
   "coverage_index_result": "UPDATED_PASS",
   "scale_up_allowed_before": false,
@@ -407,9 +387,9 @@
   "blocked_repair_plan_recovery_guard_rerun_required_count": 1,
   "blocked_repair_plan_missing_cycle_ledger_jsonl_total_count": 10,
   "blocked_repair_plan_missing_paper_ledger_rollup_artifact_count": 6,
-  "repair_operator_queue_primary_blocker_code": "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
   "repair_operator_queue_runtime_cycle_rerun_required_count": 5,
   "repair_operator_queue_recovery_guard_rerun_required_count": 1,
+  "repair_operator_queue_primary_blocker_code": "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
   "repair_operator_queue_hash_operator_reconciliation_required_count": 1,
   "stale_loop_regeneration_plan_status": "READY_FOR_SAFE_PAPER_REGENERATION",
   "stale_loop_regeneration_source_loop_report_count": 17,

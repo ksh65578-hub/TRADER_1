@@ -164,7 +164,10 @@ class PostRerunCurrentEvidenceWriteBlockedImplementationDepthRecheckTest(unittes
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
         self.assertIn(GAP_ID, state["open_contract_gap_ids"])
         self.assertIn(GAP_ID, patch_result["remaining_blockers"])
-        if STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state[
+        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
+            expected_next_task = "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK"
+            self.assertEqual(state["next_allowed_task_class"], expected_next_task)
+        elif STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state[
             "completed_requirement_ids"
         ]:
             expected_next_task = AFTER_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK

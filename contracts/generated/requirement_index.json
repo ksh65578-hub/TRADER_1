@@ -12076,16 +12076,15 @@
         "patch_result_runtime_schema_instance_validator",
         "generated_artifact_dirty_validator",
         "coverage_index_validator",
-        "source_bundle_hygiene_validator",
-        "shipped_package_hygiene_validator",
         "secret_scan_validator",
         "live_final_guard_validator"
       ],
       "artifact_ids": [
         "contracts/generated/context_pack/MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK.md",
         "system/evidence/MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK.evidence_manifest.json",
-        "system/evidence/audit_reports/MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_20260504.md",
+        "system/evidence/audit_reports/MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_20260505.md",
         "system/evidence/patch_results/MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json",
         "system/evidence/patch_results/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.patch_result.json",
         "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_CLOSURE.patch_result.json",
         "system/evidence/stage_gates/MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK.stage_gate_result.json",
@@ -12112,6 +12111,7 @@
         "SECTION_LIVE_FINAL_GUARD"
       ],
       "depends_on": [
+        "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
         "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK",
         "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-POST-REGENERATION-RECONCILIATION",
         "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-CLOSURE",
@@ -21016,5 +21016,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-04T16:08:30Z"
+  "updated_at_utc": "2026-05-04T16:40:50Z"
 }

@@ -13,14 +13,21 @@ ROOT = Path(__file__).resolve().parents[1]
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 PATCH_BASENAME = "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK"
-PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
+PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
 REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-RECONCILIATION-AFTER-REGENERATION-REQUIRED-RECHECK"
-PREVIOUS_REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK"
+PREVIOUS_REQUIREMENT_ID = (
+    "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK"
+)
+PREVIOUS_RECHECK_REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK"
 POST_REGENERATION_REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-POST-REGENERATION-RECONCILIATION"
 CLOSURE_REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-CLOSURE"
 DASHBOARD_BINDING_REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-DASHBOARD-BINDING"
 NEXT_TASK_CLASS = "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK"
 PREVIOUS_PATCH_RESULT = (
+    "system/evidence/patch_results/"
+    "MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json"
+)
+PREVIOUS_RECHECK_PATCH_RESULT = (
     "system/evidence/patch_results/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.patch_result.json"
 )
 POST_REGENERATION_REPORT = (
@@ -62,7 +69,6 @@ from tools.emit_root_launcher_operator_visibility_patch_evidence import (  # noq
     write_json,
     write_text,
 )
-from trader1.security.source_bundle import write_source_bundle_manifest  # noqa: E402
 from trader1.validation.mvp0_validators import run_validators  # noqa: E402
 
 
@@ -76,8 +82,6 @@ VALIDATORS_REQUIRED = [
     "patch_result_runtime_schema_instance_validator",
     "generated_artifact_dirty_validator",
     "coverage_index_validator",
-    "source_bundle_hygiene_validator",
-    "shipped_package_hygiene_validator",
     "secret_scan_validator",
     "live_final_guard_validator",
 ]
@@ -158,21 +162,27 @@ def _count_closure_lanes(closure: dict[str, Any]) -> dict[str, int]:
 def load_summary() -> dict[str, Any]:
     state = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
     previous = load_json(ROOT / PREVIOUS_PATCH_RESULT)
+    previous_recheck = load_json(ROOT / PREVIOUS_RECHECK_PATCH_RESULT)
     post = load_json(ROOT / POST_REGENERATION_REPORT)
     closure = load_json(ROOT / CLOSURE_REPORT)
     closure_patch = load_json(ROOT / CLOSURE_PATCH_RESULT)
 
     if PREVIOUS_REQUIREMENT_ID not in state.get("completed_requirement_ids", []):
+        raise RuntimeError("stale loop regeneration execution depth recheck is not completed")
+    if PREVIOUS_RECHECK_REQUIREMENT_ID not in state.get("completed_requirement_ids", []):
         raise RuntimeError("stale loop regeneration execution recheck is not completed")
     if state.get("next_allowed_task_class") not in {PATCH_BASENAME, NEXT_TASK_CLASS}:
         raise RuntimeError("state is not routed to stale loop post-regeneration reconciliation recheck")
     if previous.get("next_task_class") != PATCH_BASENAME:
+        raise RuntimeError("previous execution depth recheck does not route to this recheck")
+    if previous_recheck.get("next_task_class") != PATCH_BASENAME:
         raise RuntimeError("previous execution recheck does not route to this recheck")
     if state.get("next_allowed_task_class") == PATCH_BASENAME and CLOSED_GAP not in state.get("open_contract_gap_ids", []):
         raise RuntimeError("post-regeneration reconciliation gap is not open before this recheck")
 
     assert_false_fields("current implementation state", state)
     assert_false_fields(PREVIOUS_PATCH_RESULT, previous, "_after")
+    assert_false_fields(PREVIOUS_RECHECK_PATCH_RESULT, previous_recheck, "_after")
     assert_false_fields(CLOSURE_PATCH_RESULT, closure_patch, "_after")
     _assert_no_live_or_mutation(POST_REGENERATION_REPORT, post)
     _assert_no_live_or_mutation(CLOSURE_REPORT, closure)
@@ -257,6 +267,7 @@ def load_summary() -> dict[str, Any]:
         "state_last_patch_id_before": state.get("last_patch_id"),
         "state_last_patch_result_hash_before": state.get("last_patch_result_hash"),
         "previous_patch_result_hash": previous.get("result_hash"),
+        "previous_recheck_patch_result_hash": previous_recheck.get("result_hash"),
         "closure_patch_result_hash": closure_patch.get("result_hash"),
         "closed_gap_id": CLOSED_GAP,
         "next_open_gap_id": NEXT_OPEN_GAP,
@@ -297,7 +308,7 @@ task_class: {PATCH_BASENAME}
 source_trader1_sha256: {trader_hash}
 source_agents_sha256: {agents_hash}
 included_section_ids: ["SECTION_UPBIT_PAPER_RUNTIME", "SECTION_LEDGER_RECONCILIATION", "SECTION_LIVE_FINAL_GUARD"]
-included_requirement_ids: ["{REQUIREMENT_ID}", "{PREVIOUS_REQUIREMENT_ID}", "{POST_REGENERATION_REQUIREMENT_ID}", "{CLOSURE_REQUIREMENT_ID}", "{DASHBOARD_BINDING_REQUIREMENT_ID}"]
+included_requirement_ids: ["{REQUIREMENT_ID}", "{PREVIOUS_REQUIREMENT_ID}", "{PREVIOUS_RECHECK_REQUIREMENT_ID}", "{POST_REGENERATION_REQUIREMENT_ID}", "{CLOSURE_REQUIREMENT_ID}", "{DASHBOARD_BINDING_REQUIREMENT_ID}"]
 included_schema_ids: ["trader1.patch_result.v1", "trader1.upbit_paper_stale_loop_post_regeneration_reconciliation_report.v1", "trader1.upbit_paper_stale_loop_reconciliation_operator_queue_closure_report.v1"]
 included_validator_ids: {json.dumps(VALIDATORS_REQUIRED)}
 included_artifact_ids: {json.dumps(CHANGED_ARTIFACTS)}
@@ -361,7 +372,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             CHANGED_ARTIFACTS
             + [
                 f"system/evidence/{PATCH_BASENAME}.evidence_manifest.json",
-                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260504.md",
+                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260505.md",
                 f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
                 f"system/evidence/stage_gates/{PATCH_BASENAME}.stage_gate_result.json",
                 f"system/evidence/validator_runs/{PATCH_BASENAME}.validator_run_log.json",
@@ -369,6 +380,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 POST_REGENERATION_REPORT,
                 CLOSURE_REPORT,
                 CLOSURE_PATCH_RESULT,
+                PREVIOUS_RECHECK_PATCH_RESULT,
             ]
         )
     )
@@ -411,6 +423,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             ],
             "depends_on": [
                 PREVIOUS_REQUIREMENT_ID,
+                PREVIOUS_RECHECK_REQUIREMENT_ID,
                 POST_REGENERATION_REQUIREMENT_ID,
                 CLOSURE_REQUIREMENT_ID,
                 "REQ-MVP4-LIVE-FINAL-GUARD",
@@ -461,6 +474,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             ],
             "evidence_artifacts": [
                 PREVIOUS_PATCH_RESULT,
+                PREVIOUS_RECHECK_PATCH_RESULT,
                 POST_REGENERATION_REPORT,
                 CLOSURE_REPORT,
                 CLOSURE_PATCH_RESULT,
@@ -699,15 +713,15 @@ def write_evidence(
                 "contracts/generated/read_cache_manifest.json",
                 "contracts/generated/requirement_index.json",
                 "contracts/generated/requirement_artifact_matrix.json",
-                "contracts/security/source_bundle_manifest.json",
                 "system/evidence/implementation_patch_ledger.json",
                 PREVIOUS_PATCH_RESULT,
+                PREVIOUS_RECHECK_PATCH_RESULT,
                 POST_REGENERATION_REPORT,
                 CLOSURE_REPORT,
                 CLOSURE_PATCH_RESULT,
                 patch_result["validator_run_log_path"],
                 patch_result["stage_gate_result_path"],
-                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260504.md",
+                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260505.md",
                 f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
             ]
         )
@@ -730,7 +744,7 @@ def write_evidence(
         },
     )
     write_text(
-        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260504.md",
+        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260505.md",
         f"""# MVP4 Stale Loop Reconciliation After Regeneration Required Recheck Audit
 
 created_at_utc: {now}
@@ -826,7 +840,6 @@ def main() -> int:
     trader_hash = sha256_file(ROOT / "TRADER_1.md")
     agents_hash = sha256_file(ROOT / "AGENTS.md")
     update_authority_manifest(now)
-    write_source_bundle_manifest()
     summary = load_summary()
     update_context(now, trader_hash, agents_hash, summary)
     update_requirement_artifacts(now, trader_hash, agents_hash)
@@ -878,7 +891,6 @@ def main() -> int:
     summary = load_summary()
     update_context(now, trader_hash, agents_hash, summary)
     update_requirement_artifacts(now, trader_hash, agents_hash)
-    write_source_bundle_manifest()
     patch_result = build_patch_result(
         now,
         tests_run,

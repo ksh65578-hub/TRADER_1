@@ -54,6 +54,7 @@ PAPER_SHADOW_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID = (
     "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-IMPLEMENTATION-DEPTH-RECHECK"
 )
 NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK"
+PATCH_ID = "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_20260505_001"
 AUDITED_WRITER_DASHBOARD_NEXT_TASK = "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING"
 AFTER_AUDITED_WRITER_DASHBOARD_NEXT_TASK = "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK"
 AFTER_PROFITABILITY_MATURITY_RECHECK_NEXT_TASK = "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK"
@@ -202,7 +203,7 @@ class StaleLoopReconciliationAfterRegenerationRequiredRecheckTest(unittest.TestC
 
         self.assertEqual(
             patch_result["patch_id"],
-            "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_20260504_001",
+            PATCH_ID,
         )
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK)
         self.assertEqual(patch_result["stale_loop_post_regeneration_reconciliation_status"], "BLOCKED")
@@ -215,7 +216,11 @@ class StaleLoopReconciliationAfterRegenerationRequiredRecheckTest(unittest.TestC
         self.assertIn(NEXT_BLOCKER, patch_result["remaining_blockers"])
         self.assertNotIn(CLOSED_BLOCKER, patch_result["remaining_blockers"])
 
-        if STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state[
+        if state["last_patch_id"] == PATCH_ID:
+            self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
+            self.assertIn(NEXT_BLOCKER, state["open_contract_gap_ids"])
+            self.assertNotIn(CLOSED_BLOCKER, state["open_contract_gap_ids"])
+        elif STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state[
             "completed_requirement_ids"
         ]:
             expected_next_task = AFTER_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK
