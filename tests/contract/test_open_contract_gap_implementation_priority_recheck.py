@@ -30,6 +30,13 @@ REQUIREMENT_ID = "REQ-MVP4-OPEN-CONTRACT-GAP-IMPLEMENTATION-PRIORITY-RECHECK"
 PREVIOUS_REQUIREMENT_ID = "REQ-MVP4-COMPLETED-RECHECK-ROUTE-DEPTH-GUARD"
 NEXT_TASK_CLASS = "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK"
 SELECTED_GAP_ID = "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP"
+DOWNSTREAM_REQUIREMENT_ID = (
+    "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-IMPLEMENTATION-DEPTH-RECHECK"
+)
+DOWNSTREAM_PATCH_ID = (
+    "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK_20260504_001"
+)
+DOWNSTREAM_NEXT_TASK_CLASS = "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_IMPLEMENTATION_DEPTH_RECHECK"
 
 
 def load_json(path: Path):
@@ -47,8 +54,12 @@ class OpenContractGapImplementationPriorityRecheckTest(unittest.TestCase):
 
         self.assertEqual(patch_result["patch_id"], "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK_20260504_001")
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
-        self.assertEqual(state["last_patch_id"], "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK_20260504_001")
-        self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
+        if DOWNSTREAM_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["last_patch_id"], DOWNSTREAM_PATCH_ID)
+            self.assertEqual(state["next_allowed_task_class"], DOWNSTREAM_NEXT_TASK_CLASS)
+        else:
+            self.assertEqual(state["last_patch_id"], "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK_20260504_001")
+            self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
         self.assertIn(PREVIOUS_REQUIREMENT_ID, state["completed_requirement_ids"])
 

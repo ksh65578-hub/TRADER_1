@@ -1953,9 +1953,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(profile["long_run_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
         self.assertEqual(profile["collection_depth_status"], "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH")
         self.assertEqual(profile["collection_depth_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
-        self.assertEqual(profile["collection_depth_missing_runtime_modes"], ["SHADOW"])
-        self.assertEqual(profile["collection_depth_shadow_runtime_status"], "MISSING")
-        self.assertEqual(profile["collection_depth_pairing_status"], "MISSING")
+        self.assertIn("SHADOW", profile["collection_depth_missing_runtime_modes"])
+        self.assertEqual(profile["collection_depth_shadow_runtime_status"], "PRESENT_NOT_LONG_RUN")
+        self.assertEqual(profile["collection_depth_pairing_status"], "PAIRED_NOT_LONG_RUN")
         self.assertGreater(profile["collection_depth_missing_span_seconds"], 0)
         self.assertGreater(profile["collection_depth_missing_cycle_count"], 0)
         self.assertFalse(profile["bounded_profile_counts_as_long_run_evidence"])
@@ -2009,6 +2009,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
     def test_dashboard_blocks_paper_runtime_evidence_profile_hidden_collection_depth(self):
         dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
         dashboard["paper_runtime_evidence_collection_profile_status"]["collection_depth_missing_runtime_modes"] = []
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+
+    def test_dashboard_blocks_paper_runtime_evidence_profile_shadow_pairing_drift(self):
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
+        dashboard["paper_runtime_evidence_collection_profile_status"]["collection_depth_pairing_status"] = "MISSING"
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")

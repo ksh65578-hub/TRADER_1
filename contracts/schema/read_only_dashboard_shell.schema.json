@@ -6612,10 +6612,18 @@
           "uniqueItems": true
         },
         "collection_depth_shadow_runtime_status": {
-          "const": "MISSING"
+          "enum": [
+            "MISSING",
+            "PRESENT_NOT_LONG_RUN",
+            "BLOCKED"
+          ]
         },
         "collection_depth_pairing_status": {
-          "const": "MISSING"
+          "enum": [
+            "MISSING",
+            "PAIRED_NOT_LONG_RUN",
+            "BLOCKED"
+          ]
         },
         "bounded_profile_counts_as_long_run_evidence": {
           "const": false

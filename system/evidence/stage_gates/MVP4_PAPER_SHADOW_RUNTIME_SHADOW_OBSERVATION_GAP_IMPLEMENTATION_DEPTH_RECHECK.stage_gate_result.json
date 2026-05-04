@@ -1,0 +1,44 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-04T08:32:16Z",
+  "patch_id": "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK_20260504_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_FOR_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_NO_LIVE_ORDERS",
+  "audit": {
+    "audit_schema_id": "trader1.paper_shadow_runtime_shadow_observation_gap_depth_recheck_audit.v1",
+    "status": "PASS",
+    "blockers": [],
+    "profile_report_path": "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+    "profile_status": "PASS",
+    "component_count": 5,
+    "component_pass_count": 5,
+    "accepted_cycle_sample_count": 2,
+    "runtime_sample_status": "COLLECTING",
+    "ledger_runtime_evidence_status": "PASS",
+    "collection_depth_observed_runtime_modes": [
+      "PAPER",
+      "SHADOW"
+    ],
+    "collection_depth_missing_runtime_modes": [
+      "SHADOW"
+    ],
+    "shadow_runtime_depth_status": "PRESENT_NOT_LONG_RUN",
+    "paper_shadow_pairing_status": "PAIRED_NOT_LONG_RUN",
+    "shadow_orchestration_component_present": true,
+    "idempotency_status": "PASS",
+    "reconciliation_status": "PASS",
+    "mismatch_count": 0,
+    "cache_artifact_count": 0,
+    "shipped_forbidden_count": 0,
+    "contains_secret": false,
+    "long_run_evidence_eligible": false,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,44 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK_EVIDENCE",
+  "created_at_utc": "2026-05-04T08:32:16Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK_20260504_001",
+  "artifact_paths": [
+    "contracts/schema/upbit_paper_runtime_evidence_collection_profile_report.schema.json",
+    "contracts/schema/read_only_dashboard_shell.schema.json",
+    "contracts/schema/patch_result.schema.json",
+    "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
+    "trader1/dashboard/read_only_dashboard.py",
+    "tools/emit_paper_shadow_runtime_shadow_observation_gap_implementation_depth_recheck_patch_evidence.py",
+    "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py",
+    "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+    "contracts/generated/context_pack/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK.md",
+    "system/evidence/validator_runs/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json"
+  ],
+  "known_blockers": [
+    "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
