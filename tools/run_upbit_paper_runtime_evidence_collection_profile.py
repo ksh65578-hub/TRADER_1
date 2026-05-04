@@ -54,6 +54,8 @@ PROFILE_ID = "UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_V1"
 PROFILE_SCOPE = "UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ONLY_NO_LIVE"
 LONG_RUN_COLLECTION_DEPTH_STATUS = "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH"
 LONG_RUN_COLLECTION_DEPTH_ROLE = "PAPER_RUNTIME_COLLECTION_DEPTH_BLOCKER_NOT_LONG_RUN_EVIDENCE"
+RUNTIME_MODE_DEPTH_STATUS = "BLOCKED_FOR_PER_MODE_LONG_RUN_DEPTH"
+RUNTIME_MODE_DEPTH_BLOCKER_CODE = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
 DEFAULT_REPORT_PATH = Path(
     "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json"
 )
@@ -153,6 +155,22 @@ def _long_run_collection_depth(
         if paper_depth_status == "PASS" and shadow_source_present
         else ("BLOCKED" if shadow_source_blocked else "MISSING")
     )
+    shadow_observed_span_seconds = int(shadow_orchestration.get("observed_actual_runtime_seconds") or 0) if isinstance(shadow_orchestration, dict) else 0
+    shadow_observed_cycle_count = int(shadow_orchestration.get("observed_actual_cycle_count") or 0) if isinstance(shadow_orchestration, dict) else 0
+    runtime_mode_depth_evidence = _runtime_mode_depth_evidence(
+        paper_observed_span_seconds=observed_span_seconds,
+        paper_observed_cycle_count=observed_cycle_count,
+        paper_source_status="PRESENT_BOUNDED_NOT_LONG_RUN" if paper_depth_status == "PASS" else "MISSING",
+        shadow_observed_span_seconds=shadow_observed_span_seconds,
+        shadow_observed_cycle_count=shadow_observed_cycle_count,
+        shadow_source_status=(
+            "PRESENT_BLOCKER_ONLY_NOT_LONG_RUN"
+            if shadow_source_present
+            else ("BLOCKED" if shadow_source_blocked else "MISSING")
+        ),
+        minimum_span_seconds=minimum_span_seconds,
+        minimum_cycle_count=minimum_cycle_count,
+    )
 
     return {
         "status": LONG_RUN_COLLECTION_DEPTH_STATUS,
@@ -173,8 +191,102 @@ def _long_run_collection_depth(
         "paper_ledger_idempotency_status": str(idempotency_evidence.get("idempotency_status") or "BLOCKED"),
         "shadow_runtime_depth_status": shadow_depth_status,
         "paper_shadow_pairing_status": paper_shadow_pairing_status,
+        "runtime_mode_depth_evidence": runtime_mode_depth_evidence,
         "bounded_profile_counts_as_long_run_evidence": False,
         "dashboard_display_counts_as_long_run_evidence": False,
+        "actual_long_run_evidence_created": False,
+        "long_run_evidence_eligible": False,
+        "promotion_eligible": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _runtime_mode_depth(
+    *,
+    mode: str,
+    source_status: str,
+    evidence_role: str,
+    observed_span_seconds: int,
+    observed_cycle_count: int,
+    minimum_span_seconds: int,
+    minimum_cycle_count: int,
+    blocker_code: str,
+) -> dict[str, Any]:
+    missing_span_seconds = max(0, int(minimum_span_seconds) - int(observed_span_seconds))
+    missing_cycle_count = max(0, int(minimum_cycle_count) - int(observed_cycle_count))
+    span_floor_met = int(observed_span_seconds) >= int(minimum_span_seconds) > 0
+    cycle_floor_met = int(observed_cycle_count) >= int(minimum_cycle_count) > 0
+    return {
+        "mode": mode,
+        "source_status": source_status,
+        "evidence_role": evidence_role,
+        "observed_span_seconds": int(observed_span_seconds),
+        "minimum_span_seconds": int(minimum_span_seconds),
+        "missing_span_seconds": missing_span_seconds,
+        "span_floor_met": span_floor_met,
+        "observed_cycle_count": int(observed_cycle_count),
+        "minimum_cycle_count": int(minimum_cycle_count),
+        "missing_cycle_count": missing_cycle_count,
+        "cycle_floor_met": cycle_floor_met,
+        "long_run_floor_met": span_floor_met and cycle_floor_met,
+        "counts_as_actual_long_run_evidence": False,
+        "blocker_code": blocker_code,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _runtime_mode_depth_evidence(
+    *,
+    paper_observed_span_seconds: int,
+    paper_observed_cycle_count: int,
+    paper_source_status: str,
+    shadow_observed_span_seconds: int,
+    shadow_observed_cycle_count: int,
+    shadow_source_status: str,
+    minimum_span_seconds: int,
+    minimum_cycle_count: int,
+) -> dict[str, Any]:
+    mode_depths = {
+        "paper": _runtime_mode_depth(
+            mode="PAPER",
+            source_status=paper_source_status,
+            evidence_role="BOUNDED_PAPER_RUNTIME_PROFILE_NOT_LONG_RUN",
+            observed_span_seconds=paper_observed_span_seconds,
+            observed_cycle_count=paper_observed_cycle_count,
+            minimum_span_seconds=minimum_span_seconds,
+            minimum_cycle_count=minimum_cycle_count,
+            blocker_code=LONG_RUN_EVIDENCE_BLOCKER_CODE,
+        ),
+        "shadow": _runtime_mode_depth(
+            mode="SHADOW",
+            source_status=shadow_source_status,
+            evidence_role="ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN",
+            observed_span_seconds=shadow_observed_span_seconds,
+            observed_cycle_count=shadow_observed_cycle_count,
+            minimum_span_seconds=minimum_span_seconds,
+            minimum_cycle_count=minimum_cycle_count,
+            blocker_code=RUNTIME_MODE_DEPTH_BLOCKER_CODE,
+        ),
+    }
+    missing_modes = [
+        depth["mode"]
+        for depth in mode_depths.values()
+        if depth["long_run_floor_met"] is not True or depth["counts_as_actual_long_run_evidence"] is not True
+    ]
+    return {
+        "status": RUNTIME_MODE_DEPTH_STATUS,
+        "blocker_code": RUNTIME_MODE_DEPTH_BLOCKER_CODE,
+        "required_modes": ["PAPER", "SHADOW"],
+        "mode_depths": mode_depths,
+        "missing_long_run_modes": missing_modes,
+        "missing_long_run_mode_count": len(missing_modes),
+        "all_required_modes_long_run_validated": False,
         "actual_long_run_evidence_created": False,
         "long_run_evidence_eligible": False,
         "promotion_eligible": False,
@@ -576,6 +688,71 @@ def validate_upbit_paper_runtime_evidence_collection_profile_report(
         return ProfileValidationResult("BLOCKED", "runtime evidence profile shadow depth must remain paired and not-long-run", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
     if pairing_status == "PAIRED_NOT_LONG_RUN" and (paper_depth_status != "PASS" or shadow_depth_status != "PRESENT_NOT_LONG_RUN"):
         return ProfileValidationResult("BLOCKED", "runtime evidence profile pairing cannot exist without not-long-run SHADOW depth", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+    mode_depth_evidence = collection_depth.get("runtime_mode_depth_evidence")
+    if not isinstance(mode_depth_evidence, dict):
+        return ProfileValidationResult("FAIL", "runtime evidence profile missing per-mode long-run depth evidence", "SCHEMA_IDENTITY_MISMATCH")
+    if mode_depth_evidence.get("status") != RUNTIME_MODE_DEPTH_STATUS:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile per-mode long-run depth must remain blocked", RUNTIME_MODE_DEPTH_BLOCKER_CODE)
+    if mode_depth_evidence.get("blocker_code") != RUNTIME_MODE_DEPTH_BLOCKER_CODE:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile per-mode depth must preserve PAPER/SHADOW blocker", RUNTIME_MODE_DEPTH_BLOCKER_CODE)
+    if mode_depth_evidence.get("required_modes") != ["PAPER", "SHADOW"]:
+        return ProfileValidationResult("FAIL", "runtime evidence profile per-mode depth required modes drifted", "SCHEMA_IDENTITY_MISMATCH")
+    mode_depths = mode_depth_evidence.get("mode_depths")
+    if not isinstance(mode_depths, dict) or set(mode_depths) != {"paper", "shadow"}:
+        return ProfileValidationResult("FAIL", "runtime evidence profile per-mode depth entries are incomplete", "SCHEMA_IDENTITY_MISMATCH")
+    expected_missing_modes: list[str] = []
+    for key, expected_mode in (("paper", "PAPER"), ("shadow", "SHADOW")):
+        depth = mode_depths.get(key)
+        if not isinstance(depth, dict):
+            return ProfileValidationResult("FAIL", "runtime evidence profile per-mode depth entry is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if depth.get("mode") != expected_mode:
+            return ProfileValidationResult("FAIL", "runtime evidence profile per-mode depth mode mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        for field in ("observed_span_seconds", "minimum_span_seconds", "missing_span_seconds", "observed_cycle_count", "minimum_cycle_count", "missing_cycle_count"):
+            if isinstance(depth.get(field), bool) or not isinstance(depth.get(field), int) or depth.get(field) < 0:
+                return ProfileValidationResult("FAIL", f"runtime evidence profile per-mode depth count is invalid: {field}", "SCHEMA_IDENTITY_MISMATCH")
+        if depth.get("minimum_span_seconds") != report.get("min_actual_long_run_span_seconds"):
+            return ProfileValidationResult("FAIL", "runtime evidence profile per-mode span floor drifted", "SCHEMA_IDENTITY_MISMATCH")
+        if depth.get("minimum_cycle_count") != report.get("min_actual_long_run_cycle_count"):
+            return ProfileValidationResult("FAIL", "runtime evidence profile per-mode cycle floor drifted", "SCHEMA_IDENTITY_MISMATCH")
+        if depth.get("missing_span_seconds") != max(0, int(depth.get("minimum_span_seconds") or 0) - int(depth.get("observed_span_seconds") or 0)):
+            return ProfileValidationResult("FAIL", "runtime evidence profile per-mode missing span mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if depth.get("missing_cycle_count") != max(0, int(depth.get("minimum_cycle_count") or 0) - int(depth.get("observed_cycle_count") or 0)):
+            return ProfileValidationResult("FAIL", "runtime evidence profile per-mode missing cycle mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if depth.get("span_floor_met") is not (int(depth.get("observed_span_seconds") or 0) >= int(depth.get("minimum_span_seconds") or 0) > 0):
+            return ProfileValidationResult("FAIL", "runtime evidence profile per-mode span floor flag drifted", "SCHEMA_IDENTITY_MISMATCH")
+        if depth.get("cycle_floor_met") is not (int(depth.get("observed_cycle_count") or 0) >= int(depth.get("minimum_cycle_count") or 0) > 0):
+            return ProfileValidationResult("FAIL", "runtime evidence profile per-mode cycle floor flag drifted", "SCHEMA_IDENTITY_MISMATCH")
+        if depth.get("long_run_floor_met") is not (depth.get("span_floor_met") is True and depth.get("cycle_floor_met") is True):
+            return ProfileValidationResult("FAIL", "runtime evidence profile per-mode long-run floor flag drifted", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            depth.get("counts_as_actual_long_run_evidence")
+            or depth.get("live_order_ready")
+            or depth.get("live_order_allowed")
+            or depth.get("can_live_trade")
+            or depth.get("scale_up_allowed")
+        ):
+            return ProfileValidationResult("BLOCKED", "runtime evidence profile per-mode depth attempted long-run, live, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+        if depth.get("long_run_floor_met") is not True or depth.get("counts_as_actual_long_run_evidence") is not True:
+            expected_missing_modes.append(expected_mode)
+    if mode_depths["paper"].get("observed_span_seconds") != report.get("observed_span_seconds"):
+        return ProfileValidationResult("FAIL", "runtime evidence profile PAPER per-mode span drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if mode_depths["paper"].get("observed_cycle_count") != report.get("accepted_cycle_sample_count"):
+        return ProfileValidationResult("FAIL", "runtime evidence profile PAPER per-mode cycle count drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if mode_depth_evidence.get("missing_long_run_modes") != expected_missing_modes:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile cannot hide per-mode long-run missing modes", RUNTIME_MODE_DEPTH_BLOCKER_CODE)
+    if mode_depth_evidence.get("missing_long_run_mode_count") != len(expected_missing_modes):
+        return ProfileValidationResult("FAIL", "runtime evidence profile per-mode missing mode count drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        mode_depth_evidence.get("all_required_modes_long_run_validated")
+        or mode_depth_evidence.get("actual_long_run_evidence_created")
+        or mode_depth_evidence.get("long_run_evidence_eligible")
+        or mode_depth_evidence.get("promotion_eligible")
+        or mode_depth_evidence.get("live_order_ready")
+        or mode_depth_evidence.get("live_order_allowed")
+        or mode_depth_evidence.get("can_live_trade")
+        or mode_depth_evidence.get("scale_up_allowed")
+    ):
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile per-mode depth attempted actual long-run, live, promotion, or scale permission", "LIVE_FINAL_GUARD_FAILED")
     if collection_depth.get("observed_span_seconds") != report.get("observed_span_seconds"):
         return ProfileValidationResult("FAIL", "runtime evidence profile collection depth span drifted", "SCHEMA_IDENTITY_MISMATCH")
     if collection_depth.get("minimum_span_seconds") != report.get("min_actual_long_run_span_seconds"):

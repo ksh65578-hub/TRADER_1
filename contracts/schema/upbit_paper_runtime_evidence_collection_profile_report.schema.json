@@ -175,6 +175,7 @@
         "paper_ledger_idempotency_status",
         "shadow_runtime_depth_status",
         "paper_shadow_pairing_status",
+        "runtime_mode_depth_evidence",
         "bounded_profile_counts_as_long_run_evidence",
         "dashboard_display_counts_as_long_run_evidence",
         "actual_long_run_evidence_created",
@@ -224,11 +225,133 @@
         "paper_ledger_idempotency_status": { "enum": ["PASS", "BLOCKED"] },
         "shadow_runtime_depth_status": { "enum": ["MISSING", "PRESENT_NOT_LONG_RUN", "BLOCKED"] },
         "paper_shadow_pairing_status": { "enum": ["MISSING", "PAIRED_NOT_LONG_RUN", "BLOCKED"] },
+        "runtime_mode_depth_evidence": { "$ref": "#/$defs/runtime_mode_depth_evidence" },
         "bounded_profile_counts_as_long_run_evidence": { "const": false },
         "dashboard_display_counts_as_long_run_evidence": { "const": false },
         "actual_long_run_evidence_created": { "const": false },
         "long_run_evidence_eligible": { "const": false },
         "promotion_eligible": { "const": false },
+        "live_order_ready": { "const": false },
+        "live_order_allowed": { "const": false },
+        "can_live_trade": { "const": false },
+        "scale_up_allowed": { "const": false }
+      }
+    },
+    "runtime_mode_depth_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "blocker_code",
+        "required_modes",
+        "mode_depths",
+        "missing_long_run_modes",
+        "missing_long_run_mode_count",
+        "all_required_modes_long_run_validated",
+        "actual_long_run_evidence_created",
+        "long_run_evidence_eligible",
+        "promotion_eligible",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "status": { "const": "BLOCKED_FOR_PER_MODE_LONG_RUN_DEPTH" },
+        "blocker_code": { "const": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING" },
+        "required_modes": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "PAPER" },
+            { "const": "SHADOW" }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "mode_depths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["paper", "shadow"],
+          "properties": {
+            "paper": { "$ref": "#/$defs/runtime_mode_depth" },
+            "shadow": { "$ref": "#/$defs/runtime_mode_depth" }
+          }
+        },
+        "missing_long_run_modes": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "PAPER" },
+            { "const": "SHADOW" }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "missing_long_run_mode_count": { "const": 2 },
+        "all_required_modes_long_run_validated": { "const": false },
+        "actual_long_run_evidence_created": { "const": false },
+        "long_run_evidence_eligible": { "const": false },
+        "promotion_eligible": { "const": false },
+        "live_order_ready": { "const": false },
+        "live_order_allowed": { "const": false },
+        "can_live_trade": { "const": false },
+        "scale_up_allowed": { "const": false }
+      }
+    },
+    "runtime_mode_depth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "source_status",
+        "evidence_role",
+        "observed_span_seconds",
+        "minimum_span_seconds",
+        "missing_span_seconds",
+        "span_floor_met",
+        "observed_cycle_count",
+        "minimum_cycle_count",
+        "missing_cycle_count",
+        "cycle_floor_met",
+        "long_run_floor_met",
+        "counts_as_actual_long_run_evidence",
+        "blocker_code",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "mode": { "enum": ["PAPER", "SHADOW"] },
+        "source_status": {
+          "enum": [
+            "PRESENT_BOUNDED_NOT_LONG_RUN",
+            "PRESENT_BLOCKER_ONLY_NOT_LONG_RUN",
+            "MISSING",
+            "BLOCKED"
+          ]
+        },
+        "evidence_role": {
+          "enum": [
+            "BOUNDED_PAPER_RUNTIME_PROFILE_NOT_LONG_RUN",
+            "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN"
+          ]
+        },
+        "observed_span_seconds": { "type": "integer", "minimum": 0 },
+        "minimum_span_seconds": { "type": "integer", "minimum": 1 },
+        "missing_span_seconds": { "type": "integer", "minimum": 0 },
+        "span_floor_met": { "type": "boolean" },
+        "observed_cycle_count": { "type": "integer", "minimum": 0 },
+        "minimum_cycle_count": { "type": "integer", "minimum": 1 },
+        "missing_cycle_count": { "type": "integer", "minimum": 0 },
+        "cycle_floor_met": { "type": "boolean" },
+        "long_run_floor_met": { "const": false },
+        "counts_as_actual_long_run_evidence": { "const": false },
+        "blocker_code": {
+          "enum": [
+            "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+            "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+          ]
+        },
         "live_order_ready": { "const": false },
         "live_order_allowed": { "const": false },
         "can_live_trade": { "const": false },

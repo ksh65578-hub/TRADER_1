@@ -1958,6 +1958,18 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(profile["collection_depth_pairing_status"], "PAIRED_NOT_LONG_RUN")
         self.assertGreater(profile["collection_depth_missing_span_seconds"], 0)
         self.assertGreater(profile["collection_depth_missing_cycle_count"], 0)
+        self.assertEqual(profile["runtime_mode_depth_status"], "BLOCKED_FOR_PER_MODE_LONG_RUN_DEPTH")
+        self.assertEqual(profile["runtime_mode_depth_blocker_code"], "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+        self.assertEqual(profile["runtime_mode_depth_missing_modes"], ["PAPER", "SHADOW"])
+        self.assertEqual(profile["runtime_mode_depth_missing_mode_count"], 2)
+        self.assertEqual(profile["paper_mode_source_status"], "PRESENT_BOUNDED_NOT_LONG_RUN")
+        self.assertEqual(profile["shadow_mode_source_status"], "PRESENT_BLOCKER_ONLY_NOT_LONG_RUN")
+        self.assertGreater(profile["paper_mode_missing_span_seconds"], 0)
+        self.assertGreater(profile["paper_mode_missing_cycle_count"], 0)
+        self.assertGreater(profile["shadow_mode_missing_span_seconds"], 0)
+        self.assertGreater(profile["shadow_mode_missing_cycle_count"], 0)
+        self.assertFalse(profile["paper_mode_counts_as_actual_long_run_evidence"])
+        self.assertFalse(profile["shadow_mode_counts_as_actual_long_run_evidence"])
         self.assertFalse(profile["bounded_profile_counts_as_long_run_evidence"])
         self.assertFalse(profile["dashboard_display_counts_as_long_run_evidence"])
         self.assertFalse(profile["promotion_eligible"])
@@ -1977,6 +1989,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("not LIVE_READY", html)
         self.assertIn("Collection Depth", html)
         self.assertIn("missing modes=SHADOW", html)
+        self.assertIn("Per-Mode Long Run", html)
+        self.assertIn("missing modes=PAPER, SHADOW", html)
         self.assertIn("LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT", html)
 
     def test_dashboard_projects_paper_runtime_evidence_profile_duplicate_ledger_blocked(self):
@@ -2021,6 +2035,22 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+
+    def test_dashboard_blocks_paper_runtime_evidence_profile_hidden_per_mode_depth(self):
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
+        dashboard["paper_runtime_evidence_collection_profile_status"]["runtime_mode_depth_missing_modes"] = ["SHADOW"]
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+
+    def test_dashboard_blocks_paper_runtime_evidence_profile_per_mode_false_long_run_claim(self):
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
+        dashboard["paper_runtime_evidence_collection_profile_status"]["paper_mode_counts_as_actual_long_run_evidence"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_dashboard_blocks_paper_runtime_evidence_profile_false_bounded_depth_claim(self):
         dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()

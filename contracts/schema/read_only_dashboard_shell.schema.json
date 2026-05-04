@@ -6690,6 +6690,72 @@
             "BLOCKED"
           ]
         },
+        "runtime_mode_depth_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_FOR_PER_MODE_LONG_RUN_DEPTH"
+          ]
+        },
+        "runtime_mode_depth_blocker_code": {
+          "const": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+        },
+        "runtime_mode_depth_missing_modes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "PAPER",
+              "SHADOW"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 2,
+          "uniqueItems": true
+        },
+        "runtime_mode_depth_missing_mode_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "paper_mode_source_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PRESENT_BOUNDED_NOT_LONG_RUN",
+            "PRESENT_BLOCKER_ONLY_NOT_LONG_RUN",
+            "MISSING",
+            "BLOCKED"
+          ]
+        },
+        "paper_mode_missing_span_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_mode_missing_cycle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_mode_counts_as_actual_long_run_evidence": {
+          "const": false
+        },
+        "shadow_mode_source_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PRESENT_BOUNDED_NOT_LONG_RUN",
+            "PRESENT_BLOCKER_ONLY_NOT_LONG_RUN",
+            "MISSING",
+            "BLOCKED"
+          ]
+        },
+        "shadow_mode_missing_span_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shadow_mode_missing_cycle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shadow_mode_counts_as_actual_long_run_evidence": {
+          "const": false
+        },
         "bounded_profile_counts_as_long_run_evidence": {
           "const": false
         },

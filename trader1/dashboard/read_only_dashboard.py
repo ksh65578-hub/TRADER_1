@@ -222,6 +222,15 @@ PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_SOURCES = {
     "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
 }
 PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ROLE = "BOUNDED_PAPER_RUNTIME_EVIDENCE_PROFILE_NOT_LONG_RUN"
+PAPER_RUNTIME_MODE_DEPTH_STATUSES = {"NOT_LOADED", "BLOCKED_FOR_PER_MODE_LONG_RUN_DEPTH"}
+PAPER_RUNTIME_MODE_DEPTH_SOURCE_STATUSES = {
+    "NOT_LOADED",
+    "PRESENT_BOUNDED_NOT_LONG_RUN",
+    "PRESENT_BLOCKER_ONLY_NOT_LONG_RUN",
+    "MISSING",
+    "BLOCKED",
+}
+PAPER_RUNTIME_MODE_DEPTH_MODES = {"PAPER", "SHADOW"}
 MARKET_DATA_CONTINUITY_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
 MARKET_DATA_CONTINUITY_SOURCES = {"NOT_LOADED", "rest_continuity_history.json"}
 MARKET_DATA_CONTINUITY_EVIDENCE_ROLES = {"PAPER_DATA_CONTINUITY_HISTORY_ONLY_NOT_LIVE_READY"}
@@ -3597,6 +3606,18 @@ def _paper_runtime_evidence_collection_profile_status(
         "collection_depth_missing_runtime_modes": ["PAPER", "SHADOW"],
         "collection_depth_shadow_runtime_status": "MISSING",
         "collection_depth_pairing_status": "MISSING",
+        "runtime_mode_depth_status": "NOT_LOADED",
+        "runtime_mode_depth_blocker_code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+        "runtime_mode_depth_missing_modes": ["PAPER", "SHADOW"],
+        "runtime_mode_depth_missing_mode_count": 2,
+        "paper_mode_source_status": "NOT_LOADED",
+        "paper_mode_missing_span_seconds": 0,
+        "paper_mode_missing_cycle_count": 0,
+        "paper_mode_counts_as_actual_long_run_evidence": False,
+        "shadow_mode_source_status": "NOT_LOADED",
+        "shadow_mode_missing_span_seconds": 0,
+        "shadow_mode_missing_cycle_count": 0,
+        "shadow_mode_counts_as_actual_long_run_evidence": False,
         "bounded_profile_counts_as_long_run_evidence": False,
         "dashboard_display_counts_as_long_run_evidence": False,
         "span_floor_met": False,
@@ -3662,6 +3683,15 @@ def _paper_runtime_evidence_collection_profile_status(
     missing_runtime_modes = collection_depth.get("missing_runtime_modes")
     if not isinstance(missing_runtime_modes, list):
         missing_runtime_modes = ["SHADOW"]
+    mode_depth_evidence = collection_depth.get("runtime_mode_depth_evidence")
+    if not isinstance(mode_depth_evidence, dict):
+        mode_depth_evidence = {}
+    mode_depths = mode_depth_evidence.get("mode_depths") if isinstance(mode_depth_evidence.get("mode_depths"), dict) else {}
+    paper_mode_depth = mode_depths.get("paper") if isinstance(mode_depths.get("paper"), dict) else {}
+    shadow_mode_depth = mode_depths.get("shadow") if isinstance(mode_depths.get("shadow"), dict) else {}
+    runtime_mode_missing_modes = mode_depth_evidence.get("missing_long_run_modes")
+    if not isinstance(runtime_mode_missing_modes, list):
+        runtime_mode_missing_modes = ["PAPER", "SHADOW"]
 
     status = "PASS"
     severity = "NORMAL"
@@ -3725,6 +3755,20 @@ def _paper_runtime_evidence_collection_profile_status(
             "collection_depth_missing_runtime_modes": [str(item) for item in missing_runtime_modes],
             "collection_depth_shadow_runtime_status": str(collection_depth.get("shadow_runtime_depth_status") or "MISSING"),
             "collection_depth_pairing_status": str(collection_depth.get("paper_shadow_pairing_status") or "MISSING"),
+            "runtime_mode_depth_status": str(mode_depth_evidence.get("status") or "NOT_LOADED"),
+            "runtime_mode_depth_blocker_code": str(
+                mode_depth_evidence.get("blocker_code") or "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+            ),
+            "runtime_mode_depth_missing_modes": [str(item) for item in runtime_mode_missing_modes],
+            "runtime_mode_depth_missing_mode_count": safe_count(mode_depth_evidence.get("missing_long_run_mode_count")),
+            "paper_mode_source_status": str(paper_mode_depth.get("source_status") or "NOT_LOADED"),
+            "paper_mode_missing_span_seconds": safe_count(paper_mode_depth.get("missing_span_seconds")),
+            "paper_mode_missing_cycle_count": safe_count(paper_mode_depth.get("missing_cycle_count")),
+            "paper_mode_counts_as_actual_long_run_evidence": paper_mode_depth.get("counts_as_actual_long_run_evidence") is True,
+            "shadow_mode_source_status": str(shadow_mode_depth.get("source_status") or "NOT_LOADED"),
+            "shadow_mode_missing_span_seconds": safe_count(shadow_mode_depth.get("missing_span_seconds")),
+            "shadow_mode_missing_cycle_count": safe_count(shadow_mode_depth.get("missing_cycle_count")),
+            "shadow_mode_counts_as_actual_long_run_evidence": shadow_mode_depth.get("counts_as_actual_long_run_evidence") is True,
             "bounded_profile_counts_as_long_run_evidence": collection_depth.get("bounded_profile_counts_as_long_run_evidence") is True,
             "dashboard_display_counts_as_long_run_evidence": collection_depth.get("dashboard_display_counts_as_long_run_evidence") is True,
             "span_floor_met": report.get("span_floor_met") is True,
@@ -14412,6 +14456,39 @@ def validate_read_only_dashboard_shell(
         missing_modes = paper_runtime_profile.get("collection_depth_missing_runtime_modes")
         if not isinstance(missing_modes, list) or "SHADOW" not in missing_modes:
             return DashboardValidationResult("BLOCKED", "paper runtime evidence profile must expose missing SHADOW collection depth", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+        mode_depth_status = paper_runtime_profile.get("runtime_mode_depth_status")
+        mode_depth_missing_modes = paper_runtime_profile.get("runtime_mode_depth_missing_modes")
+        if mode_depth_status not in PAPER_RUNTIME_MODE_DEPTH_STATUSES:
+            return DashboardValidationResult("FAIL", "paper runtime evidence profile per-mode depth status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            not isinstance(mode_depth_missing_modes, list)
+            or mode_depth_missing_modes != ["PAPER", "SHADOW"]
+            or paper_runtime_profile.get("runtime_mode_depth_missing_mode_count") != 2
+        ):
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile must expose both PAPER and SHADOW as missing actual long-run mode depth", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+        if (
+            paper_runtime_profile.get("runtime_mode_depth_status") != "BLOCKED_FOR_PER_MODE_LONG_RUN_DEPTH"
+            or paper_runtime_profile.get("runtime_mode_depth_blocker_code") != "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+        ):
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile per-mode depth must remain blocked until both modes have actual long-run evidence", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+        for field in (
+            "paper_mode_missing_span_seconds",
+            "paper_mode_missing_cycle_count",
+            "shadow_mode_missing_span_seconds",
+            "shadow_mode_missing_cycle_count",
+        ):
+            if not isinstance(paper_runtime_profile.get(field), int) or paper_runtime_profile.get(field) < 0:
+                return DashboardValidationResult("FAIL", f"paper runtime evidence profile per-mode depth count is invalid: {field}", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            paper_runtime_profile.get("paper_mode_source_status") not in PAPER_RUNTIME_MODE_DEPTH_SOURCE_STATUSES
+            or paper_runtime_profile.get("shadow_mode_source_status") not in PAPER_RUNTIME_MODE_DEPTH_SOURCE_STATUSES
+        ):
+            return DashboardValidationResult("FAIL", "paper runtime evidence profile per-mode source status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            paper_runtime_profile.get("paper_mode_counts_as_actual_long_run_evidence")
+            or paper_runtime_profile.get("shadow_mode_counts_as_actual_long_run_evidence")
+        ):
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile per-mode depth attempted to count bounded evidence as actual long-run evidence", "LIVE_FINAL_GUARD_FAILED")
         shadow_depth_status = paper_runtime_profile.get("collection_depth_shadow_runtime_status")
         pairing_status = paper_runtime_profile.get("collection_depth_pairing_status")
         if shadow_depth_status not in {"MISSING", "PRESENT_NOT_LONG_RUN", "BLOCKED"}:
@@ -16470,6 +16547,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p>event_id={safe_text(paper_runtime_profile.get('duplicate_event_id_count', 0))}<br>dedup_key={safe_text(paper_runtime_profile.get('duplicate_dedup_key_count', 0))}<br>semantic={safe_text(paper_runtime_profile.get('duplicate_semantic_event_count', 0))}<br>filled_order={safe_text(paper_runtime_profile.get('duplicate_filled_order_key_count', 0))}</p></div>"
         "<div><strong>Collection Depth</strong>"
         f"<p>{safe_text(str(paper_runtime_profile.get('collection_depth_status', 'BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH')).replace('_', ' ').title())}<br>missing modes={safe_text(', '.join(paper_runtime_profile.get('collection_depth_missing_runtime_modes', ['SHADOW'])) if isinstance(paper_runtime_profile.get('collection_depth_missing_runtime_modes'), list) else 'SHADOW')}<br>remaining span={safe_text(paper_runtime_profile.get('collection_depth_missing_span_seconds', 0))}s<br>remaining cycles={safe_text(paper_runtime_profile.get('collection_depth_missing_cycle_count', 0))}</p></div>"
+        "<div><strong>Per-Mode Long Run</strong>"
+        f"<p>{safe_text(str(paper_runtime_profile.get('runtime_mode_depth_status', 'NOT_LOADED')).replace('_', ' ').title())}<br>missing modes={safe_text(', '.join(paper_runtime_profile.get('runtime_mode_depth_missing_modes', ['PAPER', 'SHADOW'])) if isinstance(paper_runtime_profile.get('runtime_mode_depth_missing_modes'), list) else 'PAPER, SHADOW')}<br>PAPER span/cycles={safe_text(paper_runtime_profile.get('paper_mode_missing_span_seconds', 0))}s/{safe_text(paper_runtime_profile.get('paper_mode_missing_cycle_count', 0))}<br>SHADOW span/cycles={safe_text(paper_runtime_profile.get('shadow_mode_missing_span_seconds', 0))}s/{safe_text(paper_runtime_profile.get('shadow_mode_missing_cycle_count', 0))}</p></div>"
         "<div><strong>Evidence Boundary</strong>"
         f"<p>{safe_text(paper_runtime_profile.get('runtime_evidence_role', PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ROLE))}<br><span class=\"pill safe-lock\">not LIVE_READY</span><br><span class=\"pill safe-lock\">current writes={safe_text(paper_runtime_profile.get('current_evidence_write_allowed', False))}</span><br><span class=\"pill safe-lock\">long-run eligible={safe_text(paper_runtime_profile.get('long_run_evidence_eligible', False))}</span><br><span class=\"pill safe-lock\">bounded profile is long-run={safe_text(paper_runtime_profile.get('bounded_profile_counts_as_long_run_evidence', False))}</span><br>blocker={safe_text(paper_runtime_profile.get('long_run_blocker_code', 'LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT'))}</p></div>"
         "</section>"
