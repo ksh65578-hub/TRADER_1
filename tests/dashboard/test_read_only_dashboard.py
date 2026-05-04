@@ -2009,7 +2009,20 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["optimizer_ranking_action"], "BLOCK_RANKING")
         self.assertEqual(maturity["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
         self.assertEqual(maturity["live_readiness_status"], "NOT_LIVE_READY")
-        self.assertEqual(maturity["primary_blocker_code"], "PROFITABILITY_EVIDENCE_MATURITY")
+        self.assertEqual(maturity["primary_blocker_code"], "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY")
+        self.assertEqual(maturity["promotion_threshold_status"], "BLOCKED_FOR_THRESHOLD_EVIDENCE")
+        self.assertEqual(maturity["promotion_threshold_replay_closed_trades"], 1)
+        self.assertEqual(maturity["promotion_threshold_min_replay_closed_trades"], 100)
+        self.assertEqual(maturity["promotion_threshold_paper_runtime_hours"], 0.1)
+        self.assertEqual(maturity["promotion_threshold_min_paper_runtime_hours"], 72)
+        self.assertEqual(maturity["promotion_threshold_high_or_critical_contract_gap_count"], 1)
+        self.assertEqual(
+            maturity["promotion_threshold_missing_code_count"],
+            len(maturity["promotion_threshold_missing_codes"]),
+        )
+        self.assertIn("PAPER_RUNTIME_HOURS_BELOW_MIN", maturity["promotion_threshold_missing_codes"])
+        self.assertIn("HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN", maturity["promotion_threshold_missing_codes"])
+        self.assertTrue(maturity["promotion_threshold_explicit_insufficient_sample_blocker"])
         self.assertEqual(maturity["paper_scorecard_component_pass_count"], 4)
         self.assertEqual(maturity["maturity_gap_count"], 6)
         self.assertTrue(any(item["status"] == "PAPER_SCORECARD_INPUT_ONLY" for item in maturity["maturity_components"]))
@@ -2026,6 +2039,18 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(maturity["live_order_ready"])
         self.assertFalse(maturity["live_order_allowed"])
         self.assertFalse(maturity["can_live_trade"])
+        self.assertFalse(maturity["scale_up_allowed"])
+
+    def test_dashboard_blocks_profitability_rollup_hidden_promotion_threshold_gap(self):
+        rollup = profitability_maturity_rollup_fixture()
+        rollup["promotion_threshold_evidence"]["missing_threshold_codes"] = []
+        dashboard = build_dashboard(profitability_maturity_rollup_report=rollup)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        maturity = dashboard["profitability_maturity"]
+        self.assertEqual(maturity["rollup_source_status"], "BLOCKED")
+        self.assertEqual(maturity["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(maturity["live_order_allowed"])
         self.assertFalse(maturity["scale_up_allowed"])
 
     def test_dashboard_blocks_profitability_rollup_live_flag_drift(self):

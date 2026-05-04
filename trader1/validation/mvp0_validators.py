@@ -814,6 +814,20 @@ PROFITABILITY_EVIDENCE_REQUIRED_COMPONENTS = {
     "paper_shadow_evidence_accumulation",
     "dashboard_operator_profitability_visibility",
 }
+PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
+    "REPLAY_CLOSED_TRADES_BELOW_MIN",
+    "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN",
+    "PAPER_CLOSED_TRADES_BELOW_MIN",
+    "PAPER_RUNTIME_HOURS_BELOW_MIN",
+    "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
+    "NET_EV_AFTER_COST_NOT_PASS",
+    "PROFIT_FACTOR_NOT_PASS",
+    "MAX_DRAWDOWN_NOT_PASS",
+    "FILL_QUALITY_NOT_PASS",
+    "PAPER_LIVE_GAP_NOT_AVAILABLE",
+    "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
+    "BLOCKING_VALIDATOR_FAIL_PRESENT",
+}
 PROFITABILITY_EVIDENCE_FORBIDDEN_PHRASES = {
     "profit guaranteed",
     "guaranteed profit",
@@ -19161,6 +19175,89 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 strategy_linkage = runtime_report.get("strategy_regime_cost_linkage", {})
                 if strategy_linkage.get("selected_candidate_id") != runtime_linkage.get("selected_candidate_id"):
                     errors.append("rollup runtime linkage does not match source strategy_regime_cost_linkage")
+
+    promotion_thresholds = rollup.get("promotion_threshold_evidence", {})
+    if not isinstance(promotion_thresholds, dict):
+        errors.append("rollup promotion_threshold_evidence must be an object")
+    else:
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            if _live_flag_is_true(promotion_thresholds.get(field)):
+                errors.append(f"rollup promotion thresholds have forbidden true field: {field}")
+        if promotion_thresholds.get("status") != "BLOCKED_FOR_THRESHOLD_EVIDENCE":
+            errors.append("rollup promotion thresholds must remain BLOCKED_FOR_THRESHOLD_EVIDENCE")
+        if promotion_thresholds.get("explicit_insufficient_sample_blocker") is not True:
+            errors.append("rollup promotion thresholds require explicit insufficient sample blocker")
+
+        missing_codes = set(promotion_thresholds.get("missing_threshold_codes", []))
+        unknown_codes = sorted(missing_codes - PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES)
+        if unknown_codes:
+            errors.append(f"rollup promotion thresholds contain unknown blocker codes: {unknown_codes}")
+        if not missing_codes:
+            errors.append("rollup promotion thresholds must list missing_threshold_codes")
+
+        threshold_checks = [
+            (
+                "replay_closed_trades",
+                "min_replay_closed_trades",
+                "REPLAY_CLOSED_TRADES_BELOW_MIN",
+            ),
+            (
+                "walk_forward_or_oos_coverage_pct",
+                "min_walk_forward_or_oos_coverage_pct",
+                "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN",
+            ),
+            (
+                "paper_closed_trades",
+                "min_paper_closed_trades",
+                "PAPER_CLOSED_TRADES_BELOW_MIN",
+            ),
+            (
+                "paper_runtime_hours",
+                "min_paper_runtime_hours",
+                "PAPER_RUNTIME_HOURS_BELOW_MIN",
+            ),
+            (
+                "shadow_signal_opportunities",
+                "min_shadow_signal_opportunities",
+                "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
+            ),
+        ]
+        for actual_field, minimum_field, missing_code in threshold_checks:
+            try:
+                actual_value = float(promotion_thresholds.get(actual_field, 0))
+                minimum_value = float(promotion_thresholds.get(minimum_field, 0))
+            except (TypeError, ValueError):
+                errors.append(f"rollup promotion threshold {actual_field} and {minimum_field} must be numeric")
+                continue
+            if actual_value < minimum_value and missing_code not in missing_codes:
+                errors.append(f"rollup promotion thresholds missing blocker code: {missing_code}")
+            if actual_value < minimum_value and promotion_thresholds.get("status") == "PASS":
+                errors.append(f"rollup promotion thresholds claim PASS while {actual_field} is below minimum")
+
+        status_checks = [
+            ("net_ev_after_cost_status", "NET_EV_AFTER_COST_NOT_PASS"),
+            ("profit_factor_status", "PROFIT_FACTOR_NOT_PASS"),
+            ("max_drawdown_status", "MAX_DRAWDOWN_NOT_PASS"),
+            ("fill_quality_status", "FILL_QUALITY_NOT_PASS"),
+        ]
+        for status_field, missing_code in status_checks:
+            if promotion_thresholds.get(status_field) != "PASS" and missing_code not in missing_codes:
+                errors.append(f"rollup promotion thresholds missing blocker code: {missing_code}")
+
+        paper_live_gap_status = promotion_thresholds.get("paper_live_gap_status")
+        if paper_live_gap_status != "PASS" and "PAPER_LIVE_GAP_NOT_AVAILABLE" not in missing_codes:
+            errors.append("rollup promotion thresholds missing blocker code: PAPER_LIVE_GAP_NOT_AVAILABLE")
+
+        high_gap_count = int(promotion_thresholds.get("high_or_critical_contract_gap_count", 0))
+        if rollup.get("status") == "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY":
+            if high_gap_count < 1:
+                errors.append("rollup promotion thresholds must count the open HIGH profitability contract gap")
+            if "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN" not in missing_codes:
+                errors.append("rollup promotion thresholds missing blocker code: HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN")
+
+        blocking_validator_fail_count = int(promotion_thresholds.get("blocking_validator_fail_count", 0))
+        if blocking_validator_fail_count > 0 and "BLOCKING_VALIDATOR_FAIL_PRESENT" not in missing_codes:
+            errors.append("rollup promotion thresholds missing blocker code: BLOCKING_VALIDATOR_FAIL_PRESENT")
 
     if rollup.get("status") != "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY":
         errors.append("rollup status must keep profitability evidence maturity blocked")

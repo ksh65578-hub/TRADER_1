@@ -1,0 +1,26 @@
+# MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK
+
+context_pack_id: MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK
+task_class: MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK
+source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
+source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
+included_section_ids: ["SECTION_STRATEGY_PROFITABILITY", "SECTION_OPTIMIZER_GUARDRAIL", "SECTION_CONVERGENCE_ASSESSMENT", "SECTION_LIVE_FINAL_GUARD"]
+included_requirement_ids: ["REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK", "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-ROLLUP-VALIDATOR", "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT"]
+included_schema_ids: ["trader1.profitability_evidence_maturity_rollup.v1"]
+included_validator_ids: ["schema_validator", "registry_validator", "profitability_evidence_maturity_rollup_validator", "profitability_optimizer_evidence_gap_validator", "optimizer_no_live_mutation_validator", "optimizer_guardrail_validator", "convergence_assessment_validator", "patch_result_schema_validator", "patch_result_runtime_schema_instance_validator", "runtime_schema_instance_validator", "generated_artifact_dirty_validator", "coverage_index_validator", "source_bundle_hygiene_validator", "shipped_package_hygiene_validator", "secret_scan_validator", "live_final_guard_validator"]
+included_artifact_ids: ["contracts/generated/context_pack/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.md", "contracts/schema/profitability_evidence_maturity_rollup.schema.json", "contracts/schema/read_only_dashboard_shell.schema.json", "system/evidence/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.evidence_manifest.json", "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json", "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json", "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.patch_result.json", "system/evidence/stage_gates/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.stage_gate_result.json", "system/evidence/validator_runs/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.validator_run_log.json", "tests/dashboard/test_read_only_dashboard.py", "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json", "tests/validators/test_profitability_optimizer_evidence_gap_validator.py", "tools/emit_profitability_optimizer_evidence_maturity_recheck_patch_evidence.py", "tools/run_hygiene_safe_pytest.py", "trader1/dashboard/read_only_dashboard.py", "trader1/security/source_bundle.py", "trader1/validation/mvp0_validators.py"]
+
+acceptance_checklist:
+- profitability_evidence_maturity_rollup requires promotion_threshold_evidence.
+- Promotion threshold evidence counts replay, OOS/walk-forward, PAPER, SHADOW, net EV, quality, parity, and open HIGH gap blockers.
+- Missing or false-PASS threshold evidence fails closed.
+- PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY remains OPEN and live-affecting.
+- live_order_ready=false, live_order_allowed=false, can_live_trade=false, scale_up_allowed=false.
+
+known_omissions_by_design:
+- No live execution, credential use, LIVE_READY write, live config mutation, or risk scale-up.
+- The new threshold evidence records insufficiency; it does not claim maturity.
+
+conflict_resolution_rule:
+TRADER_1.md active authority wins over this context pack. This context pack is read cache only.
+generated_at_utc: 2026-05-04T05:15:25Z

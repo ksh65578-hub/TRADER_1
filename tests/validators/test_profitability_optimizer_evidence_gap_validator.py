@@ -194,6 +194,48 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         self.assertTrue(any("cycle hash" in error for error in errors), errors)
 
+    def test_maturity_rollup_helper_requires_promotion_threshold_evidence(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        del tampered["promotion_threshold_evidence"]
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("promotion_threshold_evidence" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_threshold_false_pass_below_minimum(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        thresholds = tampered["promotion_threshold_evidence"]
+        thresholds["status"] = "PASS"
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("claim PASS" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_missing_threshold_blocker_code(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        thresholds = tampered["promotion_threshold_evidence"]
+        thresholds["missing_threshold_codes"] = [
+            code
+            for code in thresholds["missing_threshold_codes"]
+            if code != "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN"
+        ]
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_counts_open_high_contract_gap(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["promotion_threshold_evidence"]["high_or_critical_contract_gap_count"] = 0
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("open HIGH profitability contract gap" in error for error in errors), errors)
+
     def test_maturity_rollup_helper_rejects_missing_component_source_artifact(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         tampered = copy.deepcopy(rollup)

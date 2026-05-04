@@ -55,7 +55,9 @@ AUDITED_WRITER_PATCH_PATH = (
 REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-PENDING-RECHECK"
 NEXT_TASK = "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING"
 DASHBOARD_BINDING_REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-AUDITED-CURRENT-EVIDENCE-WRITER-DASHBOARD-BINDING"
+PROFITABILITY_MATURITY_RECHECK_REQUIREMENT_ID = "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK"
 AFTER_DASHBOARD_BINDING_NEXT_TASK = "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK"
+AFTER_PROFITABILITY_MATURITY_RECHECK_NEXT_TASK = "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK"
 CLOSED_BLOCKER = "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING"
 
 
@@ -123,7 +125,10 @@ class StaleLoopReconciliationOperatorQueuePendingRecheckTest(unittest.TestCase):
         self.assertEqual(patch_result["stale_loop_normalized_reconciliation_recheck_ledger_rollup_required_count"], 5)
         self.assertNotIn(CLOSED_BLOCKER, patch_result["remaining_blockers"])
 
-        if DASHBOARD_BINDING_REQUIREMENT_ID in state["completed_requirement_ids"]:
+        if PROFITABILITY_MATURITY_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["next_allowed_task_class"], AFTER_PROFITABILITY_MATURITY_RECHECK_NEXT_TASK)
+            self.assertNotIn(CLOSED_BLOCKER, state["open_contract_gap_ids"])
+        elif DASHBOARD_BINDING_REQUIREMENT_ID in state["completed_requirement_ids"]:
             self.assertEqual(state["next_allowed_task_class"], AFTER_DASHBOARD_BINDING_NEXT_TASK)
             self.assertNotIn(CLOSED_BLOCKER, state["open_contract_gap_ids"])
         elif REQUIREMENT_ID in state["completed_requirement_ids"]:

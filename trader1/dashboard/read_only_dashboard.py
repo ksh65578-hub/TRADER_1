@@ -461,6 +461,35 @@ PROFITABILITY_MATURITY_GAP_STATUSES = {
     "STALE",
 }
 PROFITABILITY_MATURITY_PRIORITIES = {"HIGH", "MEDIUM"}
+PROFITABILITY_PROMOTION_THRESHOLD_STATUSES = {
+    "NOT_LOADED",
+    "BLOCKED_FOR_THRESHOLD_EVIDENCE",
+    "PASS",
+    "INVALID",
+}
+PROFITABILITY_PROMOTION_THRESHOLD_METRIC_STATUSES = {
+    "PASS",
+    "PARTIAL",
+    "FAIL",
+    "UNTESTED",
+    "BLOCKED",
+    "MISSING",
+    "NOT_AVAILABLE",
+}
+PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
+    "REPLAY_CLOSED_TRADES_BELOW_MIN",
+    "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN",
+    "PAPER_CLOSED_TRADES_BELOW_MIN",
+    "PAPER_RUNTIME_HOURS_BELOW_MIN",
+    "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
+    "NET_EV_AFTER_COST_NOT_PASS",
+    "PROFIT_FACTOR_NOT_PASS",
+    "MAX_DRAWDOWN_NOT_PASS",
+    "FILL_QUALITY_NOT_PASS",
+    "PAPER_LIVE_GAP_NOT_AVAILABLE",
+    "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
+    "BLOCKING_VALIDATOR_FAIL_PRESENT",
+}
 CANDIDATE_SCORECARD_SOURCE_FILENAMES = {"NOT_LOADED", "candidate_scorecard.json"}
 CANDIDATE_SCORECARD_STATUSES = {"NOT_LOADED", "PAPER_RANKING_BLOCKED", "PAPER_RANKING_REVIEW_ONLY", "BLOCKED", "STALE"}
 RISK_EXPOSURE_STATUSES = {"LOW_RISK", "ATTENTION", "BLOCKED", "STALE", "UNVERIFIED"}
@@ -4989,11 +5018,107 @@ def _rollup_component_message(component: dict[str, Any]) -> str:
     )
 
 
+def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NOT_LOADED") -> dict[str, Any]:
+    if not isinstance(threshold, dict):
+        return {
+            "promotion_threshold_status": missing_status,
+            "promotion_threshold_summary": "Promotion threshold evidence is not loaded.",
+            "promotion_threshold_missing_code_count": 0,
+            "promotion_threshold_missing_codes": [],
+            "promotion_threshold_replay_closed_trades": 0,
+            "promotion_threshold_min_replay_closed_trades": 0,
+            "promotion_threshold_walk_forward_or_oos_coverage_pct": 0,
+            "promotion_threshold_min_walk_forward_or_oos_coverage_pct": 0,
+            "promotion_threshold_paper_closed_trades": 0,
+            "promotion_threshold_min_paper_closed_trades": 0,
+            "promotion_threshold_paper_runtime_hours": 0,
+            "promotion_threshold_min_paper_runtime_hours": 0,
+            "promotion_threshold_shadow_signal_opportunities": 0,
+            "promotion_threshold_min_shadow_signal_opportunities": 0,
+            "promotion_threshold_net_ev_after_cost_status": "UNTESTED",
+            "promotion_threshold_profit_factor_status": "UNTESTED",
+            "promotion_threshold_max_drawdown_status": "UNTESTED",
+            "promotion_threshold_fill_quality_status": "UNTESTED",
+            "promotion_threshold_paper_live_gap_status": "NOT_AVAILABLE",
+            "promotion_threshold_high_or_critical_contract_gap_count": 0,
+            "promotion_threshold_blocking_validator_fail_count": 0,
+            "promotion_threshold_explicit_insufficient_sample_blocker": False,
+        }
+
+    raw_missing_codes = threshold.get("missing_threshold_codes", [])
+    missing_codes = raw_missing_codes if isinstance(raw_missing_codes, list) else []
+    known_missing_codes = [
+        str(code)
+        for code in missing_codes
+        if str(code) in PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES
+    ]
+    status = str(threshold.get("status") or "INVALID")
+    live_flag_drift = any(
+        threshold.get(flag) is True
+        for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    )
+    if (
+        status not in {"BLOCKED_FOR_THRESHOLD_EVIDENCE", "PASS"}
+        or len(known_missing_codes) != len(missing_codes)
+        or live_flag_drift
+    ):
+        status = "INVALID"
+    replay_trades = _safe_count(threshold.get("replay_closed_trades"))
+    min_replay_trades = _safe_count(threshold.get("min_replay_closed_trades"))
+    paper_trades = _safe_count(threshold.get("paper_closed_trades"))
+    min_paper_trades = _safe_count(threshold.get("min_paper_closed_trades"))
+    paper_hours = _safe_number(threshold.get("paper_runtime_hours"))
+    min_paper_hours = _safe_number(threshold.get("min_paper_runtime_hours"))
+    shadow_opportunities = _safe_count(threshold.get("shadow_signal_opportunities"))
+    min_shadow_opportunities = _safe_count(threshold.get("min_shadow_signal_opportunities"))
+    oos_pct = _safe_number(threshold.get("walk_forward_or_oos_coverage_pct"))
+    min_oos_pct = _safe_number(threshold.get("min_walk_forward_or_oos_coverage_pct"))
+    return {
+        "promotion_threshold_status": status,
+        "promotion_threshold_summary": (
+            f"Replay {replay_trades}/{min_replay_trades}, OOS/walk-forward {oos_pct}/{min_oos_pct}%, "
+            f"PAPER trades {paper_trades}/{min_paper_trades}, PAPER runtime {paper_hours}/{min_paper_hours}h, "
+            f"SHADOW opportunities {shadow_opportunities}/{min_shadow_opportunities}; "
+            f"{len(known_missing_codes)} threshold blockers remain."
+        ),
+        "promotion_threshold_missing_code_count": len(known_missing_codes),
+        "promotion_threshold_missing_codes": known_missing_codes,
+        "promotion_threshold_replay_closed_trades": replay_trades,
+        "promotion_threshold_min_replay_closed_trades": min_replay_trades,
+        "promotion_threshold_walk_forward_or_oos_coverage_pct": oos_pct,
+        "promotion_threshold_min_walk_forward_or_oos_coverage_pct": min_oos_pct,
+        "promotion_threshold_paper_closed_trades": paper_trades,
+        "promotion_threshold_min_paper_closed_trades": min_paper_trades,
+        "promotion_threshold_paper_runtime_hours": paper_hours,
+        "promotion_threshold_min_paper_runtime_hours": min_paper_hours,
+        "promotion_threshold_shadow_signal_opportunities": shadow_opportunities,
+        "promotion_threshold_min_shadow_signal_opportunities": min_shadow_opportunities,
+        "promotion_threshold_net_ev_after_cost_status": str(threshold.get("net_ev_after_cost_status") or "UNTESTED"),
+        "promotion_threshold_profit_factor_status": str(threshold.get("profit_factor_status") or "UNTESTED"),
+        "promotion_threshold_max_drawdown_status": str(threshold.get("max_drawdown_status") or "UNTESTED"),
+        "promotion_threshold_fill_quality_status": str(threshold.get("fill_quality_status") or "UNTESTED"),
+        "promotion_threshold_paper_live_gap_status": str(threshold.get("paper_live_gap_status") or "NOT_AVAILABLE"),
+        "promotion_threshold_high_or_critical_contract_gap_count": _safe_count(
+            threshold.get("high_or_critical_contract_gap_count")
+        ),
+        "promotion_threshold_blocking_validator_fail_count": _safe_count(
+            threshold.get("blocking_validator_fail_count")
+        ),
+        "promotion_threshold_explicit_insufficient_sample_blocker": (
+            threshold.get("explicit_insufficient_sample_blocker") is True
+        ),
+    }
+
+
 def _profitability_maturity_from_rollup(
     *,
     base: dict[str, Any],
     rollup_report: dict[str, Any],
 ) -> dict[str, Any]:
+    threshold_projection = _promotion_threshold_projection(
+        rollup_report.get("promotion_threshold_evidence"),
+        missing_status="INVALID",
+    )
     components = rollup_report.get("components", [])
     required_count = int(rollup_report.get("required_component_count", 0) or 0)
     component_count = int(rollup_report.get("component_count", 0) or 0)
@@ -5032,6 +5157,10 @@ def _profitability_maturity_from_rollup(
         or component_id_mismatch
         or live_flag_drift
         or component_live_drift
+        or threshold_projection["promotion_threshold_status"] in {"INVALID", "PASS"}
+        or threshold_projection["promotion_threshold_missing_code_count"] <= 0
+        or threshold_projection["promotion_threshold_explicit_insufficient_sample_blocker"] is not True
+        or threshold_projection["promotion_threshold_high_or_critical_contract_gap_count"] <= 0
     )
 
     if blocked:
@@ -5059,6 +5188,7 @@ def _profitability_maturity_from_rollup(
             "rollup_component_count": component_count,
             "rollup_required_component_count": required_count,
             "rollup_coverage_complete": False,
+            **threshold_projection,
             "evidence_status": "FAIL",
             "evidence_progress_status": "BLOCKED",
             "evidence_progress_pct": 0,
@@ -5113,6 +5243,7 @@ def _profitability_maturity_from_rollup(
         "rollup_component_count": component_count,
         "rollup_required_component_count": required_count,
         "rollup_coverage_complete": True,
+        **threshold_projection,
         "evidence_status": "WARN",
         "sample_summary": f"Rollup components {component_count}/{required_count}; PAPER/SHADOW evidence still maturing",
         "evidence_progress_status": "IN_PROGRESS" if input_component_count else "NOT_STARTED",
@@ -5132,8 +5263,11 @@ def _profitability_maturity_from_rollup(
         "operator_warning": "Rollup evidence is not LIVE_READY and cannot place or allow live orders.",
         "scorecard_input_eligible": False,
         "optimizer_ranking_action": "BLOCK_RANKING",
-        "primary_blocker_code": rollup_report.get("primary_blocker_code") or "PROFITABILITY_EVIDENCE_MATURITY",
-        "primary_blocker_message": "Profitability evidence rollup is loaded for operator review only; live remains blocked.",
+        "primary_blocker_code": rollup_report.get("primary_blocker_code") or "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+        "primary_blocker_message": (
+            "Profitability evidence rollup is loaded for operator review only; promotion thresholds remain below "
+            "minimum and live remains blocked."
+        ),
         "next_action": rollup_report.get("next_operator_action")
         or "Collect PAPER/SHADOW scorecard evidence while live and scale-up remain blocked.",
     }
@@ -5336,6 +5470,7 @@ def _profitability_maturity(
         "rollup_component_count": 0,
         "rollup_required_component_count": len(PROFITABILITY_MATURITY_COMPONENT_IDS),
         "rollup_coverage_complete": False,
+        **_promotion_threshold_projection(None),
         "evidence_status": "UNTESTED",
         "candidate_id": None,
         "strategy_id": None,
@@ -6848,6 +6983,16 @@ def _safe_count(value: Any) -> int:
     if isinstance(value, bool):
         return 0
     if isinstance(value, int):
+        return value if value >= 0 else 0
+    return 0
+
+
+def _safe_number(value: Any) -> float | int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        return value if value >= 0 else 0
+    if isinstance(value, float):
         return value if value >= 0 else 0
     return 0
 
@@ -14797,6 +14942,53 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "loaded rollup must prove component coverage", "HARD_TRUTH_MISSING")
         if maturity.get("scorecard_input_eligible") is True or maturity.get("optimizer_ranking_action") == "ALLOW_RANKING":
             return DashboardValidationResult("BLOCKED", "rollup display cannot enable optimizer ranking directly", "LIVE_FINAL_GUARD_FAILED")
+    threshold_status = maturity.get("promotion_threshold_status")
+    threshold_codes = maturity.get("promotion_threshold_missing_codes")
+    if threshold_status not in PROFITABILITY_PROMOTION_THRESHOLD_STATUSES:
+        return DashboardValidationResult("FAIL", "profitability promotion threshold status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(threshold_codes, list):
+        return DashboardValidationResult("FAIL", "profitability promotion threshold codes must be a list", "SCHEMA_IDENTITY_MISMATCH")
+    if any(str(code) not in PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES for code in threshold_codes):
+        return DashboardValidationResult("FAIL", "profitability promotion threshold code is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("promotion_threshold_missing_code_count") != len(threshold_codes):
+        return DashboardValidationResult("FAIL", "profitability promotion threshold code count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    for field in (
+        "promotion_threshold_net_ev_after_cost_status",
+        "promotion_threshold_profit_factor_status",
+        "promotion_threshold_max_drawdown_status",
+        "promotion_threshold_fill_quality_status",
+        "promotion_threshold_paper_live_gap_status",
+    ):
+        if maturity.get(field) not in PROFITABILITY_PROMOTION_THRESHOLD_METRIC_STATUSES:
+            return DashboardValidationResult("FAIL", f"{field} is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    for field in (
+        "promotion_threshold_replay_closed_trades",
+        "promotion_threshold_min_replay_closed_trades",
+        "promotion_threshold_walk_forward_or_oos_coverage_pct",
+        "promotion_threshold_min_walk_forward_or_oos_coverage_pct",
+        "promotion_threshold_paper_closed_trades",
+        "promotion_threshold_min_paper_closed_trades",
+        "promotion_threshold_paper_runtime_hours",
+        "promotion_threshold_min_paper_runtime_hours",
+        "promotion_threshold_shadow_signal_opportunities",
+        "promotion_threshold_min_shadow_signal_opportunities",
+        "promotion_threshold_high_or_critical_contract_gap_count",
+        "promotion_threshold_blocking_validator_fail_count",
+    ):
+        value = maturity.get(field)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+            return DashboardValidationResult("FAIL", f"{field} must be non-negative numeric evidence", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("rollup_source_status") == "LOADED":
+        if threshold_status != "BLOCKED_FOR_THRESHOLD_EVIDENCE":
+            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must show blocked promotion threshold evidence", "HARD_TRUTH_MISSING")
+        if not threshold_codes:
+            return DashboardValidationResult("BLOCKED", "loaded profitability rollup cannot hide missing promotion threshold codes", "HARD_TRUTH_MISSING")
+        if maturity.get("promotion_threshold_explicit_insufficient_sample_blocker") is not True:
+            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must expose insufficient sample blocker", "HARD_TRUTH_MISSING")
+        if maturity.get("promotion_threshold_high_or_critical_contract_gap_count", 0) <= 0:
+            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must keep open high contract gap visible", "HARD_TRUTH_MISSING")
+        if "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN" not in threshold_codes:
+            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must list open high contract gap blocker", "HARD_TRUTH_MISSING")
     if maturity.get("display_only") is not True or maturity.get("dashboard_truth_only") is not True:
         return DashboardValidationResult("BLOCKED", "profitability maturity must remain display-only", "LIVE_FINAL_GUARD_FAILED")
     if (
@@ -16315,6 +16507,12 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     maturity_status_display = str(maturity.get("status", "COLLECTING")).replace("_", " ").title()
     maturity_check_items = maturity.get("evidence_checklist", []) if isinstance(maturity.get("evidence_checklist"), list) else []
     maturity_component_items = maturity.get("maturity_components", []) if isinstance(maturity.get("maturity_components"), list) else []
+    threshold_codes = maturity.get("promotion_threshold_missing_codes", [])
+    threshold_codes_display = (
+        ", ".join(str(code) for code in threshold_codes)
+        if isinstance(threshold_codes, list)
+        else ""
+    )
     maturity_check_html = "\n".join(
         (
             "<section class=\"evidence-check\">"
@@ -16370,6 +16568,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "<div><strong>Evidence Rollup</strong>"
         f"<p><span class=\"pill {status_class(maturity.get('rollup_source_status'))}\">{safe_text(maturity.get('rollup_source_status', 'NOT_LOADED'))}</span></p>"
         f"<small>{safe_text(maturity.get('rollup_component_count', 0))}/{safe_text(maturity.get('rollup_required_component_count', 10))} components | {safe_text(maturity.get('rollup_status', 'NOT_LOADED'))}</small></div>"
+        "<div><strong>Promotion Thresholds</strong>"
+        f"<p><span class=\"pill {status_class(maturity.get('promotion_threshold_status'))}\">{safe_text(maturity.get('promotion_threshold_status', 'NOT_LOADED'))}</span><br>"
+        f"replay={safe_text(maturity.get('promotion_threshold_replay_closed_trades', 0))}/{safe_text(maturity.get('promotion_threshold_min_replay_closed_trades', 0))}, "
+        f"paper={safe_text(maturity.get('promotion_threshold_paper_closed_trades', 0))}/{safe_text(maturity.get('promotion_threshold_min_paper_closed_trades', 0))}<br>"
+        f"runtime={safe_text(maturity.get('promotion_threshold_paper_runtime_hours', 0))}/{safe_text(maturity.get('promotion_threshold_min_paper_runtime_hours', 0))}h, "
+        f"shadow={safe_text(maturity.get('promotion_threshold_shadow_signal_opportunities', 0))}/{safe_text(maturity.get('promotion_threshold_min_shadow_signal_opportunities', 0))}</p>"
+        f"<small>{safe_text(maturity.get('promotion_threshold_summary', 'Promotion thresholds are not loaded.'))} Codes={safe_text(threshold_codes_display)}</small></div>"
         "</section>"
         "<section class=\"evidence-progress\" aria-label=\"strategy evidence progress\">"
         f"<h3>Evidence Progress: {safe_text(maturity.get('evidence_progress_pct', 0))}%</h3>"

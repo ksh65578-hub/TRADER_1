@@ -131,6 +131,8 @@ def iter_repo_files(root: Path = ROOT) -> list[Path]:
 def detect_credential_material(path: Path) -> list[str]:
     try:
         text = path.read_text(encoding="utf-8")
+    except OSError:
+        return []
     except UnicodeDecodeError:
         return []
     findings = []

@@ -3510,6 +3510,147 @@
         "rollup_coverage_complete": {
           "type": "boolean"
         },
+        "promotion_threshold_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_FOR_THRESHOLD_EVIDENCE",
+            "PASS",
+            "INVALID"
+          ]
+        },
+        "promotion_threshold_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "promotion_threshold_missing_code_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotion_threshold_missing_codes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "REPLAY_CLOSED_TRADES_BELOW_MIN",
+              "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN",
+              "PAPER_CLOSED_TRADES_BELOW_MIN",
+              "PAPER_RUNTIME_HOURS_BELOW_MIN",
+              "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
+              "NET_EV_AFTER_COST_NOT_PASS",
+              "PROFIT_FACTOR_NOT_PASS",
+              "MAX_DRAWDOWN_NOT_PASS",
+              "FILL_QUALITY_NOT_PASS",
+              "PAPER_LIVE_GAP_NOT_AVAILABLE",
+              "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
+              "BLOCKING_VALIDATOR_FAIL_PRESENT"
+            ]
+          }
+        },
+        "promotion_threshold_replay_closed_trades": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotion_threshold_min_replay_closed_trades": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotion_threshold_walk_forward_or_oos_coverage_pct": {
+          "type": "number",
+          "minimum": 0
+        },
+        "promotion_threshold_min_walk_forward_or_oos_coverage_pct": {
+          "type": "number",
+          "minimum": 0
+        },
+        "promotion_threshold_paper_closed_trades": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotion_threshold_min_paper_closed_trades": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotion_threshold_paper_runtime_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "promotion_threshold_min_paper_runtime_hours": {
+          "type": "number",
+          "minimum": 0
+        },
+        "promotion_threshold_shadow_signal_opportunities": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotion_threshold_min_shadow_signal_opportunities": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotion_threshold_net_ev_after_cost_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "promotion_threshold_profit_factor_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "promotion_threshold_max_drawdown_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "promotion_threshold_fill_quality_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "promotion_threshold_paper_live_gap_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "promotion_threshold_high_or_critical_contract_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotion_threshold_blocking_validator_fail_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "promotion_threshold_explicit_insufficient_sample_blocker": {
+          "type": "boolean"
+        },
         "evidence_status": {
           "$ref": "#/$defs/freshness_status"
         },
