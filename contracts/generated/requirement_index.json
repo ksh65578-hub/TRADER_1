@@ -12280,6 +12280,92 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "stale loop regeneration required implementation depth recheck",
+      "full_text_marker": "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK: stale loop regeneration plans must remain source-preserving, PAPER-only, execution-blocked, source-delete-blocked, current-evidence-blocked, live-blocked, and scale-up-blocked until validator-backed execution evidence exists",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Stale loop regeneration required implementation depth recheck",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.contract_gap.v1",
+        "trader1.upbit_paper_stale_loop_regeneration_plan.v1",
+        "trader1.upbit_paper_stale_loop_reconciliation_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_stale_loop_reconciliation_validator",
+        "upbit_paper_stale_loop_regeneration_plan_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.md",
+        "system/evidence/MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.json",
+        "system/evidence/contract_gaps/STALE_LOOP_REGENERATION_REQUIRED.contract_gap.json",
+        "system/evidence/patch_results/MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.validator_run_log.json",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tools/emit_stale_loop_regeneration_required_implementation_depth_recheck_patch_evidence.py"
+      ],
+      "test_ids": [
+        "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tests/runtime/test_upbit_paper_stale_loop_regeneration.py",
+        "tests/runtime/test_upbit_paper_stale_loop_reconciliation.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_RUNTIME_RECOVERY",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-REGENERATED-CURRENT-BLOCKED-REPAIRS-REQUIRE-LEDGER-RECOVERY-RECONCILIATION-IMPLEMENTATION-DEPTH-RECHECK",
+        "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-RECHECK",
+        "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-RECONCILIATION",
+        "REQ-MVP4-UPBIT-PAPER-STALE-LOOP-REGENERATION-POLICY",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "43ABBCB4774E9BCE1336BA48145DBCC1CA68B86F96EA3BE515E3889ED2819EC6",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "COMPLETED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-RECHECK",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -20838,5 +20924,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-04T14:36:10Z"
+  "updated_at_utc": "2026-05-04T15:29:20Z"
 }

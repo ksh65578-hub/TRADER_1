@@ -58,6 +58,12 @@ REGENERATED_CURRENT_DEPTH_RECHECK_REQUIREMENT_ID = (
 AFTER_REGENERATED_CURRENT_DEPTH_RECHECK_NEXT_TASK = (
     "MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
 )
+STALE_LOOP_REGENERATION_REQUIRED_DEPTH_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK"
+)
+AFTER_STALE_LOOP_REGENERATION_REQUIRED_DEPTH_RECHECK_NEXT_TASK = (
+    "MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
+)
 
 
 def load_json(path: Path):
@@ -138,7 +144,9 @@ class BlockedRepairPlanRequiresOperatorReconciliationImplementationDepthRecheckT
         self.assertIn(NEXT_GAP_ID, state["open_contract_gap_ids"])
         self.assertIn(GAP_ID, patch_result["remaining_blockers"])
         self.assertIn(NEXT_GAP_ID, patch_result["remaining_blockers"])
-        if REGENERATED_CURRENT_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+        if STALE_LOOP_REGENERATION_REQUIRED_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["next_allowed_task_class"], AFTER_STALE_LOOP_REGENERATION_REQUIRED_DEPTH_RECHECK_NEXT_TASK)
+        elif REGENERATED_CURRENT_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
             self.assertEqual(state["next_allowed_task_class"], AFTER_REGENERATED_CURRENT_DEPTH_RECHECK_NEXT_TASK)
         else:
             self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
