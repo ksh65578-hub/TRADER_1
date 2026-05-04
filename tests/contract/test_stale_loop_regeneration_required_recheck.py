@@ -25,8 +25,12 @@ PLAN_PATH = (
 )
 REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-RECHECK"
 EXECUTION_RECHECK_REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK"
+POST_REGENERATION_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-STALE-LOOP-RECONCILIATION-AFTER-REGENERATION-REQUIRED-RECHECK"
+)
 NEXT_TASK = "MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK"
 POST_REGENERATION_NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK"
+OPERATOR_QUEUE_PENDING_NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK"
 BLOCKER = "STALE_LOOP_REGENERATION_REQUIRED"
 
 
@@ -110,7 +114,9 @@ class StaleLoopRegenerationRequiredRecheckTest(unittest.TestCase):
         self.assertFalse(patch_result["stale_loop_regeneration_overwrite_source_allowed"])
 
         completed = set(state["completed_requirement_ids"])
-        if EXECUTION_RECHECK_REQUIREMENT_ID in completed:
+        if POST_REGENERATION_RECHECK_REQUIREMENT_ID in completed:
+            self.assertEqual(state["next_allowed_task_class"], OPERATOR_QUEUE_PENDING_NEXT_TASK)
+        elif EXECUTION_RECHECK_REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], POST_REGENERATION_NEXT_TASK)
         elif REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)

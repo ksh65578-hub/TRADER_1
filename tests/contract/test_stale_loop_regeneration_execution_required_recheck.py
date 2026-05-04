@@ -46,9 +46,14 @@ POST_REGENERATION_PATH = (
     / "upbit_paper_stale_loop_post_regeneration_reconciliation_report.json"
 )
 REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK"
+POST_REGENERATION_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-STALE-LOOP-RECONCILIATION-AFTER-REGENERATION-REQUIRED-RECHECK"
+)
 NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK"
+OPERATOR_QUEUE_PENDING_NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK"
 CLOSED_BLOCKERS = {"STALE_LOOP_REGENERATION_REQUIRED", "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED"}
 NEXT_BLOCKER = "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED"
+OPERATOR_QUEUE_PENDING_BLOCKER = "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING"
 
 
 def load_json(path: Path):
@@ -150,7 +155,12 @@ class StaleLoopRegenerationExecutionRequiredRecheckTest(unittest.TestCase):
         for blocker in CLOSED_BLOCKERS:
             self.assertNotIn(blocker, patch_result["remaining_blockers"])
 
-        if REQUIREMENT_ID in state["completed_requirement_ids"]:
+        completed = set(state["completed_requirement_ids"])
+        if POST_REGENERATION_RECHECK_REQUIREMENT_ID in completed:
+            self.assertEqual(state["next_allowed_task_class"], OPERATOR_QUEUE_PENDING_NEXT_TASK)
+            self.assertIn(OPERATOR_QUEUE_PENDING_BLOCKER, state["open_contract_gap_ids"])
+            self.assertNotIn(NEXT_BLOCKER, state["open_contract_gap_ids"])
+        elif REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
             self.assertIn(NEXT_BLOCKER, state["open_contract_gap_ids"])
             for blocker in CLOSED_BLOCKERS:
