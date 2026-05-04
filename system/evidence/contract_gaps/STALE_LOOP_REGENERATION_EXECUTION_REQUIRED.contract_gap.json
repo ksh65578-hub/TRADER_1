@@ -11,8 +11,8 @@
   "mode": "PAPER",
   "status": "RESOLVED",
   "blockers": [],
-  "notes": "The source-preserving PAPER regeneration plan was followed by validated safe executor evidence. Resolution is PAPER-only and does not create live readiness, current-evidence promotion, source deletion, long-run evidence, or scale-up permission. STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED remains open.",
-  "contract_gap_id": "STALE_LOOP_REGENERATION_REQUIRED",
+  "notes": "Safe PAPER regeneration executor evidence exists and remains blocked on post-regeneration reconciliation. Resolution is PAPER-only and does not create live readiness, current-evidence promotion, source deletion, long-run evidence, or scale-up permission. STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED remains open.",
+  "contract_gap_id": "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
   "severity": "HIGH",
   "source_section_id": "SECTION_RUNTIME_RECOVERY",
   "live_affecting": true
