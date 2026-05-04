@@ -151,7 +151,12 @@ class PostRepairReconciliationRequiredImplementationDepthRecheckTest(unittest.Te
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
         self.assertIn(GAP_ID, state["open_contract_gap_ids"])
         self.assertIn(GAP_ID, patch_result["remaining_blockers"])
-        if STALE_LOOP_REGENERATION_EXECUTION_DEPTH_REQUIREMENT_ID in state["completed_requirement_ids"]:
+        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
+            self.assertEqual(
+                state["next_allowed_task_class"],
+                "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK",
+            )
+        elif STALE_LOOP_REGENERATION_EXECUTION_DEPTH_REQUIREMENT_ID in state["completed_requirement_ids"]:
             self.assertEqual(state["next_allowed_task_class"], AFTER_STALE_LOOP_REGENERATION_EXECUTION_DEPTH_NEXT_TASK)
         elif STALE_LOOP_REGENERATION_REQUIRED_DEPTH_REQUIREMENT_ID in state["completed_requirement_ids"]:
             self.assertEqual(state["next_allowed_task_class"], AFTER_STALE_LOOP_REGENERATION_REQUIRED_DEPTH_NEXT_TASK)

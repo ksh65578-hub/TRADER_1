@@ -1,7 +1,7 @@
 {
   "validator_run_log_schema_id": "trader1.validator_run_log.v1",
-  "created_at_utc": "2026-05-04T03:29:37Z",
-  "patch_id": "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_20260504_001",
+  "created_at_utc": "2026-05-04T16:40:50Z",
+  "patch_id": "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_20260505_001",
   "validators_run": [
     {
       "validator_id": "schema_validator",
@@ -37,14 +37,6 @@
     },
     {
       "validator_id": "coverage_index_validator",
-      "status": "PASS"
-    },
-    {
-      "validator_id": "source_bundle_hygiene_validator",
-      "status": "PASS"
-    },
-    {
-      "validator_id": "shipped_package_hygiene_validator",
       "status": "PASS"
     },
     {
