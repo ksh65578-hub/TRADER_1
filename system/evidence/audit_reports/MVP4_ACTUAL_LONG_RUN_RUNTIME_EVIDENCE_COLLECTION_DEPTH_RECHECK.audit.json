@@ -1,0 +1,39 @@
+{
+  "audit_schema_id": "trader1.audit_report.v1",
+  "audit_id": "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK_AUDIT",
+  "patch_id": "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK_20260504_001",
+  "status": "PASS",
+  "requirement_id": "REQ-MVP4-ACTUAL-LONG-RUN-RUNTIME-EVIDENCE-COLLECTION-DEPTH-RECHECK",
+  "checks": {
+    "profile_validation_pass": true,
+    "depth_status_blocked": true,
+    "depth_role_not_long_run": true,
+    "depth_blocker_visible": true,
+    "shadow_runtime_missing_visible": true,
+    "span_deficit_visible": true,
+    "cycle_deficit_visible": true,
+    "bounded_profile_not_long_run": true,
+    "dashboard_display_not_long_run": true,
+    "contract_gap_open": true,
+    "live_and_scale_false": true
+  },
+  "profile_report_path": "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+  "profile_status": "PASS",
+  "accepted_cycle_sample_count": 2,
+  "observed_span_seconds": 0,
+  "minimum_span_seconds": 86400,
+  "missing_span_seconds": 86400,
+  "minimum_cycle_count": 2880,
+  "missing_cycle_count": 2878,
+  "missing_runtime_modes": [
+    "SHADOW"
+  ],
+  "contract_gap_status": "OPEN",
+  "contract_gap_live_affecting": true,
+  "finding": "Bounded Upbit PAPER runtime profile PASS could be confused with actual long-run evidence unless collection-depth deficits are first-class evidence.",
+  "fix": "Profile, schema, tests, and dashboard now expose blocked long-run collection depth, missing SHADOW runtime evidence, span deficit, and cycle deficit.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

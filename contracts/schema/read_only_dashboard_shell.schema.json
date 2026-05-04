@@ -6582,6 +6582,47 @@
           "type": "integer",
           "minimum": 0
         },
+        "collection_depth_status": {
+          "const": "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH"
+        },
+        "collection_depth_blocker_code": {
+          "const": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
+        },
+        "collection_depth_missing_span_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collection_depth_missing_cycle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collection_depth_missing_runtime_modes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "PAPER",
+              "SHADOW"
+            ]
+          },
+          "contains": {
+            "const": "SHADOW"
+          },
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true
+        },
+        "collection_depth_shadow_runtime_status": {
+          "const": "MISSING"
+        },
+        "collection_depth_pairing_status": {
+          "const": "MISSING"
+        },
+        "bounded_profile_counts_as_long_run_evidence": {
+          "const": false
+        },
+        "dashboard_display_counts_as_long_run_evidence": {
+          "const": false
+        },
         "span_floor_met": {
           "type": "boolean"
         },

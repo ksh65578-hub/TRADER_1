@@ -1951,6 +1951,15 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(profile["actual_long_run_evidence_created"])
         self.assertFalse(profile["long_run_evidence_eligible"])
         self.assertEqual(profile["long_run_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+        self.assertEqual(profile["collection_depth_status"], "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH")
+        self.assertEqual(profile["collection_depth_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+        self.assertEqual(profile["collection_depth_missing_runtime_modes"], ["SHADOW"])
+        self.assertEqual(profile["collection_depth_shadow_runtime_status"], "MISSING")
+        self.assertEqual(profile["collection_depth_pairing_status"], "MISSING")
+        self.assertGreater(profile["collection_depth_missing_span_seconds"], 0)
+        self.assertGreater(profile["collection_depth_missing_cycle_count"], 0)
+        self.assertFalse(profile["bounded_profile_counts_as_long_run_evidence"])
+        self.assertFalse(profile["dashboard_display_counts_as_long_run_evidence"])
         self.assertFalse(profile["promotion_eligible"])
         self.assertFalse(profile["live_order_ready"])
         self.assertFalse(profile["live_order_allowed"])
@@ -1966,6 +1975,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER Runtime Evidence Profile", html)
         self.assertIn("current writes=False", html)
         self.assertIn("not LIVE_READY", html)
+        self.assertIn("Collection Depth", html)
+        self.assertIn("missing modes=SHADOW", html)
         self.assertIn("LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT", html)
 
     def test_dashboard_projects_paper_runtime_evidence_profile_duplicate_ledger_blocked(self):
@@ -1990,6 +2001,22 @@ class ReadOnlyDashboardTest(unittest.TestCase):
     def test_dashboard_blocks_paper_runtime_evidence_profile_live_permission_mutation(self):
         dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
         dashboard["paper_runtime_evidence_collection_profile_status"]["live_order_allowed"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_blocks_paper_runtime_evidence_profile_hidden_collection_depth(self):
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
+        dashboard["paper_runtime_evidence_collection_profile_status"]["collection_depth_missing_runtime_modes"] = []
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+
+    def test_dashboard_blocks_paper_runtime_evidence_profile_false_bounded_depth_claim(self):
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
+        dashboard["paper_runtime_evidence_collection_profile_status"]["bounded_profile_counts_as_long_run_evidence"] = True
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")

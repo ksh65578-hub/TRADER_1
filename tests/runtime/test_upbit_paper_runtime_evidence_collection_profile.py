@@ -31,6 +31,22 @@ class UpbitPaperRuntimeEvidenceCollectionProfileTest(unittest.TestCase):
         self.assertEqual(report["reconciliation_status"], "PASS")
         self.assertEqual(report["source_ledger_jsonl_count"], 2)
         self.assertEqual(report["recomputed_filled_order_count"], 2)
+        depth = report["long_run_collection_depth"]
+        self.assertEqual(depth["status"], "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH")
+        self.assertEqual(depth["blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+        self.assertEqual(depth["required_runtime_modes"], ["PAPER", "SHADOW"])
+        self.assertEqual(depth["observed_runtime_modes"], ["PAPER"])
+        self.assertEqual(depth["missing_runtime_modes"], ["SHADOW"])
+        self.assertEqual(depth["observed_cycle_count"], report["accepted_cycle_sample_count"])
+        self.assertEqual(depth["minimum_cycle_count"], report["min_actual_long_run_cycle_count"])
+        self.assertEqual(depth["missing_cycle_count"], report["min_actual_long_run_cycle_count"] - report["accepted_cycle_sample_count"])
+        self.assertEqual(depth["observed_span_seconds"], report["observed_span_seconds"])
+        self.assertEqual(depth["minimum_span_seconds"], report["min_actual_long_run_span_seconds"])
+        self.assertGreater(depth["missing_span_seconds"], 0)
+        self.assertEqual(depth["shadow_runtime_depth_status"], "MISSING")
+        self.assertEqual(depth["paper_shadow_pairing_status"], "MISSING")
+        self.assertFalse(depth["bounded_profile_counts_as_long_run_evidence"])
+        self.assertFalse(depth["dashboard_display_counts_as_long_run_evidence"])
         self.assertFalse(report["long_run_evidence_eligible"])
         self.assertFalse(report["actual_long_run_evidence_created"])
         self.assertFalse(report["promotion_eligible"])
@@ -76,6 +92,26 @@ class UpbitPaperRuntimeEvidenceCollectionProfileTest(unittest.TestCase):
         long_run_result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
         self.assertEqual(long_run_result.status, "BLOCKED")
         self.assertEqual(long_run_result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_profile_blocks_hidden_long_run_collection_depth_gap(self):
+        report = run_upbit_paper_runtime_evidence_collection_profile(requested_cycle_count=1)
+        report["long_run_collection_depth"]["missing_runtime_modes"] = []
+        report["profile_hash"] = upbit_paper_runtime_evidence_collection_profile_hash(report)
+
+        result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+
+    def test_profile_detects_long_run_collection_depth_count_drift(self):
+        report = run_upbit_paper_runtime_evidence_collection_profile(requested_cycle_count=1)
+        report["long_run_collection_depth"]["missing_cycle_count"] = 0
+        report["profile_hash"] = upbit_paper_runtime_evidence_collection_profile_hash(report)
+
+        result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_profile_detects_hash_mutation(self):
         report = run_upbit_paper_runtime_evidence_collection_profile(requested_cycle_count=1)
