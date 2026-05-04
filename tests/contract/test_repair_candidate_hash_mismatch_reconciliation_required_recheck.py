@@ -35,8 +35,12 @@ REPAIR_QUEUE_REPORT_PATH = (
     / "upbit_paper_repair_operator_queue_report.json"
 )
 REQUIREMENT_ID = "REQ-MVP4-REPAIR-CANDIDATE-HASH-MISMATCH-RECONCILIATION-REQUIRED-RECHECK"
+BLOCKED_REPAIR_PLAN_REQUIREMENT_ID = "REQ-MVP4-BLOCKED-REPAIR-PLAN-REQUIRES-OPERATOR-RECONCILIATION-RECHECK"
 BLOCKER = "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED"
 EXPECTED_NEXT_TASK = "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK"
+EXPECTED_BLOCKED_REPAIR_NEXT_TASK = (
+    "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK"
+)
 
 
 def load_json(path: Path):
@@ -110,7 +114,10 @@ class RepairCandidateHashMismatchReconciliationRequiredRecheckTest(unittest.Test
         self.assertEqual(patch_result["repair_operator_queue_ledger_candidate_review_ready_count"], 1)
         self.assertEqual(patch_result["repair_operator_queue_candidate_current_evidence_usable_count"], 0)
 
-        if REQUIREMENT_ID in state["completed_requirement_ids"]:
+        completed = set(state["completed_requirement_ids"])
+        if BLOCKED_REPAIR_PLAN_REQUIREMENT_ID in completed:
+            self.assertEqual(state["next_allowed_task_class"], EXPECTED_BLOCKED_REPAIR_NEXT_TASK)
+        elif REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], EXPECTED_NEXT_TASK)
         self.assertIn(BLOCKER, state["open_contract_gap_ids"])
         self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])

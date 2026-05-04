@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "40904687B3102C3CBAC9DA7D0D49EE3D4AD5B055FE8DCE9C99BECC592F85CF73",
+      "sha256": "07CDD9E799E22FE33A5285AAD74489C9C53E62EAEB0C51E7F37968F577442FE4",
       "size_bytes": 1096
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "contracts/schema/patch_result.schema.json",
-      "sha256": "08D466D2F6A04DEC6FA78C4C81983AF6A54096A12B574950BD0374791CEA5B60",
-      "size_bytes": 37588
+      "sha256": "5DC7CEF0912BC8A8ABC271E6905BF98E37E1BF91766CE1C3F87EDDE01E52DC15",
+      "size_bytes": 38332
     },
     {
       "path": "contracts/schema/position_sizing_decision.schema.json",
@@ -804,14 +804,19 @@
       "size_bytes": 3625
     },
     {
+      "path": "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+      "sha256": "45119F1D4596CA7AA8A3EE0275DAE0591DAD03042B6AD66A276F1ACA7CB90372",
+      "size_bytes": 6095
+    },
+    {
       "path": "tests/contract/test_final_decision_schema.py",
       "sha256": "A898DAA2C6CD39724682BCBE932A1915445B7C8B7C9AF51452A2B7C5665EA44E",
       "size_bytes": 660
     },
     {
       "path": "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
-      "sha256": "30D0C2BD6144097636B72457B4E20FC068829E2804B77F647A5E3715D4ABB955",
-      "size_bytes": 8333
+      "sha256": "E80029EA6715870DD47DCE39D0D04D5D7C83B9B60D205D09EBBDEE96EC74A2C8",
+      "size_bytes": 8809
     },
     {
       "path": "tests/contract/test_mvp0_contract_scaffold.py",
@@ -840,18 +845,18 @@
     },
     {
       "path": "tests/contract/test_patch_result_runtime_schema_validation.py",
-      "sha256": "DECDF24CE23D17767BE2EE67C5F359375F585D79C9808F93B6EEE6FAB66D08FA",
-      "size_bytes": 8888
+      "sha256": "DB5421305CFDC846FA8C9D90DD3FF8D4C243EE3C0103144711481B4C68764E53",
+      "size_bytes": 9385
     },
     {
       "path": "tests/contract/test_post_repair_reconciliation_required_recheck.py",
-      "sha256": "00DDA82BBF6C80FEDC7F95EB969E6689E8129BB1A1F14CAABBB5DAEFE3B3B412",
-      "size_bytes": 4412
+      "sha256": "493D08F07E446A0028B768F31D267051ABD620CA8BB43532EA51B42C49A01A68",
+      "size_bytes": 4825
     },
     {
       "path": "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
-      "sha256": "6496AFA1447C18B0CA8200DE8BB20C73932A87B81C88EA6D0B028B05C41BA0B4",
-      "size_bytes": 8868
+      "sha256": "C101E6E310B698BBB8C215B9A0EE07EDD162314E6BF2D79D947C0F755FF3ADDE",
+      "size_bytes": 9407
     },
     {
       "path": "tests/contract/test_post_rerun_reconciliation_required_recheck.py",
@@ -860,8 +865,8 @@
     },
     {
       "path": "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
-      "sha256": "FF0B9874168A151568EA0CF5AE0FFA3DEEEA5D876AB25806A3B709C1319193F8",
-      "size_bytes": 6250
+      "sha256": "5C7C0A5E867774505AB451032C915DC7CA002B67D92019FC4C1C7346471D7783",
+      "size_bytes": 6688
     },
     {
       "path": "tests/contract/test_review_plan_reflection_status.py",
@@ -2557,6 +2562,11 @@
       "path": "tools/emit_binance_surface_status_guard_patch_evidence.py",
       "sha256": "909C0F5A98B75F6C98D17F9E1C112670FCD779E7B9A72BDB0BB00DD862E1EC37",
       "size_bytes": 25434
+    },
+    {
+      "path": "tools/emit_blocked_repair_plan_requires_operator_reconciliation_recheck_patch_evidence.py",
+      "sha256": "BF09FE7B7E7768FEC900CBBB78E8AF3B12868541DB29E0D8D43139516A232D69",
+      "size_bytes": 41269
     },
     {
       "path": "tools/emit_bundle_security_patch_evidence.py",
@@ -5318,6 +5328,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.md",
       "reason": "denied:contracts/generated/"
     },
@@ -6455,6 +6469,10 @@
     },
     {
       "path": "system/evidence/audit_reports/MVP4_BINANCE_SURFACE_STATUS_GUARD_20260501.md",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/audit_reports/MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK_20260504.md",
       "reason": "denied:system/"
     },
     {
@@ -7799,6 +7817,10 @@
     },
     {
       "path": "system/evidence/MVP4_BINANCE_SURFACE_STATUS_GUARD.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -9187,6 +9209,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_BINANCE_SURFACE_STATUS_GUARD.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10602,6 +10628,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_BYTECODE_FREE_SYNTAX_REPRODUCIBILITY.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12007,6 +12037,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_BINANCE_SURFACE_STATUS_GUARD.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
