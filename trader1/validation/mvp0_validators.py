@@ -10874,17 +10874,31 @@ def upbit_paper_repaired_current_evidence_audited_writer_validator() -> Validato
                 paths,
                 "SCHEMA_IDENTITY_MISMATCH",
             )
+        source_portfolio = source_ledger.get("portfolio_snapshot") if isinstance(source_ledger, dict) else None
+        if not isinstance(source_portfolio, dict):
+            return fail_result(
+                validator_id,
+                "audited writer source ledger missing portfolio snapshot",
+                paths,
+                "MEASUREMENT_MISSING",
+            )
         if (
             current_evidence.get("portfolio_truth_status") != "VERIFIED_PAPER_LEDGER_ROLLUP"
             or current_evidence.get("cash_status") != "VERIFIED"
-            or current_evidence.get("configured_initial_cash_krw") != "1000000"
+            or current_evidence.get("configured_initial_cash_krw") != source_portfolio.get("starting_cash")
+            or current_evidence.get("verified_cash_krw") != source_portfolio.get("cash_available")
+            or current_evidence.get("verified_equity_krw") != source_portfolio.get("equity")
+            or current_evidence.get("verified_total_pnl_krw") != source_portfolio.get("total_pnl")
+            or current_evidence.get("open_position_count") != source_portfolio.get("open_position_count")
             or portfolio.get("source") != "PAPER_LEDGER_ROLLUP"
-            or portfolio.get("starting_cash") != "1000000"
-            or portfolio.get("cash_available") != "845923"
+            or portfolio.get("starting_cash") != source_portfolio.get("starting_cash")
+            or portfolio.get("cash_available") != source_portfolio.get("cash_available")
+            or portfolio.get("equity") != source_portfolio.get("equity")
+            or portfolio.get("open_position_count") != source_portfolio.get("open_position_count")
         ):
             return fail_result(
                 validator_id,
-                "audited writer did not bind verified PAPER portfolio truth",
+                "audited writer did not bind verified PAPER portfolio truth from the source ledger snapshot",
                 paths,
                 "MEASUREMENT_MISSING",
             )
