@@ -46,6 +46,9 @@ CONTRACT_GAP_PATH = (
 )
 REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK"
 EXECUTION_RECHECK_REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK"
+EXECUTION_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK"
+)
 POST_REGENERATION_RECHECK_REQUIREMENT_ID = (
     "REQ-MVP4-STALE-LOOP-RECONCILIATION-AFTER-REGENERATION-REQUIRED-RECHECK"
 )
@@ -68,6 +71,9 @@ PAPER_SHADOW_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID = (
     "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-IMPLEMENTATION-DEPTH-RECHECK"
 )
 NEXT_TASK = "MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
+AFTER_EXECUTION_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK = (
+    "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK"
+)
 POST_REGENERATION_NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK"
 OPERATOR_QUEUE_PENDING_NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK"
 AUDITED_WRITER_DASHBOARD_NEXT_TASK = "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING"
@@ -236,7 +242,9 @@ class StaleLoopRegenerationRequiredImplementationDepthRecheckTest(unittest.TestC
         self.assertFalse(patch_result["stale_loop_regeneration_overwrite_source_allowed"])
 
         completed = set(state["completed_requirement_ids"])
-        if REQUIREMENT_ID in completed:
+        if EXECUTION_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
+            self.assertEqual(state["next_allowed_task_class"], AFTER_EXECUTION_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK)
+        elif REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
         elif REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
             expected_next_task = AFTER_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK
@@ -288,7 +296,10 @@ class StaleLoopRegenerationRequiredImplementationDepthRecheckTest(unittest.TestC
             self.assertEqual(state["next_allowed_task_class"], OPERATOR_QUEUE_PENDING_NEXT_TASK)
         elif EXECUTION_RECHECK_REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], POST_REGENERATION_NEXT_TASK)
-        if REQUIREMENT_ID in completed:
+        if EXECUTION_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
+            self.assertNotIn(BLOCKER, state["open_contract_gap_ids"])
+            self.assertNotIn("STALE_LOOP_REGENERATION_EXECUTION_REQUIRED", state["open_contract_gap_ids"])
+        elif REQUIREMENT_ID in completed:
             self.assertIn(BLOCKER, state["open_contract_gap_ids"])
             self.assertIn("STALE_LOOP_REGENERATION_EXECUTION_REQUIRED", state["open_contract_gap_ids"])
         elif REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
@@ -316,7 +327,11 @@ class StaleLoopRegenerationRequiredImplementationDepthRecheckTest(unittest.TestC
 
         self.assertEqual(gap["schema_id"], "trader1.contract_gap.v1")
         self.assertEqual(gap["contract_gap_id"], BLOCKER)
-        self.assertEqual(gap["status"], "OPEN")
+        state = load_json(STATE_PATH)
+        if EXECUTION_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(gap["status"], "RESOLVED")
+        else:
+            self.assertEqual(gap["status"], "OPEN")
         self.assertEqual(gap["severity"], "HIGH")
         self.assertTrue(gap["live_affecting"])
         self.assertEqual(gap["exchange"], "UPBIT")
