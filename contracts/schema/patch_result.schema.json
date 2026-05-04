@@ -588,11 +588,26 @@
     "repair_operator_queue_status": {
       "type": "string"
     },
+    "repair_operator_queue_primary_blocker_code": {
+      "type": "string"
+    },
     "repair_operator_queue_item_count": {
       "type": "integer",
       "minimum": 0
     },
     "repair_operator_queue_ledger_candidate_review_ready_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repair_operator_queue_runtime_cycle_rerun_required_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repair_operator_queue_recovery_guard_rerun_required_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "repair_operator_queue_hash_operator_reconciliation_required_count": {
       "type": "integer",
       "minimum": 0
     },
