@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "F4BA630BEE137E927144BE2FD36680A13DF38FFD816202A21D04F9B937979F6A",
+      "sha256": "447687D335059B1D3365225E49CB32DE0AE7517B128D1D5D43708E04F03F1322",
       "size_bytes": 1096
     },
     {
@@ -830,8 +830,8 @@
     },
     {
       "path": "tests/contract/test_paper_shadow_runtime_shadow_observation_gap_recheck.py",
-      "sha256": "071745EF6BCD46205E77BF5FAE60E1D2C52981135572CE3B200B260460661DFC",
-      "size_bytes": 4370
+      "sha256": "978372E1F7B1C8556466EC551A3F12E0EF0C3CED1A6FDBB3F13CB44CDC682AC1",
+      "size_bytes": 5185
     },
     {
       "path": "tests/contract/test_paper_shadow_separation.py",
@@ -2800,8 +2800,8 @@
     },
     {
       "path": "tools/emit_dashboard_visibility_layout_fix_patch_evidence.py",
-      "sha256": "906D7A02FC080345767A8D77EF8D039B2DDD3FCD8108B3B0E2CF20A42A5A1DDE",
-      "size_bytes": 19915
+      "sha256": "97DE540B08A0873C38FBE999F9E070B803696088D2F5810747B2D86C712F7F64",
+      "size_bytes": 20184
     },
     {
       "path": "tools/emit_dashboard_visual_layout_qa_patch_evidence.py",
@@ -3042,6 +3042,11 @@
       "path": "tools/emit_paper_shadow_long_run_state_consistency_patch_evidence.py",
       "sha256": "D8AE9505A8C126B9947B45C64932D8756E267A52AD236905C473538FBF2E2F2E",
       "size_bytes": 17653
+    },
+    {
+      "path": "tools/emit_paper_shadow_runtime_shadow_observation_gap_next_task_restore_patch_evidence.py",
+      "sha256": "9010D065FDD8021422E0071100B6ACBEA3E04EC4954C6D74E98D652687C4BCB2",
+      "size_bytes": 32260
     },
     {
       "path": "tools/emit_paper_shadow_runtime_shadow_observation_gap_state_sync_recheck_patch_evidence.py",
@@ -5430,6 +5435,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
@@ -6838,6 +6847,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE_20260504.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_PAPER_SHADOW_RUNTIME_SOURCE_REQUIRED_FIELDS_20260430.md",
       "reason": "denied:system/"
     },
@@ -8147,6 +8160,10 @@
     },
     {
       "path": "system/evidence/MVP4_PAPER_SHADOW_RUNTIME_REQUIREMENT_STATUS_BOUNDARY.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -9511,6 +9528,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PAPER_SHADOW_RUNTIME_REQUIREMENT_STATUS_BOUNDARY.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10902,6 +10923,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12283,6 +12308,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_PAPER_SHADOW_RUNTIME_REQUIREMENT_STATUS_BOUNDARY.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

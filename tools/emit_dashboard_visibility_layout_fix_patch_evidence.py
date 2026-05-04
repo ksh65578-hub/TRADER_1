@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PATCH_BASENAME = "MVP4_DASHBOARD_VISIBILITY_LAYOUT_FIX"
 PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
 REQUIREMENT_ID = "REQ-MVP4-DASHBOARD-VISIBILITY-LAYOUT-FIX"
-NEXT_TASK_CLASS = "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_RECHECK"
+NEXT_TASK_CLASS = "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_RECHECK"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -49,6 +49,7 @@ BLOCKERS = [
     "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
     "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
     "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
     "LIVE_ENABLING_EVIDENCE_MISSING",
     "API_UNVERIFIED",
     "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
@@ -264,8 +265,17 @@ def build_patch_result(now: str, tests_run: list[dict[str, Any]], validators_run
             "validators_run": validators_run,
             "tests_run": tests_run,
             "next_task_class": NEXT_TASK_CLASS,
-            "next_required_section_ids": ["SECTION_PAPER_SHADOW_EVIDENCE", "SECTION_LIVE_FINAL_GUARD"],
-            "next_optional_section_ids": ["SECTION_DASHBOARD_SHELL", "SECTION_DASHBOARD_OPERATOR_UX"],
+            "next_required_section_ids": [
+                "SECTION_LEDGER_RECONCILIATION",
+                "SECTION_RUNTIME_IDEMPOTENCY",
+                "SECTION_LONG_RUN_RUNTIME_EVIDENCE",
+                "SECTION_LIVE_FINAL_GUARD",
+            ],
+            "next_optional_section_ids": [
+                "SECTION_DASHBOARD_SHELL",
+                "SECTION_DASHBOARD_OPERATOR_UX",
+                "SECTION_CONTRACT_GAP",
+            ],
             "next_forbidden_default_sections": ["RETAINED_ARCHIVE", "LIVE_ENABLING_PATCH", "BINANCE_FUTURES_LIVE"],
             "remaining_blockers": BLOCKERS,
             "evidence_manifest_path": f"system/evidence/{PATCH_BASENAME}.evidence_manifest.json",
