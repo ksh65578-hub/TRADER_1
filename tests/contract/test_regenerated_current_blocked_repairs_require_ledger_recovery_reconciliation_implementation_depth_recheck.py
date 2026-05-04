@@ -49,6 +49,12 @@ REQUIREMENT_ID = (
 )
 GAP_ID = "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
 NEXT_TASK_CLASS = "MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
+STALE_LOOP_REGENERATION_REQUIRED_DEPTH_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK"
+)
+AFTER_STALE_LOOP_REGENERATION_REQUIRED_DEPTH_RECHECK_NEXT_TASK = (
+    "MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
+)
 
 
 def load_json(path: Path):
@@ -121,8 +127,11 @@ class RegeneratedCurrentBlockedRepairsImplementationDepthRecheckTest(unittest.Te
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
         self.assertIn(GAP_ID, state["open_contract_gap_ids"])
         self.assertIn(GAP_ID, patch_result["remaining_blockers"])
-        self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
-        self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
+        if STALE_LOOP_REGENERATION_REQUIRED_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["next_allowed_task_class"], AFTER_STALE_LOOP_REGENERATION_REQUIRED_DEPTH_RECHECK_NEXT_TASK)
+        else:
+            self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
+            self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
 
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             self.assertFalse(state[field])

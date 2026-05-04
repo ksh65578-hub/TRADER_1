@@ -1,0 +1,28 @@
+{
+  "schema_id": "trader1.contract_gap.v1",
+  "generated_at_utc": "2026-05-04T15:29:20Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "status": "OPEN",
+  "blockers": [
+    {
+      "code": "STALE_LOOP_REGENERATION_REQUIRED",
+      "message": "The stale-loop regeneration plan is source-preserving and PAPER-only, but the actual regeneration executor has not been run in this depth recheck. Execution must remain a separate validated task."
+    },
+    {
+      "code": "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
+      "message": "A dedicated execution-required depth recheck must validate safe PAPER regeneration outputs before stale-loop regeneration blockers can close."
+    }
+  ],
+  "notes": "Depth recheck only; no stale source is deleted or overwritten, no current evidence is written, no live order or credentialed API call is made, no live config is mutated, and no scale-up permission is created.",
+  "contract_gap_id": "STALE_LOOP_REGENERATION_REQUIRED",
+  "severity": "HIGH",
+  "source_section_id": "SECTION_RUNTIME_RECOVERY",
+  "live_affecting": true
+}
