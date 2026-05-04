@@ -67,6 +67,11 @@ class ActualLongRunRuntimeEvidenceCollectionDepthRecheckTest(unittest.TestCase):
         self.assertFalse(profile["bounded_profile_counts_as_long_run_evidence"])
         self.assertEqual(validate_read_only_dashboard_shell(dashboard).status, "PASS")
 
+        profile["status"] = "BLOCKED"
+        profile["severity"] = "ERROR"
+        profile["color_token"] = "red"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        self.assertEqual(validate_read_only_dashboard_shell(dashboard).status, "PASS")
         profile["collection_depth_missing_runtime_modes"] = []
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)

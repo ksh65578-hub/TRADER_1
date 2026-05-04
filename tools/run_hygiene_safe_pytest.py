@@ -76,7 +76,7 @@ def main() -> int:
     before_findings = scan_cache_artifacts()
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
-    command = [sys.executable, "-m", "pytest", *pytest_args]
+    command = [sys.executable, "-B", "-m", "pytest", *pytest_args]
     completed = subprocess.run(command, cwd=ROOT, text=True, env=env)
     after_findings = scan_cache_artifacts()
     status = "PASS" if completed.returncode == 0 and not before_findings and not after_findings else "FAIL"
