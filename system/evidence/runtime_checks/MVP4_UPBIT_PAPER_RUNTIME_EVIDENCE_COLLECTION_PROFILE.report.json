@@ -6,39 +6,46 @@
   "can_submit_order": false,
   "completed_cycle_count": 2,
   "component_blocked_count": 0,
-  "component_count": 4,
-  "component_pass_count": 4,
+  "component_count": 5,
+  "component_pass_count": 5,
   "component_results": [
     {
       "blocker_code": null,
       "component_id": "persistent_loop",
-      "evidence_hash": "E5A0D065E93E678BC7E1ACA906E5725761DA4A19BB3DDD28AB3D32CF1DAFED83",
+      "evidence_hash": "20F73BBE89A084460BEE4922B879628C8EE386B33E4A7B3E33E5A81D361D717E",
       "message": "Upbit PAPER persistent loop is bounded, public-data backed, and live-blocked",
       "status": "PASS"
     },
     {
       "blocker_code": null,
       "component_id": "runtime_recovery_guard",
-      "evidence_hash": "3A874425152528A5A773C68C5D145A89735002DD2787D5219979FFE3BD39267F",
+      "evidence_hash": "3B23767FEA1F5F48ABA29D8DCD32A31B79DC334F4F0C9DE5A14364CAB16D7B9E",
       "message": "Upbit PAPER runtime recovery guard is recoverable and live-blocked",
       "status": "PASS"
     },
     {
       "blocker_code": null,
       "component_id": "runtime_sample_history",
-      "evidence_hash": "A4594819B9BB5220E68F69EF875D683714BBBD4BC45E8E624FD773855390EE9B",
+      "evidence_hash": "BD83F8C8CD2CC677D07B74C15094B60D5273F7E1AA01E7069E440DA690FE7A7F",
       "message": "Upbit PAPER runtime sample history is hash-linked, scoped, and live-blocked",
       "status": "PASS"
     },
     {
       "blocker_code": null,
       "component_id": "ledger_idempotency_runtime_evidence",
-      "evidence_hash": "BA605DC142D04B7D44B720A6580DF42CDF08081A1203A6F5A7EAE23B5E75C580",
+      "evidence_hash": "8C33236D0BC4EACAB84AAD7EAC0CAD465252E3D98C8F89DCDDEF29698F11213C",
       "message": "Upbit PAPER ledger idempotency runtime evidence is scoped, recomputed, and live-blocked",
+      "status": "PASS"
+    },
+    {
+      "blocker_code": null,
+      "component_id": "shadow_runtime_orchestration",
+      "evidence_hash": "D6B4E6217225C5C5C14E3F13B15652B121EA6FF9EF4219146B3EAC5B564CDE15",
+      "message": "runtime orchestration correctly blocks long-run evidence, optimizer ranking, live orders, and scale-up",
       "status": "PASS"
     }
   ],
-  "created_at_utc": "2026-05-04T06:07:43Z",
+  "created_at_utc": "2026-05-04T08:32:46Z",
   "credential_load_attempted": false,
   "current_evidence_write_allowed": false,
   "cycle_floor_met": false,
@@ -50,7 +57,7 @@
   "exchange": "UPBIT",
   "idempotency_status": "PASS",
   "invalid_source_count": 0,
-  "ledger_idempotency_evidence_hash": "BA605DC142D04B7D44B720A6580DF42CDF08081A1203A6F5A7EAE23B5E75C580",
+  "ledger_idempotency_evidence_hash": "8C33236D0BC4EACAB84AAD7EAC0CAD465252E3D98C8F89DCDDEF29698F11213C",
   "ledger_runtime_evidence_status": "PASS",
   "live_key_loaded": false,
   "live_order_allowed": false,
@@ -76,24 +83,25 @@
     "missing_span_seconds": 86400,
     "observed_cycle_count": 2,
     "observed_runtime_modes": [
-      "PAPER"
+      "PAPER",
+      "SHADOW"
     ],
     "observed_span_seconds": 0,
     "paper_ledger_idempotency_status": "PASS",
     "paper_runtime_depth_status": "PASS",
-    "paper_shadow_pairing_status": "MISSING",
+    "paper_shadow_pairing_status": "PAIRED_NOT_LONG_RUN",
     "promotion_eligible": false,
     "required_runtime_modes": [
       "PAPER",
       "SHADOW"
     ],
     "scale_up_allowed": false,
-    "shadow_runtime_depth_status": "MISSING",
+    "shadow_runtime_depth_status": "PRESENT_NOT_LONG_RUN",
     "span_floor_met": false,
     "status": "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH"
   },
   "long_run_evidence_eligible": false,
-  "loop_hash": "E5A0D065E93E678BC7E1ACA906E5725761DA4A19BB3DDD28AB3D32CF1DAFED83",
+  "loop_hash": "20F73BBE89A084460BEE4922B879628C8EE386B33E4A7B3E33E5A81D361D717E",
   "loop_id": "upbit-paper-runtime-evidence-profile",
   "loop_status": "PASS",
   "market_type": "KRW_SPOT",
@@ -106,17 +114,17 @@
   "order_endpoint_called": false,
   "primary_blocker_code": null,
   "private_endpoint_called": false,
-  "profile_hash": "E378B761434E3FEB1BDD34A990435397830B455962E63A852DB97B702F7156C3",
+  "profile_hash": "A3C5C0A5A5B4B3183E522D8AA89DBE4913E15B41922CD844DA86E45F31EE3F63",
   "profile_id": "UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_V1",
   "profile_scope": "UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ONLY_NO_LIVE",
   "promotion_eligible": false,
   "recomputed_filled_order_count": 2,
   "recomputed_ledger_event_count": 12,
   "reconciliation_status": "PASS",
-  "recovery_guard_hash": "3A874425152528A5A773C68C5D145A89735002DD2787D5219979FFE3BD39267F",
+  "recovery_guard_hash": "3B23767FEA1F5F48ABA29D8DCD32A31B79DC334F4F0C9DE5A14364CAB16D7B9E",
   "recovery_guard_status": "PASS",
   "requested_cycle_count": 2,
-  "runtime_sample_history_hash": "A4594819B9BB5220E68F69EF875D683714BBBD4BC45E8E624FD773855390EE9B",
+  "runtime_sample_history_hash": "BD83F8C8CD2CC677D07B74C15094B60D5273F7E1AA01E7069E440DA690FE7A7F",
   "runtime_sample_history_validation_status": "PASS",
   "runtime_sample_status": "COLLECTING",
   "scale_up_allowed": false,

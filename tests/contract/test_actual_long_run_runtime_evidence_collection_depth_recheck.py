@@ -38,6 +38,7 @@ class ActualLongRunRuntimeEvidenceCollectionDepthRecheckTest(unittest.TestCase):
         self.assertEqual(depth["status"], "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH")
         self.assertEqual(depth["blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
         self.assertEqual(depth["required_runtime_modes"], ["PAPER", "SHADOW"])
+        self.assertEqual(depth["observed_runtime_modes"], ["PAPER", "SHADOW"])
         self.assertIn("SHADOW", depth["missing_runtime_modes"])
         self.assertEqual(depth["observed_cycle_count"], report["accepted_cycle_sample_count"])
         self.assertEqual(depth["minimum_cycle_count"], report["min_actual_long_run_cycle_count"])
@@ -48,8 +49,8 @@ class ActualLongRunRuntimeEvidenceCollectionDepthRecheckTest(unittest.TestCase):
         self.assertEqual(depth["observed_span_seconds"], report["observed_span_seconds"])
         self.assertEqual(depth["minimum_span_seconds"], report["min_actual_long_run_span_seconds"])
         self.assertGreaterEqual(depth["missing_span_seconds"], 0)
-        self.assertEqual(depth["shadow_runtime_depth_status"], "MISSING")
-        self.assertEqual(depth["paper_shadow_pairing_status"], "MISSING")
+        self.assertEqual(depth["shadow_runtime_depth_status"], "PRESENT_NOT_LONG_RUN")
+        self.assertEqual(depth["paper_shadow_pairing_status"], "PAIRED_NOT_LONG_RUN")
         self.assertFalse(depth["bounded_profile_counts_as_long_run_evidence"])
         self.assertFalse(depth["dashboard_display_counts_as_long_run_evidence"])
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
@@ -63,7 +64,9 @@ class ActualLongRunRuntimeEvidenceCollectionDepthRecheckTest(unittest.TestCase):
         profile = dashboard["paper_runtime_evidence_collection_profile_status"]
 
         self.assertEqual(profile["collection_depth_status"], "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH")
-        self.assertEqual(profile["collection_depth_missing_runtime_modes"], ["SHADOW"])
+        self.assertIn("SHADOW", profile["collection_depth_missing_runtime_modes"])
+        self.assertEqual(profile["collection_depth_shadow_runtime_status"], "PRESENT_NOT_LONG_RUN")
+        self.assertEqual(profile["collection_depth_pairing_status"], "PAIRED_NOT_LONG_RUN")
         self.assertFalse(profile["bounded_profile_counts_as_long_run_evidence"])
         self.assertEqual(validate_read_only_dashboard_shell(dashboard).status, "PASS")
 

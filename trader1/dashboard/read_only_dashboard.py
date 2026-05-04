@@ -14315,11 +14315,24 @@ def validate_read_only_dashboard_shell(
         missing_modes = paper_runtime_profile.get("collection_depth_missing_runtime_modes")
         if not isinstance(missing_modes, list) or "SHADOW" not in missing_modes:
             return DashboardValidationResult("BLOCKED", "paper runtime evidence profile must expose missing SHADOW collection depth", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+        shadow_depth_status = paper_runtime_profile.get("collection_depth_shadow_runtime_status")
+        pairing_status = paper_runtime_profile.get("collection_depth_pairing_status")
+        if shadow_depth_status not in {"MISSING", "PRESENT_NOT_LONG_RUN", "BLOCKED"}:
+            return DashboardValidationResult("FAIL", "paper runtime evidence profile shadow depth status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        if pairing_status not in {"MISSING", "PAIRED_NOT_LONG_RUN", "BLOCKED"}:
+            return DashboardValidationResult("FAIL", "paper runtime evidence profile pairing status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        paper_depth_ready = (
+            paper_runtime_profile.get("ledger_runtime_evidence_status") == "PASS"
+            and paper_runtime_profile.get("idempotency_status") == "PASS"
+            and paper_runtime_profile.get("reconciliation_status") == "PASS"
+        )
+        if paper_depth_ready and shadow_depth_status == "PRESENT_NOT_LONG_RUN" and pairing_status != "PAIRED_NOT_LONG_RUN":
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile SHADOW depth must remain paired and not-long-run", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+        if pairing_status == "PAIRED_NOT_LONG_RUN" and (not paper_depth_ready or shadow_depth_status != "PRESENT_NOT_LONG_RUN"):
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile cannot show pairing without not-long-run SHADOW depth", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
         if (
             paper_runtime_profile.get("collection_depth_status") != "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH"
             or paper_runtime_profile.get("collection_depth_blocker_code") != "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
-            or paper_runtime_profile.get("collection_depth_shadow_runtime_status") != "MISSING"
-            or paper_runtime_profile.get("collection_depth_pairing_status") != "MISSING"
         ):
             return DashboardValidationResult("BLOCKED", "paper runtime evidence profile collection depth must remain blocked until PAPER/SHADOW long-run evidence exists", "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
         if (

@@ -5268,6 +5268,58 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-IMPLEMENTATION-DEPTH-RECHECK",
+      "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
+      "schema_files": [
+        "contracts/schema/upbit_paper_runtime_evidence_collection_profile_report.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
+        "trader1/research/shadow/shadow_observation_runtime_orchestration.py",
+        "trader1/runtime/paper/upbit_paper_persistent_loop.py",
+        "trader1/runtime/paper/upbit_paper_runtime_sample_history.py",
+        "trader1/runtime/paper/upbit_paper_ledger_idempotency_runtime_evidence.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_persistent_loop.py",
+        "trader1/runtime/paper/upbit_paper_runtime_sample_history.py",
+        "trader1/runtime/paper/upbit_paper_ledger_idempotency_runtime_evidence.py",
+        "trader1/research/shadow/shadow_observation_runtime_orchestration.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+        "system/evidence/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "patch_result_fields": [
+        "upbit_paper_runtime_evidence_profile_status",
+        "upbit_paper_runtime_evidence_profile_component_count",
+        "upbit_paper_runtime_evidence_profile_component_pass_count",
+        "upbit_paper_runtime_evidence_profile_accepted_cycle_sample_count",
+        "upbit_paper_runtime_evidence_profile_ledger_status",
+        "upbit_paper_runtime_evidence_profile_mismatch_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-NEXT-TASK-RESTORE",
       "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "schema_files": [
@@ -14323,7 +14375,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T07:49:32Z",
+  "updated_at_utc": "2026-05-04T08:32:16Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

@@ -17,7 +17,21 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from trader1.research.shadow.shadow_observation import build_shadow_observation_report
+from trader1.research.shadow.shadow_observation_actual_runtime_harness import (
+    build_shadow_observation_actual_runtime_harness_report,
+)
+from trader1.research.shadow.shadow_observation_persistent_runtime import (
+    build_shadow_observation_persistent_runtime_report,
+)
+from trader1.research.shadow.shadow_observation_runtime_orchestration import (
+    build_shadow_observation_runtime_orchestration_report,
+    validate_shadow_observation_runtime_orchestration_report,
+)
+from trader1.research.shadow.shadow_observation_scheduler import build_shadow_observation_scheduler_guard_report
+from trader1.research.shadow.shadow_observation_stream import build_shadow_observation_stream_report
 from trader1.runtime.ledger.paper_ledger_rollup import build_paper_ledger_rollup_report, write_paper_ledger_rollup_report
+from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     build_upbit_paper_ledger_idempotency_runtime_evidence_report,
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
@@ -104,6 +118,8 @@ def _long_run_collection_depth(
     *,
     sample_history: dict[str, Any],
     idempotency_evidence: dict[str, Any],
+    shadow_orchestration: dict[str, Any] | None = None,
+    shadow_orchestration_result: Any | None = None,
 ) -> dict[str, Any]:
     observed_span_seconds = int(sample_history.get("observed_span_seconds") or 0)
     minimum_span_seconds = int(sample_history.get("min_actual_long_run_span_seconds") or 0)
@@ -113,10 +129,30 @@ def _long_run_collection_depth(
     missing_cycle_count = max(0, minimum_cycle_count - observed_cycle_count)
     observed_modes = ["PAPER"] if observed_cycle_count > 0 else []
     required_modes = ["PAPER", "SHADOW"]
+    shadow_source_present = (
+        isinstance(shadow_orchestration, dict)
+        and getattr(shadow_orchestration_result, "status", None) == "PASS"
+        and shadow_orchestration.get("source_validation_status") == "PASS"
+        and shadow_orchestration.get("source_runtime_hash_pairing_verified") is True
+        and shadow_orchestration.get("runtime_evidence_role") == "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN"
+        and shadow_orchestration.get("actual_long_run_runtime_present") is False
+        and shadow_orchestration.get("long_run_evidence_eligible") is False
+    )
+    shadow_source_blocked = isinstance(shadow_orchestration, dict) and not shadow_source_present
+    if shadow_source_present:
+        observed_modes.append("SHADOW")
     missing_modes = [mode for mode in required_modes if mode not in observed_modes]
+    if shadow_source_present and "SHADOW" not in missing_modes:
+        missing_modes.append("SHADOW")
     span_floor_met = observed_span_seconds >= minimum_span_seconds > 0
     cycle_floor_met = observed_cycle_count >= minimum_cycle_count > 0
     paper_depth_status = "PASS" if observed_cycle_count > 0 and idempotency_evidence.get("runtime_evidence_status") == "PASS" else "MISSING"
+    shadow_depth_status = "PRESENT_NOT_LONG_RUN" if shadow_source_present else ("BLOCKED" if shadow_source_blocked else "MISSING")
+    paper_shadow_pairing_status = (
+        "PAIRED_NOT_LONG_RUN"
+        if paper_depth_status == "PASS" and shadow_source_present
+        else ("BLOCKED" if shadow_source_blocked else "MISSING")
+    )
 
     return {
         "status": LONG_RUN_COLLECTION_DEPTH_STATUS,
@@ -135,8 +171,8 @@ def _long_run_collection_depth(
         "cycle_floor_met": cycle_floor_met,
         "paper_runtime_depth_status": paper_depth_status,
         "paper_ledger_idempotency_status": str(idempotency_evidence.get("idempotency_status") or "BLOCKED"),
-        "shadow_runtime_depth_status": "MISSING",
-        "paper_shadow_pairing_status": "MISSING",
+        "shadow_runtime_depth_status": shadow_depth_status,
+        "paper_shadow_pairing_status": paper_shadow_pairing_status,
         "bounded_profile_counts_as_long_run_evidence": False,
         "dashboard_display_counts_as_long_run_evidence": False,
         "actual_long_run_evidence_created": False,
@@ -147,6 +183,65 @@ def _long_run_collection_depth(
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
+
+
+def _build_shadow_runtime_orchestration_source(*, loop_id: str, requested_cycle_count: int) -> tuple[dict[str, Any], Any]:
+    seed = f"{loop_id}-shadow-depth"
+    shadow_cycle_count = max(3, min(3, int(requested_cycle_count or 1)))
+    observations = []
+    for index in range(shadow_cycle_count):
+        paper_gate = build_upbit_operational_paper_cycle(
+            operation_gate_id=f"{seed}-paper-gate",
+            session_id=f"{seed}-paper-{index}",
+            requested_entry=True,
+        )
+        observations.append(
+            build_shadow_observation_report(
+                observation_id=f"{seed}-observation-{index}",
+                paper_operation_gate_report=paper_gate,
+                shadow_session_id=f"{seed}-shadow-{index}",
+                shadow_sample_count=30,
+            )
+        )
+    stream = build_shadow_observation_stream_report(
+        stream_id=f"{seed}-stream",
+        observations=observations,
+        min_required_observation_count=3,
+        min_required_evidence_span_hours=24,
+        evidence_span_hours=24,
+    )
+    scheduler = build_shadow_observation_scheduler_guard_report(
+        scheduler_id=f"{seed}-scheduler",
+        stream_report=stream,
+        writer_id=f"{seed}-writer",
+        active_writer_id=f"{seed}-writer",
+    )
+    persistent = build_shadow_observation_persistent_runtime_report(
+        runtime_id=f"{seed}-persistent-runtime",
+        scheduler_guard_report=scheduler,
+        requested_cycle_count=shadow_cycle_count,
+        completed_cycle_count=shadow_cycle_count,
+        max_cycle_count=20,
+    )
+    harness = build_shadow_observation_actual_runtime_harness_report(
+        harness_id=f"{seed}-harness",
+        requested_cycle_count=shadow_cycle_count,
+        completed_cycle_count=shadow_cycle_count,
+        observations_per_cycle=2,
+        measured_runtime_seconds=90,
+        runtime_measurement_source="MONOTONIC_LOCAL_TIMER_VERIFIED",
+        monotonic_timer_started=True,
+        monotonic_timer_stopped=True,
+        measured_runtime_seconds_verified=True,
+        source_runtime_report=persistent,
+    )
+    orchestration = build_shadow_observation_runtime_orchestration_report(
+        orchestration_id=f"{seed}-orchestration",
+        persistent_runtime_report=persistent,
+        actual_runtime_harness_report=harness,
+    )
+    result = validate_shadow_observation_runtime_orchestration_report(orchestration)
+    return orchestration, result
 
 
 def _duplicate_first_ledger_jsonl(root: Path, loop: dict[str, Any]) -> None:
@@ -193,9 +288,15 @@ def build_upbit_paper_runtime_evidence_collection_profile_report(
     sample_history_result = validate_upbit_paper_runtime_sample_history(sample_history)
     idempotency_evidence = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root, session_id=session_id)
     idempotency_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(idempotency_evidence)
+    shadow_orchestration, shadow_orchestration_result = _build_shadow_runtime_orchestration_source(
+        loop_id=loop_id,
+        requested_cycle_count=requested_cycle_count,
+    )
     collection_depth = _long_run_collection_depth(
         sample_history=sample_history,
         idempotency_evidence=idempotency_evidence,
+        shadow_orchestration=shadow_orchestration,
+        shadow_orchestration_result=shadow_orchestration_result,
     )
 
     component_results = [
@@ -226,6 +327,13 @@ def build_upbit_paper_runtime_evidence_collection_profile_report(
             blocker_code=idempotency_result.blocker_code,
             message=idempotency_result.message,
             evidence_hash=idempotency_evidence.get("evidence_hash"),
+        ),
+        _component(
+            component_id="shadow_runtime_orchestration",
+            status=shadow_orchestration_result.status,
+            blocker_code=shadow_orchestration_result.blocker_code,
+            message=shadow_orchestration_result.message,
+            evidence_hash=shadow_orchestration.get("orchestration_report_hash"),
         ),
     ]
     blockers = [
@@ -457,6 +565,17 @@ def validate_upbit_paper_runtime_evidence_collection_profile_report(
         return ProfileValidationResult("FAIL", "runtime evidence profile collection depth required modes drifted", "SCHEMA_IDENTITY_MISMATCH")
     if "SHADOW" not in collection_depth.get("missing_runtime_modes", []):
         return ProfileValidationResult("BLOCKED", "runtime evidence profile cannot hide missing SHADOW collection depth", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+    shadow_depth_status = collection_depth.get("shadow_runtime_depth_status")
+    pairing_status = collection_depth.get("paper_shadow_pairing_status")
+    if shadow_depth_status not in {"MISSING", "PRESENT_NOT_LONG_RUN", "BLOCKED"}:
+        return ProfileValidationResult("FAIL", "runtime evidence profile shadow runtime depth status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if pairing_status not in {"MISSING", "PAIRED_NOT_LONG_RUN", "BLOCKED"}:
+        return ProfileValidationResult("FAIL", "runtime evidence profile PAPER/SHADOW pairing status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    paper_depth_status = collection_depth.get("paper_runtime_depth_status")
+    if paper_depth_status == "PASS" and shadow_depth_status == "PRESENT_NOT_LONG_RUN" and pairing_status != "PAIRED_NOT_LONG_RUN":
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile shadow depth must remain paired and not-long-run", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+    if pairing_status == "PAIRED_NOT_LONG_RUN" and (paper_depth_status != "PASS" or shadow_depth_status != "PRESENT_NOT_LONG_RUN"):
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile pairing cannot exist without not-long-run SHADOW depth", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
     if collection_depth.get("observed_span_seconds") != report.get("observed_span_seconds"):
         return ProfileValidationResult("FAIL", "runtime evidence profile collection depth span drifted", "SCHEMA_IDENTITY_MISMATCH")
     if collection_depth.get("minimum_span_seconds") != report.get("min_actual_long_run_span_seconds"):
