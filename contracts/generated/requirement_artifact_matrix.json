@@ -8113,6 +8113,53 @@
       "status": "IMPLEMENTED"
     },
     {
+      "requirement_id": "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK",
+      "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_safe_regeneration_executor.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_post_regeneration_reconciliation.py"
+      ],
+      "test_files": [
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/runtime/test_upbit_paper_stale_loop_safe_regeneration_executor.py",
+        "tests/runtime/test_upbit_paper_stale_loop_post_regeneration_reconciliation.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_stale_loop_execution_guard.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_safe_regeneration_executor.py",
+        "trader1/runtime/paper/upbit_paper_stale_loop_post_regeneration_reconciliation.py"
+      ],
+      "evidence_artifacts": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_regeneration_execution_guard.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_safe_regeneration_executor_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_stale_loop_post_regeneration_reconciliation_report.json",
+        "system/evidence/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.patch_result.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "stale_loop_execution_guard_status",
+        "stale_loop_safe_executor_status",
+        "stale_loop_safe_executor_regenerated_item_count",
+        "stale_loop_post_regeneration_reconciliation_status",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RECHECK_EXECUTION_COMPLETED_RECONCILIATION_REQUIRED"
+    },
+    {
       "requirement_id": "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-RECHECK",
       "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "schema_files": [
@@ -13875,7 +13922,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T02:41:23Z",
+  "updated_at_utc": "2026-05-04T03:02:40Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

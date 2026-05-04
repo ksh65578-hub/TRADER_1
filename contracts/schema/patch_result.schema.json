@@ -689,6 +689,59 @@
     "stale_loop_regeneration_overwrite_source_allowed": {
       "type": "boolean"
     },
+    "stale_loop_execution_guard_status": {
+      "type": "string"
+    },
+    "stale_loop_execution_guard_planned_regeneration_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_execution_guard_replacement_existing_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_execution_guard_source_hash_mismatch_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_execution_guard_source_missing_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_execution_guard_actual_regeneration_performed": {
+      "type": "boolean"
+    },
+    "stale_loop_execution_guard_actual_long_run_evidence_created": {
+      "type": "boolean"
+    },
+    "stale_loop_safe_executor_status": {
+      "type": "string"
+    },
+    "stale_loop_safe_executor_planned_regeneration_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_safe_executor_regenerated_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_safe_executor_skipped_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_safe_executor_replacement_artifact_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stale_loop_safe_executor_actual_regeneration_performed": {
+      "type": "boolean"
+    },
+    "stale_loop_safe_executor_actual_long_run_evidence_created": {
+      "type": "boolean"
+    },
+    "stale_loop_safe_executor_long_run_evidence_eligible": {
+      "type": "boolean"
+    },
     "stale_loop_post_regeneration_reconciliation_status": {
       "type": "string"
     },

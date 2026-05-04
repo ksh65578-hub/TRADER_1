@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "2836496A4998CEF50E7D5BDF4EEAD1B40DCA0CC13007AFCCA13B6D3251F4F472",
+      "sha256": "08AC0C4C0ADC4826E0EC9846730FA818ED4F947CE8005810C931FE011970716B",
       "size_bytes": 1096
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "contracts/schema/patch_result.schema.json",
-      "sha256": "39F62EA5F4361D952BED9E143C6ACADBAFC1811F0BDFF3F5D74B02593135038A",
-      "size_bytes": 40086
+      "sha256": "F30A31D79C5554280DD1C6FCEE7956F0E306DCAE18FE4D0634597C1B0B1B2F01",
+      "size_bytes": 41608
     },
     {
       "path": "contracts/schema/position_sizing_decision.schema.json",
@@ -805,8 +805,8 @@
     },
     {
       "path": "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
-      "sha256": "621BE24F2D114DA46FDF100C444276A8C0FEC81D596A41DF7183D303B4B26DC4",
-      "size_bytes": 6839
+      "sha256": "A5BB30A67CB418467734AD0EA1FFFA9C7E707232C3FBC6DAA349819C9C4595B0",
+      "size_bytes": 7239
     },
     {
       "path": "tests/contract/test_final_decision_schema.py",
@@ -815,8 +815,8 @@
     },
     {
       "path": "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
-      "sha256": "9304B71ED987CF54CAC1462BB327D5E6AB730D19BFD5C8E2A67AFFFA855F3F9D",
-      "size_bytes": 9703
+      "sha256": "323E9A8B6F2ED233D6E5D1C19191C408DD532A1F92C9684F1AC1F6531E869AB4",
+      "size_bytes": 10144
     },
     {
       "path": "tests/contract/test_mvp0_contract_scaffold.py",
@@ -845,18 +845,18 @@
     },
     {
       "path": "tests/contract/test_patch_result_runtime_schema_validation.py",
-      "sha256": "99D7D2AD51782597A6071EE74BE20849325C6BB6810485F28684C3090ACA3051",
-      "size_bytes": 10354
+      "sha256": "B294713FC7AD7BC84E1FB124D7C151321A8B5221EF1B1CD93C78AD7ADF709A24",
+      "size_bytes": 10858
     },
     {
       "path": "tests/contract/test_post_repair_reconciliation_required_recheck.py",
-      "sha256": "0FCAB4F611466B2351E76D1FED7DFF2060745FFEA1E9A3225720D6808A09F951",
-      "size_bytes": 5590
+      "sha256": "D355F57CE07DB0F556328AA24CFDF0EA9490707CB543D8F5641F69C330AD7F80",
+      "size_bytes": 6016
     },
     {
       "path": "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
-      "sha256": "8A878F1F4ACEC22F05916E8B954363C9A87710B4164F034FB82E6AC45544C6DA",
-      "size_bytes": 10301
+      "sha256": "154C69429DF1643C7C85BD4F1898DAFAA980BD5BC2FD4B0BD70E314105C11E03",
+      "size_bytes": 10742
     },
     {
       "path": "tests/contract/test_post_rerun_reconciliation_required_recheck.py",
@@ -865,13 +865,13 @@
     },
     {
       "path": "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
-      "sha256": "7D3AC5A6C53032DC73CAA8F2C2DE2473169BA63F99DEACB145703DE2CA2696B5",
-      "size_bytes": 7002
+      "sha256": "90A47DDE744AA9CFFD7B9ED51D92D702F824A2AF983AF063FFBE50BA49A817D8",
+      "size_bytes": 7402
     },
     {
       "path": "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
-      "sha256": "6DE1CCCD70007255DF3A2C73E298E1411CE3E1DB85B108BA61876B57001CE5EA",
-      "size_bytes": 7453
+      "sha256": "A386F44A52C5A804EBBE8B725989CDDAA58C3FE4E45FCEDCA20335238797BE78",
+      "size_bytes": 7879
     },
     {
       "path": "tests/contract/test_review_plan_reflection_status.py",
@@ -889,9 +889,14 @@
       "size_bytes": 2183
     },
     {
+      "path": "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+      "sha256": "DACC5C632A119DDB8ADC84282AA801B258EEE15BCC49720DD3D65BE0278E081E",
+      "size_bytes": 7937
+    },
+    {
       "path": "tests/contract/test_stale_loop_regeneration_required_recheck.py",
-      "sha256": "2D67BC1EFAEFAF7A172862BAE7CCBDBD919B044EB558836075871FBF5E7D60EF",
-      "size_bytes": 6048
+      "sha256": "44E05210EE0C269ADC03C72FDAE028DF4C852C54618F8A20792BE23B965D2179",
+      "size_bytes": 6684
     },
     {
       "path": "tests/contract/test_strategy_unit_scope.py",
@@ -3384,6 +3389,11 @@
       "size_bytes": 20847
     },
     {
+      "path": "tools/emit_stale_loop_regeneration_execution_required_recheck_patch_evidence.py",
+      "sha256": "ACB7F3F03255258708925BCBF40AA5AE02D389D6EB619818893CA0CE5C958ED1",
+      "size_bytes": 45366
+    },
+    {
       "path": "tools/emit_stale_loop_regeneration_required_recheck_patch_evidence.py",
       "sha256": "ECFFA9F078DE89E8B0E5AEB1FC096CEFF687205CE4ED7A01B419B8EF03587684",
       "size_bytes": 42568
@@ -5684,6 +5694,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_STALE_LOOP_REGENERATION_REQUIRED_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
@@ -7252,6 +7266,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK_20260504.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_STALE_LOOP_REGENERATION_REQUIRED_RECHECK_20260504.md",
       "reason": "denied:system/"
     },
@@ -8625,6 +8643,10 @@
     },
     {
       "path": "system/evidence/MVP4_STALE_HEARTBEAT_RECOVERY_GUIDANCE.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -10025,6 +10047,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_STALE_HEARTBEAT_RECOVERY_GUIDANCE.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -11452,6 +11478,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_STALE_LOOP_REGENERATION_REQUIRED_RECHECK.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12873,6 +12903,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_STALE_HEARTBEAT_RECOVERY_GUIDANCE.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK.validator_run_log.json",
       "reason": "denied:system/"
     },
     {

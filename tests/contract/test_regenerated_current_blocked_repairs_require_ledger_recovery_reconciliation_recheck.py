@@ -39,9 +39,13 @@ REQUIREMENT_ID = (
     "RECONCILIATION-RECHECK"
 )
 STALE_LOOP_REGENERATION_REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-RECHECK"
+STALE_LOOP_EXECUTION_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK"
+)
 BLOCKER = "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
 NEXT_TASK = "MVP4_STALE_LOOP_REGENERATION_REQUIRED_RECHECK"
 STALE_LOOP_EXECUTION_NEXT_TASK = "MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK"
+STALE_LOOP_POST_REGENERATION_NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK"
 
 
 def load_json(path: Path):
@@ -132,7 +136,9 @@ class RegeneratedCurrentBlockedRepairsRecheckTest(unittest.TestCase):
         self.assertEqual(patch_result["repair_operator_queue_candidate_current_evidence_usable_count"], 0)
 
         completed = set(state["completed_requirement_ids"])
-        if STALE_LOOP_REGENERATION_REQUIREMENT_ID in completed:
+        if STALE_LOOP_EXECUTION_RECHECK_REQUIREMENT_ID in completed:
+            self.assertEqual(state["next_allowed_task_class"], STALE_LOOP_POST_REGENERATION_NEXT_TASK)
+        elif STALE_LOOP_REGENERATION_REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], STALE_LOOP_EXECUTION_NEXT_TASK)
         elif REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
