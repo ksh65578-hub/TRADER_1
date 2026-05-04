@@ -16079,6 +16079,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<span class=\"source-count source-count-pass\">PASS {safe_text(source_pass_count)}</span>"
         f"<span class=\"source-count source-count-attention\">Attention {safe_text(source_attention_count)}</span>"
     )
+    source_health_status = "PASS" if source_attention_count == 0 and source_artifacts else "ATTENTION"
+    source_health_display = f"{source_pass_count}/{len(source_artifacts)} PASS, {source_attention_count} attention"
     freshness_html = (
         "<section class=\"freshness-strip\" data-dashboard-freshness "
         f"data-generated-at=\"{safe_text(shell.get('generated_at_utc', ''))}\" "
@@ -17197,6 +17199,19 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     blocker = shell.get("blocking_reason") or "HARD_TRUTH_MISSING"
     next_action = shell.get("next_action") or "continue read-only monitoring; resolve blockers before any trading review"
     blocker_class = status_class(shell.get("final_action"))
+    health_signal_items = [
+        ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
+        ("Sources", source_health_display, source_health_status),
+        ("Market Data", market_data_status_display, market_data.get("status", "NOT_LOADED")),
+        ("PAPER Loop", paper_persistent_loop_status_display, paper_persistent_loop.get("status", "NOT_LOADED")),
+    ]
+    health_signal_html = "\n".join(
+        "<section class=\"answer-signal\">"
+        f"<strong>{safe_text(label)}</strong>"
+        f"<span class=\"pill {status_class(status)}\">{safe_text(display)}</span>"
+        "</section>"
+        for label, display, status in health_signal_items
+    )
     return """<!doctype html>
 <html lang="en">
 <head>
@@ -17226,7 +17241,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     main { display: grid; gap: 16px; padding: 16px; width: 100%; max-width: 1440px; margin: 0 auto; }
     h1, h2, h3, p, dl, dd, small, strong, span { overflow-wrap: anywhere; word-break: normal; }
     p, small, li, dd, td { line-height: 1.5; }
-    .summary-card, .live-readiness, .operation, .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { min-width: 0; }
+    .operator-answer-card, .summary-card, .live-readiness, .operation, .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { min-width: 0; }
     .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { display: grid; align-content: start; gap: 12px; }
     .metric, .scope-item, .guard, .decision-grid div, .workflow-step, .dependency-check, .evidence-check, .maturity-component, .stability-metric { display: grid; align-content: start; gap: 6px; }
     .freshness-strip { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start; background: var(--ok-bg); border: 1px solid #b9dfca; border-left: 8px solid var(--ok); border-radius: 8px; padding: 14px 16px; min-width: 0; }
@@ -17243,10 +17258,19 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .source-count-attention { border-color: #f2c75c; background: #fff8e6; color: var(--warn); }
     .freshness-fresh { background: var(--ok-bg); border-left-color: var(--ok); }
     .freshness-stale { background: var(--warn-bg); border-color: #f2c75c; border-left-color: var(--warn); }
-    .summary-grid { display: grid; gap: 16px; grid-template-columns: minmax(420px, 1.35fr) minmax(320px, 1fr); align-items: stretch; }
-    .portfolio-summary { grid-row: span 2; }
-    .summary-card, .live-readiness { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-height: 236px; min-width: 0; overflow-wrap: anywhere; }
-    .summary-card h2, .live-readiness h2 { font-size: 22px; margin: 2px 0 8px; }
+    .operator-answer-grid { display: grid; gap: 16px; grid-template-columns: minmax(300px, 0.95fr) minmax(360px, 1.25fr) minmax(280px, 0.9fr); align-items: stretch; }
+    .operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-height: 236px; min-width: 0; overflow-wrap: anywhere; }
+    .operator-answer-card h2, .summary-card h2, .live-readiness h2 { font-size: 22px; margin: 2px 0 8px; }
+    .answer-verdict { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .answer-note { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .answer-signal-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin-top: 12px; }
+    .answer-signal { display: grid; gap: 6px; align-content: start; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(255,255,255,.76); }
+    .answer-signal strong { color: var(--muted); font-size: 12px; }
+    .health-summary { border-left: 8px solid var(--ok); background: var(--ok-bg); }
+    .health-summary-green { border-left-color: var(--ok); background: var(--ok-bg); }
+    .health-summary-blue { border-left-color: var(--safe); background: var(--safe-bg); }
+    .health-summary-yellow { border-left-color: var(--warn); background: var(--warn-bg); }
+    .health-summary-red { border-left-color: var(--danger); background: var(--danger-bg); }
     .summary-card .portfolio-kpi-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr)); margin-top: 12px; }
     .summary-card .metric { min-height: 78px; padding: 10px; }
     .summary-card .metric h2 { font-size: 13px; margin: 0; color: var(--muted); }
@@ -17455,7 +17479,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .pill.safe-lock { background: var(--safe-bg); color: var(--safe); }
     .next { margin-top: 8px; color: #354153; }
     small { display: block; margin-top: 12px; color: #5c6673; }
-    @media (max-width: 980px) { .summary-grid { grid-template-columns: 1fr; } .portfolio-summary { grid-row: auto; } }
+    @media (max-width: 1120px) { .operator-answer-grid { grid-template-columns: 1fr; } }
     @media (max-width: 720px) { .freshness-strip { grid-template-columns: 1fr; } .operation { grid-template-columns: 1fr; } .operation dl { grid-template-columns: 1fr; } .activity li { grid-template-columns: 1fr; } .portfolio-head p { text-align: left; } .summary-card .portfolio-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .portfolio-ledger { grid-template-columns: 1fr; } .portfolio-ledger div { border-right: 0; border-bottom: 1px solid var(--line); grid-template-columns: minmax(88px, .7fr) minmax(0, 1fr); align-items: baseline; } .portfolio-ledger div:last-child { border-bottom: 0; } .evidence-requirement-head { grid-template-columns: 1fr; } }
   </style>
   <script>
@@ -17550,10 +17574,19 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     <p>""" + safe_text(shell.get("primary_status_text", "")) + """</p>
   </header>
   <main>
-    """ + freshness_html + """
-    <section class="summary-grid" aria-label="first screen summary">
-      <section class="summary-card portfolio-summary" aria-label="real-time portfolio snapshot">
-        <span class="eyebrow">Real-Time Portfolio</span>
+    <section class="operator-answer-grid" aria-label="operator priority answers">
+      <section class="operator-answer-card health-summary health-summary-""" + operation_color + """" aria-label="system health summary">
+        <span class="eyebrow">System Health</span>
+        <h2>""" + safe_text(operation.get("label", "Needs attention")) + """</h2>
+        <p class="answer-verdict">""" + safe_text(operation.get("message", "Dashboard source needs attention")) + """</p>
+        <p class="answer-note">""" + safe_text(operation.get("operator_meaning", "Dashboard display truth only.")) + """</p>
+        <section class="answer-signal-grid" aria-label="system health signals">
+          """ + health_signal_html + """
+        </section>
+        <p class="summary-note">Recovery: """ + safe_text(operation.get("recovery_hint", "Rerun PAPER if dashboard sources are stale.")) + """</p>
+      </section>
+      <section class="operator-answer-card summary-card portfolio-summary" aria-label="real-time portfolio snapshot">
+        <span class="eyebrow">Portfolio Detail</span>
         <h2>Portfolio Snapshot</h2>
         <p>Status: """ + safe_text(portfolio_status) + """ | Source: """ + safe_text(portfolio.get("source", "summary.json")) + """</p>
         <p class="source-line">""" + safe_text(portfolio_source_line) + """</p>
@@ -17578,10 +17611,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         </section>
         <p class="summary-note">""" + safe_text(portfolio.get("next_action", "Provide verified portfolio evidence before values can be trusted")) + """</p>
       </section>
-      """ + operation_html + """
-      <section class="live-readiness live-readiness-yellow" aria-label="live readiness summary">
-        <span class="eyebrow">Live Readiness</span>
-        <h2>Blocked Before Live</h2>
+      <section class="operator-answer-card live-readiness live-readiness-yellow" aria-label="live execution summary">
+        <span class="eyebrow">Live Execution</span>
+        <h2>Blocked</h2>
         <p class="status warn">""" + safe_text(blocker) + """</p>
         <p class="next">""" + safe_text(next_action) + """</p>
         <section class="readiness-list">
@@ -17593,12 +17625,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="summary-note">Dashboard display truth only. Engine, ledger, and exchange truth remain separate.</p>
       </section>
     </section>
+    """ + freshness_html + """
     <section class="scopebar" aria-label="runtime scope">
       """ + scope_html + """
     </section>
     <details class="detail-drawer" data-detail-key="main-detail-drawer">
       <summary>Detailed status, evidence, and validator logs</summary>
       <section class="detail-stack">
+        """ + operation_html + """
         """ + operator_html + """
         """ + reconciliation_html + """
         """ + workflow_html + """
@@ -17670,8 +17704,9 @@ def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationR
         "freshness_auto_fit": ".freshness-strip dl { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));",
         "freshness_source_summary_wrap": ".source-summary { display: flex; flex-wrap: wrap; gap: 6px; align-items: center;",
         "freshness_source_count_bound": ".source-count { display: inline-flex; align-items: center; max-width: 100%;",
-        "two_column_first_screen": ".summary-grid { display: grid; gap: 16px; grid-template-columns: minmax(420px, 1.35fr) minmax(320px, 1fr);",
-        "portfolio_summary_span": ".portfolio-summary { grid-row: span 2; }",
+        "three_answer_first_screen": ".operator-answer-grid { display: grid; gap: 16px; grid-template-columns: minmax(300px, 0.95fr) minmax(360px, 1.25fr) minmax(280px, 0.9fr);",
+        "answer_card_bound": ".operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 16px;",
+        "health_signal_auto_fit": ".answer-signal-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));",
         "kpi_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 128px), 1fr));",
         "ledger_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));",
         "quicklook_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));",
