@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-04T05:15:25Z",
+  "generated_at_utc": "2026-05-04T09:03:37Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -275,7 +275,7 @@
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
   "next_operator_action": "Use PAPER runtime-linked strategy/regime/cost evidence only as PAPER scorecard input; collect longer PAPER/SHADOW windows, OOS, walk-forward, bootstrap, read-only burn-in, manual order evidence, and operator approval while live remains blocked.",
-  "rollup_hash": "4E7EB5BE92CD70F6ACD510DA662844FFD8CA64C6FE2BB4F51AE29AB5AD287EE6",
+  "rollup_hash": "6508F338C14C5A26575D7099DBAE0E50F79B0E409D822C0DD11A5B26B24EC860",
   "runtime_linkage_evidence": {
     "status": "PASS",
     "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-paper-ledger-head-binding-guard-cycle-2.runtime_cycle.json",
@@ -329,6 +329,43 @@
       "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN"
     ],
     "explicit_insufficient_sample_blocker": true,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false
+  },
+  "robustness_source_type_evidence": {
+    "status": "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE",
+    "required_source_types": [
+      "OOS",
+      "WALK_FORWARD",
+      "BOOTSTRAP",
+      "CONCENTRATION"
+    ],
+    "present_source_types": [],
+    "missing_source_types": [
+      "OOS",
+      "WALK_FORWARD",
+      "BOOTSTRAP",
+      "CONCENTRATION"
+    ],
+    "source_type_counts": {
+      "oos_count": 0,
+      "walk_forward_count": 0,
+      "bootstrap_count": 0,
+      "concentration_count": 0
+    },
+    "min_required_per_source_type": 1,
+    "source_artifact_paths": [
+      "contracts/schema/overfit_diagnostic_report.schema.json",
+      "tests/validators/fixtures/overfit_diagnostic_pass.json"
+    ],
+    "source_evidence_ids": [
+      "REQ-MVP4-OOS-ROBUSTNESS-SCHEMA-HARDENING",
+      "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-IMPLEMENTATION-DEPTH-RECHECK"
+    ],
+    "primary_blocker_code": "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
+    "explicit_source_type_blocker": true,
     "live_order_ready": false,
     "live_order_allowed": false,
     "can_live_trade": false,

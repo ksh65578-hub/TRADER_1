@@ -828,6 +828,18 @@ PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
     "BLOCKING_VALIDATOR_FAIL_PRESENT",
 }
+PROFITABILITY_ROBUSTNESS_REQUIRED_SOURCE_TYPES = {
+    "OOS",
+    "WALK_FORWARD",
+    "BOOTSTRAP",
+    "CONCENTRATION",
+}
+PROFITABILITY_ROBUSTNESS_SOURCE_TYPE_COUNT_FIELDS = {
+    "OOS": "oos_count",
+    "WALK_FORWARD": "walk_forward_count",
+    "BOOTSTRAP": "bootstrap_count",
+    "CONCENTRATION": "concentration_count",
+}
 PROFITABILITY_EVIDENCE_FORBIDDEN_PHRASES = {
     "profit guaranteed",
     "guaranteed profit",
@@ -19258,6 +19270,69 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         blocking_validator_fail_count = int(promotion_thresholds.get("blocking_validator_fail_count", 0))
         if blocking_validator_fail_count > 0 and "BLOCKING_VALIDATOR_FAIL_PRESENT" not in missing_codes:
             errors.append("rollup promotion thresholds missing blocker code: BLOCKING_VALIDATOR_FAIL_PRESENT")
+
+    robustness_sources = rollup.get("robustness_source_type_evidence", {})
+    if not isinstance(robustness_sources, dict):
+        errors.append("rollup robustness_source_type_evidence must be an object")
+    else:
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            if _live_flag_is_true(robustness_sources.get(field)):
+                errors.append(f"rollup robustness source type evidence has forbidden true field: {field}")
+        if robustness_sources.get("status") != "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE":
+            errors.append("rollup robustness source type evidence must remain BLOCKED_FOR_SOURCE_TYPE_EVIDENCE")
+        if robustness_sources.get("primary_blocker_code") != "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED":
+            errors.append("rollup robustness source type evidence must preserve ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED")
+        if robustness_sources.get("explicit_source_type_blocker") is not True:
+            errors.append("rollup robustness source type evidence requires explicit source type blocker")
+
+        required_source_types = set(robustness_sources.get("required_source_types", []))
+        present_source_types = set(robustness_sources.get("present_source_types", []))
+        missing_source_types = set(robustness_sources.get("missing_source_types", []))
+        if required_source_types != PROFITABILITY_ROBUSTNESS_REQUIRED_SOURCE_TYPES:
+            errors.append("rollup robustness source type evidence must list all required source types")
+        if present_source_types - PROFITABILITY_ROBUSTNESS_REQUIRED_SOURCE_TYPES:
+            errors.append("rollup robustness source type evidence contains unknown present source types")
+        if missing_source_types != required_source_types - present_source_types:
+            errors.append("rollup robustness source type missing_source_types does not match required minus present")
+        if not missing_source_types:
+            errors.append("rollup robustness source type evidence must keep missing source types visible")
+
+        try:
+            min_required_per_source_type = int(robustness_sources.get("min_required_per_source_type", 1))
+        except (TypeError, ValueError):
+            min_required_per_source_type = 1
+            errors.append("rollup robustness source type minimum must be an integer")
+        counts = robustness_sources.get("source_type_counts", {})
+        if not isinstance(counts, dict):
+            errors.append("rollup robustness source_type_counts must be an object")
+            counts = {}
+        for source_type, count_field in PROFITABILITY_ROBUSTNESS_SOURCE_TYPE_COUNT_FIELDS.items():
+            try:
+                source_count = int(counts.get(count_field, 0))
+            except (TypeError, ValueError):
+                source_count = 0
+                errors.append(f"rollup robustness source type count must be integer: {count_field}")
+            if source_count < min_required_per_source_type and source_type not in missing_source_types:
+                errors.append(f"rollup robustness source type evidence missing blocker for {source_type}")
+            if source_count >= min_required_per_source_type and source_type in missing_source_types:
+                errors.append(f"rollup robustness source type evidence marks {source_type} missing despite sufficient count")
+        if robustness_sources.get("status") == "PASS" and missing_source_types:
+            errors.append("rollup robustness source type evidence claims PASS while source types are missing")
+
+        root = ROOT.resolve()
+        for path_index, source_artifact_path in enumerate(robustness_sources.get("source_artifact_paths", [])):
+            if not isinstance(source_artifact_path, str) or not source_artifact_path:
+                errors.append(f"rollup robustness source artifact path #{path_index} is not a non-empty string")
+                continue
+            source_path = Path(source_artifact_path)
+            if source_path.is_absolute():
+                errors.append("rollup robustness source artifact path must be repo-relative")
+                continue
+            resolved_source_path = (ROOT / source_path).resolve()
+            if resolved_source_path != root and root not in resolved_source_path.parents:
+                errors.append("rollup robustness source artifact path escapes repository root")
+            elif not resolved_source_path.is_file():
+                errors.append("rollup robustness source artifact path is missing")
 
     if rollup.get("status") != "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY":
         errors.append("rollup status must keep profitability evidence maturity blocked")

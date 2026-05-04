@@ -2058,6 +2058,21 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER_RUNTIME_HOURS_BELOW_MIN", maturity["promotion_threshold_missing_codes"])
         self.assertIn("HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN", maturity["promotion_threshold_missing_codes"])
         self.assertTrue(maturity["promotion_threshold_explicit_insufficient_sample_blocker"])
+        self.assertEqual(maturity["robustness_source_type_status"], "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE")
+        self.assertEqual(maturity["robustness_source_type_missing_count"], 4)
+        self.assertEqual(
+            maturity["robustness_source_type_missing_types"],
+            ["BOOTSTRAP", "CONCENTRATION", "OOS", "WALK_FORWARD"],
+        )
+        self.assertEqual(maturity["robustness_source_type_oos_count"], 0)
+        self.assertEqual(maturity["robustness_source_type_walk_forward_count"], 0)
+        self.assertEqual(maturity["robustness_source_type_bootstrap_count"], 0)
+        self.assertEqual(maturity["robustness_source_type_concentration_count"], 0)
+        self.assertEqual(
+            maturity["robustness_source_type_primary_blocker_code"],
+            "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
+        )
+        self.assertTrue(maturity["robustness_source_type_explicit_blocker"])
         self.assertEqual(maturity["paper_scorecard_component_pass_count"], 4)
         self.assertEqual(maturity["maturity_gap_count"], 6)
         self.assertTrue(any(item["status"] == "PAPER_SCORECARD_INPUT_ONLY" for item in maturity["maturity_components"]))
@@ -2117,6 +2132,18 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["rollup_source_status"], "BLOCKED")
         self.assertEqual(maturity["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
         self.assertEqual(maturity["maturity_gap_count"], 10)
+
+    def test_dashboard_blocks_profitability_rollup_hidden_robustness_source_type_gap(self):
+        rollup = profitability_maturity_rollup_fixture()
+        rollup["robustness_source_type_evidence"]["missing_source_types"] = []
+        dashboard = build_dashboard(profitability_maturity_rollup_report=rollup)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        maturity = dashboard["profitability_maturity"]
+        self.assertEqual(maturity["rollup_source_status"], "BLOCKED")
+        self.assertEqual(maturity["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(maturity["live_order_allowed"])
+        self.assertFalse(maturity["scale_up_allowed"])
 
     def test_dashboard_projects_candidate_scorecard_as_display_only(self):
         scorecard = candidate_scorecard_fixture()

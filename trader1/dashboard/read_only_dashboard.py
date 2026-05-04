@@ -490,6 +490,18 @@ PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
     "BLOCKING_VALIDATOR_FAIL_PRESENT",
 }
+PROFITABILITY_ROBUSTNESS_SOURCE_TYPE_STATUSES = {
+    "NOT_LOADED",
+    "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE",
+    "PASS",
+    "INVALID",
+}
+PROFITABILITY_ROBUSTNESS_SOURCE_TYPES = {
+    "OOS",
+    "WALK_FORWARD",
+    "BOOTSTRAP",
+    "CONCENTRATION",
+}
 CANDIDATE_SCORECARD_SOURCE_FILENAMES = {"NOT_LOADED", "candidate_scorecard.json"}
 CANDIDATE_SCORECARD_STATUSES = {"NOT_LOADED", "PAPER_RANKING_BLOCKED", "PAPER_RANKING_REVIEW_ONLY", "BLOCKED", "STALE"}
 RISK_EXPOSURE_STATUSES = {"LOW_RISK", "ATTENTION", "BLOCKED", "STALE", "UNVERIFIED"}
@@ -5132,6 +5144,79 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
     }
 
 
+def _robustness_source_type_projection(evidence: Any, *, missing_status: str = "NOT_LOADED") -> dict[str, Any]:
+    if not isinstance(evidence, dict):
+        return {
+            "robustness_source_type_status": missing_status,
+            "robustness_source_type_summary": "Robustness source type evidence is not loaded.",
+            "robustness_source_type_missing_count": 0,
+            "robustness_source_type_missing_types": [],
+            "robustness_source_type_present_types": [],
+            "robustness_source_type_min_required_per_type": 0,
+            "robustness_source_type_oos_count": 0,
+            "robustness_source_type_walk_forward_count": 0,
+            "robustness_source_type_bootstrap_count": 0,
+            "robustness_source_type_concentration_count": 0,
+            "robustness_source_type_primary_blocker_code": "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
+            "robustness_source_type_explicit_blocker": False,
+        }
+
+    status = str(evidence.get("status") or "INVALID")
+    required_types = set(evidence.get("required_source_types", []))
+    raw_present_types = evidence.get("present_source_types", [])
+    raw_missing_types = evidence.get("missing_source_types", [])
+    present_types = [
+        str(source_type)
+        for source_type in raw_present_types
+        if str(source_type) in PROFITABILITY_ROBUSTNESS_SOURCE_TYPES
+    ] if isinstance(raw_present_types, list) else []
+    missing_types = [
+        str(source_type)
+        for source_type in raw_missing_types
+        if str(source_type) in PROFITABILITY_ROBUSTNESS_SOURCE_TYPES
+    ] if isinstance(raw_missing_types, list) else []
+    counts = evidence.get("source_type_counts", {})
+    if not isinstance(counts, dict):
+        counts = {}
+    live_flag_drift = any(
+        evidence.get(flag) is True
+        for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    )
+    if (
+        status not in {"BLOCKED_FOR_SOURCE_TYPE_EVIDENCE", "PASS"}
+        or required_types != PROFITABILITY_ROBUSTNESS_SOURCE_TYPES
+        or len(present_types) != len(raw_present_types if isinstance(raw_present_types, list) else [])
+        or len(missing_types) != len(raw_missing_types if isinstance(raw_missing_types, list) else [])
+        or live_flag_drift
+    ):
+        status = "INVALID"
+    min_required = _safe_count(evidence.get("min_required_per_source_type"))
+    oos_count = _safe_count(counts.get("oos_count"))
+    walk_forward_count = _safe_count(counts.get("walk_forward_count"))
+    bootstrap_count = _safe_count(counts.get("bootstrap_count"))
+    concentration_count = _safe_count(counts.get("concentration_count"))
+    return {
+        "robustness_source_type_status": status,
+        "robustness_source_type_summary": (
+            f"OOS {oos_count}/{min_required}, walk-forward {walk_forward_count}/{min_required}, "
+            f"bootstrap {bootstrap_count}/{min_required}, concentration {concentration_count}/{min_required}; "
+            f"{len(missing_types)} robustness source types remain missing."
+        ),
+        "robustness_source_type_missing_count": len(missing_types),
+        "robustness_source_type_missing_types": sorted(missing_types),
+        "robustness_source_type_present_types": sorted(present_types),
+        "robustness_source_type_min_required_per_type": min_required,
+        "robustness_source_type_oos_count": oos_count,
+        "robustness_source_type_walk_forward_count": walk_forward_count,
+        "robustness_source_type_bootstrap_count": bootstrap_count,
+        "robustness_source_type_concentration_count": concentration_count,
+        "robustness_source_type_primary_blocker_code": str(
+            evidence.get("primary_blocker_code") or "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED"
+        ),
+        "robustness_source_type_explicit_blocker": evidence.get("explicit_source_type_blocker") is True,
+    }
+
+
 def _profitability_maturity_from_rollup(
     *,
     base: dict[str, Any],
@@ -5139,6 +5224,10 @@ def _profitability_maturity_from_rollup(
 ) -> dict[str, Any]:
     threshold_projection = _promotion_threshold_projection(
         rollup_report.get("promotion_threshold_evidence"),
+        missing_status="INVALID",
+    )
+    robustness_projection = _robustness_source_type_projection(
+        rollup_report.get("robustness_source_type_evidence"),
         missing_status="INVALID",
     )
     components = rollup_report.get("components", [])
@@ -5183,6 +5272,11 @@ def _profitability_maturity_from_rollup(
         or threshold_projection["promotion_threshold_missing_code_count"] <= 0
         or threshold_projection["promotion_threshold_explicit_insufficient_sample_blocker"] is not True
         or threshold_projection["promotion_threshold_high_or_critical_contract_gap_count"] <= 0
+        or robustness_projection["robustness_source_type_status"] in {"INVALID", "PASS"}
+        or robustness_projection["robustness_source_type_missing_count"] <= 0
+        or robustness_projection["robustness_source_type_explicit_blocker"] is not True
+        or robustness_projection["robustness_source_type_primary_blocker_code"]
+        != "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED"
     )
 
     if blocked:
@@ -5211,6 +5305,7 @@ def _profitability_maturity_from_rollup(
             "rollup_required_component_count": required_count,
             "rollup_coverage_complete": False,
             **threshold_projection,
+            **robustness_projection,
             "evidence_status": "FAIL",
             "evidence_progress_status": "BLOCKED",
             "evidence_progress_pct": 0,
@@ -5266,6 +5361,7 @@ def _profitability_maturity_from_rollup(
         "rollup_required_component_count": required_count,
         "rollup_coverage_complete": True,
         **threshold_projection,
+        **robustness_projection,
         "evidence_status": "WARN",
         "sample_summary": f"Rollup components {component_count}/{required_count}; PAPER/SHADOW evidence still maturing",
         "evidence_progress_status": "IN_PROGRESS" if input_component_count else "NOT_STARTED",
@@ -5493,6 +5589,7 @@ def _profitability_maturity(
         "rollup_required_component_count": len(PROFITABILITY_MATURITY_COMPONENT_IDS),
         "rollup_coverage_complete": False,
         **_promotion_threshold_projection(None),
+        **_robustness_source_type_projection(None),
         "evidence_status": "UNTESTED",
         "candidate_id": None,
         "strategy_id": None,
@@ -15051,6 +15148,38 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "loaded profitability rollup must keep open high contract gap visible", "HARD_TRUTH_MISSING")
         if "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN" not in threshold_codes:
             return DashboardValidationResult("BLOCKED", "loaded profitability rollup must list open high contract gap blocker", "HARD_TRUTH_MISSING")
+    robustness_status = maturity.get("robustness_source_type_status")
+    if robustness_status not in PROFITABILITY_ROBUSTNESS_SOURCE_TYPE_STATUSES:
+        return DashboardValidationResult("FAIL", "profitability robustness source type status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    robustness_missing_types = maturity.get("robustness_source_type_missing_types")
+    robustness_present_types = maturity.get("robustness_source_type_present_types")
+    if not isinstance(robustness_missing_types, list) or not isinstance(robustness_present_types, list):
+        return DashboardValidationResult("FAIL", "profitability robustness source type lists must be arrays", "SCHEMA_IDENTITY_MISMATCH")
+    if any(str(source_type) not in PROFITABILITY_ROBUSTNESS_SOURCE_TYPES for source_type in robustness_missing_types):
+        return DashboardValidationResult("FAIL", "profitability robustness missing source type is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if any(str(source_type) not in PROFITABILITY_ROBUSTNESS_SOURCE_TYPES for source_type in robustness_present_types):
+        return DashboardValidationResult("FAIL", "profitability robustness present source type is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("robustness_source_type_missing_count") != len(robustness_missing_types):
+        return DashboardValidationResult("FAIL", "profitability robustness missing source type count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    for field in (
+        "robustness_source_type_min_required_per_type",
+        "robustness_source_type_oos_count",
+        "robustness_source_type_walk_forward_count",
+        "robustness_source_type_bootstrap_count",
+        "robustness_source_type_concentration_count",
+    ):
+        value = maturity.get(field)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            return DashboardValidationResult("FAIL", f"{field} must be non-negative integer evidence", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("rollup_source_status") == "LOADED":
+        if robustness_status != "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE":
+            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must show blocked robustness source type evidence", "HARD_TRUTH_MISSING")
+        if not robustness_missing_types:
+            return DashboardValidationResult("BLOCKED", "loaded profitability rollup cannot hide missing robustness source types", "HARD_TRUTH_MISSING")
+        if maturity.get("robustness_source_type_explicit_blocker") is not True:
+            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must expose robustness source type blocker", "HARD_TRUTH_MISSING")
+        if maturity.get("robustness_source_type_primary_blocker_code") != "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED":
+            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must preserve robustness source type blocker code", "HARD_TRUTH_MISSING")
     if maturity.get("display_only") is not True or maturity.get("dashboard_truth_only") is not True:
         return DashboardValidationResult("BLOCKED", "profitability maturity must remain display-only", "LIVE_FINAL_GUARD_FAILED")
     if (
