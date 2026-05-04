@@ -12,32 +12,31 @@ sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
-PATCH_BASENAME = "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE"
+PATCH_BASENAME = "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_NEXT_TASK_RESTORE"
 PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
-REQUIREMENT_ID = "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-NEXT-TASK-RESTORE"
-PREVIOUS_REQUIREMENT_ID = "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-STATE-SYNC-RECHECK"
-UPSTREAM_REQUIREMENT_ID = "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-NEXT-TASK-RESTORE"
-GAP_ID = "MISSING_CYCLE_LEDGER_RERUN_REQUIRED"
-POST_RERUN_GAP_ID = "POST_RERUN_RECONCILIATION_REQUIRED"
-POST_RERUN_RECONCILIATION_NEXT_TASK_CLASS = "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK"
-POST_RERUN_RECONCILIATION_REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-RECONCILIATION-REQUIRED-STATE-SYNC-RECHECK"
-POST_RERUN_WRITE_BLOCKED_REQUIREMENT_ID = (
-    "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK"
-)
+REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-RECONCILIATION-REQUIRED-NEXT-TASK-RESTORE"
+RECONCILIATION_REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-RECONCILIATION-REQUIRED-STATE-SYNC-RECHECK"
+WRITE_BLOCKED_REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK"
+MISSING_CYCLE_NEXT_TASK_RESTORE_REQUIREMENT_ID = "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-NEXT-TASK-RESTORE"
+RECONCILIATION_BACKWARD_TASK = "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK"
+WRITE_BLOCKED_BACKWARD_TASK = "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK"
 NEXT_TASK_CLASS = "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK"
-BACKWARD_NEXT_TASK_CLASS = "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_RECHECK"
 
-PREVIOUS_PATCH_BASENAME = "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK"
-PREVIOUS_PATCH_ID = f"{PREVIOUS_PATCH_BASENAME}_20260504_001"
-PREVIOUS_PATCH_RESULT = f"system/evidence/patch_results/{PREVIOUS_PATCH_BASENAME}.patch_result.json"
-UPSTREAM_PATCH_BASENAME = "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE"
-UPSTREAM_PATCH_ID = f"{UPSTREAM_PATCH_BASENAME}_20260504_001"
-UPSTREAM_PATCH_RESULT = f"system/evidence/patch_results/{UPSTREAM_PATCH_BASENAME}.patch_result.json"
+RECONCILIATION_PATCH_RESULT = (
+    "system/evidence/patch_results/MVP4_POST_RERUN_RECONCILIATION_REQUIRED_STATE_SYNC_RECHECK.patch_result.json"
+)
+WRITE_BLOCKED_PATCH_RESULT = (
+    "system/evidence/patch_results/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.patch_result.json"
+)
+MISSING_CYCLE_NEXT_TASK_RESTORE_PATCH_RESULT = (
+    "system/evidence/patch_results/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE.patch_result.json"
+)
+MISSING_CYCLE_NEXT_TASK_RESTORE_PATCH_ID = "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE_20260504_001"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import tools.emit_missing_cycle_ledger_rerun_required_state_sync_recheck_patch_evidence as base_missing  # noqa: E402
+import tools.emit_post_rerun_current_evidence_write_blocked_recheck_patch_evidence as write_blocked  # noqa: E402
 from tools.emit_root_launcher_operator_visibility_patch_evidence import (  # noqa: E402
     rel,
     sha256_bytes,
@@ -53,15 +52,16 @@ from trader1.security.source_bundle import write_source_bundle_manifest  # noqa:
 from trader1.validation.mvp0_validators import run_validators  # noqa: E402
 
 
-VALIDATORS_REQUIRED = base_missing.VALIDATORS_REQUIRED
-BOOTSTRAP_VALIDATORS_REQUIRED = base_missing.BOOTSTRAP_VALIDATORS_REQUIRED
+VALIDATORS_REQUIRED = write_blocked.VALIDATORS_REQUIRED
+BOOTSTRAP_VALIDATORS_REQUIRED = write_blocked.BOOTSTRAP_VALIDATORS_REQUIRED
 CHANGED_ARTIFACTS = [
     "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
-    "tools/emit_paper_shadow_runtime_shadow_observation_gap_next_task_restore_patch_evidence.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
     "tools/emit_missing_cycle_ledger_rerun_required_next_task_restore_patch_evidence.py",
+    "tools/emit_post_rerun_reconciliation_required_next_task_restore_patch_evidence.py",
     f"contracts/generated/context_pack/{PATCH_BASENAME}.md",
 ]
-BLOCKERS = base_missing.BLOCKERS
+BLOCKERS = write_blocked.BLOCKERS
 FALSE_FIELDS = ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
 
 
@@ -100,55 +100,57 @@ def assert_false_fields(name: str, artifact: dict[str, Any], suffix: str = "") -
 
 
 def load_route_summary() -> dict[str, Any]:
-    previous_path = ROOT / PREVIOUS_PATCH_RESULT
-    upstream_path = ROOT / UPSTREAM_PATCH_RESULT
-    state_path = ROOT / "contracts" / "generated" / "current_implementation_state.json"
+    state = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
+    reconciliation = load_json(ROOT / RECONCILIATION_PATCH_RESULT)
+    blocked = load_json(ROOT / WRITE_BLOCKED_PATCH_RESULT)
+    missing_route = load_json(ROOT / MISSING_CYCLE_NEXT_TASK_RESTORE_PATCH_RESULT)
 
-    if not previous_path.exists():
-        raise RuntimeError(f"previous missing-cycle patch_result missing: {PREVIOUS_PATCH_RESULT}")
-    if not upstream_path.exists():
-        raise RuntimeError(f"upstream next-task restore patch_result missing: {UPSTREAM_PATCH_RESULT}")
+    completed = set(state.get("completed_requirement_ids", []))
+    required_completed = {
+        RECONCILIATION_REQUIREMENT_ID,
+        WRITE_BLOCKED_REQUIREMENT_ID,
+        MISSING_CYCLE_NEXT_TASK_RESTORE_REQUIREMENT_ID,
+    }
+    missing_completed = sorted(required_completed - completed)
+    if missing_completed:
+        raise RuntimeError(f"required completed requirement ids missing: {missing_completed}")
 
-    previous = load_json(previous_path)
-    upstream = load_json(upstream_path)
-    state = load_json(state_path)
+    if reconciliation.get("next_task_class") != WRITE_BLOCKED_BACKWARD_TASK:
+        raise RuntimeError("post-rerun reconciliation state-sync no longer routes to write-blocked recheck")
+    if blocked.get("next_task_class") != NEXT_TASK_CLASS:
+        raise RuntimeError("post-rerun write-blocked state-sync no longer routes to patch-result validator gap")
+    if missing_route.get("next_task_class") != RECONCILIATION_BACKWARD_TASK:
+        raise RuntimeError("missing-cycle next-task restore historical route changed unexpectedly")
 
-    if previous.get("patch_id") != PREVIOUS_PATCH_ID:
-        raise RuntimeError("previous missing-cycle state-sync patch_id drifted")
-    if previous.get("next_task_class") != POST_RERUN_RECONCILIATION_NEXT_TASK_CLASS:
-        raise RuntimeError("previous missing-cycle state-sync no longer routes to post-rerun reconciliation")
-    if upstream.get("patch_id") != UPSTREAM_PATCH_ID:
-        raise RuntimeError("upstream paper-shadow next-task restore patch_id drifted")
-    if PREVIOUS_REQUIREMENT_ID not in state.get("completed_requirement_ids", []):
-        raise RuntimeError("missing-cycle state-sync recheck is not recorded completed")
-    if GAP_ID not in state.get("open_contract_gap_ids", []):
-        raise RuntimeError("missing-cycle ledger rerun gap is no longer tracked as open")
-    if POST_RERUN_GAP_ID not in state.get("open_contract_gap_ids", []):
+    for path_text, artifact in (
+        (RECONCILIATION_PATCH_RESULT, reconciliation),
+        (WRITE_BLOCKED_PATCH_RESULT, blocked),
+        (MISSING_CYCLE_NEXT_TASK_RESTORE_PATCH_RESULT, missing_route),
+        ("contracts/generated/current_implementation_state.json", state),
+    ):
+        suffix = "_after" if path_text.endswith(".patch_result.json") else ""
+        assert_false_fields(path_text, artifact, suffix)
+
+    if "POST_RERUN_RECONCILIATION_REQUIRED" not in state.get("open_contract_gap_ids", []):
         raise RuntimeError("post-rerun reconciliation gap is no longer tracked as open")
+    if "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED" not in state.get("open_contract_gap_ids", []):
+        raise RuntimeError("post-rerun current evidence write-blocked gap is no longer tracked as open")
 
-    assert_false_fields(PREVIOUS_PATCH_RESULT, previous, "_after")
-    assert_false_fields(UPSTREAM_PATCH_RESULT, upstream, "_after")
-    assert_false_fields("current implementation state", state)
+    summary = dict(write_blocked.current_gap_summary())
+    observed_route = state.get("next_allowed_task_class")
+    route_before_patch = observed_route
+    if state.get("last_patch_id") in {PATCH_ID, MISSING_CYCLE_NEXT_TASK_RESTORE_PATCH_ID}:
+        route_before_patch = RECONCILIATION_BACKWARD_TASK
 
-    summary = dict(base_missing.current_gap_summary())
     summary.update(
         {
-            "route_before_patch": state.get("next_allowed_task_class"),
+            "route_before_patch": route_before_patch,
+            "observed_state_next_allowed_task_class": observed_route,
             "route_after_patch": NEXT_TASK_CLASS,
-            "backward_route_detected": state.get("next_allowed_task_class")
-            in {
-                BACKWARD_NEXT_TASK_CLASS,
-                POST_RERUN_RECONCILIATION_NEXT_TASK_CLASS,
-                "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK",
-            },
-            "post_rerun_reconciliation_state_sync_completed": POST_RERUN_RECONCILIATION_REQUIREMENT_ID
-            in state.get("completed_requirement_ids", []),
-            "post_rerun_write_blocked_state_sync_completed": POST_RERUN_WRITE_BLOCKED_REQUIREMENT_ID
-            in state.get("completed_requirement_ids", []),
-            "previous_patch_result_hash": previous.get("result_hash"),
-            "previous_patch_next_task_class": previous.get("next_task_class"),
-            "upstream_patch_result_hash": upstream.get("result_hash"),
-            "upstream_patch_next_task_class_before_generator_fix": upstream.get("next_task_class"),
+            "backward_route_detected": route_before_patch in {RECONCILIATION_BACKWARD_TASK, WRITE_BLOCKED_BACKWARD_TASK},
+            "reconciliation_patch_result_hash": reconciliation.get("result_hash"),
+            "write_blocked_patch_result_hash": blocked.get("result_hash"),
+            "missing_cycle_next_task_restore_patch_result_hash": missing_route.get("result_hash"),
             "state_last_patch_id_before": state.get("last_patch_id"),
             "state_last_patch_result_hash_before": state.get("last_patch_result_hash"),
         }
@@ -162,42 +164,40 @@ def update_context(now: str, trader_hash: str, agents_hash: str, summary: dict[s
         f"""# {PATCH_BASENAME}
 
 context_pack_id: {PATCH_BASENAME}
-task_class: MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE
+task_class: MVP4_POST_RERUN_RECONCILIATION_REQUIRED_NEXT_TASK_RESTORE
 source_trader1_sha256: {trader_hash}
 source_agents_sha256: {agents_hash}
-included_section_ids: ["SECTION_UPBIT_PAPER_RUNTIME", "SECTION_LEDGER_RECONCILIATION", "SECTION_RUNTIME_IDEMPOTENCY", "SECTION_CURRENT_EVIDENCE_CLOSURE", "SECTION_LIVE_FINAL_GUARD"]
-included_requirement_ids: ["{REQUIREMENT_ID}", "{PREVIOUS_REQUIREMENT_ID}", "{UPSTREAM_REQUIREMENT_ID}"]
-included_schema_ids: ["trader1.patch_result.v1", "trader1.upbit_paper_missing_cycle_rerun_guard_report.v1", "trader1.upbit_paper_bounded_rerun_staging_executor_report.v1", "trader1.upbit_paper_post_rerun_ledger_rollup_reconciliation_report.v1"]
+included_section_ids: ["SECTION_CURRENT_EVIDENCE_CLOSURE", "SECTION_LEDGER_RECONCILIATION", "SECTION_RUNTIME_IDEMPOTENCY", "SECTION_MVP0_VALIDATOR_IMPLEMENTATION", "SECTION_LIVE_FINAL_GUARD"]
+included_requirement_ids: ["{REQUIREMENT_ID}", "{RECONCILIATION_REQUIREMENT_ID}", "{WRITE_BLOCKED_REQUIREMENT_ID}", "{MISSING_CYCLE_NEXT_TASK_RESTORE_REQUIREMENT_ID}"]
+included_schema_ids: ["trader1.patch_result.v1", "trader1.upbit_paper_post_rerun_current_evidence_promotion_guard_report.v1", "trader1.upbit_paper_post_rerun_operator_reconciliation_queue_report.v1", "trader1.upbit_paper_post_rerun_resolution_current_evidence_closure_report.v1"]
 included_validator_ids: {json.dumps(VALIDATORS_REQUIRED)}
 included_artifact_ids: {json.dumps(CHANGED_ARTIFACTS)}
 
 acceptance_checklist:
-- Detect that the missing-cycle ledger rerun state-sync recheck is already complete.
-- Confirm {GAP_ID} and {POST_RERUN_GAP_ID} remain open and live-blocking.
-- Prevent current_implementation_state from routing back to completed missing-cycle state-sync work.
+- Detect that post-rerun reconciliation state-sync and current-evidence write-blocked state-sync are already complete.
+- Prevent current_implementation_state from routing back to {RECONCILIATION_BACKWARD_TASK} or {WRITE_BLOCKED_BACKWARD_TASK}.
 - Restore next_allowed_task_class to {NEXT_TASK_CLASS}.
+- Keep POST_RERUN_RECONCILIATION_REQUIRED and POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED open and live-blocking.
 - Keep live_order_ready=false, live_order_allowed=false, can_live_trade=false, scale_up_allowed=false.
 
 route_snapshot:
 - route_before_patch: {summary["route_before_patch"]}
 - backward_route_detected: {summary["backward_route_detected"]}
 - route_after_patch: {summary["route_after_patch"]}
-- previous_patch_next_task_class: {summary["previous_patch_next_task_class"]}
-- upstream_patch_next_task_class_before_generator_fix: {summary["upstream_patch_next_task_class_before_generator_fix"]}
 
 gap_snapshot:
-- guard_status: {summary["guard_status"]}
-- rerun_ready_item_count: {summary["rerun_ready_item_count"]}
-- missing_cycle_ledger_jsonl_total_count: {summary["missing_cycle_ledger_jsonl_total_count"]}
-- executor_status: {summary["executor_status"]}
-- staged_current_evidence_usable_count: {summary["staged_current_evidence_usable_count"]}
-- post_rerun_candidate_current_evidence_usable_count: {summary["post_rerun_candidate_current_evidence_usable_count"]}
-- current_evidence_write_allowed: {summary["current_evidence_write_allowed"]}
+- promotion_guard_status: {summary["promotion_guard_status"]}
+- current_evidence_write_authorized_count: {summary["current_evidence_write_authorized_count"]}
+- current_evidence_write_allowed_count: {summary["current_evidence_write_allowed_count"]}
+- candidate_current_evidence_usable_count: {summary["candidate_current_evidence_usable_count"]}
+- operator_reconciliation_required_count: {summary["operator_reconciliation_required_count"]}
+- unresolved_item_count: {summary["unresolved_item_count"]}
+- resolved_item_count: {summary["resolved_item_count"]}
 
 known_omissions_by_design:
-- No cycle is rerun by this patch.
-- No current ledger JSONL, latest pointer, current evidence, live config, credentialed API, live order, or scale-up output is written.
-- The missing-cycle and post-rerun reconciliation gaps remain open until independent reconciliation and current evidence closure evidence passes.
+- No post-rerun reconciliation is resolved by this patch.
+- No current evidence writer, latest pointer, live config, credentialed API, live order, or scale-up output is written.
+- POST_RERUN_RECONCILIATION_REQUIRED and POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED remain open until independent resolution and current-evidence closure evidence passes.
 
 conflict_resolution_rule:
 TRADER_1.md active authority wins over this context pack. This context pack is read cache only.
@@ -221,7 +221,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-The missing-cycle ledger rerun state-sync recheck is complete, and downstream post-rerun state-sync rechecks are already complete in the current state. Current routing must continue to the patch-result validator run gap instead of returning to completed missing-cycle or post-rerun rechecks.
+Post-rerun reconciliation and current-evidence write-blocked state-sync rechecks are already complete. The gaps remain open and live-blocking, and the next safe task is the patch-result validator run gap recheck.
 
 ## Next Safe Task
 
@@ -252,43 +252,47 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
     requirements.append(
         {
             "requirement_id": REQUIREMENT_ID,
-            "source_section_id": "SECTION_LEDGER_RECONCILIATION",
+            "source_section_id": "SECTION_CURRENT_EVIDENCE_CLOSURE",
             "source_file": "TRADER_1.md",
-            "source_heading": "missing cycle ledger rerun required next task restore",
+            "source_heading": "post-rerun reconciliation required next task restore",
             "full_text_marker": (
-                f"{REQUIREMENT_ID}: once the missing-cycle ledger rerun state-sync recheck is completed, "
-                "do not route current_implementation_state back to that completed recheck"
+                f"{REQUIREMENT_ID}: completed post-rerun state-sync rechecks must not route current state "
+                "back to completed reconciliation or current-evidence write-blocked rechecks"
             ),
             "authority_level": "ACTIVE_AUTHORITY",
-            "requirement_title": "Missing cycle ledger rerun next task restore",
+            "requirement_title": "Post-rerun reconciliation next task restore",
             "requirement_kind": "VALIDATOR_PATCH",
             "schema_ids": [
                 "trader1.patch_result.v1",
-                "trader1.upbit_paper_missing_cycle_rerun_guard_report.v1",
-                "trader1.upbit_paper_bounded_rerun_staging_executor_report.v1",
-                "trader1.upbit_paper_post_rerun_ledger_rollup_reconciliation_report.v1",
+                "trader1.upbit_paper_post_rerun_current_evidence_promotion_guard_report.v1",
+                "trader1.upbit_paper_post_rerun_operator_reconciliation_queue_report.v1",
+                "trader1.upbit_paper_post_rerun_resolution_current_evidence_closure_report.v1",
             ],
             "validator_ids": VALIDATORS_REQUIRED,
             "artifact_ids": artifacts,
-            "test_ids": ["tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py"],
+            "test_ids": [
+                "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+                "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+            ],
             "mvp_stage": "MVP-4",
             "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
             "blocking_level": "LIVE_BLOCKING",
             "live_affecting": True,
             "read_when": [
-                "SECTION_UPBIT_PAPER_RUNTIME",
+                "SECTION_CURRENT_EVIDENCE_CLOSURE",
                 "SECTION_LEDGER_RECONCILIATION",
                 "SECTION_RUNTIME_IDEMPOTENCY",
-                "SECTION_CURRENT_EVIDENCE_CLOSURE",
+                "SECTION_MVP0_VALIDATOR_IMPLEMENTATION",
                 "SECTION_LIVE_FINAL_GUARD",
             ],
             "depends_on": [
-                PREVIOUS_REQUIREMENT_ID,
-                UPSTREAM_REQUIREMENT_ID,
+                RECONCILIATION_REQUIREMENT_ID,
+                WRITE_BLOCKED_REQUIREMENT_ID,
+                MISSING_CYCLE_NEXT_TASK_RESTORE_REQUIREMENT_ID,
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
             "source_text_sha256": sha256_bytes(
-                b"completed missing cycle ledger rerun state sync must not route current state backward"
+                b"completed post rerun rechecks must not route current state backward"
             ),
             "source_authority_sha256": trader_hash,
             "implementation_status": "IMPLEMENTED_NEXT_TASK_RESTORE_GAPS_OPEN",
@@ -310,22 +314,29 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
     rows.append(
         {
             "requirement_id": REQUIREMENT_ID,
-            "section_id": "SECTION_LEDGER_RECONCILIATION",
+            "section_id": "SECTION_CURRENT_EVIDENCE_CLOSURE",
             "schema_files": [
                 "contracts/schema/patch_result.schema.json",
-                "contracts/schema/upbit_paper_missing_cycle_rerun_guard_report.schema.json",
-                "contracts/schema/upbit_paper_bounded_rerun_staging_executor_report.schema.json",
-                "contracts/schema/upbit_paper_post_rerun_ledger_rollup_reconciliation_report.schema.json",
+                "contracts/schema/upbit_paper_post_rerun_current_evidence_promotion_guard_report.schema.json",
+                "contracts/schema/upbit_paper_post_rerun_operator_reconciliation_queue_report.schema.json",
+                "contracts/schema/upbit_paper_post_rerun_resolution_current_evidence_closure_report.schema.json",
             ],
             "validator_files": ["trader1/validation/mvp0_validators.py"],
-            "test_files": ["tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py"],
+            "test_files": [
+                "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+                "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+            ],
             "fixture_files": [
-                base_missing.GUARD_REPORT,
-                base_missing.EXECUTOR_REPORT,
-                base_missing.POST_RERUN_RECONCILIATION_REPORT,
-                base_missing.POST_RERUN_BLOCKER_ROLLUP_REPORT,
-                PREVIOUS_PATCH_RESULT,
-                UPSTREAM_PATCH_RESULT,
+                RECONCILIATION_PATCH_RESULT,
+                WRITE_BLOCKED_PATCH_RESULT,
+                MISSING_CYCLE_NEXT_TASK_RESTORE_PATCH_RESULT,
+                write_blocked.PROMOTION_GUARD_REPORT,
+                write_blocked.OPERATOR_QUEUE_REPORT,
+                write_blocked.REVIEW_GUIDANCE_REPORT,
+                write_blocked.RESOLUTION_AUDIT_REPORT,
+                write_blocked.BLOCKER_ROLLUP_REPORT,
+                write_blocked.DECISION_AUDIT_REPORT,
+                write_blocked.CLOSURE_REPORT,
             ],
             "runtime_modules": [],
             "evidence_artifacts": [
@@ -364,10 +375,10 @@ def build_patch_result(
     now: str,
     tests_run: list[dict[str, Any]],
     validators_run: list[dict[str, Any]],
-    summary: dict[str, Any],
     validators_required: list[str],
+    summary: dict[str, Any],
 ) -> dict[str, Any]:
-    template = load_json(ROOT / PREVIOUS_PATCH_RESULT)
+    template = load_json(ROOT / WRITE_BLOCKED_PATCH_RESULT)
     patch_result = dict(template)
     patch_result.update(
         {
@@ -376,8 +387,9 @@ def build_patch_result(
             "patch_class": "VALIDATOR_PATCH",
             "affected_contract_ids": [
                 REQUIREMENT_ID,
-                PREVIOUS_REQUIREMENT_ID,
-                UPSTREAM_REQUIREMENT_ID,
+                RECONCILIATION_REQUIREMENT_ID,
+                WRITE_BLOCKED_REQUIREMENT_ID,
+                MISSING_CYCLE_NEXT_TASK_RESTORE_REQUIREMENT_ID,
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
             "affected_exchange": "UPBIT",
@@ -397,12 +409,11 @@ def build_patch_result(
             "current_implementation_state_updated": True,
             "next_task_class": NEXT_TASK_CLASS,
             "next_required_section_ids": [
-                "SECTION_LEDGER_RECONCILIATION",
-                "SECTION_RUNTIME_IDEMPOTENCY",
-                "SECTION_CURRENT_EVIDENCE_CLOSURE",
+                "SECTION_MVP0_VALIDATOR_IMPLEMENTATION",
                 "SECTION_LIVE_FINAL_GUARD",
+                "SECTION_PATCH_RESULT_SCHEMA",
             ],
-            "next_optional_section_ids": ["SECTION_DASHBOARD_OPERATOR_UX", "SECTION_PAPER_RUNTIME_RECOVERY"],
+            "next_optional_section_ids": ["SECTION_CURRENT_EVIDENCE_CLOSURE", "SECTION_DASHBOARD_OPERATOR_UX"],
             "next_forbidden_default_sections": ["MVP5_LIVE_PERMISSION", "LIVE_CONFIG_MUTATION", "RISK_SCALE_UP"],
             "live_order_ready_before": False,
             "live_order_ready_after": False,
@@ -418,28 +429,28 @@ def build_patch_result(
             "stage_gate_result_path": f"system/evidence/stage_gates/{PATCH_BASENAME}.stage_gate_result.json",
             "active_read_surface_used": [
                 "current_implementation_state",
-                PREVIOUS_PATCH_RESULT,
-                UPSTREAM_PATCH_RESULT,
-                "missing-cycle rerun guard report",
-                "bounded rerun staging executor report",
-                "post-rerun ledger rollup reconciliation report",
-                "SECTION_LEDGER_RECONCILIATION",
+                RECONCILIATION_PATCH_RESULT,
+                WRITE_BLOCKED_PATCH_RESULT,
+                MISSING_CYCLE_NEXT_TASK_RESTORE_PATCH_RESULT,
+                "post-rerun promotion guard report",
+                "post-rerun operator queue and resolution reports",
                 "SECTION_CURRENT_EVIDENCE_CLOSURE",
+                "SECTION_MVP0_VALIDATOR_IMPLEMENTATION",
                 "SECTION_LIVE_FINAL_GUARD",
             ],
-            "task_class": "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE",
+            "task_class": "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_NEXT_TASK_RESTORE",
             "required_section_ids": [
-                "SECTION_UPBIT_PAPER_RUNTIME",
+                "SECTION_CURRENT_EVIDENCE_CLOSURE",
                 "SECTION_LEDGER_RECONCILIATION",
                 "SECTION_RUNTIME_IDEMPOTENCY",
-                "SECTION_CURRENT_EVIDENCE_CLOSURE",
+                "SECTION_MVP0_VALIDATOR_IMPLEMENTATION",
                 "SECTION_LIVE_FINAL_GUARD",
             ],
             "expanded_section_ids": [
-                "SECTION_UPBIT_PAPER_RUNTIME",
+                "SECTION_CURRENT_EVIDENCE_CLOSURE",
                 "SECTION_LEDGER_RECONCILIATION",
                 "SECTION_RUNTIME_IDEMPOTENCY",
-                "SECTION_CURRENT_EVIDENCE_CLOSURE",
+                "SECTION_MVP0_VALIDATOR_IMPLEMENTATION",
                 "SECTION_LIVE_FINAL_GUARD",
             ],
             "forbidden_default_sections_respected": True,
@@ -452,35 +463,26 @@ def build_patch_result(
             "retained_archive_read": False,
             "full_document_read": False,
             "read_cache_invalidated": False,
-            "optimizer_status_before": "LIVE_BLOCKED_ROUTE_REGRESSION_DETECTED",
-            "optimizer_status_after": "POST_RERUN_RECONCILIATION_RECHECK_NEXT_LIVE_BLOCKED",
-            "optimizer_guardrail_result": "PASS_NO_LIVE_MUTATION_NO_CURRENT_EVIDENCE_PROMOTION",
             "optimizer_live_mutation_detected": False,
             "optimizer_live_order_allowed_after": False,
-            "profit_convergence_patch": "STATE_ROUTING_RESTORE_ONLY",
-            "convergence_layer_changed": False,
-            "convergence_state_before": "LIVE_BLOCKED_ROUTE_REGRESSION_DETECTED",
-            "convergence_state_after": "POST_RERUN_RECONCILIATION_RECHECK_NEXT_LIVE_BLOCKED",
-            "objective_profile_changed": False,
-            "memory_schema_changed": False,
-            "failure_analysis_required": False,
-            "failure_analysis_status": "NOT_CHANGED",
-            "exploration_exploitation_policy_changed": False,
-            "regime_adaptation_changed": False,
-            "risk_scaling_policy_changed": False,
-            "survival_layer_changed": False,
-            "convergence_guardrail_result": "PASS_NO_LIVE_PERMISSION_NO_SCALE_UP",
             "convergence_live_mutation_detected": False,
             "convergence_live_order_allowed_after": False,
             "scale_up_eligibility_changed": False,
-            "guard_status": summary["guard_status"],
-            "guard_item_count": summary["guard_item_count"],
-            "rerun_ready_item_count": summary["rerun_ready_item_count"],
-            "recovery_guard_blocked_item_count": summary["recovery_guard_blocked_item_count"],
-            "missing_cycle_ledger_jsonl_total_count": summary["missing_cycle_ledger_jsonl_total_count"],
-            "planned_staging_artifact_total_count": summary["planned_staging_artifact_total_count"],
-            "actual_rerun_executed": False,
-            "rerun_executor_created": False,
+            "post_rerun_current_evidence_promotion_guard_status": summary["promotion_guard_status"],
+            "post_rerun_promotion_review_ready_count": summary["promotion_review_ready_count"],
+            "post_rerun_promotion_candidate_verified_count": summary["promotion_candidate_verified_count"],
+            "post_rerun_operator_reconciliation_queue_status": summary["operator_queue_status"],
+            "post_rerun_operator_reconciliation_required_count": summary[
+                "operator_reconciliation_required_count"
+            ],
+            "post_rerun_operator_resolution_unresolved_item_count": summary["unresolved_item_count"],
+            "post_rerun_operator_resolution_resolved_item_count": summary["resolved_item_count"],
+            "post_rerun_resolution_current_evidence_closure_status": summary["closure_status"],
+            "post_rerun_current_evidence_write_authorized_count": summary[
+                "current_evidence_write_authorized_count"
+            ],
+            "post_rerun_current_evidence_write_allowed_count": summary["current_evidence_write_allowed_count"],
+            "candidate_current_evidence_usable_count": summary["candidate_current_evidence_usable_count"],
         }
     )
     patch_result["result_hash"] = patch_hash(patch_result)
@@ -515,7 +517,7 @@ def write_evidence(
             "created_at_utc": now,
             "patch_id": PATCH_ID,
             "target_mvp_level": "MVP-4",
-            "stage_gate_status": "PASS_NEXT_TASK_RESTORED_MISSING_CYCLE_AND_POST_RERUN_GAPS_REMAIN_OPEN",
+            "stage_gate_status": "PASS_NEXT_TASK_RESTORED_POST_RERUN_STATE_SYNCS_ALREADY_COMPLETE",
             **summary,
             "next_allowed_task_class": NEXT_TASK_CLASS,
             "live_order_ready": False,
@@ -535,12 +537,16 @@ def write_evidence(
                 "contracts/generated/requirement_artifact_matrix.json",
                 "contracts/security/source_bundle_manifest.json",
                 "system/evidence/implementation_patch_ledger.json",
-                PREVIOUS_PATCH_RESULT,
-                UPSTREAM_PATCH_RESULT,
-                base_missing.GUARD_REPORT,
-                base_missing.EXECUTOR_REPORT,
-                base_missing.POST_RERUN_RECONCILIATION_REPORT,
-                base_missing.POST_RERUN_BLOCKER_ROLLUP_REPORT,
+                RECONCILIATION_PATCH_RESULT,
+                WRITE_BLOCKED_PATCH_RESULT,
+                MISSING_CYCLE_NEXT_TASK_RESTORE_PATCH_RESULT,
+                write_blocked.PROMOTION_GUARD_REPORT,
+                write_blocked.OPERATOR_QUEUE_REPORT,
+                write_blocked.REVIEW_GUIDANCE_REPORT,
+                write_blocked.RESOLUTION_AUDIT_REPORT,
+                write_blocked.BLOCKER_ROLLUP_REPORT,
+                write_blocked.DECISION_AUDIT_REPORT,
+                write_blocked.CLOSURE_REPORT,
                 patch_result["validator_run_log_path"],
                 patch_result["stage_gate_result_path"],
                 f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
@@ -566,20 +572,19 @@ def write_evidence(
     )
     write_text(
         ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260504.md",
-        f"""# MVP4 Missing Cycle Ledger Rerun Next Task Restore Audit
+        f"""# MVP4 Post-Rerun Reconciliation Next Task Restore Audit
 
 created_at_utc: {now}
 patch_id: {PATCH_ID}
 
 Finding:
-- The missing-cycle ledger rerun state-sync recheck originally routed to {POST_RERUN_RECONCILIATION_NEXT_TASK_CLASS}.
-- Downstream post-rerun state-sync rechecks are already completed, so reruns must not route back to completed post-rerun rechecks.
+- Post-rerun reconciliation and current-evidence write-blocked state-sync rechecks are already complete.
+- The current state was routed back to {summary["route_before_patch"]}, which can repeat completed work.
 
 Patch:
-- Added a regression test that blocks routing back to completed missing-cycle and post-rerun state-sync rechecks.
-- Updated this next-task restore generator so reruns route to {NEXT_TASK_CLASS}.
+- Added regression tests that block routing back to completed post-rerun state-sync rechecks.
 - Restored current_implementation_state next_allowed_task_class to {NEXT_TASK_CLASS}.
-- Kept {GAP_ID} and {POST_RERUN_GAP_ID} open.
+- Preserved POST_RERUN_RECONCILIATION_REQUIRED and POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED as open blockers.
 
 Safety:
 - live_order_ready=false
@@ -601,7 +606,16 @@ def update_state_and_ledger(now: str, patch_result: dict[str, Any]) -> None:
     state["updated_at_utc"] = now
     state["current_mvp"] = "MVP-4"
     state["completed_requirement_ids"] = sorted(set(state.get("completed_requirement_ids", []) + [REQUIREMENT_ID]))
-    state["open_contract_gap_ids"] = sorted(set(state.get("open_contract_gap_ids", []) + [GAP_ID, POST_RERUN_GAP_ID]))
+    state["open_contract_gap_ids"] = sorted(
+        set(
+            state.get("open_contract_gap_ids", [])
+            + [
+                "PATCH_RESULT_VALIDATOR_RUN_GAP",
+                "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+                "POST_RERUN_RECONCILIATION_REQUIRED",
+            ]
+        )
+    )
     state["last_patch_id"] = PATCH_ID
     state["last_patch_result_hash"] = patch_result["result_hash"]
     state["next_allowed_task_class"] = NEXT_TASK_CLASS
@@ -633,6 +647,20 @@ def update_state_and_ledger(now: str, patch_result: dict[str, Any]) -> None:
     write_json(ledger_path, ledger)
 
 
+def write_patch_artifacts(
+    now: str,
+    trader_hash: str,
+    agents_hash: str,
+    patch_result: dict[str, Any],
+    summary: dict[str, Any],
+) -> None:
+    patch_path = ROOT / "system" / "evidence" / "patch_results" / f"{PATCH_BASENAME}.patch_result.json"
+    write_json(patch_path, patch_result)
+    write_evidence(now, trader_hash, agents_hash, patch_result, summary)
+    update_state_and_ledger(now, patch_result)
+    update_read_cache(now, trader_hash, agents_hash)
+
+
 def main() -> int:
     now = utc_now()
     trader_hash = sha256_file(ROOT / "TRADER_1.md")
@@ -644,18 +672,14 @@ def main() -> int:
     update_requirement_artifacts(now, trader_hash, agents_hash)
 
     tests_run: list[dict[str, Any]] = []
-    patch_path = ROOT / "system" / "evidence" / "patch_results" / f"{PATCH_BASENAME}.patch_result.json"
     patch_result = build_patch_result(
         now,
         tests_run,
         summarize_validators(run_validators(BOOTSTRAP_VALIDATORS_REQUIRED)),
-        summary,
         BOOTSTRAP_VALIDATORS_REQUIRED,
+        summary,
     )
-    write_json(patch_path, patch_result)
-    write_evidence(now, trader_hash, agents_hash, patch_result, summary)
-    update_state_and_ledger(now, patch_result)
-    update_read_cache(now, trader_hash, agents_hash)
+    write_patch_artifacts(now, trader_hash, agents_hash, patch_result, summary)
 
     tests_run.extend(
         [
@@ -667,6 +691,7 @@ def main() -> int:
                     "-m",
                     "unittest",
                     "tests.contract.test_missing_cycle_ledger_rerun_required_recheck",
+                    "tests.contract.test_post_rerun_current_evidence_write_blocked_recheck",
                     "-v",
                 ]
             ),
@@ -678,10 +703,13 @@ def main() -> int:
                     "pytest",
                     "-p",
                     "no:cacheprovider",
-                    "tests/runtime/test_upbit_paper_missing_cycle_rerun_guard.py",
-                    "tests/runtime/test_upbit_paper_bounded_rerun_staging_executor.py",
-                    "tests/runtime/test_upbit_paper_post_rerun_ledger_rollup_reconciliation.py",
+                    "tests/runtime/test_upbit_paper_post_rerun_current_evidence_promotion_guard.py",
                     "tests/runtime/test_upbit_paper_post_rerun_reconciliation_blocker_rollup.py",
+                    "tests/runtime/test_upbit_paper_post_rerun_reconciliation_decision_audit.py",
+                    "tests/runtime/test_upbit_paper_post_rerun_operator_reconciliation_queue.py",
+                    "tests/runtime/test_upbit_paper_post_rerun_operator_reconciliation_review_guidance.py",
+                    "tests/runtime/test_upbit_paper_post_rerun_operator_resolution_audit.py",
+                    "tests/runtime/test_upbit_paper_post_rerun_resolution_current_evidence_closure.py",
                     "-q",
                 ]
             ),
@@ -699,27 +727,22 @@ def main() -> int:
         now,
         tests_run,
         summarize_validators(run_validators(BOOTSTRAP_VALIDATORS_REQUIRED)),
-        summary,
         BOOTSTRAP_VALIDATORS_REQUIRED,
+        summary,
     )
-    write_json(patch_path, patch_result)
-    write_evidence(now, trader_hash, agents_hash, patch_result, summary)
-    update_state_and_ledger(now, patch_result)
-    update_read_cache(now, trader_hash, agents_hash)
+    write_patch_artifacts(now, trader_hash, agents_hash, patch_result, summary)
 
     patch_result = build_patch_result(
         now,
         tests_run,
         summarize_validators(run_validators(VALIDATORS_REQUIRED)),
-        summary,
         VALIDATORS_REQUIRED,
+        summary,
     )
-    write_json(patch_path, patch_result)
-    write_evidence(now, trader_hash, agents_hash, patch_result, summary)
-    update_state_and_ledger(now, patch_result)
-    update_read_cache(now, trader_hash, agents_hash)
+    write_patch_artifacts(now, trader_hash, agents_hash, patch_result, summary)
 
     failed = [item for item in patch_result["tests_run"] + patch_result["validators_run"] if item.get("status") != "PASS"]
+    patch_path = ROOT / "system" / "evidence" / "patch_results" / f"{PATCH_BASENAME}.patch_result.json"
     print(
         json.dumps(
             {
@@ -729,8 +752,8 @@ def main() -> int:
                 "result_hash": patch_result["result_hash"],
                 "route_before_patch": summary["route_before_patch"],
                 "next_allowed_task_class": NEXT_TASK_CLASS,
-                "guard_status": summary["guard_status"],
-                "executor_status": summary["executor_status"],
+                "current_evidence_write_allowed_count": summary["current_evidence_write_allowed_count"],
+                "candidate_current_evidence_usable_count": summary["candidate_current_evidence_usable_count"],
                 "live_order_ready": False,
                 "live_order_allowed": False,
                 "can_live_trade": False,
