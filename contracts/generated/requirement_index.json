@@ -7697,6 +7697,66 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK",
+      "source_section_id": "SECTION_LEDGER_RECONCILIATION",
+      "source_file": "TRADER_1.md",
+      "source_heading": "post-repair reconciliation required recheck",
+      "full_text_marker": "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK: blocked post-repair reconciliation must route to the specific repair candidate hash mismatch reconciliation gap without current-evidence, live, or scale-up mutation",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Post-repair reconciliation required recheck",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.upbit_paper_post_repair_reconciliation_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_post_repair_reconciliation_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK.md",
+        "system/evidence/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK.validator_run_log.json",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tools/emit_post_repair_reconciliation_required_recheck_patch_evidence.py"
+      ],
+      "test_ids": [
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/runtime/test_upbit_paper_post_repair_reconciliation.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-NEXT-TASK-RESTORE",
+        "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION",
+        "REQ-MVP4-UPBIT-PAPER-POST-REPAIR-RECONCILIATION-OPERATOR-UX-RECHECK",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "A77456FCB578A48464151AFA94FD7FDA37E41BE3FDB93678E5C6663DC1FF8F54",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_RECHECK_HASH_MISMATCH_GAP_OPEN",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK",
       "source_section_id": "SECTION_CURRENT_EVIDENCE_CLOSURE",
       "source_file": "TRADER_1.md",
@@ -18778,5 +18838,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-04T01:03:09Z"
+  "updated_at_utc": "2026-05-04T01:29:13Z"
 }
