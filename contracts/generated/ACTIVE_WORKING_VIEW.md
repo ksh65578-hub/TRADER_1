@@ -31,3 +31,16 @@ scale_up_allowed: false
 Post-repair reconciliation required depth has been rechecked as blocked. The repair candidate remains review-only, current evidence remains unusable, and the next task is:
 
 MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK
+
+## MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK
+
+updated_at_utc: 2026-05-04T13:39:03Z
+last_patch_id: MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_20260504_001
+live_order_ready: false
+live_order_allowed: false
+can_live_trade: false
+scale_up_allowed: false
+
+Repair candidate hash mismatch depth has been rechecked as blocked. The candidate rollup self-check still passes, the source expected rollup artifact is still missing, current evidence remains unusable, and the next task is:
+
+MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK

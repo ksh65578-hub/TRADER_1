@@ -10,28 +10,28 @@ PATCH_PATH = (
     / "system"
     / "evidence"
     / "patch_results"
-    / "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json"
+    / "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json"
 )
 STAGE_GATE_PATH = (
     ROOT
     / "system"
     / "evidence"
     / "stage_gates"
-    / "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json"
+    / "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json"
 )
 DEPTH_REPORT_PATH = (
     ROOT
     / "system"
     / "evidence"
     / "audit_reports"
-    / "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.json"
+    / "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.json"
 )
 CONTRACT_GAP_PATH = (
     ROOT
     / "system"
     / "evidence"
     / "contract_gaps"
-    / "POST_REPAIR_RECONCILIATION_REQUIRED.contract_gap.json"
+    / "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED.contract_gap.json"
 )
 RUNTIME_BASE = (
     ROOT
@@ -43,52 +43,50 @@ RUNTIME_BASE = (
     / "mvp1_upbit_paper_launcher"
     / "paper_runtime"
 )
-REQUIREMENT_ID = "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK"
-GAP_ID = "POST_REPAIR_RECONCILIATION_REQUIRED"
-NEXT_TASK_CLASS = "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
-HASH_MISMATCH_DEPTH_REQUIREMENT_ID = (
+REQUIREMENT_ID = (
     "REQ-MVP4-REPAIR-CANDIDATE-HASH-MISMATCH-RECONCILIATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK"
 )
-AFTER_HASH_MISMATCH_DEPTH_NEXT_TASK = (
-    "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK"
-)
+GAP_ID = "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED"
+NEXT_TASK_CLASS = "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK"
 
 
 def load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-class PostRepairReconciliationRequiredImplementationDepthRecheckTest(unittest.TestCase):
-    def test_depth_recheck_keeps_post_repair_candidate_review_only(self):
+class RepairCandidateHashMismatchImplementationDepthRecheckTest(unittest.TestCase):
+    def test_depth_recheck_keeps_hash_mismatch_operator_action_required(self):
         patch_result = load_json(PATCH_PATH)
         stage_gate = load_json(STAGE_GATE_PATH)
         depth_report = load_json(DEPTH_REPORT_PATH)
 
         self.assertEqual(
             patch_result["patch_id"],
-            "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_20260504_001",
+            "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_20260504_001",
         )
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
         self.assertEqual(
             depth_report["status"],
-            "PASS_DEPTH_5_POST_REPAIR_RECONCILIATION_REQUIRED_LIVE_BLOCKING",
+            "PASS_DEPTH_5_REPAIR_CANDIDATE_HASH_MISMATCH_LIVE_BLOCKING",
         )
         self.assertEqual(
             stage_gate["stage_gate_status"],
-            "PASS_POST_REPAIR_RECONCILIATION_REQUIRED_DEPTH_RECHECK_LIVE_BLOCKING",
+            "PASS_REPAIR_CANDIDATE_HASH_MISMATCH_DEPTH_RECHECK_OPERATOR_ACTION_REQUIRED",
         )
 
-        self.assertEqual(depth_report["post_repair_reconciliation_status"], "BLOCKED")
-        self.assertEqual(depth_report["primary_blocker_code"], GAP_ID)
+        self.assertEqual(depth_report["hash_mismatch_blocker_code"], GAP_ID)
+        self.assertEqual(depth_report["hash_reconciliation_status"], "SOURCE_EXPECTED_ROLLUP_ARTIFACT_MISSING")
+        self.assertEqual(depth_report["source_loop_expected_rollup_artifact_load_status"], "MISSING")
+        self.assertFalse(depth_report["source_loop_expected_rollup_artifact_exists"])
+        self.assertFalse(depth_report["source_loop_expected_rollup_hash_match"])
+        self.assertEqual(depth_report["candidate_rollup_hash_self_check"], "PASS")
+        self.assertEqual(depth_report["candidate_rollup_hash"], depth_report["candidate_rollup_recomputed_hash"])
         self.assertEqual(depth_report["repair_candidate_count"], 1)
-        self.assertEqual(depth_report["reconciliation_item_count"], 1)
         self.assertEqual(depth_report["source_loop_expected_rollup_hash_mismatch_count"], 1)
         self.assertEqual(depth_report["hash_operator_reconciliation_required_count"], 1)
-        self.assertEqual(depth_report["operator_queue_status"], "BLOCKED")
-        self.assertEqual(depth_report["operator_queue_item_count"], 6)
-        self.assertEqual(depth_report["operator_queue_hash_required_count"], 1)
         self.assertEqual(depth_report["candidate_current_evidence_usable_count"], 0)
-        self.assertEqual(depth_report["operator_queue_candidate_current_evidence_usable_count"], 0)
+        self.assertTrue(depth_report["operator_queue_hash_item_review_ready"])
+        self.assertTrue(depth_report["operator_queue_hash_item_requires_hash_reconciliation"])
         self.assertFalse(depth_report["current_evidence_mutation_allowed"])
         self.assertFalse(depth_report["persistent_loop_mutation_allowed"])
         self.assertFalse(depth_report["source_delete_allowed"])
@@ -120,18 +118,15 @@ class PostRepairReconciliationRequiredImplementationDepthRecheckTest(unittest.Te
         self.assertEqual(gap["market_type"], "KRW_SPOT")
         self.assertEqual(gap["mode"], "PAPER")
 
-    def test_state_routes_forward_after_post_repair_depth_recheck(self):
+    def test_state_routes_forward_after_hash_mismatch_depth_recheck(self):
         state = load_json(STATE_PATH)
         patch_result = load_json(PATCH_PATH)
 
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
         self.assertIn(GAP_ID, state["open_contract_gap_ids"])
         self.assertIn(GAP_ID, patch_result["remaining_blockers"])
-        if HASH_MISMATCH_DEPTH_REQUIREMENT_ID in state["completed_requirement_ids"]:
-            self.assertEqual(state["next_allowed_task_class"], AFTER_HASH_MISMATCH_DEPTH_NEXT_TASK)
-        else:
-            self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
-            self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
+        self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
+        self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
 
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             self.assertFalse(state[field])
