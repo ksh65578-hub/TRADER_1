@@ -1,11 +1,11 @@
 # ACTIVE_WORKING_VIEW
 
-generated_at_utc: 2026-05-04T03:02:40Z
+generated_at_utc: 2026-05-04T03:29:37Z
 source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
 source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
 authority_status: READ_CACHE_NOT_AUTHORITY
 current_mvp: MVP-4
-last_patch_id: MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK_20260504_001
+last_patch_id: MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_20260504_001
 live_order_ready: false
 live_order_allowed: false
 can_live_trade: false
@@ -13,8 +13,8 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Upbit PAPER stale-loop safe regeneration has already created 16 current-schema replacement copies while retaining sources. The result is still PAPER-only evidence and remains blocked on post-regeneration reconciliation; it is not long-run, live, promotion, or scale-up evidence.
+The stale-loop post-regeneration reconciliation gap is decomposed into an operator queue. Five blocked regenerated PAPER replacements are ledger-recheck-ready, one remains recovery-guard-required, and zero are current-evidence-writable or live eligible.
 
 ## Next Safe Task
 
-MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK
+MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK
