@@ -60,6 +60,13 @@ def upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_hash(report: dict[str,
 def isolated_candidate_ledger_rollup_hash(report: dict[str, Any]) -> str:
     payload = dict(report)
     payload.pop("candidate_rollup_hash", None)
+    payload.pop("generated_at_utc", None)
+    return _sha256_json(payload)
+
+
+def isolated_candidate_ledger_rollup_legacy_hash(report: dict[str, Any]) -> str:
+    payload = dict(report)
+    payload.pop("candidate_rollup_hash", None)
     return _sha256_json(payload)
 
 
@@ -347,7 +354,10 @@ def _write_candidate_rollup(*, root: Path, path: str, candidate_rollup: dict[str
             existing = json.loads(target.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError, json.JSONDecodeError):
             return "BLOCKED_EXISTING_UNREADABLE", False, False
-        if isinstance(existing, dict) and existing.get("candidate_rollup_hash") == candidate_rollup.get("candidate_rollup_hash"):
+        if isinstance(existing, dict) and (
+            existing.get("candidate_rollup_hash") == candidate_rollup.get("candidate_rollup_hash")
+            or isolated_candidate_ledger_rollup_hash(existing) == isolated_candidate_ledger_rollup_hash(candidate_rollup)
+        ):
             return "REUSED_EXISTING_MATCH", False, True
         return "BLOCKED_EXISTING_MISMATCH", False, False
     durable_atomic_write_json(target, candidate_rollup)
@@ -653,7 +663,10 @@ def validate_upbit_paper_stale_loop_isolated_ledger_rollup_rebuild_report(
                 "BLOCKED", "isolated ledger rollup item attempted forbidden write or live permission", "LIVE_FINAL_GUARD_FAILED"
             )
         candidate_rollup = item.get("candidate_rollup")
-        if not isinstance(candidate_rollup, dict) or candidate_rollup.get("candidate_rollup_hash") != isolated_candidate_ledger_rollup_hash(candidate_rollup):
+        if not isinstance(candidate_rollup, dict) or candidate_rollup.get("candidate_rollup_hash") not in {
+            isolated_candidate_ledger_rollup_hash(candidate_rollup),
+            isolated_candidate_ledger_rollup_legacy_hash(candidate_rollup),
+        }:
             return UpbitPaperStaleLoopIsolatedLedgerRollupRebuildValidationResult(
                 "FAIL", "isolated candidate rollup hash mismatch", "SCHEMA_IDENTITY_MISMATCH"
             )

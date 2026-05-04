@@ -13,8 +13,15 @@ PATCH_PATH = (
     / "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.patch_result.json"
 )
 COMPLETED_REQUIREMENT_ID = "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-STATE-SYNC-RECHECK"
+COMPLETED_POST_RERUN_RECONCILIATION_REQUIREMENT_ID = (
+    "REQ-MVP4-POST-RERUN-RECONCILIATION-REQUIRED-STATE-SYNC-RECHECK"
+)
+COMPLETED_POST_RERUN_WRITE_BLOCKED_REQUIREMENT_ID = (
+    "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK"
+)
 BACKWARD_NEXT_TASK = "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_RECHECK"
 EXPECTED_NEXT_TASK = "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK"
+EXPECTED_DOWNSTREAM_NEXT_TASK = "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK"
 RUNTIME_BASE = (
     ROOT
     / "system"
@@ -102,6 +109,29 @@ class MissingCycleLedgerRerunRequiredRecheckTest(unittest.TestCase):
         self.assertIn("MISSING_CYCLE_LEDGER_RERUN_REQUIRED", state["open_contract_gap_ids"])
         self.assertIn("POST_RERUN_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
         self.assertNotEqual(state["next_allowed_task_class"], BACKWARD_NEXT_TASK)
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(state[field])
+
+    def test_completed_downstream_post_rerun_rechecks_do_not_route_backward(self):
+        state = load_json(STATE_PATH)
+        completed = set(state["completed_requirement_ids"])
+        required_completed = {
+            COMPLETED_REQUIREMENT_ID,
+            COMPLETED_POST_RERUN_RECONCILIATION_REQUIREMENT_ID,
+            COMPLETED_POST_RERUN_WRITE_BLOCKED_REQUIREMENT_ID,
+        }
+        if not required_completed.issubset(completed):
+            self.skipTest("downstream post-rerun state-sync rechecks have not completed yet")
+
+        self.assertNotIn(
+            state["next_allowed_task_class"],
+            {
+                BACKWARD_NEXT_TASK,
+                "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK",
+                "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK",
+            },
+        )
+        self.assertEqual(state["next_allowed_task_class"], EXPECTED_DOWNSTREAM_NEXT_TASK)
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             self.assertFalse(state[field])
 

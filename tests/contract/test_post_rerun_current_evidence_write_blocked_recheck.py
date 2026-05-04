@@ -12,6 +12,11 @@ PATCH_PATH = (
     / "patch_results"
     / "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.patch_result.json"
 )
+COMPLETED_RECONCILIATION_REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-RECONCILIATION-REQUIRED-STATE-SYNC-RECHECK"
+COMPLETED_WRITE_BLOCKED_REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK"
+BACKWARD_RECONCILIATION_TASK = "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK"
+BACKWARD_WRITE_BLOCKED_TASK = "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK"
+EXPECTED_NEXT_TASK = "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK"
 RUNTIME_BASE = (
     ROOT
     / "system"
@@ -100,6 +105,24 @@ class PostRerunCurrentEvidenceWriteBlockedRecheckTest(unittest.TestCase):
             "optimizer_live_order_allowed_after",
         ):
             self.assertFalse(patch_result[field])
+
+    def test_completed_post_rerun_state_syncs_do_not_route_backward(self):
+        state = load_json(STATE_PATH)
+        completed = set(state["completed_requirement_ids"])
+        if not {COMPLETED_RECONCILIATION_REQUIREMENT_ID, COMPLETED_WRITE_BLOCKED_REQUIREMENT_ID}.issubset(
+            completed
+        ):
+            self.skipTest("post-rerun state-sync rechecks have not both completed yet")
+
+        self.assertIn("POST_RERUN_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
+        self.assertIn("POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED", state["open_contract_gap_ids"])
+        self.assertNotIn(
+            state["next_allowed_task_class"],
+            {BACKWARD_RECONCILIATION_TASK, BACKWARD_WRITE_BLOCKED_TASK},
+        )
+        self.assertEqual(state["next_allowed_task_class"], EXPECTED_NEXT_TASK)
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(state[field])
 
     def test_historical_post_rerun_patch_results_preserve_write_blocked_boundary(self):
         patch_names = [
