@@ -1,0 +1,43 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_DASHBOARD_OPERATOR_FOCUS_SIMPLIFICATION_EVIDENCE",
+  "created_at_utc": "2026-05-04T11:30:01Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_DASHBOARD_OPERATOR_FOCUS_SIMPLIFICATION_20260504_001",
+  "artifact_paths": [
+    "trader1/dashboard/read_only_dashboard.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tools/emit_dashboard_operator_focus_simplification_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_DASHBOARD_OPERATOR_FOCUS_SIMPLIFICATION.md",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+    "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard/index.html",
+    "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard/index.html",
+    "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard/index.html",
+    "system/evidence/validator_runs/MVP4_DASHBOARD_OPERATOR_FOCUS_SIMPLIFICATION.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_DASHBOARD_OPERATOR_FOCUS_SIMPLIFICATION.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_DASHBOARD_OPERATOR_FOCUS_SIMPLIFICATION.patch_result.json"
+  ],
+  "known_blockers": [
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
