@@ -1,0 +1,135 @@
+import json
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+STATE_PATH = ROOT / "contracts" / "generated" / "current_implementation_state.json"
+PATCH_PATH = (
+    ROOT
+    / "system"
+    / "evidence"
+    / "patch_results"
+    / "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK.patch_result.json"
+)
+BLOCKED_REPAIR_PLAN_PATH = (
+    ROOT
+    / "system"
+    / "runtime"
+    / "upbit"
+    / "krw_spot"
+    / "paper"
+    / "mvp1_upbit_paper_launcher"
+    / "paper_runtime"
+    / "upbit_paper_blocked_repair_plan_report.json"
+)
+REPAIR_QUEUE_PATH = (
+    ROOT
+    / "system"
+    / "runtime"
+    / "upbit"
+    / "krw_spot"
+    / "paper"
+    / "mvp1_upbit_paper_launcher"
+    / "paper_runtime"
+    / "upbit_paper_repair_operator_queue_report.json"
+)
+REQUIREMENT_ID = "REQ-MVP4-BLOCKED-REPAIR-PLAN-REQUIRES-OPERATOR-RECONCILIATION-RECHECK"
+BLOCKER = "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION"
+NEXT_TASK = "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK"
+
+
+def load_json(path: Path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+class BlockedRepairPlanRequiresOperatorReconciliationRecheckTest(unittest.TestCase):
+    def test_blocked_repair_plan_keeps_all_repair_lanes_operator_blocked(self):
+        report = load_json(BLOCKED_REPAIR_PLAN_PATH)
+
+        self.assertEqual(report["repair_plan_status"], "BLOCKED")
+        self.assertEqual(report["primary_blocker_code"], BLOCKER)
+        self.assertIn(BLOCKER, report["blocker_codes"])
+        self.assertEqual(report["repair_item_count"], 6)
+        self.assertEqual(report["ledger_rollup_rebuild_ready_count"], 1)
+        self.assertEqual(report["runtime_cycle_rerun_required_count"], 5)
+        self.assertEqual(report["recovery_guard_rerun_required_count"], 1)
+        self.assertEqual(report["missing_cycle_ledger_jsonl_total_count"], 10)
+        self.assertEqual(report["missing_paper_ledger_rollup_artifact_count"], 6)
+        self.assertFalse(report["current_evidence_mutation_allowed"])
+        self.assertFalse(report["generated_artifact_mutation_allowed"])
+        self.assertFalse(report["source_delete_allowed"])
+
+        lanes = [item["safe_repair_lane"] for item in report["items"]]
+        self.assertEqual(lanes.count("LEDGER_ROLLUP_REBUILD_READY"), 1)
+        self.assertEqual(lanes.count("RERUN_RUNTIME_CYCLES_THEN_LEDGER_ROLLUP"), 4)
+        self.assertEqual(lanes.count("RECOVERY_GUARD_THEN_LEDGER_ROLLUP"), 1)
+        for item in report["items"]:
+            self.assertFalse(item["current_evidence_mutation_allowed"])
+            self.assertFalse(item["source_delete_allowed"])
+            self.assertFalse(item["live_permission_created"])
+            for step in item["repair_steps"]:
+                self.assertFalse(step["mutates_current_evidence"])
+                self.assertFalse(step["live_permission_created"])
+
+    def test_repair_operator_queue_preserves_same_blocked_scope_without_current_evidence(self):
+        queue = load_json(REPAIR_QUEUE_PATH)
+
+        self.assertEqual(queue["queue_status"], "BLOCKED")
+        self.assertEqual(queue["queue_item_count"], 6)
+        self.assertEqual(queue["ledger_candidate_review_ready_count"], 1)
+        self.assertEqual(queue["runtime_cycle_rerun_required_count"], 5)
+        self.assertEqual(queue["recovery_guard_rerun_required_count"], 1)
+        self.assertEqual(queue["candidate_current_evidence_usable_count"], 0)
+        self.assertFalse(queue["current_evidence_mutation_allowed"])
+        self.assertFalse(queue["persistent_loop_mutation_allowed"])
+        self.assertFalse(queue["source_delete_allowed"])
+        self.assertFalse(queue["live_order_allowed"])
+        self.assertFalse(queue["scale_up_allowed"])
+
+    def test_recheck_patch_routes_to_regenerated_blocked_repair_gap_without_resolving_blockers(self):
+        if not PATCH_PATH.exists():
+            self.skipTest("blocked repair plan recheck patch has not been generated yet")
+        state = load_json(STATE_PATH)
+        patch_result = load_json(PATCH_PATH)
+
+        self.assertEqual(
+            patch_result["patch_id"],
+            "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK_20260504_001",
+        )
+        self.assertEqual(patch_result["next_task_class"], NEXT_TASK)
+        self.assertIn(BLOCKER, patch_result["remaining_blockers"])
+        self.assertIn(
+            "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+            patch_result["remaining_blockers"],
+        )
+        self.assertEqual(patch_result["blocked_repair_plan_status"], "BLOCKED")
+        self.assertEqual(patch_result["blocked_repair_plan_item_count"], 6)
+        self.assertEqual(patch_result["blocked_repair_plan_ledger_rollup_rebuild_ready_count"], 1)
+        self.assertEqual(patch_result["blocked_repair_plan_runtime_cycle_rerun_required_count"], 5)
+        self.assertEqual(patch_result["blocked_repair_plan_recovery_guard_rerun_required_count"], 1)
+        self.assertEqual(patch_result["repair_operator_queue_status"], "BLOCKED")
+        self.assertEqual(patch_result["repair_operator_queue_candidate_current_evidence_usable_count"], 0)
+
+        if REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
+        self.assertIn(BLOCKER, state["open_contract_gap_ids"])
+        self.assertIn(
+            "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+            state["open_contract_gap_ids"],
+        )
+        for field in (
+            "live_order_ready_after",
+            "live_order_allowed_after",
+            "can_live_trade_after",
+            "scale_up_allowed_after",
+            "convergence_live_order_allowed_after",
+            "optimizer_live_order_allowed_after",
+        ):
+            self.assertFalse(patch_result[field])
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(state[field])
+
+
+if __name__ == "__main__":
+    unittest.main()

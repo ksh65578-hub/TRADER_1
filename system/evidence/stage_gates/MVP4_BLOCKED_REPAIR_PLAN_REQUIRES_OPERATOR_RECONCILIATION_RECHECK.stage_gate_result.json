@@ -1,0 +1,66 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-04T02:03:09Z",
+  "patch_id": "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK_20260504_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_BLOCKED_REPAIR_PLAN_RECHECK_REMAINS_OPERATOR_RECONCILIATION_REQUIRED",
+  "route_before_patch": "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK",
+  "route_after_patch": "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK",
+  "state_last_patch_id_before": "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK_20260504_001",
+  "state_last_patch_result_hash_before": "3C483DA504FE88067676E080992E1CE4417CF58126CA90621D0093A7DD5F0F27",
+  "previous_patch_result_hash": "BA0E4F8E4481FCD36C9761964948B0D8D9F97C4FFC17C3E58FD6395D6D5EEAEF",
+  "blocked_repair_plan_status": "BLOCKED",
+  "blocked_repair_plan_item_count": 6,
+  "blocked_repair_plan_ledger_rollup_rebuild_ready_count": 1,
+  "blocked_repair_plan_runtime_cycle_rerun_required_count": 5,
+  "blocked_repair_plan_recovery_guard_rerun_required_count": 1,
+  "blocked_repair_plan_missing_cycle_ledger_jsonl_total_count": 10,
+  "blocked_repair_plan_missing_paper_ledger_rollup_artifact_count": 6,
+  "blocked_repair_plan_lane_counts": [
+    {
+      "count": 1,
+      "safe_repair_lane": "LEDGER_ROLLUP_REBUILD_READY"
+    },
+    {
+      "count": 1,
+      "safe_repair_lane": "RECOVERY_GUARD_THEN_LEDGER_ROLLUP"
+    },
+    {
+      "count": 4,
+      "safe_repair_lane": "RERUN_RUNTIME_CYCLES_THEN_LEDGER_ROLLUP"
+    }
+  ],
+  "repair_operator_queue_status": "BLOCKED",
+  "repair_operator_queue_item_count": 6,
+  "repair_operator_queue_ledger_candidate_review_ready_count": 1,
+  "repair_operator_queue_candidate_current_evidence_usable_count": 0,
+  "remaining_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "API_UNVERIFIED",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "OPERATOR_APPROVAL_MISSING",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE",
+    "STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED",
+    "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED",
+    "STALE_LOOP_REGENERATION_REQUIRED"
+  ],
+  "next_allowed_task_class": "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

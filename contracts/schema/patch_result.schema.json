@@ -600,6 +600,33 @@
       "type": "integer",
       "minimum": 0
     },
+    "blocked_repair_plan_status": {
+      "type": "string"
+    },
+    "blocked_repair_plan_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blocked_repair_plan_ledger_rollup_rebuild_ready_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blocked_repair_plan_runtime_cycle_rerun_required_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blocked_repair_plan_recovery_guard_rerun_required_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blocked_repair_plan_missing_cycle_ledger_jsonl_total_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blocked_repair_plan_missing_paper_ledger_rollup_artifact_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "stale_loop_post_regeneration_reconciliation_status": {
       "type": "string"
     },
