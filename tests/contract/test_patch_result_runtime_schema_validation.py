@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 from trader1.validation.mvp0_validators import (
+    _patch_result_gap_artifact_errors,
     _patch_result_instance_errors,
     _patch_result_unbaselined_gaps,
     _patch_result_validator_run_gaps,
@@ -61,6 +62,12 @@ ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK_REQUIREME
 )
 AFTER_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK = (
     "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK"
+)
+PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-IMPLEMENTATION-DEPTH-RECHECK"
+)
+AFTER_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK = (
+    "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
 )
 COMPLETED_POST_REPAIR_RECHECK_REQUIREMENT_ID = "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK"
 COMPLETED_HASH_MISMATCH_RECHECK_REQUIREMENT_ID = (
@@ -213,6 +220,48 @@ class PatchResultRuntimeSchemaValidationTest(unittest.TestCase):
         self.assertFalse(audit["live_order_allowed"])
         self.assertFalse(audit["scale_up_allowed"])
 
+    def test_patch_result_validator_gap_artifacts_block_baseline_hash_drift(self):
+        baseline_path = ROOT / "system" / "evidence" / "audit_reports" / "PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE.json"
+        audit_path = ROOT / "system" / "evidence" / "audit_reports" / "PATCH_RESULT_VALIDATOR_RUN_GAP_AUDIT.json"
+        contract_gap_path = ROOT / "system" / "evidence" / "contract_gaps" / "PATCH_RESULT_VALIDATOR_RUN_GAP.contract_gap.json"
+        baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        contract_gap = json.loads(contract_gap_path.read_text(encoding="utf-8"))
+        tampered = copy.deepcopy(baseline)
+        tampered["baseline_hash"] = "0" * 64
+
+        errors = _patch_result_gap_artifact_errors(audit["gaps"], audit, tampered, contract_gap)
+
+        self.assertIn("patch_result validator-run baseline hash mismatch", errors)
+
+    def test_patch_result_validator_gap_artifacts_block_live_flag_drift(self):
+        baseline_path = ROOT / "system" / "evidence" / "audit_reports" / "PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE.json"
+        audit_path = ROOT / "system" / "evidence" / "audit_reports" / "PATCH_RESULT_VALIDATOR_RUN_GAP_AUDIT.json"
+        contract_gap_path = ROOT / "system" / "evidence" / "contract_gaps" / "PATCH_RESULT_VALIDATOR_RUN_GAP.contract_gap.json"
+        baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        contract_gap = json.loads(contract_gap_path.read_text(encoding="utf-8"))
+        tampered = copy.deepcopy(audit)
+        tampered["live_order_allowed"] = True
+
+        errors = _patch_result_gap_artifact_errors(audit["gaps"], tampered, baseline, contract_gap)
+
+        self.assertIn("patch_result validator-run audit has non-false live_order_allowed", errors)
+
+    def test_patch_result_validator_gap_artifacts_require_live_affecting_contract_gap(self):
+        baseline_path = ROOT / "system" / "evidence" / "audit_reports" / "PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE.json"
+        audit_path = ROOT / "system" / "evidence" / "audit_reports" / "PATCH_RESULT_VALIDATOR_RUN_GAP_AUDIT.json"
+        contract_gap_path = ROOT / "system" / "evidence" / "contract_gaps" / "PATCH_RESULT_VALIDATOR_RUN_GAP.contract_gap.json"
+        baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        contract_gap = json.loads(contract_gap_path.read_text(encoding="utf-8"))
+        tampered = copy.deepcopy(contract_gap)
+        tampered["live_affecting"] = False
+
+        errors = _patch_result_gap_artifact_errors(audit["gaps"], audit, baseline, tampered)
+
+        self.assertIn("patch_result validator-run contract_gap is not live-affecting", errors)
+
     def test_patch_result_validator_gap_state_sync_advances_next_task_without_resolving_gap(self):
         state_path = ROOT / "contracts" / "generated" / "current_implementation_state.json"
         state = json.loads(state_path.read_text(encoding="utf-8"))
@@ -237,7 +286,10 @@ class PatchResultRuntimeSchemaValidationTest(unittest.TestCase):
 
         self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
         self.assertNotIn(state["next_allowed_task_class"], COMPLETED_ROUTE_TASK_CLASSES)
-        if ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
+        if PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
+            expected_next_task = AFTER_PATCH_RESULT_VALIDATOR_RUN_GAP_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK
+            self.assertEqual(state["next_allowed_task_class"], expected_next_task)
+        elif ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
             expected_next_task = AFTER_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK
             self.assertEqual(state["next_allowed_task_class"], expected_next_task)
         elif PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:

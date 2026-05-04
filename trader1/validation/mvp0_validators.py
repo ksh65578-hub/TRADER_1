@@ -1248,6 +1248,66 @@ def _patch_result_unbaselined_gaps(gaps: list[dict[str, Any]], baseline_gaps: li
     return [gap for gap in gaps if _audit_gap_key(gap) not in baseline_keys]
 
 
+def _patch_result_gap_artifact_errors(
+    gaps: list[dict[str, Any]],
+    audit: dict[str, Any],
+    baseline: dict[str, Any],
+    contract_gap: dict[str, Any],
+) -> list[str]:
+    baseline_gaps = [item for item in baseline.get("gaps", []) if isinstance(item, dict)]
+    audit_gaps = [item for item in audit.get("gaps", []) if isinstance(item, dict)]
+    discovered_keys = {_audit_gap_key(item) for item in gaps}
+    baseline_keys = {_audit_gap_key(item) for item in baseline_gaps}
+    audit_keys = {_audit_gap_key(item) for item in audit_gaps}
+    expected_baseline_gap_keys = sorted("|".join(key) for key in baseline_keys)
+    unbaselined = _patch_result_unbaselined_gaps(gaps, baseline_gaps)
+    errors: list[str] = []
+
+    if baseline.get("status") != "SEALED_HISTORICAL_BASELINE":
+        errors.append("patch_result validator-run baseline is not sealed")
+    if baseline.get("baseline_gap_count") != len(baseline_gaps):
+        errors.append("patch_result validator-run baseline gap count is inconsistent")
+    if sorted(str(item) for item in baseline.get("baseline_gap_keys", [])) != expected_baseline_gap_keys:
+        errors.append("patch_result validator-run baseline gap keys are inconsistent")
+    if len(baseline_keys) != len(baseline_gaps):
+        errors.append("patch_result validator-run baseline contains duplicate gap keys")
+    if baseline.get("baseline_hash") != sha256_json({key: value for key, value in baseline.items() if key != "baseline_hash"}):
+        errors.append("patch_result validator-run baseline hash mismatch")
+    if any(gap.get("resolution") != "AUDIT_PRESERVED_NOT_BACKFILLED" for gap in baseline_gaps):
+        errors.append("patch_result validator-run baseline contains a backfillable gap")
+
+    expected_audit_status = "AUDIT_PRESERVED_BASELINE_MATCH_LIVE_BLOCKING" if not unbaselined else "BLOCKED_UNBASELINED_GAPS"
+    if audit.get("status") != expected_audit_status:
+        errors.append("patch_result validator-run audit status does not match discovered gaps")
+    if audit.get("baseline_gap_count") != len(baseline_gaps):
+        errors.append("patch_result validator-run audit baseline count is inconsistent")
+    if audit.get("current_gap_count") != len(gaps):
+        errors.append("patch_result validator-run audit current count is inconsistent")
+    if audit.get("unbaselined_gap_count") != len(unbaselined):
+        errors.append("patch_result validator-run audit unbaselined count is inconsistent")
+    if audit_keys != discovered_keys:
+        errors.append("patch_result validator-run audit gaps do not match current discovery")
+
+    if unbaselined:
+        errors.append("patch_result validator-run gaps are not in the sealed historical baseline")
+    if discovered_keys != baseline_keys:
+        errors.append("patch_result validator-run baseline does not match discovered preserved gaps")
+    for artifact_name, artifact in (("audit", audit), ("baseline", baseline)):
+        for key in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            if artifact.get(key) is not False:
+                errors.append(f"patch_result validator-run {artifact_name} has non-false {key}")
+
+    if contract_gap.get("contract_gap_id") != "PATCH_RESULT_VALIDATOR_RUN_GAP":
+        errors.append("patch_result validator-run contract_gap id mismatch")
+    if contract_gap.get("status") not in {"OPEN", "BLOCKED"}:
+        errors.append("patch_result validator-run contract_gap is not open or blocked")
+    if contract_gap.get("severity") not in {"MEDIUM", "HIGH", "CRITICAL"}:
+        errors.append("patch_result validator-run contract_gap severity is not live-blocking")
+    if contract_gap.get("live_affecting") is not True:
+        errors.append("patch_result validator-run contract_gap is not live-affecting")
+    return errors
+
+
 def patch_result_runtime_schema_instance_validator() -> ValidatorResult:
     schema_dir = ROOT / "contracts" / "schema"
     schema_path = schema_dir / "patch_result.schema.json"
@@ -1289,40 +1349,11 @@ def patch_result_runtime_schema_instance_validator() -> ValidatorResult:
                 paths,
                 "CONTRACT_GAP_HIGH",
             )
-        baseline_gaps = [item for item in baseline.get("gaps", []) if isinstance(item, dict)]
-        unbaselined = _patch_result_unbaselined_gaps(gaps, baseline_gaps)
-        if unbaselined:
+        gap_artifact_errors = _patch_result_gap_artifact_errors(gaps, audit, baseline, contract_gap)
+        if gap_artifact_errors:
             return blocked_result(
                 "patch_result_runtime_schema_instance_validator",
-                f"{len(unbaselined)} patch_result validator-run gaps are not in the sealed historical baseline",
-                paths,
-                "CONTRACT_GAP_HIGH",
-            )
-        documented = {
-            _audit_gap_key(item)
-            for item in audit.get("gaps", [])
-            if isinstance(item, dict) and item.get("resolution") == "AUDIT_PRESERVED_NOT_BACKFILLED"
-        }
-        discovered = {_audit_gap_key(item) for item in gaps}
-        if discovered != documented:
-            return blocked_result(
-                "patch_result_runtime_schema_instance_validator",
-                "patch_result validator-run gap audit is stale or incomplete",
-                paths,
-                "CONTRACT_GAP_HIGH",
-            )
-        baseline_keys = {_audit_gap_key(item) for item in baseline_gaps}
-        if discovered != baseline_keys:
-            return blocked_result(
-                "patch_result_runtime_schema_instance_validator",
-                "patch_result validator-run baseline does not match discovered preserved gaps",
-                paths,
-                "CONTRACT_GAP_HIGH",
-            )
-        if contract_gap.get("status") not in {"OPEN", "BLOCKED"} or contract_gap.get("severity") not in {"MEDIUM", "HIGH", "CRITICAL"}:
-            return blocked_result(
-                "patch_result_runtime_schema_instance_validator",
-                "patch_result validator-run contract_gap is not active",
+                gap_artifact_errors[0],
                 paths,
                 "CONTRACT_GAP_HIGH",
             )
