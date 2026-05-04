@@ -227,6 +227,33 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         self.assertTrue(any("WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN" in error for error in errors), errors)
 
+    def test_maturity_rollup_helper_requires_robustness_source_type_evidence(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        del tampered["robustness_source_type_evidence"]
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("robustness_source_type_evidence" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_robustness_source_type_false_pass(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["robustness_source_type_evidence"]["status"] = "PASS"
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("BLOCKED_FOR_SOURCE_TYPE_EVIDENCE" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_hidden_robustness_missing_source_types(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["robustness_source_type_evidence"]["missing_source_types"] = []
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("missing source types" in error or "missing_source_types" in error for error in errors), errors)
+
     def test_maturity_rollup_helper_counts_open_high_contract_gap(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         tampered = copy.deepcopy(rollup)

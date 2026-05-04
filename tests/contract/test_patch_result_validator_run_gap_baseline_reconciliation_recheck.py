@@ -46,6 +46,12 @@ PAPER_SHADOW_IMPLEMENTATION_DEPTH_RECHECK_PATCH_ID = (
 PAPER_SHADOW_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK_CLASS = (
     "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_IMPLEMENTATION_DEPTH_RECHECK"
 )
+PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-IMPLEMENTATION-DEPTH-RECHECK"
+)
+AFTER_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK = (
+    "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK"
+)
 
 
 def load_json(path: Path):
@@ -116,7 +122,10 @@ class PatchResultValidatorRunGapBaselineReconciliationRecheckTest(unittest.TestC
         self.assertEqual(patch_result["patch_id"], PATCH_ID)
         self.assertIn(REQUIREMENT_ID, patch_result["affected_contract_ids"])
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
-        if PAPER_SHADOW_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+        if PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            expected_next_task = AFTER_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK
+            self.assertEqual(state["next_allowed_task_class"], expected_next_task)
+        elif PAPER_SHADOW_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
             self.assertEqual(state["last_patch_id"], PAPER_SHADOW_IMPLEMENTATION_DEPTH_RECHECK_PATCH_ID)
             self.assertEqual(state["next_allowed_task_class"], PAPER_SHADOW_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK_CLASS)
         elif OPEN_GAP_PRIORITY_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:

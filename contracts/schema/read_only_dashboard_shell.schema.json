@@ -3651,6 +3651,71 @@
         "promotion_threshold_explicit_insufficient_sample_blocker": {
           "type": "boolean"
         },
+        "robustness_source_type_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE",
+            "PASS",
+            "INVALID"
+          ]
+        },
+        "robustness_source_type_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robustness_source_type_missing_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "robustness_source_type_missing_types": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "OOS",
+              "WALK_FORWARD",
+              "BOOTSTRAP",
+              "CONCENTRATION"
+            ]
+          }
+        },
+        "robustness_source_type_present_types": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "OOS",
+              "WALK_FORWARD",
+              "BOOTSTRAP",
+              "CONCENTRATION"
+            ]
+          }
+        },
+        "robustness_source_type_min_required_per_type": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "robustness_source_type_oos_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "robustness_source_type_walk_forward_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "robustness_source_type_bootstrap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "robustness_source_type_concentration_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "robustness_source_type_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robustness_source_type_explicit_blocker": {
+          "type": "boolean"
+        },
         "evidence_status": {
           "$ref": "#/$defs/freshness_status"
         },
