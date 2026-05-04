@@ -13,10 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 PATCH_BASENAME = "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK"
-PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
+PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
 REQUIREMENT_ID = "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK"
 CONTRACT_GAP_ID = "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY"
 NEXT_TASK_CLASS = "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK"
+DASHBOARD_BINDING_REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-AUDITED-CURRENT-EVIDENCE-WRITER-DASHBOARD-BINDING"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -67,6 +68,31 @@ CHANGED_ARTIFACTS = [
     "trader1/security/source_bundle.py",
     "trader1/validation/mvp0_validators.py",
     "tests/dashboard/test_read_only_dashboard.py",
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+    "tests/contract/test_completed_recheck_route_depth_guard.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+    "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+    "tests/contract/test_patch_result_runtime_schema_validation.py",
+    "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+    "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+    "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+    "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+    "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
     "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
     "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
     "tools/run_hygiene_safe_pytest.py",
@@ -156,6 +182,20 @@ def patch_hash(patch_result: dict[str, Any]) -> str:
     return sha256_json({key: value for key, value in patch_result.items() if key != "result_hash"})
 
 
+def assert_current_state_ready_for_profitability_recheck() -> None:
+    state = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
+    completed = set(state.get("completed_requirement_ids", []))
+    if DASHBOARD_BINDING_REQUIREMENT_ID not in completed:
+        raise RuntimeError("audited current-evidence dashboard binding is not completed")
+    if CONTRACT_GAP_ID not in state.get("open_contract_gap_ids", []):
+        raise RuntimeError("profitability optimizer evidence maturity gap is not open")
+    if state.get("next_allowed_task_class") not in {PATCH_BASENAME, NEXT_TASK_CLASS}:
+        raise RuntimeError("current state is not routed to profitability optimizer evidence maturity recheck")
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if state.get(field) is True:
+            raise RuntimeError(f"current state has forbidden true field: {field}")
+
+
 def refresh_rollup(path: Path, now: str, trader_hash: str, agents_hash: str) -> dict[str, Any]:
     rollup = load_json(path)
     rollup["generated_at_utc"] = now
@@ -233,7 +273,10 @@ def update_navigation(now: str, trader_hash: str, agents_hash: str) -> None:
                 "live_final_guard_validator",
             ],
             "artifact_ids": artifacts,
-            "test_ids": ["tests/validators/test_profitability_optimizer_evidence_gap_validator.py"],
+            "test_ids": [
+                "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+                "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+            ],
             "mvp_stage": "MVP-4",
             "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
             "blocking_level": "LIVE_BLOCKING",
@@ -264,7 +307,10 @@ def update_navigation(now: str, trader_hash: str, agents_hash: str) -> None:
             "section_id": "SECTION_STRATEGY_PROFITABILITY",
             "schema_files": ["contracts/schema/profitability_evidence_maturity_rollup.schema.json"],
             "validator_files": ["trader1/validation/mvp0_validators.py"],
-            "test_files": ["tests/validators/test_profitability_optimizer_evidence_gap_validator.py"],
+            "test_files": [
+                "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+                "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+            ],
             "fixture_files": ["tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json"],
             "runtime_modules": ["tools/run_profitability_optimizer_evidence_gap_validators.py"],
             "evidence_artifacts": [
@@ -593,7 +639,7 @@ def write_evidence(
         },
     )
     write_text(
-        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260504.md",
+        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260505.md",
         f"""# MVP4 Profitability Optimizer Evidence Maturity Recheck
 
 created_at_utc: {now}
@@ -661,6 +707,7 @@ def main() -> int:
     now = utc_now()
     trader_hash = sha256_file(ROOT / "TRADER_1.md")
     agents_hash = sha256_file(ROOT / "AGENTS.md")
+    assert_current_state_ready_for_profitability_recheck()
     refresh_rollup(
         ROOT / "system" / "evidence" / "audit_reports" / "MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
         now,
@@ -707,6 +754,18 @@ def main() -> int:
         ),
         run_command([sys.executable, "-B", "tools/run_profitability_optimizer_evidence_gap_validators.py"]),
         run_command([sys.executable, "-B", "tools/run_patch_result_runtime_schema_validators.py"]),
+        run_command(
+            [
+                sys.executable,
+                "-B",
+                "-m",
+                "pytest",
+                "-p",
+                "no:cacheprovider",
+                "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+                "-q",
+            ]
+        ),
         run_command(
             [
                 sys.executable,
