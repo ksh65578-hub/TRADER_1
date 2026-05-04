@@ -18,3 +18,16 @@ Post-rerun current-evidence writes remain blocked. Review-ready candidates are n
 ## Next Safe Task
 
 MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK
+
+## MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK
+
+updated_at_utc: 2026-05-04T13:11:27Z
+last_patch_id: MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_20260504_001
+live_order_ready: false
+live_order_allowed: false
+can_live_trade: false
+scale_up_allowed: false
+
+Post-repair reconciliation required depth has been rechecked as blocked. The repair candidate remains review-only, current evidence remains unusable, and the next task is:
+
+MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK

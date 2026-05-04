@@ -1,0 +1,18 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-04T13:11:27Z",
+  "patch_id": "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_20260504_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_POST_REPAIR_RECONCILIATION_REQUIRED_DEPTH_RECHECK_LIVE_BLOCKING",
+  "depth_report_path": "system/evidence/audit_reports/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.json",
+  "contract_gap_path": "system/evidence/contract_gaps/POST_REPAIR_RECONCILIATION_REQUIRED.contract_gap.json",
+  "post_repair_reconciliation_status": "BLOCKED",
+  "repair_candidate_count": 1,
+  "source_loop_expected_rollup_hash_mismatch_count": 1,
+  "candidate_current_evidence_usable_count": 0,
+  "next_allowed_task_class": "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -46,6 +46,12 @@ RUNTIME_BASE = (
 REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-IMPLEMENTATION-DEPTH-RECHECK"
 GAP_ID = "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
 NEXT_TASK_CLASS = "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
+POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK"
+)
+AFTER_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK = (
+    "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
+)
 
 
 def load_json(path: Path):
@@ -129,8 +135,16 @@ class PostRerunCurrentEvidenceWriteBlockedImplementationDepthRecheckTest(unittes
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
         self.assertIn(GAP_ID, state["open_contract_gap_ids"])
         self.assertIn(GAP_ID, patch_result["remaining_blockers"])
-        self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
-        self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
+        if POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state[
+            "completed_requirement_ids"
+        ]:
+            self.assertEqual(
+                state["next_allowed_task_class"],
+                AFTER_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK,
+            )
+        else:
+            self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
+            self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
 
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             self.assertFalse(state[field])
