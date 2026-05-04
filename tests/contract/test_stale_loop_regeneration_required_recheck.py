@@ -24,7 +24,9 @@ PLAN_PATH = (
     / "upbit_paper_stale_loop_regeneration_plan.json"
 )
 REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-REQUIRED-RECHECK"
+EXECUTION_RECHECK_REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-REGENERATION-EXECUTION-REQUIRED-RECHECK"
 NEXT_TASK = "MVP4_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_RECHECK"
+POST_REGENERATION_NEXT_TASK = "MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK"
 BLOCKER = "STALE_LOOP_REGENERATION_REQUIRED"
 
 
@@ -107,9 +109,16 @@ class StaleLoopRegenerationRequiredRecheckTest(unittest.TestCase):
         self.assertFalse(patch_result["stale_loop_regeneration_delete_source_allowed"])
         self.assertFalse(patch_result["stale_loop_regeneration_overwrite_source_allowed"])
 
-        if REQUIREMENT_ID in state["completed_requirement_ids"]:
+        completed = set(state["completed_requirement_ids"])
+        if EXECUTION_RECHECK_REQUIREMENT_ID in completed:
+            self.assertEqual(state["next_allowed_task_class"], POST_REGENERATION_NEXT_TASK)
+        elif REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
-        self.assertIn(BLOCKER, state["open_contract_gap_ids"])
+        if EXECUTION_RECHECK_REQUIREMENT_ID in completed:
+            self.assertNotIn(BLOCKER, state["open_contract_gap_ids"])
+            self.assertNotIn("STALE_LOOP_REGENERATION_EXECUTION_REQUIRED", state["open_contract_gap_ids"])
+        else:
+            self.assertIn(BLOCKER, state["open_contract_gap_ids"])
         for field in (
             "live_order_ready_after",
             "live_order_allowed_after",
