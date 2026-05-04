@@ -1152,6 +1152,52 @@
       "status": "IMPLEMENTED_STATE_SYNC_RECHECK_CONTRACT_GAP_OPEN"
     },
     {
+      "requirement_id": "REQ-MVP4-ACTUAL-LONG-RUN-RUNTIME-EVIDENCE-COLLECTION-DEPTH-RECHECK",
+      "section_id": "SECTION_LONG_RUN_RUNTIME_EVIDENCE",
+      "schema_files": [
+        "contracts/schema/upbit_paper_runtime_evidence_collection_profile_report.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py"
+      ],
+      "fixture_files": [
+        "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json"
+      ],
+      "runtime_modules": [
+        "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK.patch_result.json",
+        "system/evidence/audit_reports/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK.audit.json"
+      ],
+      "dashboard_artifacts": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "patch_result_fields": [
+        "upbit_paper_runtime_evidence_profile_status",
+        "upbit_paper_runtime_evidence_profile_accepted_cycle_sample_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED_OPEN_GAP"
+    },
+    {
       "requirement_id": "REQ-MVP4-ACTUAL-LONG-RUN-SOURCE-ARTIFACT-PATH-SCOPE-GUARD",
       "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "schema_files": [
@@ -6390,6 +6436,47 @@
       "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
       "live_affecting": true,
       "status": "IMPLEMENTED_STATE_SYNC_RECHECK_CONTRACT_GAP_OPEN"
+    },
+    {
+      "requirement_id": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK",
+      "section_id": "SECTION_STRATEGY_PROFITABILITY",
+      "schema_files": [
+        "contracts/schema/profitability_evidence_maturity_rollup.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py"
+      ],
+      "fixture_files": [
+        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json"
+      ],
+      "runtime_modules": [
+        "tools/run_profitability_optimizer_evidence_gap_validators.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.validator_run_log.json",
+        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+        "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_required",
+        "validators_run",
+        "tests_run",
+        "next_task_class",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED_THRESHOLD_EVIDENCE"
     },
     {
       "requirement_id": "REQ-MVP4-PROFITABILITY-ROLLUP-SCORECARD-LONG-RUN-SPLIT",
@@ -14090,50 +14177,9 @@
       "minimum_depth": "DEPTH_1_SCHEMA_AND_ARTIFACT_STRUCTURE",
       "live_affecting": true,
       "status": "SCAFFOLD_IMPLEMENTED"
-    },
-    {
-      "requirement_id": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK",
-      "section_id": "SECTION_STRATEGY_PROFITABILITY",
-      "schema_files": [
-        "contracts/schema/profitability_evidence_maturity_rollup.schema.json"
-      ],
-      "validator_files": [
-        "trader1/validation/mvp0_validators.py"
-      ],
-      "test_files": [
-        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py"
-      ],
-      "fixture_files": [
-        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json"
-      ],
-      "runtime_modules": [
-        "tools/run_profitability_optimizer_evidence_gap_validators.py"
-      ],
-      "evidence_artifacts": [
-        "system/evidence/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.evidence_manifest.json",
-        "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.patch_result.json",
-        "system/evidence/stage_gates/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.stage_gate_result.json",
-        "system/evidence/validator_runs/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.validator_run_log.json",
-        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
-        "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json"
-      ],
-      "dashboard_artifacts": [],
-      "patch_result_fields": [
-        "validators_required",
-        "validators_run",
-        "tests_run",
-        "next_task_class",
-        "live_order_ready_after",
-        "live_order_allowed_after",
-        "can_live_trade_after",
-        "scale_up_allowed_after"
-      ],
-      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
-      "live_affecting": true,
-      "status": "IMPLEMENTED_FAIL_CLOSED_THRESHOLD_EVIDENCE"
     }
   ],
-  "updated_at_utc": "2026-05-04T05:15:25Z",
+  "updated_at_utc": "2026-05-04T06:07:12Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

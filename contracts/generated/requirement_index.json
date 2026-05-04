@@ -1428,6 +1428,75 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-ACTUAL-LONG-RUN-RUNTIME-EVIDENCE-COLLECTION-DEPTH-RECHECK",
+      "source_section_id": "SECTION_LONG_RUN_RUNTIME_EVIDENCE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Actual long-run runtime evidence collection depth recheck",
+      "full_text_marker": "REQ-MVP4-ACTUAL-LONG-RUN-RUNTIME-EVIDENCE-COLLECTION-DEPTH-RECHECK: bounded PAPER runtime profile must expose blocked long-run collection depth before any live-review evidence claim",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Actual long-run runtime evidence collection depth recheck",
+      "requirement_kind": "RUNTIME_EVIDENCE_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.upbit_paper_runtime_evidence_collection_profile_report.v1",
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "read_only_dashboard_validator",
+        "upbit_paper_persistent_loop_validator",
+        "upbit_paper_runtime_sample_history_validator",
+        "upbit_paper_ledger_idempotency_runtime_evidence_validator",
+        "paper_ledger_rollup_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/upbit_paper_runtime_evidence_collection_profile_report.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py",
+        "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+        "tools/emit_actual_long_run_runtime_evidence_collection_depth_recheck_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK.md"
+      ],
+      "test_ids": [
+        "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_LONG_RUN_RUNTIME_EVIDENCE",
+        "SECTION_PAPER_SHADOW_EVIDENCE",
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-RUNTIME-EVIDENCE-COLLECTION-PROFILE",
+        "REQ-MVP4-DASHBOARD-UPBIT-PAPER-RUNTIME-EVIDENCE-PROFILE-BINDING",
+        "REQ-MVP4-ACTUAL-LONG-RUN-RUNTIME-EVIDENCE-BOUNDARY-STATE-SYNC-RECHECK",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "FD2C4D6F978A9708FF0154915CC43D8E54CAC3AF98CB83C3CEF64F8BEAE1A803",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED_OPEN_GAP",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-ACTUAL-LONG-RUN-SOURCE-ARTIFACT-PATH-SCOPE-GUARD",
       "source_section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "source_file": "TRADER_1.md",
@@ -8412,6 +8481,67 @@
       "source_text_sha256": "016D10C283F9EF72A21572B77661E29B5EF2B97173666CF3D5101DF69AC41E54",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "IMPLEMENTED_STATE_SYNC_RECHECK_CONTRACT_GAP_OPEN",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK",
+      "source_section_id": "SECTION_STRATEGY_PROFITABILITY",
+      "source_file": "TRADER_1.md",
+      "source_heading": "profitability optimizer evidence maturity recheck",
+      "full_text_marker": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK: promotion threshold evidence must stay explicit, insufficient, and live-blocking until exact replay, OOS/walk-forward, PAPER, SHADOW, live burn-in, and operator evidence exists",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Profitability optimizer evidence maturity recheck",
+      "requirement_kind": "SCHEMA_VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.profitability_evidence_maturity_rollup.v1"
+      ],
+      "validator_ids": [
+        "profitability_evidence_maturity_rollup_validator",
+        "profitability_optimizer_evidence_gap_validator",
+        "optimizer_guardrail_validator",
+        "convergence_assessment_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.md",
+        "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "system/evidence/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+        "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json",
+        "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.validator_run_log.json",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+        "tools/emit_profitability_optimizer_evidence_maturity_recheck_patch_evidence.py",
+        "tools/run_hygiene_safe_pytest.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/security/source_bundle.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_ids": [
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_STRATEGY_PROFITABILITY",
+        "SECTION_OPTIMIZER_GUARDRAIL",
+        "SECTION_CONVERGENCE_ASSESSMENT",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-ROLLUP-VALIDATOR",
+        "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "64DD03E3D4EFCC5915BB3126D19DE07B38868BA641317289E6B463A1F5101135",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED_THRESHOLD_EVIDENCE",
       "test_status": "PASS"
     },
     {
@@ -19417,68 +19547,7 @@
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "SCAFFOLD_IMPLEMENTED",
       "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK",
-      "source_section_id": "SECTION_STRATEGY_PROFITABILITY",
-      "source_file": "TRADER_1.md",
-      "source_heading": "profitability optimizer evidence maturity recheck",
-      "full_text_marker": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK: promotion threshold evidence must stay explicit, insufficient, and live-blocking until exact replay, OOS/walk-forward, PAPER, SHADOW, live burn-in, and operator evidence exists",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Profitability optimizer evidence maturity recheck",
-      "requirement_kind": "SCHEMA_VALIDATOR_PATCH",
-      "schema_ids": [
-        "trader1.profitability_evidence_maturity_rollup.v1"
-      ],
-      "validator_ids": [
-        "profitability_evidence_maturity_rollup_validator",
-        "profitability_optimizer_evidence_gap_validator",
-        "optimizer_guardrail_validator",
-        "convergence_assessment_validator",
-        "live_final_guard_validator"
-      ],
-      "artifact_ids": [
-        "contracts/generated/context_pack/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.md",
-        "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
-        "contracts/schema/read_only_dashboard_shell.schema.json",
-        "system/evidence/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.evidence_manifest.json",
-        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
-        "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json",
-        "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.patch_result.json",
-        "system/evidence/stage_gates/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.stage_gate_result.json",
-        "system/evidence/validator_runs/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.validator_run_log.json",
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
-        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
-        "tools/emit_profitability_optimizer_evidence_maturity_recheck_patch_evidence.py",
-        "tools/run_hygiene_safe_pytest.py",
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/security/source_bundle.py",
-        "trader1/validation/mvp0_validators.py"
-      ],
-      "test_ids": [
-        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "SECTION_STRATEGY_PROFITABILITY",
-        "SECTION_OPTIMIZER_GUARDRAIL",
-        "SECTION_CONVERGENCE_ASSESSMENT",
-        "SECTION_LIVE_FINAL_GUARD"
-      ],
-      "depends_on": [
-        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-ROLLUP-VALIDATOR",
-        "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT",
-        "REQ-MVP4-LIVE-FINAL-GUARD"
-      ],
-      "source_text_sha256": "64DD03E3D4EFCC5915BB3126D19DE07B38868BA641317289E6B463A1F5101135",
-      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED_THRESHOLD_EVIDENCE",
-      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-04T05:15:25Z"
+  "updated_at_utc": "2026-05-04T06:07:12Z"
 }

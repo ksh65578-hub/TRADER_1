@@ -52,6 +52,7 @@
     "primary_blocker_code",
     "blockers",
     "long_run_blocker_code",
+    "long_run_collection_depth",
     "actual_long_run_evidence_created",
     "long_run_evidence_eligible",
     "promotion_eligible",
@@ -122,6 +123,7 @@
       "items": { "type": "string", "minLength": 1 }
     },
     "long_run_blocker_code": { "const": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT" },
+    "long_run_collection_depth": { "$ref": "#/$defs/long_run_collection_depth" },
     "actual_long_run_evidence_created": { "const": false },
     "long_run_evidence_eligible": { "const": false },
     "promotion_eligible": { "const": false },
@@ -149,6 +151,88 @@
         "blocker_code": { "type": ["string", "null"] },
         "message": { "type": "string" },
         "evidence_hash": { "type": ["string", "null"], "minLength": 64, "maxLength": 64 }
+      }
+    },
+    "long_run_collection_depth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "depth_role",
+        "blocker_code",
+        "required_runtime_modes",
+        "observed_runtime_modes",
+        "missing_runtime_modes",
+        "observed_span_seconds",
+        "minimum_span_seconds",
+        "missing_span_seconds",
+        "span_floor_met",
+        "observed_cycle_count",
+        "minimum_cycle_count",
+        "missing_cycle_count",
+        "cycle_floor_met",
+        "paper_runtime_depth_status",
+        "paper_ledger_idempotency_status",
+        "shadow_runtime_depth_status",
+        "paper_shadow_pairing_status",
+        "bounded_profile_counts_as_long_run_evidence",
+        "dashboard_display_counts_as_long_run_evidence",
+        "actual_long_run_evidence_created",
+        "long_run_evidence_eligible",
+        "promotion_eligible",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "status": { "const": "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH" },
+        "depth_role": { "const": "PAPER_RUNTIME_COLLECTION_DEPTH_BLOCKER_NOT_LONG_RUN_EVIDENCE" },
+        "blocker_code": { "const": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT" },
+        "required_runtime_modes": {
+          "type": "array",
+          "prefixItems": [
+            { "const": "PAPER" },
+            { "const": "SHADOW" }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "observed_runtime_modes": {
+          "type": "array",
+          "items": { "enum": ["PAPER", "SHADOW"] },
+          "uniqueItems": true,
+          "maxItems": 2
+        },
+        "missing_runtime_modes": {
+          "type": "array",
+          "items": { "enum": ["PAPER", "SHADOW"] },
+          "contains": { "const": "SHADOW" },
+          "uniqueItems": true,
+          "minItems": 1,
+          "maxItems": 2
+        },
+        "observed_span_seconds": { "type": "integer", "minimum": 0 },
+        "minimum_span_seconds": { "type": "integer", "minimum": 1 },
+        "missing_span_seconds": { "type": "integer", "minimum": 0 },
+        "span_floor_met": { "type": "boolean" },
+        "observed_cycle_count": { "type": "integer", "minimum": 0 },
+        "minimum_cycle_count": { "type": "integer", "minimum": 1 },
+        "missing_cycle_count": { "type": "integer", "minimum": 0 },
+        "cycle_floor_met": { "type": "boolean" },
+        "paper_runtime_depth_status": { "enum": ["PASS", "MISSING", "BLOCKED"] },
+        "paper_ledger_idempotency_status": { "enum": ["PASS", "BLOCKED"] },
+        "shadow_runtime_depth_status": { "const": "MISSING" },
+        "paper_shadow_pairing_status": { "const": "MISSING" },
+        "bounded_profile_counts_as_long_run_evidence": { "const": false },
+        "dashboard_display_counts_as_long_run_evidence": { "const": false },
+        "actual_long_run_evidence_created": { "const": false },
+        "long_run_evidence_eligible": { "const": false },
+        "promotion_eligible": { "const": false },
+        "live_order_ready": { "const": false },
+        "live_order_allowed": { "const": false },
+        "can_live_trade": { "const": false },
+        "scale_up_allowed": { "const": false }
       }
     }
   }

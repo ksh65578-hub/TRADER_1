@@ -38,6 +38,8 @@ from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_js
 REPORT_SCHEMA_ID = "trader1.upbit_paper_runtime_evidence_collection_profile_report.v1"
 PROFILE_ID = "UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_V1"
 PROFILE_SCOPE = "UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ONLY_NO_LIVE"
+LONG_RUN_COLLECTION_DEPTH_STATUS = "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH"
+LONG_RUN_COLLECTION_DEPTH_ROLE = "PAPER_RUNTIME_COLLECTION_DEPTH_BLOCKER_NOT_LONG_RUN_EVIDENCE"
 DEFAULT_REPORT_PATH = Path(
     "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json"
 )
@@ -98,6 +100,55 @@ def _component(
     }
 
 
+def _long_run_collection_depth(
+    *,
+    sample_history: dict[str, Any],
+    idempotency_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    observed_span_seconds = int(sample_history.get("observed_span_seconds") or 0)
+    minimum_span_seconds = int(sample_history.get("min_actual_long_run_span_seconds") or 0)
+    observed_cycle_count = int(sample_history.get("accepted_cycle_sample_count") or 0)
+    minimum_cycle_count = int(sample_history.get("min_actual_long_run_cycle_count") or 0)
+    missing_span_seconds = max(0, minimum_span_seconds - observed_span_seconds)
+    missing_cycle_count = max(0, minimum_cycle_count - observed_cycle_count)
+    observed_modes = ["PAPER"] if observed_cycle_count > 0 else []
+    required_modes = ["PAPER", "SHADOW"]
+    missing_modes = [mode for mode in required_modes if mode not in observed_modes]
+    span_floor_met = observed_span_seconds >= minimum_span_seconds > 0
+    cycle_floor_met = observed_cycle_count >= minimum_cycle_count > 0
+    paper_depth_status = "PASS" if observed_cycle_count > 0 and idempotency_evidence.get("runtime_evidence_status") == "PASS" else "MISSING"
+
+    return {
+        "status": LONG_RUN_COLLECTION_DEPTH_STATUS,
+        "depth_role": LONG_RUN_COLLECTION_DEPTH_ROLE,
+        "blocker_code": LONG_RUN_EVIDENCE_BLOCKER_CODE,
+        "required_runtime_modes": required_modes,
+        "observed_runtime_modes": observed_modes,
+        "missing_runtime_modes": missing_modes,
+        "observed_span_seconds": observed_span_seconds,
+        "minimum_span_seconds": minimum_span_seconds,
+        "missing_span_seconds": missing_span_seconds,
+        "span_floor_met": span_floor_met,
+        "observed_cycle_count": observed_cycle_count,
+        "minimum_cycle_count": minimum_cycle_count,
+        "missing_cycle_count": missing_cycle_count,
+        "cycle_floor_met": cycle_floor_met,
+        "paper_runtime_depth_status": paper_depth_status,
+        "paper_ledger_idempotency_status": str(idempotency_evidence.get("idempotency_status") or "BLOCKED"),
+        "shadow_runtime_depth_status": "MISSING",
+        "paper_shadow_pairing_status": "MISSING",
+        "bounded_profile_counts_as_long_run_evidence": False,
+        "dashboard_display_counts_as_long_run_evidence": False,
+        "actual_long_run_evidence_created": False,
+        "long_run_evidence_eligible": False,
+        "promotion_eligible": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def _duplicate_first_ledger_jsonl(root: Path, loop: dict[str, Any]) -> None:
     for cycle_result in loop.get("cycle_results", []):
         for artifact_path in cycle_result.get("artifact_paths", []):
@@ -142,6 +193,10 @@ def build_upbit_paper_runtime_evidence_collection_profile_report(
     sample_history_result = validate_upbit_paper_runtime_sample_history(sample_history)
     idempotency_evidence = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root, session_id=session_id)
     idempotency_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(idempotency_evidence)
+    collection_depth = _long_run_collection_depth(
+        sample_history=sample_history,
+        idempotency_evidence=idempotency_evidence,
+    )
 
     component_results = [
         _component(
@@ -252,6 +307,7 @@ def build_upbit_paper_runtime_evidence_collection_profile_report(
         "primary_blocker_code": blocker_codes[0] if blocker_codes else None,
         "blockers": blocker_codes,
         "long_run_blocker_code": LONG_RUN_EVIDENCE_BLOCKER_CODE,
+        "long_run_collection_depth": collection_depth,
         "actual_long_run_evidence_created": False,
         "long_run_evidence_eligible": False,
         "promotion_eligible": False,
@@ -342,6 +398,7 @@ def validate_upbit_paper_runtime_evidence_collection_profile_report(
         "primary_blocker_code",
         "blockers",
         "long_run_blocker_code",
+        "long_run_collection_depth",
         "actual_long_run_evidence_created",
         "long_run_evidence_eligible",
         "promotion_eligible",
@@ -387,6 +444,45 @@ def validate_upbit_paper_runtime_evidence_collection_profile_report(
         return ProfileValidationResult("BLOCKED", "runtime evidence profile attempted forbidden live or promotion permission", "LIVE_FINAL_GUARD_FAILED")
     if report.get("long_run_blocker_code") != LONG_RUN_EVIDENCE_BLOCKER_CODE:
         return ProfileValidationResult("BLOCKED", "runtime evidence profile must preserve long-run evidence blocker", LONG_RUN_EVIDENCE_BLOCKER_CODE)
+    collection_depth = report.get("long_run_collection_depth")
+    if not isinstance(collection_depth, dict):
+        return ProfileValidationResult("FAIL", "runtime evidence profile missing long-run collection depth", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_depth.get("status") != LONG_RUN_COLLECTION_DEPTH_STATUS:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile must keep long-run collection depth blocked", LONG_RUN_EVIDENCE_BLOCKER_CODE)
+    if collection_depth.get("depth_role") != LONG_RUN_COLLECTION_DEPTH_ROLE:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection depth role cannot claim long-run evidence", LONG_RUN_EVIDENCE_BLOCKER_CODE)
+    if collection_depth.get("blocker_code") != LONG_RUN_EVIDENCE_BLOCKER_CODE:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection depth must expose long-run blocker", LONG_RUN_EVIDENCE_BLOCKER_CODE)
+    if collection_depth.get("required_runtime_modes") != ["PAPER", "SHADOW"]:
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection depth required modes drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if "SHADOW" not in collection_depth.get("missing_runtime_modes", []):
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile cannot hide missing SHADOW collection depth", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+    if collection_depth.get("observed_span_seconds") != report.get("observed_span_seconds"):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection depth span drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_depth.get("minimum_span_seconds") != report.get("min_actual_long_run_span_seconds"):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection depth span floor drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_depth.get("observed_cycle_count") != report.get("accepted_cycle_sample_count"):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection depth cycle count drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_depth.get("minimum_cycle_count") != report.get("min_actual_long_run_cycle_count"):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection depth cycle floor drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_depth.get("missing_span_seconds") != max(0, int(report.get("min_actual_long_run_span_seconds") or 0) - int(report.get("observed_span_seconds") or 0)):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection depth missing span mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_depth.get("missing_cycle_count") != max(0, int(report.get("min_actual_long_run_cycle_count") or 0) - int(report.get("accepted_cycle_sample_count") or 0)):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection depth missing cycle mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_depth.get("span_floor_met") is not report.get("span_floor_met") or collection_depth.get("cycle_floor_met") is not report.get("cycle_floor_met"):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection depth floor flags drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        collection_depth.get("bounded_profile_counts_as_long_run_evidence")
+        or collection_depth.get("dashboard_display_counts_as_long_run_evidence")
+        or collection_depth.get("actual_long_run_evidence_created")
+        or collection_depth.get("long_run_evidence_eligible")
+        or collection_depth.get("promotion_eligible")
+        or collection_depth.get("live_order_ready")
+        or collection_depth.get("live_order_allowed")
+        or collection_depth.get("can_live_trade")
+        or collection_depth.get("scale_up_allowed")
+    ):
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection depth attempted long-run, live, promotion, or scale permission", "LIVE_FINAL_GUARD_FAILED")
     component_results = report.get("component_results")
     if not isinstance(component_results, list) or report.get("component_count") != len(component_results):
         return ProfileValidationResult("FAIL", "runtime evidence profile component count mismatch", "SCHEMA_IDENTITY_MISMATCH")
