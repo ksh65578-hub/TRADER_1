@@ -6306,6 +6306,91 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
+      "section_id": "SECTION_LEDGER_RECONCILIATION",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/contract_gap.schema.json",
+        "contracts/schema/upbit_paper_post_repair_reconciliation_report.schema.json",
+        "contracts/schema/upbit_paper_repair_operator_queue_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tests/runtime/test_upbit_paper_post_repair_reconciliation.py",
+        "tests/runtime/test_upbit_paper_repair_operator_queue.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/runtime/reconciliation/upbit_paper_post_repair_reconciliation.py",
+        "trader1/runtime/reconciliation/upbit_paper_repair_operator_queue.py"
+      ],
+      "evidence_artifacts": [
+        "contracts/generated/context_pack/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.md",
+        "system/evidence/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.json",
+        "system/evidence/audit_reports/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_20260504.md",
+        "system/evidence/contract_gaps/POST_REPAIR_RECONCILIATION_REQUIRED.contract_gap.json",
+        "system/evidence/patch_results/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.validator_run_log.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_repair_reconciliation_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repair_operator_queue_report.json",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tools/emit_post_repair_reconciliation_required_implementation_depth_recheck_patch_evidence.py",
+        "system/evidence/contract_gaps/POST_REPAIR_RECONCILIATION_REQUIRED.contract_gap.json",
+        "system/evidence/audit_reports/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "next_task_class",
+        "remaining_blockers",
+        "post_repair_reconciliation_status",
+        "post_repair_source_loop_expected_rollup_hash_mismatch_count",
+        "post_repair_candidate_current_evidence_usable_count",
+        "candidate_current_evidence_usable_count"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "COMPLETED"
+    },
+    {
       "requirement_id": "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK",
       "section_id": "SECTION_LEDGER_RECONCILIATION",
       "schema_files": [
@@ -14767,7 +14852,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T12:43:57Z",
+  "updated_at_utc": "2026-05-04T13:11:27Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
