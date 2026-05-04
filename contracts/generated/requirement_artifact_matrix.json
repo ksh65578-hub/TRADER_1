@@ -5492,6 +5492,55 @@
       "status": "IMPLEMENTED_WITH_AUDIT_PRESERVED_GAP"
     },
     {
+      "requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-NEXT-TASK-RESTORE",
+      "section_id": "SECTION_PATCH_RESULT",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_post_repair_reconciliation_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py",
+        "trader1/runtime/paper/upbit_paper_post_repair_reconciliation.py"
+      ],
+      "test_files": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/runtime/test_upbit_paper_post_repair_reconciliation.py"
+      ],
+      "fixture_files": [
+        "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_STATE_SYNC_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_DASHBOARD_BINDING.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_REPAIR_RECONCILIATION_OPERATOR_UX_RECHECK.patch_result.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_repair_reconciliation_report.json"
+      ],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_post_repair_reconciliation.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_NEXT_TASK_RESTORE.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_NEXT_TASK_RESTORE.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_NEXT_TASK_RESTORE.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_NEXT_TASK_RESTORE.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "next_task_class",
+        "next_required_section_ids",
+        "remaining_blockers",
+        "post_repair_reconciliation_status",
+        "post_repair_candidate_current_evidence_usable_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_NEXT_TASK_RESTORE_POST_REPAIR_GAP_OPEN"
+    },
+    {
       "requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-RECHECK",
       "section_id": "SECTION_PATCH_RESULT",
       "schema_files": [
@@ -13552,7 +13601,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T00:48:11Z",
+  "updated_at_utc": "2026-05-04T01:03:09Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

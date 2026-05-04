@@ -13,6 +13,24 @@ from trader1.validation.schema_instance import load_schema_bundle
 
 
 ROOT = Path(__file__).resolve().parents[2]
+EXPECTED_POST_REPAIR_NEXT_TASK = "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK"
+COMPLETED_ROUTE_REQUIREMENT_IDS = {
+    "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-STATE-SYNC-RECHECK",
+    "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-STATE-SYNC-RECHECK",
+    "REQ-MVP4-ACTUAL-LONG-RUN-RUNTIME-EVIDENCE-BOUNDARY-STATE-SYNC-RECHECK",
+    "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-NEXT-TASK-RESTORE",
+    "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-NEXT-TASK-RESTORE",
+    "REQ-MVP4-POST-RERUN-RECONCILIATION-REQUIRED-NEXT-TASK-RESTORE",
+}
+COMPLETED_ROUTE_TASK_CLASSES = {
+    "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK",
+    "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_RECHECK",
+    "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_RECHECK",
+    "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_RECHECK",
+    "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_RECHECK",
+    "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK",
+    "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK",
+}
 
 
 def latest_patch_result() -> tuple[Path, dict]:
@@ -111,6 +129,19 @@ class PatchResultRuntimeSchemaValidationTest(unittest.TestCase):
         self.assertFalse(state["live_order_allowed"])
         self.assertFalse(state["can_live_trade"])
         self.assertFalse(state["scale_up_allowed"])
+
+    def test_completed_route_chain_does_not_route_back_to_completed_rechecks(self):
+        state_path = ROOT / "contracts" / "generated" / "current_implementation_state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        completed = set(state["completed_requirement_ids"])
+        if not COMPLETED_ROUTE_REQUIREMENT_IDS.issubset(completed):
+            self.skipTest("completed route chain is not fully recorded yet")
+
+        self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
+        self.assertNotIn(state["next_allowed_task_class"], COMPLETED_ROUTE_TASK_CLASSES)
+        self.assertEqual(state["next_allowed_task_class"], EXPECTED_POST_REPAIR_NEXT_TASK)
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(state[field])
 
 
 if __name__ == "__main__":
