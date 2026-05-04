@@ -104,7 +104,7 @@ class ActualLongRunRuntimeEvidenceCollectionDepthRecheckTest(unittest.TestCase):
 
         self.assertEqual(
             patch_result["patch_id"],
-            "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK_20260504_001",
+            "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK_20260505_001",
         )
         self.assertEqual(
             patch_result["next_task_class"],

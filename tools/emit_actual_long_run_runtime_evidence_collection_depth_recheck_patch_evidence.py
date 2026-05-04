@@ -11,10 +11,11 @@ sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCH_BASENAME = "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK"
-PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
+PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
 REQUIREMENT_ID = "REQ-MVP4-ACTUAL-LONG-RUN-RUNTIME-EVIDENCE-COLLECTION-DEPTH-RECHECK"
 CONTRACT_GAP_ID = "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY"
 NEXT_TASK_CLASS = "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK"
+PROFITABILITY_MATURITY_RECHECK_REQUIREMENT_ID = "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-RECHECK"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -49,6 +50,30 @@ CHANGED_ARTIFACTS = [
     "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py",
     "tests/dashboard/test_read_only_dashboard.py",
     "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py",
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+    "tests/contract/test_completed_recheck_route_depth_guard.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+    "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+    "tests/contract/test_patch_result_runtime_schema_validation.py",
+    "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+    "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+    "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+    "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+    "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
     rel(REPORT_PATH),
     f"tools/emit_actual_long_run_runtime_evidence_collection_depth_recheck_patch_evidence.py",
     f"contracts/generated/context_pack/{PATCH_BASENAME}.md",
@@ -109,6 +134,20 @@ def run_command(args: list[str], timeout_seconds: int = 900) -> dict[str, Any]:
         result["stdout_tail"] = completed.stdout[-4000:]
         result["stderr_tail"] = completed.stderr[-4000:]
     return result
+
+
+def assert_current_state_ready_for_collection_depth_recheck() -> None:
+    state = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
+    completed = set(state.get("completed_requirement_ids", []))
+    if PROFITABILITY_MATURITY_RECHECK_REQUIREMENT_ID not in completed:
+        raise RuntimeError("profitability optimizer evidence maturity recheck is not completed")
+    if CONTRACT_GAP_ID not in state.get("open_contract_gap_ids", []):
+        raise RuntimeError("actual long-run runtime evidence boundary gap is not open")
+    if state.get("next_allowed_task_class") not in {PATCH_BASENAME, NEXT_TASK_CLASS}:
+        raise RuntimeError("current state is not routed to actual long-run collection depth recheck")
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if state.get(field) is True:
+            raise RuntimeError(f"current state has forbidden true field: {field}")
 
 
 def write_profile_report() -> dict[str, Any]:
@@ -506,7 +545,7 @@ def write_evidence(now: str, trader_hash: str, agents_hash: str, patch_result: d
                 "contracts/security/source_bundle_manifest.json",
                 "system/evidence/implementation_patch_ledger.json",
                 f"system/evidence/audit_reports/{PATCH_BASENAME}.audit.json",
-                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260504.md",
+                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260505.md",
                 patch_result["validator_run_log_path"],
                 patch_result["stage_gate_result_path"],
                 f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
@@ -534,7 +573,7 @@ def write_evidence(now: str, trader_hash: str, agents_hash: str, patch_result: d
     )
     write_json(ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}.audit.json", audit)
     write_text(
-        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260504.md",
+        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260505.md",
         f"""# Actual Long-Run Runtime Evidence Collection Depth Recheck
 
 created_at_utc: {now}
@@ -616,6 +655,7 @@ def main() -> int:
     now = utc_now()
     trader_hash = sha256_file(ROOT / "TRADER_1.md")
     agents_hash = sha256_file(ROOT / "AGENTS.md")
+    assert_current_state_ready_for_collection_depth_recheck()
     update_authority_manifest(now)
     write_source_bundle_manifest()
     report = write_profile_report()
