@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "D073694DE5194FB15A3205E2EAD854554D04B808785ADB6FC9DD5FB6390C5FD2",
+      "sha256": "A8324B76FD531B32B0BDD77DA713FE1E9F61BCC12DFFA91C49CACC0ABBAE6344",
       "size_bytes": 1096
     },
     {
@@ -270,8 +270,8 @@
     },
     {
       "path": "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
-      "sha256": "EB5A27C2597205EF692C920667D565841342A88A87B73E8B60EC9DFB597EA787",
-      "size_bytes": 7895
+      "sha256": "AF67886ABCCE723A19A794F236AB552A39A875E5BAA42AE757656E12BB6FAAC7",
+      "size_bytes": 11442
     },
     {
       "path": "contracts/schema/read_only_account_snapshot.schema.json",
@@ -280,8 +280,8 @@
     },
     {
       "path": "contracts/schema/read_only_dashboard_shell.schema.json",
-      "sha256": "AD68154F8AA5A0803A14B860E14F93F87E718BB4A356ECB8C1D206E2E9F64A2F",
-      "size_bytes": 178495
+      "sha256": "6555BDC6B8CCCF87B7677437D0DD563E053F1058E03FE74437070493DBDA6DC5",
+      "size_bytes": 182507
     },
     {
       "path": "contracts/schema/readiness_surface.schema.json",
@@ -805,8 +805,8 @@
     },
     {
       "path": "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
-      "sha256": "D81B0C0B736FBC03499DDAF68CE9DCD0E3BEB8F15327CE98C0E45C2E2EEC5124",
-      "size_bytes": 8468
+      "sha256": "36E9FEA7BEA758F755EBCD0EDA23FA2A4C16AD6819576A31F90D0E06BAE5D9B3",
+      "size_bytes": 8875
     },
     {
       "path": "tests/contract/test_final_decision_schema.py",
@@ -815,8 +815,8 @@
     },
     {
       "path": "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
-      "sha256": "D51C2624CF9C8E8F754C4DE75B130F651D477AADC8B5D2FC9E96B0C6A549747B",
-      "size_bytes": 11488
+      "sha256": "1152040FD0B1CF6C345E83BCD0EA1214EA5466E92C94A7C8DE40A3C0F3299FAD",
+      "size_bytes": 11918
     },
     {
       "path": "tests/contract/test_mvp0_contract_scaffold.py",
@@ -845,18 +845,18 @@
     },
     {
       "path": "tests/contract/test_patch_result_runtime_schema_validation.py",
-      "sha256": "681E420FDB767EF26D052F3AF82437C4C8781B3AD178223DC7DC58CEA7491660",
-      "size_bytes": 12345
+      "sha256": "C222D41759F7ADE441CCA9FE874EC4FAFAAA590E3B8C6B8C5303A18423C4D8FF",
+      "size_bytes": 12851
     },
     {
       "path": "tests/contract/test_post_repair_reconciliation_required_recheck.py",
-      "sha256": "2D1DD566F55A39D336A7BF488C13E3F8FFA10E90D3D96EF44468CA67717B3A48",
-      "size_bytes": 7355
+      "sha256": "D8E42B52F415434D0AC217A244A21C6ED6DC57E2E77EA6E1AB5D2093E1B8E777",
+      "size_bytes": 7788
     },
     {
       "path": "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
-      "sha256": "17CA3B19980BAAC68867A6256811A9490FF9423BB31E38FDFF7E1895DA45F5CC",
-      "size_bytes": 12086
+      "sha256": "4DAC48EEA2F08CBBF5B1D0F0CD0894897AFA4A07EA6EC231E6091A74AEDFD24E",
+      "size_bytes": 12516
     },
     {
       "path": "tests/contract/test_post_rerun_reconciliation_required_recheck.py",
@@ -865,13 +865,13 @@
     },
     {
       "path": "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
-      "sha256": "05C7E02B1EA4FD385697D176D4619290582C1150B4CCBCAA06E4F4CE246BDF14",
-      "size_bytes": 8631
+      "sha256": "5AF1EBD28F0DFE683B0489B449042BCDD27A2ABA8CF32708D1CDBDAA138CC1D7",
+      "size_bytes": 9038
     },
     {
       "path": "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
-      "sha256": "AB7BF0F6D6447326BA616E10140B4FB8A8766B0010371B60A8339432F6B85D56",
-      "size_bytes": 9218
+      "sha256": "D3A5A1DF5B5083469020021E3C65486B981F5CC6C8785E5A2649BE57BA5E6C11",
+      "size_bytes": 9651
     },
     {
       "path": "tests/contract/test_review_plan_reflection_status.py",
@@ -890,23 +890,23 @@
     },
     {
       "path": "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
-      "sha256": "72D121E089366CC2E4C7A42076D5178C58405471CE2E2E11A258425D0D91B0C7",
-      "size_bytes": 7463
+      "sha256": "D3ADDED8AEA0B80F1FAF37808E58FD17578EEF3E103A7B1D8B37BAE81BC46992",
+      "size_bytes": 8047
     },
     {
       "path": "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
-      "sha256": "BEE366A324A8FB2D83193BE4A767F70140718607E66FE678E6B39C37B16EF45D",
-      "size_bytes": 6371
+      "sha256": "54B246B9D989548F8290AA23191199D45DA36E861964D1D44E2BBE9E2B091FCE",
+      "size_bytes": 6880
     },
     {
       "path": "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
-      "sha256": "65972B550FAEDECB48FE53632D4D4D18A3B1C43BC84352F55B44D3C4A3BBF493",
-      "size_bytes": 9720
+      "sha256": "D27B53726481CEE44AC095DE2D2BBE8B47BA44D2C25822E565195AFB92465AF9",
+      "size_bytes": 10295
     },
     {
       "path": "tests/contract/test_stale_loop_regeneration_required_recheck.py",
-      "sha256": "223EA138D66B8FCC348C24989A0685E1027CFE0839083BBEC94704051DE7349A",
-      "size_bytes": 7847
+      "sha256": "E92C431A42A4BF8C82CEAC60780CB9985310599F637E846E46E640F9F7921676",
+      "size_bytes": 8254
     },
     {
       "path": "tests/contract/test_strategy_unit_scope.py",
@@ -925,8 +925,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "526D776A6145577C5F866009A219F0F03AA6AE1F2AB94BE567A94BDD34FB48F4",
-      "size_bytes": 363179
+      "sha256": "06EA480A9FF5B39F70E64582DCFEC504E68ADB7B45D7A0929ED5E9D07EDC314E",
+      "size_bytes": 364932
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -2250,8 +2250,8 @@
     },
     {
       "path": "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
-      "sha256": "1A07C3886FE243BAB4066BD3298342C9F5BB911609184BD56CD128BE92621F5B",
-      "size_bytes": 12034
+      "sha256": "6AD2633927B7C5B640CDC114CB242E7B3F859758973DE865437065DAEFBD6FB2",
+      "size_bytes": 13435
     },
     {
       "path": "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
@@ -2520,8 +2520,8 @@
     },
     {
       "path": "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
-      "sha256": "A108CA2E98D66A83ABF1F3499B2EF29A4D11882083AC4B39FECE1B4304B26619",
-      "size_bytes": 9234
+      "sha256": "FD792110B501DA06F418353E9282EA248B70E9FFFF52196864169771C8A4AAA5",
+      "size_bytes": 11122
     },
     {
       "path": "tests/validators/test_rolling_window_default_validator.py",
@@ -3217,6 +3217,11 @@
       "path": "tools/emit_profitability_optimizer_evidence_gap_state_sync_recheck_patch_evidence.py",
       "sha256": "00C91111781FCCC4ABA90ADDE261C779623F86E7ADB980CFCCE8F53AF81FD684",
       "size_bytes": 30410
+    },
+    {
+      "path": "tools/emit_profitability_optimizer_evidence_maturity_recheck_patch_evidence.py",
+      "sha256": "88A44F66E20A017AE8A2D38EEA478CE910EA1F6028D15F3DF1276F55C4D3AADC",
+      "size_bytes": 32326
     },
     {
       "path": "tools/emit_read_only_dashboard_patch_evidence.py",
@@ -4115,8 +4120,8 @@
     },
     {
       "path": "tools/run_hygiene_safe_pytest.py",
-      "sha256": "3447FFDB4B598EDE92EAA3F8043BB46998093B9B18917ACE3DFA1295E18C9F88",
-      "size_bytes": 3970
+      "sha256": "CDE402C964921F52EA5A7BDFCF429FBB0EF25E748652B1FE638EAB442A50EBD1",
+      "size_bytes": 3971
     },
     {
       "path": "tools/run_live_blocked_validators.py",
@@ -4535,8 +4540,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "A8F64123613D5D7D299277FB636A3B6D2F4BC1D27FAF8217E287C138B7A1FCA5",
-      "size_bytes": 1072960
+      "sha256": "B9087425A74FB3132654710921EC01DF70889FCB6F107A53A3B0B1625F6E46E7",
+      "size_bytes": 1085244
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -5090,8 +5095,8 @@
     },
     {
       "path": "trader1/security/source_bundle.py",
-      "sha256": "FCE5E9BCFC87AF21104A053F4C287119F79112328F9F3038049BE220B0AD6D90",
-      "size_bytes": 7331
+      "sha256": "A8EE26200025C09D373A938DE23BC6E6D70A091479EF9FB46AC428BF99097040",
+      "size_bytes": 7369
     },
     {
       "path": "trader1/validation/__init__.py",
@@ -5105,8 +5110,8 @@
     },
     {
       "path": "trader1/validation/mvp0_validators.py",
-      "sha256": "B1BA238D806AC6B40D68582E9BA6B725CB6940EA95C982CE468A1997ABD38664",
-      "size_bytes": 1210560
+      "sha256": "123F97E04211C8C7C23415B459F2663079073974EE0000059840AC4F152C89DA",
+      "size_bytes": 1215761
     },
     {
       "path": "trader1/validation/namespace.py",
@@ -5629,6 +5634,10 @@
     },
     {
       "path": "contracts/generated/context_pack/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
+      "path": "contracts/generated/context_pack/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
     {
@@ -7124,6 +7133,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK_20260504.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH.audit.json",
       "reason": "denied:system/"
     },
@@ -8489,6 +8502,10 @@
     },
     {
       "path": "system/evidence/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -9905,6 +9922,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -11348,6 +11369,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_PROFITABILITY_ROLLUP_SCORECARD_LONG_RUN_SPLIT.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12781,6 +12806,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_GAP_STATE_SYNC_RECHECK.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
