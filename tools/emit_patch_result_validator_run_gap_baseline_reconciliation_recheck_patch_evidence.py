@@ -13,10 +13,13 @@ ROOT = Path(__file__).resolve().parents[1]
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 PATCH_BASENAME = "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK"
-PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
+PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
 REQUIREMENT_ID = "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-BASELINE-RECONCILIATION-RECHECK"
+PREVIOUS_REQUIREMENT_ID = "REQ-MVP4-ACTUAL-LONG-RUN-RUNTIME-EVIDENCE-COLLECTION-DEPTH-RECHECK"
+PREVIOUS_PATCH_PREFIX = "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK_"
 CONTRACT_GAP_ID = "PATCH_RESULT_VALIDATOR_RUN_GAP"
-NEXT_TASK_CLASS = "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK"
+NEXT_TASK_CLASS = "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK"
+LEGACY_COMPLETED_RECHECK_ROUTE = "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK"
 
 BASELINE_PATH = ROOT / "system" / "evidence" / "audit_reports" / "PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE.json"
 AUDIT_PATH = ROOT / "system" / "evidence" / "audit_reports" / "PATCH_RESULT_VALIDATOR_RUN_GAP_AUDIT.json"
@@ -72,9 +75,32 @@ BOOTSTRAP_VALIDATORS_REQUIRED = [
     validator_id for validator_id in VALIDATORS_REQUIRED if validator_id != "generated_artifact_dirty_validator"
 ]
 CHANGED_ARTIFACTS = [
+    "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py",
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+    "tests/contract/test_completed_recheck_route_depth_guard.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+    "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
     "tests/contract/test_patch_result_runtime_schema_validation.py",
     "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
-    "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+    "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+    "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+    "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+    "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
     "tools/emit_patch_result_validator_run_gap_baseline_reconciliation_recheck_patch_evidence.py",
     "tools/run_hygiene_safe_pytest.py",
     "system/evidence/audit_reports/PATCH_RESULT_VALIDATOR_RUN_GAP_AUDIT.json",
@@ -295,6 +321,37 @@ def post_repair_summary() -> dict[str, Any]:
     }
 
 
+def assert_current_state_ready_for_baseline_reconciliation() -> None:
+    state = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
+    completed = set(state.get("completed_requirement_ids", []))
+    gaps = set(state.get("open_contract_gap_ids", []))
+    last_patch_id = str(state.get("last_patch_id", ""))
+    next_allowed = state.get("next_allowed_task_class")
+    live_flags = {
+        "live_order_ready": state.get("live_order_ready"),
+        "live_order_allowed": state.get("live_order_allowed"),
+        "can_live_trade": state.get("can_live_trade"),
+        "scale_up_allowed": state.get("scale_up_allowed"),
+    }
+    if any(value is not False for value in live_flags.values()):
+        raise RuntimeError(f"unsafe live/scale state for {PATCH_BASENAME}: {live_flags}")
+    if CONTRACT_GAP_ID not in gaps:
+        raise RuntimeError(f"{CONTRACT_GAP_ID} must remain open before baseline reconciliation")
+
+    previous_route_ready = last_patch_id.startswith(PREVIOUS_PATCH_PREFIX) and next_allowed == PATCH_BASENAME
+    idempotent_rerun_ready = last_patch_id.startswith(PATCH_BASENAME) and next_allowed in {
+        NEXT_TASK_CLASS,
+        LEGACY_COMPLETED_RECHECK_ROUTE,
+    }
+    if not (previous_route_ready or idempotent_rerun_ready):
+        raise RuntimeError(
+            f"{PATCH_BASENAME} expected previous route {PREVIOUS_PATCH_PREFIX} -> {PATCH_BASENAME}; "
+            f"got last_patch_id={last_patch_id!r}, next_allowed_task_class={next_allowed!r}"
+        )
+    if previous_route_ready and PREVIOUS_REQUIREMENT_ID not in completed:
+        raise RuntimeError(f"{PREVIOUS_REQUIREMENT_ID} must be completed before {PATCH_BASENAME}")
+
+
 def remaining_blockers() -> list[str]:
     state = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
     return sorted(set(state.get("open_contract_gap_ids", [])) | STATIC_BLOCKERS)
@@ -380,7 +437,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 "contracts/security/source_bundle_manifest.json",
                 "system/evidence/implementation_patch_ledger.json",
                 f"system/evidence/{PATCH_BASENAME}.evidence_manifest.json",
-                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260504.md",
+                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260505.md",
                 f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
                 f"system/evidence/stage_gates/{PATCH_BASENAME}.stage_gate_result.json",
                 f"system/evidence/validator_runs/{PATCH_BASENAME}.validator_run_log.json",
@@ -458,7 +515,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             "runtime_modules": ["trader1/validation/mvp0_validators.py"],
             "evidence_artifacts": [
                 f"system/evidence/{PATCH_BASENAME}.evidence_manifest.json",
-                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260504.md",
+                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260505.md",
                 f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
                 f"system/evidence/stage_gates/{PATCH_BASENAME}.stage_gate_result.json",
                 f"system/evidence/validator_runs/{PATCH_BASENAME}.validator_run_log.json",
@@ -679,7 +736,7 @@ def write_evidence(now: str, trader_hash: str, agents_hash: str, patch_result: d
         },
     )
     write_text(
-        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260504.md",
+        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260505.md",
         f"""# MVP4 Patch Result Validator Run Gap Baseline Reconciliation Recheck
 
 created_at_utc: {now}
@@ -766,6 +823,7 @@ def main() -> int:
     now = utc_now()
     trader_hash = sha256_file(ROOT / "TRADER_1.md")
     agents_hash = sha256_file(ROOT / "AGENTS.md")
+    assert_current_state_ready_for_baseline_reconciliation()
     update_authority_manifest(now)
     write_source_bundle_manifest()
     report = write_gap_audit(now, trader_hash, agents_hash)
