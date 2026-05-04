@@ -188,7 +188,10 @@ class PatchResultValidatorRunGapBaselineReconciliationRecheckTest(unittest.TestC
         self.assertEqual(patch_result["patch_id"], PATCH_ID)
         self.assertIn(REQUIREMENT_ID, patch_result["affected_contract_ids"])
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
-        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_"):
+        if state["last_patch_id"].startswith("MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING_"):
+            expected_next_task = "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK"
+            self.assertEqual(state["next_allowed_task_class"], expected_next_task)
+        elif state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_"):
             expected_next_task = "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING"
             self.assertEqual(
                 state["next_allowed_task_class"],

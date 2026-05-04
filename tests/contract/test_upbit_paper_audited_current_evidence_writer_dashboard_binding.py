@@ -32,7 +32,7 @@ class UpbitPaperAuditedCurrentEvidenceWriterDashboardBindingContractTest(unittes
         patch_result = load_json(PATCH_PATH)
         self.assertEqual(
             patch_result["patch_id"],
-            "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING_20260504_001",
+            "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING_20260505_001",
         )
         self.assertEqual(patch_result["task_class"], "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING")
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK)
@@ -78,7 +78,7 @@ class UpbitPaperAuditedCurrentEvidenceWriterDashboardBindingContractTest(unittes
     def test_current_state_advances_after_dashboard_binding_and_stays_live_blocked(self):
         state = load_json(STATE_PATH)
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
-        if state["last_patch_id"] == "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING_20260504_001":
+        if state["last_patch_id"].startswith("MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING_"):
             self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
         else:
             self.assertNotEqual(state["next_allowed_task_class"], "")
