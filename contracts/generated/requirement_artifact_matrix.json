@@ -1588,6 +1588,55 @@
       "status": "IMPLEMENTED_LIVE_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-COMPLETED-RECHECK-ROUTE-DEPTH-GUARD",
+      "section_id": "SECTION_PATCH_RESULT",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_post_repair_reconciliation_report.schema.json",
+        "contracts/schema/upbit_paper_repair_operator_queue_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py"
+      ],
+      "fixture_files": [
+        "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK.patch_result.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_repair_reconciliation_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repair_operator_queue_report.json"
+      ],
+      "runtime_modules": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD_20260504.md",
+        "system/evidence/patch_results/MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD.patch_result.json",
+        "system/evidence/stage_gates/MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "validators_required",
+        "validators_run",
+        "tests_run",
+        "remaining_blockers",
+        "next_task_class",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_ROUTE_DEPTH_GUARD_NEXT_OPEN_GAP_PRIORITY_RECHECK"
+    },
+    {
       "requirement_id": "REQ-MVP4-CONVERGENCE-ASSESSMENT-SCHEMA-HARDENING",
       "section_id": "SECTION_CONVERGENCE_ASSESSMENT",
       "schema_files": [
@@ -14226,7 +14275,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T06:47:22Z",
+  "updated_at_utc": "2026-05-04T07:18:56Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

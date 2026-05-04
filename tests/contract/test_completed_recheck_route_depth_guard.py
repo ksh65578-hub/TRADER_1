@@ -1,0 +1,121 @@
+import json
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+STATE_PATH = ROOT / "contracts" / "generated" / "current_implementation_state.json"
+PATCH_PATH = (
+    ROOT
+    / "system"
+    / "evidence"
+    / "patch_results"
+    / "MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD.patch_result.json"
+)
+STAGE_GATE_PATH = (
+    ROOT
+    / "system"
+    / "evidence"
+    / "stage_gates"
+    / "MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD.stage_gate_result.json"
+)
+POST_REPAIR_REPORT_PATH = (
+    ROOT
+    / "system"
+    / "runtime"
+    / "upbit"
+    / "krw_spot"
+    / "paper"
+    / "mvp1_upbit_paper_launcher"
+    / "paper_runtime"
+    / "upbit_paper_post_repair_reconciliation_report.json"
+)
+REPAIR_QUEUE_REPORT_PATH = (
+    ROOT
+    / "system"
+    / "runtime"
+    / "upbit"
+    / "krw_spot"
+    / "paper"
+    / "mvp1_upbit_paper_launcher"
+    / "paper_runtime"
+    / "upbit_paper_repair_operator_queue_report.json"
+)
+REQUIREMENT_ID = "REQ-MVP4-COMPLETED-RECHECK-ROUTE-DEPTH-GUARD"
+NEXT_TASK_CLASS = "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK"
+COMPLETED_RECHECK_TASK_CLASSES = {
+    "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK",
+    "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK",
+    "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK",
+}
+PREREQUISITE_REQUIREMENTS = {
+    "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-BASELINE-RECONCILIATION-RECHECK",
+    "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK",
+    "REQ-MVP4-REPAIR-CANDIDATE-HASH-MISMATCH-RECONCILIATION-REQUIRED-RECHECK",
+    "REQ-MVP4-BLOCKED-REPAIR-PLAN-REQUIRES-OPERATOR-RECONCILIATION-RECHECK",
+}
+
+
+def load_json(path: Path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+class CompletedRecheckRouteDepthGuardTest(unittest.TestCase):
+    def test_guard_routes_to_uncompleted_open_gap_priority_recheck(self):
+        if not PATCH_PATH.exists():
+            self.skipTest("completed recheck route-depth guard patch has not been generated yet")
+        state = load_json(STATE_PATH)
+        patch_result = load_json(PATCH_PATH)
+        stage_gate = load_json(STAGE_GATE_PATH)
+
+        self.assertEqual(patch_result["patch_id"], "MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD_20260504_001")
+        self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
+        self.assertEqual(state["last_patch_id"], "MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD_20260504_001")
+        self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
+        self.assertEqual(stage_gate["route_before_patch"], "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK")
+        self.assertTrue(stage_gate["route_regression_detected"])
+        self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
+        self.assertTrue(PREREQUISITE_REQUIREMENTS.issubset(set(state["completed_requirement_ids"])))
+        self.assertNotIn(state["next_allowed_task_class"], COMPLETED_RECHECK_TASK_CLASSES)
+
+        for gap_id in (
+            "PATCH_RESULT_VALIDATOR_RUN_GAP",
+            "POST_REPAIR_RECONCILIATION_REQUIRED",
+            "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+            "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+            "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+            "LIVE_ENABLING_EVIDENCE_MISSING",
+            "SCALE_UP_NOT_ELIGIBLE",
+        ):
+            self.assertIn(gap_id, state["open_contract_gap_ids"])
+            self.assertIn(gap_id, patch_result["remaining_blockers"])
+
+        for field in (
+            "live_order_ready_after",
+            "live_order_allowed_after",
+            "can_live_trade_after",
+            "scale_up_allowed_after",
+            "convergence_live_order_allowed_after",
+            "optimizer_live_order_allowed_after",
+        ):
+            self.assertFalse(patch_result[field])
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(state[field])
+
+    def test_guard_keeps_repair_candidates_review_only(self):
+        post_repair = load_json(POST_REPAIR_REPORT_PATH)
+        repair_queue = load_json(REPAIR_QUEUE_REPORT_PATH)
+
+        self.assertEqual(post_repair["post_repair_reconciliation_status"], "BLOCKED")
+        self.assertEqual(post_repair["candidate_current_evidence_usable_count"], 0)
+        self.assertEqual(repair_queue["queue_status"], "BLOCKED")
+        self.assertEqual(repair_queue["candidate_current_evidence_usable_count"], 0)
+        self.assertFalse(post_repair["current_evidence_mutation_allowed"])
+        self.assertFalse(repair_queue["current_evidence_mutation_allowed"])
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            self.assertFalse(post_repair[field])
+            self.assertFalse(repair_queue[field])
+
+
+if __name__ == "__main__":
+    unittest.main()
