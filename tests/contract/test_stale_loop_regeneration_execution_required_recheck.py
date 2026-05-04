@@ -260,7 +260,11 @@ class StaleLoopRegenerationExecutionRequiredRecheckTest(unittest.TestCase):
             self.assertNotIn(blocker, patch_result["remaining_blockers"])
 
         completed = set(state["completed_requirement_ids"])
-        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
+        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_"):
+            self.assertEqual(state["next_allowed_task_class"], AUDITED_WRITER_DASHBOARD_NEXT_TASK)
+            self.assertNotIn(OPERATOR_QUEUE_PENDING_BLOCKER, state["open_contract_gap_ids"])
+            self.assertNotIn(NEXT_BLOCKER, state["open_contract_gap_ids"])
+        elif state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
             self.assertEqual(state["next_allowed_task_class"], OPERATOR_QUEUE_PENDING_NEXT_TASK)
             self.assertIn(OPERATOR_QUEUE_PENDING_BLOCKER, state["open_contract_gap_ids"])
             self.assertNotIn(NEXT_BLOCKER, state["open_contract_gap_ids"])

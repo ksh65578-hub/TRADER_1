@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.patch_result.v1",
-  "patch_id": "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_20260504_001",
-  "created_at_utc": "2026-05-04T03:59:43Z",
+  "patch_id": "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_20260505_001",
+  "created_at_utc": "2026-05-04T17:13:53Z",
   "target_mvp_level": "MVP-4",
   "patch_class": "VALIDATOR_PATCH",
   "input_authority_files": [
@@ -42,8 +42,6 @@
     "patch_result_runtime_schema_instance_validator",
     "generated_artifact_dirty_validator",
     "coverage_index_validator",
-    "source_bundle_hygiene_validator",
-    "shipped_package_hygiene_validator",
     "secret_scan_validator",
     "live_final_guard_validator"
   ],
@@ -86,14 +84,6 @@
     },
     {
       "validator_id": "coverage_index_validator",
-      "status": "PASS"
-    },
-    {
-      "validator_id": "source_bundle_hygiene_validator",
-      "status": "PASS"
-    },
-    {
-      "validator_id": "shipped_package_hygiene_validator",
       "status": "PASS"
     },
     {
@@ -263,8 +253,6 @@
     "patch_result_runtime_schema_instance_validator",
     "generated_artifact_dirty_validator",
     "coverage_index_validator",
-    "source_bundle_hygiene_validator",
-    "shipped_package_hygiene_validator",
     "secret_scan_validator",
     "live_final_guard_validator"
   ],
@@ -310,14 +298,6 @@
       "status": "PASS"
     },
     {
-      "validator_id": "source_bundle_hygiene_validator",
-      "status": "PASS"
-    },
-    {
-      "validator_id": "shipped_package_hygiene_validator",
-      "status": "PASS"
-    },
-    {
       "validator_id": "secret_scan_validator",
       "status": "PASS"
     },
@@ -331,7 +311,7 @@
   "convergence_live_order_allowed_after": false,
   "scale_up_eligibility_changed": false,
   "scale_up_allowed_after": false,
-  "result_hash": "EF48178654756739D6F0125E068DB092C4312183BB0EF8684636D0709B77120C",
+  "result_hash": "CE8F03249AD22BA94652BE3F2CF73EBB7FD62E41BCF2C583F4F60F787C2822C8",
   "merged_requirements": [],
   "coverage_index_result": "UPDATED_PASS",
   "scale_up_allowed_before": false,
@@ -417,9 +397,9 @@
   "blocked_repair_plan_recovery_guard_rerun_required_count": 1,
   "blocked_repair_plan_missing_cycle_ledger_jsonl_total_count": 10,
   "blocked_repair_plan_missing_paper_ledger_rollup_artifact_count": 6,
-  "repair_operator_queue_primary_blocker_code": "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
   "repair_operator_queue_runtime_cycle_rerun_required_count": 5,
   "repair_operator_queue_recovery_guard_rerun_required_count": 1,
+  "repair_operator_queue_primary_blocker_code": "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
   "repair_operator_queue_hash_operator_reconciliation_required_count": 1,
   "stale_loop_regeneration_plan_status": "READY_FOR_SAFE_PAPER_REGENERATION",
   "stale_loop_regeneration_source_loop_report_count": 17,

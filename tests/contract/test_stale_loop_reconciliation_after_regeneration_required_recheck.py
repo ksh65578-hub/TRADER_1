@@ -216,7 +216,11 @@ class StaleLoopReconciliationAfterRegenerationRequiredRecheckTest(unittest.TestC
         self.assertIn(NEXT_BLOCKER, patch_result["remaining_blockers"])
         self.assertNotIn(CLOSED_BLOCKER, patch_result["remaining_blockers"])
 
-        if state["last_patch_id"] == PATCH_ID:
+        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_"):
+            self.assertEqual(state["next_allowed_task_class"], AUDITED_WRITER_DASHBOARD_NEXT_TASK)
+            self.assertNotIn(NEXT_BLOCKER, state["open_contract_gap_ids"])
+            self.assertNotIn(CLOSED_BLOCKER, state["open_contract_gap_ids"])
+        elif state["last_patch_id"] == PATCH_ID:
             self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
             self.assertIn(NEXT_BLOCKER, state["open_contract_gap_ids"])
             self.assertNotIn(CLOSED_BLOCKER, state["open_contract_gap_ids"])

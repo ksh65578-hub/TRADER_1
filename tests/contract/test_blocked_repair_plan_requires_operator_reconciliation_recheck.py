@@ -231,7 +231,17 @@ class BlockedRepairPlanRequiresOperatorReconciliationRecheckTest(unittest.TestCa
         self.assertEqual(patch_result["repair_operator_queue_candidate_current_evidence_usable_count"], 0)
 
         completed = set(state["completed_requirement_ids"])
-        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
+        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_"):
+            expected_next_task = "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING"
+            self.assertEqual(
+                state["next_allowed_task_class"],
+                expected_next_task,
+            )
+            self.assertNotIn(
+                "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING",
+                state["open_contract_gap_ids"],
+            )
+        elif state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
             expected_next_task = "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK"
             self.assertEqual(state["next_allowed_task_class"], expected_next_task)
         elif STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:

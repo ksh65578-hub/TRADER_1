@@ -347,7 +347,9 @@ class PatchResultRuntimeSchemaValidationTest(unittest.TestCase):
         elif STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
             completed_route_task_classes.remove("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK")
         self.assertNotIn(state["next_allowed_task_class"], completed_route_task_classes)
-        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
+        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_"):
+            expected_next_task = EXPECTED_AUDITED_WRITER_DASHBOARD_BINDING_NEXT_TASK
+        elif state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
             expected_next_task = EXPECTED_STALE_LOOP_OPERATOR_QUEUE_PENDING_NEXT_TASK
         elif STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
             expected_next_task = AFTER_STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_NEXT_TASK

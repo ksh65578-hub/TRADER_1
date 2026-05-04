@@ -287,7 +287,17 @@ class StaleLoopRegenerationExecutionRequiredRecheckTest(unittest.TestCase):
             self.assertNotIn(blocker, patch_result["remaining_blockers"])
 
         completed = set(state["completed_requirement_ids"])
-        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
+        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_"):
+            expected_next_task = "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING"
+            self.assertEqual(
+                state["next_allowed_task_class"],
+                expected_next_task,
+            )
+            self.assertNotIn(
+                "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING",
+                state["open_contract_gap_ids"],
+            )
+        elif state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
             self.assertEqual(
                 state["next_allowed_task_class"],
                 "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK",
@@ -386,7 +396,17 @@ class StaleLoopRegenerationExecutionRequiredRecheckTest(unittest.TestCase):
         self.assertTrue(execution_gap["live_affecting"])
         self.assertEqual(required_gap["contract_gap_id"], "STALE_LOOP_REGENERATION_REQUIRED")
         self.assertEqual(execution_gap["contract_gap_id"], "STALE_LOOP_REGENERATION_EXECUTION_REQUIRED")
-        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
+        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_"):
+            expected_next_task = "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING"
+            self.assertEqual(
+                state["next_allowed_task_class"],
+                expected_next_task,
+            )
+            self.assertNotIn(
+                "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING",
+                state["open_contract_gap_ids"],
+            )
+        elif state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
             self.assertIn("STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING", state["open_contract_gap_ids"])
             self.assertNotIn(NEXT_BLOCKER, state["open_contract_gap_ids"])
         else:
