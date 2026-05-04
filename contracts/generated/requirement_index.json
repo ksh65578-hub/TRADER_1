@@ -8492,6 +8492,71 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-REGENERATED-CURRENT-BLOCKED-REPAIRS-REQUIRE-LEDGER-RECOVERY-RECONCILIATION-RECHECK",
+      "source_section_id": "SECTION_LEDGER_RECONCILIATION",
+      "source_file": "TRADER_1.md",
+      "source_heading": "regenerated current blocked repairs require ledger recovery reconciliation recheck",
+      "full_text_marker": "REQ-MVP4-REGENERATED-CURRENT-BLOCKED-REPAIRS-REQUIRE-LEDGER-RECOVERY-RECONCILIATION-RECHECK: regenerated current repair candidates must remain repair-queue-blocked, ledger/recovery-reconciliation-required, source-delete-blocked, current-evidence-blocked, live-blocked, and scale-up-blocked until validator-backed ledger and recovery evidence exists",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Regenerated current blocked repairs require ledger recovery reconciliation recheck",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.upbit_paper_blocked_repair_plan_report.v1",
+        "trader1.upbit_paper_repair_operator_queue_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_blocked_repair_plan_validator",
+        "upbit_paper_repair_operator_queue_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.md",
+        "contracts/schema/patch_result.schema.json",
+        "system/evidence/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.validator_run_log.json",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tools/emit_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck_patch_evidence.py"
+      ],
+      "test_ids": [
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/runtime/test_upbit_paper_blocked_repair_plan.py",
+        "tests/runtime/test_upbit_paper_repair_operator_queue.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_RUNTIME_RECOVERY",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-BLOCKED-REPAIR-PLAN-REQUIRES-OPERATOR-RECONCILIATION-RECHECK",
+        "REQ-MVP4-UPBIT-PAPER-BLOCKED-REPAIR-PLAN",
+        "REQ-MVP4-UPBIT-PAPER-REPAIR-OPERATOR-QUEUE",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "FFCC08FEC5D5E54BC83CC19E2B97FA27A2A04CFEB0CE09DD43BCA5D3828144EB",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_RECHECK_REGENERATED_CURRENT_REPAIRS_LEDGER_RECOVERY_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-REGISTERED-VALIDATOR-BACKLOG-TRIAGE",
       "source_section_id": "SECTION_VALIDATOR_GROUP_NAVIGATION",
       "source_file": "AGENTS.md",
@@ -18966,5 +19031,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-04T02:03:09Z"
+  "updated_at_utc": "2026-05-04T02:25:10Z"
 }

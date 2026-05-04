@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "07CDD9E799E22FE33A5285AAD74489C9C53E62EAEB0C51E7F37968F577442FE4",
+      "sha256": "47CB8D82071022AE2084DF29E85CCE3E9DFB932DA9E341A7660BEBCC70C48333",
       "size_bytes": 1096
     },
     {
@@ -245,8 +245,8 @@
     },
     {
       "path": "contracts/schema/patch_result.schema.json",
-      "sha256": "5DC7CEF0912BC8A8ABC271E6905BF98E37E1BF91766CE1C3F87EDDE01E52DC15",
-      "size_bytes": 38332
+      "sha256": "678942CE4315A6FA354087CB1DA18752DAEECB1A965CCCADB8272573A8F4D0F4",
+      "size_bytes": 38775
     },
     {
       "path": "contracts/schema/position_sizing_decision.schema.json",
@@ -805,8 +805,8 @@
     },
     {
       "path": "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
-      "sha256": "45119F1D4596CA7AA8A3EE0275DAE0591DAD03042B6AD66A276F1ACA7CB90372",
-      "size_bytes": 6095
+      "sha256": "9DCAC161E3D2E234ED723FFF2CD40C30BCA9BC63E54458E03041129FF1F36E73",
+      "size_bytes": 6494
     },
     {
       "path": "tests/contract/test_final_decision_schema.py",
@@ -815,8 +815,8 @@
     },
     {
       "path": "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
-      "sha256": "E80029EA6715870DD47DCE39D0D04D5D7C83B9B60D205D09EBBDEE96EC74A2C8",
-      "size_bytes": 8809
+      "sha256": "105D808CEA02E8815A29531AA84CB4B6DCE1DF525E6E6E9BC6A863B65CE0FBA5",
+      "size_bytes": 9266
     },
     {
       "path": "tests/contract/test_mvp0_contract_scaffold.py",
@@ -845,18 +845,18 @@
     },
     {
       "path": "tests/contract/test_patch_result_runtime_schema_validation.py",
-      "sha256": "DB5421305CFDC846FA8C9D90DD3FF8D4C243EE3C0103144711481B4C68764E53",
-      "size_bytes": 9385
+      "sha256": "C7DCBDF23DE956EC879F19076BF11C2B24046E4C0DAEA78EE5277A25D1E3563D",
+      "size_bytes": 9891
     },
     {
       "path": "tests/contract/test_post_repair_reconciliation_required_recheck.py",
-      "sha256": "493D08F07E446A0028B768F31D267051ABD620CA8BB43532EA51B42C49A01A68",
-      "size_bytes": 4825
+      "sha256": "7AEFDF9309F9EE6E8B4C0EF9912340B0A102B8ACF40B005B6AECA20BBFBA40C5",
+      "size_bytes": 5221
     },
     {
       "path": "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
-      "sha256": "C101E6E310B698BBB8C215B9A0EE07EDD162314E6BF2D79D947C0F755FF3ADDE",
-      "size_bytes": 9407
+      "sha256": "91CB4F2282ADA9FA975EDD78FE5A0DA3F795AA74579A6B12E6185CD94546D393",
+      "size_bytes": 9864
     },
     {
       "path": "tests/contract/test_post_rerun_reconciliation_required_recheck.py",
@@ -864,9 +864,14 @@
       "size_bytes": 5474
     },
     {
+      "path": "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+      "sha256": "9589D90923EB55935E257D58062D51AB18304144510DB024A2F20C3780CEACC3",
+      "size_bytes": 6622
+    },
+    {
       "path": "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
-      "sha256": "5C7C0A5E867774505AB451032C915DC7CA002B67D92019FC4C1C7346471D7783",
-      "size_bytes": 6688
+      "sha256": "7F543D7192638010CA14BEE6CE0AC13CDE2689C3E14ECD48CCF1F41A94E8B271",
+      "size_bytes": 7084
     },
     {
       "path": "tests/contract/test_review_plan_reflection_status.py",
@@ -3202,6 +3207,11 @@
       "path": "tools/emit_reconciliation_patch_evidence.py",
       "sha256": "EDF6C80D0B8A3C70536B95450189217E178A7144D03EA7E11273907B0129907D",
       "size_bytes": 29669
+    },
+    {
+      "path": "tools/emit_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck_patch_evidence.py",
+      "sha256": "3B3250A33E81B8F73C9A6C3C6CE8EF10E9FC2D7BAD0B61B19B23EF53D4B4792E",
+      "size_bytes": 47551
     },
     {
       "path": "tools/emit_repair_candidate_hash_mismatch_reconciliation_required_recheck_patch_evidence.py",
@@ -5572,6 +5582,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_REGISTERED_VALIDATOR_BACKLOG_TRIAGE.md",
       "reason": "denied:contracts/generated/"
     },
@@ -7048,6 +7062,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK_20260504.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_REGISTERED_VALIDATOR_BACKLOG_TRIAGE.audit.json",
       "reason": "denied:system/"
     },
@@ -8393,6 +8411,10 @@
     },
     {
       "path": "system/evidence/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -9785,6 +9807,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -11204,6 +11230,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_REGISTERED_VALIDATOR_BACKLOG_TRIAGE.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12613,6 +12643,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_READ_CACHE_LINE_ENDING_STABLE_HASH.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_RECHECK.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
