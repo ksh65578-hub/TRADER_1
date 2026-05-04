@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-04T09:03:37Z",
+  "generated_at_utc": "2026-05-04T23:10:29Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -259,7 +259,7 @@
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
   "next_operator_action": "Use PAPER runtime-linked strategy/regime/cost evidence only as PAPER scorecard input; collect longer PAPER/SHADOW windows, OOS, walk-forward, bootstrap, read-only burn-in, manual order evidence, and operator approval while live remains blocked.",
-  "rollup_hash": "C4DE14135C80A7784109F510D54C1FFA17B919AFF7DEC01F2989C23F9022B029",
+  "rollup_hash": "F7AE84D56B44084E8BCEDC366466AA0067261D9F203794039C41D6F4B261D021",
   "runtime_linkage_evidence": {
     "status": "PASS",
     "source_runtime_cycle_path": "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
