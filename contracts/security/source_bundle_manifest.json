@@ -20,7 +20,7 @@
     },
     {
       "path": "contracts/authority_manifest.json",
-      "sha256": "447687D335059B1D3365225E49CB32DE0AE7517B128D1D5D43708E04F03F1322",
+      "sha256": "50E41D74CEBCBCEE33FDD236223C398829F158C56E2F1E97854CFDAD8DD8A0DD",
       "size_bytes": 1096
     },
     {
@@ -810,8 +810,8 @@
     },
     {
       "path": "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
-      "sha256": "8D4697587647EF5305677DE8D0E15A555B4DA52F6EDD9641CDFE5A534B4EC032",
-      "size_bytes": 5216
+      "sha256": "1929454AA712571AC0944C5CB38853F95BD556AD1D885BDDEC3809EA8DB66DAC",
+      "size_bytes": 6095
     },
     {
       "path": "tests/contract/test_mvp0_contract_scaffold.py",
@@ -2919,6 +2919,11 @@
       "size_bytes": 31168
     },
     {
+      "path": "tools/emit_missing_cycle_ledger_rerun_required_next_task_restore_patch_evidence.py",
+      "sha256": "DEB03A54D5ABCF03545B63921C5968F902DD654D9327E7ADD896B3AF19165A13",
+      "size_bytes": 32558
+    },
+    {
       "path": "tools/emit_missing_cycle_ledger_rerun_required_state_sync_recheck_patch_evidence.py",
       "sha256": "42422C43E79F48ED4EA8B95CFDF32AEE9C6A2E8B8215B49F1895499625215CF3",
       "size_bytes": 35284
@@ -3045,8 +3050,8 @@
     },
     {
       "path": "tools/emit_paper_shadow_runtime_shadow_observation_gap_next_task_restore_patch_evidence.py",
-      "sha256": "9010D065FDD8021422E0071100B6ACBEA3E04EC4954C6D74E98D652687C4BCB2",
-      "size_bytes": 32260
+      "sha256": "770E64B6CC2F224F4DCFB4DEFB5654625E27A0D9BDAEABC127B4BFF1995828FE",
+      "size_bytes": 32990
     },
     {
       "path": "tools/emit_paper_shadow_runtime_shadow_observation_gap_state_sync_recheck_patch_evidence.py",
@@ -5395,6 +5400,10 @@
       "reason": "denied:contracts/generated/"
     },
     {
+      "path": "contracts/generated/context_pack/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE.md",
+      "reason": "denied:contracts/generated/"
+    },
+    {
       "path": "contracts/generated/context_pack/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.md",
       "reason": "denied:contracts/generated/"
     },
@@ -6739,6 +6748,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/audit_reports/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE_20260504.md",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/audit_reports/MVP4_MODEL_DRIFT_SCHEMA_HARDENING_20260429.md",
       "reason": "denied:system/"
     },
@@ -8048,6 +8061,10 @@
     },
     {
       "path": "system/evidence/MVP4_MARKET_REGIME_ADAPTATION_SCHEMA_HARDENING.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE.evidence_manifest.json",
       "reason": "denied:system/"
     },
     {
@@ -9416,6 +9433,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_MARKET_REGIME_ADAPTATION_SCHEMA_HARDENING.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -10811,6 +10832,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_STATE_SYNC_RECHECK.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12196,6 +12221,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_MARKET_REGIME_ADAPTATION_SCHEMA_HARDENING.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_NEXT_TASK_RESTORE.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
