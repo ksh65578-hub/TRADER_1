@@ -43,6 +43,8 @@ REPAIR_QUEUE_REPORT_PATH = (
 )
 REQUIREMENT_ID = "REQ-MVP4-COMPLETED-RECHECK-ROUTE-DEPTH-GUARD"
 NEXT_TASK_CLASS = "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK"
+PRIORITY_RECHECK_REQUIREMENT_ID = "REQ-MVP4-OPEN-CONTRACT-GAP-IMPLEMENTATION-PRIORITY-RECHECK"
+PRIORITY_RECHECK_NEXT_TASK_CLASS = "MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_IMPLEMENTATION_DEPTH_RECHECK"
 COMPLETED_RECHECK_TASK_CLASSES = {
     "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK",
     "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK",
@@ -70,8 +72,11 @@ class CompletedRecheckRouteDepthGuardTest(unittest.TestCase):
 
         self.assertEqual(patch_result["patch_id"], "MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD_20260504_001")
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
-        self.assertEqual(state["last_patch_id"], "MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD_20260504_001")
-        self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
+        if PRIORITY_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["next_allowed_task_class"], PRIORITY_RECHECK_NEXT_TASK_CLASS)
+        else:
+            self.assertEqual(state["last_patch_id"], "MVP4_COMPLETED_RECHECK_ROUTE_DEPTH_GUARD_20260504_001")
+            self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
         self.assertEqual(stage_gate["route_before_patch"], "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK")
         self.assertTrue(stage_gate["route_regression_detected"])
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
