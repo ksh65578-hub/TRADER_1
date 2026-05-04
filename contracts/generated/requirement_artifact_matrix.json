@@ -6452,6 +6452,59 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-REPAIR-CANDIDATE-HASH-MISMATCH-RECONCILIATION-REQUIRED-RECHECK",
+      "section_id": "SECTION_LEDGER_RECONCILIATION",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_post_repair_reconciliation_report.schema.json",
+        "contracts/schema/upbit_paper_repair_operator_queue_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py",
+        "trader1/runtime/paper/upbit_paper_post_repair_reconciliation.py",
+        "trader1/runtime/paper/upbit_paper_repair_operator_queue.py"
+      ],
+      "test_files": [
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/runtime/test_upbit_paper_post_repair_reconciliation.py",
+        "tests/runtime/test_upbit_paper_repair_operator_queue.py"
+      ],
+      "fixture_files": [
+        "system/evidence/patch_results/MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK.patch_result.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_repair_reconciliation_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_repair_operator_queue_report.json"
+      ],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_post_repair_reconciliation.py",
+        "trader1/runtime/paper/upbit_paper_repair_operator_queue.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "next_task_class",
+        "remaining_blockers",
+        "post_repair_reconciliation_status",
+        "post_repair_source_loop_expected_rollup_hash_mismatch_count",
+        "post_repair_candidate_current_evidence_usable_count",
+        "repair_operator_queue_status",
+        "repair_operator_queue_item_count",
+        "repair_operator_queue_ledger_candidate_review_ready_count",
+        "repair_operator_queue_candidate_current_evidence_usable_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RECHECK_HASH_MISMATCH_REMAINS_OPERATOR_ACTION_REQUIRED"
+    },
+    {
       "requirement_id": "REQ-MVP4-REPRODUCIBILITY-TEST-HARNESS-RECHECK",
       "section_id": "SECTION_TEST_REPRODUCIBILITY",
       "schema_files": [
@@ -13647,7 +13700,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T01:29:13Z",
+  "updated_at_utc": "2026-05-04T01:48:53Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

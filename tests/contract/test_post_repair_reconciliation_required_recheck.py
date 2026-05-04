@@ -24,7 +24,9 @@ POST_REPAIR_REPORT_PATH = (
     / "upbit_paper_post_repair_reconciliation_report.json"
 )
 REQUIREMENT_ID = "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK"
+HASH_MISMATCH_REQUIREMENT_ID = "REQ-MVP4-REPAIR-CANDIDATE-HASH-MISMATCH-RECONCILIATION-REQUIRED-RECHECK"
 EXPECTED_NEXT_TASK = "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK"
+EXPECTED_HASH_MISMATCH_NEXT_TASK = "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK"
 
 
 def load_json(path: Path):
@@ -67,7 +69,10 @@ class PostRepairReconciliationRequiredRecheckTest(unittest.TestCase):
         self.assertEqual(patch_result["post_repair_candidate_current_evidence_usable_count"], 0)
         self.assertEqual(patch_result["candidate_current_evidence_usable_count"], 0)
 
-        if REQUIREMENT_ID in state["completed_requirement_ids"]:
+        completed = set(state["completed_requirement_ids"])
+        if HASH_MISMATCH_REQUIREMENT_ID in completed:
+            self.assertEqual(state["next_allowed_task_class"], EXPECTED_HASH_MISMATCH_NEXT_TASK)
+        elif REQUIREMENT_ID in completed:
             self.assertEqual(state["next_allowed_task_class"], EXPECTED_NEXT_TASK)
         self.assertIn("POST_REPAIR_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
         self.assertIn("REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED", state["open_contract_gap_ids"])
