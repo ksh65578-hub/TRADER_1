@@ -7405,6 +7405,77 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-BASELINE-RECONCILIATION-RECHECK",
+      "source_section_id": "SECTION_PATCH_RESULT",
+      "source_file": "TRADER_1.md",
+      "source_heading": "patch_result validator-run gap baseline reconciliation recheck",
+      "full_text_marker": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-BASELINE-RECONCILIATION-RECHECK: reconcile sealed patch_result validator-run gap baseline against current patch_result history without backfilling historical evidence",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Patch result validator-run baseline reconciliation recheck",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.contract_gap.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/context_pack/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK.md",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/requirement_index.json",
+        "contracts/security/source_bundle_manifest.json",
+        "system/evidence/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK_20260504.md",
+        "system/evidence/audit_reports/PATCH_RESULT_VALIDATOR_RUN_GAP_AUDIT.json",
+        "system/evidence/audit_reports/PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION.json",
+        "system/evidence/contract_gaps/PATCH_RESULT_VALIDATOR_RUN_GAP.contract_gap.json",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/patch_results/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK.validator_run_log.json",
+        "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tools/emit_patch_result_validator_run_gap_baseline_reconciliation_recheck_patch_evidence.py",
+        "tools/run_hygiene_safe_pytest.py"
+      ],
+      "test_ids": [
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_PATCH_RESULT",
+        "SECTION_VALIDATOR_DEPENDENCY_CHAIN",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-RECHECK",
+        "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-STATE-SYNC-RECHECK",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "1168CA7F522FD751366BF48B328C0A3A5CC3CA0EB3525CB7ACC4063E1CF8F4F4",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_BASELINE_RECONCILED_HISTORICAL_GAP_OPEN",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-NEXT-TASK-RESTORE",
       "source_section_id": "SECTION_PATCH_RESULT",
       "source_file": "TRADER_1.md",
@@ -19549,5 +19620,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-04T06:07:12Z"
+  "updated_at_utc": "2026-05-04T06:47:22Z"
 }
