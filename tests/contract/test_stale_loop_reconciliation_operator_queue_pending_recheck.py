@@ -210,7 +210,7 @@ class StaleLoopReconciliationOperatorQueuePendingRecheckTest(unittest.TestCase):
 
         self.assertEqual(
             patch_result["patch_id"],
-            "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_20260504_001",
+            "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_20260505_001",
         )
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK)
         self.assertEqual(patch_result["stale_loop_operator_queue_closure_status"], "BLOCKED")
@@ -221,7 +221,10 @@ class StaleLoopReconciliationOperatorQueuePendingRecheckTest(unittest.TestCase):
         self.assertEqual(patch_result["stale_loop_normalized_reconciliation_recheck_ledger_rollup_required_count"], 5)
         self.assertNotIn(CLOSED_BLOCKER, patch_result["remaining_blockers"])
 
-        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
+        if state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK_"):
+            self.assertEqual(state["next_allowed_task_class"], NEXT_TASK)
+            self.assertNotIn(CLOSED_BLOCKER, state["open_contract_gap_ids"])
+        elif state["last_patch_id"].startswith("MVP4_STALE_LOOP_RECONCILIATION_AFTER_REGENERATION_REQUIRED_RECHECK_"):
             self.assertEqual(state["next_allowed_task_class"], "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK")
             self.assertIn(CLOSED_BLOCKER, state["open_contract_gap_ids"])
         elif STALE_LOOP_REGENERATION_EXECUTION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in state[

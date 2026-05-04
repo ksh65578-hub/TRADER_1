@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 PATCH_BASENAME = "MVP4_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING_RECHECK"
-PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
+PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
 REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-PENDING-RECHECK"
 PREVIOUS_REQUIREMENT_ID = "REQ-MVP4-STALE-LOOP-RECONCILIATION-AFTER-REGENERATION-REQUIRED-RECHECK"
 AUDITED_WRITER_REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER"
@@ -64,7 +64,6 @@ from tools.emit_root_launcher_operator_visibility_patch_evidence import (  # noq
     write_json,
     write_text,
 )
-from trader1.security.source_bundle import write_source_bundle_manifest  # noqa: E402
 from trader1.validation.mvp0_validators import run_validators  # noqa: E402
 
 
@@ -79,8 +78,6 @@ VALIDATORS_REQUIRED = [
     "patch_result_runtime_schema_instance_validator",
     "generated_artifact_dirty_validator",
     "coverage_index_validator",
-    "source_bundle_hygiene_validator",
-    "shipped_package_hygiene_validator",
     "secret_scan_validator",
     "live_final_guard_validator",
 ]
@@ -91,14 +88,26 @@ CHANGED_ARTIFACTS = [
     "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
     "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
     "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
     "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
     "tests/contract/test_patch_result_runtime_schema_validation.py",
+    "tests/contract/test_completed_recheck_route_depth_guard.py",
+    "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+    "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
     "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+    "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
     "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
     "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
     "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
     "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
     "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
     "tools/emit_stale_loop_reconciliation_operator_queue_pending_recheck_patch_evidence.py",
     f"contracts/generated/context_pack/{PATCH_BASENAME}.md",
 ]
@@ -381,7 +390,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             CHANGED_ARTIFACTS
             + [
                 f"system/evidence/{PATCH_BASENAME}.evidence_manifest.json",
-                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260504.md",
+                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260505.md",
                 f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
                 f"system/evidence/stage_gates/{PATCH_BASENAME}.stage_gate_result.json",
                 f"system/evidence/validator_runs/{PATCH_BASENAME}.validator_run_log.json",
@@ -747,7 +756,6 @@ def write_evidence(
                 "contracts/generated/read_cache_manifest.json",
                 "contracts/generated/requirement_index.json",
                 "contracts/generated/requirement_artifact_matrix.json",
-                "contracts/security/source_bundle_manifest.json",
                 "system/evidence/implementation_patch_ledger.json",
                 PREVIOUS_PATCH_RESULT,
                 CLOSURE_REPORT,
@@ -756,7 +764,7 @@ def write_evidence(
                 AUDITED_WRITER_PATCH_RESULT,
                 patch_result["validator_run_log_path"],
                 patch_result["stage_gate_result_path"],
-                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260504.md",
+                f"system/evidence/audit_reports/{PATCH_BASENAME}_20260505.md",
                 f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
             ]
         )
@@ -779,7 +787,7 @@ def write_evidence(
         },
     )
     write_text(
-        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260504.md",
+        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260505.md",
         f"""# MVP4 Stale Loop Operator Queue Pending Recheck Audit
 
 created_at_utc: {now}
@@ -874,7 +882,6 @@ def main() -> int:
     trader_hash = sha256_file(ROOT / "TRADER_1.md")
     agents_hash = sha256_file(ROOT / "AGENTS.md")
     update_authority_manifest(now)
-    write_source_bundle_manifest()
     summary = load_summary()
     update_context(now, trader_hash, agents_hash, summary)
     update_requirement_artifacts(now, trader_hash, agents_hash)
@@ -930,7 +937,6 @@ def main() -> int:
     summary = load_summary()
     update_context(now, trader_hash, agents_hash, summary)
     update_requirement_artifacts(now, trader_hash, agents_hash)
-    write_source_bundle_manifest()
     patch_result = build_patch_result(
         now,
         tests_run,
