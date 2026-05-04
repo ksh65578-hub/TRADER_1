@@ -5025,6 +5025,45 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-NEXT-TASK-RESTORE",
+      "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
+      "schema_files": [
+        "contracts/schema/contract_gap.schema.json",
+        "contracts/schema/patch_result.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_paper_shadow_runtime_shadow_observation_gap_recheck.py"
+      ],
+      "fixture_files": [
+        "system/evidence/contract_gaps/PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP.contract_gap.json",
+        "system/evidence/patch_results/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_STATE_SYNC_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_DASHBOARD_VISIBILITY_LAYOUT_FIX.patch_result.json"
+      ],
+      "runtime_modules": [],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP_NEXT_TASK_RESTORE.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "next_task_class",
+        "next_required_section_ids",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_NEXT_TASK_RESTORE_CONTRACT_GAP_OPEN"
+    },
+    {
       "requirement_id": "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-STATE-SYNC-RECHECK",
       "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "schema_files": [
@@ -13420,7 +13459,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-03T23:06:11Z",
+  "updated_at_utc": "2026-05-03T23:55:27Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
