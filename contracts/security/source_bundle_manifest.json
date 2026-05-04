@@ -950,8 +950,8 @@
     },
     {
       "path": "tests/dashboard/test_read_only_dashboard.py",
-      "sha256": "EF7AB080CB7F7054866BB27E13DEA4CA1ADAEB4AD0200DE166B27C7AA6B011FF",
-      "size_bytes": 371526
+      "sha256": "F860DD6D994BAE74F73A0D29A2B96F0D100E44130CDD89019EA40E98EEDB52F1",
+      "size_bytes": 372946
     },
     {
       "path": "tests/dashboard/test_summary_writer.py",
@@ -4600,8 +4600,8 @@
     },
     {
       "path": "trader1/dashboard/read_only_dashboard.py",
-      "sha256": "F7C177E68EE04225FAC95F04F7562E3F94E2DA628158504C458E4B8DAD1A744A",
-      "size_bytes": 1106003
+      "sha256": "ABE8C6CA3095E009ED93AD7D6C8055CA5EB30832AB7A6AB969638B34138750F3",
+      "size_bytes": 1109046
     },
     {
       "path": "trader1/dashboard/summary_writer.py",
@@ -8197,6 +8197,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/MVP4_DASHBOARD_OPERATOR_SUMMARY_UX.evidence_manifest.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/MVP4_DASHBOARD_PAPER_CONFIGURED_CAPITAL_UX.evidence_manifest.json",
       "reason": "denied:system/"
     },
@@ -9642,6 +9646,10 @@
     },
     {
       "path": "system/evidence/patch_results/MVP4_DASHBOARD_OPERATION_STATUS_UX.patch_result.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/patch_results/MVP4_DASHBOARD_OPERATOR_SUMMARY_UX.patch_result.json",
       "reason": "denied:system/"
     },
     {
@@ -11117,6 +11125,10 @@
       "reason": "denied:system/"
     },
     {
+      "path": "system/evidence/stage_gates/MVP4_DASHBOARD_OPERATOR_SUMMARY_UX.stage_gate_result.json",
+      "reason": "denied:system/"
+    },
+    {
       "path": "system/evidence/stage_gates/MVP4_DASHBOARD_PAPER_CONFIGURED_CAPITAL_UX.stage_gate_result.json",
       "reason": "denied:system/"
     },
@@ -12582,6 +12594,10 @@
     },
     {
       "path": "system/evidence/validator_runs/MVP4_DASHBOARD_OPERATION_STATUS_UX.validator_run_log.json",
+      "reason": "denied:system/"
+    },
+    {
+      "path": "system/evidence/validator_runs/MVP4_DASHBOARD_OPERATOR_SUMMARY_UX.validator_run_log.json",
       "reason": "denied:system/"
     },
     {
