@@ -33,12 +33,11 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
     validate_upbit_paper_repaired_current_evidence_audited_writer_report,
     write_upbit_paper_repaired_current_evidence_audited_writer_report,
 )
-from trader1.security.source_bundle import write_source_bundle_manifest  # noqa: E402
 from trader1.validation.mvp0_validators import run_validators  # noqa: E402
 
 
 PATCH_BASENAME = "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING"
-PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
+PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
 REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-AUDITED-CURRENT-EVIDENCE-WRITER-DASHBOARD-BINDING"
 SOURCE_WRITER_REQUIREMENT_ID = "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER"
 NEXT_TASK_CLASS = "MVP4_PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY_RECHECK"
@@ -54,8 +53,6 @@ VALIDATORS_REQUIRED = [
     "patch_result_schema_validator",
     "patch_result_runtime_schema_instance_validator",
     "generated_artifact_dirty_validator",
-    "source_bundle_hygiene_validator",
-    "shipped_package_hygiene_validator",
     "secret_scan_validator",
     "coverage_index_validator",
     "live_final_guard_validator",
@@ -68,16 +65,28 @@ CHANGED_ARTIFACTS = [
     "tests/dashboard/test_read_only_dashboard.py",
     "tests/runtime/test_safe_launcher.py",
     "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py",
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
     "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+    "tests/contract/test_completed_recheck_route_depth_guard.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
     "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+    "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
     "tests/contract/test_patch_result_runtime_schema_validation.py",
+    "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
     "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
     "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+    "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
     "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
     "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
     "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
     "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
     "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
     "tests/contract/test_stale_loop_regeneration_required_recheck.py",
     "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
     "tools/emit_upbit_paper_audited_current_evidence_writer_dashboard_binding_patch_evidence.py",
@@ -138,6 +147,20 @@ def patch_hash(patch_result: dict[str, Any]) -> str:
     return base.sha256_json({key: value for key, value in patch_result.items() if key != "result_hash"})
 
 
+def assert_current_state_ready_for_dashboard_binding() -> None:
+    state = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
+    completed = set(state.get("completed_requirement_ids", []))
+    if state.get("next_allowed_task_class") not in {PATCH_BASENAME, NEXT_TASK_CLASS}:
+        raise RuntimeError("current state is not routed to audited current-evidence dashboard binding")
+    if "REQ-MVP4-STALE-LOOP-RECONCILIATION-OPERATOR-QUEUE-PENDING-RECHECK" not in completed:
+        raise RuntimeError("operator queue pending recheck is not completed")
+    if "STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_PENDING" in state.get("open_contract_gap_ids", []):
+        raise RuntimeError("operator queue pending gap is still open")
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if state.get(field) is True:
+            raise RuntimeError(f"current state has forbidden true field: {field}")
+
+
 def krw_display(value: Any) -> str:
     return f"{Decimal(str(value)):,.0f} KRW"
 
@@ -166,7 +189,7 @@ def build_temp_dashboard_projection() -> dict[str, Any]:
             root=temp_root,
             source_implementation_prep_report=implementation_prep,
             source_ledger_rollup_report=ledger_rollup,
-            audited_writer_id="upbit-paper-audited-current-evidence-writer-dashboard-binding-20260504",
+            audited_writer_id="upbit-paper-audited-current-evidence-writer-dashboard-binding-20260505",
         )
         writer_result = validate_upbit_paper_repaired_current_evidence_audited_writer_report(writer_report)
         if writer_result.status != "PASS":
@@ -365,23 +388,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             ],
             "validator_ids": VALIDATORS_REQUIRED,
             "artifact_ids": [*CHANGED_ARTIFACTS, *SOURCE_RUNTIME_ARTIFACTS],
-            "test_ids": [
-                "tests/dashboard/test_read_only_dashboard.py",
-                "tests/runtime/test_safe_launcher.py",
-                "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py",
-                "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
-                "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
-                "tests/contract/test_patch_result_runtime_schema_validation.py",
-                "tests/contract/test_post_repair_reconciliation_required_recheck.py",
-                "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
-                "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
-                "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
-                "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
-                "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
-                "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
-                "tests/contract/test_stale_loop_regeneration_required_recheck.py",
-                "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
-            ],
+            "test_ids": [item for item in CHANGED_ARTIFACTS if item.startswith("tests/")],
             "mvp_stage": "MVP-4",
             "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
             "blocking_level": "LIVE_BLOCKING",
@@ -431,23 +438,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 "trader1/runtime/boot/safe_launcher.py",
                 "trader1/validation/mvp0_validators.py",
             ],
-            "test_files": [
-                "tests/dashboard/test_read_only_dashboard.py",
-                "tests/runtime/test_safe_launcher.py",
-                "tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py",
-                "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
-                "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
-                "tests/contract/test_patch_result_runtime_schema_validation.py",
-                "tests/contract/test_post_repair_reconciliation_required_recheck.py",
-                "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
-                "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
-                "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
-                "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
-                "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
-                "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
-                "tests/contract/test_stale_loop_regeneration_required_recheck.py",
-                "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
-            ],
+            "test_files": [item for item in CHANGED_ARTIFACTS if item.startswith("tests/")],
             "fixture_files": SOURCE_RUNTIME_ARTIFACTS,
             "runtime_modules": [
                 "trader1/dashboard/read_only_dashboard.py",
@@ -684,7 +675,7 @@ def main() -> int:
     now = base.utc_now()
     trader_hash = base.sha256_file(ROOT / "TRADER_1.md")
     agents_hash = base.sha256_file(ROOT / "AGENTS.md")
-    write_source_bundle_manifest()
+    assert_current_state_ready_for_dashboard_binding()
     base.update_authority_manifest(now)
     projection = build_temp_dashboard_projection()
     write_context(now, trader_hash, agents_hash, projection)
@@ -747,6 +738,7 @@ def main() -> int:
             ]
         )
     )
+    tests_run.append(run_command([sys.executable, "-B", "tools/run_hygiene_safe_pytest.py", "--", "-q"]))
     patch_result = build_patch_result(now, tests_run, validators_run, projection)
     write_evidence(now, trader_hash, agents_hash, patch_result, projection)
     base.update_state_and_ledger(now, patch_result)

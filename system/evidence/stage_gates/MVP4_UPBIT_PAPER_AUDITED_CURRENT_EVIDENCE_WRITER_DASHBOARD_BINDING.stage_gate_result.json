@@ -1,7 +1,7 @@
 {
   "stage_gate_schema_id": "trader1.stage_gate_result.v1",
-  "created_at_utc": "2026-05-04T04:34:46Z",
-  "patch_id": "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING_20260504_001",
+  "created_at_utc": "2026-05-04T17:30:39Z",
+  "patch_id": "MVP4_UPBIT_PAPER_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BINDING_20260505_001",
   "target_mvp_level": "MVP-4",
   "stage_gate_status": "PASS_AUDITED_CURRENT_EVIDENCE_WRITER_DASHBOARD_BOUND_PAPER_ONLY",
   "writer_status": "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN",
