@@ -10,28 +10,28 @@ PATCH_PATH = (
     / "system"
     / "evidence"
     / "patch_results"
-    / "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json"
+    / "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json"
 )
 STAGE_GATE_PATH = (
     ROOT
     / "system"
     / "evidence"
     / "stage_gates"
-    / "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json"
+    / "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json"
 )
 DEPTH_REPORT_PATH = (
     ROOT
     / "system"
     / "evidence"
     / "audit_reports"
-    / "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK.json"
+    / "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK.json"
 )
 CONTRACT_GAP_PATH = (
     ROOT
     / "system"
     / "evidence"
     / "contract_gaps"
-    / "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION.contract_gap.json"
+    / "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION.contract_gap.json"
 )
 RUNTIME_BASE = (
     ROOT
@@ -44,59 +44,44 @@ RUNTIME_BASE = (
     / "paper_runtime"
 )
 REQUIREMENT_ID = (
-    "REQ-MVP4-BLOCKED-REPAIR-PLAN-REQUIRES-OPERATOR-RECONCILIATION-IMPLEMENTATION-DEPTH-RECHECK"
-)
-GAP_ID = "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION"
-NEXT_GAP_ID = "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
-NEXT_TASK_CLASS = (
-    "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK"
-)
-REGENERATED_CURRENT_DEPTH_RECHECK_REQUIREMENT_ID = (
     "REQ-MVP4-REGENERATED-CURRENT-BLOCKED-REPAIRS-REQUIRE-LEDGER-RECOVERY-"
     "RECONCILIATION-IMPLEMENTATION-DEPTH-RECHECK"
 )
-AFTER_REGENERATED_CURRENT_DEPTH_RECHECK_NEXT_TASK = (
-    "MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
-)
+GAP_ID = "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION"
+NEXT_TASK_CLASS = "MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
 
 
 def load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-class BlockedRepairPlanRequiresOperatorReconciliationImplementationDepthRecheckTest(unittest.TestCase):
-    def test_depth_recheck_keeps_blocked_repair_plan_operator_reconciliation_required(self):
+class RegeneratedCurrentBlockedRepairsImplementationDepthRecheckTest(unittest.TestCase):
+    def test_depth_recheck_keeps_regenerated_current_repairs_ledger_recovery_blocked(self):
         patch_result = load_json(PATCH_PATH)
         stage_gate = load_json(STAGE_GATE_PATH)
         depth_report = load_json(DEPTH_REPORT_PATH)
 
         self.assertEqual(
             patch_result["patch_id"],
-            "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK_20260504_001",
+            "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK_20260504_001",
         )
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
         self.assertEqual(
             depth_report["status"],
-            "PASS_DEPTH_5_BLOCKED_REPAIR_PLAN_OPERATOR_RECONCILIATION_LIVE_BLOCKING",
+            "PASS_DEPTH_5_REGENERATED_CURRENT_REPAIRS_LEDGER_RECOVERY_RECONCILIATION_LIVE_BLOCKING",
         )
         self.assertEqual(
             stage_gate["stage_gate_status"],
-            "PASS_BLOCKED_REPAIR_PLAN_OPERATOR_RECONCILIATION_DEPTH_RECHECK_LIVE_BLOCKING",
+            "PASS_DEPTH_5_REGENERATED_CURRENT_REPAIRS_LEDGER_RECOVERY_RECONCILIATION_LIVE_BLOCKING",
         )
 
-        self.assertEqual(depth_report["blocked_repair_plan_status"], "BLOCKED")
-        self.assertEqual(depth_report["primary_blocker_code"], GAP_ID)
-        self.assertEqual(depth_report["repair_item_count"], 6)
-        self.assertEqual(depth_report["ledger_rollup_rebuild_ready_count"], 1)
-        self.assertEqual(depth_report["runtime_cycle_rerun_required_count"], 5)
-        self.assertEqual(depth_report["recovery_guard_rerun_required_count"], 1)
-        self.assertEqual(depth_report["missing_cycle_ledger_jsonl_total_count"], 10)
-        self.assertEqual(depth_report["missing_paper_ledger_rollup_artifact_count"], 6)
-        self.assertEqual(depth_report["ledger_rollup_rebuild_ready_lane_count"], 1)
-        self.assertEqual(depth_report["runtime_cycle_rerun_lane_count"], 4)
-        self.assertEqual(depth_report["recovery_guard_rerun_lane_count"], 1)
         self.assertEqual(depth_report["repair_operator_queue_status"], "BLOCKED")
+        self.assertEqual(depth_report["repair_operator_queue_primary_blocker_code"], GAP_ID)
         self.assertEqual(depth_report["repair_operator_queue_item_count"], 6)
+        self.assertEqual(depth_report["repair_operator_queue_ledger_candidate_review_ready_count"], 1)
+        self.assertEqual(depth_report["repair_operator_queue_runtime_cycle_rerun_required_count"], 5)
+        self.assertEqual(depth_report["repair_operator_queue_recovery_guard_rerun_required_count"], 1)
+        self.assertEqual(depth_report["repair_operator_queue_hash_operator_reconciliation_required_count"], 1)
         self.assertEqual(depth_report["repair_operator_queue_candidate_current_evidence_usable_count"], 0)
         self.assertEqual(depth_report["candidate_current_evidence_usable_count"], 0)
         self.assertFalse(depth_report["current_evidence_mutation_allowed"])
@@ -129,20 +114,15 @@ class BlockedRepairPlanRequiresOperatorReconciliationImplementationDepthRecheckT
         self.assertEqual(gap["market_type"], "KRW_SPOT")
         self.assertEqual(gap["mode"], "PAPER")
 
-    def test_state_routes_forward_after_blocked_repair_plan_depth_recheck(self):
+    def test_state_routes_forward_after_regenerated_current_depth_recheck(self):
         state = load_json(STATE_PATH)
         patch_result = load_json(PATCH_PATH)
 
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
         self.assertIn(GAP_ID, state["open_contract_gap_ids"])
-        self.assertIn(NEXT_GAP_ID, state["open_contract_gap_ids"])
         self.assertIn(GAP_ID, patch_result["remaining_blockers"])
-        self.assertIn(NEXT_GAP_ID, patch_result["remaining_blockers"])
-        if REGENERATED_CURRENT_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
-            self.assertEqual(state["next_allowed_task_class"], AFTER_REGENERATED_CURRENT_DEPTH_RECHECK_NEXT_TASK)
-        else:
-            self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
-            self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
+        self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
+        self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
 
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             self.assertFalse(state[field])

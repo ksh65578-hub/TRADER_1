@@ -57,3 +57,18 @@ scale_up_allowed: false
 Blocked repair plan depth has been rechecked as operator-action-required. The plan still has six fail-closed repair items, the repair queue still exposes no usable current evidence, and the next task is:
 
 MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK
+
+## MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK
+
+updated_at_utc: 2026-05-04T14:36:10Z
+last_patch_id: MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK_20260504_001
+live_order_ready: false
+live_order_allowed: false
+can_live_trade: false
+scale_up_allowed: false
+
+Regenerated-current repair candidates remain blocked by ledger/recovery reconciliation. One item still needs hash operator reconciliation, four need PAPER runtime cycle rerun, one needs recovery guard rerun, and none can mutate current evidence or create live/scale permission.
+
+Next safe task:
+
+MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK

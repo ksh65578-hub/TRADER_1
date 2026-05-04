@@ -54,6 +54,12 @@ BLOCKED_REPAIR_PLAN_DEPTH_RECHECK_REQUIREMENT_ID = (
 AFTER_BLOCKED_REPAIR_PLAN_DEPTH_RECHECK_NEXT_TASK = (
     "MVP4_REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION_IMPLEMENTATION_DEPTH_RECHECK"
 )
+REGENERATED_CURRENT_DEPTH_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-REGENERATED-CURRENT-BLOCKED-REPAIRS-REQUIRE-LEDGER-RECOVERY-RECONCILIATION-IMPLEMENTATION-DEPTH-RECHECK"
+)
+AFTER_REGENERATED_CURRENT_DEPTH_RECHECK_NEXT_TASK = (
+    "MVP4_STALE_LOOP_REGENERATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
+)
 
 
 def load_json(path: Path):
@@ -131,7 +137,9 @@ class RepairCandidateHashMismatchImplementationDepthRecheckTest(unittest.TestCas
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
         self.assertIn(GAP_ID, state["open_contract_gap_ids"])
         self.assertIn(GAP_ID, patch_result["remaining_blockers"])
-        if BLOCKED_REPAIR_PLAN_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+        if REGENERATED_CURRENT_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
+            self.assertEqual(state["next_allowed_task_class"], AFTER_REGENERATED_CURRENT_DEPTH_RECHECK_NEXT_TASK)
+        elif BLOCKED_REPAIR_PLAN_DEPTH_RECHECK_REQUIREMENT_ID in state["completed_requirement_ids"]:
             self.assertEqual(state["next_allowed_task_class"], AFTER_BLOCKED_REPAIR_PLAN_DEPTH_RECHECK_NEXT_TASK)
         else:
             self.assertEqual(state["last_patch_id"], patch_result["patch_id"])
