@@ -1,0 +1,70 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK_EVIDENCE",
+  "created_at_utc": "2026-05-04T09:40:08Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK_20260504_001",
+  "artifact_paths": [
+    "contracts/generated/ACTIVE_WORKING_VIEW.md",
+    "contracts/generated/context_pack/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK.md",
+    "contracts/generated/current_implementation_state.json",
+    "contracts/generated/read_cache_manifest.json",
+    "contracts/generated/requirement_artifact_matrix.json",
+    "contracts/generated/requirement_index.json",
+    "contracts/schema/read_only_dashboard_shell.schema.json",
+    "contracts/schema/upbit_paper_runtime_evidence_collection_profile_report.schema.json",
+    "contracts/security/source_bundle_manifest.json",
+    "system/evidence/audit_reports/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK.audit.json",
+    "system/evidence/audit_reports/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK_20260504.md",
+    "system/evidence/implementation_patch_ledger.json",
+    "system/evidence/patch_results/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK.patch_result.json",
+    "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+    "system/evidence/stage_gates/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK.stage_gate_result.json",
+    "system/evidence/validator_runs/MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY_IMPLEMENTATION_DEPTH_RECHECK.validator_run_log.json",
+    "tests/contract/test_actual_long_run_runtime_evidence_boundary_implementation_depth_recheck.py",
+    "tests/contract/test_actual_long_run_runtime_evidence_collection_depth_recheck.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py",
+    "tools/emit_actual_long_run_runtime_evidence_boundary_implementation_depth_recheck_patch_evidence.py",
+    "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
+    "trader1/dashboard/read_only_dashboard.py"
+  ],
+  "known_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "missing_span_seconds": 86400,
+  "missing_cycle_count": 2878,
+  "missing_runtime_modes": [
+    "SHADOW"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "missing_long_run_modes": [
+    "PAPER",
+    "SHADOW"
+  ],
+  "per_mode_depth_status": "BLOCKED_FOR_PER_MODE_LONG_RUN_DEPTH",
+  "per_mode_blocker_code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+  "paper_mode_missing_span_seconds": 86400,
+  "paper_mode_missing_cycle_count": 2878,
+  "shadow_mode_missing_span_seconds": 86400,
+  "shadow_mode_missing_cycle_count": 2880
+}
