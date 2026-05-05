@@ -1,0 +1,13 @@
+{
+  "schema_id": "trader1.paper_run_summary.v1",
+  "generated_at_utc": "2026-05-05T16:02:16Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_QUANT_POLICY_DASHBOARD_BINDING_20260506_001",
+  "operator_runtime_started_by_this_patch": false,
+  "paper_runtime_builder_validated": true,
+  "upbit_paper_runtime_cycle_validator_status": "PASS",
+  "runtime_evidence_boundary": "BUILDER_AND_VALIDATOR_ONLY_NOT_LONG_RUN",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,13 @@
+{
+  "schema_id": "trader1.dashboard_readiness_summary.v1",
+  "generated_at_utc": "2026-05-05T16:02:16Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_QUANT_POLICY_DASHBOARD_BINDING_20260506_001",
+  "dashboard_quantitative_policy_status": "LIVE_BLOCKED",
+  "dashboard_reason_code": "LIVE_READY_MISSING",
+  "binance_policy_status": "BLOCKED",
+  "operator_message": "Quantitative strategy review is visible in the folded dashboard detail area and remains live-blocked.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

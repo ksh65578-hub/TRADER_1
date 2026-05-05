@@ -1558,6 +1558,39 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["can_live_trade"])
         self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_binds_quantitative_policy_as_display_only_live_blocked_status(self):
+        dashboard = build_dashboard()
+        result = validate_read_only_dashboard_shell(dashboard, set(registry()["enums"]["live_blocker_code"]["values"]))
+
+        policy = dashboard["quantitative_policy_status"]
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(policy["status"], "LIVE_BLOCKED")
+        self.assertEqual(policy["policy_status"], "IMPLEMENTED_LIVE_BLOCKED")
+        self.assertEqual(policy["decision_surface"], "DASHBOARD_ONLY")
+        self.assertEqual(policy["dashboard_reason_code"], "LIVE_READY_MISSING")
+        self.assertEqual(policy["minimum_trade_count"], 100)
+        self.assertEqual(policy["high_return_candidate_trade_count"], 300)
+        self.assertFalse(policy["live_order_ready"])
+        self.assertFalse(policy["live_order_allowed"])
+        self.assertFalse(policy["can_live_trade"])
+        self.assertFalse(policy["scale_up_allowed"])
+
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Quantitative Strategy Review", html)
+        self.assertIn("Net Edge After Cost", html)
+        self.assertIn("LIVE blocked", html)
+        self.assertIn("high-return=300 trades", html)
+
+    def test_dashboard_blocks_quantitative_policy_status_live_flag_drift(self):
+        dashboard = build_dashboard()
+        dashboard["quantitative_policy_status"]["live_order_allowed"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
         self.assertFalse(dashboard["can_submit_order"])
         self.assertEqual(dashboard["final_action"], "NO_TRADE")
         self.assertEqual(dashboard["operation_status"]["status"], "RUNNING_SAFE_MODE")

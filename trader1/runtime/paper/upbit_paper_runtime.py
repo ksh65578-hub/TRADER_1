@@ -12,6 +12,7 @@ from trader1.adapters.upbit.symbol_rules import validate_upbit_krw_symbol
 from trader1.core.decision.decision_arbiter import order_blocker_codes, select_primary_blocker
 from trader1.core.ledger.paper_ledger import build_upbit_paper_fill_chain, validate_upbit_paper_ledger
 from trader1.core.sizing.position_sizing import build_position_sizing_decision, validate_position_sizing_decision
+from trader1.core.strategy.quantitative_policy import build_quantitative_policy_report
 from trader1.dashboard.summary_writer import build_summary_shell, validate_summary_shell
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
@@ -475,6 +476,7 @@ def build_upbit_paper_runtime_cycle_report(
             "liquidity_status": features.get("liquidity_status"),
             "volatility_status": features.get("volatility_status"),
         },
+        quantitative_policy_report=build_quantitative_policy_report(report_id=f"{cycle_id}_quantitative_policy"),
     )
     report = {
         "schema_id": UPBIT_PAPER_RUNTIME_CYCLE_SCHEMA_ID,
@@ -524,7 +526,11 @@ def build_upbit_paper_runtime_cycle_report(
     return report
 
 
-def validate_upbit_paper_runtime_cycle_report(report: dict[str, Any]) -> UpbitPaperRuntimeCycleValidationResult:
+def validate_upbit_paper_runtime_cycle_report(
+    report: dict[str, Any],
+    *,
+    require_quantitative_policy_summary: bool = True,
+) -> UpbitPaperRuntimeCycleValidationResult:
     required = {
         "schema_id",
         "generated_at_utc",
@@ -647,7 +653,10 @@ def validate_upbit_paper_runtime_cycle_report(report: dict[str, Any]) -> UpbitPa
             "paper portfolio snapshot source ledger head hash mismatch",
             "LEDGER_INTEGRITY_FAIL",
         )
-    summary_result = validate_summary_shell(report["summary"])
+    summary_result = validate_summary_shell(
+        report["summary"],
+        require_quantitative_policy_summary=require_quantitative_policy_summary,
+    )
     if summary_result.status != "PASS":
         return UpbitPaperRuntimeCycleValidationResult(summary_result.status, summary_result.message, summary_result.blocker_code)
 

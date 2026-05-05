@@ -2279,6 +2279,33 @@ def summary_shell_validator() -> ValidatorResult:
         return fail_result("summary_shell_validator", result.message, paths, result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
     if summary["live_ready"]["live_order_ready"] or summary["live_ready"]["live_order_allowed"]:
         return fail_result("summary_shell_validator", "summary shell created live readiness", paths, "LIVE_FINAL_GUARD_FAILED")
+    policy_summary = summary.get("quantitative_policy_summary")
+    if not isinstance(policy_summary, dict):
+        return fail_result("summary_shell_validator", "summary quantitative policy binding is missing", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        policy_summary.get("source") != "QUANTITATIVE_POLICY_REPORT"
+        or policy_summary.get("decision_surface") != "DASHBOARD_ONLY"
+        or policy_summary.get("dashboard_reason_code") != "LIVE_READY_MISSING"
+        or policy_summary.get("minimum_trade_count") != 100
+        or policy_summary.get("high_return_candidate_trade_count") != 300
+        or not _is_hash(policy_summary.get("source_policy_report_hash"))
+    ):
+        return fail_result(
+            "summary_shell_validator",
+            "summary quantitative policy binding did not preserve closed thresholds and live blocker",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    policy_live_summary = json.loads(json.dumps(summary))
+    policy_live_summary["quantitative_policy_summary"]["live_order_allowed"] = True
+    policy_live_result = validate_summary_shell(policy_live_summary, allowed_blockers)
+    if policy_live_result.status != "BLOCKED" or policy_live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            "summary_shell_validator",
+            "quantitative policy live flag drift was not blocked",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
 
     live_summary = dict(summary)
     live_summary["live_ready"] = dict(summary["live_ready"])
@@ -19195,7 +19222,13 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 errors.append("rollup runtime linkage source runtime cycle path is missing")
             else:
                 runtime_report = load_json(runtime_path)
-                runtime_result = validate_upbit_paper_runtime_cycle_report(runtime_report)
+                # Historical runtime-cycle evidence is hash-bound and predates
+                # dashboard quantitative policy binding; new runtime validation
+                # keeps that binding mandatory by default.
+                runtime_result = validate_upbit_paper_runtime_cycle_report(
+                    runtime_report,
+                    require_quantitative_policy_summary=False,
+                )
                 if runtime_result.status != "PASS":
                     errors.append(f"rollup runtime linkage source cycle failed validation: {runtime_result.message}")
                 if runtime_linkage.get("source_runtime_cycle_id") != runtime_report.get("cycle_id"):

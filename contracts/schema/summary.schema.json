@@ -476,6 +476,126 @@
           ]
         }
       }
+    },
+    "quantitative_policy_summary_object": {
+      "type": "object",
+      "required": [
+        "source",
+        "freshness_status",
+        "policy_status",
+        "decision_surface",
+        "source_policy_report_id",
+        "source_policy_report_hash",
+        "dashboard_reason_code",
+        "dashboard_operator_message",
+        "minimum_trade_count",
+        "high_return_candidate_trade_count",
+        "signal_grade",
+        "signal_score",
+        "net_expected_edge",
+        "total_cost",
+        "primary_blocker_code",
+        "next_action",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": [
+            "SUMMARY_BUILDER",
+            "QUANTITATIVE_POLICY_REPORT"
+          ]
+        },
+        "freshness_status": {
+          "$ref": "#/$defs/freshness_status"
+        },
+        "policy_status": {
+          "enum": [
+            "IMPLEMENTED_LIVE_BLOCKED",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "decision_surface": {
+          "const": "DASHBOARD_ONLY"
+        },
+        "source_policy_report_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_policy_report_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "dashboard_reason_code": {
+          "$ref": "common.defs.schema.json#/$defs/no_trade_reason"
+        },
+        "dashboard_operator_message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_trade_count": {
+          "const": 100
+        },
+        "high_return_candidate_trade_count": {
+          "const": 300
+        },
+        "signal_grade": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "signal_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "net_expected_edge": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "total_cost": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "primary_blocker_code": {
+          "$ref": "common.defs.schema.json#/$defs/no_trade_reason"
+        },
+        "next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
     }
   },
   "properties": {
@@ -566,6 +686,9 @@
         "object",
         "null"
       ]
+    },
+    "quantitative_policy_summary": {
+      "$ref": "#/$defs/quantitative_policy_summary_object"
     },
     "live_ready": {
       "$ref": "#/$defs/live_ready_object"

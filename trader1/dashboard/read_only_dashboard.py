@@ -228,6 +228,7 @@ SHADOW_PERSISTENT_RUNTIME_DURATION_ROLES = {"NOT_LONG_RUN_EVIDENCE"}
 SHADOW_RUNTIME_ORCHESTRATION_STATUSES = {"NOT_LOADED", "BOUNDARY_VERIFIED", "BLOCKED", "STALE"}
 SHADOW_RUNTIME_ORCHESTRATION_SOURCES = {"NOT_LOADED", "runtime_orchestration_report.json"}
 PAPER_PERSISTENT_LOOP_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
+QUANTITATIVE_POLICY_STATUS_VALUES = {"NOT_LOADED", "LIVE_BLOCKED", "BLOCKED", "STALE", "INVALID"}
 PAPER_PERSISTENT_LOOP_SOURCES = {"NOT_LOADED", "upbit_paper_persistent_loop_report.json"}
 PAPER_PERSISTENT_LOOP_EVIDENCE_ROLES = {"NOT_LOADED", "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"}
 PAPER_RUNTIME_RECOVERY_GUARD_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
@@ -2500,6 +2501,125 @@ def _decision_trace(summary: dict[str, Any] | None, primary_blocker: str | None,
         "live_order_allowed": False,
         "can_live_trade": False,
         "scale_up_allowed": False,
+    }
+
+
+def _policy_display_value(value: Any, fallback: str = "UNTESTED") -> str:
+    if value is None:
+        return fallback
+    decimal_value = _decimal(value)
+    if decimal_value is None:
+        return str(value)
+    return f"{decimal_value:.6f}".rstrip("0").rstrip(".")
+
+
+def _quantitative_policy_status(summary: dict[str, Any] | None) -> dict[str, Any]:
+    policy = summary.get("quantitative_policy_summary") if isinstance(summary, dict) else None
+    base = {
+        "title": "Quantitative Strategy Review",
+        "status": "NOT_LOADED",
+        "severity": "WARNING",
+        "color_token": "yellow",
+        "truth_role": "dashboard_serving_truth",
+        "source": "summary.json",
+        "policy_status": "UNTESTED",
+        "decision_surface": "DASHBOARD_ONLY",
+        "source_policy_report_id": None,
+        "source_policy_report_hash": None,
+        "dashboard_reason_code": "LIVE_READY_MISSING",
+        "dashboard_operator_message": "LIVE blocked: quantitative policy summary is not loaded.",
+        "minimum_trade_count": 100,
+        "high_return_candidate_trade_count": 300,
+        "signal_grade": "UNTESTED",
+        "signal_score_display": "UNTESTED",
+        "net_expected_edge_display": "UNTESTED",
+        "total_cost_display": "UNTESTED",
+        "primary_blocker_code": "LIVE_READY_MISSING",
+        "one_line_summary": "Quantitative policy summary is not loaded; entries remain blocked.",
+        "next_operator_action": "Regenerate summary.json with quantitative policy binding before strategy review.",
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(policy, dict):
+        return base
+
+    unsafe_permission = any(
+        policy.get(field) is not False
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    )
+    if unsafe_permission or policy.get("decision_surface") != "DASHBOARD_ONLY":
+        return {
+            **base,
+            "status": "INVALID",
+            "severity": "ERROR",
+            "color_token": "red",
+            "policy_status": str(policy.get("policy_status") or "BLOCKED"),
+            "primary_blocker_code": "LIVE_FINAL_GUARD_FAILED",
+            "dashboard_reason_code": "LIVE_FINAL_GUARD_FAILED",
+            "dashboard_operator_message": "LIVE blocked: quantitative policy summary attempted a live, scale, or non-dashboard permission.",
+            "one_line_summary": "Quantitative policy summary violated the display-only boundary.",
+            "next_operator_action": "Regenerate summary.json and inspect quantitative policy live-flag drift before continuing.",
+        }
+
+    policy_source = str(policy.get("source") or "SUMMARY_BUILDER")
+    policy_status = str(policy.get("policy_status") or "BLOCKED")
+    source_hash = policy.get("source_policy_report_hash")
+    source_loaded = policy_source == "QUANTITATIVE_POLICY_REPORT" and _is_hash64(source_hash)
+    dashboard_reason = str(policy.get("dashboard_reason_code") or "LIVE_READY_MISSING")
+    freshness = str(policy.get("freshness_status") or "UNTESTED")
+    if policy_source == "QUANTITATIVE_POLICY_REPORT" and source_loaded and freshness == "PASS":
+        status = "LIVE_BLOCKED"
+        severity = "WARNING"
+        color_token = "yellow"
+        summary_text = "Quantitative formulas are loaded for PAPER review; LIVE and scale-up remain blocked."
+        next_action = "Review signal grade, net edge, costs, and blockers in PAPER/SHADOW only."
+    elif freshness == "STALE":
+        status = "STALE"
+        severity = "WARNING"
+        color_token = "yellow"
+        summary_text = "Quantitative policy summary is stale and cannot guide current PAPER review."
+        next_action = "Regenerate summary.json before trusting strategy policy details."
+    else:
+        status = "BLOCKED"
+        severity = "WARNING"
+        color_token = "yellow"
+        summary_text = "Quantitative policy summary is incomplete; entries remain blocked."
+        next_action = "Regenerate summary.json with a valid quantitative policy report."
+
+    if policy.get("minimum_trade_count") != 100 or policy.get("high_return_candidate_trade_count") != 300:
+        status = "INVALID"
+        severity = "ERROR"
+        color_token = "red"
+        dashboard_reason = "SCHEMA_IDENTITY_MISMATCH"
+        summary_text = "Quantitative policy thresholds drifted from the closed 100/300 trade-count rule."
+        next_action = "Restore quantitative policy thresholds before any strategy review."
+
+    return {
+        **base,
+        "status": status,
+        "severity": severity,
+        "color_token": color_token,
+        "policy_status": policy_status,
+        "source_policy_report_id": policy.get("source_policy_report_id"),
+        "source_policy_report_hash": source_hash if isinstance(source_hash, str) else None,
+        "dashboard_reason_code": dashboard_reason,
+        "dashboard_operator_message": str(
+            policy.get("dashboard_operator_message")
+            or "LIVE blocked: quantitative policy is display-only and cannot approve orders."
+        ),
+        "minimum_trade_count": policy.get("minimum_trade_count", 100),
+        "high_return_candidate_trade_count": policy.get("high_return_candidate_trade_count", 300),
+        "signal_grade": str(policy.get("signal_grade") or "UNTESTED"),
+        "signal_score_display": _policy_display_value(policy.get("signal_score")),
+        "net_expected_edge_display": _policy_display_value(policy.get("net_expected_edge")),
+        "total_cost_display": _policy_display_value(policy.get("total_cost")),
+        "primary_blocker_code": str(policy.get("primary_blocker_code") or dashboard_reason),
+        "one_line_summary": summary_text,
+        "next_operator_action": next_action,
     }
 
 
@@ -12375,6 +12495,7 @@ def build_read_only_dashboard_shell(
         parameter_narrowing_report=parameter_narrowing_report,
         summary_freshness=summary_freshness,
     )
+    quantitative_policy_status = _quantitative_policy_status(summary)
     risk_exposure_snapshot = _risk_exposure_snapshot(
         exchange=exchange,
         market_type=market_type,
@@ -12489,6 +12610,7 @@ def build_read_only_dashboard_shell(
         "convergence_assessment_status": convergence_assessment_status,
         "exploration_policy_status": exploration_policy_status,
         "parameter_narrowing_status": parameter_narrowing_status,
+        "quantitative_policy_status": quantitative_policy_status,
         "risk_exposure_snapshot": risk_exposure_snapshot,
         "execution_feedback_snapshot": execution_feedback_snapshot,
         "decision_trace": decision_trace,
@@ -13068,6 +13190,25 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
         values.extend(
             str(decision.get(key, ""))
             for key in ("title", "final_action", "no_trade_reason", "entry_status", "entry_reason", "exit_status", "exit_reason", "next_action")
+        )
+    quantitative_policy = shell.get("quantitative_policy_status", {})
+    if isinstance(quantitative_policy, dict):
+        values.extend(
+            str(quantitative_policy.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "policy_status",
+                "dashboard_reason_code",
+                "dashboard_operator_message",
+                "signal_grade",
+                "signal_score_display",
+                "net_expected_edge_display",
+                "total_cost_display",
+                "primary_blocker_code",
+                "one_line_summary",
+                "next_operator_action",
+            )
         )
     recent_events = shell.get("recent_events", {})
     if isinstance(recent_events, dict):
@@ -16808,6 +16949,33 @@ def validate_read_only_dashboard_shell(
     elif parameter_narrowing.get("status") == "PAPER_PARAMETER_REVIEW_ELIGIBLE":
         return DashboardValidationResult("BLOCKED", "eligible parameter narrowing must explicitly state paper review permission", "HARD_TRUTH_MISSING")
 
+    quantitative_policy = shell.get("quantitative_policy_status")
+    if not isinstance(quantitative_policy, dict):
+        return DashboardValidationResult("FAIL", "dashboard quantitative_policy_status missing", "SCHEMA_IDENTITY_MISMATCH")
+    if quantitative_policy.get("truth_role") != "dashboard_serving_truth" or quantitative_policy.get("source") != "summary.json":
+        return DashboardValidationResult("BLOCKED", "quantitative policy status cannot claim execution truth", "LIVE_FINAL_GUARD_FAILED")
+    if quantitative_policy.get("display_only") is not True or quantitative_policy.get("dashboard_truth_only") is not True:
+        return DashboardValidationResult("BLOCKED", "quantitative policy status must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        quantitative_policy.get("live_order_ready")
+        or quantitative_policy.get("live_order_allowed")
+        or quantitative_policy.get("can_live_trade")
+        or quantitative_policy.get("scale_up_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "quantitative policy status attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if quantitative_policy.get("status") not in QUANTITATIVE_POLICY_STATUS_VALUES:
+        return DashboardValidationResult("FAIL", "quantitative policy status value is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if quantitative_policy.get("decision_surface") != "DASHBOARD_ONLY":
+        return DashboardValidationResult("BLOCKED", "quantitative policy status must stay dashboard-only", "LIVE_FINAL_GUARD_FAILED")
+    if quantitative_policy.get("minimum_trade_count") != 100 or quantitative_policy.get("high_return_candidate_trade_count") != 300:
+        return DashboardValidationResult("FAIL", "quantitative policy sample thresholds must remain closed", "SCHEMA_IDENTITY_MISMATCH")
+    if allowed_blockers is not None:
+        for code in (quantitative_policy.get("dashboard_reason_code"), quantitative_policy.get("primary_blocker_code")):
+            if code is not None and code not in allowed_blockers:
+                return DashboardValidationResult("FAIL", f"unknown quantitative policy blocker: {code}", "UNKNOWN_BLOCKED")
+    if quantitative_policy.get("status") == "LIVE_BLOCKED" and quantitative_policy.get("primary_blocker_code") is None:
+        return DashboardValidationResult("BLOCKED", "quantitative policy live-blocked display must expose blocker", "HARD_TRUTH_MISSING")
+
     decision = shell.get("decision_trace")
     if not isinstance(decision, dict):
         return DashboardValidationResult("FAIL", "dashboard decision_trace missing", "SCHEMA_IDENTITY_MISMATCH")
@@ -18076,6 +18244,34 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "</section>"
     )
 
+    quantitative_policy = shell.get("quantitative_policy_status", {}) if isinstance(shell.get("quantitative_policy_status"), dict) else {}
+    quantitative_color = safe_text(quantitative_policy.get("color_token", "yellow"))
+    quantitative_status_display = str(quantitative_policy.get("status", "NOT_LOADED")).replace("_", " ").title()
+    quantitative_policy_html = (
+        f"<section class=\"quantitative-policy quantitative-policy-{quantitative_color}\" aria-label=\"quantitative strategy review\">"
+        "<div class=\"portfolio-head\">"
+        "<div>"
+        "<span class=\"eyebrow\">Quantitative Strategy</span>"
+        f"<h2>{safe_text(quantitative_policy.get('title', 'Quantitative Strategy Review'))}</h2>"
+        "</div>"
+        f"<p><span class=\"pill {status_class(quantitative_policy.get('status'))}\">{safe_text(quantitative_status_display)}</span></p>"
+        "</div>"
+        f"<p>{safe_text(quantitative_policy.get('one_line_summary', 'Quantitative policy summary is not loaded.'))}</p>"
+        "<section class=\"decision-grid\">"
+        "<div><strong>Signal</strong>"
+        f"<p>grade={safe_text(quantitative_policy.get('signal_grade', 'UNTESTED'))}<br>score={safe_text(quantitative_policy.get('signal_score_display', 'UNTESTED'))}</p></div>"
+        "<div><strong>Net Edge After Cost</strong>"
+        f"<p>net={safe_text(quantitative_policy.get('net_expected_edge_display', 'UNTESTED'))}<br>cost={safe_text(quantitative_policy.get('total_cost_display', 'UNTESTED'))}</p></div>"
+        "<div><strong>Sample Threshold</strong>"
+        f"<p>basic={safe_text(quantitative_policy.get('minimum_trade_count', 100))} trades<br>high-return={safe_text(quantitative_policy.get('high_return_candidate_trade_count', 300))} trades</p></div>"
+        "<div><strong>Live Boundary</strong>"
+        "<p><span class=\"pill safe-lock\">dashboard-only</span><br><span class=\"pill safe-lock\">not LIVE_READY</span><br><span class=\"pill safe-lock\">live orders blocked</span><br><span class=\"pill safe-lock\">scale-up blocked</span></p></div>"
+        "</section>"
+        f"<p class=\"next\">Next: {safe_text(quantitative_policy.get('next_operator_action', 'Continue PAPER/SHADOW review only.'))}</p>"
+        f"<small>{safe_text(quantitative_policy.get('dashboard_operator_message', 'LIVE blocked: quantitative policy is display-only.'))} Policy={safe_text(quantitative_policy.get('policy_status', 'UNTESTED'))} | Report={safe_text(quantitative_policy.get('source_policy_report_id') or 'none')} | Blocker={safe_text(quantitative_policy.get('primary_blocker_code', 'LIVE_READY_MISSING'))}. This panel cannot approve orders, write LIVE_READY, or increase risk.</small>"
+        "</section>"
+    )
+
     convergence = shell.get("convergence_assessment_status", {}) if isinstance(shell.get("convergence_assessment_status"), dict) else {}
     convergence_color = safe_text(convergence.get("color_token", "yellow"))
     convergence_status_display = str(convergence.get("status", "UNTESTED")).replace("_", " ").title()
@@ -18661,8 +18857,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     main { display: grid; gap: 18px; padding: 18px; width: 100%; max-width: 1440px; margin: 0 auto; }
     h1, h2, h3, p, dl, dd, small, strong, span { overflow-wrap: anywhere; word-break: normal; }
     p, small, li, dd, td { line-height: 1.5; }
-    .operator-answer-card, .summary-card, .live-readiness, .primary-portfolio-detail, .operation, .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { min-width: 0; }
-    .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { display: grid; align-content: start; gap: 12px; }
+    .operator-answer-card, .summary-card, .live-readiness, .primary-portfolio-detail, .operation, .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .quantitative-policy, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { min-width: 0; }
+    .operator-action, .reconciliation, .workflow, .longrun, .market-data, .paper-recovery, .paper-runtime-profile, .runtime-boundary, .shadow-harness, .stability, .risk, .feedback, .maturity, .quantitative-policy, .convergence, .exploration-policy, .parameter-narrowing, .activity, .portfolio, .positions, .panel, .decision, .alert { display: grid; align-content: start; gap: 12px; }
     .metric, .scope-item, .guard, .decision-grid div, .workflow-step, .dependency-check, .evidence-check, .maturity-component, .stability-metric { display: grid; align-content: start; gap: 6px; }
     .freshness-strip { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); align-items: start; background: var(--ok-bg); border: 1px solid #b9dfca; border-left: 8px solid var(--ok); border-radius: 8px; padding: 14px 16px; min-width: 0; }
     .freshness-strip h2 { margin-top: 4px; font-size: 18px; }
@@ -18853,6 +19049,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .maturity-blue { border-left-color: var(--safe); background: var(--safe-bg); }
     .maturity-yellow { border-left-color: var(--warn); background: var(--warn-bg); }
     .maturity-red { border-left-color: var(--danger); background: var(--danger-bg); }
+    .quantitative-policy { background: white; border: 1px solid var(--line); border-left: 6px solid var(--warn); border-radius: 8px; padding: 14px; }
+    .quantitative-policy-green { border-left-color: var(--ok); background: var(--ok-bg); }
+    .quantitative-policy-blue { border-left-color: var(--safe); background: var(--safe-bg); }
+    .quantitative-policy-yellow { border-left-color: var(--warn); background: var(--warn-bg); }
+    .quantitative-policy-red { border-left-color: var(--danger); background: var(--danger-bg); }
     .convergence { background: white; border: 1px solid var(--line); border-left: 6px solid var(--warn); border-radius: 8px; padding: 14px; }
     .convergence-green { border-left-color: var(--ok); background: var(--ok-bg); }
     .convergence-blue { border-left-color: var(--safe); background: var(--safe-bg); }
@@ -19168,6 +19369,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         """ + feedback_html + """
         """ + stability_html + """
         """ + maturity_html + """
+        """ + quantitative_policy_html + """
         """ + convergence_html + """
         """ + exploration_html + """
         """ + parameter_html + """
