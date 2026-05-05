@@ -9269,6 +9269,53 @@
       "status": "IMPLEMENTED_RESIDUAL_OPERATOR_HANDOFF_PACKET"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-RECONCILIATION-REVIEW-CARDS",
+      "section_id": "SECTION_OPERATOR_CONTROL",
+      "schema_files": [
+        "contracts/schema/residual_operator_reconciliation_review_cards_report.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "trader1/reports/residual_operator_reconciliation_review_cards.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "test_files": [
+        "tests/contract/test_residual_operator_reconciliation_review_cards.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "fixture_files": [
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
+        "contracts/generated/current_implementation_state.json"
+      ],
+      "runtime_modules": [
+        "trader1/reports/residual_operator_reconciliation_review_cards.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS_20260506.md",
+        "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.patch_result.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "patch_result_fields": [
+        "next_task_class",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RECONCILIATION_REVIEW_CARDS_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS",
       "section_id": "SECTION_LEDGER_RECONCILIATION",
       "schema_files": [
@@ -16938,7 +16985,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-05T17:52:37Z",
+  "updated_at_utc": "2026-05-05T18:36:22Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

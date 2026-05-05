@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-05T17:52:37Z",
+  "updated_at_utc": "2026-05-05T18:36:22Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -4684,11 +4684,23 @@
       "can_live_trade_after": false,
       "scale_up_allowed_after": false,
       "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
+    },
+    {
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS_20260506_001",
+      "patch_class": "EVIDENCE_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.patch_result.json",
+      "patch_result_hash": "F336FDCA22941D94563EE6EDF4E393CF2EF1D01C206CC3E7D54432C70003F9EF",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false,
+      "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
     }
   ],
-  "ledger_hash": "E6CDB9DB49380DF5F8EE94D0189C4C556EEB14EB99FC85CF59B7DA70C9DA6F81",
-  "last_patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_DECISION_CARDS_20260506_001",
-  "last_patch_result_hash": "774E226DABB001AFE5315D5F408D1A82C56C5B264BD6239FF77554E5F935CF30",
+  "ledger_hash": "05B42BBA79941F8C46114EE74B01E9F9A698A48120E7FDA8E50E940437E01F9E",
+  "last_patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS_20260506_001",
+  "last_patch_result_hash": "F336FDCA22941D94563EE6EDF4E393CF2EF1D01C206CC3E7D54432C70003F9EF",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,

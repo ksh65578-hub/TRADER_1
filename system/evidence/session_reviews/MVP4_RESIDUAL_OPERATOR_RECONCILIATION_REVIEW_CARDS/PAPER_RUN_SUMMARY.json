@@ -1,0 +1,8 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS_20260506_001",
+  "paper_run_executed_by_this_patch": false,
+  "source_runtime_audit_read_only": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
+  "review_card_count": 8,
+  "user_runtime_required_for_next_non_live_patch": false,
+  "user_runtime_required_for_gap_closure": true
+}

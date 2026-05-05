@@ -1,0 +1,19 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-05T18:36:22Z",
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS_20260506_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_RECONCILIATION_REVIEW_CARDS_BLOCKED",
+  "open_gap_count": 13,
+  "review_card_count": 8,
+  "blocked_review_card_count": 8,
+  "control_card_count": 4,
+  "unsatisfied_control_count": 4,
+  "operator_resolution_binding_status": "BOUND_BLOCKED",
+  "source_hashes_verified": true,
+  "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

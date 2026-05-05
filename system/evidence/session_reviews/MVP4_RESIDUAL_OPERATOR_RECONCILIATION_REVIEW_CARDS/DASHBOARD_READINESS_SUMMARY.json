@@ -1,0 +1,8 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS_20260506_001",
+  "dashboard_status": "PASS_RECONCILIATION_REVIEW_CARDS_BLOCKED",
+  "review_status": "BLOCKED_RECONCILIATION_REVIEW_ONLY",
+  "review_card_count": 8,
+  "control_card_count": 4,
+  "live_execution_candidate": false
+}

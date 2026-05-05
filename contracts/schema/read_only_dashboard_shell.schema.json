@@ -111,7 +111,8 @@
             "CANDIDATE_SCORECARD",
             "RESIDUAL_OPERATOR_HANDOFF_PACKET",
             "RESIDUAL_OPERATOR_EXECUTION_GUIDE",
-            "RESIDUAL_OPERATOR_EVIDENCE_PROGRESS"
+            "RESIDUAL_OPERATOR_EVIDENCE_PROGRESS",
+            "RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS"
           ]
         },
         "path": {
@@ -154,7 +155,8 @@
             "candidate_scorecard.json",
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
-            "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
+            "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+            "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json"
           ]
         },
         "truth_role": {
@@ -3737,6 +3739,272 @@
           "const": false
         },
         "live_ready_write_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "residual_operator_reconciliation_review_cards": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "source",
+        "source_status",
+        "open_gap_count",
+        "operator_reconciliation_gap_count",
+        "review_card_count",
+        "blocked_review_card_count",
+        "review_ready_count",
+        "control_card_count",
+        "unsatisfied_control_count",
+        "satisfied_control_count",
+        "operator_resolution_audit_status",
+        "operator_resolution_binding_status",
+        "operator_resolution_unresolved_item_count",
+        "operator_resolution_resolved_item_count",
+        "operator_resolution_controls_satisfied_count",
+        "operator_resolution_current_evidence_write_allowed_count",
+        "operator_resolution_candidate_current_evidence_usable_count",
+        "source_hashes_verified",
+        "single_next_review_card",
+        "review_card_preview",
+        "control_card_preview",
+        "one_line_summary",
+        "primary_next_action",
+        "operator_no_action_needed_for_next_non_live_patch",
+        "operator_action_required_for_gap_closure",
+        "display_only",
+        "dashboard_truth_only",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "Operator Reconciliation Review"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_RECONCILIATION_REVIEW_ONLY",
+            "INVALID"
+          ]
+        },
+        "source": {
+          "const": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json"
+        },
+        "source_status": {
+          "enum": [
+            "LOADED",
+            "NOT_LOADED"
+          ]
+        },
+        "open_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_reconciliation_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "review_card_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked_review_card_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "review_ready_count": {
+          "const": 0
+        },
+        "control_card_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsatisfied_control_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "satisfied_control_count": {
+          "const": 0
+        },
+        "operator_resolution_audit_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_resolution_binding_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_resolution_unresolved_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_resolution_resolved_item_count": {
+          "const": 0
+        },
+        "operator_resolution_controls_satisfied_count": {
+          "const": 0
+        },
+        "operator_resolution_current_evidence_write_allowed_count": {
+          "const": 0
+        },
+        "operator_resolution_candidate_current_evidence_usable_count": {
+          "const": 0
+        },
+        "source_hashes_verified": {
+          "type": "boolean"
+        },
+        "single_next_review_card": {
+          "type": "object",
+          "required": [
+            "cycle_id",
+            "review_status",
+            "resolution_reason_code",
+            "next_safe_action"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "cycle_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "review_status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "resolution_reason_code": {
+              "type": "string",
+              "minLength": 1
+            },
+            "next_safe_action": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "review_card_preview": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "review_card_id",
+              "priority_order",
+              "cycle_id",
+              "review_status",
+              "resolution_reason_code",
+              "blocking_code_count",
+              "next_safe_action"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "review_card_id": {
+                "type": "string"
+              },
+              "priority_order": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cycle_id": {
+                "type": "string"
+              },
+              "review_status": {
+                "type": "string"
+              },
+              "resolution_reason_code": {
+                "type": "string"
+              },
+              "blocking_code_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "next_safe_action": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "control_card_preview": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "control_id",
+              "control_order",
+              "control_status",
+              "blocker_code",
+              "satisfied"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "control_id": {
+                "type": "string"
+              },
+              "control_order": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "control_status": {
+                "type": "string"
+              },
+              "blocker_code": {
+                "type": "string"
+              },
+              "satisfied": {
+                "const": false
+              }
+            }
+          }
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_no_action_needed_for_next_non_live_patch": {
+          "type": "boolean"
+        },
+        "operator_action_required_for_gap_closure": {
+          "const": true
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_ready_write_allowed": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
           "const": false
         },
         "live_order_ready": {
@@ -8255,7 +8523,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 31,
+      "maxItems": 32,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -8313,6 +8581,9 @@
     },
     "residual_operator_evidence_progress": {
       "$ref": "#/$defs/residual_operator_evidence_progress"
+    },
+    "residual_operator_reconciliation_review_cards": {
+      "$ref": "#/$defs/residual_operator_reconciliation_review_cards"
     },
     "residual_operator_priority": {
       "$ref": "#/$defs/residual_operator_priority"
