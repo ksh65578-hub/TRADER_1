@@ -7,6 +7,12 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from trader1.reports.open_gap_current_blocker_classification import NEXT_TASK_CLASS
+from trader1.reports.residual_operator_execution_guide import (
+    MVP5_REVIEW_ENTRY_DURATION_HOURS,
+    MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS,
+    MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT,
+    MVP5_REVIEW_ENTRY_PROFILE_ID,
+)
 
 
 SCHEMA_ID = "trader1.residual_operator_evidence_run_preflight_report.v1"
@@ -36,7 +42,7 @@ def _paper_shadow_step(execution_guide_report: Mapping[str, Any]) -> Mapping[str
 
 def _paper_shadow_command(step: Mapping[str, Any]) -> Mapping[str, Any]:
     for command in step.get("allowed_local_commands", []):
-        if isinstance(command, Mapping) and command.get("command_id") == "UPBIT_PAPER_SAFE_MONITOR_120H":
+        if isinstance(command, Mapping) and command.get("command_id") == MVP5_REVIEW_ENTRY_PROFILE_ID:
             return command
     return {}
 
@@ -109,8 +115,14 @@ def build_residual_operator_evidence_run_preflight_report(
     command_non_live = command.get("non_live_only") is True and command.get("live_order_allowed") is False
     command_credential_free = command.get("credential_required") is False
     entrypoint_exists = (root / "UPBIT_PAPER.py").exists() and "UPBIT_PAPER.py" in command_text
-    duration_floor_met = int(command.get("minimum_duration_hours", 0) or 0) >= 120 and expected_ticks >= 43200
-    window_floor_met = int(step.get("minimum_paper_shadow_window_count", 0) or 0) >= 20
+    duration_floor_met = (
+        int(command.get("minimum_duration_hours", 0) or 0) >= MVP5_REVIEW_ENTRY_DURATION_HOURS
+        and expected_ticks >= MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS
+    )
+    window_floor_met = (
+        int(step.get("minimum_paper_shadow_window_count", 0) or 0)
+        >= MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT
+    )
     checks = [
         _check("STATE_ROUTE_RESIDUAL_OPERATOR_EVIDENCE", state.get("next_allowed_task_class") == NEXT_TASK_CLASS, "state remains on residual external-evidence/operator-reconciliation route"),
         _check("LIVE_AND_SCALE_FLAGS_FALSE", live_flags_false, "state, progress, and execution guide keep live/scale flags false"),
@@ -119,8 +131,16 @@ def build_residual_operator_evidence_run_preflight_report(
         _check("COMMAND_CREDENTIAL_FREE", command_credential_free, "operator command is declared credential-free"),
         _check("COMMAND_NOT_EXECUTED_BY_PATCH", True, "this patch records preflight only and does not start the runtime command"),
         _check("ENTRYPOINT_EXISTS", entrypoint_exists, "UPBIT_PAPER.py entrypoint exists for the operator-run PAPER command"),
-        _check("DURATION_FLOOR_DECLARED", duration_floor_met, "operator command declares at least 120h / 43200 heartbeat ticks"),
-        _check("PAPER_SHADOW_WINDOW_FLOOR_DECLARED", window_floor_met, "execution guide declares at least 20 PAPER/SHADOW windows"),
+        _check(
+            "DURATION_FLOOR_DECLARED",
+            duration_floor_met,
+            f"operator command declares at least {MVP5_REVIEW_ENTRY_DURATION_HOURS}h / {MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS} heartbeat ticks",
+        ),
+        _check(
+            "PAPER_SHADOW_WINDOW_FLOOR_DECLARED",
+            window_floor_met,
+            f"execution guide declares at least {MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT} PAPER/SHADOW windows",
+        ),
         _check("EXPECTED_ARTIFACTS_DECLARED", len(expected_artifacts) >= 5, "required PAPER/SHADOW evidence artifacts are listed"),
         _check("NEXT_REVIEW_VALIDATORS_DECLARED", len(required_validators) >= 6, "next-review validators are listed"),
     ]
@@ -227,18 +247,20 @@ def validate_residual_operator_evidence_run_preflight_report(
             errors.append(f"{field} must remain false")
     if report.get("mvp5_entry_blocked_until_operator_evidence") is not True:
         errors.append("mvp5 entry must stay blocked until operator evidence")
-    if report.get("command_id") != "UPBIT_PAPER_SAFE_MONITOR_120H":
+    if report.get("command_id") != MVP5_REVIEW_ENTRY_PROFILE_ID:
         errors.append("unexpected command_id")
     if report.get("command_shell") != "powershell":
         errors.append("operator command must be powershell")
     if report.get("command_entrypoint") != "UPBIT_PAPER.py":
         errors.append("operator command entrypoint mismatch")
-    if report.get("minimum_duration_hours", 0) < 120:
-        errors.append("minimum duration must be at least 120h")
-    if report.get("minimum_paper_shadow_window_count", 0) < 20:
-        errors.append("minimum PAPER/SHADOW window count must be at least 20")
-    if report.get("expected_heartbeat_ticks", 0) < 43200:
-        errors.append("expected heartbeat ticks must be at least 43200")
+    if report.get("minimum_duration_hours", 0) < MVP5_REVIEW_ENTRY_DURATION_HOURS:
+        errors.append(f"minimum duration must be at least {MVP5_REVIEW_ENTRY_DURATION_HOURS}h")
+    if report.get("minimum_paper_shadow_window_count", 0) < MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT:
+        errors.append(
+            f"minimum PAPER/SHADOW window count must be at least {MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT}"
+        )
+    if report.get("expected_heartbeat_ticks", 0) < MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS:
+        errors.append(f"expected heartbeat ticks must be at least {MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS}")
     if report.get("heartbeat_interval_seconds") != 10:
         errors.append("heartbeat interval must be 10 seconds")
     expected_artifacts = report.get("expected_runtime_artifacts", [])

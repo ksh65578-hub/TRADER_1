@@ -11,7 +11,7 @@ NEXT_TASK_CLASS = "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVI
 LIVE_FALSE_FIELDS = ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
 RUNTIME_PREFIX = "system/runtime/"
 OPERATOR_SUBMISSION_MANIFEST_PATH = (
-    "system/evidence/operator_submissions/residual_operator_paper_shadow_120h_submission_manifest.json"
+    "system/evidence/operator_submissions/residual_operator_paper_shadow_48h_submission_manifest.json"
 )
 PLACEHOLDER_TOKENS = ("<session_id>", "<shadow_session_id>")
 

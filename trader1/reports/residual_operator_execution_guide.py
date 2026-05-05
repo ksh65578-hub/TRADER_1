@@ -9,6 +9,13 @@ from trader1.reports.open_gap_current_blocker_classification import NEXT_TASK_CL
 
 SCHEMA_ID = "trader1.residual_operator_execution_guide_report.v1"
 LIVE_FALSE_FIELDS = ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+MVP5_REVIEW_ENTRY_PROFILE_ID = "UPBIT_PAPER_SAFE_MONITOR_48H"
+MVP5_REVIEW_ENTRY_DURATION_HOURS = 48
+MVP5_REVIEW_ENTRY_HEARTBEAT_INTERVAL_SECONDS = 10
+MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS = (
+    MVP5_REVIEW_ENTRY_DURATION_HOURS * 60 * 60 // MVP5_REVIEW_ENTRY_HEARTBEAT_INTERVAL_SECONDS
+)
+MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT = 8
 
 STEP_MODE_BY_ACTION = {
     "OPERATOR_RECONCILIATION_ACTION": "OPERATOR_REVIEW_REQUIRED",
@@ -114,15 +121,15 @@ def _allowed_local_commands(action_class: str) -> list[dict[str, Any]]:
         return []
     return [
         {
-            "command_id": "UPBIT_PAPER_SAFE_MONITOR_120H",
+            "command_id": MVP5_REVIEW_ENTRY_PROFILE_ID,
             "shell": "powershell",
             "command": (
-                "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='43200'; "
-                "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; "
+                f"$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='{MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS}'; "
+                f"$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='{MVP5_REVIEW_ENTRY_HEARTBEAT_INTERVAL_SECONDS}'; "
                 "python -B UPBIT_PAPER.py"
             ),
             "scope": "UPBIT/KRW_SPOT/PAPER",
-            "minimum_duration_hours": 120,
+            "minimum_duration_hours": MVP5_REVIEW_ENTRY_DURATION_HOURS,
             "non_live_only": True,
             "credential_required": False,
             "live_order_allowed": False,
@@ -157,8 +164,14 @@ def _build_execution_step(packet: Mapping[str, Any]) -> dict[str, Any]:
         "allowed_local_commands": commands,
         "required_evidence_artifacts": ARTIFACTS_BY_ACTION.get(action_class, []),
         "validators_required_for_next_review": VALIDATORS_BY_ACTION.get(action_class, ["live_final_guard_validator"]),
-        "minimum_observation_hours": 120 if action_class == "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION" else 0,
-        "minimum_paper_shadow_window_count": 20 if action_class == "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION" else 0,
+        "minimum_observation_hours": (
+            MVP5_REVIEW_ENTRY_DURATION_HOURS if action_class == "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION" else 0
+        ),
+        "minimum_paper_shadow_window_count": (
+            MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT
+            if action_class == "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION"
+            else 0
+        ),
         "forbidden_actions": [
             "LIVE_ORDER",
             "CREDENTIAL_OR_API_KEY_USE",

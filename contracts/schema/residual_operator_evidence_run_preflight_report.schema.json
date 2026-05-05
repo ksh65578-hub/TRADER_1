@@ -129,7 +129,7 @@
       "minimum": 0
     },
     "command_id": {
-      "const": "UPBIT_PAPER_SAFE_MONITOR_120H"
+      "enum": ["UPBIT_PAPER_SAFE_MONITOR_48H", "UPBIT_PAPER_SAFE_MONITOR_120H"]
     },
     "command_shell": {
       "const": "powershell"
@@ -168,15 +168,15 @@
     },
     "minimum_duration_hours": {
       "type": "integer",
-      "minimum": 120
+      "minimum": 48
     },
     "minimum_paper_shadow_window_count": {
       "type": "integer",
-      "minimum": 20
+      "minimum": 8
     },
     "expected_heartbeat_ticks": {
       "type": "integer",
-      "minimum": 43200
+      "minimum": 17280
     },
     "heartbeat_interval_seconds": {
       "const": 10

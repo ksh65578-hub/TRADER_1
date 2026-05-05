@@ -13290,8 +13290,8 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "residual execution guide must keep MVP-5 blocked until operator evidence", "HARD_TRUTH_MISSING")
         if residual_execution_guide.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS":
             return DashboardValidationResult("BLOCKED", "residual execution guide cannot transfer Upbit evidence to Binance", "LIVE_FINAL_GUARD_FAILED")
-        if residual_execution_guide.get("minimum_observation_hours", 0) < 120:
-            return DashboardValidationResult("FAIL", "residual execution guide must show the 120h PAPER/SHADOW observation requirement", "CONTRACT_GAP_HIGH")
+        if residual_execution_guide.get("minimum_observation_hours", 0) < 48:
+            return DashboardValidationResult("FAIL", "residual execution guide must show the 48h PAPER/SHADOW observation requirement", "CONTRACT_GAP_HIGH")
         guide_items = residual_execution_guide.get("execution_step_items")
         if not isinstance(guide_items, list) or len(guide_items) < 3:
             return DashboardValidationResult("FAIL", "loaded residual execution guide must expose at least top three execution steps", "SCHEMA_IDENTITY_MISMATCH")
@@ -13350,8 +13350,8 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("FAIL", "residual evidence progress must expose exactly one local PAPER/SHADOW command", "SCHEMA_IDENTITY_MISMATCH")
         if residual_evidence_progress.get("local_runtime_completed_count") != 0:
             return DashboardValidationResult("BLOCKED", "this patch cannot mark the local PAPER/SHADOW evidence command completed", "LIVE_FINAL_GUARD_FAILED")
-        if residual_evidence_progress.get("minimum_observation_hours_required", 0) < 120:
-            return DashboardValidationResult("FAIL", "residual evidence progress must show the 120h PAPER/SHADOW observation requirement", "CONTRACT_GAP_HIGH")
+        if residual_evidence_progress.get("minimum_observation_hours_required", 0) < 48:
+            return DashboardValidationResult("FAIL", "residual evidence progress must show the 48h PAPER/SHADOW observation requirement", "CONTRACT_GAP_HIGH")
         if residual_evidence_progress.get("mvp5_entry_blocked_until_operator_evidence") is not True:
             return DashboardValidationResult("BLOCKED", "residual evidence progress must keep MVP-5 blocked until operator evidence", "HARD_TRUTH_MISSING")
         if residual_evidence_progress.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS":

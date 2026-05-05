@@ -1028,6 +1028,10 @@
       "schema_id": "trader1.residual_operator_evidence_trial_duration_policy_report.v1",
       "path": "contracts/schema/residual_operator_evidence_trial_duration_policy_report.schema.json"
     },
+    "residual_mvp5_entry_duration_policy_report": {
+      "schema_id": "trader1.residual_mvp5_entry_duration_policy_report.v1",
+      "path": "contracts/schema/residual_mvp5_entry_duration_policy_report.schema.json"
+    },
     "patch_result": {
       "schema_id": "trader1.patch_result.v1",
       "path": "contracts/schema/patch_result.schema.json"

@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.residual_operator_evidence_intake_audit_report.v1",
-  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_INTAKE_AUDIT_20260505_001",
-  "generated_at_utc": "2026-05-05T10:35:48Z",
+  "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
+  "generated_at_utc": "2026-05-05T11:31:53Z",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
@@ -9,16 +9,16 @@
   "source_reports": [
     {
       "role": "residual_operator_evidence_run_preflight",
-      "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT_20260505_001",
-      "report_hash": "90B0AF067CE93A74242741C21D3B27BE29A0BEDAA50A74331320524F94C046CD"
+      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
+      "report_hash": "71977AF4B7B188E6D9F17AA31D4A68D1F0F724D52306CBF3F1B9D72F754C90A3"
     },
     {
       "role": "residual_operator_evidence_progress",
-      "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_20260505_001",
-      "report_hash": "7DDCA414B1FB3B4DA86B5AEF78D48E87AE823693AB894F3EF06EDC2387A01BEE"
+      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
+      "report_hash": "CC9397396D9824AF1FC3AC6C61D2B2BA82E2A46914146D9F1800739B0EFA2313"
     }
   ],
-  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT_20260505_001",
+  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_TRIAL_DURATION_POLICY_20260505_001",
   "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "open_gap_ids": [
@@ -38,7 +38,7 @@
   ],
   "open_gap_count": 13,
   "intake_status": "BLOCKED_AWAITING_OPERATOR_EVIDENCE_PACKAGE",
-  "operator_submission_manifest_path": "system/evidence/operator_submissions/residual_operator_paper_shadow_120h_submission_manifest.json",
+  "operator_submission_manifest_path": "system/evidence/operator_submissions/residual_operator_paper_shadow_48h_submission_manifest.json",
   "operator_submission_manifest_status": "MISSING_OPERATOR_SUBMISSION_MANIFEST",
   "operator_submission_required": true,
   "operator_submission_validated": false,
@@ -173,11 +173,11 @@
       "blocks_mvp5_entry_until_pass": true
     }
   ],
-  "preflight_command_id": "UPBIT_PAPER_SAFE_MONITOR_120H",
-  "preflight_command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='43200'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
-  "minimum_duration_hours": 120,
-  "expected_heartbeat_ticks": 43200,
-  "minimum_paper_shadow_window_count": 20,
+  "preflight_command_id": "UPBIT_PAPER_SAFE_MONITOR_48H",
+  "preflight_command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='17280'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
+  "minimum_duration_hours": 48,
+  "expected_heartbeat_ticks": 17280,
+  "minimum_paper_shadow_window_count": 8,
   "command_executed_by_this_patch": false,
   "operator_run_completed_by_this_patch": false,
   "operator_run_evidence_ready_for_mvp5": false,
@@ -196,5 +196,5 @@
   "scale_up_allowed": false,
   "validation_status": "PASS",
   "validation_errors": [],
-  "report_hash": "A0D395B3463EF67D6E7ACF4AE609217A9879906063E43406AA117663160E9991"
+  "report_hash": "55EA40E0B7052C1FE49BC1204E4D974B5C3BAF7F21E868225A963898901360AE"
 }

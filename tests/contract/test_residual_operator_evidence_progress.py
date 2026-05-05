@@ -62,7 +62,7 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
         self.assertEqual(report["evidence_item_count"], len(report["evidence_items"]))
         self.assertEqual(report["local_runtime_command_count"], 1)
         self.assertEqual(report["local_runtime_completed_count"], 0)
-        self.assertEqual(report["minimum_observation_hours_required"], 120)
+        self.assertEqual(report["minimum_observation_hours_required"], 48)
         self.assertFalse(report["operator_evidence_ready_for_mvp5"])
         self.assertFalse(report["any_evidence_item_ready_for_closure"])
         self.assertTrue(report["mvp5_entry_blocked_until_operator_evidence"])
@@ -105,7 +105,7 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
             self.assertFalse(item["scale_up_allowed"])
 
         command = report["local_runtime_commands"][0]
-        self.assertEqual(command["command_id"], "UPBIT_PAPER_SAFE_MONITOR_120H")
+        self.assertEqual(command["command_id"], "UPBIT_PAPER_SAFE_MONITOR_48H")
         self.assertEqual(command["scope"], "UPBIT/KRW_SPOT/PAPER")
         self.assertEqual(command["command_status"], "NOT_RUN_BY_THIS_PATCH")
         self.assertTrue(command["non_live_only"])

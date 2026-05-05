@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.residual_mvp5_entry_duration_policy_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "source_reports",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "selected_next_task_class",
+    "open_gap_ids",
+    "open_gap_count",
+    "duration_policy_status",
+    "superseded_profile_id",
+    "superseded_duration_hours",
+    "superseded_heartbeat_ticks",
+    "superseded_minimum_paper_shadow_window_count",
+    "mvp5_review_entry_profile_id",
+    "mvp5_review_entry_duration_hours",
+    "mvp5_review_entry_heartbeat_ticks",
+    "mvp5_review_entry_heartbeat_interval_seconds",
+    "mvp5_review_entry_minimum_paper_shadow_window_count",
+    "mvp5_review_entry_command_text",
+    "mvp5_review_entry_lowered_by_this_patch",
+    "trial_24h_profile_still_not_mvp5_eligible",
+    "extended_120h_profile_role",
+    "duration_only_live_ready_allowed",
+    "duration_only_gap_closure_allowed",
+    "duration_only_current_evidence_write_allowed",
+    "external_live_evidence_still_required",
+    "operator_submission_required",
+    "operator_run_completed_by_this_patch",
+    "operator_run_evidence_ready_for_mvp5",
+    "mvp5_entry_blocked_until_operator_evidence",
+    "current_evidence_write_allowed",
+    "gap_closure_allowed_by_this_patch",
+    "live_config_mutation_allowed",
+    "live_ready_write_allowed",
+    "credential_values_read",
+    "credential_environment_inspection_performed",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "validation_status",
+    "validation_errors",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {"const": "trader1.residual_mvp5_entry_duration_policy_report.v1"},
+    "patch_id": {"type": "string", "minLength": 1},
+    "generated_at_utc": {"type": "string", "minLength": 1},
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {"type": "string", "minLength": 1},
+        "agents_sha256": {"type": "string", "minLength": 1}
+      }
+    },
+    "source_reports": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["role", "patch_id", "report_hash"],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "residual_operator_execution_guide",
+              "residual_operator_evidence_progress",
+              "residual_operator_evidence_run_preflight",
+              "residual_operator_evidence_intake_audit",
+              "residual_operator_evidence_trial_duration_policy"
+            ]
+          },
+          "patch_id": {"type": "string", "minLength": 1},
+          "report_hash": {"type": "string", "minLength": 64, "maxLength": 64}
+        }
+      }
+    },
+    "state_last_patch_id_before": {"type": "string"},
+    "state_next_task_before": {"type": "string"},
+    "selected_next_task_class": {
+      "const": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
+    },
+    "open_gap_ids": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "open_gap_count": {"type": "integer", "minimum": 0},
+    "duration_policy_status": {"const": "MVP5_REVIEW_ENTRY_LOWERED_LIVE_STILL_BLOCKED"},
+    "superseded_profile_id": {"const": "UPBIT_PAPER_SAFE_MONITOR_120H"},
+    "superseded_duration_hours": {"const": 120},
+    "superseded_heartbeat_ticks": {"const": 43200},
+    "superseded_minimum_paper_shadow_window_count": {"const": 20},
+    "mvp5_review_entry_profile_id": {"const": "UPBIT_PAPER_SAFE_MONITOR_48H"},
+    "mvp5_review_entry_duration_hours": {"const": 48},
+    "mvp5_review_entry_heartbeat_ticks": {"const": 17280},
+    "mvp5_review_entry_heartbeat_interval_seconds": {"const": 10},
+    "mvp5_review_entry_minimum_paper_shadow_window_count": {"const": 8},
+    "mvp5_review_entry_command_text": {
+      "type": "string",
+      "pattern": ".*TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='17280'.*UPBIT_PAPER\\.py.*"
+    },
+    "mvp5_review_entry_lowered_by_this_patch": {"const": true},
+    "trial_24h_profile_still_not_mvp5_eligible": {"const": true},
+    "extended_120h_profile_role": {"const": "OPTIONAL_EXTENDED_OBSERVATION_OR_SCALE_UP_CONFIDENCE_ONLY"},
+    "duration_only_live_ready_allowed": {"const": false},
+    "duration_only_gap_closure_allowed": {"const": false},
+    "duration_only_current_evidence_write_allowed": {"const": false},
+    "external_live_evidence_still_required": {"const": true},
+    "operator_submission_required": {"const": true},
+    "operator_run_completed_by_this_patch": {"const": false},
+    "operator_run_evidence_ready_for_mvp5": {"const": false},
+    "mvp5_entry_blocked_until_operator_evidence": {"const": true},
+    "current_evidence_write_allowed": {"const": false},
+    "gap_closure_allowed_by_this_patch": {"const": false},
+    "live_config_mutation_allowed": {"const": false},
+    "live_ready_write_allowed": {"const": false},
+    "credential_values_read": {"const": false},
+    "credential_environment_inspection_performed": {"const": false},
+    "live_order_ready": {"const": false},
+    "live_order_allowed": {"const": false},
+    "can_live_trade": {"const": false},
+    "scale_up_allowed": {"const": false},
+    "validation_status": {"const": "PASS"},
+    "validation_errors": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {"type": "string"}
+    },
+    "report_hash": {"type": "string", "minLength": 64, "maxLength": 64}
+  }
+}
