@@ -1,0 +1,8 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE_20260506_001",
+  "dashboard_status": "PASS_SUBMISSION_REVIEW_QUEUE_ORDERED_BLOCKED",
+  "review_queue_status": "BLOCKED_OPERATOR_SUBMISSION_MISSING",
+  "single_next_operator_step": "CREATE_OPERATOR_SUBMISSION_MANIFEST",
+  "evidence_file_content_read": false,
+  "live_execution_candidate": false
+}

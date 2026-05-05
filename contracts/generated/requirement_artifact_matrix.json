@@ -9410,6 +9410,54 @@
       "status": "IMPLEMENTED_SUBMISSION_MANIFEST_PREFLIGHT_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-RECONCILIATION-SUBMISSION-REVIEW-QUEUE",
+      "section_id": "SECTION_OPERATOR_CONTROL",
+      "schema_files": [
+        "contracts/schema/residual_operator_reconciliation_submission_review_queue_report.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "trader1/reports/residual_operator_reconciliation_submission_review_queue.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "test_files": [
+        "tests/contract/test_residual_operator_reconciliation_submission_review_queue.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "fixture_files": [
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json",
+        "contracts/generated/current_implementation_state.json"
+      ],
+      "runtime_modules": [
+        "trader1/reports/residual_operator_reconciliation_submission_review_queue.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE_20260506.md",
+        "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.patch_result.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "patch_result_fields": [
+        "next_task_class",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_ORDERED_REVIEW_QUEUE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-RECONCILIATION-SUBMISSION-SECURITY-QUARANTINE",
       "section_id": "SECTION_OPERATOR_CONTROL",
       "schema_files": [
@@ -17173,7 +17221,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-05T20:36:56Z",
+  "updated_at_utc": "2026-05-05T21:33:19Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

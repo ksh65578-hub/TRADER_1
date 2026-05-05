@@ -123,6 +123,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json",
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.report.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
@@ -139,6 +140,9 @@ RESIDUAL_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SOURCE = (
 )
 RESIDUAL_RECONCILIATION_SUBMISSION_SECURITY_QUARANTINE_SOURCE = (
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json"
+)
+RESIDUAL_RECONCILIATION_SUBMISSION_REVIEW_QUEUE_SOURCE = (
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.report.json"
 )
 RESIDUAL_ACTION_PLAN_CLASSES = {
     "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
@@ -12745,6 +12749,189 @@ def _residual_operator_reconciliation_submission_security_quarantine_summary(
     }
 
 
+def _residual_operator_reconciliation_submission_review_queue_summary(
+    report: dict[str, Any] | None,
+) -> dict[str, Any]:
+    fallback = {
+        "title": "Operator Submission Review Queue",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_RECONCILIATION_SUBMISSION_REVIEW_QUEUE_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "review_order_locked": True,
+        "review_phase_count": 4,
+        "blocked_phase_count": 4,
+        "review_ready_phase_count": 0,
+        "accepted_phase_count": 0,
+        "single_next_operator_step": "CREATE_OPERATOR_SUBMISSION_MANIFEST",
+        "single_next_operator_message": "Prepare the separate operator submission manifest; the queue is not loaded.",
+        "manifest_preflight_status": "BLOCKED_MANIFEST_MISSING",
+        "template_packet_status": "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY",
+        "security_quarantine_status": "QUARANTINE_PENDING_OPERATOR_SUBMISSION",
+        "operator_submission_present": False,
+        "operator_submission_validated": False,
+        "operator_submission_accepted": False,
+        "operator_action_required_for_gap_closure": True,
+        "operator_no_action_needed_for_next_non_live_patch": False,
+        "required_manifest_item_count": 32,
+        "manifest_item_count": 0,
+        "missing_manifest_item_count": 32,
+        "required_control_count": 4,
+        "manifest_control_count": 0,
+        "missing_control_count": 4,
+        "security_control_count": 0,
+        "quarantine_blocker_count": 1,
+        "review_steps": [],
+        "one_line_summary": "Operator submission review queue is not loaded; reconciliation remains blocked.",
+        "primary_next_action": "Load the submission review queue before using operator submission status.",
+        "evidence_file_content_read": False,
+        "evidence_artifact_hash_recomputed": False,
+        "secret_pattern_content_scan_performed": False,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "credential_values_read": False,
+        "credential_environment_inspection_performed": False,
+        "runtime_artifacts_staged_by_this_patch": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    false_fields = (
+        "operator_submission_validated",
+        "operator_submission_accepted",
+        "evidence_file_content_read",
+        "evidence_artifact_hash_recomputed",
+        "secret_pattern_content_scan_performed",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "credential_values_read",
+        "credential_environment_inspection_performed",
+        "runtime_artifacts_staged_by_this_patch",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    )
+    if any(report.get(field) is not False for field in false_fields):
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator submission review queue attempted acceptance, evidence reads, current-evidence, credential, live, or scale permission.",
+            "primary_next_action": "Reject the review queue report and keep reconciliation blocked.",
+        }
+
+    status = str(report.get("review_queue_status") or "BLOCKED_OPERATOR_SUBMISSION_MISSING")
+    allowed_statuses = {
+        "BLOCKED_OPERATOR_SUBMISSION_MISSING",
+        "BLOCKED_OPERATOR_SUBMISSION_STRUCTURAL_ERRORS",
+        "BLOCKED_OPERATOR_SUBMISSION_REVIEW_ONLY_NOT_ACCEPTED",
+        "BLOCKED_OPERATOR_SUBMISSION_QUARANTINE_INVALID_SOURCE",
+    }
+    steps = report.get("review_steps", [])
+    if not isinstance(steps, list):
+        steps = []
+    invalid = (
+        report.get("schema_id") != "trader1.residual_operator_reconciliation_submission_review_queue_report.v1"
+        or report.get("validation_status") != "PASS"
+        or status not in allowed_statuses
+        or report.get("review_order_locked") is not True
+        or report.get("review_phase_count") != 4
+        or report.get("blocked_phase_count") != 4
+        or report.get("review_ready_phase_count") != 0
+        or report.get("accepted_phase_count") != 0
+        or report.get("operator_action_required_for_gap_closure") is not True
+        or report.get("operator_no_action_needed_for_next_non_live_patch") is not True
+        or len(steps) != 4
+    )
+    if invalid:
+        status = "INVALID"
+    return {
+        "title": "Operator Submission Review Queue",
+        "status": status,
+        "source": RESIDUAL_RECONCILIATION_SUBMISSION_REVIEW_QUEUE_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": report.get("open_gap_count", 13) if isinstance(report.get("open_gap_count", 13), int) else 13,
+        "review_order_locked": True,
+        "review_phase_count": int(report.get("review_phase_count", 4) if report.get("review_phase_count") is not None else 4),
+        "blocked_phase_count": int(report.get("blocked_phase_count", 4) if report.get("blocked_phase_count") is not None else 4),
+        "review_ready_phase_count": 0,
+        "accepted_phase_count": 0,
+        "single_next_operator_step": str(report.get("single_next_operator_step") or "CREATE_OPERATOR_SUBMISSION_MANIFEST"),
+        "single_next_operator_message": str(
+            report.get(
+                "single_next_operator_message",
+                "Prepare the separate operator submission manifest; the queue cannot accept evidence.",
+            )
+        ),
+        "manifest_preflight_status": str(report.get("manifest_preflight_status") or "BLOCKED_MANIFEST_MISSING"),
+        "template_packet_status": str(
+            report.get("template_packet_status") or "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY"
+        ),
+        "security_quarantine_status": str(
+            report.get("security_quarantine_status") or "QUARANTINE_PENDING_OPERATOR_SUBMISSION"
+        ),
+        "operator_submission_present": report.get("operator_submission_present") is True,
+        "operator_submission_validated": False,
+        "operator_submission_accepted": False,
+        "operator_action_required_for_gap_closure": True,
+        "operator_no_action_needed_for_next_non_live_patch": True,
+        "required_manifest_item_count": int(report.get("required_manifest_item_count", 32) if report.get("required_manifest_item_count") is not None else 32),
+        "manifest_item_count": int(report.get("manifest_item_count", 0) if report.get("manifest_item_count") is not None else 0),
+        "missing_manifest_item_count": int(report.get("missing_manifest_item_count", 32) if report.get("missing_manifest_item_count") is not None else 32),
+        "required_control_count": int(report.get("required_control_count", 4) if report.get("required_control_count") is not None else 4),
+        "manifest_control_count": int(report.get("manifest_control_count", 0) if report.get("manifest_control_count") is not None else 0),
+        "missing_control_count": int(report.get("missing_control_count", 4) if report.get("missing_control_count") is not None else 4),
+        "security_control_count": int(report.get("security_control_count", 0) if report.get("security_control_count") is not None else 0),
+        "quarantine_blocker_count": int(report.get("quarantine_blocker_count", 0) if report.get("quarantine_blocker_count") is not None else 0),
+        "review_steps": [
+            {
+                "phase_id": str(step.get("phase_id", "")),
+                "priority_order": int(step.get("priority_order", 0) or 0),
+                "phase_status": str(step.get("phase_status", "")),
+                "blocks_gap_closure": step.get("blocks_gap_closure") is True,
+                "reason_code": str(step.get("reason_code", "")),
+                "display_message": str(step.get("display_message", "")),
+            }
+            for step in steps[:4]
+            if isinstance(step, dict)
+        ],
+        "one_line_summary": str(report.get("one_line_summary", "Operator submission review queue remains blocked.")),
+        "primary_next_action": str(
+            report.get(
+                "primary_next_action",
+                "Prepare the separate operator submission manifest; the queue cannot close gaps.",
+            )
+        ),
+        "evidence_file_content_read": False,
+        "evidence_artifact_hash_recomputed": False,
+        "secret_pattern_content_scan_performed": False,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "credential_values_read": False,
+        "credential_environment_inspection_performed": False,
+        "runtime_artifacts_staged_by_this_patch": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -12798,6 +12985,7 @@ def build_read_only_dashboard_shell(
     residual_operator_reconciliation_submission_manifest_preflight_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_submission_template_packet_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_submission_security_quarantine_report: dict[str, Any] | None = None,
+    residual_operator_reconciliation_submission_review_queue_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -12847,6 +13035,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_reconciliation_submission_manifest_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
         "residual_operator_reconciliation_submission_template_packet": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
         "residual_operator_reconciliation_submission_security_quarantine": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json",
+        "residual_operator_reconciliation_submission_review_queue": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -13136,6 +13325,54 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 security_quarantine_freshness,
+            )
+        )
+    if isinstance(residual_operator_reconciliation_submission_review_queue_report, dict):
+        review_queue_freshness = (
+            "PASS"
+            if residual_operator_reconciliation_submission_review_queue_report.get("schema_id")
+            == "trader1.residual_operator_reconciliation_submission_review_queue_report.v1"
+            and residual_operator_reconciliation_submission_review_queue_report.get("validation_status") == "PASS"
+            and residual_operator_reconciliation_submission_review_queue_report.get("review_queue_status")
+            in {
+                "BLOCKED_OPERATOR_SUBMISSION_MISSING",
+                "BLOCKED_OPERATOR_SUBMISSION_STRUCTURAL_ERRORS",
+                "BLOCKED_OPERATOR_SUBMISSION_REVIEW_ONLY_NOT_ACCEPTED",
+                "BLOCKED_OPERATOR_SUBMISSION_QUARANTINE_INVALID_SOURCE",
+            }
+            and residual_operator_reconciliation_submission_review_queue_report.get("review_order_locked") is True
+            and residual_operator_reconciliation_submission_review_queue_report.get("review_phase_count") == 4
+            and residual_operator_reconciliation_submission_review_queue_report.get("blocked_phase_count") == 4
+            and residual_operator_reconciliation_submission_review_queue_report.get("review_ready_phase_count") == 0
+            and residual_operator_reconciliation_submission_review_queue_report.get("accepted_phase_count") == 0
+            and residual_operator_reconciliation_submission_review_queue_report.get("operator_submission_validated")
+            is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("operator_submission_accepted")
+            is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("evidence_file_content_read") is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("secret_pattern_content_scan_performed")
+            is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("current_evidence_write_allowed")
+            is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("gap_closure_allowed_by_this_patch")
+            is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("live_ready_write_allowed") is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("live_config_mutation_allowed")
+            is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("credential_values_read") is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("live_order_allowed") is False
+            and residual_operator_reconciliation_submission_review_queue_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE",
+                paths.get(
+                    "residual_operator_reconciliation_submission_review_queue",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.report.json",
+                ),
+                True,
+                review_queue_freshness,
             )
         )
     if isinstance(shadow_runtime_writer_report, dict):
@@ -14236,6 +14473,11 @@ def build_read_only_dashboard_shell(
             residual_operator_reconciliation_submission_security_quarantine_report
         )
     )
+    residual_operator_reconciliation_submission_review_queue = (
+        _residual_operator_reconciliation_submission_review_queue_summary(
+            residual_operator_reconciliation_submission_review_queue_report
+        )
+    )
     residual_operator_priority = _residual_operator_priority_summary(
         residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet,
@@ -14302,6 +14544,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_reconciliation_submission_manifest_preflight": residual_operator_reconciliation_submission_manifest_preflight,
         "residual_operator_reconciliation_submission_template_packet": residual_operator_reconciliation_submission_template_packet,
         "residual_operator_reconciliation_submission_security_quarantine": residual_operator_reconciliation_submission_security_quarantine,
+        "residual_operator_reconciliation_submission_review_queue": residual_operator_reconciliation_submission_review_queue,
         "residual_operator_priority": residual_operator_priority,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
@@ -15922,6 +16165,78 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "residual security quarantine must keep operator reconciliation required for closure", "LIVE_FINAL_GUARD_FAILED")
         if residual_security_quarantine.get("operator_no_action_needed_for_next_non_live_patch") is not True:
             return DashboardValidationResult("BLOCKED", "residual security quarantine must not require user runtime for the next non-live patch", "LIVE_FINAL_GUARD_FAILED")
+
+    residual_review_queue = shell.get("residual_operator_reconciliation_submission_review_queue")
+    if not isinstance(residual_review_queue, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator submission review queue summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_review_queue.get("display_only") is not True or residual_review_queue.get("dashboard_truth_only") is not True:
+        return DashboardValidationResult("BLOCKED", "residual submission review queue must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_review_queue.get("live_order_ready")
+        or residual_review_queue.get("live_order_allowed")
+        or residual_review_queue.get("can_live_trade")
+        or residual_review_queue.get("scale_up_allowed")
+        or residual_review_queue.get("current_evidence_write_allowed")
+        or residual_review_queue.get("gap_closure_allowed_by_this_patch")
+        or residual_review_queue.get("live_ready_write_allowed")
+        or residual_review_queue.get("live_config_mutation_allowed")
+        or residual_review_queue.get("operator_submission_validated")
+        or residual_review_queue.get("operator_submission_accepted")
+        or residual_review_queue.get("evidence_file_content_read")
+        or residual_review_queue.get("evidence_artifact_hash_recomputed")
+        or residual_review_queue.get("secret_pattern_content_scan_performed")
+        or residual_review_queue.get("credential_values_read")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual submission review queue attempted acceptance, content read, credential, current-evidence, live, LIVE_READY, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_review_queue.get("source") != RESIDUAL_RECONCILIATION_SUBMISSION_REVIEW_QUEUE_SOURCE:
+        return DashboardValidationResult("FAIL", "residual submission review queue source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_review_queue.get("status") not in {
+        "NOT_LOADED",
+        "BLOCKED_OPERATOR_SUBMISSION_MISSING",
+        "BLOCKED_OPERATOR_SUBMISSION_STRUCTURAL_ERRORS",
+        "BLOCKED_OPERATOR_SUBMISSION_REVIEW_ONLY_NOT_ACCEPTED",
+        "BLOCKED_OPERATOR_SUBMISSION_QUARANTINE_INVALID_SOURCE",
+        "INVALID",
+    }:
+        return DashboardValidationResult("FAIL", "residual submission review queue status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_review_queue.get("source_status") == "LOADED":
+        if residual_review_queue.get("status") in {"INVALID", "NOT_LOADED"}:
+            return DashboardValidationResult("BLOCKED", "loaded residual review queue must be a blocked queue status", "LIVE_FINAL_GUARD_FAILED")
+        if residual_review_queue.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual review queue open gap count must match action plan", "CONTRACT_GAP_HIGH")
+        if residual_review_queue.get("review_order_locked") is not True:
+            return DashboardValidationResult("FAIL", "residual review queue must lock review order", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_review_queue.get("review_phase_count") != 4 or residual_review_queue.get("blocked_phase_count") != 4:
+            return DashboardValidationResult("FAIL", "residual review queue must expose four blocked phases", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_review_queue.get("review_ready_phase_count") != 0 or residual_review_queue.get("accepted_phase_count") != 0:
+            return DashboardValidationResult("BLOCKED", "residual review queue cannot claim ready or accepted phases", "LIVE_FINAL_GUARD_FAILED")
+        if residual_review_queue.get("single_next_operator_step") not in {
+            "CREATE_OPERATOR_SUBMISSION_MANIFEST",
+            "REPAIR_OPERATOR_SUBMISSION_MANIFEST_STRUCTURE",
+            "WAIT_FOR_SEPARATE_OPERATOR_RECONCILIATION_REVIEW",
+            "REGENERATE_SECURITY_QUARANTINE_FROM_VALID_SOURCES",
+        }:
+            return DashboardValidationResult("FAIL", "residual review queue next operator step is unknown", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_review_queue.get("required_manifest_item_count") != 32:
+            return DashboardValidationResult("FAIL", "residual review queue must expose 32 required manifest items", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_review_queue.get("required_control_count") != 4:
+            return DashboardValidationResult("FAIL", "residual review queue must expose four required controls", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_review_queue.get("security_control_count") != 4:
+            return DashboardValidationResult("FAIL", "residual review queue must bind four quarantine controls", "SCHEMA_IDENTITY_MISMATCH")
+        steps = residual_review_queue.get("review_steps", [])
+        if not isinstance(steps, list) or [step.get("phase_id") for step in steps] != [
+            "TEMPLATE_PACKET",
+            "MANIFEST_PREFLIGHT",
+            "SECURITY_QUARANTINE",
+            "OPERATOR_ACCEPTANCE",
+        ]:
+            return DashboardValidationResult("FAIL", "residual review queue phase order mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if any(step.get("blocks_gap_closure") is not True for step in steps):
+            return DashboardValidationResult("BLOCKED", "residual review queue steps must block gap closure", "LIVE_FINAL_GUARD_FAILED")
+        if residual_review_queue.get("operator_action_required_for_gap_closure") is not True:
+            return DashboardValidationResult("BLOCKED", "residual review queue must keep operator action required for closure", "LIVE_FINAL_GUARD_FAILED")
+        if residual_review_queue.get("operator_no_action_needed_for_next_non_live_patch") is not True:
+            return DashboardValidationResult("BLOCKED", "residual review queue must not require user runtime for the next non-live patch", "LIVE_FINAL_GUARD_FAILED")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -21484,6 +21799,44 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             '<div class="live-blocker-group"><strong>Live</strong><span>false</span></div>'
             "</section>"
         )
+    residual_review_queue = shell.get("residual_operator_reconciliation_submission_review_queue", {})
+    if not isinstance(residual_review_queue, dict):
+        residual_review_queue = {}
+    residual_review_queue_html = ""
+    if residual_review_queue.get("source_status") == "LOADED":
+        phase_count = residual_review_queue.get("review_phase_count", 4)
+        blocked_phase_count = residual_review_queue.get("blocked_phase_count", 4)
+        missing_item_count = residual_review_queue.get("missing_manifest_item_count", 32)
+        manifest_item_count = residual_review_queue.get("manifest_item_count", 0)
+        residual_review_queue_html = (
+            '<p class="live-blocker-note"><strong>Submission review queue:</strong> '
+            + safe_text(
+                residual_review_queue.get(
+                    "one_line_summary",
+                    "Operator submission review queue remains blocked.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Next operator step:</strong> '
+            + safe_text(
+                residual_review_queue.get(
+                    "single_next_operator_step",
+                    "CREATE_OPERATOR_SUBMISSION_MANIFEST",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Queue rule:</strong> ordered review only; evidence read=false; accepted=false; current evidence write=false; LIVE_READY=false.</p>'
+            '<section class="live-blocker-groups" aria-label="operator submission review queue counts">'
+            f'<div class="live-blocker-group"><strong>Status</strong><span>{safe_text(residual_review_queue.get("status", "UNKNOWN"))}</span></div>'
+            f'<div class="live-blocker-group"><strong>Phases</strong><span>{safe_text(blocked_phase_count)}/{safe_text(phase_count)} blocked</span></div>'
+            f'<div class="live-blocker-group"><strong>Manifest</strong><span>{safe_text(manifest_item_count)} present</span></div>'
+            f'<div class="live-blocker-group"><strong>Missing</strong><span>{safe_text(missing_item_count)} items</span></div>'
+            '<div class="live-blocker-group"><strong>Evidence</strong><span>not read</span></div>'
+            '<div class="live-blocker-group"><strong>Accepted</strong><span>false</span></div>'
+            '<div class="live-blocker-group"><strong>Current</strong><span>false</span></div>'
+            '<div class="live-blocker-group"><strong>Live</strong><span>false</span></div>'
+            "</section>"
+        )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -21985,6 +22338,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         """ + residual_manifest_preflight_html + """
         """ + residual_template_packet_html + """
         """ + residual_security_quarantine_html + """
+        """ + residual_review_queue_html + """
         <section class="live-blocker-groups" aria-label="operator handoff packet counts">
           <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
           <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>
