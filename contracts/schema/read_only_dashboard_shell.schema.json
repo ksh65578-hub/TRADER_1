@@ -3743,6 +3743,16 @@
         "blocked_until",
         "handoff_packet_status",
         "evidence_progress_status",
+        "operator_reconciliation_resolution_binding_status",
+        "operator_reconciliation_resolution_audit_status",
+        "operator_reconciliation_resolution_validation_status",
+        "operator_reconciliation_unresolved_item_count",
+        "operator_reconciliation_resolved_item_count",
+        "operator_reconciliation_controls_satisfied_count",
+        "operator_reconciliation_current_evidence_write_allowed_count",
+        "operator_reconciliation_candidate_current_evidence_usable_count",
+        "operator_reconciliation_source_bindings_verified",
+        "operator_reconciliation_next_safe_action",
         "user_runtime_required_for_next_non_live_patch",
         "queue_items",
         "display_only",
@@ -3836,6 +3846,53 @@
           "minLength": 1
         },
         "evidence_progress_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_reconciliation_resolution_binding_status": {
+          "enum": [
+            "BOUND_BLOCKED",
+            "NOT_LOADED_BLOCKED",
+            "FAIL"
+          ]
+        },
+        "operator_reconciliation_resolution_audit_status": {
+          "enum": [
+            "NOT_LOADED",
+            "UNRESOLVED_RECONCILIATION_REVIEW_ONLY",
+            "INVALID"
+          ]
+        },
+        "operator_reconciliation_resolution_validation_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "operator_reconciliation_unresolved_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_reconciliation_resolved_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_reconciliation_controls_satisfied_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_reconciliation_current_evidence_write_allowed_count": {
+          "const": 0
+        },
+        "operator_reconciliation_candidate_current_evidence_usable_count": {
+          "const": 0
+        },
+        "operator_reconciliation_source_bindings_verified": {
+          "type": "boolean"
+        },
+        "operator_reconciliation_next_safe_action": {
           "type": "string",
           "minLength": 1
         },

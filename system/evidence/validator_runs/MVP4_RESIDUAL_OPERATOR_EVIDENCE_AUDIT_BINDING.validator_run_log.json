@@ -1,7 +1,7 @@
 {
   "validator_run_log_schema_id": "trader1.validator_run_log.v1",
-  "created_at_utc": "2026-05-05T06:44:03Z",
-  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260505_001",
+  "created_at_utc": "2026-05-05T17:16:24Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_RESOLUTION_AUDIT_BINDING_20260506_001",
   "validators_run": [
     {
       "validator_id": "schema_validator",
@@ -17,6 +17,18 @@
     },
     {
       "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "dashboard_visual_layout_validator",
       "status": "PASS"
     },
     {

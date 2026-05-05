@@ -953,6 +953,26 @@ def build_dashboard_with_post_rerun_resolution_audit(report=None, rollup_report=
     )
 
 
+def build_dashboard_with_residual_priority_resolution_binding():
+    report = post_rerun_resolution_audit_fixture()
+    session_id = report["session_id"]
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    return build_read_only_dashboard_shell(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
+        residual_operator_handoff_packet_report=residual_operator_handoff_packet_fixture(),
+        residual_operator_execution_guide_report=residual_operator_execution_guide_fixture(),
+        residual_operator_evidence_progress_report=residual_operator_evidence_progress_fixture(),
+        upbit_paper_post_rerun_operator_resolution_audit_report=report,
+    )
+
+
 def build_dashboard_with_post_rerun_resolution_closure(
     report=None,
     audit_report=None,
@@ -6898,6 +6918,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             residual_operator_handoff_packet_report=residual_operator_handoff_packet_fixture(),
             residual_operator_execution_guide_report=residual_operator_execution_guide_fixture(),
             residual_operator_evidence_progress_report=residual_operator_evidence_progress_fixture(),
+            upbit_paper_post_rerun_operator_resolution_audit_report=post_rerun_resolution_audit_fixture(),
         )
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "PASS", result.message)
@@ -6973,12 +6994,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertNotIn("<form", answer_html.lower())
 
     def test_dashboard_residual_operator_priority_queue_is_deterministic_and_display_only(self):
-        dashboard = build_dashboard(
-            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
-            residual_operator_handoff_packet_report=residual_operator_handoff_packet_fixture(),
-            residual_operator_execution_guide_report=residual_operator_execution_guide_fixture(),
-            residual_operator_evidence_progress_report=residual_operator_evidence_progress_fixture(),
-        )
+        dashboard = build_dashboard_with_residual_priority_resolution_binding()
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "PASS", result.message)
         priority = dashboard["residual_operator_priority"]
@@ -7010,6 +7026,18 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(priority["live_order_allowed"])
         self.assertFalse(priority["can_live_trade"])
         self.assertFalse(priority["scale_up_allowed"])
+        self.assertEqual(priority["operator_reconciliation_resolution_binding_status"], "BOUND_BLOCKED")
+        self.assertEqual(
+            priority["operator_reconciliation_resolution_audit_status"],
+            "UNRESOLVED_RECONCILIATION_REVIEW_ONLY",
+        )
+        self.assertEqual(priority["operator_reconciliation_resolution_validation_status"], "PASS")
+        self.assertEqual(priority["operator_reconciliation_unresolved_item_count"], 8)
+        self.assertEqual(priority["operator_reconciliation_resolved_item_count"], 0)
+        self.assertEqual(priority["operator_reconciliation_controls_satisfied_count"], 0)
+        self.assertEqual(priority["operator_reconciliation_current_evidence_write_allowed_count"], 0)
+        self.assertEqual(priority["operator_reconciliation_candidate_current_evidence_usable_count"], 0)
+        self.assertTrue(priority["operator_reconciliation_source_bindings_verified"])
         for item in priority["queue_items"]:
             self.assertEqual(item["gap_count"], len(item["gap_ids"]))
             self.assertFalse(item["allows_live_order"])
@@ -7024,6 +7052,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("safety &gt; no-trade &gt; operator reconciliation", answer_html)
         self.assertIn("First action:", answer_html)
         self.assertIn("Review and reconcile repaired", answer_html)
+        self.assertIn("Operator resolution binding:", answer_html)
+        self.assertIn("BOUND_BLOCKED", answer_html)
+        self.assertIn("current-evidence writes=0", answer_html)
+        self.assertIn("source-bound=True", answer_html)
         self.assertIn("live_order_allowed=false", answer_html)
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
@@ -7033,6 +7065,20 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture()
         )
         dashboard["residual_operator_priority"]["live_ready_write_allowed"] = True
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_rejects_residual_operator_priority_resolution_write_drift(self):
+        dashboard = build_dashboard_with_residual_priority_resolution_binding()
+        dashboard["residual_operator_priority"]["operator_reconciliation_current_evidence_write_allowed_count"] = 1
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_rejects_residual_operator_priority_resolution_source_binding_drift(self):
+        dashboard = build_dashboard_with_residual_priority_resolution_binding()
+        dashboard["residual_operator_priority"]["operator_reconciliation_source_bindings_verified"] = False
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")

@@ -10,6 +10,10 @@ from trader1.reports.residual_open_gap_operator_action_plan import (
     validate_residual_open_gap_operator_action_plan_report,
 )
 from trader1.reports.residual_paper_ledger_rerun_readiness import LEDGER_RERUN_GAP_IDS
+from trader1.runtime.paper.upbit_paper_post_rerun_operator_resolution_audit import (
+    POST_RERUN_OPERATOR_RESOLUTION_AUDIT_STATUS,
+    validate_upbit_paper_post_rerun_operator_resolution_audit_report,
+)
 
 
 SCHEMA_ID = "trader1.residual_operator_evidence_audit_binding_report.v1"
@@ -20,6 +24,27 @@ SOURCE_REPORT_ROLES = (
     "residual_open_gap_operator_action_plan",
     "residual_paper_ledger_rerun_readiness",
 )
+OPERATOR_RESOLUTION_AUDIT_ROLE = "upbit_paper_post_rerun_operator_resolution_audit"
+OPERATOR_RESOLUTION_AUDIT_SCHEMA_ID = "trader1.upbit_paper_post_rerun_operator_resolution_audit_report.v1"
+OPERATOR_RESOLUTION_NOT_LOADED = {
+    "operator_resolution_audit_loaded": False,
+    "operator_resolution_audit_role": OPERATOR_RESOLUTION_AUDIT_ROLE,
+    "operator_resolution_audit_schema_id": "NOT_LOADED",
+    "operator_resolution_audit_hash": None,
+    "operator_resolution_audit_status": "NOT_LOADED",
+    "operator_resolution_audit_validation_status": "UNTESTED",
+    "operator_resolution_source_review_guidance_file_load_status": "NOT_LOADED",
+    "operator_resolution_source_review_guidance_file_hash_match": False,
+    "operator_resolution_source_decision_audit_file_load_status": "NOT_LOADED",
+    "operator_resolution_source_decision_audit_file_hash_match": False,
+    "operator_resolution_unresolved_item_count": 0,
+    "operator_resolution_resolved_item_count": 0,
+    "operator_resolution_controls_satisfied_count": 0,
+    "operator_resolution_current_evidence_write_allowed_count": 0,
+    "operator_resolution_candidate_current_evidence_usable_count": 0,
+    "operator_resolution_binding_status": "NOT_LOADED_BLOCKED",
+    "operator_resolution_next_action": "Load the post-rerun operator resolution audit before accepting any current evidence.",
+}
 
 ACTION_AUDIT_REQUIREMENTS = {
     "OPERATOR_RECONCILIATION_ACTION": {
@@ -184,12 +209,66 @@ def _duplicates(values: list[str]) -> list[str]:
     return sorted(duplicates)
 
 
+def _operator_resolution_audit_binding(report: Mapping[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(report, Mapping):
+        return dict(OPERATOR_RESOLUTION_NOT_LOADED)
+
+    validation = validate_upbit_paper_post_rerun_operator_resolution_audit_report(dict(report))
+    source_review_status = str(report.get("source_review_guidance_file_load_status") or "UNKNOWN")
+    source_decision_status = str(report.get("source_decision_audit_file_load_status") or "UNKNOWN")
+    source_review_hash_match = report.get("source_review_guidance_file_hash_match") is True
+    source_decision_hash_match = report.get("source_decision_audit_file_hash_match") is True
+    unresolved_count = int(report.get("unresolved_item_count") or 0)
+    resolved_count = int(report.get("resolved_item_count") or 0)
+    controls_satisfied = int(report.get("resolution_controls_satisfied_count") or 0)
+    write_allowed_count = int(report.get("current_evidence_write_allowed_count") or 0)
+    usable_count = int(report.get("candidate_current_evidence_usable_count") or 0)
+    bound_blocked = (
+        validation.status == "PASS"
+        and report.get("schema_id") == OPERATOR_RESOLUTION_AUDIT_SCHEMA_ID
+        and report.get("resolution_audit_status") == POST_RERUN_OPERATOR_RESOLUTION_AUDIT_STATUS
+        and source_review_status == "PASS"
+        and source_review_hash_match
+        and source_decision_status == "PASS"
+        and source_decision_hash_match
+        and unresolved_count > 0
+        and resolved_count == 0
+        and controls_satisfied == 0
+        and write_allowed_count == 0
+        and usable_count == 0
+    )
+    return {
+        "operator_resolution_audit_loaded": True,
+        "operator_resolution_audit_role": OPERATOR_RESOLUTION_AUDIT_ROLE,
+        "operator_resolution_audit_schema_id": str(report.get("schema_id") or "UNKNOWN"),
+        "operator_resolution_audit_hash": report.get("resolution_audit_hash"),
+        "operator_resolution_audit_status": str(report.get("resolution_audit_status") or "UNKNOWN"),
+        "operator_resolution_audit_validation_status": validation.status,
+        "operator_resolution_source_review_guidance_file_load_status": source_review_status,
+        "operator_resolution_source_review_guidance_file_hash_match": source_review_hash_match,
+        "operator_resolution_source_decision_audit_file_load_status": source_decision_status,
+        "operator_resolution_source_decision_audit_file_hash_match": source_decision_hash_match,
+        "operator_resolution_unresolved_item_count": unresolved_count,
+        "operator_resolution_resolved_item_count": resolved_count,
+        "operator_resolution_controls_satisfied_count": controls_satisfied,
+        "operator_resolution_current_evidence_write_allowed_count": write_allowed_count,
+        "operator_resolution_candidate_current_evidence_usable_count": usable_count,
+        "operator_resolution_binding_status": "BOUND_BLOCKED" if bound_blocked else "FAIL",
+        "operator_resolution_next_action": (
+            "Operator resolution audit is source-bound and review-only; keep current evidence writes blocked."
+            if bound_blocked
+            else "Operator resolution audit is missing, stale, mismatched, or attempted to accept current evidence."
+        ),
+    }
+
+
 def build_residual_operator_evidence_audit_binding_report(
     classification_report: Mapping[str, Any],
     action_plan_report: Mapping[str, Any],
     paper_rerun_readiness_report: Mapping[str, Any],
     state: Mapping[str, Any],
     *,
+    post_rerun_operator_resolution_audit_report: Mapping[str, Any] | None = None,
     patch_id: str,
     generated_at_utc: str,
     trader1_sha256: str,
@@ -206,6 +285,7 @@ def build_residual_operator_evidence_audit_binding_report(
     unbound_gap_ids = sorted(set(open_gap_ids) - set(bound_gap_ids))
     extra_bound_gap_ids = sorted(set(bound_gap_ids) - set(open_gap_ids))
     readiness_status = str(paper_rerun_readiness_report.get("readiness_status", "UNKNOWN"))
+    operator_resolution_binding = _operator_resolution_audit_binding(post_rerun_operator_resolution_audit_report)
 
     status_inputs_pass = (
         not unbound_gap_ids
@@ -213,6 +293,7 @@ def build_residual_operator_evidence_audit_binding_report(
         and not duplicate_bound_gap_ids
         and all(binding["audit_binding_status"] == "BOUND_BLOCKED" for binding in audit_bindings)
         and readiness_status == "BLOCKED_RECONCILIATION_REQUIRED"
+        and operator_resolution_binding["operator_resolution_binding_status"] == "BOUND_BLOCKED"
     )
 
     report = {
@@ -250,6 +331,7 @@ def build_residual_operator_evidence_audit_binding_report(
             paper_rerun_readiness_report.get("current_evidence_bridge_status", "UNKNOWN")
         ),
         "operator_queue_status": str(paper_rerun_readiness_report.get("operator_queue_status", "UNKNOWN")),
+        **operator_resolution_binding,
         "current_evidence_write_allowed": False,
         "current_evidence_mutation_allowed": False,
         "latest_runtime_pointer_write_allowed": False,
@@ -276,6 +358,7 @@ def validate_residual_operator_evidence_audit_binding_report(
     action_plan_report: Mapping[str, Any],
     paper_rerun_readiness_report: Mapping[str, Any],
     state: Mapping[str, Any],
+    post_rerun_operator_resolution_audit_report: Mapping[str, Any] | None = None,
 ) -> list[str]:
     errors: list[str] = []
 
@@ -343,6 +426,19 @@ def validate_residual_operator_evidence_audit_binding_report(
         errors.append("current_evidence_bridge_status must remain BLOCKED_BY_POST_RERUN_CLOSURE")
     if paper_rerun_readiness_report.get("current_evidence_write_allowed") is not False:
         errors.append("source paper rerun readiness must keep current_evidence_write_allowed=false")
+
+    expected_operator_resolution = _operator_resolution_audit_binding(post_rerun_operator_resolution_audit_report)
+    for key, expected_value in expected_operator_resolution.items():
+        if report.get(key) != expected_value:
+            errors.append(f"{key} must match operator resolution audit binding")
+    if report.get("operator_resolution_binding_status") != "BOUND_BLOCKED":
+        errors.append("operator_resolution_binding_status must be BOUND_BLOCKED")
+    if report.get("operator_resolution_audit_validation_status") != "PASS":
+        errors.append("operator_resolution_audit_validation_status must be PASS")
+    if report.get("operator_resolution_current_evidence_write_allowed_count") != 0:
+        errors.append("operator_resolution_current_evidence_write_allowed_count must remain 0")
+    if report.get("operator_resolution_candidate_current_evidence_usable_count") != 0:
+        errors.append("operator_resolution_candidate_current_evidence_usable_count must remain 0")
 
     seen_gap_ids: list[str] = []
     for binding in report.get("audit_bindings", []):

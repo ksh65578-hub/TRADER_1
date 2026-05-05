@@ -38,6 +38,17 @@ PAPER_RERUN_READINESS_REPORT_PATH = (
     / "audit_reports"
     / "MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.report.json"
 )
+OPERATOR_RESOLUTION_AUDIT_REPORT_PATH = (
+    ROOT
+    / "system"
+    / "runtime"
+    / "upbit"
+    / "krw_spot"
+    / "paper"
+    / "mvp1_upbit_paper_launcher"
+    / "paper_runtime"
+    / "upbit_paper_post_rerun_operator_resolution_audit_report.json"
+)
 BINDING_REPORT_PATH = (
     ROOT
     / "system"
@@ -65,16 +76,18 @@ class ResidualOperatorEvidenceAuditBindingTest(unittest.TestCase):
             load_json(CLASSIFICATION_REPORT_PATH),
             load_json(ACTION_PLAN_REPORT_PATH),
             load_json(PAPER_RERUN_READINESS_REPORT_PATH),
+            load_json(OPERATOR_RESOLUTION_AUDIT_REPORT_PATH),
             load_json(STATE_PATH),
         )
 
     def test_current_reports_bind_every_open_gap_without_closing(self):
-        classification, action_plan, paper_rerun_readiness, state = self.source_inputs()
+        classification, action_plan, paper_rerun_readiness, operator_resolution_audit, state = self.source_inputs()
         report = build_residual_operator_evidence_audit_binding_report(
             classification,
             action_plan,
             paper_rerun_readiness,
             state,
+            post_rerun_operator_resolution_audit_report=operator_resolution_audit,
             patch_id="TEST_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING",
             generated_at_utc="2026-05-05T00:00:00Z",
             trader1_sha256="TEST_TRADER_HASH",
@@ -90,6 +103,19 @@ class ResidualOperatorEvidenceAuditBindingTest(unittest.TestCase):
         self.assertEqual(report["paper_ledger_rerun_readiness_status"], "BLOCKED_RECONCILIATION_REQUIRED")
         self.assertEqual(report["post_rerun_reconciliation_status"], "BLOCKED")
         self.assertEqual(report["current_evidence_bridge_status"], "BLOCKED_BY_POST_RERUN_CLOSURE")
+        self.assertTrue(report["operator_resolution_audit_loaded"])
+        self.assertEqual(report["operator_resolution_audit_status"], "UNRESOLVED_RECONCILIATION_REVIEW_ONLY")
+        self.assertEqual(report["operator_resolution_audit_validation_status"], "PASS")
+        self.assertEqual(report["operator_resolution_binding_status"], "BOUND_BLOCKED")
+        self.assertEqual(report["operator_resolution_unresolved_item_count"], 8)
+        self.assertEqual(report["operator_resolution_resolved_item_count"], 0)
+        self.assertEqual(report["operator_resolution_controls_satisfied_count"], 0)
+        self.assertEqual(report["operator_resolution_current_evidence_write_allowed_count"], 0)
+        self.assertEqual(report["operator_resolution_candidate_current_evidence_usable_count"], 0)
+        self.assertEqual(report["operator_resolution_source_review_guidance_file_load_status"], "PASS")
+        self.assertTrue(report["operator_resolution_source_review_guidance_file_hash_match"])
+        self.assertEqual(report["operator_resolution_source_decision_audit_file_load_status"], "PASS")
+        self.assertTrue(report["operator_resolution_source_decision_audit_file_hash_match"])
         self.assertFalse(report["gap_closure_allowed_by_this_patch"])
         self.assertFalse(report["current_evidence_write_allowed"])
         self.assertEqual(report["audit_binding_status"], "PASS_BOUND_BLOCKED")
@@ -113,6 +139,7 @@ class ResidualOperatorEvidenceAuditBindingTest(unittest.TestCase):
                 action_plan,
                 paper_rerun_readiness,
                 state,
+                operator_resolution_audit,
             ),
             [],
         )
@@ -120,7 +147,7 @@ class ResidualOperatorEvidenceAuditBindingTest(unittest.TestCase):
     def test_generated_report_matches_schema_and_keeps_permissions_false(self):
         if not BINDING_REPORT_PATH.exists():
             self.skipTest("residual operator evidence audit binding report has not been generated yet")
-        classification, action_plan, paper_rerun_readiness, state = self.source_inputs()
+        classification, action_plan, paper_rerun_readiness, operator_resolution_audit, state = self.source_inputs()
         report = load_json(BINDING_REPORT_PATH)
         schema_bundle = load_schema_bundle(ROOT / "contracts" / "schema")
         schema = schema_for_instance(report, schema_bundle)
@@ -135,6 +162,7 @@ class ResidualOperatorEvidenceAuditBindingTest(unittest.TestCase):
                 action_plan,
                 paper_rerun_readiness,
                 state,
+                operator_resolution_audit,
             ),
             [],
         )
@@ -151,7 +179,7 @@ class ResidualOperatorEvidenceAuditBindingTest(unittest.TestCase):
 
         self.assertEqual(
             patch_result["patch_id"],
-            "MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260505_001",
+            "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_RESOLUTION_AUDIT_BINDING_20260506_001",
         )
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
         self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
@@ -163,12 +191,13 @@ class ResidualOperatorEvidenceAuditBindingTest(unittest.TestCase):
         self.assertFalse(patch_result["scale_up_allowed_after"])
 
     def test_validator_rejects_gap_closure_or_live_permission(self):
-        classification, action_plan, paper_rerun_readiness, state = self.source_inputs()
+        classification, action_plan, paper_rerun_readiness, operator_resolution_audit, state = self.source_inputs()
         report = build_residual_operator_evidence_audit_binding_report(
             classification,
             action_plan,
             paper_rerun_readiness,
             state,
+            post_rerun_operator_resolution_audit_report=operator_resolution_audit,
             patch_id="TEST_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING",
             generated_at_utc="2026-05-05T00:00:00Z",
             trader1_sha256="TEST_TRADER_HASH",
@@ -187,10 +216,41 @@ class ResidualOperatorEvidenceAuditBindingTest(unittest.TestCase):
             action_plan,
             paper_rerun_readiness,
             state,
+            operator_resolution_audit,
         )
         self.assertTrue(any("gap_closure_allowed_by_this_patch" in error for error in errors))
         self.assertTrue(any("current_evidence_write_allowed" in error for error in errors))
         self.assertTrue(any("live_order_allowed" in error for error in errors))
+
+    def test_validator_rejects_operator_resolution_source_binding_drift(self):
+        classification, action_plan, paper_rerun_readiness, operator_resolution_audit, state = self.source_inputs()
+        report = build_residual_operator_evidence_audit_binding_report(
+            classification,
+            action_plan,
+            paper_rerun_readiness,
+            state,
+            post_rerun_operator_resolution_audit_report=operator_resolution_audit,
+            patch_id="TEST_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING",
+            generated_at_utc="2026-05-05T00:00:00Z",
+            trader1_sha256="TEST_TRADER_HASH",
+            agents_sha256="TEST_AGENTS_HASH",
+        )
+
+        tampered = copy.deepcopy(report)
+        tampered["operator_resolution_source_decision_audit_file_hash_match"] = False
+        tampered["operator_resolution_binding_status"] = "FAIL"
+        tampered["report_hash"] = "0" * 64
+
+        errors = validate_residual_operator_evidence_audit_binding_report(
+            tampered,
+            classification,
+            action_plan,
+            paper_rerun_readiness,
+            state,
+            operator_resolution_audit,
+        )
+        self.assertTrue(any("operator_resolution_source_decision_audit_file_hash_match" in error for error in errors))
+        self.assertTrue(any("operator_resolution_binding_status" in error for error in errors))
 
 
 if __name__ == "__main__":
