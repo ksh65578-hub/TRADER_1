@@ -3291,6 +3291,58 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-PAPER-PORTFOLIO-CURRENT-TRUTH-UX",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard PAPER portfolio current truth UX",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-PAPER-PORTFOLIO-CURRENT-TRUTH-UX: dashboard must distinguish configured PAPER capital from current cash/equity truth",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard PAPER portfolio current truth UX",
+      "requirement_kind": "DASHBOARD_UX_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_dashboard_paper_portfolio_current_truth_ux_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_PAPER_PORTFOLIO_CURRENT_TRUTH_UX.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_PORTFOLIO_TRUTH",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-PORTFOLIO-TRUTH-RUNTIME-EVIDENCE",
+        "REQ-MVP4-UPBIT-PAPER-CONFIGURED-PORTFOLIO-UNVERIFIED-EXPLANATION",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "1DF7EFD75CCE6150D22D6523B3B63A4F91C9087A168BB777496E8A2A57A516C5",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_DASHBOARD_VISIBLE_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-PAPER-RUNTIME-PORTFOLIO-BINDING",
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
@@ -21406,5 +21458,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T01:19:15Z"
+  "updated_at_utc": "2026-05-05T02:10:46Z"
 }

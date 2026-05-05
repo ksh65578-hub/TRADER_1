@@ -94,7 +94,7 @@ class ProfitabilityOptimizerEvidenceMaturityRecheckContractTest(unittest.TestCas
         state = load_json(STATE_PATH)
         gap = load_json(GAP_PATH)
 
-        if state["last_patch_id"].startswith("MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK_"):
+        if (state["last_patch_id"].startswith("MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK_") or state["last_patch_id"].startswith("MVP4_DASHBOARD_PAPER_PORTFOLIO_CURRENT_TRUTH_UX_")):
             expected_next_task = "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK"
             self.assertEqual(state["next_allowed_task_class"], expected_next_task)
         elif state["last_patch_id"].startswith("MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK_"):

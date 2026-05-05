@@ -788,18 +788,18 @@ def _configured_paper_capital_card(
             "No configured PAPER starting capital for this scope",
         )
     else:
-        detail = "Configured PAPER default only; not verified cash or equity."
+        detail = "Known PAPER configuration baseline; not current cash/equity and not exchange balance."
         if portfolio_status == "VERIFIED":
             detail = "Configured PAPER starting capital; current cash and equity come from the verified simulated ledger."
         elif portfolio_status == "STALE":
-            detail = "Configured PAPER default only; dashboard summary is stale and current cash/equity are unverified."
+            detail = "Known PAPER configuration baseline; current cash/equity are stale until PAPER is rerun."
         card = _portfolio_card(
             "configured_paper_capital",
             "Configured PAPER Capital",
             _format_money(amount, currency),
             detail,
         )
-    card["freshness_status"] = "PASS" if portfolio_status == "VERIFIED" else ("STALE" if portfolio_status == "STALE" else "UNTESTED")
+    card["freshness_status"] = "PASS" if amount is not None and isinstance(currency, str) and currency else "UNTESTED"
     return card
 
 
@@ -1014,13 +1014,13 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         ),
         "cash": _portfolio_card(
             "cash",
-            "Cash",
+            "Current Cash",
             _format_money(portfolio["cash_available"], currency),
             "Simulated PAPER ledger, not exchange balance",
         ),
         "equity": _portfolio_card(
             "equity",
-            "Equity",
+            "Current Equity",
             _format_money(portfolio["equity"], currency),
             "Simulated PAPER ledger, not exchange balance",
         ),
@@ -1062,7 +1062,7 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         ),
         "return_pct": _portfolio_card(
             "return_pct",
-            "Return",
+            "Current Return",
             _format_return(realized_pnl, unrealized_pnl, portfolio.get("equity")),
             "PAPER return from realized and unrealized PnL",
         ),
@@ -1131,15 +1131,15 @@ def _audited_current_evidence_unverified_portfolio_snapshot(
         "source_snapshot_freshness_message": message,
         "source_balance_kind": None,
         "configured_paper_capital": configured_card,
-        "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", message),
-        "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", message),
+        "cash": _portfolio_card("cash", "Current Cash", "UNVERIFIED", message),
+        "equity": _portfolio_card("equity", "Current Equity", "UNVERIFIED", message),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", message),
         "realized_pnl": _portfolio_card("realized_pnl", "Realized PnL", "UNVERIFIED", message),
         "unrealized_pnl": _portfolio_card("unrealized_pnl", "Unrealized PnL", "UNVERIFIED", message),
         "total_pnl": _portfolio_card("total_pnl", "Total PnL", "UNVERIFIED", message),
         "positions": _portfolio_card("positions", "Open Positions", "UNVERIFIED", message),
         "entry_candidates": _portfolio_card("entry_candidates", "Entry Candidates", "UNVERIFIED", message),
-        "return_pct": _portfolio_card("return_pct", "Return", "UNVERIFIED", message),
+        "return_pct": _portfolio_card("return_pct", "Current Return", "UNVERIFIED", message),
         "blocking_reason": blocker_code,
         "next_action": "Regenerate the audited PAPER current-evidence writer outputs before trusting portfolio values.",
         "display_only": True,
@@ -1289,13 +1289,13 @@ def _audited_current_evidence_portfolio_snapshot(
         ),
         "cash": _portfolio_card(
             "cash",
-            "Cash",
+            "Current Cash",
             _format_money(audited_paper_portfolio_snapshot.get("cash_available"), currency),
             "Verified simulated PAPER ledger cash from audited current evidence",
         ),
         "equity": _portfolio_card(
             "equity",
-            "Equity",
+            "Current Equity",
             _format_money(audited_paper_portfolio_snapshot.get("equity"), currency),
             "Verified simulated PAPER ledger equity from audited current evidence",
         ),
@@ -1337,7 +1337,7 @@ def _audited_current_evidence_portfolio_snapshot(
         ),
         "return_pct": _portfolio_card(
             "return_pct",
-            "Return",
+            "Current Return",
             _format_return(realized_pnl, unrealized_pnl, audited_paper_portfolio_snapshot.get("equity")),
             "Verified PAPER return from audited current evidence",
         ),
@@ -1468,15 +1468,15 @@ def _stale_portfolio_snapshot(exchange: str, market_type: str, summary: dict[str
             summary,
             portfolio_status="STALE",
         ),
-        "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
-        "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
+        "cash": _portfolio_card("cash", "Current Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
+        "equity": _portfolio_card("equity", "Current Equity", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "realized_pnl": _portfolio_card("realized_pnl", "Realized PnL", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "unrealized_pnl": _portfolio_card("unrealized_pnl", "Unrealized PnL", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "total_pnl": _portfolio_card("total_pnl", "Total PnL", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "positions": _portfolio_card("positions", "Open Positions", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "entry_candidates": _portfolio_card("entry_candidates", "Entry Candidates", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
-        "return_pct": _portfolio_card("return_pct", "Return", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
+        "return_pct": _portfolio_card("return_pct", "Current Return", "UNVERIFIED", "Stale summary; rerun PAPER launcher"),
         "blocking_reason": "LATENCY_TTL_EXPIRED",
         "next_action": "Rerun PAPER to refresh dashboard portfolio values before review",
         "display_only": True,
@@ -1487,7 +1487,8 @@ def _stale_portfolio_snapshot(exchange: str, market_type: str, summary: dict[str
         "scale_up_allowed": False,
     }
     for card_id in PORTFOLIO_CARD_IDS:
-        snapshot[card_id]["freshness_status"] = "STALE"
+        if card_id != "configured_paper_capital":
+            snapshot[card_id]["freshness_status"] = "STALE"
     return snapshot
 
 
@@ -1590,16 +1591,16 @@ def _portfolio_snapshot(
     configured_display = configured_card.get("value_display")
     if isinstance(configured_display, str) and configured_display != "UNVERIFIED":
         unverified_message = (
-            f"Configured PAPER capital is {configured_display}; current cash and equity require a fresh "
-            "verified simulated ledger snapshot."
+            f"Configured PAPER capital is {configured_display}; current cash, equity, PnL, and return require a "
+            "fresh verified simulated ledger snapshot."
         )
         cash_detail = (
-            f"Configured PAPER capital is {configured_display}; cash remains unverified until a fresh PAPER ledger "
-            "snapshot is loaded."
+            f"Current cash is UNVERIFIED; configured PAPER capital is {configured_display} but is only the starting "
+            "baseline until a fresh PAPER ledger snapshot is loaded."
         )
         equity_detail = (
-            f"Configured PAPER capital is {configured_display}; equity remains unverified until a fresh PAPER ledger "
-            "snapshot is loaded."
+            f"Current equity is UNVERIFIED; configured PAPER capital is {configured_display} but current equity "
+            "requires fresh PAPER ledger evidence."
         )
         next_action = (
             "Run PAPER with a fresh verified simulated ledger; configured PAPER capital is not exchange balance."
@@ -2114,15 +2115,15 @@ def _portfolio_snapshot(
         "source_snapshot_freshness_message": unverified_message,
         "source_balance_kind": None,
         "configured_paper_capital": configured_card,
-        "cash": _portfolio_card("cash", "Cash", "UNVERIFIED", cash_detail),
-        "equity": _portfolio_card("equity", "Equity", "UNVERIFIED", equity_detail),
+        "cash": _portfolio_card("cash", "Current Cash", "UNVERIFIED", cash_detail),
+        "equity": _portfolio_card("equity", "Current Equity", "UNVERIFIED", equity_detail),
         "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", "No verified locked-cash source loaded"),
         "realized_pnl": _portfolio_card("realized_pnl", "Realized PnL", "UNVERIFIED", "No verified realized PnL source loaded"),
         "unrealized_pnl": _portfolio_card("unrealized_pnl", "Unrealized PnL", "UNVERIFIED", "No verified unrealized PnL source loaded"),
         "total_pnl": _portfolio_card("total_pnl", "Total PnL", "UNVERIFIED", "No verified total PnL source loaded"),
         "positions": _portfolio_card("positions", "Open Positions", "UNVERIFIED", "No verified position source loaded"),
         "entry_candidates": _portfolio_card("entry_candidates", "Entry Candidates", "UNVERIFIED", "No verified candidate source loaded"),
-        "return_pct": _portfolio_card("return_pct", "Return", "UNVERIFIED", "No verified return source loaded"),
+        "return_pct": _portfolio_card("return_pct", "Current Return", "UNVERIFIED", "No verified return source loaded"),
         "blocking_reason": blocking_reason,
         "next_action": next_action,
         "display_only": True,
@@ -15796,7 +15797,13 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("FAIL", f"portfolio card missing: {card_id}", "SCHEMA_IDENTITY_MISMATCH")
         if card.get("card_id") != card_id:
             return DashboardValidationResult("FAIL", f"portfolio card id mismatch: {card_id}", "SCHEMA_IDENTITY_MISMATCH")
-        if card.get("freshness_status") == "PASS" and portfolio.get("status") != "VERIFIED":
+        configured_baseline_pass = (
+            card_id == "configured_paper_capital"
+            and card.get("freshness_status") == "PASS"
+            and card.get("value_display") != "UNVERIFIED"
+            and "configuration baseline" in str(card.get("detail", ""))
+        )
+        if card.get("freshness_status") == "PASS" and portfolio.get("status") != "VERIFIED" and not configured_baseline_pass:
             return DashboardValidationResult("BLOCKED", "unverified portfolio cannot show fresh values", "HARD_TRUTH_MISSING")
         if portfolio.get("status") == "VERIFIED" and card.get("value_display") == "UNVERIFIED":
             return DashboardValidationResult("FAIL", "verified portfolio cannot show unverified card values", "SCHEMA_IDENTITY_MISMATCH")
@@ -17041,6 +17048,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
 
     portfolio = shell.get("portfolio_snapshot", {})
     portfolio_status = portfolio.get("status", "UNVERIFIED") if isinstance(portfolio, dict) else "UNVERIFIED"
+    portfolio_raw_status = str(portfolio_status or "UNVERIFIED")
     portfolio_cycle_source = portfolio.get("source_runtime_cycle_id") if isinstance(portfolio, dict) else None
     portfolio_ledger_source = portfolio.get("source_paper_ledger_head_hash") if isinstance(portfolio, dict) else None
     portfolio_snapshot_source = portfolio.get("source_snapshot_hash") if isinstance(portfolio, dict) else None
@@ -17085,6 +17093,23 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     def portfolio_value(card_id: str, fallback: str = "UNVERIFIED") -> str:
         card = portfolio.get(card_id, {}) if isinstance(portfolio, dict) else {}
         return safe_text(card.get("value_display", fallback))
+
+    configured_capital_display = portfolio_value("configured_paper_capital", "not configured")
+    if portfolio_raw_status == "VERIFIED":
+        portfolio_truth_note = (
+            f"Configured baseline: {configured_capital_display}. Current values are verified from a fresh "
+            "simulated PAPER ledger and remain display-only."
+        )
+    elif portfolio_raw_status == "STALE":
+        portfolio_truth_note = (
+            f"Configured baseline: {configured_capital_display}. Current values are stale; rerun PAPER before "
+            "using cash, equity, PnL, return, or positions."
+        )
+    else:
+        portfolio_truth_note = (
+            f"Configured baseline: {configured_capital_display}. UNVERIFIED applies to current cash, equity, "
+            "PnL, return, and positions until fresh PAPER ledger/current-evidence proof is loaded."
+        )
 
     portfolio_ledger_html = (
         "<dl class=\"portfolio-ledger\" aria-label=\"portfolio compact ledger\">"
@@ -17302,6 +17327,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .summary-card .metric h2 { font-size: 14px; margin: 0; color: var(--muted); }
     .summary-card .metric-value { font-size: 20px; }
     .source-line { margin-top: -2px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; line-height: 1.5; }
+    .portfolio-truth-note { margin: 10px 0 0; padding: 10px 12px; border: 1px solid #cfd6df; border-left: 5px solid var(--safe); border-radius: 6px; background: #f8fafc; color: var(--ink); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
     .portfolio-ledger { display: grid; gap: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin: 12px 0 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #ffffff; }
     .portfolio-ledger div { display: grid; gap: 4px; padding: 9px 10px; border-right: 1px solid var(--line); min-width: 0; }
     .portfolio-ledger div:last-child { border-right: 0; }
@@ -17635,6 +17661,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <span class="eyebrow">Portfolio Detail</span>
         <h2>Portfolio Snapshot</h2>
         <p>Status: """ + safe_text(portfolio_status) + """ | Source: """ + safe_text(portfolio.get("source", "summary.json")) + """</p>
+        <p class="portfolio-truth-note">""" + safe_text(portfolio_truth_note) + """</p>
         <p class="source-line">""" + safe_text(portfolio_source_line) + """</p>
         <p class="source-line">""" + safe_text(portfolio.get("source_snapshot_freshness_message", "No verified paper portfolio snapshot loaded")) + """</p>
         <section class="portfolio-kpi-grid">
@@ -17664,6 +17691,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         </div>
         <p>Status: """ + safe_text(portfolio_status) + """<br>Source: """ + safe_text(portfolio.get("source", "summary.json")) + """</p>
       </div>
+      <p class="portfolio-truth-note">""" + safe_text(portfolio_truth_note) + """</p>
       """ + portfolio_ledger_html + """
       <section class="portfolio-detail-grid">
         """ + portfolio_detail_html + """
