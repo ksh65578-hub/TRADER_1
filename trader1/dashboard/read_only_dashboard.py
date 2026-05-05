@@ -133,6 +133,69 @@ RESIDUAL_ACTION_PLAN_CLASSES = {
     "SCALE_UP_POLICY_EVIDENCE_ACTION": "Scale-up policy",
     "CLASSIFY_OPEN_GAP_ACTION": "Classify open gap",
 }
+RESIDUAL_OPERATOR_PRIORITY_ACTION_ORDER = (
+    "OPERATOR_RECONCILIATION_ACTION",
+    "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+    "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+    "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+    "SEALED_BASELINE_PRESERVATION_ACTION",
+    "SCALE_UP_POLICY_EVIDENCE_ACTION",
+)
+RESIDUAL_OPERATOR_PRIORITY_RULE = (
+    "lowest numeric priority first; operator reconciliation > paper ledger rerun > "
+    "paper/shadow evidence > external live evidence > sealed baseline > scale-up policy"
+)
+RESIDUAL_OPERATOR_CONFLICT_RULE = (
+    "safety > no-trade > operator reconciliation > ledger rerun > paper/shadow evidence > "
+    "external live evidence > sealed baseline > scale-up; never close gaps by inference"
+)
+RESIDUAL_OPERATOR_PRIORITY_FALLBACK_GAPS = {
+    "OPERATOR_RECONCILIATION_ACTION": [
+        "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+        "POST_REPAIR_RECONCILIATION_REQUIRED",
+        "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+        "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    ],
+    "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": [
+        "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+        "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+        "POST_RERUN_RECONCILIATION_REQUIRED",
+    ],
+    "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION": [
+        "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+        "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+        "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    ],
+    "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION": ["LIVE_ENABLING_EVIDENCE_MISSING"],
+    "SEALED_BASELINE_PRESERVATION_ACTION": ["PATCH_RESULT_VALIDATOR_RUN_GAP"],
+    "SCALE_UP_POLICY_EVIDENCE_ACTION": ["SCALE_UP_NOT_ELIGIBLE"],
+}
+RESIDUAL_OPERATOR_PRIORITY_FALLBACK_ACTIONS = {
+    "OPERATOR_RECONCILIATION_ACTION": (
+        "Review and reconcile repaired, regenerated, or hash-mismatched evidence before promotion.",
+        "operator reconciliation artifacts explicitly resolve the affected gaps",
+    ),
+    "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": (
+        "Rerun paper-only ledger and reconciliation jobs only when the required inputs exist.",
+        "bounded paper-only rerun outputs and reconciliation reports validate cleanly",
+    ),
+    "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION": (
+        "Collect fresh audited PAPER/SHADOW runtime and profitability maturity evidence.",
+        "long-run PAPER/SHADOW evidence, shadow observation, and profitability maturity validators pass",
+    ),
+    "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION": (
+        "Provide official API, read-only account, burn-in, manual test, and operator approval evidence outside this non-live patch path.",
+        "independent live-readiness evidence exists and all live gates pass",
+    ),
+    "SEALED_BASELINE_PRESERVATION_ACTION": (
+        "Preserve sealed patch_result validator-run history; do not rewrite it by inference.",
+        "sealed baseline reconciliation remains explicit and audit-preserved",
+    ),
+    "SCALE_UP_POLICY_EVIDENCE_ACTION": (
+        "Keep scale-up disabled until burn-in, parity, survival, and operator policy evidence pass.",
+        "scale-up eligibility validators and operator policy pass for the exact scope",
+    ),
+}
 RECONCILIATION_RECOVERY_SOURCES = {
     "summary.json",
     "reconciliation_report.json",
@@ -10655,6 +10718,177 @@ def _residual_open_gap_action_plan_summary(report: dict[str, Any] | None) -> dic
     }
 
 
+def _residual_operator_priority_default_items() -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for index, action_class in enumerate(RESIDUAL_OPERATOR_PRIORITY_ACTION_ORDER, start=1):
+        gap_ids = list(RESIDUAL_OPERATOR_PRIORITY_FALLBACK_GAPS[action_class])
+        plain_next_action, unlock_condition = RESIDUAL_OPERATOR_PRIORITY_FALLBACK_ACTIONS[action_class]
+        items.append(
+            {
+                "priority": index,
+                "action_class": action_class,
+                "label": RESIDUAL_ACTION_PLAN_CLASSES[action_class],
+                "gap_count": len(gap_ids),
+                "gap_ids": gap_ids,
+                "plain_next_action": plain_next_action,
+                "unlock_condition": unlock_condition,
+                "requires_operator_reconciliation": action_class == "OPERATOR_RECONCILIATION_ACTION",
+                "requires_external_evidence": action_class == "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+                "requires_paper_shadow_evidence": action_class == "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+                "requires_ledger_rerun": action_class == "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                "allows_live_order": False,
+                "allows_live_config_mutation": False,
+                "allows_scale_up": False,
+            }
+        )
+    return items
+
+
+def _residual_operator_priority_summary(
+    report: dict[str, Any] | None,
+    handoff_summary: dict[str, Any] | None,
+    evidence_progress_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    def build(
+        *,
+        items: list[dict[str, Any]],
+        status: str,
+        source_status: str,
+        open_gap_count: int,
+        one_line_summary: str,
+    ) -> dict[str, Any]:
+        safe_items = items or _residual_operator_priority_default_items()
+        queue_gap_count = sum(item["gap_count"] for item in safe_items)
+        first = safe_items[0]
+        progress_user_runtime_required = False
+        if isinstance(evidence_progress_summary, dict):
+            progress_user_runtime_required = evidence_progress_summary.get("user_runtime_required_for_next_non_live_patch") is True
+        return {
+            "title": "Operator Priority Queue",
+            "status": status,
+            "source": RESIDUAL_ACTION_PLAN_SOURCE,
+            "source_status": source_status,
+            "truth_role": "dashboard_serving_truth",
+            "open_gap_count": open_gap_count,
+            "priority_rule": RESIDUAL_OPERATOR_PRIORITY_RULE,
+            "conflict_resolution_rule": RESIDUAL_OPERATOR_CONFLICT_RULE,
+            "one_line_summary": one_line_summary,
+            "primary_next_action": first["plain_next_action"],
+            "queue_item_count": len(safe_items),
+            "queue_gap_count": queue_gap_count,
+            "single_next_action_class": first["action_class"],
+            "single_next_action_priority": first["priority"],
+            "single_next_action_gap_count": first["gap_count"],
+            "single_next_action_gap_ids": list(first["gap_ids"]),
+            "single_next_action": first["plain_next_action"],
+            "blocked_until": first["unlock_condition"],
+            "handoff_packet_status": str(handoff_summary.get("status", "NOT_LOADED")) if isinstance(handoff_summary, dict) else "NOT_LOADED",
+            "evidence_progress_status": str(evidence_progress_summary.get("status", "NOT_LOADED")) if isinstance(evidence_progress_summary, dict) else "NOT_LOADED",
+            "user_runtime_required_for_next_non_live_patch": progress_user_runtime_required,
+            "queue_items": safe_items,
+            "display_only": True,
+            "dashboard_truth_only": True,
+            "current_evidence_write_allowed": False,
+            "gap_closure_allowed_by_this_patch": False,
+            "live_config_mutation_allowed": False,
+            "live_ready_write_allowed": False,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+    default_items = _residual_operator_priority_default_items()
+    default_gap_count = sum(item["gap_count"] for item in default_items)
+    if not isinstance(report, dict):
+        return build(
+            items=default_items,
+            status="ACTION_REQUIRED",
+            source_status="NOT_LOADED",
+            open_gap_count=default_gap_count,
+            one_line_summary="13 residual blockers remain; start with operator reconciliation before reruns or evidence promotion.",
+        )
+
+    open_gap_count = report.get("open_gap_count", default_gap_count)
+    if not isinstance(open_gap_count, int) or open_gap_count < 0:
+        open_gap_count = default_gap_count
+    unsafe_report = any(
+        report.get(field) is not False
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    )
+    expected_priority = {action_class: index for index, action_class in enumerate(RESIDUAL_OPERATOR_PRIORITY_ACTION_ORDER, start=1)}
+    collected: dict[str, dict[str, Any]] = {}
+    invalid_report = unsafe_report
+    for item in report.get("action_items", []):
+        if not isinstance(item, dict):
+            invalid_report = True
+            continue
+        action_class = str(item.get("action_class", ""))
+        if action_class not in expected_priority:
+            invalid_report = True
+            continue
+        priority = item.get("priority")
+        if priority != expected_priority[action_class]:
+            invalid_report = True
+        gap_count = item.get("gap_count")
+        if not isinstance(gap_count, int) or gap_count <= 0:
+            invalid_report = True
+            continue
+        gap_ids_raw = item.get("gap_ids", [])
+        if not isinstance(gap_ids_raw, list):
+            invalid_report = True
+            gap_ids_raw = []
+        gap_ids = [str(gap_id) for gap_id in gap_ids_raw if isinstance(gap_id, str) and gap_id]
+        if len(gap_ids) != gap_count:
+            invalid_report = True
+        if (
+            item.get("allows_live_order") is not False
+            or item.get("allows_live_config_mutation") is not False
+            or item.get("allows_scale_up") is not False
+        ):
+            invalid_report = True
+        plain_next_action, unlock_condition = RESIDUAL_OPERATOR_PRIORITY_FALLBACK_ACTIONS[action_class]
+        collected[action_class] = {
+            "priority": expected_priority[action_class],
+            "action_class": action_class,
+            "label": RESIDUAL_ACTION_PLAN_CLASSES[action_class],
+            "gap_count": gap_count,
+            "gap_ids": gap_ids,
+            "plain_next_action": str(item.get("plain_next_action") or plain_next_action),
+            "unlock_condition": str(item.get("unlock_condition") or unlock_condition),
+            "requires_operator_reconciliation": item.get("requires_operator_reconciliation") is True,
+            "requires_external_evidence": item.get("requires_external_evidence") is True,
+            "requires_paper_shadow_evidence": item.get("requires_paper_shadow_evidence") is True,
+            "requires_ledger_rerun": item.get("requires_ledger_rerun") is True,
+            "allows_live_order": False,
+            "allows_live_config_mutation": False,
+            "allows_scale_up": False,
+        }
+    if set(collected) != set(RESIDUAL_OPERATOR_PRIORITY_ACTION_ORDER):
+        invalid_report = True
+    queue_items = [collected[action_class] for action_class in RESIDUAL_OPERATOR_PRIORITY_ACTION_ORDER if action_class in collected]
+    if not queue_items:
+        queue_items = default_items
+    if sum(item["gap_count"] for item in queue_items) != open_gap_count:
+        invalid_report = True
+
+    if invalid_report:
+        return build(
+            items=queue_items,
+            status="INVALID",
+            source_status="LOADED",
+            open_gap_count=open_gap_count,
+            one_line_summary="Residual priority report has permission, ordering, count, or gap binding drift; keep all gaps blocked.",
+        )
+    return build(
+        items=queue_items,
+        status="ACTION_REQUIRED" if open_gap_count else "CLEAR",
+        source_status="LOADED",
+        open_gap_count=open_gap_count,
+        one_line_summary=f"{open_gap_count} residual blockers remain; first safe action is operator reconciliation.",
+    )
+
+
 def _residual_operator_handoff_packet_summary(report: dict[str, Any] | None) -> dict[str, Any]:
     fallback = {
         "title": "Operator Handoff Packets",
@@ -12551,6 +12785,11 @@ def build_read_only_dashboard_shell(
     residual_operator_evidence_progress = _residual_operator_evidence_progress_summary(
         residual_operator_evidence_progress_report
     )
+    residual_operator_priority = _residual_operator_priority_summary(
+        residual_open_gap_operator_action_plan_report,
+        residual_operator_handoff_packet,
+        residual_operator_evidence_progress,
+    )
 
     engine = summary.get("engine", {}) if isinstance(summary, dict) else {}
     startup_status = summary.get("startup", {}) if isinstance(summary, dict) else {}
@@ -12606,6 +12845,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_handoff_packet": residual_operator_handoff_packet,
         "residual_operator_execution_guide": residual_operator_execution_guide,
         "residual_operator_evidence_progress": residual_operator_evidence_progress,
+        "residual_operator_priority": residual_operator_priority,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
         "exploration_policy_status": exploration_policy_status,
@@ -13018,6 +13258,38 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                         "path_status",
                     )
                 )
+    residual_priority = shell.get("residual_operator_priority", {})
+    if isinstance(residual_priority, dict):
+        values.extend(
+            str(residual_priority.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "source_status",
+                "priority_rule",
+                "conflict_resolution_rule",
+                "one_line_summary",
+                "primary_next_action",
+                "single_next_action_class",
+                "single_next_action",
+                "blocked_until",
+                "handoff_packet_status",
+                "evidence_progress_status",
+            )
+        )
+        for item in residual_priority.get("queue_items", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "priority",
+                        "action_class",
+                        "label",
+                        "gap_count",
+                        "plain_next_action",
+                        "unlock_condition",
+                    )
+                )
     workflow = shell.get("operator_workflow_summary", {})
     if isinstance(workflow, dict):
         values.extend(
@@ -13410,6 +13682,95 @@ def validate_read_only_dashboard_shell(
     ]
     if action_classes[:3] != required_action_classes:
         return DashboardValidationResult("FAIL", "residual action plan priority order is not operator-first", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_priority = shell.get("residual_operator_priority")
+    if not isinstance(residual_priority, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator priority summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_priority.get("display_only") is not True
+        or residual_priority.get("dashboard_truth_only") is not True
+        or residual_priority.get("truth_role") != "dashboard_serving_truth"
+    ):
+        return DashboardValidationResult("BLOCKED", "residual operator priority must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_priority.get("live_order_ready")
+        or residual_priority.get("live_order_allowed")
+        or residual_priority.get("can_live_trade")
+        or residual_priority.get("scale_up_allowed")
+        or residual_priority.get("current_evidence_write_allowed")
+        or residual_priority.get("gap_closure_allowed_by_this_patch")
+        or residual_priority.get("live_config_mutation_allowed")
+        or residual_priority.get("live_ready_write_allowed")
+    ):
+        return DashboardValidationResult(
+            "BLOCKED",
+            "residual operator priority attempted live, scale, closure, current-evidence, or LIVE_READY permission",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if residual_priority.get("source") != RESIDUAL_ACTION_PLAN_SOURCE:
+        return DashboardValidationResult("FAIL", "residual operator priority source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_priority.get("status") not in {"ACTION_REQUIRED", "CLEAR", "INVALID"}:
+        return DashboardValidationResult("FAIL", "residual operator priority status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_priority.get("source_status") not in {"LOADED", "NOT_LOADED"}:
+        return DashboardValidationResult("FAIL", "residual operator priority source status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_priority.get("open_gap_count") != open_gap_count:
+        return DashboardValidationResult("FAIL", "residual operator priority open gap count must match action plan", "CONTRACT_GAP_HIGH")
+    if residual_priority.get("priority_rule") != RESIDUAL_OPERATOR_PRIORITY_RULE:
+        return DashboardValidationResult("FAIL", "residual operator priority rule drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_priority.get("conflict_resolution_rule") != RESIDUAL_OPERATOR_CONFLICT_RULE:
+        return DashboardValidationResult("FAIL", "residual operator conflict rule drifted", "SCHEMA_IDENTITY_MISMATCH")
+    priority_items = residual_priority.get("queue_items")
+    if not isinstance(priority_items, list) or len(priority_items) != len(RESIDUAL_OPERATOR_PRIORITY_ACTION_ORDER):
+        return DashboardValidationResult("FAIL", "residual operator priority must expose all queue items", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_priority.get("queue_item_count") != len(priority_items):
+        return DashboardValidationResult("FAIL", "residual operator priority item count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    priority_classes = [item.get("action_class") for item in priority_items if isinstance(item, dict)]
+    if tuple(priority_classes) != RESIDUAL_OPERATOR_PRIORITY_ACTION_ORDER:
+        return DashboardValidationResult("FAIL", "residual operator priority order is not deterministic", "SCHEMA_IDENTITY_MISMATCH")
+    priority_values = [item.get("priority") for item in priority_items if isinstance(item, dict)]
+    if priority_values != list(range(1, len(RESIDUAL_OPERATOR_PRIORITY_ACTION_ORDER) + 1)):
+        return DashboardValidationResult("FAIL", "residual operator priority values must be contiguous", "SCHEMA_IDENTITY_MISMATCH")
+    priority_gap_count = 0
+    for item in priority_items:
+        if not isinstance(item, dict):
+            return DashboardValidationResult("FAIL", "residual operator priority item must be object", "SCHEMA_IDENTITY_MISMATCH")
+        gap_count = item.get("gap_count")
+        gap_ids = item.get("gap_ids")
+        if not isinstance(gap_count, int) or gap_count <= 0:
+            return DashboardValidationResult("FAIL", "residual operator priority gap count is invalid", "CONTRACT_GAP_HIGH")
+        if not isinstance(gap_ids, list) or len(gap_ids) != gap_count:
+            return DashboardValidationResult("FAIL", "residual operator priority gap ids must match gap count", "CONTRACT_GAP_HIGH")
+        if (
+            item.get("allows_live_order")
+            or item.get("allows_live_config_mutation")
+            or item.get("allows_scale_up")
+        ):
+            return DashboardValidationResult("BLOCKED", "residual operator priority item attempted permission drift", "LIVE_FINAL_GUARD_FAILED")
+        if not isinstance(item.get("plain_next_action"), str) or not item.get("plain_next_action", "").strip():
+            return DashboardValidationResult("FAIL", "residual operator priority item must expose next action text", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(item.get("unlock_condition"), str) or not item.get("unlock_condition", "").strip():
+            return DashboardValidationResult("FAIL", "residual operator priority item must expose unlock condition", "SCHEMA_IDENTITY_MISMATCH")
+        priority_gap_count += gap_count
+    if residual_priority.get("queue_gap_count") != priority_gap_count:
+        return DashboardValidationResult("FAIL", "residual operator priority queue gap count mismatch", "CONTRACT_GAP_HIGH")
+    if priority_gap_count != open_gap_count:
+        return DashboardValidationResult("FAIL", "residual operator priority must cover all open gaps", "CONTRACT_GAP_HIGH")
+    first_priority = priority_items[0]
+    if (
+        residual_priority.get("single_next_action_class") != first_priority.get("action_class")
+        or residual_priority.get("single_next_action_priority") != first_priority.get("priority")
+        or residual_priority.get("single_next_action_gap_count") != first_priority.get("gap_count")
+        or residual_priority.get("single_next_action_gap_ids") != first_priority.get("gap_ids")
+        or residual_priority.get("single_next_action") != first_priority.get("plain_next_action")
+        or residual_priority.get("blocked_until") != first_priority.get("unlock_condition")
+    ):
+        return DashboardValidationResult("FAIL", "residual operator priority single next action must mirror queue head", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_priority.get("single_next_action_class") != "OPERATOR_RECONCILIATION_ACTION":
+        return DashboardValidationResult("BLOCKED", "residual operator priority must start with operator reconciliation", "LIVE_FINAL_GUARD_FAILED")
+    if residual_priority.get("user_runtime_required_for_next_non_live_patch") is not False:
+        return DashboardValidationResult("BLOCKED", "residual priority cannot require user runtime for the next non-live patch", "HARD_TRUTH_MISSING")
+    if residual_priority.get("source_status") == "LOADED" and residual_priority.get("status") != "ACTION_REQUIRED":
+        return DashboardValidationResult("BLOCKED", "loaded residual operator priority must remain action-required and fail-closed", "LIVE_FINAL_GUARD_FAILED")
 
     residual_handoff = shell.get("residual_operator_handoff_packet")
     if not isinstance(residual_handoff, dict):
@@ -18639,6 +19000,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     residual_evidence_progress = shell.get("residual_operator_evidence_progress", {})
     if not isinstance(residual_evidence_progress, dict):
         residual_evidence_progress = {}
+    residual_priority = shell.get("residual_operator_priority", {})
+    if not isinstance(residual_priority, dict):
+        residual_priority = {}
     residual_action_items = [
         item for item in residual_action_plan.get("action_items", []) if isinstance(item, dict)
     ]
@@ -18709,6 +19073,32 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     )
     if residual_handoff_action_html:
         residual_next_action_html = residual_handoff_action_html
+    priority_label = RESIDUAL_ACTION_PLAN_CLASSES.get(
+        str(residual_priority.get("single_next_action_class", "OPERATOR_RECONCILIATION_ACTION")),
+        "Operator reconciliation",
+    )
+    priority_gap_count = residual_priority.get("single_next_action_gap_count", 4)
+    priority_number = residual_priority.get("single_next_action_priority", 1)
+    priority_conflict_rule = residual_priority.get("conflict_resolution_rule", RESIDUAL_OPERATOR_CONFLICT_RULE)
+    residual_priority_note_html = (
+        '<p class="live-blocker-note"><strong>Priority:</strong> #'
+        + safe_text(priority_number)
+        + " "
+        + safe_text(priority_label)
+        + " - "
+        + safe_text(priority_gap_count)
+        + " gap(s). Conflict rule: "
+        + safe_text(priority_conflict_rule)
+        + "</p>"
+        '<p class="live-blocker-note"><strong>First action:</strong> '
+        + safe_text(
+            residual_priority.get(
+                "single_next_action",
+                "Review and reconcile repaired, regenerated, or hash-mismatched evidence before promotion.",
+            )
+        )
+        + "</p>"
+    )
     handoff_packet_count = residual_handoff.get("handoff_packet_count", 0)
     blocked_handoff_count = residual_handoff.get("blocked_handoff_packet_count", 0)
     handoff_ready_count = residual_handoff.get("handoff_ready_count", 0)
@@ -19303,6 +19693,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         </section>
         <p class="source-line">Next Actions</p>
         <ol class="next-action-list" aria-label="residual blocker next actions">""" + residual_next_action_html + """</ol>
+        """ + residual_priority_note_html + """
         <p class="live-blocker-note">""" + safe_text(residual_action_plan.get("other_blocker_summary", f"Other blocked evidence/policy: {residual_other_count}")) + """</p>
         <p class="source-line">Raw blocker: """ + safe_text(blocker) + """</p>
         <p class="next">""" + safe_text(next_action) + """</p>

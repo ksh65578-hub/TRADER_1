@@ -1,0 +1,14 @@
+{
+  "schema_id": "trader1.paper_run_summary.v1",
+  "generated_at_utc": "2026-05-05T16:50:04Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_GAP_PRIORITY_QUEUE_20260506_001",
+  "operator_runtime_started_by_this_patch": false,
+  "paper_runtime_started_by_this_patch": false,
+  "paper_runtime_evidence_role": "NO_NEW_RUNTIME_DISPLAY_AND_VALIDATOR_ONLY",
+  "single_next_action_class": "OPERATOR_RECONCILIATION_ACTION",
+  "gap_closure_allowed_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

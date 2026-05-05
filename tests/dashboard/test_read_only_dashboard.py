@@ -6972,6 +6972,84 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
 
+    def test_dashboard_residual_operator_priority_queue_is_deterministic_and_display_only(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
+            residual_operator_handoff_packet_report=residual_operator_handoff_packet_fixture(),
+            residual_operator_execution_guide_report=residual_operator_execution_guide_fixture(),
+            residual_operator_evidence_progress_report=residual_operator_evidence_progress_fixture(),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        priority = dashboard["residual_operator_priority"]
+        self.assertEqual(priority["source_status"], "LOADED")
+        self.assertEqual(priority["status"], "ACTION_REQUIRED")
+        self.assertEqual(priority["open_gap_count"], 13)
+        self.assertEqual(priority["queue_item_count"], 6)
+        self.assertEqual(priority["queue_gap_count"], 13)
+        self.assertEqual(
+            [item["action_class"] for item in priority["queue_items"]],
+            [
+                "OPERATOR_RECONCILIATION_ACTION",
+                "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+                "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+                "SEALED_BASELINE_PRESERVATION_ACTION",
+                "SCALE_UP_POLICY_EVIDENCE_ACTION",
+            ],
+        )
+        self.assertEqual(priority["single_next_action_class"], "OPERATOR_RECONCILIATION_ACTION")
+        self.assertEqual(priority["single_next_action_priority"], 1)
+        self.assertEqual(priority["single_next_action_gap_count"], 4)
+        self.assertFalse(priority["user_runtime_required_for_next_non_live_patch"])
+        self.assertFalse(priority["current_evidence_write_allowed"])
+        self.assertFalse(priority["gap_closure_allowed_by_this_patch"])
+        self.assertFalse(priority["live_config_mutation_allowed"])
+        self.assertFalse(priority["live_ready_write_allowed"])
+        self.assertFalse(priority["live_order_ready"])
+        self.assertFalse(priority["live_order_allowed"])
+        self.assertFalse(priority["can_live_trade"])
+        self.assertFalse(priority["scale_up_allowed"])
+        for item in priority["queue_items"]:
+            self.assertEqual(item["gap_count"], len(item["gap_ids"]))
+            self.assertFalse(item["allows_live_order"])
+            self.assertFalse(item["allows_live_config_mutation"])
+            self.assertFalse(item["allows_scale_up"])
+
+        html = render_dashboard_html(dashboard)
+        answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
+        portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
+        answer_html = html[answer_start:portfolio_start]
+        self.assertIn("Priority:</strong> #1 Operator reconciliation - 4 gap(s)", answer_html)
+        self.assertIn("safety &gt; no-trade &gt; operator reconciliation", answer_html)
+        self.assertIn("First action:", answer_html)
+        self.assertIn("Review and reconcile repaired", answer_html)
+        self.assertIn("live_order_allowed=false", answer_html)
+        self.assertNotIn("<button", answer_html.lower())
+        self.assertNotIn("<form", answer_html.lower())
+
+    def test_dashboard_rejects_residual_operator_priority_permission_drift(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture()
+        )
+        dashboard["residual_operator_priority"]["live_ready_write_allowed"] = True
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_rejects_residual_operator_priority_order_drift(self):
+        report = residual_open_gap_action_plan_fixture()
+        report["action_items"][3]["priority"] = 1
+        dashboard = build_dashboard(residual_open_gap_operator_action_plan_report=report)
+        priority = dashboard["residual_operator_priority"]
+        self.assertEqual(priority["source_status"], "LOADED")
+        self.assertEqual(priority["status"], "INVALID")
+        self.assertFalse(priority["live_order_allowed"])
+        self.assertFalse(priority["scale_up_allowed"])
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
     def test_dashboard_rejects_residual_operator_evidence_progress_permission_drift(self):
         report = residual_operator_evidence_progress_fixture()
         report["live_ready_write_allowed"] = True

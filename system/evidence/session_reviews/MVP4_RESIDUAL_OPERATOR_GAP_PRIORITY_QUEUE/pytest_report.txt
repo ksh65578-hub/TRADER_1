@@ -1,0 +1,116 @@
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B -m unittest tests.dashboard.test_read_only_dashboard -v
+status=PASS returncode=0
+read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_live_card_exposes_residual_operator_execution_guide) ... ok
+test_dashboard_live_card_exposes_residual_operator_handoff_packets (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_live_card_exposes_residual_operator_handoff_packets) ... ok
+test_dashboard_marks_negative_shadow_harness_measurement_as_error (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_marks_negative_shadow_harness_measurement_as_error) ... ok
+test_dashboard_missing_paper_portfolio_stays_unverified (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_missing_paper_portfolio_stays_unverified) ... ok
+test_dashboard_parameter_narrowing_shows_paper_review_without_live_permission (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_parameter_narrowing_shows_paper_review_without_live_permission) ... ok
+test_dashboard_position_detail_reads_paper_portfolio_fill_fields (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_position_detail_reads_paper_portfolio_fill_fields) ... ok
+test_dashboard_prefers_resolution_audit_source_when_all_post_rerun_sources_loaded (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_prefers_resolution_audit_source_when_all_post_rerun_sources_loaded) ... ok
+test_dashboard_prefers_review_guidance_source_when_rollup_and_guidance_loaded (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_prefers_review_guidance_source_when_rollup_and_guidance_loaded) ... ok
+test_dashboard_profitability_maturity_shows_scorecard_input_without_live_permission (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_profitability_maturity_shows_scorecard_input_without_live_permission) ... ok
+test_dashboard_projects_audited_current_evidence_writer_portfolio_truth (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_audited_current_evidence_writer_portfolio_truth) ... ok
+test_dashboard_projects_audited_writer_dry_run_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_audited_writer_dry_run_for_operator_visibility) ... ok
+test_dashboard_projects_audited_writer_implementation_prep_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_audited_writer_implementation_prep_for_operator_visibility) ... ok
+test_dashboard_projects_audited_writer_locked_output_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_audited_writer_locked_output_for_operator_visibility) ... ok
+test_dashboard_projects_audited_writer_precheck_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_audited_writer_precheck_for_operator_visibility) ... ok
+test_dashboard_projects_candidate_scorecard_as_display_only (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_candidate_scorecard_as_display_only) ... ok
+test_dashboard_projects_ledger_idempotency_runtime_evidence (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_ledger_idempotency_runtime_evidence) ... ok
+test_dashboard_projects_market_data_continuity_history_as_display_only (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_market_data_continuity_history_as_display_only) ... ok
+test_dashboard_projects_paper_exposure_quality_report (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_paper_exposure_quality_report) ... ok
+test_dashboard_projects_paper_persistent_loop_as_bounded_runtime_evidence (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_paper_persistent_loop_as_bounded_runtime_evidence) ... ok
+test_dashboard_projects_paper_runtime_evidence_profile_duplicate_ledger_blocked (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_paper_runtime_evidence_profile_duplicate_ledger_blocked) ... ok
+test_dashboard_projects_paper_runtime_evidence_profile_pass_display_only (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_paper_runtime_evidence_profile_pass_display_only) ... ok
+test_dashboard_projects_paper_runtime_recovery_guard_partial_write_blocked (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_paper_runtime_recovery_guard_partial_write_blocked) ... ok
+test_dashboard_projects_paper_runtime_recovery_guard_pass_display_only (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_paper_runtime_recovery_guard_pass_display_only) ... ok
+test_dashboard_projects_post_repair_reconciliation_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_post_repair_reconciliation_for_operator_visibility) ... ok
+test_dashboard_projects_post_rerun_blocker_rollup_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_post_rerun_blocker_rollup_for_operator_visibility) ... ok
+test_dashboard_projects_post_rerun_closure_recheck_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_post_rerun_closure_recheck_for_operator_visibility) ... ok
+test_dashboard_projects_post_rerun_operator_reconciliation_queue_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_post_rerun_operator_reconciliation_queue_for_operator_visibility) ... ok
+test_dashboard_projects_post_rerun_reconciliation_repair_path_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_post_rerun_reconciliation_repair_path_for_operator_visibility) ... ok
+test_dashboard_projects_post_rerun_resolution_audit_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_post_rerun_resolution_audit_for_operator_visibility) ... ok
+test_dashboard_projects_post_rerun_resolution_closure_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_post_rerun_resolution_closure_for_operator_visibility) ... ok
+test_dashboard_projects_post_rerun_review_guidance_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_post_rerun_review_guidance_for_operator_visibility) ... ok
+test_dashboard_projects_profitability_maturity_rollup_without_live_permission (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_profitability_maturity_rollup_without_live_permission) ... ok
+test_dashboard_projects_reconciliation_recovery_pass_as_display_only (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_reconciliation_recovery_pass_as_display_only) ... ok
+test_dashboard_projects_repair_operator_queue_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_repair_operator_queue_for_operator_visibility) ... ok
+test_dashboard_projects_repaired_current_evidence_guard_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_repaired_current_evidence_guard_for_operator_visibility) ... ok
+test_dashboard_projects_stale_loop_operator_queue_closure_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_stale_loop_operator_queue_closure_for_operator_visibility) ... ok
+test_dashboard_projects_stale_loop_post_regeneration_reconciliation_for_operator_visibility (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_projects_stale_loop_post_regeneration_reconciliation_for_operator_visibility) ... ok
+test_dashboard_rejects_residual_operator_evidence_progress_permission_drift (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_rejects_residual_operator_evidence_progress_permission_drift) ... ok
+test_dashboard_rejects_residual_operator_priority_order_drift (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_rejects_residual_operator_priority_order_drift) ... ok
+test_dashboard_rejects_residual_operator_priority_permission_drift (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_rejects_residual_operator_priority_permission_drift) ... ok
+test_dashboard_residual_operator_priority_queue_is_deterministic_and_display_only (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_residual_operator_priority_queue_is_deterministic_and_display_only) ... ok
+test_dashboard_risk_exposure_warns_on_missing_drawdown_hard_truth (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_risk_exposure_warns_on_missing_drawdown_hard_truth) ... ok
+test_dashboard_risk_exposure_warns_on_missing_position_notional (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_risk_exposure_warns_on_missing_position_notional) ... ok
+test_dashboard_schema_metric_count_matches_runtime_metrics (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_schema_metric_count_matches_runtime_metrics) ... ok
+test_dashboard_shell_is_display_only_and_live_blocked (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_shell_is_display_only_and_live_blocked) ... ok
+test_dashboard_shows_persistent_runtime_stub_as_not_long_run_evidence (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_shows_persistent_runtime_stub_as_not_long_run_evidence) ... ok
+test_dashboard_shows_runtime_orchestration_guard_as_display_only (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_shows_runtime_orchestration_guard_as_display_only) ... ok
+test_dashboard_shows_shadow_runtime_harness_without_live_permission (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_shows_shadow_runtime_harness_without_live_permission) ... ok
+test_dashboard_uses_validated_stability_history (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_uses_validated_stability_history) ... ok
+test_dashboard_visual_layout_contract_blocks_cramped_regression (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_visual_layout_contract_blocks_cramped_regression) ... ok
+test_dashboard_visual_layout_contract_requires_persistent_detail_keys (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_visual_layout_contract_requires_persistent_detail_keys) ... ok
+test_dashboard_warns_on_rate_limit_pressure (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_warns_on_rate_limit_pressure) ... ok
+test_dashboard_warns_on_runtime_artifact_pressure (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_dashboard_warns_on_runtime_artifact_pressure) ... ok
+test_future_clock_skew_demotes_paper_portfolio_values (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_future_clock_skew_demotes_paper_portfolio_values) ... ok
+test_missing_source_stays_no_trade (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_missing_source_stays_no_trade) ... ok
+test_read_only_dashboard_validator_passes_current_contract (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_read_only_dashboard_validator_passes_current_contract) ... ok
+test_stale_summary_demotes_paper_portfolio_values (tests.dashboard.test_read_only_dashboard.ReadOnlyDashboardTest.test_stale_summary_demotes_paper_portfolio_values) ... ok
+
+----------------------------------------------------------------------
+Ran 233 tests in 17.168s
+
+OK
+
+
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B -m pytest tests/contract/test_schema_instance_validation.py tests/contract/test_final_decision_schema.py tests/contract/test_no_trade_reason_enum.py -q
+status=PASS returncode=0
+.......                                                                  [100%]
+7 passed in 2.97s
+
+
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_hygiene_safe_pytest.py -- -q
+status=PASS returncode=0
+..................................................... [  3%]
+...................................s.................................... [  8%]
+.................................................... [ 12%]
+.................................................................. [ 16%]
+........................................................................ [ 21%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 37%]
+................................................................................................................ [ 44%]
+........................................................................ [ 49%]
+........................................................................ [ 54%]
+........................................................................ [ 59%]
+........................................................................ [ 65%]
+...................................................................... [ 69%]
+........................................................................ [ 74%]
+........................................................................ [ 79%]
+.................................................. [ 83%]
+.................................................................................... [ 89%]
+........................................................................ [ 94%]
+........................................................................ [ 99%]
+.........                                                                [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\contract\test_patch_result_runtime_schema_validation.py:319: patch_result validator-run gap state-sync recheck has not been generated yet
+1431 passed, 1 skipped, 737 subtests passed in 268.51s (0:04:28)
+{
+  "schema_id": "trader1.hygiene_safe_pytest_report.v1",
+  "created_at_utc": "2026-05-05T16:50:02Z",
+  "status": "PASS",
+  "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -q -p no:cacheprovider",
+  "returncode": 0,
+  "preexisting_cache_artifact_count": 0,
+  "post_run_cache_artifact_count": 0,
+  "preexisting_cache_artifacts": [],
+  "post_run_cache_artifacts": [],
+  "pythondontwritebytecode": "1",
+  "pytest_cacheprovider_disabled": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
+

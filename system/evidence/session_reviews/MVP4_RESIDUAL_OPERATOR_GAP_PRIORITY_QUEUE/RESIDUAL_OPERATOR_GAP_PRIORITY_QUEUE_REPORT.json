@@ -1,0 +1,151 @@
+{
+  "schema_id": "trader1.residual_operator_gap_priority_queue_report.v1",
+  "generated_at_utc": "2026-05-05T16:45:04Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_GAP_PRIORITY_QUEUE_20260506_001",
+  "source_action_plan_report": "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
+  "source_handoff_packet_report": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
+  "source_execution_guide_report": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
+  "source_evidence_progress_report": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+  "dashboard_priority_status": "ACTION_REQUIRED",
+  "open_gap_count": 13,
+  "queue_item_count": 6,
+  "queue_gap_count": 13,
+  "single_next_action_class": "OPERATOR_RECONCILIATION_ACTION",
+  "single_next_action_priority": 1,
+  "single_next_action_gap_count": 4,
+  "single_next_action_gap_ids": [
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED"
+  ],
+  "priority_rule": "lowest numeric priority first; operator reconciliation > paper ledger rerun > paper/shadow evidence > external live evidence > sealed baseline > scale-up policy",
+  "conflict_resolution_rule": "safety > no-trade > operator reconciliation > ledger rerun > paper/shadow evidence > external live evidence > sealed baseline > scale-up; never close gaps by inference",
+  "queue_items": [
+    {
+      "priority": 1,
+      "action_class": "OPERATOR_RECONCILIATION_ACTION",
+      "label": "Operator reconciliation",
+      "gap_count": 4,
+      "gap_ids": [
+        "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+        "POST_REPAIR_RECONCILIATION_REQUIRED",
+        "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+        "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED"
+      ],
+      "plain_next_action": "Review and reconcile repaired, regenerated, or hash-mismatched evidence before promotion.",
+      "unlock_condition": "operator reconciliation artifacts explicitly resolve the affected gaps",
+      "requires_operator_reconciliation": true,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false
+    },
+    {
+      "priority": 2,
+      "action_class": "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+      "label": "PAPER ledger rerun",
+      "gap_count": 3,
+      "gap_ids": [
+        "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+        "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+        "POST_RERUN_RECONCILIATION_REQUIRED"
+      ],
+      "plain_next_action": "Rerun paper-only ledger and reconciliation jobs only when the required inputs exist.",
+      "unlock_condition": "bounded paper-only rerun outputs and reconciliation reports validate cleanly",
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": true,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false
+    },
+    {
+      "priority": 3,
+      "action_class": "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+      "label": "PAPER/SHADOW evidence",
+      "gap_count": 3,
+      "gap_ids": [
+        "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+        "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+        "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY"
+      ],
+      "plain_next_action": "Collect fresh audited PAPER/SHADOW runtime and profitability maturity evidence.",
+      "unlock_condition": "long-run PAPER/SHADOW evidence, shadow observation, and profitability maturity validators pass",
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": true,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false
+    },
+    {
+      "priority": 4,
+      "action_class": "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+      "label": "External live evidence",
+      "gap_count": 1,
+      "gap_ids": [
+        "LIVE_ENABLING_EVIDENCE_MISSING"
+      ],
+      "plain_next_action": "Provide official API, read-only account, burn-in, manual test, and operator approval evidence outside this non-live patch path.",
+      "unlock_condition": "independent live-readiness evidence exists and all live gates pass",
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": true,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false
+    },
+    {
+      "priority": 5,
+      "action_class": "SEALED_BASELINE_PRESERVATION_ACTION",
+      "label": "Sealed baseline",
+      "gap_count": 1,
+      "gap_ids": [
+        "PATCH_RESULT_VALIDATOR_RUN_GAP"
+      ],
+      "plain_next_action": "Do not rewrite sealed patch_result validator-run history by inference.",
+      "unlock_condition": "sealed baseline reconciliation remains explicit and audit-preserved",
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false
+    },
+    {
+      "priority": 6,
+      "action_class": "SCALE_UP_POLICY_EVIDENCE_ACTION",
+      "label": "Scale-up policy",
+      "gap_count": 1,
+      "gap_ids": [
+        "SCALE_UP_NOT_ELIGIBLE"
+      ],
+      "plain_next_action": "Keep scale-up disabled until burn-in, parity, survival, and operator policy evidence pass.",
+      "unlock_condition": "scale-up eligibility validators and operator policy pass for the exact scope",
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false
+    }
+  ],
+  "dashboard_validation_status": "PASS",
+  "gap_closure_allowed_by_this_patch": false,
+  "current_evidence_write_allowed": false,
+  "live_ready_write_allowed": false,
+  "live_config_mutation_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "report_hash": "1236DA544337B6AC0EF5827C4E5AE76B62723823A38E4484EDD6299618579DF3"
+}
