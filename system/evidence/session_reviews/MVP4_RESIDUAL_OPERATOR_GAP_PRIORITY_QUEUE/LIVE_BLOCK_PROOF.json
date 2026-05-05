@@ -1,0 +1,19 @@
+{
+  "schema_id": "trader1.live_block_proof.v1",
+  "generated_at_utc": "2026-05-05T16:50:04Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_GAP_PRIORITY_QUEUE_20260506_001",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_ready_write_attempted": false,
+  "live_config_mutation_attempted": false,
+  "credential_or_private_api_used": false,
+  "order_adapter_called": false,
+  "primary_blockers": [
+    "LIVE_READY_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "OPERATOR_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ]
+}

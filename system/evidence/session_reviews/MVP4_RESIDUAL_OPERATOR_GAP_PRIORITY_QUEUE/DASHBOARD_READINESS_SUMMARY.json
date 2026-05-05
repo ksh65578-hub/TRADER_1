@@ -1,0 +1,15 @@
+{
+  "schema_id": "trader1.dashboard_readiness_summary.v1",
+  "generated_at_utc": "2026-05-05T16:50:04Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_GAP_PRIORITY_QUEUE_20260506_001",
+  "dashboard_priority_status": "ACTION_REQUIRED",
+  "open_gap_count": 13,
+  "queue_item_count": 6,
+  "single_next_action_class": "OPERATOR_RECONCILIATION_ACTION",
+  "single_next_action_gap_count": 4,
+  "operator_message": "First safe action is operator reconciliation; live, current-evidence write, gap closure, and scale-up stay blocked.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
