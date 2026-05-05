@@ -617,6 +617,11 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         / "evidence"
         / "audit_reports"
         / "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
+        "residual_operator_evidence_progress": root
+        / "system"
+        / "evidence"
+        / "audit_reports"
+        / "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
         "paper_operation_gate_report": base / "paper_operation_gate_report.json",
         "paper_exposure_quality_report": base / "paper_exposure_quality_report.json",
         "reconciliation_report": base / "reconciliation_report.json",
@@ -1443,6 +1448,68 @@ def load_residual_operator_execution_guide_report(root: Path = ROOT) -> dict[str
     return report
 
 
+def load_residual_operator_evidence_progress_report(root: Path = ROOT) -> dict[str, Any] | None:
+    path = root / "system" / "evidence" / "audit_reports" / "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
+    report = _load_dashboard_json_artifact(path)
+    if not isinstance(report, dict):
+        return None
+    if report.get("schema_id") != "trader1.residual_operator_evidence_progress_report.v1":
+        return None
+    if report.get("progress_status") != "BLOCKED_EVIDENCE_MISSING" or report.get("validation_status") != "PASS":
+        return None
+    if (
+        report.get("operator_evidence_ready_for_mvp5") is not False
+        or report.get("any_evidence_item_ready_for_closure") is not False
+        or report.get("live_order_ready") is not False
+        or report.get("live_order_allowed") is not False
+        or report.get("can_live_trade") is not False
+        or report.get("scale_up_allowed") is not False
+        or report.get("current_evidence_write_allowed") is not False
+        or report.get("gap_closure_allowed_by_this_patch") is not False
+        or report.get("live_config_mutation_allowed") is not False
+        or report.get("live_ready_write_allowed") is not False
+    ):
+        return None
+    if (
+        report.get("mvp5_entry_blocked_until_operator_evidence") is not True
+        or report.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
+        or report.get("minimum_observation_hours_required", 0) < 120
+        or report.get("local_runtime_command_count") != 1
+        or report.get("local_runtime_completed_count") != 0
+    ):
+        return None
+    evidence_items = report.get("evidence_items", [])
+    if not isinstance(evidence_items, list):
+        return None
+    for item in evidence_items:
+        if not isinstance(item, dict):
+            return None
+        if (
+            item.get("evidence_ready_for_closure") is not False
+            or item.get("current_evidence_write_allowed") is not False
+            or item.get("gap_closure_allowed_by_this_patch") is not False
+            or item.get("live_order_ready") is not False
+            or item.get("live_order_allowed") is not False
+            or item.get("can_live_trade") is not False
+            or item.get("scale_up_allowed") is not False
+        ):
+            return None
+    for command in report.get("local_runtime_commands", []):
+        if not isinstance(command, dict):
+            return None
+        if (
+            command.get("non_live_only") is not True
+            or command.get("credential_required") is not False
+            or command.get("live_order_allowed") is not False
+            or command.get("evidence_ready_for_closure") is not False
+            or command.get("current_evidence_write_allowed") is not False
+            or command.get("gap_closure_allowed_by_this_patch") is not False
+            or command.get("scale_up_allowed") is not False
+        ):
+            return None
+    return report
+
+
 def load_shadow_runtime_harness_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
     if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
         return None
@@ -1681,6 +1748,7 @@ def build_launcher_dashboard_artifacts(
         "candidate_scorecard": _runtime_display_path(paths["candidate_scorecard"], root),
         "residual_operator_handoff_packet": _runtime_display_path(paths["residual_operator_handoff_packet"], root),
         "residual_operator_execution_guide": _runtime_display_path(paths["residual_operator_execution_guide"], root),
+        "residual_operator_evidence_progress": _runtime_display_path(paths["residual_operator_evidence_progress"], root),
         "shadow_runtime_harness": _runtime_display_path(paths["shadow_runtime_harness_report"], root),
         "shadow_persistent_runtime": _runtime_display_path(paths["shadow_persistent_runtime_report"], root),
         "shadow_runtime_orchestration": _runtime_display_path(paths["shadow_runtime_orchestration_report"], root),
@@ -1692,6 +1760,7 @@ def build_launcher_dashboard_artifacts(
     residual_open_gap_operator_action_plan_report = load_residual_open_gap_operator_action_plan_report(root)
     residual_operator_handoff_packet_report = load_residual_operator_handoff_packet_report(root)
     residual_operator_execution_guide_report = load_residual_operator_execution_guide_report(root)
+    residual_operator_evidence_progress_report = load_residual_operator_evidence_progress_report(root)
     reconciliation_report = load_dashboard_reconciliation_report(report, root)
     restart_recovery_report = load_dashboard_restart_recovery_report(
         report,
@@ -1787,6 +1856,7 @@ def build_launcher_dashboard_artifacts(
         residual_open_gap_operator_action_plan_report=residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet_report=residual_operator_handoff_packet_report,
         residual_operator_execution_guide_report=residual_operator_execution_guide_report,
+        residual_operator_evidence_progress_report=residual_operator_evidence_progress_report,
         reconciliation_report=reconciliation_report,
         restart_recovery_report=restart_recovery_report,
         upbit_paper_post_rerun_reconciliation_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,

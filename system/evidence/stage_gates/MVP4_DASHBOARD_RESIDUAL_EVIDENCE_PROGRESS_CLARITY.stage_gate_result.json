@@ -1,0 +1,21 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-05T09:49:32Z",
+  "patch_id": "MVP4_DASHBOARD_RESIDUAL_EVIDENCE_PROGRESS_CLARITY_20260505_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_DASHBOARD_RESIDUAL_EVIDENCE_PROGRESS_CLARITY_LIVE_BLOCKED",
+  "open_gap_count": 13,
+  "evidence_item_count": 20,
+  "external_evidence_required_item_count": 7,
+  "missing_operator_evidence_item_count": 4,
+  "placeholder_pending_evidence_item_count": 3,
+  "local_runtime_output_item_count": 3,
+  "local_runtime_command_count": 1,
+  "minimum_observation_hours_required": 120,
+  "mvp5_entry_blocked_until_operator_evidence": true,
+  "binance_runtime_status": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

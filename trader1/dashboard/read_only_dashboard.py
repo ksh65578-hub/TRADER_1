@@ -117,11 +117,13 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "candidate_scorecard.json",
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
+    "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
 RESIDUAL_HANDOFF_PACKET_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
 RESIDUAL_EXECUTION_GUIDE_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
+RESIDUAL_EVIDENCE_PROGRESS_SOURCE = "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
 RESIDUAL_ACTION_PLAN_CLASSES = {
     "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
     "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "PAPER ledger rerun",
@@ -10864,6 +10866,238 @@ def _residual_operator_execution_guide_summary(report: dict[str, Any] | None) ->
     }
 
 
+def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) -> dict[str, Any]:
+    fallback = {
+        "title": "Operator Evidence Progress",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_EVIDENCE_PROGRESS_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "evidence_item_count": 0,
+        "present_blocked_evidence_item_count": 0,
+        "missing_operator_evidence_item_count": 0,
+        "placeholder_pending_evidence_item_count": 0,
+        "external_evidence_required_item_count": 0,
+        "local_runtime_output_item_count": 0,
+        "local_runtime_command_count": 0,
+        "local_runtime_completed_count": 0,
+        "minimum_observation_hours_required": 0,
+        "operator_evidence_ready_for_mvp5": False,
+        "any_evidence_item_ready_for_closure": False,
+        "mvp5_entry_blocked_until_operator_evidence": True,
+        "binance_runtime_status": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS",
+        "one_line_summary": "Operator evidence progress is not loaded; MVP-5 remains blocked.",
+        "primary_next_action": "Load the operator evidence progress audit before judging residual evidence readiness.",
+        "status_breakdown_items": [],
+        "evidence_item_preview": [],
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_config_mutation_allowed": False,
+        "live_ready_write_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    unsafe_permission = any(
+        report.get(field) is not False
+        for field in (
+            "operator_evidence_ready_for_mvp5",
+            "any_evidence_item_ready_for_closure",
+            "current_evidence_write_allowed",
+            "gap_closure_allowed_by_this_patch",
+            "live_config_mutation_allowed",
+            "live_ready_write_allowed",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+        )
+    )
+    if unsafe_permission:
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator evidence progress attempted readiness, closure, live, current-evidence, LIVE_READY, or scale permission.",
+            "primary_next_action": "Reject the evidence progress report and keep MVP-5, live, current evidence, and scale-up blocked.",
+        }
+
+    evidence_items = report.get("evidence_items", [])
+    if not isinstance(evidence_items, list):
+        evidence_items = []
+    local_runtime_commands = report.get("local_runtime_commands", [])
+    if not isinstance(local_runtime_commands, list):
+        local_runtime_commands = []
+
+    status_counts = {
+        "PRESENT_BLOCKED": 0,
+        "MISSING_OPERATOR_EVIDENCE": 0,
+        "PLACEHOLDER_PATTERN_PENDING": 0,
+        "EXTERNAL_EVIDENCE_REQUIRED": 0,
+        "LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_CLOSURE_READY": 0,
+    }
+    preview_items: list[dict[str, Any]] = []
+    for item in evidence_items:
+        if not isinstance(item, dict):
+            continue
+        if any(
+            item.get(field) is not False
+            for field in (
+                "evidence_ready_for_closure",
+                "current_evidence_write_allowed",
+                "gap_closure_allowed_by_this_patch",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+            )
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator evidence item attempted closure, live, current-evidence, or scale permission.",
+                "primary_next_action": "Reject the evidence progress report and regenerate it without permission changes.",
+            }
+        path_status = str(item.get("path_status") or "MISSING_OPERATOR_EVIDENCE")
+        if path_status in status_counts:
+            status_counts[path_status] += 1
+        if len(preview_items) < 4:
+            action_class = str(item.get("action_class") or "CLASSIFY_OPEN_GAP_ACTION")
+            preview_items.append(
+                {
+                    "evidence_item_id": str(item.get("evidence_item_id") or ""),
+                    "action_class": action_class,
+                    "label": RESIDUAL_ACTION_PLAN_CLASSES.get(action_class, action_class.replace("_", " ").title()),
+                    "path_status": path_status,
+                    "blocks_mvp5_entry": item.get("blocks_mvp5_entry") is True,
+                }
+            )
+
+    local_runtime_completed_count = 0
+    for command in local_runtime_commands:
+        if not isinstance(command, dict):
+            continue
+        if (
+            command.get("non_live_only") is not True
+            or command.get("credential_required") is not False
+            or command.get("live_order_allowed") is not False
+            or command.get("evidence_ready_for_closure") is not False
+            or command.get("current_evidence_write_allowed") is not False
+            or command.get("gap_closure_allowed_by_this_patch") is not False
+            or command.get("scale_up_allowed") is not False
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator evidence progress exposed a local command that is not non-live, credential-free, and blocked.",
+                "primary_next_action": "Reject the evidence progress report and keep live orders blocked.",
+            }
+        if command.get("command_status") == "COMPLETED":
+            local_runtime_completed_count += 1
+
+    status = str(report.get("progress_status") or "BLOCKED_EVIDENCE_MISSING")
+    if (
+        report.get("schema_id") != "trader1.residual_operator_evidence_progress_report.v1"
+        or report.get("validation_status") != "PASS"
+        or status != "BLOCKED_EVIDENCE_MISSING"
+        or report.get("mvp5_entry_blocked_until_operator_evidence") is not True
+        or report.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
+    ):
+        status = "INVALID"
+
+    evidence_item_count = report.get("evidence_item_count", len(evidence_items))
+    present_blocked_count = report.get("present_blocked_evidence_item_count", status_counts["PRESENT_BLOCKED"])
+    missing_count = report.get("missing_operator_evidence_item_count", status_counts["MISSING_OPERATOR_EVIDENCE"])
+    placeholder_count = report.get("placeholder_pending_evidence_item_count", status_counts["PLACEHOLDER_PATTERN_PENDING"])
+    external_count = report.get("external_evidence_required_item_count", status_counts["EXTERNAL_EVIDENCE_REQUIRED"])
+    local_runtime_output_count = report.get(
+        "local_runtime_output_item_count",
+        status_counts["LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_CLOSURE_READY"],
+    )
+    local_runtime_command_count = report.get("local_runtime_command_count", len(local_runtime_commands))
+    local_runtime_completed_count = report.get("local_runtime_completed_count", local_runtime_completed_count)
+    minimum_observation_hours = report.get("minimum_observation_hours_required", 0)
+    if not isinstance(evidence_item_count, int):
+        evidence_item_count = len(evidence_items)
+    if not isinstance(present_blocked_count, int):
+        present_blocked_count = status_counts["PRESENT_BLOCKED"]
+    if not isinstance(missing_count, int):
+        missing_count = status_counts["MISSING_OPERATOR_EVIDENCE"]
+    if not isinstance(placeholder_count, int):
+        placeholder_count = status_counts["PLACEHOLDER_PATTERN_PENDING"]
+    if not isinstance(external_count, int):
+        external_count = status_counts["EXTERNAL_EVIDENCE_REQUIRED"]
+    if not isinstance(local_runtime_output_count, int):
+        local_runtime_output_count = status_counts["LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_CLOSURE_READY"]
+    if not isinstance(local_runtime_command_count, int):
+        local_runtime_command_count = len(local_runtime_commands)
+    if not isinstance(local_runtime_completed_count, int):
+        local_runtime_completed_count = 0
+    if not isinstance(minimum_observation_hours, int):
+        minimum_observation_hours = 0
+
+    status_breakdown_items = [
+        {"label": "Present but blocked", "count": present_blocked_count, "status": "PRESENT_BLOCKED"},
+        {"label": "Missing operator evidence", "count": missing_count, "status": "MISSING_OPERATOR_EVIDENCE"},
+        {"label": "Placeholder paths pending", "count": placeholder_count, "status": "PLACEHOLDER_PATTERN_PENDING"},
+        {"label": "External evidence required", "count": external_count, "status": "EXTERNAL_EVIDENCE_REQUIRED"},
+        {
+            "label": "Local runtime output only",
+            "count": local_runtime_output_count,
+            "status": "LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_CLOSURE_READY",
+        },
+    ]
+    command_label = "command" if local_runtime_command_count == 1 else "commands"
+    return {
+        "title": "Operator Evidence Progress",
+        "status": status,
+        "source": RESIDUAL_EVIDENCE_PROGRESS_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": report.get("open_gap_count", 13) if isinstance(report.get("open_gap_count", 13), int) else 13,
+        "evidence_item_count": evidence_item_count,
+        "present_blocked_evidence_item_count": present_blocked_count,
+        "missing_operator_evidence_item_count": missing_count,
+        "placeholder_pending_evidence_item_count": placeholder_count,
+        "external_evidence_required_item_count": external_count,
+        "local_runtime_output_item_count": local_runtime_output_count,
+        "local_runtime_command_count": local_runtime_command_count,
+        "local_runtime_completed_count": local_runtime_completed_count,
+        "minimum_observation_hours_required": minimum_observation_hours,
+        "operator_evidence_ready_for_mvp5": False,
+        "any_evidence_item_ready_for_closure": False,
+        "mvp5_entry_blocked_until_operator_evidence": True,
+        "binance_runtime_status": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS",
+        "one_line_summary": (
+            f"{evidence_item_count} required evidence items; external={external_count}, "
+            f"missing={missing_count}, placeholder={placeholder_count}, local-runtime={local_runtime_output_count}."
+        ),
+        "primary_next_action": (
+            f"MVP-5 blocked; run {minimum_observation_hours}h PAPER/SHADOW collection only when operator setup is ready, "
+            f"then submit external/read-only evidence separately. {local_runtime_command_count} local PAPER/SHADOW {command_label} remains non-live."
+        ),
+        "status_breakdown_items": status_breakdown_items,
+        "evidence_item_preview": preview_items,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_config_mutation_allowed": False,
+        "live_ready_write_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -10911,6 +11145,7 @@ def build_read_only_dashboard_shell(
     residual_open_gap_operator_action_plan_report: dict[str, Any] | None = None,
     residual_operator_handoff_packet_report: dict[str, Any] | None = None,
     residual_operator_execution_guide_report: dict[str, Any] | None = None,
+    residual_operator_evidence_progress_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -10954,6 +11189,7 @@ def build_read_only_dashboard_shell(
         "residual_open_gap_operator_action_plan": "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
         "residual_operator_handoff_packet": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
         "residual_operator_execution_guide": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
+        "residual_operator_evidence_progress": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -11028,6 +11264,34 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 execution_guide_freshness,
+            )
+        )
+    if isinstance(residual_operator_evidence_progress_report, dict):
+        evidence_progress_freshness = (
+            "PASS"
+            if residual_operator_evidence_progress_report.get("schema_id") == "trader1.residual_operator_evidence_progress_report.v1"
+            and residual_operator_evidence_progress_report.get("progress_status") == "BLOCKED_EVIDENCE_MISSING"
+            and residual_operator_evidence_progress_report.get("validation_status") == "PASS"
+            and residual_operator_evidence_progress_report.get("operator_evidence_ready_for_mvp5") is False
+            and residual_operator_evidence_progress_report.get("any_evidence_item_ready_for_closure") is False
+            and residual_operator_evidence_progress_report.get("mvp5_entry_blocked_until_operator_evidence") is True
+            and residual_operator_evidence_progress_report.get("current_evidence_write_allowed") is False
+            and residual_operator_evidence_progress_report.get("gap_closure_allowed_by_this_patch") is False
+            and residual_operator_evidence_progress_report.get("live_config_mutation_allowed") is False
+            and residual_operator_evidence_progress_report.get("live_ready_write_allowed") is False
+            and residual_operator_evidence_progress_report.get("live_order_allowed") is False
+            and residual_operator_evidence_progress_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_EVIDENCE_PROGRESS",
+                paths.get(
+                    "residual_operator_evidence_progress",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+                ),
+                True,
+                evidence_progress_freshness,
             )
         )
     if isinstance(shadow_runtime_writer_report, dict):
@@ -12103,6 +12367,9 @@ def build_read_only_dashboard_shell(
     residual_operator_execution_guide = _residual_operator_execution_guide_summary(
         residual_operator_execution_guide_report
     )
+    residual_operator_evidence_progress = _residual_operator_evidence_progress_summary(
+        residual_operator_evidence_progress_report
+    )
 
     engine = summary.get("engine", {}) if isinstance(summary, dict) else {}
     startup_status = summary.get("startup", {}) if isinstance(summary, dict) else {}
@@ -12157,6 +12424,7 @@ def build_read_only_dashboard_shell(
         "residual_open_gap_action_plan": residual_open_gap_action_plan,
         "residual_operator_handoff_packet": residual_operator_handoff_packet,
         "residual_operator_execution_guide": residual_operator_execution_guide,
+        "residual_operator_evidence_progress": residual_operator_evidence_progress,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
         "exploration_policy_status": exploration_policy_status,
@@ -12539,6 +12807,33 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                         "operator_action_mode",
                         "operator_goal",
                         "execution_status",
+                    )
+                )
+    residual_evidence_progress = shell.get("residual_operator_evidence_progress", {})
+    if isinstance(residual_evidence_progress, dict):
+        values.extend(
+            str(residual_evidence_progress.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "source_status",
+                "one_line_summary",
+                "primary_next_action",
+                "binance_runtime_status",
+            )
+        )
+        for item in residual_evidence_progress.get("status_breakdown_items", []):
+            if isinstance(item, dict):
+                values.extend(str(item.get(key, "")) for key in ("label", "count", "status"))
+        for item in residual_evidence_progress.get("evidence_item_preview", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "evidence_item_id",
+                        "action_class",
+                        "label",
+                        "path_status",
                     )
                 )
     workflow = shell.get("operator_workflow_summary", {})
@@ -13010,6 +13305,66 @@ def validate_read_only_dashboard_shell(
                 return DashboardValidationResult("BLOCKED", "residual execution guide item must remain blocked", "HARD_TRUTH_MISSING")
             if not isinstance(item.get("operator_goal"), str) or not item.get("operator_goal", "").strip():
                 return DashboardValidationResult("FAIL", "residual execution guide must expose operator goal text", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_evidence_progress = shell.get("residual_operator_evidence_progress")
+    if not isinstance(residual_evidence_progress, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator evidence progress summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_evidence_progress.get("display_only") is not True
+        or residual_evidence_progress.get("dashboard_truth_only") is not True
+    ):
+        return DashboardValidationResult("BLOCKED", "residual evidence progress summary must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_evidence_progress.get("live_order_ready")
+        or residual_evidence_progress.get("live_order_allowed")
+        or residual_evidence_progress.get("can_live_trade")
+        or residual_evidence_progress.get("scale_up_allowed")
+        or residual_evidence_progress.get("operator_evidence_ready_for_mvp5")
+        or residual_evidence_progress.get("any_evidence_item_ready_for_closure")
+        or residual_evidence_progress.get("current_evidence_write_allowed")
+        or residual_evidence_progress.get("gap_closure_allowed_by_this_patch")
+        or residual_evidence_progress.get("live_config_mutation_allowed")
+        or residual_evidence_progress.get("live_ready_write_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual evidence progress attempted readiness, closure, live, scale, current-evidence, or LIVE_READY permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_evidence_progress.get("source") != RESIDUAL_EVIDENCE_PROGRESS_SOURCE:
+        return DashboardValidationResult("FAIL", "residual evidence progress source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_evidence_progress.get("status") not in {"NOT_LOADED", "BLOCKED_EVIDENCE_MISSING", "INVALID"}:
+        return DashboardValidationResult("FAIL", "residual evidence progress status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_evidence_progress.get("source_status") == "LOADED":
+        if residual_evidence_progress.get("status") != "BLOCKED_EVIDENCE_MISSING":
+            return DashboardValidationResult("BLOCKED", "loaded residual evidence progress must remain blocked", "LIVE_FINAL_GUARD_FAILED")
+        if residual_evidence_progress.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual evidence progress open gap count must match residual action plan", "CONTRACT_GAP_HIGH")
+        if residual_evidence_progress.get("evidence_item_count", 0) < 20:
+            return DashboardValidationResult("FAIL", "residual evidence progress must expose all required evidence items", "CONTRACT_GAP_HIGH")
+        if residual_evidence_progress.get("external_evidence_required_item_count", 0) < 7:
+            return DashboardValidationResult("FAIL", "residual evidence progress must expose external evidence requirements", "HARD_TRUTH_MISSING")
+        if residual_evidence_progress.get("missing_operator_evidence_item_count", 0) < 4:
+            return DashboardValidationResult("FAIL", "residual evidence progress must expose missing operator evidence", "HARD_TRUTH_MISSING")
+        if residual_evidence_progress.get("placeholder_pending_evidence_item_count", 0) < 3:
+            return DashboardValidationResult("FAIL", "residual evidence progress must expose placeholder runtime evidence gaps", "HARD_TRUTH_MISSING")
+        if residual_evidence_progress.get("local_runtime_output_item_count", 0) < 3:
+            return DashboardValidationResult("FAIL", "residual evidence progress must distinguish local runtime output from closure-ready evidence", "HARD_TRUTH_MISSING")
+        if residual_evidence_progress.get("local_runtime_command_count") != 1:
+            return DashboardValidationResult("FAIL", "residual evidence progress must expose exactly one local PAPER/SHADOW command", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_evidence_progress.get("local_runtime_completed_count") != 0:
+            return DashboardValidationResult("BLOCKED", "this patch cannot mark the local PAPER/SHADOW evidence command completed", "LIVE_FINAL_GUARD_FAILED")
+        if residual_evidence_progress.get("minimum_observation_hours_required", 0) < 120:
+            return DashboardValidationResult("FAIL", "residual evidence progress must show the 120h PAPER/SHADOW observation requirement", "CONTRACT_GAP_HIGH")
+        if residual_evidence_progress.get("mvp5_entry_blocked_until_operator_evidence") is not True:
+            return DashboardValidationResult("BLOCKED", "residual evidence progress must keep MVP-5 blocked until operator evidence", "HARD_TRUTH_MISSING")
+        if residual_evidence_progress.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS":
+            return DashboardValidationResult("BLOCKED", "residual evidence progress cannot transfer Upbit evidence to Binance", "LIVE_FINAL_GUARD_FAILED")
+        status_items = residual_evidence_progress.get("status_breakdown_items")
+        if not isinstance(status_items, list) or len(status_items) < 5:
+            return DashboardValidationResult("FAIL", "loaded residual evidence progress must expose evidence status breakdown", "SCHEMA_IDENTITY_MISMATCH")
+        preview_items = residual_evidence_progress.get("evidence_item_preview")
+        if not isinstance(preview_items, list) or len(preview_items) < 3:
+            return DashboardValidationResult("FAIL", "loaded residual evidence progress must expose evidence item preview", "SCHEMA_IDENTITY_MISMATCH")
+        for item in status_items + preview_items:
+            if not isinstance(item, dict):
+                return DashboardValidationResult("FAIL", "residual evidence progress items must be objects", "SCHEMA_IDENTITY_MISMATCH")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -18019,6 +18374,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     residual_execution_guide = shell.get("residual_operator_execution_guide", {})
     if not isinstance(residual_execution_guide, dict):
         residual_execution_guide = {}
+    residual_evidence_progress = shell.get("residual_operator_evidence_progress", {})
+    if not isinstance(residual_evidence_progress, dict):
+        residual_evidence_progress = {}
     residual_action_items = [
         item for item in residual_action_plan.get("action_items", []) if isinstance(item, dict)
     ]
@@ -18126,6 +18484,42 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             f'<div class="live-blocker-group"><strong>Steps</strong><span>{safe_text(guide_step_count)} steps</span></div>'
             f'<div class="live-blocker-group"><strong>PAPER/SHADOW</strong><span>{safe_text(local_runtime_step_count)} local command</span></div>'
             f'<div class="live-blocker-group"><strong>Observation</strong><span>{safe_text(minimum_observation_hours)}h minimum</span></div>'
+            "</section>"
+        )
+    residual_evidence_progress_html = ""
+    if residual_evidence_progress.get("source_status") == "LOADED":
+        evidence_item_count = residual_evidence_progress.get("evidence_item_count", 0)
+        external_count = residual_evidence_progress.get("external_evidence_required_item_count", 0)
+        missing_count = residual_evidence_progress.get("missing_operator_evidence_item_count", 0)
+        placeholder_count = residual_evidence_progress.get("placeholder_pending_evidence_item_count", 0)
+        local_runtime_count = residual_evidence_progress.get("local_runtime_output_item_count", 0)
+        local_command_count = residual_evidence_progress.get("local_runtime_command_count", 0)
+        evidence_observation_hours = residual_evidence_progress.get("minimum_observation_hours_required", 0)
+        residual_evidence_progress_html = (
+            '<p class="live-blocker-note"><strong>Evidence Progress:</strong> '
+            + safe_text(
+                residual_evidence_progress.get(
+                    "one_line_summary",
+                    "MVP-5 remains blocked until operator evidence is collected.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note">'
+            + safe_text(
+                residual_evidence_progress.get(
+                    "primary_next_action",
+                    "MVP-5 blocked until operator evidence is collected; Binance remains scaffold-only.",
+                )
+            )
+            + "</p>"
+            '<section class="live-blocker-groups" aria-label="operator evidence progress counts">'
+            f'<div class="live-blocker-group"><strong>Required</strong><span>{safe_text(evidence_item_count)} required evidence items</span></div>'
+            f'<div class="live-blocker-group"><strong>External</strong><span>external={safe_text(external_count)}</span></div>'
+            f'<div class="live-blocker-group"><strong>Missing</strong><span>missing={safe_text(missing_count)}</span></div>'
+            f'<div class="live-blocker-group"><strong>Placeholder</strong><span>placeholder={safe_text(placeholder_count)}</span></div>'
+            f'<div class="live-blocker-group"><strong>Local</strong><span>local-runtime={safe_text(local_runtime_count)}</span></div>'
+            f'<div class="live-blocker-group"><strong>Command</strong><span>{safe_text(local_command_count)} local PAPER/SHADOW command</span></div>'
+            f'<div class="live-blocker-group"><strong>Observation</strong><span>{safe_text(evidence_observation_hours)}h minimum</span></div>'
             "</section>"
         )
     health_signal_items = [
@@ -18618,6 +19012,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="live-blocker-note"><strong>Handoff:</strong> """ + safe_text(handoff_summary) + """</p>
         <p class="live-blocker-note">""" + safe_text(handoff_primary_next_action) + """</p>
         """ + residual_execution_guide_html + """
+        """ + residual_evidence_progress_html + """
         <section class="live-blocker-groups" aria-label="operator handoff packet counts">
           <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
           <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>

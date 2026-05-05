@@ -262,6 +262,18 @@ def residual_operator_execution_guide_fixture():
     )
 
 
+def residual_operator_evidence_progress_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "evidence"
+            / "audit_reports"
+            / "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
     runtime = build_upbit_paper_runtime_cycle_report(
         cycle_id=f"dashboard-scorecard-{session_id}",
@@ -311,6 +323,7 @@ def build_dashboard(
     residual_open_gap_operator_action_plan_report=None,
     residual_operator_handoff_packet_report=None,
     residual_operator_execution_guide_report=None,
+    residual_operator_evidence_progress_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
@@ -349,6 +362,7 @@ def build_dashboard(
         residual_open_gap_operator_action_plan_report=residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet_report=residual_operator_handoff_packet_report,
         residual_operator_execution_guide_report=residual_operator_execution_guide_report,
+        residual_operator_evidence_progress_report=residual_operator_evidence_progress_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
@@ -6823,6 +6837,81 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertNotIn("TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS", answer_html)
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
+
+    def test_dashboard_live_card_exposes_residual_operator_evidence_progress(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
+            residual_operator_handoff_packet_report=residual_operator_handoff_packet_fixture(),
+            residual_operator_execution_guide_report=residual_operator_execution_guide_fixture(),
+            residual_operator_evidence_progress_report=residual_operator_evidence_progress_fixture(),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        progress = dashboard["residual_operator_evidence_progress"]
+        self.assertEqual(progress["source_status"], "LOADED")
+        self.assertEqual(progress["status"], "BLOCKED_EVIDENCE_MISSING")
+        self.assertEqual(progress["open_gap_count"], 13)
+        self.assertEqual(progress["evidence_item_count"], 20)
+        self.assertEqual(progress["present_blocked_evidence_item_count"], 3)
+        self.assertEqual(progress["missing_operator_evidence_item_count"], 4)
+        self.assertEqual(progress["placeholder_pending_evidence_item_count"], 3)
+        self.assertEqual(progress["external_evidence_required_item_count"], 7)
+        self.assertEqual(progress["local_runtime_output_item_count"], 3)
+        self.assertEqual(progress["local_runtime_command_count"], 1)
+        self.assertEqual(progress["local_runtime_completed_count"], 0)
+        self.assertEqual(progress["minimum_observation_hours_required"], 120)
+        self.assertFalse(progress["operator_evidence_ready_for_mvp5"])
+        self.assertFalse(progress["any_evidence_item_ready_for_closure"])
+        self.assertTrue(progress["mvp5_entry_blocked_until_operator_evidence"])
+        self.assertEqual(progress["binance_runtime_status"], "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS")
+        self.assertFalse(progress["current_evidence_write_allowed"])
+        self.assertFalse(progress["gap_closure_allowed_by_this_patch"])
+        self.assertFalse(progress["live_config_mutation_allowed"])
+        self.assertFalse(progress["live_ready_write_allowed"])
+        self.assertFalse(progress["live_order_ready"])
+        self.assertFalse(progress["live_order_allowed"])
+        self.assertFalse(progress["can_live_trade"])
+        self.assertFalse(progress["scale_up_allowed"])
+        self.assertGreaterEqual(len(progress["status_breakdown_items"]), 5)
+        self.assertGreaterEqual(len(progress["evidence_item_preview"]), 3)
+
+        source = next(
+            item
+            for item in dashboard["source_artifacts"]
+            if item["artifact_id"] == "RESIDUAL_OPERATOR_EVIDENCE_PROGRESS"
+        )
+        self.assertEqual(source["filename"], "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json")
+        self.assertEqual(source["freshness_status"], "PASS")
+
+        html = render_dashboard_html(dashboard)
+        answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
+        portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
+        answer_html = html[answer_start:portfolio_start]
+        self.assertIn("Evidence Progress:", answer_html)
+        self.assertIn("20 required evidence items", answer_html)
+        self.assertIn("external=7", answer_html)
+        self.assertIn("missing=4", answer_html)
+        self.assertIn("placeholder=3", answer_html)
+        self.assertIn("local-runtime=3", answer_html)
+        self.assertIn("1 local PAPER/SHADOW command", answer_html)
+        self.assertIn("120h minimum", answer_html)
+        self.assertIn("MVP-5 blocked", answer_html)
+        self.assertIn("live_order_allowed=false", answer_html)
+        self.assertNotIn("<button", answer_html.lower())
+        self.assertNotIn("<form", answer_html.lower())
+
+    def test_dashboard_rejects_residual_operator_evidence_progress_permission_drift(self):
+        report = residual_operator_evidence_progress_fixture()
+        report["live_ready_write_allowed"] = True
+        dashboard = build_dashboard(residual_operator_evidence_progress_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        progress = dashboard["residual_operator_evidence_progress"]
+        self.assertEqual(progress["source_status"], "LOADED")
+        self.assertEqual(progress["status"], "INVALID")
+        self.assertFalse(progress["live_ready_write_allowed"])
+        self.assertFalse(progress["live_order_allowed"])
+        self.assertFalse(progress["scale_up_allowed"])
 
     def test_dashboard_visual_layout_contract_blocks_cramped_regression(self):
         html = render_dashboard_html(build_dashboard())

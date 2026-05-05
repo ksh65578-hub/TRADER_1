@@ -110,7 +110,8 @@
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD",
             "RESIDUAL_OPERATOR_HANDOFF_PACKET",
-            "RESIDUAL_OPERATOR_EXECUTION_GUIDE"
+            "RESIDUAL_OPERATOR_EXECUTION_GUIDE",
+            "RESIDUAL_OPERATOR_EVIDENCE_PROGRESS"
           ]
         },
         "path": {
@@ -152,7 +153,8 @@
             "rest_continuity_history.json",
             "candidate_scorecard.json",
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
-            "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
+            "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
+            "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
           ]
         },
         "truth_role": {
@@ -3335,6 +3337,232 @@
               },
               "execution_status": {
                 "const": "BLOCKED_GUIDE_ONLY"
+              }
+            }
+          }
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "live_ready_write_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "residual_operator_evidence_progress": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "source",
+        "source_status",
+        "open_gap_count",
+        "evidence_item_count",
+        "present_blocked_evidence_item_count",
+        "missing_operator_evidence_item_count",
+        "placeholder_pending_evidence_item_count",
+        "external_evidence_required_item_count",
+        "local_runtime_output_item_count",
+        "local_runtime_command_count",
+        "local_runtime_completed_count",
+        "minimum_observation_hours_required",
+        "operator_evidence_ready_for_mvp5",
+        "any_evidence_item_ready_for_closure",
+        "mvp5_entry_blocked_until_operator_evidence",
+        "binance_runtime_status",
+        "one_line_summary",
+        "primary_next_action",
+        "status_breakdown_items",
+        "evidence_item_preview",
+        "display_only",
+        "dashboard_truth_only",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_config_mutation_allowed",
+        "live_ready_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "Operator Evidence Progress"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_EVIDENCE_MISSING",
+            "INVALID"
+          ]
+        },
+        "source": {
+          "const": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
+        },
+        "source_status": {
+          "enum": [
+            "LOADED",
+            "NOT_LOADED"
+          ]
+        },
+        "open_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "present_blocked_evidence_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_operator_evidence_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "placeholder_pending_evidence_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "external_evidence_required_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "local_runtime_output_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "local_runtime_command_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "local_runtime_completed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_observation_hours_required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_evidence_ready_for_mvp5": {
+          "const": false
+        },
+        "any_evidence_item_ready_for_closure": {
+          "const": false
+        },
+        "mvp5_entry_blocked_until_operator_evidence": {
+          "const": true
+        },
+        "binance_runtime_status": {
+          "const": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status_breakdown_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label",
+              "count",
+              "status"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "status": {
+                "enum": [
+                  "PRESENT_BLOCKED",
+                  "MISSING_OPERATOR_EVIDENCE",
+                  "PLACEHOLDER_PATTERN_PENDING",
+                  "EXTERNAL_EVIDENCE_REQUIRED",
+                  "LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_CLOSURE_READY"
+                ]
+              }
+            }
+          }
+        },
+        "evidence_item_preview": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "evidence_item_id",
+              "action_class",
+              "label",
+              "path_status",
+              "blocks_mvp5_entry"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "evidence_item_id": {
+                "type": "string"
+              },
+              "action_class": {
+                "enum": [
+                  "OPERATOR_RECONCILIATION_ACTION",
+                  "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                  "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+                  "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+                  "SEALED_BASELINE_PRESERVATION_ACTION",
+                  "SCALE_UP_POLICY_EVIDENCE_ACTION",
+                  "CLASSIFY_OPEN_GAP_ACTION"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path_status": {
+                "enum": [
+                  "PRESENT_BLOCKED",
+                  "MISSING_OPERATOR_EVIDENCE",
+                  "PLACEHOLDER_PATTERN_PENDING",
+                  "EXTERNAL_EVIDENCE_REQUIRED",
+                  "LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_CLOSURE_READY"
+                ]
+              },
+              "blocks_mvp5_entry": {
+                "type": "boolean"
               }
             }
           }
@@ -7422,7 +7650,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 30,
+      "maxItems": 31,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -7477,6 +7705,9 @@
     },
     "residual_operator_execution_guide": {
       "$ref": "#/$defs/residual_operator_execution_guide"
+    },
+    "residual_operator_evidence_progress": {
+      "$ref": "#/$defs/residual_operator_evidence_progress"
     },
     "profitability_maturity": {
       "$ref": "#/$defs/profitability_maturity"
