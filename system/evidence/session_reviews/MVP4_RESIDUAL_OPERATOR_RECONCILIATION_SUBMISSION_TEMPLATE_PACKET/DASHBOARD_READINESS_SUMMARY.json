@@ -1,0 +1,9 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_20260506_001",
+  "dashboard_status": "PASS_SUBMISSION_TEMPLATE_PACKET_PREPARATION_ONLY_BLOCKED",
+  "template_packet_status": "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY",
+  "template_manifest_item_count": 32,
+  "template_control_count": 4,
+  "actual_submission_manifest_written_by_this_patch": false,
+  "live_execution_candidate": false
+}

@@ -1,0 +1,572 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.residual_operator_reconciliation_submission_template_packet_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "source_reports",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "selected_next_task_class",
+    "open_gap_ids",
+    "open_gap_count",
+    "template_packet_status",
+    "template_packet_scope",
+    "template_packet_path",
+    "manifest_schema_id",
+    "actual_submission_manifest_path",
+    "actual_submission_manifest_written_by_this_patch",
+    "operator_submission_required",
+    "operator_submission_present",
+    "operator_submission_validated",
+    "operator_submission_accepted",
+    "source_manifest_preflight_status",
+    "required_manifest_item_count",
+    "template_manifest_item_count",
+    "template_manifest_items",
+    "required_control_count",
+    "template_control_count",
+    "template_control_assertions",
+    "operator_attestation_template",
+    "operator_submission_manifest_template",
+    "template_hash",
+    "blocking_reasons",
+    "one_line_summary",
+    "primary_next_action",
+    "operator_no_action_needed_for_next_non_live_patch",
+    "operator_action_required_for_gap_closure",
+    "current_evidence_write_allowed",
+    "gap_closure_allowed_by_this_patch",
+    "live_ready_write_allowed",
+    "live_config_mutation_allowed",
+    "credential_values_read",
+    "credential_environment_inspection_performed",
+    "runtime_artifacts_staged_by_this_patch",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "validation_status",
+    "validation_errors",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.residual_operator_reconciliation_submission_template_packet_report.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "source_reports": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/source_report_ref"
+      }
+    },
+    "state_last_patch_id_before": {
+      "type": "string"
+    },
+    "state_next_task_before": {
+      "type": "string"
+    },
+    "selected_next_task_class": {
+      "const": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
+    },
+    "open_gap_ids": {
+      "type": "array",
+      "minItems": 13,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "open_gap_count": {
+      "const": 13
+    },
+    "template_packet_status": {
+      "const": "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY"
+    },
+    "template_packet_scope": {
+      "const": "OPERATOR_PREPARATION_ONLY_NOT_EVIDENCE"
+    },
+    "template_packet_path": {
+      "const": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json"
+    },
+    "manifest_schema_id": {
+      "const": "trader1.residual_operator_reconciliation_submission_manifest.v1"
+    },
+    "actual_submission_manifest_path": {
+      "const": "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json"
+    },
+    "actual_submission_manifest_written_by_this_patch": {
+      "const": false
+    },
+    "operator_submission_required": {
+      "const": true
+    },
+    "operator_submission_present": {
+      "type": "boolean"
+    },
+    "operator_submission_validated": {
+      "const": false
+    },
+    "operator_submission_accepted": {
+      "const": false
+    },
+    "source_manifest_preflight_status": {
+      "enum": [
+        "BLOCKED_MANIFEST_MISSING",
+        "BLOCKED_MANIFEST_STRUCTURAL_ERRORS",
+        "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY"
+      ]
+    },
+    "required_manifest_item_count": {
+      "const": 32
+    },
+    "template_manifest_item_count": {
+      "const": 32
+    },
+    "template_manifest_items": {
+      "type": "array",
+      "minItems": 32,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/template_manifest_item"
+      }
+    },
+    "required_control_count": {
+      "const": 4
+    },
+    "template_control_count": {
+      "const": 4
+    },
+    "template_control_assertions": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/template_control_assertion"
+      }
+    },
+    "operator_attestation_template": {
+      "$ref": "#/$defs/operator_attestation_template"
+    },
+    "operator_submission_manifest_template": {
+      "$ref": "#/$defs/operator_submission_manifest_template"
+    },
+    "template_hash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "blocking_reasons": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "one_line_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "primary_next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_no_action_needed_for_next_non_live_patch": {
+      "const": true
+    },
+    "operator_action_required_for_gap_closure": {
+      "const": true
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "gap_closure_allowed_by_this_patch": {
+      "const": false
+    },
+    "live_ready_write_allowed": {
+      "const": false
+    },
+    "live_config_mutation_allowed": {
+      "const": false
+    },
+    "credential_values_read": {
+      "const": false
+    },
+    "credential_environment_inspection_performed": {
+      "const": false
+    },
+    "runtime_artifacts_staged_by_this_patch": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "validation_status": {
+      "const": "PASS"
+    },
+    "validation_errors": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "report_hash": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "source_report_ref": {
+      "type": "object",
+      "required": ["role", "patch_id", "report_hash"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "residual_operator_reconciliation_intake_preflight",
+            "residual_operator_reconciliation_submission_manifest_preflight"
+          ]
+        },
+        "patch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "report_hash": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "operator_decision_allowed_values": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "SUBMIT_FOR_RECONCILIATION_REVIEW",
+          "REJECT_CANDIDATE_KEEP_BLOCKED",
+          "REQUEST_ADDITIONAL_RERUN_EVIDENCE",
+          "ESCALATE_BLOCKED_RECONCILIATION"
+        ]
+      }
+    },
+    "template_manifest_item": {
+      "type": "object",
+      "required": [
+        "intake_item_id",
+        "review_card_id",
+        "priority_order",
+        "cycle_id",
+        "required_resolution_evidence_kind",
+        "source_decision_candidate_rollup_hash",
+        "evidence_artifact_path_placeholder",
+        "evidence_artifact_path_rule",
+        "evidence_artifact_sha256_placeholder",
+        "operator_decision_allowed_values",
+        "decision_reason_code",
+        "current_evidence_write_requested",
+        "accepted_for_reconciliation",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "intake_item_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_card_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "priority_order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cycle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_resolution_evidence_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_decision_candidate_rollup_hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_artifact_path_placeholder": {
+          "type": "string",
+          "pattern": "^system/evidence/operator_submissions/residual_operator_reconciliation/.*$"
+        },
+        "evidence_artifact_path_rule": {
+          "const": "must start with system/evidence/operator_submissions/residual_operator_reconciliation/"
+        },
+        "evidence_artifact_sha256_placeholder": {
+          "const": "<64_HEX_SHA256_OF_OPERATOR_EVIDENCE_FILE>"
+        },
+        "operator_decision_allowed_values": {
+          "$ref": "#/$defs/operator_decision_allowed_values"
+        },
+        "decision_reason_code": {
+          "const": "POST_RERUN_RECONCILIATION_REQUIRED"
+        },
+        "current_evidence_write_requested": {
+          "const": false
+        },
+        "accepted_for_reconciliation": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "template_control_assertion": {
+      "type": "object",
+      "required": [
+        "control_id",
+        "control_order",
+        "blocker_code",
+        "operator_assertion_required",
+        "operator_assertion_present_placeholder",
+        "accepted_for_reconciliation",
+        "current_evidence_write_requested",
+        "live_order_allowed",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "control_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control_order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "blocker_code": {
+          "const": "POST_RERUN_RECONCILIATION_REQUIRED"
+        },
+        "operator_assertion_required": {
+          "const": true
+        },
+        "operator_assertion_present_placeholder": {
+          "const": false
+        },
+        "accepted_for_reconciliation": {
+          "const": false
+        },
+        "current_evidence_write_requested": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "operator_attestation_template": {
+      "type": "object",
+      "required": [
+        "attestation_type",
+        "credential_values_excluded",
+        "no_live_or_scale_mutation",
+        "current_evidence_write_requested",
+        "live_ready_write_requested",
+        "live_config_mutation_requested",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "attestation_type": {
+          "const": "OPERATOR_RECONCILIATION_SUBMISSION_ONLY"
+        },
+        "credential_values_excluded": {
+          "const": true
+        },
+        "no_live_or_scale_mutation": {
+          "const": true
+        },
+        "current_evidence_write_requested": {
+          "const": false
+        },
+        "live_ready_write_requested": {
+          "const": false
+        },
+        "live_config_mutation_requested": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "operator_submission_manifest_template": {
+      "type": "object",
+      "required": [
+        "schema_id",
+        "manifest_id",
+        "created_at_utc",
+        "submission_scope",
+        "source_intake_preflight_report_hash",
+        "source_manifest_preflight_report_hash",
+        "operator_attestation_template",
+        "manifest_items_template",
+        "control_assertions_template",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_manifest",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "schema_id": {
+          "const": "trader1.residual_operator_reconciliation_submission_manifest.v1"
+        },
+        "manifest_id": {
+          "const": "OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_TEMPLATE_ONLY"
+        },
+        "created_at_utc": {
+          "type": "string",
+          "minLength": 1
+        },
+        "submission_scope": {
+          "type": "object",
+          "required": ["exchange", "market_type", "mode", "purpose"],
+          "additionalProperties": false,
+          "properties": {
+            "exchange": {
+              "const": "UPBIT"
+            },
+            "market_type": {
+              "const": "KRW_SPOT"
+            },
+            "mode": {
+              "const": "PAPER"
+            },
+            "purpose": {
+              "const": "OPERATOR_RECONCILIATION_REVIEW"
+            }
+          }
+        },
+        "source_intake_preflight_report_hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_manifest_preflight_report_hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "operator_attestation_template": {
+          "$ref": "#/$defs/operator_attestation_template"
+        },
+        "manifest_items_template": {
+          "type": "array",
+          "minItems": 32,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/template_manifest_item"
+          }
+        },
+        "control_assertions_template": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/template_control_assertion"
+          }
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_manifest": {
+          "const": false
+        },
+        "live_ready_write_allowed": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    }
+  }
+}

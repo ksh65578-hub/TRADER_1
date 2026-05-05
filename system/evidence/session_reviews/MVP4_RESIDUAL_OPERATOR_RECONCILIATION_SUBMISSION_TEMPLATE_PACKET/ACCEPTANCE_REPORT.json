@@ -1,0 +1,17 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_20260506_001",
+  "created_at_utc": "2026-05-05T20:07:09Z",
+  "acceptance_status": "PASS_BLOCKED_NON_LIVE",
+  "open_gap_count": 13,
+  "template_packet_status": "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY",
+  "template_manifest_item_count": 32,
+  "template_control_count": 4,
+  "actual_submission_manifest_written_by_this_patch": false,
+  "operator_submission_validated": false,
+  "operator_submission_accepted": false,
+  "current_evidence_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
