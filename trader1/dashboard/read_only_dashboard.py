@@ -118,12 +118,14 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
     "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
 RESIDUAL_HANDOFF_PACKET_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
 RESIDUAL_EXECUTION_GUIDE_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
 RESIDUAL_EVIDENCE_PROGRESS_SOURCE = "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
+RESIDUAL_RECONCILIATION_REVIEW_CARDS_SOURCE = "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json"
 RESIDUAL_ACTION_PLAN_CLASSES = {
     "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
     "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "PAPER ledger rerun",
@@ -11707,6 +11709,250 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
     }
 
 
+def _residual_operator_reconciliation_review_cards_summary(report: dict[str, Any] | None) -> dict[str, Any]:
+    fallback = {
+        "title": "Operator Reconciliation Review",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_RECONCILIATION_REVIEW_CARDS_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "operator_reconciliation_gap_count": 0,
+        "review_card_count": 0,
+        "blocked_review_card_count": 0,
+        "review_ready_count": 0,
+        "control_card_count": 0,
+        "unsatisfied_control_count": 0,
+        "satisfied_control_count": 0,
+        "operator_resolution_audit_status": "NOT_LOADED",
+        "operator_resolution_binding_status": "NOT_LOADED",
+        "operator_resolution_unresolved_item_count": 0,
+        "operator_resolution_resolved_item_count": 0,
+        "operator_resolution_controls_satisfied_count": 0,
+        "operator_resolution_current_evidence_write_allowed_count": 0,
+        "operator_resolution_candidate_current_evidence_usable_count": 0,
+        "source_hashes_verified": False,
+        "single_next_review_card": {
+            "cycle_id": "NOT_LOADED",
+            "review_status": "NOT_LOADED",
+            "resolution_reason_code": "POST_RERUN_RECONCILIATION_REQUIRED",
+            "next_safe_action": "Load the reconciliation review card report before judging operator reconciliation progress.",
+        },
+        "review_card_preview": [],
+        "control_card_preview": [],
+        "one_line_summary": "Operator reconciliation review cards are not loaded; current evidence remains blocked.",
+        "primary_next_action": "Load source-bound review cards before any current evidence review.",
+        "operator_no_action_needed_for_next_non_live_patch": False,
+        "operator_action_required_for_gap_closure": True,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    forbidden_fields = (
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    )
+    if any(report.get(field) is not False for field in forbidden_fields):
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator reconciliation review attempted current-evidence, live, LIVE_READY, or scale permission.",
+            "primary_next_action": "Reject the reconciliation review cards and keep all current evidence and live paths blocked.",
+        }
+
+    cards = report.get("review_cards", [])
+    if not isinstance(cards, list):
+        cards = []
+    controls = report.get("control_cards", [])
+    if not isinstance(controls, list):
+        controls = []
+
+    card_preview: list[dict[str, Any]] = []
+    for card in cards:
+        if not isinstance(card, dict):
+            continue
+        if any(
+            card.get(field) is not False
+            for field in (
+                "resolution_evidence_present",
+                "resolution_evidence_accepted",
+                "candidate_current_evidence_usable",
+                "current_evidence_write_allowed",
+                "current_evidence_mutation_allowed",
+                "latest_runtime_pointer_write_allowed",
+                "current_ledger_jsonl_write_allowed",
+                "current_evidence_write_authorized",
+                "promotion_eligible",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+            )
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator reconciliation review card attempted evidence acceptance, current-evidence write, live, or scale permission.",
+                "primary_next_action": "Reject the review card report and regenerate it as review-only.",
+            }
+        if card.get("review_status") != "BLOCKED_REVIEW_ONLY":
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator reconciliation review card lost blocked review-only status.",
+                "primary_next_action": "Reject the review card report and keep reconciliation blocked.",
+            }
+        if len(card_preview) < 3:
+            card_preview.append(
+                {
+                    "review_card_id": str(card.get("review_card_id") or ""),
+                    "priority_order": int(card.get("priority_order", 0) or 0),
+                    "cycle_id": str(card.get("cycle_id") or ""),
+                    "review_status": str(card.get("review_status") or ""),
+                    "resolution_reason_code": str(card.get("resolution_reason_code") or ""),
+                    "blocking_code_count": int(card.get("blocking_code_count", 0) or 0),
+                    "next_safe_action": str(card.get("next_safe_action") or ""),
+                }
+            )
+
+    control_preview: list[dict[str, Any]] = []
+    for control in controls:
+        if not isinstance(control, dict):
+            continue
+        if (
+            control.get("required") is not True
+            or control.get("satisfied") is not False
+            or control.get("current_evidence_write_allowed") is not False
+            or control.get("gap_closure_allowed_by_this_patch") is not False
+            or control.get("live_order_ready") is not False
+            or control.get("live_order_allowed") is not False
+            or control.get("can_live_trade") is not False
+            or control.get("scale_up_allowed") is not False
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator reconciliation control card attempted satisfaction or permission without evidence.",
+                "primary_next_action": "Reject the control card report and keep controls unsatisfied.",
+            }
+        if len(control_preview) < 4:
+            control_preview.append(
+                {
+                    "control_id": str(control.get("control_id") or ""),
+                    "control_order": int(control.get("control_order", 0) or 0),
+                    "control_status": str(control.get("control_status") or ""),
+                    "blocker_code": str(control.get("blocker_code") or ""),
+                    "satisfied": False,
+                }
+            )
+
+    status = str(report.get("review_status") or "BLOCKED_RECONCILIATION_REVIEW_ONLY")
+    invalid = (
+        report.get("schema_id") != "trader1.residual_operator_reconciliation_review_cards_report.v1"
+        or report.get("validation_status") != "PASS"
+        or status != "BLOCKED_RECONCILIATION_REVIEW_ONLY"
+        or report.get("operator_resolution_audit_status") != "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
+        or report.get("operator_resolution_audit_validation_status") != "PASS"
+        or report.get("operator_resolution_binding_status") != "BOUND_BLOCKED"
+        or report.get("source_hashes_verified") is not True
+        or report.get("operator_resolution_resolved_item_count") != 0
+        or report.get("operator_resolution_controls_satisfied_count") != 0
+        or report.get("operator_resolution_current_evidence_write_allowed_count") != 0
+        or report.get("operator_resolution_candidate_current_evidence_usable_count") != 0
+        or report.get("review_ready_count") != 0
+        or report.get("satisfied_control_count") != 0
+        or report.get("operator_no_action_needed_for_next_non_live_patch") is not True
+        or report.get("operator_action_required_for_gap_closure") is not True
+    )
+    if invalid:
+        status = "INVALID"
+
+    single_next = report.get("single_next_review_card", {})
+    if not isinstance(single_next, dict):
+        single_next = {}
+    return {
+        "title": "Operator Reconciliation Review",
+        "status": status,
+        "source": RESIDUAL_RECONCILIATION_REVIEW_CARDS_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": report.get("open_gap_count", 13) if isinstance(report.get("open_gap_count", 13), int) else 13,
+        "operator_reconciliation_gap_count": report.get("operator_reconciliation_gap_count", 0)
+        if isinstance(report.get("operator_reconciliation_gap_count", 0), int)
+        else 0,
+        "review_card_count": report.get("review_card_count", len(cards)) if isinstance(report.get("review_card_count", len(cards)), int) else len(cards),
+        "blocked_review_card_count": report.get("blocked_review_card_count", len(cards))
+        if isinstance(report.get("blocked_review_card_count", len(cards)), int)
+        else len(cards),
+        "review_ready_count": 0,
+        "control_card_count": report.get("control_card_count", len(controls)) if isinstance(report.get("control_card_count", len(controls)), int) else len(controls),
+        "unsatisfied_control_count": report.get("unsatisfied_control_count", len(controls))
+        if isinstance(report.get("unsatisfied_control_count", len(controls)), int)
+        else len(controls),
+        "satisfied_control_count": 0,
+        "operator_resolution_audit_status": str(
+            report.get("operator_resolution_audit_status") or "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
+        ),
+        "operator_resolution_binding_status": str(report.get("operator_resolution_binding_status") or "BOUND_BLOCKED"),
+        "operator_resolution_unresolved_item_count": int(report.get("operator_resolution_unresolved_item_count", 0) or 0),
+        "operator_resolution_resolved_item_count": 0,
+        "operator_resolution_controls_satisfied_count": 0,
+        "operator_resolution_current_evidence_write_allowed_count": 0,
+        "operator_resolution_candidate_current_evidence_usable_count": 0,
+        "source_hashes_verified": report.get("source_hashes_verified") is True,
+        "single_next_review_card": {
+            "cycle_id": str(single_next.get("cycle_id") or "UNKNOWN"),
+            "review_status": str(single_next.get("review_status") or "BLOCKED_REVIEW_ONLY"),
+            "resolution_reason_code": str(single_next.get("resolution_reason_code") or "POST_RERUN_RECONCILIATION_REQUIRED"),
+            "next_safe_action": str(single_next.get("next_safe_action") or report.get("primary_next_action") or ""),
+        },
+        "review_card_preview": card_preview,
+        "control_card_preview": control_preview,
+        "one_line_summary": str(
+            report.get(
+                "one_line_summary",
+                f"{len(cards)} operator reconciliation review cards remain blocked.",
+            )
+        ),
+        "primary_next_action": str(
+            report.get(
+                "primary_next_action",
+                "Review the first operator reconciliation card and keep current evidence blocked.",
+            )
+        ),
+        "operator_no_action_needed_for_next_non_live_patch": True,
+        "operator_action_required_for_gap_closure": True,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -11755,6 +12001,7 @@ def build_read_only_dashboard_shell(
     residual_operator_handoff_packet_report: dict[str, Any] | None = None,
     residual_operator_execution_guide_report: dict[str, Any] | None = None,
     residual_operator_evidence_progress_report: dict[str, Any] | None = None,
+    residual_operator_reconciliation_review_cards_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -11799,6 +12046,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_handoff_packet": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
         "residual_operator_execution_guide": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
         "residual_operator_evidence_progress": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+        "residual_operator_reconciliation_review_cards": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -11901,6 +12149,37 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 evidence_progress_freshness,
+            )
+        )
+    if isinstance(residual_operator_reconciliation_review_cards_report, dict):
+        reconciliation_review_freshness = (
+            "PASS"
+            if residual_operator_reconciliation_review_cards_report.get("schema_id")
+            == "trader1.residual_operator_reconciliation_review_cards_report.v1"
+            and residual_operator_reconciliation_review_cards_report.get("review_status")
+            == "BLOCKED_RECONCILIATION_REVIEW_ONLY"
+            and residual_operator_reconciliation_review_cards_report.get("validation_status") == "PASS"
+            and residual_operator_reconciliation_review_cards_report.get("operator_resolution_binding_status")
+            == "BOUND_BLOCKED"
+            and residual_operator_reconciliation_review_cards_report.get("source_hashes_verified") is True
+            and residual_operator_reconciliation_review_cards_report.get("review_ready_count") == 0
+            and residual_operator_reconciliation_review_cards_report.get("satisfied_control_count") == 0
+            and residual_operator_reconciliation_review_cards_report.get("current_evidence_write_allowed") is False
+            and residual_operator_reconciliation_review_cards_report.get("gap_closure_allowed_by_this_patch") is False
+            and residual_operator_reconciliation_review_cards_report.get("live_ready_write_allowed") is False
+            and residual_operator_reconciliation_review_cards_report.get("live_order_allowed") is False
+            and residual_operator_reconciliation_review_cards_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS",
+                paths.get(
+                    "residual_operator_reconciliation_review_cards",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
+                ),
+                True,
+                reconciliation_review_freshness,
             )
         )
     if isinstance(shadow_runtime_writer_report, dict):
@@ -12980,6 +13259,9 @@ def build_read_only_dashboard_shell(
     residual_operator_evidence_progress = _residual_operator_evidence_progress_summary(
         residual_operator_evidence_progress_report
     )
+    residual_operator_reconciliation_review_cards = _residual_operator_reconciliation_review_cards_summary(
+        residual_operator_reconciliation_review_cards_report
+    )
     residual_operator_priority = _residual_operator_priority_summary(
         residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet,
@@ -13041,6 +13323,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_handoff_packet": residual_operator_handoff_packet,
         "residual_operator_execution_guide": residual_operator_execution_guide,
         "residual_operator_evidence_progress": residual_operator_evidence_progress,
+        "residual_operator_reconciliation_review_cards": residual_operator_reconciliation_review_cards,
         "residual_operator_priority": residual_operator_priority,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
@@ -13472,6 +13755,49 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                         "label",
                         "path_status",
                     )
+                )
+    residual_reconciliation_review = shell.get("residual_operator_reconciliation_review_cards", {})
+    if isinstance(residual_reconciliation_review, dict):
+        values.extend(
+            str(residual_reconciliation_review.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "source_status",
+                "one_line_summary",
+                "primary_next_action",
+                "operator_resolution_audit_status",
+                "operator_resolution_binding_status",
+                "operator_resolution_unresolved_item_count",
+                "operator_resolution_current_evidence_write_allowed_count",
+                "operator_resolution_candidate_current_evidence_usable_count",
+                "source_hashes_verified",
+            )
+        )
+        single_review = residual_reconciliation_review.get("single_next_review_card", {})
+        if isinstance(single_review, dict):
+            values.extend(
+                str(single_review.get(key, ""))
+                for key in ("cycle_id", "review_status", "resolution_reason_code", "next_safe_action")
+            )
+        for item in residual_reconciliation_review.get("review_card_preview", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "review_card_id",
+                        "priority_order",
+                        "cycle_id",
+                        "review_status",
+                        "resolution_reason_code",
+                        "next_safe_action",
+                    )
+                )
+        for item in residual_reconciliation_review.get("control_card_preview", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in ("control_id", "control_order", "control_status", "blocker_code")
                 )
     residual_priority = shell.get("residual_operator_priority", {})
     if isinstance(residual_priority, dict):
@@ -14199,6 +14525,76 @@ def validate_read_only_dashboard_shell(
         for item in status_items + preview_items + decision_items:
             if not isinstance(item, dict):
                 return DashboardValidationResult("FAIL", "residual evidence progress items must be objects", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_reconciliation_review = shell.get("residual_operator_reconciliation_review_cards")
+    if not isinstance(residual_reconciliation_review, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator reconciliation review cards summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_reconciliation_review.get("display_only") is not True
+        or residual_reconciliation_review.get("dashboard_truth_only") is not True
+    ):
+        return DashboardValidationResult("BLOCKED", "residual reconciliation review cards must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_reconciliation_review.get("live_order_ready")
+        or residual_reconciliation_review.get("live_order_allowed")
+        or residual_reconciliation_review.get("can_live_trade")
+        or residual_reconciliation_review.get("scale_up_allowed")
+        or residual_reconciliation_review.get("current_evidence_write_allowed")
+        or residual_reconciliation_review.get("gap_closure_allowed_by_this_patch")
+        or residual_reconciliation_review.get("live_ready_write_allowed")
+        or residual_reconciliation_review.get("live_config_mutation_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual reconciliation review attempted current-evidence, live, LIVE_READY, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_reconciliation_review.get("source") != RESIDUAL_RECONCILIATION_REVIEW_CARDS_SOURCE:
+        return DashboardValidationResult("FAIL", "residual reconciliation review cards source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_reconciliation_review.get("status") not in {"NOT_LOADED", "BLOCKED_RECONCILIATION_REVIEW_ONLY", "INVALID"}:
+        return DashboardValidationResult("FAIL", "residual reconciliation review cards status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_reconciliation_review.get("source_status") == "LOADED":
+        if residual_reconciliation_review.get("status") != "BLOCKED_RECONCILIATION_REVIEW_ONLY":
+            return DashboardValidationResult("BLOCKED", "loaded residual reconciliation review cards must remain blocked", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_review.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual reconciliation review open gap count must match action plan", "CONTRACT_GAP_HIGH")
+        if residual_reconciliation_review.get("operator_reconciliation_gap_count") != 4:
+            return DashboardValidationResult("FAIL", "residual reconciliation review must bind the four operator reconciliation gaps", "CONTRACT_GAP_HIGH")
+        if residual_reconciliation_review.get("review_card_count") != 8:
+            return DashboardValidationResult("FAIL", "residual reconciliation review must expose eight source audit cards", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_reconciliation_review.get("blocked_review_card_count") != 8 or residual_reconciliation_review.get("review_ready_count") != 0:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation review cards must remain blocked and not ready", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_review.get("control_card_count") != 4:
+            return DashboardValidationResult("FAIL", "residual reconciliation review must expose four controls", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_reconciliation_review.get("unsatisfied_control_count") != 4 or residual_reconciliation_review.get("satisfied_control_count") != 0:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation controls must remain unsatisfied", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_review.get("operator_resolution_audit_status") != "UNRESOLVED_RECONCILIATION_REVIEW_ONLY":
+            return DashboardValidationResult("BLOCKED", "residual reconciliation audit status must remain unresolved", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_review.get("operator_resolution_binding_status") != "BOUND_BLOCKED":
+            return DashboardValidationResult("BLOCKED", "residual reconciliation binding must remain bound-blocked", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_review.get("source_hashes_verified") is not True:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation review source hashes must remain verified", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_review.get("operator_resolution_unresolved_item_count") != 8:
+            return DashboardValidationResult("FAIL", "residual reconciliation unresolved item count must remain 8", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            residual_reconciliation_review.get("operator_resolution_resolved_item_count") != 0
+            or residual_reconciliation_review.get("operator_resolution_controls_satisfied_count") != 0
+            or residual_reconciliation_review.get("operator_resolution_current_evidence_write_allowed_count") != 0
+            or residual_reconciliation_review.get("operator_resolution_candidate_current_evidence_usable_count") != 0
+        ):
+            return DashboardValidationResult("BLOCKED", "residual reconciliation review cannot accept current evidence or satisfied controls", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_review.get("operator_no_action_needed_for_next_non_live_patch") is not True:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation review must not require user runtime for the next non-live patch", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_review.get("operator_action_required_for_gap_closure") is not True:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation review must keep operator evidence required for closure", "LIVE_FINAL_GUARD_FAILED")
+        single_review = residual_reconciliation_review.get("single_next_review_card")
+        if not isinstance(single_review, dict) or single_review.get("review_status") != "BLOCKED_REVIEW_ONLY":
+            return DashboardValidationResult("FAIL", "single residual reconciliation review card must remain blocked", "SCHEMA_IDENTITY_MISMATCH")
+        review_items = residual_reconciliation_review.get("review_card_preview")
+        control_items = residual_reconciliation_review.get("control_card_preview")
+        if not isinstance(review_items, list) or len(review_items) < 3:
+            return DashboardValidationResult("FAIL", "residual reconciliation review must expose review card preview", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(control_items, list) or len(control_items) < 4:
+            return DashboardValidationResult("FAIL", "residual reconciliation review must expose control card preview", "SCHEMA_IDENTITY_MISMATCH")
+        for item in review_items + control_items:
+            if not isinstance(item, dict):
+                return DashboardValidationResult("FAIL", "residual reconciliation review preview items must be objects", "SCHEMA_IDENTITY_MISMATCH")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -19506,6 +19902,76 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             f'<div class="live-blocker-group"><strong>Observation</strong><span>{safe_text(evidence_observation_label)}</span></div>'
             "</section>"
         )
+    residual_reconciliation_review = shell.get("residual_operator_reconciliation_review_cards", {})
+    if not isinstance(residual_reconciliation_review, dict):
+        residual_reconciliation_review = {}
+    residual_reconciliation_review_html = ""
+    if residual_reconciliation_review.get("source_status") == "LOADED":
+        review_card_count = residual_reconciliation_review.get("review_card_count", 0)
+        blocked_review_count = residual_reconciliation_review.get("blocked_review_card_count", 0)
+        review_ready_count = residual_reconciliation_review.get("review_ready_count", 0)
+        control_card_count = residual_reconciliation_review.get("control_card_count", 0)
+        unsatisfied_control_count = residual_reconciliation_review.get("unsatisfied_control_count", 0)
+        unresolved_item_count = residual_reconciliation_review.get("operator_resolution_unresolved_item_count", 0)
+        write_allowed_count = residual_reconciliation_review.get(
+            "operator_resolution_current_evidence_write_allowed_count",
+            0,
+        )
+        usable_count = residual_reconciliation_review.get(
+            "operator_resolution_candidate_current_evidence_usable_count",
+            0,
+        )
+        source_bound = residual_reconciliation_review.get("source_hashes_verified", False)
+        single_review = residual_reconciliation_review.get("single_next_review_card", {})
+        if not isinstance(single_review, dict):
+            single_review = {}
+        review_cycle_id = single_review.get("cycle_id", "UNKNOWN")
+        review_status = single_review.get("review_status", "BLOCKED_REVIEW_ONLY")
+        review_reason = single_review.get("resolution_reason_code", "POST_RERUN_RECONCILIATION_REQUIRED")
+        review_next_action = single_review.get(
+            "next_safe_action",
+            "Review the first source-bound reconciliation card and keep current evidence blocked.",
+        )
+        residual_reconciliation_review_html = (
+            '<p class="live-blocker-note"><strong>Operator reconciliation review:</strong> '
+            + safe_text(
+                residual_reconciliation_review.get(
+                    "one_line_summary",
+                    "Operator reconciliation review cards remain blocked.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Review next:</strong> '
+            + safe_text(review_next_action)
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Source binding:</strong> '
+            + "audit="
+            + safe_text(residual_reconciliation_review.get("operator_resolution_audit_status", "UNKNOWN"))
+            + "; binding="
+            + safe_text(residual_reconciliation_review.get("operator_resolution_binding_status", "UNKNOWN"))
+            + "; source-bound="
+            + safe_text(source_bound)
+            + "; current-evidence writes="
+            + safe_text(write_allowed_count)
+            + "; usable="
+            + safe_text(usable_count)
+            + ".</p>"
+            '<p class="live-blocker-note"><strong>First review card:</strong> cycle='
+            + safe_text(review_cycle_id)
+            + "; status="
+            + safe_text(review_status)
+            + "; reason="
+            + safe_text(review_reason)
+            + ".</p>"
+            '<section class="live-blocker-groups" aria-label="operator reconciliation review card counts">'
+            f'<div class="live-blocker-group"><strong>Cards</strong><span>{safe_text(review_card_count)} review cards</span></div>'
+            f'<div class="live-blocker-group"><strong>Blocked</strong><span>{safe_text(blocked_review_count)} blocked</span></div>'
+            f'<div class="live-blocker-group"><strong>Ready</strong><span>{safe_text(review_ready_count)} ready</span></div>'
+            f'<div class="live-blocker-group"><strong>Controls</strong><span>{safe_text(control_card_count)} controls</span></div>'
+            f'<div class="live-blocker-group"><strong>Unsatisfied</strong><span>{safe_text(unsatisfied_control_count)} unsatisfied</span></div>'
+            f'<div class="live-blocker-group"><strong>Unresolved</strong><span>{safe_text(unresolved_item_count)} unresolved items</span></div>'
+            "</section>"
+        )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -20002,6 +20468,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="live-blocker-note">""" + safe_text(handoff_primary_next_action) + """</p>
         """ + residual_execution_guide_html + """
         """ + residual_evidence_progress_html + """
+        """ + residual_reconciliation_review_html + """
         <section class="live-blocker-groups" aria-label="operator handoff packet counts">
           <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
           <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>

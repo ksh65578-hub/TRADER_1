@@ -274,6 +274,18 @@ def residual_operator_evidence_progress_fixture():
     )
 
 
+def residual_operator_reconciliation_review_cards_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "evidence"
+            / "audit_reports"
+            / "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
     runtime = build_upbit_paper_runtime_cycle_report(
         cycle_id=f"dashboard-scorecard-{session_id}",
@@ -324,6 +336,7 @@ def build_dashboard(
     residual_operator_handoff_packet_report=None,
     residual_operator_execution_guide_report=None,
     residual_operator_evidence_progress_report=None,
+    residual_operator_reconciliation_review_cards_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
@@ -363,6 +376,7 @@ def build_dashboard(
         residual_operator_handoff_packet_report=residual_operator_handoff_packet_report,
         residual_operator_execution_guide_report=residual_operator_execution_guide_report,
         residual_operator_evidence_progress_report=residual_operator_evidence_progress_report,
+        residual_operator_reconciliation_review_cards_report=residual_operator_reconciliation_review_cards_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
@@ -7026,6 +7040,85 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
 
+    def test_dashboard_live_card_exposes_operator_reconciliation_review_cards(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
+            residual_operator_handoff_packet_report=residual_operator_handoff_packet_fixture(),
+            residual_operator_execution_guide_report=residual_operator_execution_guide_fixture(),
+            residual_operator_evidence_progress_report=residual_operator_evidence_progress_fixture(),
+            residual_operator_reconciliation_review_cards_report=residual_operator_reconciliation_review_cards_fixture(),
+            upbit_paper_post_rerun_operator_resolution_audit_report=post_rerun_resolution_audit_fixture(),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        review = dashboard["residual_operator_reconciliation_review_cards"]
+        self.assertEqual(review["source_status"], "LOADED")
+        self.assertEqual(review["status"], "BLOCKED_RECONCILIATION_REVIEW_ONLY")
+        self.assertEqual(review["open_gap_count"], 13)
+        self.assertEqual(review["operator_reconciliation_gap_count"], 4)
+        self.assertEqual(review["review_card_count"], 8)
+        self.assertEqual(review["blocked_review_card_count"], 8)
+        self.assertEqual(review["review_ready_count"], 0)
+        self.assertEqual(review["control_card_count"], 4)
+        self.assertEqual(review["unsatisfied_control_count"], 4)
+        self.assertEqual(review["satisfied_control_count"], 0)
+        self.assertEqual(review["operator_resolution_audit_status"], "UNRESOLVED_RECONCILIATION_REVIEW_ONLY")
+        self.assertEqual(review["operator_resolution_binding_status"], "BOUND_BLOCKED")
+        self.assertEqual(review["operator_resolution_unresolved_item_count"], 8)
+        self.assertEqual(review["operator_resolution_resolved_item_count"], 0)
+        self.assertEqual(review["operator_resolution_controls_satisfied_count"], 0)
+        self.assertEqual(review["operator_resolution_current_evidence_write_allowed_count"], 0)
+        self.assertEqual(review["operator_resolution_candidate_current_evidence_usable_count"], 0)
+        self.assertTrue(review["source_hashes_verified"])
+        self.assertEqual(review["single_next_review_card"]["review_status"], "BLOCKED_REVIEW_ONLY")
+        self.assertEqual(
+            review["single_next_review_card"]["resolution_reason_code"],
+            "POST_RERUN_RECONCILIATION_REQUIRED",
+        )
+        self.assertEqual(len(review["review_card_preview"]), 3)
+        self.assertEqual(len(review["control_card_preview"]), 4)
+        self.assertTrue(review["operator_no_action_needed_for_next_non_live_patch"])
+        self.assertTrue(review["operator_action_required_for_gap_closure"])
+        self.assertFalse(review["current_evidence_write_allowed"])
+        self.assertFalse(review["gap_closure_allowed_by_this_patch"])
+        self.assertFalse(review["live_ready_write_allowed"])
+        self.assertFalse(review["live_config_mutation_allowed"])
+        self.assertFalse(review["live_order_ready"])
+        self.assertFalse(review["live_order_allowed"])
+        self.assertFalse(review["can_live_trade"])
+        self.assertFalse(review["scale_up_allowed"])
+
+        source = next(
+            item
+            for item in dashboard["source_artifacts"]
+            if item["artifact_id"] == "RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS"
+        )
+        self.assertEqual(source["filename"], "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json")
+        self.assertEqual(source["freshness_status"], "PASS")
+
+        html = render_dashboard_html(dashboard)
+        answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
+        portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
+        answer_html = html[answer_start:portfolio_start]
+        self.assertIn("Operator reconciliation review:", answer_html)
+        self.assertIn("8 operator reconciliation review cards remain blocked", answer_html)
+        self.assertIn("4 controls are unsatisfied", answer_html)
+        self.assertIn("current-evidence writes stay 0", answer_html)
+        self.assertIn("Review next:", answer_html)
+        self.assertIn("Source binding:", answer_html)
+        self.assertIn("BOUND_BLOCKED", answer_html)
+        self.assertIn("source-bound=True", answer_html)
+        self.assertIn("current-evidence writes=0", answer_html)
+        self.assertIn("usable=0", answer_html)
+        self.assertIn("First review card:", answer_html)
+        self.assertIn("BLOCKED_REVIEW_ONLY", answer_html)
+        self.assertIn("POST_RERUN_RECONCILIATION_REQUIRED", answer_html)
+        self.assertIn("8 review cards", answer_html)
+        self.assertIn("4 controls", answer_html)
+        self.assertIn("8 unresolved items", answer_html)
+        self.assertNotIn("<button", answer_html.lower())
+        self.assertNotIn("<form", answer_html.lower())
+
     def test_dashboard_residual_operator_priority_queue_is_deterministic_and_display_only(self):
         dashboard = build_dashboard_with_residual_priority_resolution_binding()
         result = validate_read_only_dashboard_shell(dashboard)
@@ -7165,6 +7258,34 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         progress = dashboard["residual_operator_evidence_progress"]
         self.assertEqual(progress["status"], "INVALID")
         self.assertFalse(progress["user_runtime_required_for_next_non_live_patch"])
+
+    def test_dashboard_rejects_operator_reconciliation_review_card_permission_drift(self):
+        report = residual_operator_reconciliation_review_cards_fixture()
+        report["review_cards"][0]["current_evidence_write_allowed"] = True
+        report["review_cards"][0]["live_order_allowed"] = True
+        dashboard = build_dashboard(residual_operator_reconciliation_review_cards_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        review = dashboard["residual_operator_reconciliation_review_cards"]
+        self.assertEqual(review["source_status"], "LOADED")
+        self.assertEqual(review["status"], "INVALID")
+        self.assertFalse(review["current_evidence_write_allowed"])
+        self.assertFalse(review["live_order_allowed"])
+        self.assertFalse(review["scale_up_allowed"])
+
+    def test_dashboard_rejects_operator_reconciliation_review_source_binding_drift(self):
+        report = residual_operator_reconciliation_review_cards_fixture()
+        report["source_hashes_verified"] = False
+        report["operator_resolution_current_evidence_write_allowed_count"] = 1
+        dashboard = build_dashboard(residual_operator_reconciliation_review_cards_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        review = dashboard["residual_operator_reconciliation_review_cards"]
+        self.assertEqual(review["status"], "INVALID")
+        self.assertFalse(review["source_hashes_verified"])
+        self.assertEqual(review["operator_resolution_current_evidence_write_allowed_count"], 0)
 
     def test_dashboard_visual_layout_contract_blocks_cramped_regression(self):
         html = render_dashboard_html(build_dashboard())

@@ -1,0 +1,14 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS_20260506_001",
+  "created_at_utc": "2026-05-05T18:36:22Z",
+  "acceptance_status": "PASS_BLOCKED_NON_LIVE",
+  "open_gap_count": 13,
+  "review_card_count": 8,
+  "control_card_count": 4,
+  "source_hashes_verified": true,
+  "current_evidence_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
