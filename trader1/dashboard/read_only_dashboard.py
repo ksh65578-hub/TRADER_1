@@ -119,6 +119,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
     "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
@@ -126,6 +127,7 @@ RESIDUAL_HANDOFF_PACKET_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.j
 RESIDUAL_EXECUTION_GUIDE_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
 RESIDUAL_EVIDENCE_PROGRESS_SOURCE = "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
 RESIDUAL_RECONCILIATION_REVIEW_CARDS_SOURCE = "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json"
+RESIDUAL_RECONCILIATION_INTAKE_PREFLIGHT_SOURCE = "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json"
 RESIDUAL_ACTION_PLAN_CLASSES = {
     "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
     "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "PAPER ledger rerun",
@@ -11953,6 +11955,223 @@ def _residual_operator_reconciliation_review_cards_summary(report: dict[str, Any
     }
 
 
+def _residual_operator_reconciliation_intake_preflight_summary(report: dict[str, Any] | None) -> dict[str, Any]:
+    fallback = {
+        "title": "Operator Reconciliation Intake",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_RECONCILIATION_INTAKE_PREFLIGHT_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "review_card_count": 0,
+        "required_intake_item_count": 0,
+        "missing_intake_item_count": 0,
+        "ready_for_review_intake_item_count": 0,
+        "accepted_intake_item_count": 0,
+        "control_requirement_count": 0,
+        "unsatisfied_control_requirement_count": 0,
+        "operator_reconciliation_submission_manifest_status": "NOT_LOADED",
+        "paper_shadow_operator_evidence_intake_status": "NOT_LOADED",
+        "single_next_intake_item": {
+            "cycle_id": "NOT_LOADED",
+            "required_resolution_evidence_kind": "NOT_LOADED",
+            "intake_item_status": "NOT_LOADED",
+            "resolution_reason_code": "POST_RERUN_RECONCILIATION_REQUIRED",
+        },
+        "intake_item_preview": [],
+        "one_line_summary": "Operator reconciliation intake preflight is not loaded; current evidence remains blocked.",
+        "primary_next_action": "Load reconciliation intake preflight before judging operator submission readiness.",
+        "operator_no_action_needed_for_next_non_live_patch": False,
+        "operator_action_required_for_gap_closure": True,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    forbidden_fields = (
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "credential_values_read",
+        "credential_environment_inspection_performed",
+        "runtime_artifacts_staged_by_this_patch",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    )
+    if any(report.get(field) is not False for field in forbidden_fields):
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator reconciliation intake preflight attempted current-evidence, live, LIVE_READY, credential, runtime-stage, or scale permission.",
+            "primary_next_action": "Reject the reconciliation intake preflight and regenerate it as display-only.",
+        }
+
+    items = report.get("intake_items", [])
+    if not isinstance(items, list):
+        items = []
+    preview: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if any(
+            item.get(field) is not False
+            for field in (
+                "operator_submission_validated",
+                "source_hash_recorded",
+                "review_ready",
+                "accepted_for_reconciliation",
+                "current_evidence_write_allowed",
+                "gap_closure_allowed_by_this_patch",
+                "live_ready_write_allowed",
+                "live_config_mutation_allowed",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+            )
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator reconciliation intake item attempted acceptance, hash recording, current-evidence write, live, or scale permission.",
+                "primary_next_action": "Reject the intake preflight and keep reconciliation blocked.",
+            }
+        if item.get("intake_item_status") != "MISSING_OPERATOR_RECONCILIATION_EVIDENCE":
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator reconciliation intake item lost missing-evidence status.",
+                "primary_next_action": "Reject the intake preflight and keep reconciliation blocked.",
+            }
+        if len(preview) < 4:
+            preview.append(
+                {
+                    "intake_item_id": str(item.get("intake_item_id") or ""),
+                    "priority_order": int(item.get("priority_order", 0) or 0),
+                    "cycle_id": str(item.get("cycle_id") or ""),
+                    "required_resolution_evidence_kind": str(item.get("required_resolution_evidence_kind") or ""),
+                    "intake_item_status": str(item.get("intake_item_status") or ""),
+                    "resolution_reason_code": str(item.get("resolution_reason_code") or ""),
+                }
+            )
+
+    controls = report.get("control_requirements", [])
+    if not isinstance(controls, list):
+        controls = []
+    for control in controls:
+        if not isinstance(control, dict):
+            continue
+        if (
+            control.get("required") is not True
+            or control.get("satisfied") is not False
+            or control.get("operator_submission_required") is not True
+            or control.get("current_evidence_write_allowed") is not False
+            or control.get("gap_closure_allowed_by_this_patch") is not False
+            or control.get("live_order_ready") is not False
+            or control.get("live_order_allowed") is not False
+            or control.get("can_live_trade") is not False
+            or control.get("scale_up_allowed") is not False
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator reconciliation intake control attempted satisfaction or permission without evidence.",
+                "primary_next_action": "Reject the intake preflight and keep controls unsatisfied.",
+            }
+
+    status = str(report.get("preflight_status") or "BLOCKED_RECONCILIATION_INTAKE_PACKAGE_MISSING")
+    invalid = (
+        report.get("schema_id") != "trader1.residual_operator_reconciliation_intake_preflight_report.v1"
+        or report.get("validation_status") != "PASS"
+        or status != "BLOCKED_RECONCILIATION_INTAKE_PACKAGE_MISSING"
+        or report.get("review_cards_source_status") != "BLOCKED_RECONCILIATION_REVIEW_ONLY"
+        or report.get("review_cards_source_hashes_verified") is not True
+        or report.get("review_ready_count") != 0
+        or report.get("satisfied_control_count") != 0
+        or report.get("operator_resolution_current_evidence_write_allowed_count") != 0
+        or report.get("operator_resolution_candidate_current_evidence_usable_count") != 0
+        or report.get("operator_submission_required") is not True
+        or report.get("operator_submission_validated") is not False
+        or report.get("ready_for_review_intake_item_count") != 0
+        or report.get("accepted_intake_item_count") != 0
+        or report.get("paper_shadow_operator_evidence_intake_status") != "BLOCKED_AWAITING_OPERATOR_EVIDENCE_PACKAGE"
+        or report.get("operator_no_action_needed_for_next_non_live_patch") is not True
+        or report.get("operator_action_required_for_gap_closure") is not True
+    )
+    if invalid:
+        status = "INVALID"
+
+    single_next = report.get("single_next_intake_item", {})
+    if not isinstance(single_next, dict):
+        single_next = {}
+    return {
+        "title": "Operator Reconciliation Intake",
+        "status": status,
+        "source": RESIDUAL_RECONCILIATION_INTAKE_PREFLIGHT_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": report.get("open_gap_count", 13) if isinstance(report.get("open_gap_count", 13), int) else 13,
+        "review_card_count": int(report.get("review_card_count", 0) or 0),
+        "required_intake_item_count": int(report.get("required_intake_item_count", len(items)) or len(items)),
+        "missing_intake_item_count": int(report.get("missing_intake_item_count", len(items)) or len(items)),
+        "ready_for_review_intake_item_count": 0,
+        "accepted_intake_item_count": 0,
+        "control_requirement_count": int(report.get("control_requirement_count", len(controls)) or len(controls)),
+        "unsatisfied_control_requirement_count": int(
+            report.get("unsatisfied_control_requirement_count", len(controls)) or len(controls)
+        ),
+        "operator_reconciliation_submission_manifest_status": str(
+            report.get("operator_reconciliation_submission_manifest_status")
+            or "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST"
+        ),
+        "paper_shadow_operator_evidence_intake_status": str(
+            report.get("paper_shadow_operator_evidence_intake_status") or "BLOCKED_AWAITING_OPERATOR_EVIDENCE_PACKAGE"
+        ),
+        "single_next_intake_item": {
+            "cycle_id": str(single_next.get("cycle_id") or "UNKNOWN"),
+            "required_resolution_evidence_kind": str(single_next.get("required_resolution_evidence_kind") or "UNKNOWN"),
+            "intake_item_status": str(single_next.get("intake_item_status") or "MISSING_OPERATOR_RECONCILIATION_EVIDENCE"),
+            "resolution_reason_code": str(single_next.get("resolution_reason_code") or "POST_RERUN_RECONCILIATION_REQUIRED"),
+        },
+        "intake_item_preview": preview,
+        "one_line_summary": str(
+            report.get("one_line_summary", f"{len(items)} reconciliation evidence inputs remain missing.")
+        ),
+        "primary_next_action": str(
+            report.get(
+                "primary_next_action",
+                "Prepare a separate operator reconciliation submission manifest and keep current evidence blocked.",
+            )
+        ),
+        "operator_no_action_needed_for_next_non_live_patch": True,
+        "operator_action_required_for_gap_closure": True,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -12002,6 +12221,7 @@ def build_read_only_dashboard_shell(
     residual_operator_execution_guide_report: dict[str, Any] | None = None,
     residual_operator_evidence_progress_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_review_cards_report: dict[str, Any] | None = None,
+    residual_operator_reconciliation_intake_preflight_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -12047,6 +12267,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_execution_guide": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
         "residual_operator_evidence_progress": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
         "residual_operator_reconciliation_review_cards": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
+        "residual_operator_reconciliation_intake_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -12180,6 +12401,38 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 reconciliation_review_freshness,
+            )
+        )
+    if isinstance(residual_operator_reconciliation_intake_preflight_report, dict):
+        reconciliation_intake_freshness = (
+            "PASS"
+            if residual_operator_reconciliation_intake_preflight_report.get("schema_id")
+            == "trader1.residual_operator_reconciliation_intake_preflight_report.v1"
+            and residual_operator_reconciliation_intake_preflight_report.get("preflight_status")
+            == "BLOCKED_RECONCILIATION_INTAKE_PACKAGE_MISSING"
+            and residual_operator_reconciliation_intake_preflight_report.get("validation_status") == "PASS"
+            and residual_operator_reconciliation_intake_preflight_report.get("review_cards_source_status")
+            == "BLOCKED_RECONCILIATION_REVIEW_ONLY"
+            and residual_operator_reconciliation_intake_preflight_report.get("review_cards_source_hashes_verified")
+            is True
+            and residual_operator_reconciliation_intake_preflight_report.get("ready_for_review_intake_item_count") == 0
+            and residual_operator_reconciliation_intake_preflight_report.get("accepted_intake_item_count") == 0
+            and residual_operator_reconciliation_intake_preflight_report.get("current_evidence_write_allowed") is False
+            and residual_operator_reconciliation_intake_preflight_report.get("gap_closure_allowed_by_this_patch") is False
+            and residual_operator_reconciliation_intake_preflight_report.get("live_ready_write_allowed") is False
+            and residual_operator_reconciliation_intake_preflight_report.get("live_order_allowed") is False
+            and residual_operator_reconciliation_intake_preflight_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT",
+                paths.get(
+                    "residual_operator_reconciliation_intake_preflight",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
+                ),
+                True,
+                reconciliation_intake_freshness,
             )
         )
     if isinstance(shadow_runtime_writer_report, dict):
@@ -13262,6 +13515,9 @@ def build_read_only_dashboard_shell(
     residual_operator_reconciliation_review_cards = _residual_operator_reconciliation_review_cards_summary(
         residual_operator_reconciliation_review_cards_report
     )
+    residual_operator_reconciliation_intake_preflight = _residual_operator_reconciliation_intake_preflight_summary(
+        residual_operator_reconciliation_intake_preflight_report
+    )
     residual_operator_priority = _residual_operator_priority_summary(
         residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet,
@@ -13324,6 +13580,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_execution_guide": residual_operator_execution_guide,
         "residual_operator_evidence_progress": residual_operator_evidence_progress,
         "residual_operator_reconciliation_review_cards": residual_operator_reconciliation_review_cards,
+        "residual_operator_reconciliation_intake_preflight": residual_operator_reconciliation_intake_preflight,
         "residual_operator_priority": residual_operator_priority,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
@@ -13798,6 +14055,44 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 values.extend(
                     str(item.get(key, ""))
                     for key in ("control_id", "control_order", "control_status", "blocker_code")
+                )
+    residual_reconciliation_intake = shell.get("residual_operator_reconciliation_intake_preflight", {})
+    if isinstance(residual_reconciliation_intake, dict):
+        values.extend(
+            str(residual_reconciliation_intake.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "source_status",
+                "one_line_summary",
+                "primary_next_action",
+                "operator_reconciliation_submission_manifest_status",
+                "paper_shadow_operator_evidence_intake_status",
+            )
+        )
+        single_intake = residual_reconciliation_intake.get("single_next_intake_item", {})
+        if isinstance(single_intake, dict):
+            values.extend(
+                str(single_intake.get(key, ""))
+                for key in (
+                    "cycle_id",
+                    "required_resolution_evidence_kind",
+                    "intake_item_status",
+                    "resolution_reason_code",
+                )
+            )
+        for item in residual_reconciliation_intake.get("intake_item_preview", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "intake_item_id",
+                        "priority_order",
+                        "cycle_id",
+                        "required_resolution_evidence_kind",
+                        "intake_item_status",
+                        "resolution_reason_code",
+                    )
                 )
     residual_priority = shell.get("residual_operator_priority", {})
     if isinstance(residual_priority, dict):
@@ -14595,6 +14890,70 @@ def validate_read_only_dashboard_shell(
         for item in review_items + control_items:
             if not isinstance(item, dict):
                 return DashboardValidationResult("FAIL", "residual reconciliation review preview items must be objects", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_reconciliation_intake = shell.get("residual_operator_reconciliation_intake_preflight")
+    if not isinstance(residual_reconciliation_intake, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator reconciliation intake preflight summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_reconciliation_intake.get("display_only") is not True
+        or residual_reconciliation_intake.get("dashboard_truth_only") is not True
+    ):
+        return DashboardValidationResult("BLOCKED", "residual reconciliation intake must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_reconciliation_intake.get("live_order_ready")
+        or residual_reconciliation_intake.get("live_order_allowed")
+        or residual_reconciliation_intake.get("can_live_trade")
+        or residual_reconciliation_intake.get("scale_up_allowed")
+        or residual_reconciliation_intake.get("current_evidence_write_allowed")
+        or residual_reconciliation_intake.get("gap_closure_allowed_by_this_patch")
+        or residual_reconciliation_intake.get("live_ready_write_allowed")
+        or residual_reconciliation_intake.get("live_config_mutation_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual reconciliation intake attempted current-evidence, live, LIVE_READY, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_reconciliation_intake.get("source") != RESIDUAL_RECONCILIATION_INTAKE_PREFLIGHT_SOURCE:
+        return DashboardValidationResult("FAIL", "residual reconciliation intake source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_reconciliation_intake.get("status") not in {"NOT_LOADED", "BLOCKED_RECONCILIATION_INTAKE_PACKAGE_MISSING", "INVALID"}:
+        return DashboardValidationResult("FAIL", "residual reconciliation intake status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_reconciliation_intake.get("source_status") == "LOADED":
+        if residual_reconciliation_intake.get("status") != "BLOCKED_RECONCILIATION_INTAKE_PACKAGE_MISSING":
+            return DashboardValidationResult("BLOCKED", "loaded residual reconciliation intake must remain blocked", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_intake.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual reconciliation intake open gap count must match action plan", "CONTRACT_GAP_HIGH")
+        if residual_reconciliation_intake.get("review_card_count") != 8:
+            return DashboardValidationResult("FAIL", "residual reconciliation intake must bind eight review cards", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_reconciliation_intake.get("required_intake_item_count") != 32:
+            return DashboardValidationResult("FAIL", "residual reconciliation intake must expose 32 required evidence inputs", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_reconciliation_intake.get("missing_intake_item_count") != 32:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation intake must keep all evidence inputs missing", "LIVE_FINAL_GUARD_FAILED")
+        if (
+            residual_reconciliation_intake.get("ready_for_review_intake_item_count") != 0
+            or residual_reconciliation_intake.get("accepted_intake_item_count") != 0
+        ):
+            return DashboardValidationResult("BLOCKED", "residual reconciliation intake cannot mark evidence ready or accepted", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_intake.get("control_requirement_count") != 4:
+            return DashboardValidationResult("FAIL", "residual reconciliation intake must expose four controls", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_reconciliation_intake.get("unsatisfied_control_requirement_count") != 4:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation intake controls must remain unsatisfied", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_intake.get("operator_reconciliation_submission_manifest_status") not in {
+            "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST",
+            "PRESENT_NOT_VALIDATED",
+        }:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation intake manifest cannot be validated by dashboard", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_intake.get("paper_shadow_operator_evidence_intake_status") != "BLOCKED_AWAITING_OPERATOR_EVIDENCE_PACKAGE":
+            return DashboardValidationResult("BLOCKED", "paper/shadow operator evidence intake must remain blocked", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_intake.get("operator_no_action_needed_for_next_non_live_patch") is not True:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation intake must not require user runtime for the next non-live patch", "LIVE_FINAL_GUARD_FAILED")
+        if residual_reconciliation_intake.get("operator_action_required_for_gap_closure") is not True:
+            return DashboardValidationResult("BLOCKED", "residual reconciliation intake must keep operator evidence required for closure", "LIVE_FINAL_GUARD_FAILED")
+        single_intake = residual_reconciliation_intake.get("single_next_intake_item")
+        if not isinstance(single_intake, dict) or single_intake.get("intake_item_status") != "MISSING_OPERATOR_RECONCILIATION_EVIDENCE":
+            return DashboardValidationResult("FAIL", "single residual reconciliation intake item must remain missing", "SCHEMA_IDENTITY_MISMATCH")
+        intake_items = residual_reconciliation_intake.get("intake_item_preview")
+        if not isinstance(intake_items, list) or len(intake_items) < 4:
+            return DashboardValidationResult("FAIL", "residual reconciliation intake must expose intake item preview", "SCHEMA_IDENTITY_MISMATCH")
+        for item in intake_items:
+            if not isinstance(item, dict):
+                return DashboardValidationResult("FAIL", "residual reconciliation intake preview items must be objects", "SCHEMA_IDENTITY_MISMATCH")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -19972,6 +20331,57 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             f'<div class="live-blocker-group"><strong>Unresolved</strong><span>{safe_text(unresolved_item_count)} unresolved items</span></div>'
             "</section>"
         )
+    residual_reconciliation_intake = shell.get("residual_operator_reconciliation_intake_preflight", {})
+    if not isinstance(residual_reconciliation_intake, dict):
+        residual_reconciliation_intake = {}
+    residual_reconciliation_intake_html = ""
+    if residual_reconciliation_intake.get("source_status") == "LOADED":
+        intake_count = residual_reconciliation_intake.get("required_intake_item_count", 0)
+        missing_intake_count = residual_reconciliation_intake.get("missing_intake_item_count", 0)
+        ready_intake_count = residual_reconciliation_intake.get("ready_for_review_intake_item_count", 0)
+        accepted_intake_count = residual_reconciliation_intake.get("accepted_intake_item_count", 0)
+        control_requirement_count = residual_reconciliation_intake.get("control_requirement_count", 0)
+        unsatisfied_requirement_count = residual_reconciliation_intake.get("unsatisfied_control_requirement_count", 0)
+        manifest_status = residual_reconciliation_intake.get(
+            "operator_reconciliation_submission_manifest_status",
+            "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST",
+        )
+        single_intake = residual_reconciliation_intake.get("single_next_intake_item", {})
+        if not isinstance(single_intake, dict):
+            single_intake = {}
+        residual_reconciliation_intake_html = (
+            '<p class="live-blocker-note"><strong>Operator reconciliation intake:</strong> '
+            + safe_text(
+                residual_reconciliation_intake.get(
+                    "one_line_summary",
+                    "Operator reconciliation intake remains blocked.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Intake next:</strong> '
+            + safe_text(residual_reconciliation_intake.get("primary_next_action", "Prepare the reconciliation submission package."))
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Manifest:</strong> '
+            + safe_text(manifest_status)
+            + "; PAPER/SHADOW intake="
+            + safe_text(residual_reconciliation_intake.get("paper_shadow_operator_evidence_intake_status", "UNKNOWN"))
+            + ".</p>"
+            '<p class="live-blocker-note"><strong>First missing input:</strong> cycle='
+            + safe_text(single_intake.get("cycle_id", "UNKNOWN"))
+            + "; evidence="
+            + safe_text(single_intake.get("required_resolution_evidence_kind", "UNKNOWN"))
+            + "; status="
+            + safe_text(single_intake.get("intake_item_status", "MISSING_OPERATOR_RECONCILIATION_EVIDENCE"))
+            + ".</p>"
+            '<section class="live-blocker-groups" aria-label="operator reconciliation intake counts">'
+            f'<div class="live-blocker-group"><strong>Required</strong><span>{safe_text(intake_count)} inputs</span></div>'
+            f'<div class="live-blocker-group"><strong>Missing</strong><span>{safe_text(missing_intake_count)} missing</span></div>'
+            f'<div class="live-blocker-group"><strong>Ready</strong><span>{safe_text(ready_intake_count)} ready</span></div>'
+            f'<div class="live-blocker-group"><strong>Accepted</strong><span>{safe_text(accepted_intake_count)} accepted</span></div>'
+            f'<div class="live-blocker-group"><strong>Controls</strong><span>{safe_text(control_requirement_count)} controls</span></div>'
+            f'<div class="live-blocker-group"><strong>Unsatisfied</strong><span>{safe_text(unsatisfied_requirement_count)} unsatisfied</span></div>'
+            "</section>"
+        )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -20469,6 +20879,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         """ + residual_execution_guide_html + """
         """ + residual_evidence_progress_html + """
         """ + residual_reconciliation_review_html + """
+        """ + residual_reconciliation_intake_html + """
         <section class="live-blocker-groups" aria-label="operator handoff packet counts">
           <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
           <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>

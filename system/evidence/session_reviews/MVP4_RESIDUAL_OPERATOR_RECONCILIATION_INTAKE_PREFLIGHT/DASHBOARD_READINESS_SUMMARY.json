@@ -1,0 +1,8 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT_20260506_001",
+  "dashboard_status": "PASS_RECONCILIATION_INTAKE_PREFLIGHT_BLOCKED",
+  "preflight_status": "BLOCKED_RECONCILIATION_INTAKE_PACKAGE_MISSING",
+  "required_intake_item_count": 32,
+  "missing_intake_item_count": 32,
+  "live_execution_candidate": false
+}

@@ -112,7 +112,8 @@
             "RESIDUAL_OPERATOR_HANDOFF_PACKET",
             "RESIDUAL_OPERATOR_EXECUTION_GUIDE",
             "RESIDUAL_OPERATOR_EVIDENCE_PROGRESS",
-            "RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS"
+            "RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS",
+            "RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT"
           ]
         },
         "path": {
@@ -156,7 +157,8 @@
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
             "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
-            "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json"
+            "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
+            "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json"
           ]
         },
         "truth_role": {
@@ -4018,6 +4020,185 @@
         },
         "scale_up_allowed": {
           "const": false
+        }
+      }
+    },
+    "residual_operator_reconciliation_intake_preflight": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "source",
+        "source_status",
+        "open_gap_count",
+        "review_card_count",
+        "required_intake_item_count",
+        "missing_intake_item_count",
+        "ready_for_review_intake_item_count",
+        "accepted_intake_item_count",
+        "control_requirement_count",
+        "unsatisfied_control_requirement_count",
+        "operator_reconciliation_submission_manifest_status",
+        "paper_shadow_operator_evidence_intake_status",
+        "single_next_intake_item",
+        "intake_item_preview",
+        "one_line_summary",
+        "primary_next_action",
+        "operator_no_action_needed_for_next_non_live_patch",
+        "operator_action_required_for_gap_closure",
+        "display_only",
+        "dashboard_truth_only",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "Operator Reconciliation Intake"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_RECONCILIATION_INTAKE_PACKAGE_MISSING",
+            "INVALID"
+          ]
+        },
+        "source": {
+          "const": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json"
+        },
+        "source_status": {
+          "enum": [
+            "LOADED",
+            "NOT_LOADED"
+          ]
+        },
+        "open_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "review_card_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_intake_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_intake_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ready_for_review_intake_item_count": {
+          "const": 0
+        },
+        "accepted_intake_item_count": {
+          "const": 0
+        },
+        "control_requirement_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsatisfied_control_requirement_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_reconciliation_submission_manifest_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_shadow_operator_evidence_intake_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "single_next_intake_item": {
+          "$ref": "#/$defs/residual_operator_reconciliation_intake_preview_item"
+        },
+        "intake_item_preview": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/residual_operator_reconciliation_intake_preview_item"
+          }
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_no_action_needed_for_next_non_live_patch": {
+          "type": "boolean"
+        },
+        "operator_action_required_for_gap_closure": {
+          "const": true
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_ready_write_allowed": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "residual_operator_reconciliation_intake_preview_item": {
+      "type": "object",
+      "required": [
+        "cycle_id",
+        "required_resolution_evidence_kind",
+        "intake_item_status",
+        "resolution_reason_code"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "intake_item_id": {
+          "type": "string"
+        },
+        "priority_order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cycle_id": {
+          "type": "string"
+        },
+        "required_resolution_evidence_kind": {
+          "type": "string"
+        },
+        "intake_item_status": {
+          "type": "string"
+        },
+        "resolution_reason_code": {
+          "type": "string"
         }
       }
     },
@@ -8523,7 +8704,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 32,
+      "maxItems": 33,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -8584,6 +8765,9 @@
     },
     "residual_operator_reconciliation_review_cards": {
       "$ref": "#/$defs/residual_operator_reconciliation_review_cards"
+    },
+    "residual_operator_reconciliation_intake_preflight": {
+      "$ref": "#/$defs/residual_operator_reconciliation_intake_preflight"
     },
     "residual_operator_priority": {
       "$ref": "#/$defs/residual_operator_priority"
