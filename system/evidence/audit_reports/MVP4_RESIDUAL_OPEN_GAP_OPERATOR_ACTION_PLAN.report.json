@@ -1,0 +1,218 @@
+{
+  "schema_id": "trader1.residual_open_gap_operator_action_plan_report.v1",
+  "patch_id": "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN_20260505_001",
+  "generated_at_utc": "2026-05-05T04:34:57Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "source_classification_report_id": "MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION_20260505_001",
+  "source_classification_report_hash": "E260A88878B77F10AB916915BAB3E7C9FFBBAC1691CF32B8C5E0282329EF56C5",
+  "state_last_patch_id_before": "MVP4_DASHBOARD_RESIDUAL_BLOCKER_SUMMARY_20260505_001",
+  "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "open_gap_count": 13,
+  "total_action_gap_count": 13,
+  "implementation_recheck_action_count": 0,
+  "external_or_operator_action_required": true,
+  "action_items": [
+    {
+      "action_class": "OPERATOR_RECONCILIATION_ACTION",
+      "priority": 1,
+      "title": "Complete operator reconciliation",
+      "plain_next_action": "Review and reconcile repaired, regenerated, or hash-mismatched evidence before promotion.",
+      "unlock_condition": "operator reconciliation artifacts explicitly resolve the affected gaps",
+      "gap_count": 4,
+      "gap_ids": [
+        "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+        "POST_REPAIR_RECONCILIATION_REQUIRED",
+        "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+        "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED"
+      ],
+      "source_categories": [
+        "OPERATOR_RECONCILIATION"
+      ],
+      "requires_operator_reconciliation": true,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false,
+      "forbidden_actions": [
+        "do not place live orders",
+        "do not use credentials or API keys",
+        "do not mutate live config",
+        "do not write LIVE_READY snapshot",
+        "do not infer evidence across exchange, market_type, mode, or session scope",
+        "do not enable risk scale-up"
+      ]
+    },
+    {
+      "action_class": "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+      "priority": 2,
+      "title": "Run bounded PAPER ledger/reconciliation reruns",
+      "plain_next_action": "Rerun paper-only ledger and reconciliation jobs only when the required inputs exist.",
+      "unlock_condition": "bounded paper-only rerun outputs and reconciliation reports validate cleanly",
+      "gap_count": 3,
+      "gap_ids": [
+        "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+        "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+        "POST_RERUN_RECONCILIATION_REQUIRED"
+      ],
+      "source_categories": [
+        "LEDGER_RERUN_RECONCILIATION"
+      ],
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": true,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false,
+      "forbidden_actions": [
+        "do not place live orders",
+        "do not use credentials or API keys",
+        "do not mutate live config",
+        "do not write LIVE_READY snapshot",
+        "do not infer evidence across exchange, market_type, mode, or session scope",
+        "do not enable risk scale-up"
+      ]
+    },
+    {
+      "action_class": "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+      "priority": 3,
+      "title": "Collect longer PAPER/SHADOW evidence",
+      "plain_next_action": "Collect fresh audited PAPER/SHADOW runtime and profitability maturity evidence.",
+      "unlock_condition": "long-run PAPER/SHADOW evidence, shadow observation, and profitability maturity validators pass",
+      "gap_count": 3,
+      "gap_ids": [
+        "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+        "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+        "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY"
+      ],
+      "source_categories": [
+        "RUNTIME_LONG_RUN_EVIDENCE",
+        "PAPER_SHADOW_RUNTIME_EVIDENCE",
+        "PROFITABILITY_EVIDENCE_MATURITY"
+      ],
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": true,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false,
+      "forbidden_actions": [
+        "do not place live orders",
+        "do not use credentials or API keys",
+        "do not mutate live config",
+        "do not write LIVE_READY snapshot",
+        "do not infer evidence across exchange, market_type, mode, or session scope",
+        "do not enable risk scale-up"
+      ]
+    },
+    {
+      "action_class": "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+      "priority": 4,
+      "title": "Provide external live-readiness evidence",
+      "plain_next_action": "Provide official API, read-only account, burn-in, manual test, and operator approval evidence outside this non-live patch path.",
+      "unlock_condition": "independent live-readiness evidence exists and all live gates pass",
+      "gap_count": 1,
+      "gap_ids": [
+        "LIVE_ENABLING_EVIDENCE_MISSING"
+      ],
+      "source_categories": [
+        "EXTERNAL_LIVE_EVIDENCE"
+      ],
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": true,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false,
+      "forbidden_actions": [
+        "do not place live orders",
+        "do not use credentials or API keys",
+        "do not mutate live config",
+        "do not write LIVE_READY snapshot",
+        "do not infer evidence across exchange, market_type, mode, or session scope",
+        "do not enable risk scale-up"
+      ]
+    },
+    {
+      "action_class": "SEALED_BASELINE_PRESERVATION_ACTION",
+      "priority": 5,
+      "title": "Preserve sealed historical baseline",
+      "plain_next_action": "Do not rewrite sealed patch_result validator-run history by inference.",
+      "unlock_condition": "sealed baseline reconciliation remains explicit and audit-preserved",
+      "gap_count": 1,
+      "gap_ids": [
+        "PATCH_RESULT_VALIDATOR_RUN_GAP"
+      ],
+      "source_categories": [
+        "SEALED_HISTORICAL_PATCH_RESULT_BASELINE"
+      ],
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false,
+      "forbidden_actions": [
+        "do not place live orders",
+        "do not use credentials or API keys",
+        "do not mutate live config",
+        "do not write LIVE_READY snapshot",
+        "do not infer evidence across exchange, market_type, mode, or session scope",
+        "do not enable risk scale-up"
+      ]
+    },
+    {
+      "action_class": "SCALE_UP_POLICY_EVIDENCE_ACTION",
+      "priority": 6,
+      "title": "Keep scale-up disabled",
+      "plain_next_action": "Keep scale-up disabled until burn-in, parity, survival, and operator policy evidence pass.",
+      "unlock_condition": "scale-up eligibility validators and operator policy pass for the exact scope",
+      "gap_count": 1,
+      "gap_ids": [
+        "SCALE_UP_NOT_ELIGIBLE"
+      ],
+      "source_categories": [
+        "SCALE_UP_POLICY"
+      ],
+      "requires_operator_reconciliation": false,
+      "requires_external_evidence": false,
+      "requires_paper_shadow_evidence": false,
+      "requires_ledger_rerun": false,
+      "allows_live_order": false,
+      "allows_live_config_mutation": false,
+      "allows_scale_up": false,
+      "forbidden_actions": [
+        "do not place live orders",
+        "do not use credentials or API keys",
+        "do not mutate live config",
+        "do not write LIVE_READY snapshot",
+        "do not infer evidence across exchange, market_type, mode, or session scope",
+        "do not enable risk scale-up"
+      ]
+    }
+  ],
+  "forbidden_actions": [
+    "do not place live orders",
+    "do not use credentials or API keys",
+    "do not mutate live config",
+    "do not write LIVE_READY snapshot",
+    "do not infer evidence across exchange, market_type, mode, or session scope",
+    "do not enable risk scale-up"
+  ],
+  "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "classification_validation_status": "PASS",
+  "classification_validation_errors": [],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "report_hash": "C99AA8E05CC77FF240582EE3CDCC6DAEA1210328A7F6F10EACD7518B63E9ABA3"
+}

@@ -1,0 +1,51 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN_EVIDENCE",
+  "created_at_utc": "2026-05-05T04:34:57Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN_20260505_001",
+  "artifact_paths": [
+    "contracts/generated/ACTIVE_WORKING_VIEW.md",
+    "contracts/generated/context_pack/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.md",
+    "contracts/generated/current_implementation_state.json",
+    "contracts/generated/read_cache_manifest.json",
+    "contracts/generated/requirement_artifact_matrix.json",
+    "contracts/generated/requirement_index.json",
+    "contracts/registry.yaml",
+    "contracts/schema/residual_open_gap_operator_action_plan_report.schema.json",
+    "system/evidence/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.evidence_manifest.json",
+    "system/evidence/audit_reports/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.report.json",
+    "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
+    "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN_20260505.md",
+    "system/evidence/implementation_patch_ledger.json",
+    "system/evidence/patch_results/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.patch_result.json",
+    "system/evidence/stage_gates/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.stage_gate_result.json",
+    "system/evidence/validator_runs/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.validator_run_log.json",
+    "tests/contract/test_residual_open_gap_operator_action_plan.py",
+    "tools/emit_residual_open_gap_operator_action_plan_patch_evidence.py",
+    "trader1/reports/residual_open_gap_operator_action_plan.py"
+  ],
+  "known_blockers": [
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
