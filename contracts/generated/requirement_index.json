@@ -10628,6 +10628,69 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN",
+      "source_section_id": "SECTION_CONTRACT_GAP",
+      "source_file": "TRADER_1.md",
+      "source_heading": "residual open gap operator action plan",
+      "full_text_marker": "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN: residual open contract gaps must be grouped into operator/evidence actions and must not be treated as completed implementation work",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Residual open gap operator action plan",
+      "requirement_kind": "EVIDENCE_PATCH",
+      "schema_ids": [
+        "trader1.residual_open_gap_operator_action_plan_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "live_final_guard_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.md",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/requirement_index.json",
+        "contracts/registry.yaml",
+        "contracts/schema/residual_open_gap_operator_action_plan_report.schema.json",
+        "system/evidence/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN_20260505.md",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/patch_results/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.patch_result.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.validator_run_log.json",
+        "tests/contract/test_residual_open_gap_operator_action_plan.py",
+        "tools/emit_residual_open_gap_operator_action_plan_patch_evidence.py",
+        "trader1/reports/residual_open_gap_operator_action_plan.py"
+      ],
+      "test_ids": [
+        "tests/contract/test_residual_open_gap_operator_action_plan.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_CONTRACT_GAP",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_LONG_RUN_RUNTIME_EVIDENCE",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-OPEN-GAP-CURRENT-BLOCKER-CLASSIFICATION",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "A8787F4BA739BA1FC22624568EDFEE17B8E1D0C562A2BD5D856735B995577BCC",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_RESIDUAL_OPERATOR_ACTION_PLAN",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESTART-RECOVERY-WAL-LEDGER-BINDING-RECHECK",
       "source_section_id": "SECTION_LEDGER_RECONCILIATION_IDEMPOTENCY",
       "source_file": "TRADER_1.md",
@@ -21643,5 +21706,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T04:17:12Z"
+  "updated_at_utc": "2026-05-05T04:34:57Z"
 }

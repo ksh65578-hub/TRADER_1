@@ -988,6 +988,10 @@
       "schema_id": "trader1.open_contract_gap_current_blocker_classification_report.v1",
       "path": "contracts/schema/open_contract_gap_current_blocker_classification_report.schema.json"
     },
+    "residual_open_gap_operator_action_plan_report": {
+      "schema_id": "trader1.residual_open_gap_operator_action_plan_report.v1",
+      "path": "contracts/schema/residual_open_gap_operator_action_plan_report.schema.json"
+    },
     "patch_result": {
       "schema_id": "trader1.patch_result.v1",
       "path": "contracts/schema/patch_result.schema.json"

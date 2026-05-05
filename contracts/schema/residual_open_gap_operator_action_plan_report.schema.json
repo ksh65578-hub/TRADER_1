@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.residual_open_gap_operator_action_plan_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "source_classification_report_id",
+    "source_classification_report_hash",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "open_gap_count",
+    "total_action_gap_count",
+    "implementation_recheck_action_count",
+    "external_or_operator_action_required",
+    "action_items",
+    "forbidden_actions",
+    "selected_next_task_class",
+    "classification_validation_status",
+    "classification_validation_errors",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.residual_open_gap_operator_action_plan_report.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "source_classification_report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_classification_report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "state_last_patch_id_before": {
+      "type": "string"
+    },
+    "state_next_task_before": {
+      "type": "string"
+    },
+    "open_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_action_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "implementation_recheck_action_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "external_or_operator_action_required": {
+      "type": "boolean"
+    },
+    "action_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "action_class",
+          "priority",
+          "title",
+          "plain_next_action",
+          "unlock_condition",
+          "gap_count",
+          "gap_ids",
+          "source_categories",
+          "requires_operator_reconciliation",
+          "requires_external_evidence",
+          "requires_paper_shadow_evidence",
+          "requires_ledger_rerun",
+          "allows_live_order",
+          "allows_live_config_mutation",
+          "allows_scale_up",
+          "forbidden_actions"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "action_class": {
+            "enum": [
+              "OPERATOR_RECONCILIATION_ACTION",
+              "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+              "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+              "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+              "SEALED_BASELINE_PRESERVATION_ACTION",
+              "SCALE_UP_POLICY_EVIDENCE_ACTION",
+              "CLASSIFY_OPEN_GAP_ACTION"
+            ]
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "plain_next_action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unlock_condition": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gap_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "gap_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "source_categories": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "RUNTIME_LONG_RUN_EVIDENCE",
+                "OPERATOR_RECONCILIATION",
+                "EXTERNAL_LIVE_EVIDENCE",
+                "LEDGER_RERUN_RECONCILIATION",
+                "PAPER_SHADOW_RUNTIME_EVIDENCE",
+                "SEALED_HISTORICAL_PATCH_RESULT_BASELINE",
+                "PROFITABILITY_EVIDENCE_MATURITY",
+                "SCALE_UP_POLICY",
+                "UNCLASSIFIED_OPEN_GAP"
+              ]
+            }
+          },
+          "requires_operator_reconciliation": {
+            "type": "boolean"
+          },
+          "requires_external_evidence": {
+            "type": "boolean"
+          },
+          "requires_paper_shadow_evidence": {
+            "type": "boolean"
+          },
+          "requires_ledger_rerun": {
+            "type": "boolean"
+          },
+          "allows_live_order": {
+            "const": false
+          },
+          "allows_live_config_mutation": {
+            "const": false
+          },
+          "allows_scale_up": {
+            "const": false
+          },
+          "forbidden_actions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "selected_next_task_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "classification_validation_status": {
+      "enum": ["PASS", "FAIL"]
+    },
+    "classification_validation_errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}
