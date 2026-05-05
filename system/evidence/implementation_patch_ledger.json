@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-05T14:27:51Z",
+  "updated_at_utc": "2026-05-05T14:31:31Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -4588,7 +4588,7 @@
       "patch_class": "VALIDATOR_PATCH",
       "target_mvp_level": "MVP-4",
       "patch_result_path": "system/evidence/patch_results/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.patch_result.json",
-      "patch_result_hash": "B80EF12223F4F24FC314A4077616B75D442B48CF59FBFD7C1AFCA8CC3BCE1ABE",
+      "patch_result_hash": "EDA474E8690ED69AAB2F5E30FDE27CC4B8D3B565BD1F92332F705947C663E243",
       "live_order_ready_after": false,
       "live_order_allowed_after": false,
       "can_live_trade_after": false,
