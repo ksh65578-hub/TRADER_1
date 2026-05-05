@@ -1,0 +1,372 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.residual_operator_execution_guide_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "source_reports",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "selected_next_task_class",
+    "open_gap_ids",
+    "open_gap_count",
+    "covered_gap_ids",
+    "covered_gap_count",
+    "handoff_packet_count",
+    "execution_step_count",
+    "local_paper_shadow_runtime_step_count",
+    "external_or_policy_evidence_step_count",
+    "operator_runtime_required_before_mvp5",
+    "mvp5_entry_blocked_until_operator_evidence",
+    "binance_runtime_status",
+    "execution_steps",
+    "guide_status",
+    "validation_status",
+    "validation_errors",
+    "current_evidence_write_allowed",
+    "gap_closure_allowed_by_this_patch",
+    "live_config_mutation_allowed",
+    "live_ready_write_allowed",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.residual_operator_execution_guide_report.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "source_reports": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["role", "patch_id", "report_hash"],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "const": "residual_operator_handoff_packet"
+          },
+          "patch_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "report_hash": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64
+          }
+        }
+      }
+    },
+    "state_last_patch_id_before": {
+      "type": "string"
+    },
+    "state_next_task_before": {
+      "type": "string"
+    },
+    "selected_next_task_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "open_gap_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "open_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "covered_gap_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "covered_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "handoff_packet_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "execution_step_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "local_paper_shadow_runtime_step_count": {
+      "type": "integer",
+      "const": 1
+    },
+    "external_or_policy_evidence_step_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "operator_runtime_required_before_mvp5": {
+      "const": true
+    },
+    "mvp5_entry_blocked_until_operator_evidence": {
+      "const": true
+    },
+    "binance_runtime_status": {
+      "const": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
+    },
+    "execution_steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/execution_step"
+      }
+    },
+    "guide_status": {
+      "const": "BLOCKED_GUIDE_ONLY"
+    },
+    "validation_status": {
+      "const": "PASS"
+    },
+    "validation_errors": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {
+        "type": "string"
+      }
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "gap_closure_allowed_by_this_patch": {
+      "const": false
+    },
+    "live_config_mutation_allowed": {
+      "const": false
+    },
+    "live_ready_write_allowed": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  },
+  "$defs": {
+    "string_array": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "command": {
+      "type": "object",
+      "required": [
+        "command_id",
+        "shell",
+        "command",
+        "scope",
+        "minimum_duration_hours",
+        "non_live_only",
+        "credential_required",
+        "live_order_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "command_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "shell": {
+          "const": "powershell"
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "const": "UPBIT/KRW_SPOT/PAPER"
+        },
+        "minimum_duration_hours": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "non_live_only": {
+          "const": true
+        },
+        "credential_required": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        }
+      }
+    },
+    "execution_step": {
+      "type": "object",
+      "required": [
+        "step_id",
+        "packet_id",
+        "action_class",
+        "handoff_type",
+        "priority",
+        "operator_action_mode",
+        "operator_goal",
+        "gap_ids",
+        "gap_count",
+        "allowed_local_commands",
+        "required_evidence_artifacts",
+        "validators_required_for_next_review",
+        "minimum_observation_hours",
+        "minimum_paper_shadow_window_count",
+        "forbidden_actions",
+        "execution_status",
+        "evidence_ready_for_closure",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "step_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packet_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_class": {
+          "enum": [
+            "OPERATOR_RECONCILIATION_ACTION",
+            "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+            "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+            "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+            "SEALED_BASELINE_PRESERVATION_ACTION",
+            "SCALE_UP_POLICY_EVIDENCE_ACTION"
+          ]
+        },
+        "handoff_type": {
+          "enum": [
+            "OPERATOR_RECONCILIATION",
+            "PAPER_RERUN_RECONCILIATION",
+            "PAPER_SHADOW_COLLECTION",
+            "EXTERNAL_LIVE_EVIDENCE",
+            "SEALED_BASELINE_PRESERVATION",
+            "SCALE_UP_POLICY"
+          ]
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "operator_action_mode": {
+          "enum": [
+            "OPERATOR_REVIEW_REQUIRED",
+            "PAPER_RERUN_RECONCILIATION_BLOCKED",
+            "LOCAL_PAPER_SHADOW_RUNTIME_ALLOWED",
+            "EXTERNAL_EVIDENCE_REQUIRED",
+            "PRESERVE_BASELINE_ONLY",
+            "POLICY_EVIDENCE_REQUIRED"
+          ]
+        },
+        "operator_goal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gap_ids": {
+          "$ref": "#/$defs/string_array"
+        },
+        "gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "allowed_local_commands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/command"
+          }
+        },
+        "required_evidence_artifacts": {
+          "$ref": "#/$defs/string_array"
+        },
+        "validators_required_for_next_review": {
+          "$ref": "#/$defs/string_array"
+        },
+        "minimum_observation_hours": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_paper_shadow_window_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "forbidden_actions": {
+          "$ref": "#/$defs/string_array"
+        },
+        "execution_status": {
+          "const": "BLOCKED_GUIDE_ONLY"
+        },
+        "evidence_ready_for_closure": {
+          "const": false
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    }
+  }
+}
