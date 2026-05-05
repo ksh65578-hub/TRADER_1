@@ -297,6 +297,22 @@ PORTFOLIO_CARD_IDS = (
     "entry_candidates",
     "return_pct",
 )
+PAPER_VALUE_TRUTH_STATUSES = {
+    "PAPER_LEDGER_CURRENT_VALUES_VERIFIED",
+    "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE",
+    "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY",
+}
+PORTFOLIO_RUNTIME_CONTINUITY_STATUSES = {
+    "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF",
+    "STALE_SNAPSHOT_NOT_RUNTIME_PROOF",
+    "NO_CURRENT_RUNTIME_PROOF",
+}
+AUDITED_WRITER_LIFECYCLE_STATUSES = {
+    "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED",
+    "AUDITED_WRITER_INPUTS_BLOCKED",
+    "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
+    "NO_AUDITED_WRITER_EVIDENCE",
+}
 SOURCE_FRESHNESS_MAX_AGE_SECONDS = 300
 SOURCE_CLOCK_SKEW_ALLOWANCE_SECONDS = 60
 DASHBOARD_AUTO_REFRESH_SECONDS = 10
@@ -1126,6 +1142,21 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         "source_snapshot_stale_after_seconds": portfolio.get("source_snapshot_stale_after_seconds"),
         "source_snapshot_freshness_message": portfolio.get("source_snapshot_freshness_message"),
         "source_balance_kind": portfolio.get("source_balance_kind"),
+        "paper_value_truth_status": (
+            "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE" if stale else "PAPER_LEDGER_CURRENT_VALUES_VERIFIED"
+        ),
+        "paper_value_truth_message": (
+            "Last verified simulated PAPER ledger values are displayed, but the source is stale for runtime continuity."
+            if stale
+            else "Current simulated PAPER ledger values are verified for display only."
+        ),
+        "runtime_continuity_status": (
+            "STALE_SNAPSHOT_NOT_RUNTIME_PROOF" if stale else "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF"
+        ),
+        "audited_writer_lifecycle_status": "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
+        "operator_truth_summary": (
+            "PAPER ledger values exist, but they do not prove the engine is still running or live-ready."
+        ),
         "configured_paper_capital": _configured_paper_capital_card(
             exchange,
             market_type,
@@ -1254,6 +1285,15 @@ def _audited_current_evidence_unverified_portfolio_snapshot(
         "source_snapshot_stale_after_seconds": SOURCE_FRESHNESS_MAX_AGE_SECONDS,
         "source_snapshot_freshness_message": message,
         "source_balance_kind": None,
+        "paper_value_truth_status": "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY",
+        "paper_value_truth_message": (
+            "Only configured PAPER baseline capital is known; current cash, equity, PnL, and positions are not verified."
+        ),
+        "runtime_continuity_status": "NO_CURRENT_RUNTIME_PROOF",
+        "audited_writer_lifecycle_status": "AUDITED_WRITER_INPUTS_BLOCKED",
+        "operator_truth_summary": (
+            "Audited current-evidence inputs are blocked, so the dashboard cannot treat current PAPER values as truth."
+        ),
         "configured_paper_capital": configured_card,
         "cash": _portfolio_card("cash", "Current Cash", "UNVERIFIED", message),
         "equity": _portfolio_card("equity", "Current Equity", "UNVERIFIED", message),
@@ -1411,6 +1451,25 @@ def _audited_current_evidence_portfolio_snapshot(
             )
         ),
         "source_balance_kind": audited_paper_portfolio_snapshot.get("display_balance_kind"),
+        "paper_value_truth_status": (
+            "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+            if audited_source_stale
+            else "PAPER_LEDGER_CURRENT_VALUES_VERIFIED"
+        ),
+        "paper_value_truth_message": (
+            "Last verified audited PAPER ledger values are displayed; stale means runtime continuity is not proven."
+            if audited_source_stale
+            else "Audited PAPER ledger values verify cash, equity, PnL, and positions for display only."
+        ),
+        "runtime_continuity_status": (
+            "STALE_SNAPSHOT_NOT_RUNTIME_PROOF"
+            if audited_source_stale
+            else "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF"
+        ),
+        "audited_writer_lifecycle_status": "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED",
+        "operator_truth_summary": (
+            "Audited snapshot artifacts exist, but the continuous current-evidence writer and live readiness remain blocked."
+        ),
         "configured_paper_capital": _configured_paper_capital_card(
             exchange,
             market_type,
@@ -1598,6 +1657,13 @@ def _stale_portfolio_snapshot(exchange: str, market_type: str, summary: dict[str
         "source_snapshot_stale_after_seconds": None,
         "source_snapshot_freshness_message": "Stale summary; rerun PAPER launcher",
         "source_balance_kind": None,
+        "paper_value_truth_status": "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY",
+        "paper_value_truth_message": (
+            "The configured PAPER baseline is still known, but current cash, equity, PnL, and positions are not verified."
+        ),
+        "runtime_continuity_status": "NO_CURRENT_RUNTIME_PROOF",
+        "audited_writer_lifecycle_status": "NO_AUDITED_WRITER_EVIDENCE",
+        "operator_truth_summary": "No fresh runtime proof exists for current PAPER portfolio values.",
         "configured_paper_capital": _configured_paper_capital_card(
             exchange,
             market_type,
@@ -2250,6 +2316,17 @@ def _portfolio_snapshot(
         "source_snapshot_stale_after_seconds": None,
         "source_snapshot_freshness_message": unverified_message,
         "source_balance_kind": None,
+        "paper_value_truth_status": "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY",
+        "paper_value_truth_message": (
+            "Configured PAPER baseline may be known, but current cash, equity, PnL, and positions remain unverified."
+        ),
+        "runtime_continuity_status": "NO_CURRENT_RUNTIME_PROOF",
+        "audited_writer_lifecycle_status": (
+            "AUDITED_WRITER_INPUTS_BLOCKED" if source_snapshot_status == "BLOCKED" else "NO_AUDITED_WRITER_EVIDENCE"
+        ),
+        "operator_truth_summary": (
+            "Do not treat configured PAPER capital or partial repair evidence as current portfolio truth."
+        ),
         "configured_paper_capital": configured_card,
         "cash": _portfolio_card("cash", "Current Cash", "UNVERIFIED", cash_detail),
         "equity": _portfolio_card("equity", "Current Equity", "UNVERIFIED", equity_detail),
@@ -15491,7 +15568,18 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
     if isinstance(portfolio, dict):
         values.extend(
             str(portfolio.get(key, ""))
-            for key in ("title", "status", "source", "blocking_reason", "next_action")
+            for key in (
+                "title",
+                "status",
+                "source",
+                "blocking_reason",
+                "next_action",
+                "paper_value_truth_status",
+                "paper_value_truth_message",
+                "runtime_continuity_status",
+                "audited_writer_lifecycle_status",
+                "operator_truth_summary",
+            )
         )
         for card_id in PORTFOLIO_CARD_IDS:
             card = portfolio.get(card_id, {})
@@ -19910,6 +19998,18 @@ def validate_read_only_dashboard_shell(
     portfolio_has_snapshot_provenance = (
         portfolio.get("source_snapshot_hash") is not None or portfolio.get("source_snapshot_status") == "PASS"
     )
+    paper_value_truth_status = portfolio.get("paper_value_truth_status")
+    runtime_continuity_status = portfolio.get("runtime_continuity_status")
+    audited_writer_lifecycle_status = portfolio.get("audited_writer_lifecycle_status")
+    if paper_value_truth_status not in PAPER_VALUE_TRUTH_STATUSES:
+        return DashboardValidationResult("FAIL", "portfolio paper value truth status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if runtime_continuity_status not in PORTFOLIO_RUNTIME_CONTINUITY_STATUSES:
+        return DashboardValidationResult("FAIL", "portfolio runtime continuity status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if audited_writer_lifecycle_status not in AUDITED_WRITER_LIFECYCLE_STATUSES:
+        return DashboardValidationResult("FAIL", "portfolio audited writer lifecycle status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    for text_field in ("paper_value_truth_message", "operator_truth_summary"):
+        if not isinstance(portfolio.get(text_field), str) or not portfolio.get(text_field):
+            return DashboardValidationResult("FAIL", f"portfolio {text_field} is missing", "SCHEMA_IDENTITY_MISMATCH")
     if portfolio.get("status") in {"VERIFIED", "STALE"} and portfolio_has_snapshot_provenance and shell.get("mode") != "PAPER":
         return DashboardValidationResult("BLOCKED", "verified portfolio display is PAPER-only without live evidence", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("status") == "VERIFIED" or (
@@ -19950,8 +20050,46 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("FAIL", "stale portfolio source must exceed stale threshold", "SCHEMA_IDENTITY_MISMATCH")
         if not isinstance(source_freshness_message, str) or not source_freshness_message:
             return DashboardValidationResult("FAIL", "portfolio source freshness message is missing", "SCHEMA_IDENTITY_MISMATCH")
+        if portfolio.get("status") == "VERIFIED":
+            if (
+                paper_value_truth_status != "PAPER_LEDGER_CURRENT_VALUES_VERIFIED"
+                or runtime_continuity_status != "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF"
+            ):
+                return DashboardValidationResult(
+                    "BLOCKED",
+                    "fresh PAPER portfolio values cannot claim runtime continuity or unknown truth",
+                    "LIVE_FINAL_GUARD_FAILED",
+                )
+        if portfolio.get("status") == "STALE":
+            if (
+                paper_value_truth_status != "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+                or runtime_continuity_status != "STALE_SNAPSHOT_NOT_RUNTIME_PROOF"
+            ):
+                return DashboardValidationResult(
+                    "BLOCKED",
+                    "stale PAPER portfolio values must remain last-verified and not runtime proof",
+                    "LIVE_FINAL_GUARD_FAILED",
+                )
+        if (
+            portfolio.get("source") == "audited_current_evidence_snapshot.json"
+            and audited_writer_lifecycle_status != "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED"
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "audited PAPER snapshot display must disclose continuous writer is blocked",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
     elif portfolio_has_snapshot_provenance:
         return DashboardValidationResult("BLOCKED", "unverified portfolio cannot carry PASS snapshot provenance", "HARD_TRUTH_MISSING")
+    elif (
+        paper_value_truth_status != "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY"
+        or runtime_continuity_status != "NO_CURRENT_RUNTIME_PROOF"
+    ):
+        return DashboardValidationResult(
+            "BLOCKED",
+            "portfolio without snapshot provenance must not claim current PAPER value truth",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
     for card_id in PORTFOLIO_CARD_IDS:
         card = portfolio.get(card_id)
         if not isinstance(card, dict):
@@ -21325,6 +21463,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     portfolio_ledger_source = portfolio.get("source_paper_ledger_head_hash") if isinstance(portfolio, dict) else None
     portfolio_snapshot_source = portfolio.get("source_snapshot_hash") if isinstance(portfolio, dict) else None
     portfolio_balance_kind = portfolio.get("source_balance_kind") if isinstance(portfolio, dict) else None
+    paper_value_truth_status = portfolio.get("paper_value_truth_status") if isinstance(portfolio, dict) else None
+    paper_value_truth_message = portfolio.get("paper_value_truth_message") if isinstance(portfolio, dict) else None
+    runtime_continuity_status = portfolio.get("runtime_continuity_status") if isinstance(portfolio, dict) else None
+    audited_writer_lifecycle_status = (
+        portfolio.get("audited_writer_lifecycle_status") if isinstance(portfolio, dict) else None
+    )
+    operator_truth_summary = portfolio.get("operator_truth_summary") if isinstance(portfolio, dict) else None
     portfolio_age_seconds = portfolio.get("source_snapshot_age_seconds") if isinstance(portfolio, dict) else None
     portfolio_stale_after_seconds = portfolio.get("source_snapshot_stale_after_seconds") if isinstance(portfolio, dict) else None
     portfolio_age_line = (
@@ -21341,6 +21486,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     if portfolio_status == "VERIFIED" and shell.get("mode") == "PAPER":
         portfolio_status = "PAPER LEDGER VERIFIED (SIMULATED)"
         portfolio_status_label = "Verified PAPER ledger"
+    elif portfolio_status == "STALE" and portfolio_snapshot_source:
+        portfolio_status = "PAPER LEDGER LAST VERIFIED (STALE)"
+        portfolio_status_label = "Last verified PAPER ledger"
     elif portfolio_status == "STALE":
         portfolio_status = "STALE - RERUN PAPER"
         portfolio_status_label = "Stale data"
@@ -21370,21 +21518,28 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         return safe_text(card.get("value_display", fallback))
 
     configured_capital_display = portfolio_value("configured_paper_capital", "not configured")
-    if portfolio_raw_status == "VERIFIED":
+    if paper_value_truth_status == "PAPER_LEDGER_CURRENT_VALUES_VERIFIED":
         portfolio_truth_note = (
             f"Configured baseline: {configured_capital_display}. Current values are verified from a fresh "
-            "simulated PAPER ledger and remain display-only."
+            "simulated PAPER ledger snapshot and remain display-only. This is not long-run runtime proof."
         )
-    elif portfolio_raw_status == "STALE":
+    elif paper_value_truth_status == "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE":
         portfolio_truth_note = (
-            f"Configured baseline: {configured_capital_display}. Current values are stale; rerun PAPER before "
-            "using cash, equity, PnL, return, or positions."
+            f"Configured baseline: {configured_capital_display}. These are last verified PAPER ledger values, "
+            "not proof that the engine is still running now."
         )
     else:
         portfolio_truth_note = (
             f"Configured baseline: {configured_capital_display}. UNVERIFIED applies to current cash, equity, "
             "PnL, return, and positions until fresh PAPER ledger/current-evidence proof is loaded."
         )
+    portfolio_interpretation_line = (
+        f"Truth: {paper_value_truth_status or 'UNKNOWN'} - {paper_value_truth_message or 'No truth message'}"
+    )
+    portfolio_runtime_line = (
+        f"Runtime proof: {runtime_continuity_status or 'UNKNOWN'} | Writer: "
+        f"{audited_writer_lifecycle_status or 'UNKNOWN'} | {operator_truth_summary or 'No operator summary'}"
+    )
 
     portfolio_ledger_html = (
         "<dl class=\"portfolio-ledger\" aria-label=\"portfolio compact ledger\">"
@@ -22445,12 +22600,12 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
           ageNode.textContent = formatAge(ageSeconds);
         }
         if (pill) {
-          pill.textContent = stale ? "STALE - refresh PAPER" : "Fresh snapshot";
+          pill.textContent = stale ? "Dashboard file stale" : "Fresh dashboard file";
           pill.className = stale ? "pill warn" : "pill ok";
         }
         if (warning) {
           warning.textContent = stale
-            ? "This dashboard page is older than the freshness limit. Keep the safe monitor running or rerun PAPER before trusting values."
+            ? "This dashboard page is older than the freshness limit. PAPER ledger values may be last verified simulated values, but runtime continuity is not proven; keep the safe monitor running or rerun PAPER."
             : "This page reloads the local dashboard file while the safe monitor writes new snapshots.";
         }
         box.className = stale ? "freshness-strip freshness-stale" : "freshness-strip freshness-fresh";
@@ -22557,6 +22712,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="source-line">Source: """ + safe_text(plain_source(portfolio.get("source", "summary.json"))) + """</p>
         <p class="portfolio-truth-note">""" + safe_text(portfolio_truth_note) + """</p>
         <p class="source-line">""" + safe_text(portfolio_source_line) + """</p>
+        <p class="source-line">""" + safe_text(portfolio_interpretation_line) + """</p>
+        <p class="source-line">""" + safe_text(portfolio_runtime_line) + """</p>
         <p class="source-line">""" + safe_text(portfolio.get("source_snapshot_freshness_message", "No verified paper portfolio snapshot loaded")) + """</p>
         <section class="portfolio-kpi-grid">
           """ + portfolio_kpi_html + """
@@ -22611,6 +22768,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p>Current values: """ + safe_text(portfolio_status_label) + """<br>Source: """ + safe_text(plain_source(portfolio.get("source", "summary.json"))) + """<br>Raw: """ + safe_text(portfolio_audit_status) + """</p>
       </div>
       <p class="portfolio-truth-note">""" + safe_text(portfolio_truth_note) + """</p>
+      <p class="source-line">""" + safe_text(portfolio_interpretation_line) + """</p>
+      <p class="source-line">""" + safe_text(portfolio_runtime_line) + """</p>
       """ + portfolio_ledger_html + """
       <section class="portfolio-detail-grid">
         """ + portfolio_detail_html + """

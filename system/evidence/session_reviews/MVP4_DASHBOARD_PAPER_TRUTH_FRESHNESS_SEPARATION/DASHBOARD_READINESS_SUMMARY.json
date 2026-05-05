@@ -1,0 +1,33 @@
+{
+  "patch_id": "MVP4_DASHBOARD_PAPER_TRUTH_FRESHNESS_SEPARATION_20260506_001",
+  "generated_at_utc": "2026-05-05T23:26:23Z",
+  "status": "PASS_OPERATOR_DISPLAY_IMPROVED_LIVE_BLOCKED",
+  "first_screen_focus": [
+    "normal operation status",
+    "portfolio value truth and source freshness",
+    "runtime continuity proof status",
+    "live availability and exact blockers"
+  ],
+  "portfolio_truth_states": {
+    "PAPER_LEDGER_CURRENT_VALUES_VERIFIED": "fresh simulated PAPER ledger values for display only",
+    "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE": "last verified simulated PAPER ledger values, not runtime proof",
+    "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY": "only configured PAPER baseline is known"
+  },
+  "runtime_continuity_states": [
+    "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF",
+    "STALE_SNAPSHOT_NOT_RUNTIME_PROOF",
+    "NO_CURRENT_RUNTIME_PROOF"
+  ],
+  "writer_lifecycle_states": [
+    "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED",
+    "AUDITED_WRITER_INPUTS_BLOCKED",
+    "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
+    "NO_AUDITED_WRITER_EVIDENCE"
+  ],
+  "stale_threshold_policy_changed": false,
+  "long_run_threshold_policy_changed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
