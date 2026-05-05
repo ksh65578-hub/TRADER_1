@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.residual_mvp5_entry_duration_policy_report.v1",
-  "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-  "generated_at_utc": "2026-05-05T11:31:53Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+  "generated_at_utc": "2026-05-05T12:10:12Z",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
@@ -9,31 +9,31 @@
   "source_reports": [
     {
       "role": "residual_operator_execution_guide",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "57EB6DBA4CA50883465D64126B4D681E61CC4705AB605639E6E83DFE7BD491EF"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "614E0636CB8034C8145D829225553178E0F3D03F1E8E8C75839090BC74D5D15A"
     },
     {
       "role": "residual_operator_evidence_progress",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "CC9397396D9824AF1FC3AC6C61D2B2BA82E2A46914146D9F1800739B0EFA2313"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "2A774675541B39F4DCB63D70C42AD743FBC1091B6ABA7C45B062D772C9426BE7"
     },
     {
       "role": "residual_operator_evidence_run_preflight",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "71977AF4B7B188E6D9F17AA31D4A68D1F0F724D52306CBF3F1B9D72F754C90A3"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "B1DBE4B01162D30DD7DA88D2795CFBDD42465408399210F0D9C58106C85C059A"
     },
     {
       "role": "residual_operator_evidence_intake_audit",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "55EA40E0B7052C1FE49BC1204E4D974B5C3BAF7F21E868225A963898901360AE"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "5BBCAED617366C48B8549614FBB2A2D2AEC23BB579A354E437FE99AE37624FE5"
     },
     {
       "role": "residual_operator_evidence_trial_duration_policy",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "C129C6022185AF2474A9E5131139A9E534AFD7DDDACF32B54C9C68EE84369340"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "BB8A06A488E7968CA5BD9415DD6BA68D21860CCDECCC93E4001D50652BE653D9"
     }
   ],
-  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_TRIAL_DURATION_POLICY_20260505_001",
+  "state_last_patch_id_before": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
   "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "open_gap_ids": [
@@ -52,19 +52,24 @@
     "SCALE_UP_NOT_ELIGIBLE"
   ],
   "open_gap_count": 13,
-  "duration_policy_status": "MVP5_REVIEW_ENTRY_LOWERED_LIVE_STILL_BLOCKED",
+  "duration_policy_status": "FIXED_DURATION_GATE_REMOVED_LIVE_STILL_BLOCKED",
   "superseded_profile_id": "UPBIT_PAPER_SAFE_MONITOR_120H",
   "superseded_duration_hours": 120,
   "superseded_heartbeat_ticks": 43200,
   "superseded_minimum_paper_shadow_window_count": 20,
-  "mvp5_review_entry_profile_id": "UPBIT_PAPER_SAFE_MONITOR_48H",
-  "mvp5_review_entry_duration_hours": 48,
-  "mvp5_review_entry_heartbeat_ticks": 17280,
+  "mvp5_review_entry_profile_id": "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW",
+  "mvp5_review_entry_duration_hours": 0,
+  "mvp5_review_entry_heartbeat_ticks": 0,
   "mvp5_review_entry_heartbeat_interval_seconds": 10,
-  "mvp5_review_entry_minimum_paper_shadow_window_count": 8,
-  "mvp5_review_entry_command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='17280'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
+  "mvp5_review_entry_minimum_paper_shadow_window_count": 0,
+  "mvp5_review_entry_command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS=''; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
+  "mvp5_review_entry_gate_type": "ADAPTIVE_EVIDENCE_QUALITY_GATE",
   "mvp5_review_entry_lowered_by_this_patch": true,
+  "fixed_duration_gate_removed_by_this_patch": true,
+  "adaptive_evidence_gate_enabled": true,
+  "adaptive_stepwise_judgement_required": true,
   "trial_24h_profile_still_not_mvp5_eligible": true,
+  "extended_48h_or_120h_profile_role": "OPTIONAL_OPERATOR_BURN_IN_REFERENCE_ONLY",
   "extended_120h_profile_role": "OPTIONAL_EXTENDED_OBSERVATION_OR_SCALE_UP_CONFIDENCE_ONLY",
   "duration_only_live_ready_allowed": false,
   "duration_only_gap_closure_allowed": false,
@@ -86,5 +91,5 @@
   "scale_up_allowed": false,
   "validation_status": "PASS",
   "validation_errors": [],
-  "report_hash": "B5B4266C218B51215D6784B6E6D32EC383256484B667747D6B73227208BD6005"
+  "report_hash": "574741E8F8067320FC98B2B29A5C1440B6C9065126E1648E1DEC9F940907BC44"
 }

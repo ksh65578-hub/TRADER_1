@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.residual_operator_evidence_trial_duration_policy_report.v1",
-  "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-  "generated_at_utc": "2026-05-05T11:31:53Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+  "generated_at_utc": "2026-05-05T12:10:12Z",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
@@ -9,16 +9,16 @@
   "source_reports": [
     {
       "role": "residual_operator_evidence_run_preflight",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "71977AF4B7B188E6D9F17AA31D4A68D1F0F724D52306CBF3F1B9D72F754C90A3"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "B1DBE4B01162D30DD7DA88D2795CFBDD42465408399210F0D9C58106C85C059A"
     },
     {
       "role": "residual_operator_evidence_intake_audit",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "55EA40E0B7052C1FE49BC1204E4D974B5C3BAF7F21E868225A963898901360AE"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "5BBCAED617366C48B8549614FBB2A2D2AEC23BB579A354E437FE99AE37624FE5"
     }
   ],
-  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_TRIAL_DURATION_POLICY_20260505_001",
+  "state_last_patch_id_before": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
   "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "open_gap_ids": [
@@ -52,10 +52,10 @@
   "trial_profile_gap_closure_allowed": false,
   "trial_profile_current_evidence_write_allowed": false,
   "trial_profile_purpose": "SHORT_RUNTIME_DEFECT_DISCOVERY_BEFORE_LONG_RUN",
-  "formal_mvp5_profile_id": "UPBIT_PAPER_SAFE_MONITOR_48H",
-  "formal_mvp5_duration_hours": 48,
-  "formal_mvp5_expected_heartbeat_ticks": 17280,
-  "formal_mvp5_minimum_paper_shadow_window_count": 8,
+  "formal_mvp5_profile_id": "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW",
+  "formal_mvp5_duration_hours": 0,
+  "formal_mvp5_expected_heartbeat_ticks": 0,
+  "formal_mvp5_minimum_paper_shadow_window_count": 0,
   "formal_mvp5_profile_still_required_for_live_readiness": true,
   "formal_mvp5_profile_replaced_by_trial": false,
   "operator_submission_manifest_status": "MISSING_OPERATOR_SUBMISSION_MANIFEST",
@@ -76,5 +76,5 @@
   "scale_up_allowed": false,
   "validation_status": "PASS",
   "validation_errors": [],
-  "report_hash": "C129C6022185AF2474A9E5131139A9E534AFD7DDDACF32B54C9C68EE84369340"
+  "report_hash": "BB8A06A488E7968CA5BD9415DD6BA68D21860CCDECCC93E4001D50652BE653D9"
 }

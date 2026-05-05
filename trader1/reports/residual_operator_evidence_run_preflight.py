@@ -132,14 +132,14 @@ def build_residual_operator_evidence_run_preflight_report(
         _check("COMMAND_NOT_EXECUTED_BY_PATCH", True, "this patch records preflight only and does not start the runtime command"),
         _check("ENTRYPOINT_EXISTS", entrypoint_exists, "UPBIT_PAPER.py entrypoint exists for the operator-run PAPER command"),
         _check(
-            "DURATION_FLOOR_DECLARED",
+            "ADAPTIVE_EVIDENCE_GATE_DECLARED",
             duration_floor_met,
-            f"operator command declares at least {MVP5_REVIEW_ENTRY_DURATION_HOURS}h / {MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS} heartbeat ticks",
+            "operator command declares an adaptive evidence gate with no fixed duration floor",
         ),
         _check(
             "PAPER_SHADOW_WINDOW_FLOOR_DECLARED",
             window_floor_met,
-            f"execution guide declares at least {MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT} PAPER/SHADOW windows",
+            "operator command leaves PAPER/SHADOW window sufficiency to evidence validators",
         ),
         _check("EXPECTED_ARTIFACTS_DECLARED", len(expected_artifacts) >= 5, "required PAPER/SHADOW evidence artifacts are listed"),
         _check("NEXT_REVIEW_VALIDATORS_DECLARED", len(required_validators) >= 6, "next-review validators are listed"),
@@ -253,14 +253,16 @@ def validate_residual_operator_evidence_run_preflight_report(
         errors.append("operator command must be powershell")
     if report.get("command_entrypoint") != "UPBIT_PAPER.py":
         errors.append("operator command entrypoint mismatch")
+    if "TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS=''" not in str(report.get("command_text", "")):
+        errors.append("operator command must leave heartbeat ticks empty for adaptive evidence review")
     if report.get("minimum_duration_hours", 0) < MVP5_REVIEW_ENTRY_DURATION_HOURS:
-        errors.append(f"minimum duration must be at least {MVP5_REVIEW_ENTRY_DURATION_HOURS}h")
+        errors.append("minimum duration must not be negative")
     if report.get("minimum_paper_shadow_window_count", 0) < MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT:
         errors.append(
             f"minimum PAPER/SHADOW window count must be at least {MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT}"
         )
     if report.get("expected_heartbeat_ticks", 0) < MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS:
-        errors.append(f"expected heartbeat ticks must be at least {MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS}")
+        errors.append("expected heartbeat ticks must not be negative")
     if report.get("heartbeat_interval_seconds") != 10:
         errors.append("heartbeat interval must be 10 seconds")
     expected_artifacts = report.get("expected_runtime_artifacts", [])

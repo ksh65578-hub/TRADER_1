@@ -75,14 +75,15 @@ class ResidualOperatorExecutionGuideTest(unittest.TestCase):
         steps_by_action = {step["action_class"]: step for step in report["execution_steps"]}
         runtime_step = steps_by_action["PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION"]
         self.assertEqual(runtime_step["operator_action_mode"], "LOCAL_PAPER_SHADOW_RUNTIME_ALLOWED")
-        self.assertEqual(runtime_step["minimum_observation_hours"], 48)
-        self.assertEqual(runtime_step["minimum_paper_shadow_window_count"], 8)
+        self.assertEqual(runtime_step["minimum_observation_hours"], 0)
+        self.assertEqual(runtime_step["minimum_paper_shadow_window_count"], 0)
         self.assertEqual(len(runtime_step["allowed_local_commands"]), 1)
         command = runtime_step["allowed_local_commands"][0]
-        self.assertEqual(command["command_id"], "UPBIT_PAPER_SAFE_MONITOR_48H")
+        self.assertEqual(command["command_id"], "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW")
         self.assertEqual(command["shell"], "powershell")
         self.assertIn("UPBIT_PAPER.py", command["command"])
-        self.assertEqual(command["minimum_duration_hours"], 48)
+        self.assertIn("TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS=''", command["command"])
+        self.assertEqual(command["minimum_duration_hours"], 0)
         self.assertTrue(command["non_live_only"])
         self.assertFalse(command["credential_required"])
         self.assertFalse(command["live_order_allowed"])

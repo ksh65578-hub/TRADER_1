@@ -1404,6 +1404,30 @@
     "external_live_evidence_still_required": {
       "type": "boolean"
     },
+    "adaptive_evidence_gate_report_path": {
+      "type": "string"
+    },
+    "adaptive_evidence_gate_status": {
+      "type": "string"
+    },
+    "mvp5_review_entry_gate_type": {
+      "type": "string"
+    },
+    "fixed_duration_gate_removed": {
+      "type": "boolean"
+    },
+    "fixed_duration_gate_removed_by_this_patch": {
+      "type": "boolean"
+    },
+    "duration_hard_gate_removed": {
+      "type": "boolean"
+    },
+    "adaptive_evidence_gate_enabled": {
+      "type": "boolean"
+    },
+    "adaptive_stepwise_judgement_required": {
+      "type": "boolean"
+    },
     "authority_hash_checked": {
       "type": "boolean"
     },

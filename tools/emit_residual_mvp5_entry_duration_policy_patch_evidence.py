@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-PATCH_BASENAME = "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY"
+PATCH_BASENAME = "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY"
 PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
-REQUIREMENT_ID = "REQ-MVP4-RESIDUAL-MVP5-ENTRY-DURATION-POLICY"
+REQUIREMENT_ID = "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY"
 NEXT_TASK_CLASS = "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
 
 HANDOFF_REPORT_PATH = "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
@@ -284,10 +284,11 @@ included_artifact_ids: {json.dumps(CHANGED_ARTIFACTS + [POLICY_REPORT_PATH])}
 source_section_hashes: see contracts/generated/authority_section_map.json
 
 acceptance_checklist:
-- MVP5 review-entry PAPER/SHADOW duration is {policy["mvp5_review_entry_duration_hours"]}h / {policy["mvp5_review_entry_heartbeat_ticks"]} ticks.
+- MVP5 review-entry uses an adaptive evidence-quality gate with no fixed duration or heartbeat tick floor.
 - The 24h trial remains defect-discovery only and not MVP5 eligible.
 - The old 120h profile is retained only for optional extended observation or scale-up confidence.
 - Duration alone cannot allow live orders, close gaps, write current evidence, or write LIVE_READY.
+- Codex/operator review must judge paper/shadow evidence artifacts through validators before any next-stage claim.
 - live_order_ready/live_order_allowed/can_live_trade/scale_up_allowed remain false.
 
 known_omissions_by_design:
@@ -318,7 +319,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-The operator-facing first run remains a 24h trial. MVP5 review-entry no longer requires 120h; the current review-entry profile is 48h / 17280 ticks / 8 PAPER-SHADOW windows. The 120h profile is retained only as optional extended observation or scale-up confidence and does not create live readiness.
+The operator-facing first run may remain a 24h defect-discovery trial, but MVP5 review-entry no longer has a fixed time, heartbeat tick, or PAPER-SHADOW window floor. The current review-entry command leaves TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS empty and relies on adaptive evidence-quality review: Codex/operator review must inspect generated paper/shadow artifacts, source freshness, ledger/reconciliation status, profitability maturity, and validator PASS results before any next-stage claim. The 120h profile is retained only as optional extended observation or scale-up confidence and does not create live readiness.
 
 ## Next Safe Task
 
@@ -338,13 +339,13 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             "requirement_id": REQUIREMENT_ID,
             "source_section_id": "SECTION_CONTRACT_GAP",
             "source_file": "TRADER_1.md",
-            "source_heading": "Residual MVP5 entry duration policy",
+            "source_heading": "Residual adaptive evidence gate policy",
             "full_text_marker": (
-                f"{REQUIREMENT_ID}: lower MVP5 review-entry PAPER/SHADOW duration to 48h while preserving "
-                "24h as trial-only, retaining 120h as optional extended observation, and keeping all live/scale permissions false"
+                f"{REQUIREMENT_ID}: remove fixed MVP5 review-entry PAPER/SHADOW duration while preserving "
+                "24h as trial-only, retaining 120h as optional extended observation, requiring adaptive evidence-quality review, and keeping all live/scale permissions false"
             ),
             "authority_level": "ACTIVE_AUTHORITY",
-            "requirement_title": "Residual MVP5 entry duration policy",
+            "requirement_title": "Residual adaptive evidence gate policy",
             "requirement_kind": "EVIDENCE_READINESS_PATCH",
             "schema_ids": [
                 "trader1.patch_result.v1",
@@ -374,7 +375,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-TRIAL-DURATION-POLICY",
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
-            "source_text_sha256": base.sha256_bytes(b"residual MVP5 entry duration policy 48h live still blocked"),
+            "source_text_sha256": base.sha256_bytes(b"residual adaptive evidence gate policy live still blocked"),
             "source_authority_sha256": trader_hash,
             "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
             "test_status": "PASS",
@@ -440,10 +441,17 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             "patch_result_fields": [
                 "mvp5_entry_duration_policy_report_path",
                 "mvp5_entry_duration_policy_status",
+                "adaptive_evidence_gate_report_path",
+                "adaptive_evidence_gate_status",
+                "mvp5_review_entry_gate_type",
                 "mvp5_review_entry_duration_hours_before",
                 "mvp5_review_entry_duration_hours_after",
                 "mvp5_review_entry_heartbeat_ticks_after",
                 "mvp5_review_entry_window_count_after",
+                "fixed_duration_gate_removed",
+                "duration_hard_gate_removed",
+                "adaptive_evidence_gate_enabled",
+                "adaptive_stepwise_judgement_required",
                 "duration_only_live_ready_allowed",
                 "external_live_evidence_still_required",
                 "live_order_ready_after",
@@ -520,8 +528,8 @@ def build_patch_result(
                 "SECTION_DASHBOARD_OPERATOR_UX",
                 "SECTION_LIVE_FINAL_GUARD",
             ],
-            "optimizer_guardrail_result": "PASS_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_LIVE_BLOCKED",
-            "convergence_guardrail_result": "PASS_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_LIVE_BLOCKED",
+            "optimizer_guardrail_result": "PASS_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_LIVE_BLOCKED",
+            "convergence_guardrail_result": "PASS_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_LIVE_BLOCKED",
             "live_order_ready_before": False,
             "live_order_ready_after": False,
             "live_order_allowed_before": False,
@@ -535,10 +543,18 @@ def build_patch_result(
             "operator_run_evidence_ready_for_mvp5": False,
             "mvp5_entry_duration_policy_report_path": POLICY_REPORT_PATH,
             "mvp5_entry_duration_policy_status": policy["duration_policy_status"],
+            "adaptive_evidence_gate_report_path": POLICY_REPORT_PATH,
+            "adaptive_evidence_gate_status": policy["duration_policy_status"],
+            "mvp5_review_entry_gate_type": policy["mvp5_review_entry_gate_type"],
             "mvp5_review_entry_duration_hours_before": policy["superseded_duration_hours"],
             "mvp5_review_entry_duration_hours_after": policy["mvp5_review_entry_duration_hours"],
             "mvp5_review_entry_heartbeat_ticks_after": policy["mvp5_review_entry_heartbeat_ticks"],
             "mvp5_review_entry_window_count_after": policy["mvp5_review_entry_minimum_paper_shadow_window_count"],
+            "fixed_duration_gate_removed": True,
+            "fixed_duration_gate_removed_by_this_patch": policy["fixed_duration_gate_removed_by_this_patch"],
+            "duration_hard_gate_removed": True,
+            "adaptive_evidence_gate_enabled": policy["adaptive_evidence_gate_enabled"],
+            "adaptive_stepwise_judgement_required": policy["adaptive_stepwise_judgement_required"],
             "extended_120h_profile_role": policy["extended_120h_profile_role"],
             "duration_only_live_ready_allowed": policy["duration_only_live_ready_allowed"],
             "external_live_evidence_still_required": policy["external_live_evidence_still_required"],
@@ -576,14 +592,17 @@ def write_evidence(
             "created_at_utc": now,
             "patch_id": PATCH_ID,
             "target_mvp_level": "MVP-4",
-            "stage_gate_status": "PASS_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_LIVE_BLOCKED",
+            "stage_gate_status": "PASS_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_LIVE_BLOCKED",
             "duration_policy_status": policy["duration_policy_status"],
+            "mvp5_review_entry_gate_type": policy["mvp5_review_entry_gate_type"],
             "mvp5_review_entry_duration_hours": policy["mvp5_review_entry_duration_hours"],
             "mvp5_review_entry_heartbeat_ticks": policy["mvp5_review_entry_heartbeat_ticks"],
             "mvp5_review_entry_minimum_paper_shadow_window_count": policy[
                 "mvp5_review_entry_minimum_paper_shadow_window_count"
             ],
             "duration_only_live_ready_allowed": False,
+            "fixed_duration_gate_removed": True,
+            "adaptive_evidence_gate_enabled": True,
             "external_live_evidence_still_required": True,
             "open_gap_count": policy["open_gap_count"],
             "command_executed_by_this_patch": False,
@@ -618,20 +637,23 @@ def write_evidence(
     )
     write_text(
         ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260505.md",
-        f"""# MVP4 Residual MVP5 Entry Duration Policy
+        f"""# MVP4 Residual Adaptive Evidence Gate Policy
 
 created_at_utc: {now}
 patch_id: {PATCH_ID}
 
 Finding:
-- The previous 120h PAPER/SHADOW criterion was too costly as the MVP5 review-entry threshold.
+- Fixed PAPER/SHADOW hour counts are too blunt as the MVP5 review-entry threshold.
 
 Patch:
-- Lowered MVP5 review-entry to {policy["mvp5_review_entry_duration_hours"]}h / {policy["mvp5_review_entry_heartbeat_ticks"]} ticks / {policy["mvp5_review_entry_minimum_paper_shadow_window_count"]} PAPER-SHADOW windows.
+- Removed the fixed MVP5 review-entry duration, heartbeat tick, and PAPER-SHADOW window hard floors.
+- Set review-entry to {policy["mvp5_review_entry_gate_type"]}: evidence artifacts and validators decide whether enough paper/shadow evidence exists.
 - Preserved the 24h profile as trial-only.
 - Moved 120h to optional extended observation or scale-up confidence only.
 
 Safety:
+- fixed_duration_gate_removed=true
+- adaptive_evidence_gate_enabled=true
 - duration_only_live_ready_allowed=false
 - external_live_evidence_still_required=true
 - command_executed_by_this_patch=false
@@ -729,8 +751,11 @@ def main() -> int:
                 "status": "PASS" if not failed else "FAIL",
                 "patch_result_path": f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
                 "result_hash": patch_result["result_hash"],
+                "mvp5_review_entry_gate_type": policy["mvp5_review_entry_gate_type"],
                 "mvp5_review_entry_duration_hours_after": policy["mvp5_review_entry_duration_hours"],
                 "mvp5_review_entry_heartbeat_ticks_after": policy["mvp5_review_entry_heartbeat_ticks"],
+                "fixed_duration_gate_removed": True,
+                "adaptive_evidence_gate_enabled": True,
                 "duration_only_live_ready_allowed": False,
                 "external_live_evidence_still_required": True,
                 "open_gap_count": policy["open_gap_count"],
