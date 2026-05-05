@@ -214,7 +214,7 @@ source_section_hashes: see contracts/generated/authority_section_map.json
 acceptance_checklist:
 - The first-screen Live Execution card loads the audited residual operator evidence progress report as display truth only.
 - The dashboard summarizes {report["open_gap_count"]} open residual blockers as {report["evidence_item_count"]} required evidence items without exposing the full command text on the first screen.
-- The dashboard shows {report["local_runtime_command_count"]} local PAPER/SHADOW command, a 120h minimum observation requirement, MVP-5 blocked status, and Binance scaffold-only status.
+- The dashboard shows {report["local_runtime_command_count"]} local PAPER/SHADOW command, an adaptive evidence gate with no fixed observation-duration floor, MVP-5 blocked status, and Binance scaffold-only status.
 - The dashboard preserves raw blocker traceability and all false live/scale flags.
 - No order controls, credential access, live permission, current evidence write, gap closure, live config mutation, or scale-up behavior is introduced.
 
@@ -453,7 +453,12 @@ def write_evidence(
             "placeholder_pending_evidence_item_count": report["placeholder_pending_evidence_item_count"],
             "local_runtime_output_item_count": report["local_runtime_output_item_count"],
             "local_runtime_command_count": report["local_runtime_command_count"],
-            "minimum_observation_hours_required": 120,
+            "minimum_observation_hours_required": report["minimum_observation_hours_required"],
+            "fixed_duration_gate_status": report["fixed_duration_gate_status"],
+            "codex_stepwise_review_allowed": report["codex_stepwise_review_allowed"],
+            "codex_can_continue_non_live_patches": report["codex_can_continue_non_live_patches"],
+            "user_runtime_required_for_next_non_live_patch": report["user_runtime_required_for_next_non_live_patch"],
+            "user_runtime_required_for_gap_closure": report["user_runtime_required_for_gap_closure"],
             "mvp5_entry_blocked_until_operator_evidence": True,
             "binance_runtime_status": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS",
             "live_order_ready": False,

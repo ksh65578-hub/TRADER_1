@@ -182,7 +182,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-The non-live operator PAPER/SHADOW data-collection command has a preflight report. It remains unexecuted by this patch. MVP-5 remains blocked until the operator runs the 120h collection and supplies the required external/operator evidence.
+The non-live operator PAPER/SHADOW data-collection command has a preflight report. It remains unexecuted by this patch. MVP-5 remains blocked until adaptive PAPER/SHADOW evidence and the required external/operator evidence are available and validated.
 
 ## Next Safe Task
 
@@ -434,7 +434,7 @@ created_at_utc: {now}
 patch_id: {PATCH_ID}
 
 Finding:
-- The repository had the 120h PAPER/SHADOW operator command and evidence progress counts, but no dedicated preflight report binding the command, expected artifacts, validators, and no-execution safety state.
+- The repository had the adaptive PAPER/SHADOW operator command and evidence progress counts, but no dedicated preflight report binding the command, expected artifacts, validators, and no-execution safety state.
 
 Patch:
 - Generated {PREFLIGHT_REPORT_PATH}.

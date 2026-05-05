@@ -12,9 +12,9 @@ included_artifact_ids: ["contracts/registry.yaml", "contracts/schema/patch_resul
 source_section_hashes: see contracts/generated/authority_section_map.json
 
 acceptance_checklist:
-- MVP5 review-entry PAPER/SHADOW duration is 48h / 17280 ticks.
+- MVP5 review-entry uses an adaptive evidence-quality gate with no fixed duration or heartbeat tick floor.
 - The 24h trial remains defect-discovery only and not MVP5 eligible.
-- The old 120h profile is retained only for optional extended observation or scale-up confidence.
+- Previous fixed-hour profiles are historical references only and cannot act as review-entry criteria.
 - Duration alone cannot allow live orders, close gaps, write current evidence, or write LIVE_READY.
 - live_order_ready/live_order_allowed/can_live_trade/scale_up_allowed remain false.
 

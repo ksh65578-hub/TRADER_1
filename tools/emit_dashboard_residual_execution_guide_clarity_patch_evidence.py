@@ -182,7 +182,7 @@ source_section_hashes: see contracts/generated/authority_section_map.json
 acceptance_checklist:
 - The first-screen Live Execution card loads the audited residual operator execution guide report as display truth only.
 - The dashboard summarizes {report["open_gap_count"]} open residual blockers as {report["execution_step_count"]} blocked execution steps without exposing the full command text on the first screen.
-- The dashboard shows {report["local_paper_shadow_runtime_step_count"]} local PAPER/SHADOW command, a 120h minimum observation requirement, MVP-5 blocked status, and Binance scaffold-only status.
+- The dashboard shows {report["local_paper_shadow_runtime_step_count"]} local PAPER/SHADOW command, an adaptive evidence gate with no fixed observation-duration floor, MVP-5 blocked status, and Binance scaffold-only status.
 - The dashboard preserves raw blocker traceability and all false live/scale flags.
 - No order controls, credential access, live permission, current evidence write, gap closure, live config mutation, or scale-up behavior is introduced.
 
@@ -417,7 +417,8 @@ def write_evidence(
             "handoff_packet_count": report["handoff_packet_count"],
             "execution_step_count": report["execution_step_count"],
             "local_paper_shadow_runtime_step_count": report["local_paper_shadow_runtime_step_count"],
-            "minimum_observation_hours": 120,
+            "minimum_observation_hours": 0,
+            "fixed_duration_gate_status": "REMOVED_NO_FIXED_RUNTIME_FLOOR",
             "mvp5_entry_blocked_until_operator_evidence": True,
             "binance_runtime_status": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS",
             "live_order_ready": False,
@@ -462,7 +463,7 @@ Finding:
 
 Patch:
 - Bound the dashboard shell to {EXECUTION_GUIDE_REPORT_PATH} as display truth only.
-- Added first-screen guide counts: {report["execution_step_count"]} blocked steps, {report["local_paper_shadow_runtime_step_count"]} local PAPER/SHADOW command, and 120h minimum observation.
+- Added first-screen guide counts: {report["execution_step_count"]} blocked steps, {report["local_paper_shadow_runtime_step_count"]} local PAPER/SHADOW command, and adaptive evidence-gate status with no fixed observation-duration floor.
 - Kept the full local command out of the first screen while leaving the audited report available as source evidence.
 - Marked MVP-5 as blocked until operator evidence and Binance as scaffold-only.
 - Preserved raw blocker traceability, source freshness, and all false live/scale flags.

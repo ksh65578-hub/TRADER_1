@@ -13,7 +13,7 @@ source_section_hashes: see contracts/generated/authority_section_map.json
 
 acceptance_checklist:
 - The operator-run command is extracted from the audited residual execution guide and remains non-live/credential-free.
-- The preflight records 120h, 43200 heartbeat ticks, and 20 PAPER/SHADOW windows before next review.
+- The preflight records an adaptive evidence gate with no fixed hour, heartbeat tick, or PAPER/SHADOW window floor before next review.
 - The expected runtime artifacts and next-review validators are visible before the operator starts long-running data collection.
 - This patch does not execute the command, read credentials, write current evidence, close gaps, write LIVE_READY, mutate live config, or scale risk.
 - live_order_ready/live_order_allowed/can_live_trade/scale_up_allowed remain false.

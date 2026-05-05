@@ -23,7 +23,8 @@ execution_guide_snapshot:
 - execution_step_count: 6
 - local_paper_shadow_runtime_step_count: 1
 - external_or_policy_evidence_step_count: 2
-- minimum_observation_hours_for_local_runtime: 120
+- minimum_observation_hours_for_local_runtime: 0
+- fixed_duration_gate_status: REMOVED_NO_FIXED_RUNTIME_FLOOR
 - binance_runtime_status: SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS
 - guide_status: BLOCKED_GUIDE_ONLY
 - selected_next_task_class: MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION

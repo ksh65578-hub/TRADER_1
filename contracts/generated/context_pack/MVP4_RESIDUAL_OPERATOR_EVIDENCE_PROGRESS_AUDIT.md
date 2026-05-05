@@ -24,7 +24,8 @@ evidence_progress_snapshot:
 - evidence_item_count: 20
 - local_runtime_command_count: 1
 - local_runtime_completed_count: 0
-- minimum_observation_hours_required: 120
+- minimum_observation_hours_required: 0
+- fixed_duration_gate_status: REMOVED_NO_FIXED_RUNTIME_FLOOR
 - operator_evidence_ready_for_mvp5: false
 - any_evidence_item_ready_for_closure: false
 - progress_status: BLOCKED_EVIDENCE_MISSING
