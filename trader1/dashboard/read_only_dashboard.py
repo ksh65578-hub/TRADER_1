@@ -116,10 +116,12 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "rest_continuity_history.json",
     "candidate_scorecard.json",
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
+    "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
 RESIDUAL_HANDOFF_PACKET_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
+RESIDUAL_EXECUTION_GUIDE_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
 RESIDUAL_ACTION_PLAN_CLASSES = {
     "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
     "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "PAPER ledger rerun",
@@ -10674,6 +10676,194 @@ def _residual_operator_handoff_packet_summary(report: dict[str, Any] | None) -> 
     }
 
 
+def _residual_operator_execution_guide_summary(report: dict[str, Any] | None) -> dict[str, Any]:
+    fallback = {
+        "title": "Operator Execution Guide",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_EXECUTION_GUIDE_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "execution_step_count": 0,
+        "local_paper_shadow_runtime_step_count": 0,
+        "external_or_policy_evidence_step_count": 0,
+        "minimum_observation_hours": 0,
+        "minimum_paper_shadow_window_count": 0,
+        "operator_runtime_required_before_mvp5": True,
+        "mvp5_entry_blocked_until_operator_evidence": True,
+        "binance_runtime_status": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS",
+        "one_line_summary": "Operator execution guide is not loaded; MVP-5 remains blocked until operator evidence exists.",
+        "primary_next_action": "Use the residual action plan and handoff packets until the execution guide is loaded.",
+        "execution_step_items": [],
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_config_mutation_allowed": False,
+        "live_ready_write_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    unsafe_permission = any(
+        report.get(field) is not False
+        for field in (
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "current_evidence_write_allowed",
+            "gap_closure_allowed_by_this_patch",
+            "live_config_mutation_allowed",
+            "live_ready_write_allowed",
+        )
+    )
+    if unsafe_permission:
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator execution guide attempted a forbidden write, live, or scale permission; dashboard keeps it blocked.",
+            "primary_next_action": "Reject the execution guide report and keep all live/scale/current-evidence writes disabled.",
+        }
+
+    step_items: list[dict[str, Any]] = []
+    local_paper_shadow_runtime_step_count = 0
+    minimum_observation_hours = 0
+    minimum_paper_shadow_window_count = 0
+    for step in report.get("execution_steps", []):
+        if not isinstance(step, dict):
+            continue
+        if any(
+            step.get(field) is not False
+            for field in (
+                "evidence_ready_for_closure",
+                "current_evidence_write_allowed",
+                "gap_closure_allowed_by_this_patch",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+            )
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator execution guide item attempted closure, live, current-evidence, or scale permission.",
+                "primary_next_action": "Reject the execution guide report and regenerate it without permission changes.",
+            }
+
+        action_class = str(step.get("action_class") or "CLASSIFY_OPEN_GAP_ACTION")
+        gap_count = step.get("gap_count", 0)
+        if not isinstance(gap_count, int) or gap_count <= 0:
+            continue
+        allowed_commands = step.get("allowed_local_commands", [])
+        if not isinstance(allowed_commands, list):
+            allowed_commands = []
+        safe_allowed_commands = []
+        for command in allowed_commands:
+            if not isinstance(command, dict):
+                continue
+            if (
+                command.get("non_live_only") is not True
+                or command.get("credential_required") is not False
+                or command.get("live_order_allowed") is not False
+            ):
+                return {
+                    **fallback,
+                    "status": "INVALID",
+                    "source_status": "LOADED",
+                    "one_line_summary": "Operator execution guide exposed a local command that is not non-live and credential-free.",
+                    "primary_next_action": "Reject the execution guide report and keep live orders blocked.",
+                }
+            safe_allowed_commands.append(command)
+
+        step_observation_hours = step.get("minimum_observation_hours", 0)
+        step_window_count = step.get("minimum_paper_shadow_window_count", 0)
+        if isinstance(step_observation_hours, int):
+            minimum_observation_hours = max(minimum_observation_hours, step_observation_hours)
+        if isinstance(step_window_count, int):
+            minimum_paper_shadow_window_count = max(minimum_paper_shadow_window_count, step_window_count)
+        if safe_allowed_commands:
+            local_paper_shadow_runtime_step_count += 1
+
+        required_evidence = step.get("required_evidence_artifacts", [])
+        if not isinstance(required_evidence, list):
+            required_evidence = []
+        validators_required = step.get("validators_required_for_next_review", [])
+        if not isinstance(validators_required, list):
+            validators_required = []
+        step_items.append(
+            {
+                "action_class": action_class,
+                "label": RESIDUAL_ACTION_PLAN_CLASSES.get(action_class, action_class.replace("_", " ").title()),
+                "priority": step.get("priority") if isinstance(step.get("priority"), int) else len(step_items) + 1,
+                "gap_count": gap_count,
+                "operator_action_mode": str(step.get("operator_action_mode") or "OPERATOR_REVIEW_REQUIRED"),
+                "operator_goal": str(step.get("operator_goal") or "Resolve this execution step before promotion."),
+                "minimum_observation_hours": step_observation_hours if isinstance(step_observation_hours, int) else 0,
+                "minimum_paper_shadow_window_count": step_window_count if isinstance(step_window_count, int) else 0,
+                "allowed_command_count": len(safe_allowed_commands),
+                "required_evidence_artifact_count": len(required_evidence),
+                "validator_count": len(validators_required),
+                "execution_status": str(step.get("execution_status") or "BLOCKED_GUIDE_ONLY"),
+            }
+        )
+
+    if not step_items:
+        return fallback
+
+    open_gap_count = report.get("open_gap_count", sum(item["gap_count"] for item in step_items))
+    execution_step_count = report.get("execution_step_count", len(step_items))
+    external_or_policy_evidence_step_count = int(report.get("external_or_policy_evidence_step_count", 0) or 0)
+    status = str(report.get("guide_status") or "BLOCKED_GUIDE_ONLY")
+    if (
+        status != "BLOCKED_GUIDE_ONLY"
+        or report.get("mvp5_entry_blocked_until_operator_evidence") is not True
+        or report.get("operator_runtime_required_before_mvp5") is not True
+        or report.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
+    ):
+        status = "INVALID"
+
+    command_label = "command" if local_paper_shadow_runtime_step_count == 1 else "commands"
+    return {
+        "title": "Operator Execution Guide",
+        "status": status,
+        "source": RESIDUAL_EXECUTION_GUIDE_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": open_gap_count if isinstance(open_gap_count, int) else sum(item["gap_count"] for item in step_items),
+        "execution_step_count": execution_step_count if isinstance(execution_step_count, int) else len(step_items),
+        "local_paper_shadow_runtime_step_count": local_paper_shadow_runtime_step_count,
+        "external_or_policy_evidence_step_count": external_or_policy_evidence_step_count,
+        "minimum_observation_hours": minimum_observation_hours,
+        "minimum_paper_shadow_window_count": minimum_paper_shadow_window_count,
+        "operator_runtime_required_before_mvp5": True,
+        "mvp5_entry_blocked_until_operator_evidence": True,
+        "binance_runtime_status": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS",
+        "one_line_summary": (
+            f"{execution_step_count} blocked execution steps; "
+            f"{local_paper_shadow_runtime_step_count} local PAPER/SHADOW {command_label}; "
+            f"{minimum_observation_hours}h minimum observation."
+        ),
+        "primary_next_action": "MVP-5 blocked until operator evidence is collected; Binance remains scaffold-only.",
+        "execution_step_items": step_items[:4],
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_config_mutation_allowed": False,
+        "live_ready_write_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -10720,6 +10910,7 @@ def build_read_only_dashboard_shell(
     candidate_scorecard: dict[str, Any] | None = None,
     residual_open_gap_operator_action_plan_report: dict[str, Any] | None = None,
     residual_operator_handoff_packet_report: dict[str, Any] | None = None,
+    residual_operator_execution_guide_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -10762,6 +10953,7 @@ def build_read_only_dashboard_shell(
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
         "residual_open_gap_operator_action_plan": "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
         "residual_operator_handoff_packet": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
+        "residual_operator_execution_guide": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -10811,6 +11003,31 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 "PASS" if residual_operator_handoff_packet_report.get("handoff_status") == "BLOCKED_HANDOFF_REQUIRED" else "STALE",
+            )
+        )
+    if isinstance(residual_operator_execution_guide_report, dict):
+        execution_guide_freshness = (
+            "PASS"
+            if residual_operator_execution_guide_report.get("guide_status") == "BLOCKED_GUIDE_ONLY"
+            and residual_operator_execution_guide_report.get("validation_status") == "PASS"
+            and residual_operator_execution_guide_report.get("mvp5_entry_blocked_until_operator_evidence") is True
+            and residual_operator_execution_guide_report.get("current_evidence_write_allowed") is False
+            and residual_operator_execution_guide_report.get("gap_closure_allowed_by_this_patch") is False
+            and residual_operator_execution_guide_report.get("live_config_mutation_allowed") is False
+            and residual_operator_execution_guide_report.get("live_ready_write_allowed") is False
+            and residual_operator_execution_guide_report.get("live_order_allowed") is False
+            and residual_operator_execution_guide_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_EXECUTION_GUIDE",
+                paths.get(
+                    "residual_operator_execution_guide",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
+                ),
+                True,
+                execution_guide_freshness,
             )
         )
     if isinstance(shadow_runtime_writer_report, dict):
@@ -11883,6 +12100,9 @@ def build_read_only_dashboard_shell(
     residual_operator_handoff_packet = _residual_operator_handoff_packet_summary(
         residual_operator_handoff_packet_report
     )
+    residual_operator_execution_guide = _residual_operator_execution_guide_summary(
+        residual_operator_execution_guide_report
+    )
 
     engine = summary.get("engine", {}) if isinstance(summary, dict) else {}
     startup_status = summary.get("startup", {}) if isinstance(summary, dict) else {}
@@ -11936,6 +12156,7 @@ def build_read_only_dashboard_shell(
         "operator_workflow_summary": operator_workflow_summary,
         "residual_open_gap_action_plan": residual_open_gap_action_plan,
         "residual_operator_handoff_packet": residual_operator_handoff_packet,
+        "residual_operator_execution_guide": residual_operator_execution_guide,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
         "exploration_policy_status": exploration_policy_status,
@@ -12292,6 +12513,32 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                         "gap_count",
                         "handoff_status",
                         "required_operator_action",
+                    )
+                )
+    residual_execution_guide = shell.get("residual_operator_execution_guide", {})
+    if isinstance(residual_execution_guide, dict):
+        values.extend(
+            str(residual_execution_guide.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "source_status",
+                "one_line_summary",
+                "primary_next_action",
+                "binance_runtime_status",
+            )
+        )
+        for item in residual_execution_guide.get("execution_step_items", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "action_class",
+                        "label",
+                        "gap_count",
+                        "operator_action_mode",
+                        "operator_goal",
+                        "execution_status",
                     )
                 )
     workflow = shell.get("operator_workflow_summary", {})
@@ -12708,6 +12955,61 @@ def validate_read_only_dashboard_shell(
                 return DashboardValidationResult("BLOCKED", "residual handoff packet item must remain blocked", "HARD_TRUTH_MISSING")
             if not isinstance(packet.get("required_operator_action"), str) or not packet.get("required_operator_action", "").strip():
                 return DashboardValidationResult("FAIL", "residual handoff packet must expose operator action text", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_execution_guide = shell.get("residual_operator_execution_guide")
+    if not isinstance(residual_execution_guide, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator execution guide summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_execution_guide.get("display_only") is not True
+        or residual_execution_guide.get("dashboard_truth_only") is not True
+    ):
+        return DashboardValidationResult("BLOCKED", "residual execution guide summary must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_execution_guide.get("live_order_ready")
+        or residual_execution_guide.get("live_order_allowed")
+        or residual_execution_guide.get("can_live_trade")
+        or residual_execution_guide.get("scale_up_allowed")
+        or residual_execution_guide.get("current_evidence_write_allowed")
+        or residual_execution_guide.get("gap_closure_allowed_by_this_patch")
+        or residual_execution_guide.get("live_config_mutation_allowed")
+        or residual_execution_guide.get("live_ready_write_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual execution guide attempted live, scale, current-evidence, or LIVE_READY permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_execution_guide.get("source") != RESIDUAL_EXECUTION_GUIDE_SOURCE:
+        return DashboardValidationResult("FAIL", "residual execution guide source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_execution_guide.get("status") not in {"NOT_LOADED", "BLOCKED_GUIDE_ONLY", "INVALID"}:
+        return DashboardValidationResult("FAIL", "residual execution guide status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_execution_guide.get("source_status") == "LOADED":
+        if residual_execution_guide.get("status") != "BLOCKED_GUIDE_ONLY":
+            return DashboardValidationResult("BLOCKED", "loaded residual execution guide must remain blocked", "LIVE_FINAL_GUARD_FAILED")
+        if residual_execution_guide.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual execution guide open gap count must match residual action plan", "CONTRACT_GAP_HIGH")
+        if (
+            residual_handoff.get("source_status") == "LOADED"
+            and residual_execution_guide.get("execution_step_count") != residual_handoff.get("handoff_packet_count")
+        ):
+            return DashboardValidationResult("FAIL", "residual execution guide step count must match handoff packet count", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_execution_guide.get("local_paper_shadow_runtime_step_count") != 1:
+            return DashboardValidationResult("FAIL", "residual execution guide must expose exactly one local PAPER/SHADOW runtime step", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_execution_guide.get("mvp5_entry_blocked_until_operator_evidence") is not True:
+            return DashboardValidationResult("BLOCKED", "residual execution guide must keep MVP-5 blocked until operator evidence", "HARD_TRUTH_MISSING")
+        if residual_execution_guide.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS":
+            return DashboardValidationResult("BLOCKED", "residual execution guide cannot transfer Upbit evidence to Binance", "LIVE_FINAL_GUARD_FAILED")
+        if residual_execution_guide.get("minimum_observation_hours", 0) < 120:
+            return DashboardValidationResult("FAIL", "residual execution guide must show the 120h PAPER/SHADOW observation requirement", "CONTRACT_GAP_HIGH")
+        guide_items = residual_execution_guide.get("execution_step_items")
+        if not isinstance(guide_items, list) or len(guide_items) < 3:
+            return DashboardValidationResult("FAIL", "loaded residual execution guide must expose at least top three execution steps", "SCHEMA_IDENTITY_MISMATCH")
+        guide_action_classes = [item.get("action_class") for item in guide_items if isinstance(item, dict)]
+        if guide_action_classes[:3] != required_action_classes:
+            return DashboardValidationResult("FAIL", "residual execution guide priority order is not operator-first", "SCHEMA_IDENTITY_MISMATCH")
+        for item in guide_items:
+            if not isinstance(item, dict):
+                return DashboardValidationResult("FAIL", "residual execution guide item must be an object", "SCHEMA_IDENTITY_MISMATCH")
+            if item.get("execution_status") != "BLOCKED_GUIDE_ONLY":
+                return DashboardValidationResult("BLOCKED", "residual execution guide item must remain blocked", "HARD_TRUTH_MISSING")
+            if not isinstance(item.get("operator_goal"), str) or not item.get("operator_goal", "").strip():
+                return DashboardValidationResult("FAIL", "residual execution guide must expose operator goal text", "SCHEMA_IDENTITY_MISMATCH")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -17714,6 +18016,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     residual_handoff = shell.get("residual_operator_handoff_packet", {})
     if not isinstance(residual_handoff, dict):
         residual_handoff = {}
+    residual_execution_guide = shell.get("residual_operator_execution_guide", {})
+    if not isinstance(residual_execution_guide, dict):
+        residual_execution_guide = {}
     residual_action_items = [
         item for item in residual_action_plan.get("action_items", []) if isinstance(item, dict)
     ]
@@ -17795,6 +18100,34 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "primary_next_action",
         "Use the residual action plan until handoff packets are loaded.",
     )
+    residual_execution_guide_html = ""
+    if residual_execution_guide.get("source_status") == "LOADED":
+        guide_step_count = residual_execution_guide.get("execution_step_count", 0)
+        local_runtime_step_count = residual_execution_guide.get("local_paper_shadow_runtime_step_count", 0)
+        minimum_observation_hours = residual_execution_guide.get("minimum_observation_hours", 0)
+        residual_execution_guide_html = (
+            '<p class="live-blocker-note"><strong>Execution guide:</strong> '
+            + safe_text(
+                residual_execution_guide.get(
+                    "one_line_summary",
+                    "MVP-5 remains blocked until operator evidence is collected.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note">'
+            + safe_text(
+                residual_execution_guide.get(
+                    "primary_next_action",
+                    "MVP-5 blocked until operator evidence is collected; Binance remains scaffold-only.",
+                )
+            )
+            + "</p>"
+            '<section class="live-blocker-groups" aria-label="operator execution guide counts">'
+            f'<div class="live-blocker-group"><strong>Steps</strong><span>{safe_text(guide_step_count)} steps</span></div>'
+            f'<div class="live-blocker-group"><strong>PAPER/SHADOW</strong><span>{safe_text(local_runtime_step_count)} local command</span></div>'
+            f'<div class="live-blocker-group"><strong>Observation</strong><span>{safe_text(minimum_observation_hours)}h minimum</span></div>'
+            "</section>"
+        )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -18284,6 +18617,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="live-blocker-note">""" + safe_text(residual_blocker_note) + """</p>
         <p class="live-blocker-note"><strong>Handoff:</strong> """ + safe_text(handoff_summary) + """</p>
         <p class="live-blocker-note">""" + safe_text(handoff_primary_next_action) + """</p>
+        """ + residual_execution_guide_html + """
         <section class="live-blocker-groups" aria-label="operator handoff packet counts">
           <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
           <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>
