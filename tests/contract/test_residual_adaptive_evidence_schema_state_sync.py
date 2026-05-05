@@ -90,7 +90,7 @@ class ResidualAdaptiveEvidenceSchemaStateSyncTest(unittest.TestCase):
             self.assertTrue(
                 state["last_patch_id"].startswith("MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_")
                 or state["last_patch_id"].startswith("MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_")
-                or state["last_patch_id"].startswith("MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS_") or state["last_patch_id"].startswith("MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT_")
+                or state["last_patch_id"].startswith("MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS_") or state["last_patch_id"].startswith("MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT_") or state["last_patch_id"].startswith("MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_")
             )
         self.assertEqual(patch_result["patch_id"], PATCH_ID)
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])

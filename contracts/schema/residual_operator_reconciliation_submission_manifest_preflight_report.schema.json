@@ -1,0 +1,447 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.residual_operator_reconciliation_submission_manifest_preflight_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "source_reports",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "selected_next_task_class",
+    "open_gap_ids",
+    "open_gap_count",
+    "manifest_schema_id",
+    "operator_reconciliation_submission_manifest_path",
+    "manifest_file_status",
+    "manifest_status",
+    "manifest_preflight_status",
+    "manifest_schema_validation_status",
+    "operator_submission_required",
+    "operator_submission_present",
+    "operator_submission_validated",
+    "operator_submission_accepted",
+    "manifest_structural_check_only",
+    "required_manifest_item_count",
+    "manifest_item_count",
+    "missing_manifest_item_count",
+    "duplicate_manifest_item_count",
+    "unexpected_manifest_item_count",
+    "mismatched_manifest_item_count",
+    "required_control_count",
+    "manifest_control_count",
+    "missing_control_count",
+    "duplicate_control_count",
+    "unsafe_manifest_flag_count",
+    "path_policy_violation_count",
+    "source_hash_mismatch_count",
+    "first_missing_manifest_item",
+    "manifest_template_preview",
+    "manifest_control_template",
+    "blocking_reasons",
+    "manifest_validation_errors",
+    "one_line_summary",
+    "primary_next_action",
+    "operator_no_action_needed_for_next_non_live_patch",
+    "operator_action_required_for_gap_closure",
+    "current_evidence_write_allowed",
+    "gap_closure_allowed_by_this_patch",
+    "live_ready_write_allowed",
+    "live_config_mutation_allowed",
+    "credential_values_read",
+    "credential_environment_inspection_performed",
+    "runtime_artifacts_staged_by_this_patch",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "validation_status",
+    "validation_errors",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.residual_operator_reconciliation_submission_manifest_preflight_report.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "source_reports": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source_report_ref"
+      }
+    },
+    "state_last_patch_id_before": {
+      "type": "string"
+    },
+    "state_next_task_before": {
+      "type": "string"
+    },
+    "selected_next_task_class": {
+      "const": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
+    },
+    "open_gap_ids": {
+      "type": "array",
+      "minItems": 13,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "open_gap_count": {
+      "const": 13
+    },
+    "manifest_schema_id": {
+      "const": "trader1.residual_operator_reconciliation_submission_manifest.v1"
+    },
+    "operator_reconciliation_submission_manifest_path": {
+      "const": "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json"
+    },
+    "manifest_file_status": {
+      "enum": [
+        "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST",
+        "PRESENT_JSON_INVALID",
+        "PRESENT_STRUCTURAL_INVALID",
+        "PRESENT_NOT_VALIDATED"
+      ]
+    },
+    "manifest_status": {
+      "enum": [
+        "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST",
+        "PRESENT_STRUCTURAL_INVALID",
+        "PRESENT_STRUCTURAL_CHECK_ONLY"
+      ]
+    },
+    "manifest_preflight_status": {
+      "enum": [
+        "BLOCKED_MANIFEST_MISSING",
+        "BLOCKED_MANIFEST_STRUCTURAL_ERRORS",
+        "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY"
+      ]
+    },
+    "manifest_schema_validation_status": {
+      "enum": [
+        "NOT_RUN_MISSING",
+        "FAIL_STRUCTURAL",
+        "PASS_STRUCTURAL_ONLY"
+      ]
+    },
+    "operator_submission_required": {
+      "const": true
+    },
+    "operator_submission_present": {
+      "type": "boolean"
+    },
+    "operator_submission_validated": {
+      "const": false
+    },
+    "operator_submission_accepted": {
+      "const": false
+    },
+    "manifest_structural_check_only": {
+      "type": "boolean"
+    },
+    "required_manifest_item_count": {
+      "const": 32
+    },
+    "manifest_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "missing_manifest_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicate_manifest_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unexpected_manifest_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "mismatched_manifest_item_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "required_control_count": {
+      "const": 4
+    },
+    "manifest_control_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "missing_control_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "duplicate_control_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unsafe_manifest_flag_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "path_policy_violation_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "source_hash_mismatch_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "first_missing_manifest_item": {
+      "type": "object"
+    },
+    "manifest_template_preview": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/manifest_template_item"
+      }
+    },
+    "manifest_control_template": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/control_template_item"
+      }
+    },
+    "blocking_reasons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "manifest_validation_errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "one_line_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "primary_next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_no_action_needed_for_next_non_live_patch": {
+      "const": true
+    },
+    "operator_action_required_for_gap_closure": {
+      "const": true
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "gap_closure_allowed_by_this_patch": {
+      "const": false
+    },
+    "live_ready_write_allowed": {
+      "const": false
+    },
+    "live_config_mutation_allowed": {
+      "const": false
+    },
+    "credential_values_read": {
+      "const": false
+    },
+    "credential_environment_inspection_performed": {
+      "const": false
+    },
+    "runtime_artifacts_staged_by_this_patch": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "validation_status": {
+      "const": "PASS"
+    },
+    "validation_errors": {
+      "const": []
+    },
+    "report_hash": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "source_report_ref": {
+      "type": "object",
+      "required": ["role", "patch_id", "report_hash"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "patch_id": {
+          "type": "string"
+        },
+        "report_hash": {
+          "type": "string"
+        }
+      }
+    },
+    "manifest_template_item": {
+      "type": "object",
+      "required": [
+        "intake_item_id",
+        "review_card_id",
+        "priority_order",
+        "cycle_id",
+        "required_resolution_evidence_kind",
+        "source_decision_candidate_rollup_hash",
+        "evidence_artifact_path_rule",
+        "evidence_artifact_sha256_required",
+        "operator_decision_allowed_values",
+        "current_evidence_write_requested",
+        "live_order_allowed",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "intake_item_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_card_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "priority_order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cycle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_resolution_evidence_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_decision_candidate_rollup_hash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_artifact_path_rule": {
+          "type": "string",
+          "pattern": "^must start with system/evidence/operator_submissions/residual_operator_reconciliation/"
+        },
+        "evidence_artifact_sha256_required": {
+          "const": true
+        },
+        "operator_decision_allowed_values": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "enum": [
+              "SUBMIT_FOR_RECONCILIATION_REVIEW",
+              "REJECT_CANDIDATE_KEEP_BLOCKED",
+              "REQUEST_ADDITIONAL_RERUN_EVIDENCE",
+              "ESCALATE_BLOCKED_RECONCILIATION"
+            ]
+          }
+        },
+        "current_evidence_write_requested": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "control_template_item": {
+      "type": "object",
+      "required": [
+        "control_id",
+        "control_order",
+        "blocker_code",
+        "operator_assertion_required",
+        "accepted_for_reconciliation",
+        "current_evidence_write_requested",
+        "live_order_allowed",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "control_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "control_order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "blocker_code": {
+          "const": "POST_RERUN_RECONCILIATION_REQUIRED"
+        },
+        "operator_assertion_required": {
+          "const": true
+        },
+        "accepted_for_reconciliation": {
+          "const": false
+        },
+        "current_evidence_write_requested": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    }
+  }
+}

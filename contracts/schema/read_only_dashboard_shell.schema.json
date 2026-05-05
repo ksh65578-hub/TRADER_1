@@ -113,7 +113,8 @@
             "RESIDUAL_OPERATOR_EXECUTION_GUIDE",
             "RESIDUAL_OPERATOR_EVIDENCE_PROGRESS",
             "RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS",
-            "RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT"
+            "RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT",
+            "RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT"
           ]
         },
         "path": {
@@ -158,7 +159,8 @@
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
             "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
             "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
-            "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json"
+            "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
+            "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json"
           ]
         },
         "truth_role": {
@@ -4198,6 +4200,234 @@
           "type": "string"
         },
         "resolution_reason_code": {
+          "type": "string"
+        }
+      }
+    },
+    "residual_operator_reconciliation_submission_manifest_preflight": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "source",
+        "source_status",
+        "open_gap_count",
+        "manifest_schema_id",
+        "manifest_path",
+        "manifest_status",
+        "manifest_schema_validation_status",
+        "operator_submission_required",
+        "operator_submission_present",
+        "operator_submission_validated",
+        "operator_submission_accepted",
+        "manifest_structural_check_only",
+        "required_manifest_item_count",
+        "manifest_item_count",
+        "missing_manifest_item_count",
+        "required_control_count",
+        "manifest_control_count",
+        "missing_control_count",
+        "unsafe_manifest_flag_count",
+        "path_policy_violation_count",
+        "source_hash_mismatch_count",
+        "blocking_reasons",
+        "manifest_validation_error_count",
+        "manifest_template_preview",
+        "one_line_summary",
+        "primary_next_action",
+        "operator_no_action_needed_for_next_non_live_patch",
+        "operator_action_required_for_gap_closure",
+        "display_only",
+        "dashboard_truth_only",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "Operator Submission Manifest Preflight"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_MANIFEST_MISSING",
+            "BLOCKED_MANIFEST_STRUCTURAL_ERRORS",
+            "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY",
+            "INVALID"
+          ]
+        },
+        "source": {
+          "const": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json"
+        },
+        "source_status": {
+          "enum": [
+            "LOADED",
+            "NOT_LOADED"
+          ]
+        },
+        "open_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "manifest_schema_id": {
+          "const": "trader1.residual_operator_reconciliation_submission_manifest.v1"
+        },
+        "manifest_path": {
+          "const": "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json"
+        },
+        "manifest_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_schema_validation_status": {
+          "enum": [
+            "NOT_RUN_MISSING",
+            "FAIL_STRUCTURAL",
+            "PASS_STRUCTURAL_ONLY"
+          ]
+        },
+        "operator_submission_required": {
+          "const": true
+        },
+        "operator_submission_present": {
+          "type": "boolean"
+        },
+        "operator_submission_validated": {
+          "const": false
+        },
+        "operator_submission_accepted": {
+          "const": false
+        },
+        "manifest_structural_check_only": {
+          "type": "boolean"
+        },
+        "required_manifest_item_count": {
+          "const": 32
+        },
+        "manifest_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_manifest_item_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_control_count": {
+          "const": 4
+        },
+        "manifest_control_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_control_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsafe_manifest_flag_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "path_policy_violation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_hash_mismatch_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocking_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "manifest_validation_error_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "manifest_template_preview": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/residual_operator_submission_manifest_preview_item"
+          }
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator_no_action_needed_for_next_non_live_patch": {
+          "type": "boolean"
+        },
+        "operator_action_required_for_gap_closure": {
+          "const": true
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_ready_write_allowed": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "residual_operator_submission_manifest_preview_item": {
+      "type": "object",
+      "required": [
+        "intake_item_id",
+        "priority_order",
+        "cycle_id",
+        "required_resolution_evidence_kind",
+        "evidence_artifact_path_rule"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "intake_item_id": {
+          "type": "string"
+        },
+        "priority_order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cycle_id": {
+          "type": "string"
+        },
+        "required_resolution_evidence_kind": {
+          "type": "string"
+        },
+        "evidence_artifact_path_rule": {
           "type": "string"
         }
       }
@@ -8704,7 +8934,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 33,
+      "maxItems": 34,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -8768,6 +8998,9 @@
     },
     "residual_operator_reconciliation_intake_preflight": {
       "$ref": "#/$defs/residual_operator_reconciliation_intake_preflight"
+    },
+    "residual_operator_reconciliation_submission_manifest_preflight": {
+      "$ref": "#/$defs/residual_operator_reconciliation_submission_manifest_preflight"
     },
     "residual_operator_priority": {
       "$ref": "#/$defs/residual_operator_priority"

@@ -120,6 +120,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
@@ -128,6 +129,9 @@ RESIDUAL_EXECUTION_GUIDE_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUID
 RESIDUAL_EVIDENCE_PROGRESS_SOURCE = "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
 RESIDUAL_RECONCILIATION_REVIEW_CARDS_SOURCE = "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json"
 RESIDUAL_RECONCILIATION_INTAKE_PREFLIGHT_SOURCE = "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json"
+RESIDUAL_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_SOURCE = (
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json"
+)
 RESIDUAL_ACTION_PLAN_CLASSES = {
     "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
     "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "PAPER ledger rerun",
@@ -12172,6 +12176,210 @@ def _residual_operator_reconciliation_intake_preflight_summary(report: dict[str,
     }
 
 
+def _residual_operator_reconciliation_submission_manifest_preflight_summary(
+    report: dict[str, Any] | None,
+) -> dict[str, Any]:
+    fallback = {
+        "title": "Operator Submission Manifest Preflight",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "manifest_schema_id": "trader1.residual_operator_reconciliation_submission_manifest.v1",
+        "manifest_path": "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json",
+        "manifest_status": "NOT_LOADED",
+        "manifest_schema_validation_status": "NOT_RUN_MISSING",
+        "operator_submission_required": True,
+        "operator_submission_present": False,
+        "operator_submission_validated": False,
+        "operator_submission_accepted": False,
+        "manifest_structural_check_only": False,
+        "required_manifest_item_count": 32,
+        "manifest_item_count": 0,
+        "missing_manifest_item_count": 32,
+        "required_control_count": 4,
+        "manifest_control_count": 0,
+        "missing_control_count": 4,
+        "unsafe_manifest_flag_count": 0,
+        "path_policy_violation_count": 0,
+        "source_hash_mismatch_count": 0,
+        "blocking_reasons": ["MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST"],
+        "manifest_validation_error_count": 0,
+        "manifest_template_preview": [],
+        "one_line_summary": "Operator submission manifest preflight is not loaded; reconciliation remains blocked.",
+        "primary_next_action": "Load the manifest preflight before judging a submission package.",
+        "operator_no_action_needed_for_next_non_live_patch": False,
+        "operator_action_required_for_gap_closure": True,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    forbidden_fields = (
+        "operator_submission_validated",
+        "operator_submission_accepted",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "credential_values_read",
+        "credential_environment_inspection_performed",
+        "runtime_artifacts_staged_by_this_patch",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    )
+    if any(report.get(field) is not False for field in forbidden_fields):
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator submission manifest preflight attempted validation, acceptance, current-evidence, live, credential, runtime-stage, or scale permission.",
+            "primary_next_action": "Reject the manifest preflight and keep reconciliation blocked.",
+        }
+
+    status = str(report.get("manifest_preflight_status") or "BLOCKED_MANIFEST_MISSING")
+    allowed_statuses = {
+        "BLOCKED_MANIFEST_MISSING",
+        "BLOCKED_MANIFEST_STRUCTURAL_ERRORS",
+        "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY",
+    }
+    invalid = (
+        report.get("schema_id")
+        != "trader1.residual_operator_reconciliation_submission_manifest_preflight_report.v1"
+        or report.get("manifest_schema_id") != "trader1.residual_operator_reconciliation_submission_manifest.v1"
+        or report.get("validation_status") != "PASS"
+        or status not in allowed_statuses
+        or report.get("operator_submission_required") is not True
+        or report.get("operator_action_required_for_gap_closure") is not True
+        or report.get("required_manifest_item_count") != 32
+        or report.get("required_control_count") != 4
+    )
+    if status == "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY":
+        invalid = (
+            invalid
+            or report.get("operator_submission_present") is not True
+            or report.get("manifest_structural_check_only") is not True
+            or report.get("manifest_schema_validation_status") != "PASS_STRUCTURAL_ONLY"
+            or report.get("missing_manifest_item_count") != 0
+            or report.get("missing_control_count") != 0
+            or report.get("unsafe_manifest_flag_count") != 0
+            or report.get("path_policy_violation_count") != 0
+            or report.get("source_hash_mismatch_count") != 0
+        )
+    elif status == "BLOCKED_MANIFEST_MISSING":
+        invalid = (
+            invalid
+            or report.get("operator_submission_present") is not False
+            or report.get("manifest_schema_validation_status") != "NOT_RUN_MISSING"
+            or report.get("missing_manifest_item_count") != 32
+            or report.get("manifest_item_count") != 0
+            or report.get("manifest_control_count") != 0
+        )
+    else:
+        invalid = invalid or report.get("manifest_schema_validation_status") != "FAIL_STRUCTURAL"
+    if invalid:
+        status = "INVALID"
+
+    preview_items = report.get("manifest_template_preview", [])
+    if not isinstance(preview_items, list):
+        preview_items = []
+    safe_preview: list[dict[str, Any]] = []
+    for item in preview_items[:4]:
+        if not isinstance(item, dict):
+            continue
+        if (
+            item.get("current_evidence_write_requested") is not False
+            or item.get("live_order_allowed") is not False
+            or item.get("scale_up_allowed") is not False
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator submission manifest template attempted write, live, or scale permission.",
+                "primary_next_action": "Reject the manifest preflight and regenerate it as structural-only.",
+            }
+        safe_preview.append(
+            {
+                "intake_item_id": str(item.get("intake_item_id") or ""),
+                "priority_order": int(item.get("priority_order", 0) or 0),
+                "cycle_id": str(item.get("cycle_id") or ""),
+                "required_resolution_evidence_kind": str(item.get("required_resolution_evidence_kind") or ""),
+                "evidence_artifact_path_rule": str(item.get("evidence_artifact_path_rule") or ""),
+            }
+        )
+
+    blocking_reasons = report.get("blocking_reasons", [])
+    if not isinstance(blocking_reasons, list):
+        blocking_reasons = []
+    errors = report.get("manifest_validation_errors", [])
+    if not isinstance(errors, list):
+        errors = []
+    return {
+        "title": "Operator Submission Manifest Preflight",
+        "status": status,
+        "source": RESIDUAL_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": report.get("open_gap_count", 13) if isinstance(report.get("open_gap_count", 13), int) else 13,
+        "manifest_schema_id": "trader1.residual_operator_reconciliation_submission_manifest.v1",
+        "manifest_path": str(
+            report.get(
+                "operator_reconciliation_submission_manifest_path",
+                "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json",
+            )
+        ),
+        "manifest_status": str(report.get("manifest_status") or "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST"),
+        "manifest_schema_validation_status": str(report.get("manifest_schema_validation_status") or "NOT_RUN_MISSING"),
+        "operator_submission_required": True,
+        "operator_submission_present": report.get("operator_submission_present") is True,
+        "operator_submission_validated": False,
+        "operator_submission_accepted": False,
+        "manifest_structural_check_only": report.get("manifest_structural_check_only") is True,
+        "required_manifest_item_count": int(report.get("required_manifest_item_count", 32) or 32),
+        "manifest_item_count": int(report.get("manifest_item_count", 0) or 0),
+        "missing_manifest_item_count": int(report.get("missing_manifest_item_count", 32) or 32),
+        "required_control_count": int(report.get("required_control_count", 4) or 4),
+        "manifest_control_count": int(report.get("manifest_control_count", 0) or 0),
+        "missing_control_count": int(report.get("missing_control_count", 4) or 4),
+        "unsafe_manifest_flag_count": int(report.get("unsafe_manifest_flag_count", 0) or 0),
+        "path_policy_violation_count": int(report.get("path_policy_violation_count", 0) or 0),
+        "source_hash_mismatch_count": int(report.get("source_hash_mismatch_count", 0) or 0),
+        "blocking_reasons": [str(item) for item in blocking_reasons[:4]],
+        "manifest_validation_error_count": len(errors),
+        "manifest_template_preview": safe_preview,
+        "one_line_summary": str(report.get("one_line_summary", "Operator submission manifest preflight remains blocked.")),
+        "primary_next_action": str(
+            report.get(
+                "primary_next_action",
+                "Repair the operator submission manifest; this dashboard cannot accept evidence.",
+            )
+        ),
+        "operator_no_action_needed_for_next_non_live_patch": True,
+        "operator_action_required_for_gap_closure": True,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -12222,6 +12430,7 @@ def build_read_only_dashboard_shell(
     residual_operator_evidence_progress_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_review_cards_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_intake_preflight_report: dict[str, Any] | None = None,
+    residual_operator_reconciliation_submission_manifest_preflight_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -12268,6 +12477,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_evidence_progress": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
         "residual_operator_reconciliation_review_cards": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
         "residual_operator_reconciliation_intake_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
+        "residual_operator_reconciliation_submission_manifest_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -12433,6 +12643,44 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 reconciliation_intake_freshness,
+            )
+        )
+    if isinstance(residual_operator_reconciliation_submission_manifest_preflight_report, dict):
+        manifest_preflight_freshness = (
+            "PASS"
+            if residual_operator_reconciliation_submission_manifest_preflight_report.get("schema_id")
+            == "trader1.residual_operator_reconciliation_submission_manifest_preflight_report.v1"
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("validation_status") == "PASS"
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("manifest_preflight_status")
+            in {
+                "BLOCKED_MANIFEST_MISSING",
+                "BLOCKED_MANIFEST_STRUCTURAL_ERRORS",
+                "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY",
+            }
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("operator_submission_validated")
+            is False
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("operator_submission_accepted")
+            is False
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("current_evidence_write_allowed")
+            is False
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("gap_closure_allowed_by_this_patch")
+            is False
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("live_ready_write_allowed") is False
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("live_config_mutation_allowed")
+            is False
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("live_order_allowed") is False
+            and residual_operator_reconciliation_submission_manifest_preflight_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT",
+                paths.get(
+                    "residual_operator_reconciliation_submission_manifest_preflight",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
+                ),
+                True,
+                manifest_preflight_freshness,
             )
         )
     if isinstance(shadow_runtime_writer_report, dict):
@@ -13518,6 +13766,11 @@ def build_read_only_dashboard_shell(
     residual_operator_reconciliation_intake_preflight = _residual_operator_reconciliation_intake_preflight_summary(
         residual_operator_reconciliation_intake_preflight_report
     )
+    residual_operator_reconciliation_submission_manifest_preflight = (
+        _residual_operator_reconciliation_submission_manifest_preflight_summary(
+            residual_operator_reconciliation_submission_manifest_preflight_report
+        )
+    )
     residual_operator_priority = _residual_operator_priority_summary(
         residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet,
@@ -13581,6 +13834,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_evidence_progress": residual_operator_evidence_progress,
         "residual_operator_reconciliation_review_cards": residual_operator_reconciliation_review_cards,
         "residual_operator_reconciliation_intake_preflight": residual_operator_reconciliation_intake_preflight,
+        "residual_operator_reconciliation_submission_manifest_preflight": residual_operator_reconciliation_submission_manifest_preflight,
         "residual_operator_priority": residual_operator_priority,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
@@ -14092,6 +14346,38 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                         "required_resolution_evidence_kind",
                         "intake_item_status",
                         "resolution_reason_code",
+                    )
+                )
+    residual_manifest_preflight = shell.get("residual_operator_reconciliation_submission_manifest_preflight", {})
+    if isinstance(residual_manifest_preflight, dict):
+        values.extend(
+            str(residual_manifest_preflight.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "source_status",
+                "one_line_summary",
+                "primary_next_action",
+                "manifest_schema_id",
+                "manifest_path",
+                "manifest_status",
+                "manifest_schema_validation_status",
+                "operator_submission_present",
+                "operator_submission_validated",
+                "operator_submission_accepted",
+                "manifest_structural_check_only",
+            )
+        )
+        for item in residual_manifest_preflight.get("manifest_template_preview", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "intake_item_id",
+                        "priority_order",
+                        "cycle_id",
+                        "required_resolution_evidence_kind",
+                        "evidence_artifact_path_rule",
                     )
                 )
     residual_priority = shell.get("residual_operator_priority", {})
@@ -14954,6 +15240,90 @@ def validate_read_only_dashboard_shell(
         for item in intake_items:
             if not isinstance(item, dict):
                 return DashboardValidationResult("FAIL", "residual reconciliation intake preview items must be objects", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_manifest_preflight = shell.get("residual_operator_reconciliation_submission_manifest_preflight")
+    if not isinstance(residual_manifest_preflight, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator submission manifest preflight summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_manifest_preflight.get("display_only") is not True
+        or residual_manifest_preflight.get("dashboard_truth_only") is not True
+    ):
+        return DashboardValidationResult("BLOCKED", "residual submission manifest preflight must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_manifest_preflight.get("live_order_ready")
+        or residual_manifest_preflight.get("live_order_allowed")
+        or residual_manifest_preflight.get("can_live_trade")
+        or residual_manifest_preflight.get("scale_up_allowed")
+        or residual_manifest_preflight.get("current_evidence_write_allowed")
+        or residual_manifest_preflight.get("gap_closure_allowed_by_this_patch")
+        or residual_manifest_preflight.get("live_ready_write_allowed")
+        or residual_manifest_preflight.get("live_config_mutation_allowed")
+        or residual_manifest_preflight.get("operator_submission_validated")
+        or residual_manifest_preflight.get("operator_submission_accepted")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual submission manifest preflight attempted validation, acceptance, current-evidence, live, LIVE_READY, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_manifest_preflight.get("source") != RESIDUAL_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_SOURCE:
+        return DashboardValidationResult("FAIL", "residual submission manifest preflight source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_manifest_preflight.get("status") not in {
+        "NOT_LOADED",
+        "BLOCKED_MANIFEST_MISSING",
+        "BLOCKED_MANIFEST_STRUCTURAL_ERRORS",
+        "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY",
+        "INVALID",
+    }:
+        return DashboardValidationResult("FAIL", "residual submission manifest preflight status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_manifest_preflight.get("source_status") == "LOADED":
+        if residual_manifest_preflight.get("status") not in {
+            "BLOCKED_MANIFEST_MISSING",
+            "BLOCKED_MANIFEST_STRUCTURAL_ERRORS",
+            "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY",
+        }:
+            return DashboardValidationResult("BLOCKED", "loaded residual submission manifest preflight must remain blocked", "LIVE_FINAL_GUARD_FAILED")
+        if residual_manifest_preflight.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual submission manifest open gap count must match action plan", "CONTRACT_GAP_HIGH")
+        if residual_manifest_preflight.get("manifest_schema_id") != "trader1.residual_operator_reconciliation_submission_manifest.v1":
+            return DashboardValidationResult("FAIL", "residual submission manifest schema id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_manifest_preflight.get("required_manifest_item_count") != 32:
+            return DashboardValidationResult("FAIL", "residual submission manifest preflight must expose 32 manifest items", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_manifest_preflight.get("required_control_count") != 4:
+            return DashboardValidationResult("FAIL", "residual submission manifest preflight must expose four controls", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_manifest_preflight.get("operator_action_required_for_gap_closure") is not True:
+            return DashboardValidationResult("BLOCKED", "residual submission manifest must keep operator reconciliation required for closure", "LIVE_FINAL_GUARD_FAILED")
+        status = residual_manifest_preflight.get("status")
+        if status == "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY":
+            if residual_manifest_preflight.get("manifest_schema_validation_status") != "PASS_STRUCTURAL_ONLY":
+                return DashboardValidationResult("BLOCKED", "structural-only manifest preflight cannot claim full validation", "LIVE_FINAL_GUARD_FAILED")
+            if (
+                residual_manifest_preflight.get("operator_submission_present") is not True
+                or residual_manifest_preflight.get("manifest_structural_check_only") is not True
+                or residual_manifest_preflight.get("missing_manifest_item_count") != 0
+                or residual_manifest_preflight.get("missing_control_count") != 0
+                or residual_manifest_preflight.get("unsafe_manifest_flag_count") != 0
+                or residual_manifest_preflight.get("path_policy_violation_count") != 0
+                or residual_manifest_preflight.get("source_hash_mismatch_count") != 0
+            ):
+                return DashboardValidationResult("BLOCKED", "structural-only manifest preflight has unsafe or incomplete counts", "LIVE_FINAL_GUARD_FAILED")
+        elif status == "BLOCKED_MANIFEST_MISSING":
+            if (
+                residual_manifest_preflight.get("operator_submission_present") is not False
+                or residual_manifest_preflight.get("manifest_schema_validation_status") != "NOT_RUN_MISSING"
+                or residual_manifest_preflight.get("manifest_item_count") != 0
+                or residual_manifest_preflight.get("missing_manifest_item_count") != 32
+                or residual_manifest_preflight.get("manifest_control_count") != 0
+                or residual_manifest_preflight.get("missing_control_count") != 4
+            ):
+                return DashboardValidationResult("BLOCKED", "missing manifest preflight counts or status drifted", "LIVE_FINAL_GUARD_FAILED")
+        elif residual_manifest_preflight.get("manifest_schema_validation_status") != "FAIL_STRUCTURAL":
+            return DashboardValidationResult("BLOCKED", "structural-error manifest preflight must fail structural validation only", "LIVE_FINAL_GUARD_FAILED")
+        if residual_manifest_preflight.get("manifest_validation_error_count", 0) < 0:
+            return DashboardValidationResult("FAIL", "residual submission manifest error count invalid", "SCHEMA_IDENTITY_MISMATCH")
+        for item in residual_manifest_preflight.get("manifest_template_preview", []):
+            if not isinstance(item, dict):
+                return DashboardValidationResult("FAIL", "residual submission manifest preview items must be objects", "SCHEMA_IDENTITY_MISMATCH")
+            if not str(item.get("evidence_artifact_path_rule", "")).startswith(
+                "must start with system/evidence/operator_submissions/residual_operator_reconciliation/"
+            ):
+                return DashboardValidationResult("FAIL", "residual submission manifest path rule missing", "SCHEMA_IDENTITY_MISMATCH")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -20382,6 +20752,52 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             f'<div class="live-blocker-group"><strong>Unsatisfied</strong><span>{safe_text(unsatisfied_requirement_count)} unsatisfied</span></div>'
             "</section>"
         )
+    residual_manifest_preflight = shell.get("residual_operator_reconciliation_submission_manifest_preflight", {})
+    if not isinstance(residual_manifest_preflight, dict):
+        residual_manifest_preflight = {}
+    residual_manifest_preflight_html = ""
+    if residual_manifest_preflight.get("source_status") == "LOADED":
+        manifest_status = residual_manifest_preflight.get("manifest_status", "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST")
+        manifest_validation = residual_manifest_preflight.get("manifest_schema_validation_status", "NOT_RUN_MISSING")
+        required_item_count = residual_manifest_preflight.get("required_manifest_item_count", 32)
+        present_item_count = residual_manifest_preflight.get("manifest_item_count", 0)
+        missing_item_count = residual_manifest_preflight.get("missing_manifest_item_count", 32)
+        control_count = residual_manifest_preflight.get("manifest_control_count", 0)
+        missing_control_count = residual_manifest_preflight.get("missing_control_count", 4)
+        unsafe_flag_count = residual_manifest_preflight.get("unsafe_manifest_flag_count", 0)
+        path_violation_count = residual_manifest_preflight.get("path_policy_violation_count", 0)
+        error_count = residual_manifest_preflight.get("manifest_validation_error_count", 0)
+        residual_manifest_preflight_html = (
+            '<p class="live-blocker-note"><strong>Submission manifest preflight:</strong> '
+            + safe_text(
+                residual_manifest_preflight.get(
+                    "one_line_summary",
+                    "Operator submission manifest preflight remains blocked.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Manifest path:</strong> '
+            + safe_text(residual_manifest_preflight.get("manifest_path", "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json"))
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Structural check:</strong> '
+            + safe_text(manifest_status)
+            + "; schema="
+            + safe_text(manifest_validation)
+            + "; accepted=false; current-evidence writes=false; LIVE_READY=false.</p>"
+            '<p class="live-blocker-note"><strong>Manifest next:</strong> '
+            + safe_text(residual_manifest_preflight.get("primary_next_action", "Repair the manifest package; dashboard remains read-only."))
+            + "</p>"
+            '<section class="live-blocker-groups" aria-label="operator submission manifest preflight counts">'
+            f'<div class="live-blocker-group"><strong>Required</strong><span>{safe_text(required_item_count)} items</span></div>'
+            f'<div class="live-blocker-group"><strong>Present</strong><span>{safe_text(present_item_count)} present</span></div>'
+            f'<div class="live-blocker-group"><strong>Missing</strong><span>{safe_text(missing_item_count)} missing</span></div>'
+            f'<div class="live-blocker-group"><strong>Controls</strong><span>{safe_text(control_count)} present</span></div>'
+            f'<div class="live-blocker-group"><strong>Missing Ctl</strong><span>{safe_text(missing_control_count)} missing</span></div>'
+            f'<div class="live-blocker-group"><strong>Unsafe</strong><span>{safe_text(unsafe_flag_count)} flags</span></div>'
+            f'<div class="live-blocker-group"><strong>Paths</strong><span>{safe_text(path_violation_count)} violations</span></div>'
+            f'<div class="live-blocker-group"><strong>Errors</strong><span>{safe_text(error_count)} errors</span></div>'
+            "</section>"
+        )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -20880,6 +21296,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         """ + residual_evidence_progress_html + """
         """ + residual_reconciliation_review_html + """
         """ + residual_reconciliation_intake_html + """
+        """ + residual_manifest_preflight_html + """
         <section class="live-blocker-groups" aria-label="operator handoff packet counts">
           <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
           <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>
