@@ -14,7 +14,7 @@ source_section_hashes: see contracts/generated/authority_section_map.json
 acceptance_checklist:
 - The operator-facing next run is lowered to 24h / 8640 ticks.
 - The trial profile remains non-live, credential-free, and not eligible for MVP-5/live readiness evidence.
-- The formal MVP-5 profile remains 120h / 43200 ticks and is not replaced by the trial.
+- The formal MVP-5 review path remains an adaptive evidence-quality gate and is not replaced by the trial.
 - No command is executed, no runtime output is staged, and no current evidence write or gap closure is allowed.
 - live_order_ready/live_order_allowed/can_live_trade/scale_up_allowed remain false.
 

@@ -151,7 +151,7 @@ source_section_hashes: see contracts/generated/authority_section_map.json
 acceptance_checklist:
 - The operator-facing next run is lowered to {report["operator_recommended_duration_hours"]}h / {report["operator_recommended_heartbeat_ticks"]} ticks.
 - The trial profile remains non-live, credential-free, and not eligible for MVP-5/live readiness evidence.
-- The formal MVP-5 profile remains {report["formal_mvp5_duration_hours"]}h / {report["formal_mvp5_expected_heartbeat_ticks"]} ticks and is not replaced by the trial.
+- The formal MVP-5 review path remains an adaptive evidence-quality gate and is not replaced by the trial.
 - No command is executed, no runtime output is staged, and no current evidence write or gap closure is allowed.
 - live_order_ready/live_order_allowed/can_live_trade/scale_up_allowed remain false.
 
@@ -182,7 +182,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-The operator-facing next PAPER/SHADOW run has been lowered to a 24h trial profile for runtime defect discovery. The trial does not replace the formal long-run profile for MVP-5/live readiness and cannot close gaps by itself.
+The operator-facing next PAPER/SHADOW run has a 24h trial profile for runtime defect discovery. The trial does not replace the adaptive evidence-quality gate for MVP-5/live readiness and cannot close gaps by itself.
 
 ## Next Safe Task
 
@@ -450,7 +450,7 @@ Finding:
 Patch:
 - Generated {POLICY_REPORT_PATH}.
 - Lowered the recommended next operator run to {report["operator_recommended_duration_hours"]}h / {report["operator_recommended_heartbeat_ticks"]} ticks.
-- Preserved the formal MVP-5 profile at {report["formal_mvp5_duration_hours"]}h / {report["formal_mvp5_expected_heartbeat_ticks"]} ticks.
+- Preserved the formal MVP-5 adaptive evidence-quality gate.
 
 Safety:
 - trial_profile_mvp5_evidence_eligible=false

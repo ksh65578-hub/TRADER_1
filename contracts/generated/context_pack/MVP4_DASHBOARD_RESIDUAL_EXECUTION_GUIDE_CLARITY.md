@@ -14,7 +14,7 @@ source_section_hashes: see contracts/generated/authority_section_map.json
 acceptance_checklist:
 - The first-screen Live Execution card loads the audited residual operator execution guide report as display truth only.
 - The dashboard summarizes 13 open residual blockers as 6 blocked execution steps without exposing the full command text on the first screen.
-- The dashboard shows 1 local PAPER/SHADOW command, a 120h minimum observation requirement, MVP-5 blocked status, and Binance scaffold-only status.
+- The dashboard shows 1 local PAPER/SHADOW command, an adaptive evidence gate with no fixed observation-duration floor, MVP-5 blocked status, and Binance scaffold-only status.
 - The dashboard preserves raw blocker traceability and all false live/scale flags.
 - No order controls, credential access, live permission, current evidence write, gap closure, live config mutation, or scale-up behavior is introduced.
 

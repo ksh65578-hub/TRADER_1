@@ -157,7 +157,7 @@ acceptance_checklist:
 - live_order_ready/live_order_allowed/can_live_trade/scale_up_allowed remain false.
 
 known_omissions_by_design:
-- no 120h PAPER/SHADOW operator run is executed
+- no PAPER/SHADOW operator run is executed
 - no runtime artifact content hash is recorded before operator submission manifest validation
 - no gap is closed and MVP-5 remains blocked
 
@@ -183,7 +183,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-The residual operator evidence route now has a non-live intake audit. It tells the operator which evidence package is still required after the 120h PAPER/SHADOW run and queues the validators required before any MVP-5 review.
+The residual operator evidence route now has a non-live intake audit. It tells the operator which evidence package is still required after an adaptive PAPER/SHADOW evidence run and queues the validators required before any MVP-5 review.
 
 ## Next Safe Task
 
@@ -441,7 +441,7 @@ created_at_utc: {now}
 patch_id: {PATCH_ID}
 
 Finding:
-- The residual route had a non-live run preflight, but did not yet have a structured intake audit for the operator submission package expected after the 120h PAPER/SHADOW run.
+- The residual route had a non-live run preflight, but did not yet have a structured intake audit for the operator submission package expected after adaptive PAPER/SHADOW evidence collection.
 
 Patch:
 - Generated {INTAKE_REPORT_PATH}.

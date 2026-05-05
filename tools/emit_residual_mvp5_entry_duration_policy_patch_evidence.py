@@ -286,7 +286,7 @@ source_section_hashes: see contracts/generated/authority_section_map.json
 acceptance_checklist:
 - MVP5 review-entry uses an adaptive evidence-quality gate with no fixed duration or heartbeat tick floor.
 - The 24h trial remains defect-discovery only and not MVP5 eligible.
-- The old 120h profile is retained only for optional extended observation or scale-up confidence.
+- Previous fixed-hour profiles are historical references only and cannot act as review-entry criteria.
 - Duration alone cannot allow live orders, close gaps, write current evidence, or write LIVE_READY.
 - Codex/operator review must judge paper/shadow evidence artifacts through validators before any next-stage claim.
 - live_order_ready/live_order_allowed/can_live_trade/scale_up_allowed remain false.
@@ -319,7 +319,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-The operator-facing first run may remain a 24h defect-discovery trial, but MVP5 review-entry no longer has a fixed time, heartbeat tick, or PAPER-SHADOW window floor. The current review-entry command leaves TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS empty and relies on adaptive evidence-quality review: Codex/operator review must inspect generated paper/shadow artifacts, source freshness, ledger/reconciliation status, profitability maturity, and validator PASS results before any next-stage claim. The 120h profile is retained only as optional extended observation or scale-up confidence and does not create live readiness.
+The operator-facing first run may remain a 24h defect-discovery trial, but MVP5 review-entry no longer has a fixed time, heartbeat tick, or PAPER-SHADOW window floor. The current review-entry command leaves TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS empty and relies on adaptive evidence-quality review: Codex/operator review must inspect generated paper/shadow artifacts, source freshness, ledger/reconciliation status, profitability maturity, and validator PASS results before any next-stage claim. Historical fixed-hour profiles do not create live readiness.
 
 ## Next Safe Task
 
@@ -342,7 +342,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             "source_heading": "Residual adaptive evidence gate policy",
             "full_text_marker": (
                 f"{REQUIREMENT_ID}: remove fixed MVP5 review-entry PAPER/SHADOW duration while preserving "
-                "24h as trial-only, retaining 120h as optional extended observation, requiring adaptive evidence-quality review, and keeping all live/scale permissions false"
+                "24h as trial-only, treating prior fixed-hour profiles as historical references, requiring adaptive evidence-quality review, and keeping all live/scale permissions false"
             ),
             "authority_level": "ACTIVE_AUTHORITY",
             "requirement_title": "Residual adaptive evidence gate policy",
@@ -649,7 +649,7 @@ Patch:
 - Removed the fixed MVP5 review-entry duration, heartbeat tick, and PAPER-SHADOW window hard floors.
 - Set review-entry to {policy["mvp5_review_entry_gate_type"]}: evidence artifacts and validators decide whether enough paper/shadow evidence exists.
 - Preserved the 24h profile as trial-only.
-- Moved 120h to optional extended observation or scale-up confidence only.
+- Clarified that historical fixed-hour profiles are not active review-entry criteria.
 
 Safety:
 - fixed_duration_gate_removed=true

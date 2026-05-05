@@ -11064,7 +11064,7 @@
       "source_section_id": "SECTION_CONTRACT_GAP",
       "source_file": "TRADER_1.md",
       "source_heading": "Residual adaptive evidence gate policy",
-      "full_text_marker": "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY: remove fixed MVP5 review-entry PAPER/SHADOW duration while preserving 24h as trial-only, retaining 120h as optional extended observation, requiring adaptive evidence-quality review, and keeping all live/scale permissions false",
+      "full_text_marker": "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY: remove fixed MVP5 review-entry PAPER/SHADOW duration while preserving 24h as trial-only, treating prior fixed-hour profiles as historical references, requiring adaptive evidence-quality review, and keeping all live/scale permissions false",
       "authority_level": "ACTIVE_AUTHORITY",
       "requirement_title": "Residual adaptive evidence gate policy",
       "requirement_kind": "EVIDENCE_READINESS_PATCH",
@@ -11164,7 +11164,91 @@
         "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-TRIAL-DURATION-POLICY",
         "REQ-MVP4-LIVE-FINAL-GUARD"
       ],
-      "source_text_sha256": "7A0F67A12B243636D772A1B782C7AB4FFCF5936E4E50346E67DA6C2944DE4231",
+      "source_text_sha256": "F98A06C6CA7D7AA7D4BAFFE9B977C33CCF5674A09B75537A4CF0F0B81D02C349",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
+      "requirement_id": "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY-DURATION-WORDING-HYGIENE",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Residual adaptive evidence duration wording hygiene",
+      "full_text_marker": "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY-DURATION-WORDING-HYGIENE: active runtime guards, emitters, and read caches must use adaptive evidence-gate wording with no fixed observation-duration floor while preserving all live/scale blockers",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Residual adaptive evidence duration wording hygiene",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.residual_operator_evidence_progress_report.v1"
+      ],
+      "validator_ids": [
+        "runtime_schema_instance_validator",
+        "schema_validator",
+        "registry_validator",
+        "paper_shadow_evidence_accumulation_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_index.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_DURATION_WORDING_HYGIENE.md",
+        "contracts/authority_manifest.json",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_DURATION_WORDING_HYGIENE.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_DURATION_WORDING_HYGIENE.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_DURATION_WORDING_HYGIENE.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_DURATION_WORDING_HYGIENE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_DURATION_WORDING_HYGIENE_20260505.md",
+        "tools/emit_residual_adaptive_evidence_duration_wording_hygiene_patch_evidence.py",
+        "tests/runtime/test_residual_adaptive_evidence_safe_launcher.py",
+        "tests/contract/test_residual_adaptive_duration_wording_hygiene.py",
+        "tests/contract/test_residual_adaptive_evidence_schema_state_sync.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "tools/emit_dashboard_residual_evidence_progress_clarity_patch_evidence.py",
+        "tools/emit_dashboard_residual_execution_guide_clarity_patch_evidence.py",
+        "tools/emit_residual_operator_evidence_run_preflight_patch_evidence.py",
+        "tools/emit_residual_operator_evidence_intake_audit_patch_evidence.py",
+        "tools/emit_residual_operator_evidence_trial_duration_policy_patch_evidence.py",
+        "tools/emit_residual_operator_handoff_execution_guide_patch_evidence.py",
+        "tools/emit_residual_mvp5_entry_duration_policy_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_RESIDUAL_EVIDENCE_PROGRESS_CLARITY.md",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_RESIDUAL_EXECUTION_GUIDE_CLARITY.md",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.md",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT.md",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_OPERATOR_EVIDENCE_TRIAL_DURATION_POLICY.md",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.md",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY.md",
+        "contracts/generated/requirement_index.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
+      ],
+      "test_ids": [
+        "tests/runtime/test_residual_adaptive_evidence_safe_launcher.py",
+        "tests/contract/test_residual_adaptive_duration_wording_hygiene.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_OPERATOR_CONTROL",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY",
+        "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY-PROGRESS-CLARITY",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "BD20C39B1AD02C9837A68E126B5BB3B32D80B2A7BE860ADE3CFB88A153702078",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
@@ -11358,7 +11442,7 @@
       "source_section_id": "SECTION_CONTRACT_GAP",
       "source_file": "TRADER_1.md",
       "source_heading": "Residual MVP5 entry duration policy",
-      "full_text_marker": "REQ-MVP4-RESIDUAL-MVP5-ENTRY-DURATION-POLICY: lower MVP5 review-entry PAPER/SHADOW duration to 48h while preserving 24h as trial-only, retaining 120h as optional extended observation, and keeping all live/scale permissions false",
+      "full_text_marker": "REQ-MVP4-RESIDUAL-MVP5-ENTRY-DURATION-POLICY: remove fixed MVP5 review-entry PAPER/SHADOW duration while preserving 24h as trial-only, treating prior fixed-hour profiles as historical references, requiring adaptive evidence-quality review, and keeping all live/scale permissions false",
       "authority_level": "ACTIVE_AUTHORITY",
       "requirement_title": "Residual MVP5 entry duration policy",
       "requirement_kind": "EVIDENCE_READINESS_PATCH",
@@ -11458,7 +11542,7 @@
         "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-TRIAL-DURATION-POLICY",
         "REQ-MVP4-LIVE-FINAL-GUARD"
       ],
-      "source_text_sha256": "A09534D57AA000EC794877FDB18F4A1B3BC4CBF9420DF450418752BD1825E83E",
+      "source_text_sha256": "D01F253511AFD5622B857B12361812C5D99D66EEF9C09A87CA4325F0B98FD677",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
@@ -23237,5 +23321,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T13:10:29Z"
+  "updated_at_utc": "2026-05-05T13:48:19Z"
 }

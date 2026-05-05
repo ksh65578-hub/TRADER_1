@@ -1,0 +1,20 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-05T13:48:19Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_DURATION_WORDING_HYGIENE_20260505_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_ADAPTIVE_DURATION_WORDING_HYGIENE_LIVE_BLOCKED",
+  "safe_launcher_adaptive_progress_loader_status": "PASS_ACCEPTS_ADAPTIVE_ZERO_FLOOR_REJECTS_LEGACY_FIXED_DURATION",
+  "adaptive_duration_wording_hygiene_status": "PASS_NO_ACTIVE_FIXED_DURATION_REVIEW_ENTRY_WORDING",
+  "stale_fixed_duration_marker_count_after": 0,
+  "minimum_observation_hours_required_after": 0,
+  "fixed_duration_gate_status": "REMOVED_NO_FIXED_RUNTIME_FLOOR",
+  "open_gap_count": 13,
+  "gap_closure_allowed_by_this_patch": false,
+  "current_evidence_write_allowed": false,
+  "live_ready_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -190,7 +190,8 @@ execution_guide_snapshot:
 - execution_step_count: {report["execution_step_count"]}
 - local_paper_shadow_runtime_step_count: {report["local_paper_shadow_runtime_step_count"]}
 - external_or_policy_evidence_step_count: {report["external_or_policy_evidence_step_count"]}
-- minimum_observation_hours_for_local_runtime: 120
+- minimum_observation_hours_for_local_runtime: 0
+- fixed_duration_gate_status: REMOVED_NO_FIXED_RUNTIME_FLOOR
 - binance_runtime_status: {report["binance_runtime_status"]}
 - guide_status: {report["guide_status"]}
 - selected_next_task_class: {report["selected_next_task_class"]}
@@ -224,7 +225,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Residual operator handoff packets now have a blocked execution guide: {report["execution_step_count"]} steps cover all {report["open_gap_count"]} open gaps. Only one local command is shown, it is UPBIT PAPER/SHADOW evidence collection only, and it requires 120 hours before the next review.
+Residual operator handoff packets now have a blocked execution guide: {report["execution_step_count"]} steps cover all {report["open_gap_count"]} open gaps. Only one local command is shown, it is UPBIT PAPER/SHADOW evidence collection only, and it uses adaptive evidence review with no fixed observation-duration floor.
 
 ## Next Safe Task
 
@@ -480,7 +481,7 @@ Patch:
 - Generated a blocked execution guide covering {report["open_gap_count"]} open gaps across {report["execution_step_count"]} handoff steps.
 - Exposed exactly one local safe command for UPBIT PAPER/SHADOW evidence collection.
 - Marked the local command as credential-free, non-live, and live_order_allowed=false.
-- Set minimum local observation duration to 120 hours before the next review.
+- Removed the fixed local observation-duration floor from the operator-facing review wording.
 - Marked Binance as scaffold-only and not eligible for readiness transfer.
 
 Safety:

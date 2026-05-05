@@ -1473,7 +1473,15 @@ def load_residual_operator_evidence_progress_report(root: Path = ROOT) -> dict[s
     if (
         report.get("mvp5_entry_blocked_until_operator_evidence") is not True
         or report.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
-        or report.get("minimum_observation_hours_required", 0) < 120
+        or report.get("minimum_observation_hours_required") != 0
+        or report.get("adaptive_judgement_status")
+        != "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY"
+        or report.get("fixed_duration_gate_status") != "REMOVED_NO_FIXED_RUNTIME_FLOOR"
+        or report.get("codex_stepwise_review_allowed") is not True
+        or report.get("codex_can_continue_non_live_patches") is not True
+        or report.get("user_runtime_required_for_next_non_live_patch") is not False
+        or report.get("user_runtime_required_for_gap_closure") is not True
+        or report.get("evidence_quality_status") != "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES"
         or report.get("local_runtime_command_count") != 1
         or report.get("local_runtime_completed_count") != 0
     ):
