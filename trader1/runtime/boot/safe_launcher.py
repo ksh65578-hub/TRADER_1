@@ -612,6 +612,11 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         / "evidence"
         / "audit_reports"
         / "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
+        "residual_operator_execution_guide": root
+        / "system"
+        / "evidence"
+        / "audit_reports"
+        / "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
         "paper_operation_gate_report": base / "paper_operation_gate_report.json",
         "paper_exposure_quality_report": base / "paper_exposure_quality_report.json",
         "reconciliation_report": base / "reconciliation_report.json",
@@ -1383,6 +1388,61 @@ def load_residual_operator_handoff_packet_report(root: Path = ROOT) -> dict[str,
     return report
 
 
+def load_residual_operator_execution_guide_report(root: Path = ROOT) -> dict[str, Any] | None:
+    path = root / "system" / "evidence" / "audit_reports" / "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
+    report = _load_dashboard_json_artifact(path)
+    if not isinstance(report, dict):
+        return None
+    if report.get("schema_id") != "trader1.residual_operator_execution_guide_report.v1":
+        return None
+    if report.get("guide_status") != "BLOCKED_GUIDE_ONLY" or report.get("validation_status") != "PASS":
+        return None
+    if (
+        report.get("live_order_ready") is not False
+        or report.get("live_order_allowed") is not False
+        or report.get("can_live_trade") is not False
+        or report.get("scale_up_allowed") is not False
+        or report.get("current_evidence_write_allowed") is not False
+        or report.get("gap_closure_allowed_by_this_patch") is not False
+        or report.get("live_config_mutation_allowed") is not False
+        or report.get("live_ready_write_allowed") is not False
+    ):
+        return None
+    if (
+        report.get("operator_runtime_required_before_mvp5") is not True
+        or report.get("mvp5_entry_blocked_until_operator_evidence") is not True
+        or report.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
+        or report.get("local_paper_shadow_runtime_step_count") != 1
+    ):
+        return None
+    steps = report.get("execution_steps", [])
+    if not isinstance(steps, list):
+        return None
+    for step in steps:
+        if not isinstance(step, dict):
+            return None
+        if (
+            step.get("evidence_ready_for_closure") is not False
+            or step.get("current_evidence_write_allowed") is not False
+            or step.get("gap_closure_allowed_by_this_patch") is not False
+            or step.get("live_order_ready") is not False
+            or step.get("live_order_allowed") is not False
+            or step.get("can_live_trade") is not False
+            or step.get("scale_up_allowed") is not False
+        ):
+            return None
+        for command in step.get("allowed_local_commands", []):
+            if not isinstance(command, dict):
+                return None
+            if (
+                command.get("non_live_only") is not True
+                or command.get("credential_required") is not False
+                or command.get("live_order_allowed") is not False
+            ):
+                return None
+    return report
+
+
 def load_shadow_runtime_harness_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
     if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
         return None
@@ -1620,6 +1680,7 @@ def build_launcher_dashboard_artifacts(
         "upbit_public_rest_continuity_history": _runtime_display_path(paths["upbit_public_rest_continuity_history"], root),
         "candidate_scorecard": _runtime_display_path(paths["candidate_scorecard"], root),
         "residual_operator_handoff_packet": _runtime_display_path(paths["residual_operator_handoff_packet"], root),
+        "residual_operator_execution_guide": _runtime_display_path(paths["residual_operator_execution_guide"], root),
         "shadow_runtime_harness": _runtime_display_path(paths["shadow_runtime_harness_report"], root),
         "shadow_persistent_runtime": _runtime_display_path(paths["shadow_persistent_runtime_report"], root),
         "shadow_runtime_orchestration": _runtime_display_path(paths["shadow_runtime_orchestration_report"], root),
@@ -1630,6 +1691,7 @@ def build_launcher_dashboard_artifacts(
     profitability_maturity_rollup_report = load_profitability_maturity_rollup_report(report, root)
     residual_open_gap_operator_action_plan_report = load_residual_open_gap_operator_action_plan_report(root)
     residual_operator_handoff_packet_report = load_residual_operator_handoff_packet_report(root)
+    residual_operator_execution_guide_report = load_residual_operator_execution_guide_report(root)
     reconciliation_report = load_dashboard_reconciliation_report(report, root)
     restart_recovery_report = load_dashboard_restart_recovery_report(
         report,
@@ -1724,6 +1786,7 @@ def build_launcher_dashboard_artifacts(
         candidate_scorecard=candidate_scorecard,
         residual_open_gap_operator_action_plan_report=residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet_report=residual_operator_handoff_packet_report,
+        residual_operator_execution_guide_report=residual_operator_execution_guide_report,
         reconciliation_report=reconciliation_report,
         restart_recovery_report=restart_recovery_report,
         upbit_paper_post_rerun_reconciliation_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,

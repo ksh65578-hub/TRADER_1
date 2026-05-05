@@ -4130,6 +4130,98 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-RESIDUAL-EXECUTION-GUIDE-CLARITY",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard residual operator execution guide clarity",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-RESIDUAL-EXECUTION-GUIDE-CLARITY: dashboard must expose residual operator execution guide as concise display-only MVP-5 blocker guidance while preserving false live/scale permissions",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard residual operator execution guide clarity",
+      "requirement_kind": "DASHBOARD_UX_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.residual_operator_execution_guide_report.v1"
+      ],
+      "validator_ids": [
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "runtime_schema_instance_validator",
+        "schema_validator",
+        "registry_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_dashboard_residual_execution_guide_clarity_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_RESIDUAL_EXECUTION_GUIDE_CLARITY.md",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+        "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+        "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard/index.html",
+        "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard/index.html",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/run_dashboard_visual_layout_validators.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_SHELL",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_CONTRACT_GAP",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-RESIDUAL-OPERATOR-HANDOFF-EXECUTION-GUIDE",
+        "REQ-MVP4-RESIDUAL-OPERATOR-HANDOFF-PACKET",
+        "REQ-MVP4-DASHBOARD-RESIDUAL-OPERATOR-HANDOFF-CLARITY",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "0F677596661576E074360CFB7AC13CB8CB73044B7AA25ED6C3C887A04EA04765",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-RESIDUAL-OPERATOR-HANDOFF-CLARITY",
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
@@ -22307,5 +22399,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T08:16:09Z"
+  "updated_at_utc": "2026-05-05T08:35:47Z"
 }

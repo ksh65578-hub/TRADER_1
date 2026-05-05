@@ -109,7 +109,8 @@
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD",
-            "RESIDUAL_OPERATOR_HANDOFF_PACKET"
+            "RESIDUAL_OPERATOR_HANDOFF_PACKET",
+            "RESIDUAL_OPERATOR_EXECUTION_GUIDE"
           ]
         },
         "path": {
@@ -150,7 +151,8 @@
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json",
-            "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
+            "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
+            "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
           ]
         },
         "truth_role": {
@@ -3146,6 +3148,213 @@
           "const": false
         },
         "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "residual_operator_execution_guide": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "source",
+        "source_status",
+        "open_gap_count",
+        "execution_step_count",
+        "local_paper_shadow_runtime_step_count",
+        "external_or_policy_evidence_step_count",
+        "minimum_observation_hours",
+        "minimum_paper_shadow_window_count",
+        "operator_runtime_required_before_mvp5",
+        "mvp5_entry_blocked_until_operator_evidence",
+        "binance_runtime_status",
+        "one_line_summary",
+        "primary_next_action",
+        "execution_step_items",
+        "display_only",
+        "dashboard_truth_only",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_config_mutation_allowed",
+        "live_ready_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "Operator Execution Guide"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_GUIDE_ONLY",
+            "INVALID"
+          ]
+        },
+        "source": {
+          "const": "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
+        },
+        "source_status": {
+          "enum": [
+            "LOADED",
+            "NOT_LOADED"
+          ]
+        },
+        "open_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "execution_step_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "local_paper_shadow_runtime_step_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "external_or_policy_evidence_step_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_observation_hours": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_paper_shadow_window_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_runtime_required_before_mvp5": {
+          "const": true
+        },
+        "mvp5_entry_blocked_until_operator_evidence": {
+          "const": true
+        },
+        "binance_runtime_status": {
+          "const": "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_step_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "action_class",
+              "label",
+              "priority",
+              "gap_count",
+              "operator_action_mode",
+              "operator_goal",
+              "minimum_observation_hours",
+              "minimum_paper_shadow_window_count",
+              "allowed_command_count",
+              "required_evidence_artifact_count",
+              "validator_count",
+              "execution_status"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "action_class": {
+                "enum": [
+                  "OPERATOR_RECONCILIATION_ACTION",
+                  "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                  "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+                  "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+                  "SEALED_BASELINE_PRESERVATION_ACTION",
+                  "SCALE_UP_POLICY_EVIDENCE_ACTION",
+                  "CLASSIFY_OPEN_GAP_ACTION"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "priority": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "gap_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "operator_action_mode": {
+                "enum": [
+                  "OPERATOR_REVIEW_REQUIRED",
+                  "PAPER_RERUN_RECONCILIATION_BLOCKED",
+                  "LOCAL_PAPER_SHADOW_RUNTIME_ALLOWED",
+                  "EXTERNAL_EVIDENCE_REQUIRED",
+                  "PRESERVE_BASELINE_ONLY",
+                  "POLICY_EVIDENCE_REQUIRED"
+                ]
+              },
+              "operator_goal": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minimum_observation_hours": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minimum_paper_shadow_window_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "allowed_command_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "required_evidence_artifact_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "validator_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "execution_status": {
+                "const": "BLOCKED_GUIDE_ONLY"
+              }
+            }
+          }
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "live_ready_write_allowed": {
           "const": false
         },
         "live_order_ready": {
@@ -7213,7 +7422,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 29,
+      "maxItems": 30,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -7265,6 +7474,9 @@
     },
     "residual_operator_handoff_packet": {
       "$ref": "#/$defs/residual_operator_handoff_packet"
+    },
+    "residual_operator_execution_guide": {
+      "$ref": "#/$defs/residual_operator_execution_guide"
     },
     "profitability_maturity": {
       "$ref": "#/$defs/profitability_maturity"

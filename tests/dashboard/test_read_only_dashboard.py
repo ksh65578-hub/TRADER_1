@@ -250,6 +250,18 @@ def residual_operator_handoff_packet_fixture():
     )
 
 
+def residual_operator_execution_guide_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "evidence"
+            / "audit_reports"
+            / "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
     runtime = build_upbit_paper_runtime_cycle_report(
         cycle_id=f"dashboard-scorecard-{session_id}",
@@ -298,6 +310,7 @@ def build_dashboard(
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
     residual_open_gap_operator_action_plan_report=None,
     residual_operator_handoff_packet_report=None,
+    residual_operator_execution_guide_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
@@ -335,6 +348,7 @@ def build_dashboard(
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         residual_open_gap_operator_action_plan_report=residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet_report=residual_operator_handoff_packet_report,
+        residual_operator_execution_guide_report=residual_operator_execution_guide_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
@@ -6766,6 +6780,47 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER/SHADOW evidence: 3", answer_html)
         self.assertIn("Start with operator reconciliation and PAPER ledger rerun packets", answer_html)
         self.assertIn("live_order_allowed=false", answer_html)
+        self.assertNotIn("<button", answer_html.lower())
+        self.assertNotIn("<form", answer_html.lower())
+
+    def test_dashboard_live_card_exposes_residual_operator_execution_guide(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
+            residual_operator_handoff_packet_report=residual_operator_handoff_packet_fixture(),
+            residual_operator_execution_guide_report=residual_operator_execution_guide_fixture(),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        guide = dashboard["residual_operator_execution_guide"]
+        self.assertEqual(guide["source_status"], "LOADED")
+        self.assertEqual(guide["status"], "BLOCKED_GUIDE_ONLY")
+        self.assertEqual(guide["open_gap_count"], 13)
+        self.assertEqual(guide["execution_step_count"], 6)
+        self.assertEqual(guide["local_paper_shadow_runtime_step_count"], 1)
+        self.assertEqual(guide["external_or_policy_evidence_step_count"], 2)
+        self.assertEqual(guide["minimum_observation_hours"], 120)
+        self.assertTrue(guide["operator_runtime_required_before_mvp5"])
+        self.assertTrue(guide["mvp5_entry_blocked_until_operator_evidence"])
+        self.assertEqual(guide["binance_runtime_status"], "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS")
+        self.assertFalse(guide["current_evidence_write_allowed"])
+        self.assertFalse(guide["gap_closure_allowed_by_this_patch"])
+        self.assertFalse(guide["live_config_mutation_allowed"])
+        self.assertFalse(guide["live_ready_write_allowed"])
+        self.assertFalse(guide["live_order_allowed"])
+        self.assertFalse(guide["scale_up_allowed"])
+
+        html = render_dashboard_html(dashboard)
+        answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
+        portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
+        answer_html = html[answer_start:portfolio_start]
+        self.assertIn("Execution guide:", answer_html)
+        self.assertIn("6 blocked execution steps", answer_html)
+        self.assertIn("1 local PAPER/SHADOW command", answer_html)
+        self.assertIn("120h minimum", answer_html)
+        self.assertIn("MVP-5 blocked", answer_html)
+        self.assertIn("Binance remains scaffold-only", answer_html)
+        self.assertIn("live_order_allowed=false", answer_html)
+        self.assertNotIn("TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS", answer_html)
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
 
