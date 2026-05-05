@@ -3470,6 +3470,45 @@
           "type": "integer",
           "minimum": 0
         },
+        "adaptive_judgement_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixed_duration_gate_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "codex_stepwise_review_allowed": {
+          "type": "boolean"
+        },
+        "codex_can_continue_non_live_patches": {
+          "type": "boolean"
+        },
+        "user_runtime_required_for_next_non_live_patch": {
+          "const": false
+        },
+        "user_runtime_required_for_gap_closure": {
+          "const": true
+        },
+        "evidence_quality_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "codex_judgement_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "user_action_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "codex_review_next_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
         "operator_evidence_ready_for_mvp5": {
           "const": false
         },

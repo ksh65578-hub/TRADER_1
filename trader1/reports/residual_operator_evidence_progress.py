@@ -161,6 +161,26 @@ def build_residual_operator_evidence_progress_report(
             (command["minimum_duration_hours"] for command in runtime_commands),
             default=0,
         ),
+        "adaptive_judgement_status": "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY",
+        "fixed_duration_gate_status": "REMOVED_NO_FIXED_RUNTIME_FLOOR",
+        "codex_stepwise_review_allowed": True,
+        "codex_can_continue_non_live_patches": True,
+        "user_runtime_required_for_next_non_live_patch": False,
+        "user_runtime_required_for_gap_closure": True,
+        "evidence_quality_status": "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES",
+        "codex_judgement_summary": (
+            "Codex may continue non-live implementation and evidence review from existing artifacts; "
+            "gap closure still requires audited runtime, reconciliation, external, or operator evidence."
+        ),
+        "user_action_summary": (
+            "No immediate user action is required for the next non-live patch; PAPER/SHADOW runtime is only "
+            "required when Codex reaches an evidence-dependent closure review."
+        ),
+        "codex_review_next_actions": [
+            "review existing residual evidence reports",
+            "harden non-live evidence, validator, ledger, reconciliation, and dashboard bindings",
+            "keep open gaps blocked until audited closure evidence exists",
+        ],
         "operator_evidence_ready_for_mvp5": False,
         "any_evidence_item_ready_for_closure": False,
         "mvp5_entry_blocked_until_operator_evidence": True,
@@ -257,6 +277,26 @@ def validate_residual_operator_evidence_progress_report(
             errors.append("local runtime command cannot mark evidence ready for closure")
     if report.get("local_runtime_command_count") != 1:
         errors.append("exactly one local runtime command must be tracked")
+    if report.get("adaptive_judgement_status") != "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY":
+        errors.append("adaptive_judgement_status must keep non-live review open without closure")
+    if report.get("fixed_duration_gate_status") != "REMOVED_NO_FIXED_RUNTIME_FLOOR":
+        errors.append("fixed_duration_gate_status must show the fixed runtime floor is removed")
+    for field in ("codex_stepwise_review_allowed", "codex_can_continue_non_live_patches"):
+        if report.get(field) is not True:
+            errors.append(f"{field} must remain true")
+    if report.get("user_runtime_required_for_next_non_live_patch") is not False:
+        errors.append("user_runtime_required_for_next_non_live_patch must remain false")
+    if report.get("user_runtime_required_for_gap_closure") is not True:
+        errors.append("user_runtime_required_for_gap_closure must remain true")
+    if report.get("evidence_quality_status") != "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES":
+        errors.append("evidence_quality_status must remain insufficient for gap closure")
+    if not isinstance(report.get("codex_judgement_summary"), str) or not report.get("codex_judgement_summary"):
+        errors.append("codex_judgement_summary must be non-empty")
+    if not isinstance(report.get("user_action_summary"), str) or not report.get("user_action_summary"):
+        errors.append("user_action_summary must be non-empty")
+    next_actions = report.get("codex_review_next_actions", [])
+    if not isinstance(next_actions, list) or len(next_actions) < 3:
+        errors.append("codex_review_next_actions must list stepwise non-live review actions")
     if report.get("operator_evidence_ready_for_mvp5") is not False:
         errors.append("operator_evidence_ready_for_mvp5 must remain false")
     if report.get("any_evidence_item_ready_for_closure") is not False:

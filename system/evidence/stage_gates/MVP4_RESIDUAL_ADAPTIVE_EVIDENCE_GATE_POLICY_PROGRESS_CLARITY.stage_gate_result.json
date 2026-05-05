@@ -1,0 +1,17 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-05T12:47:37Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROGRESS_CLARITY_20260505_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_ADAPTIVE_EVIDENCE_PROGRESS_CLARITY_LIVE_BLOCKED",
+  "adaptive_judgement_status": "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY",
+  "codex_stepwise_review_allowed": true,
+  "codex_can_continue_non_live_patches": true,
+  "user_runtime_required_for_next_non_live_patch": false,
+  "user_runtime_required_for_gap_closure": true,
+  "evidence_quality_status": "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

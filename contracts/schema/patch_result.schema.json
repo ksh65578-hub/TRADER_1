@@ -1428,6 +1428,33 @@
     "adaptive_stepwise_judgement_required": {
       "type": "boolean"
     },
+    "adaptive_evidence_progress_clarity_status": {
+      "type": "string"
+    },
+    "adaptive_judgement_status": {
+      "type": "string"
+    },
+    "fixed_duration_gate_status": {
+      "type": "string"
+    },
+    "codex_stepwise_review_allowed": {
+      "type": "boolean"
+    },
+    "codex_can_continue_non_live_patches": {
+      "type": "boolean"
+    },
+    "user_runtime_required_for_next_non_live_patch": {
+      "type": "boolean"
+    },
+    "user_runtime_required_for_gap_closure": {
+      "type": "boolean"
+    },
+    "evidence_quality_status": {
+      "type": "string"
+    },
+    "dashboard_operator_visibility_changed": {
+      "type": "boolean"
+    },
     "authority_hash_checked": {
       "type": "boolean"
     },
