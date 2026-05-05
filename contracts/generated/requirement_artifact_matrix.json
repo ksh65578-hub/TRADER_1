@@ -8042,6 +8042,55 @@
       "status": "IMPLEMENTED_RESIDUAL_OPERATOR_ACTION_PLAN"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS",
+      "section_id": "SECTION_LEDGER_RECONCILIATION",
+      "schema_files": [
+        "contracts/schema/residual_paper_ledger_rerun_readiness_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/reports/residual_paper_ledger_rerun_readiness.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_residual_paper_ledger_rerun_readiness.py"
+      ],
+      "fixture_files": [
+        "contracts/generated/current_implementation_state.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_missing_cycle_rerun_guard_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_bounded_rerun_staging_executor_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_ledger_rollup_reconciliation_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_queue_report.json"
+      ],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_missing_cycle_rerun_guard.py",
+        "trader1/runtime/paper/upbit_paper_bounded_rerun_staging_executor.py",
+        "trader1/runtime/paper/upbit_paper_post_rerun_ledger_rollup_reconciliation.py",
+        "trader1/runtime/paper/upbit_paper_post_rerun_current_evidence_closure_recheck.py",
+        "trader1/runtime/paper/upbit_paper_post_rerun_operator_reconciliation_queue.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS_20260505.md",
+        "system/evidence/patch_results/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.patch_result.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "next_task_class",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RESIDUAL_PAPER_LEDGER_RERUN_READINESS"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESTART-RECOVERY-WAL-LEDGER-BINDING-RECHECK",
       "section_id": "SECTION_LEDGER_RECONCILIATION_IDEMPOTENCY",
       "schema_files": [
@@ -15662,7 +15711,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-05T05:23:34Z",
+  "updated_at_utc": "2026-05-05T05:51:15Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

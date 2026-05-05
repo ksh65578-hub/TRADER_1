@@ -10754,6 +10754,75 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS",
+      "source_section_id": "SECTION_LEDGER_RECONCILIATION",
+      "source_file": "TRADER_1.md",
+      "source_heading": "residual PAPER ledger rerun readiness",
+      "full_text_marker": "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS: residual PAPER ledger rerun gaps must expose staged candidate readiness, post-rerun reconciliation blockers, and current-evidence write denial without closing gaps by inference",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Residual PAPER ledger rerun readiness evidence",
+      "requirement_kind": "EVIDENCE_PATCH",
+      "schema_ids": [
+        "trader1.residual_paper_ledger_rerun_readiness_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_missing_cycle_rerun_guard_validator",
+        "upbit_paper_bounded_rerun_staging_executor_validator",
+        "upbit_paper_post_rerun_ledger_rollup_reconciliation_validator",
+        "upbit_paper_post_rerun_current_evidence_closure_recheck_validator",
+        "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "live_final_guard_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.md",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/requirement_index.json",
+        "contracts/registry.yaml",
+        "contracts/schema/residual_paper_ledger_rerun_readiness_report.schema.json",
+        "system/evidence/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS_20260505.md",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/patch_results/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.patch_result.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.validator_run_log.json",
+        "tests/contract/test_residual_paper_ledger_rerun_readiness.py",
+        "tools/emit_residual_paper_ledger_rerun_readiness_patch_evidence.py",
+        "trader1/reports/residual_paper_ledger_rerun_readiness.py"
+      ],
+      "test_ids": [
+        "tests/contract/test_residual_paper_ledger_rerun_readiness.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_CONTRACT_GAP",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_PAPER_RUNTIME_EVIDENCE",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "4096D6C34B15078A7801FB00AE31CE577B2CE4756C3BA01EF5E00938D10869C5",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_RESIDUAL_PAPER_LEDGER_RERUN_READINESS",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESTART-RECOVERY-WAL-LEDGER-BINDING-RECHECK",
       "source_section_id": "SECTION_LEDGER_RECONCILIATION_IDEMPOTENCY",
       "source_file": "TRADER_1.md",
@@ -21769,5 +21838,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T05:23:34Z"
+  "updated_at_utc": "2026-05-05T05:51:15Z"
 }
