@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.patch_result.v1",
   "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE_20260505_001",
-  "created_at_utc": "2026-05-05T14:27:51Z",
+  "created_at_utc": "2026-05-05T14:31:31Z",
   "target_mvp_level": "MVP-4",
   "patch_class": "VALIDATOR_PATCH",
   "input_authority_files": [
@@ -41,6 +41,7 @@
     "read_only_dashboard_validator",
     "optimizer_no_live_mutation_validator",
     "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
     "coverage_index_validator",
     "live_final_guard_validator"
   ],
@@ -74,6 +75,10 @@
       "status": "PASS"
     },
     {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
       "validator_id": "coverage_index_validator",
       "status": "PASS"
     },
@@ -82,7 +87,56 @@
       "status": "PASS"
     }
   ],
-  "tests_run": [],
+  "tests_run": [
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_tail": "{\n  \"schema_id\": \"trader1.bytecode_free_syntax_report.v1\",\n  \"generated_at_utc\": \"2026-05-05T14:31:40Z\",\n  \"project_id\": \"TRADER_1\",\n  \"status\": \"PASS\",\n  \"execution_mode\": \"READ_ONLY_SOURCE_COMPILE_NO_BYTECODE_WRITE\",\n  \"scan_paths\": [\n    \"trader1\",\n    \"tools\",\n    \"tests\"\n  ],\n  \"skipped_directory_names\": [\n    \".git\",\n    \".mypy_cache\",\n    \".pytest_cache\",\n    \".ruff_cache\",\n    \".venv\",\n    \"__pycache__\",\n    \"env\",\n    \"node_modules\",\n    \"venv\"\n  ],\n  \"files_checked\": 777,\n  \"syntax_error_count\": 0,\n  \"syntax_errors\": [],\n  \"bytecode_write_attempted\": false,\n  \"pycache_write_attempted\": false,\n  \"external_calls_attempted\": false,\n  \"credential_load_attempted\": false,\n  \"live_order_api_attempted\": false,\n  \"live_order_ready\": false,\n  \"live_order_allowed\": false,\n  \"can_live_trade\": false,\n  \"scale_up_allowed\": false,\n  \"blocker_code\": null,\n  \"report_hash\": \"F5EBB5D67D403014994F5EF11788DBA6B0006104C202DCB43A299FE108DCB729\"\n}\n"
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m json.tool contracts/schema/profitability_evidence_maturity_rollup.schema.json",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_tail": "                        \"type\": \"string\",\n                        \"minLength\": 1\n                    },\n                    \"paper_scorecard_input_eligible\": {\n                        \"type\": \"boolean\"\n                    },\n                    \"long_run_evidence_eligible\": {\n                        \"type\": \"boolean\"\n                    },\n                    \"long_run_blocker_code\": {\n                        \"type\": [\n                            \"string\",\n                            \"null\"\n                        ],\n                        \"minLength\": 1\n                    },\n                    \"live_review_eligible\": {\n                        \"const\": false\n                    },\n                    \"scale_up_allowed\": {\n                        \"const\": false\n                    }\n                }\n            }\n        },\n        \"coverage_complete\": {\n            \"const\": true\n        },\n        \"all_component_ids_present\": {\n            \"const\": true\n        },\n        \"all_validators_passed\": {\n            \"type\": \"boolean\"\n        },\n        \"paper_scorecard_input_allowed\": {\n            \"const\": true\n        },\n        \"live_review_eligible\": {\n            \"const\": false\n        },\n        \"scale_up_eligible\": {\n            \"const\": false\n        },\n        \"primary_blocker_code\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n        },\n        \"next_operator_action\": {\n            \"type\": \"string\",\n            \"minLength\": 1\n        },\n        \"rollup_hash\": {\n            \"type\": \"string\",\n            \"pattern\": \"^[A-Fa-f0-9]{64}$\"\n        }\n    }\n}\n"
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m json.tool contracts/schema/read_only_dashboard_shell.schema.json",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_tail": "race\": {\n            \"$ref\": \"#/$defs/decision_trace\"\n        },\n        \"recent_events\": {\n            \"$ref\": \"#/$defs/recent_events\"\n        },\n        \"portfolio_snapshot\": {\n            \"$ref\": \"#/$defs/portfolio_snapshot\"\n        },\n        \"position_snapshot\": {\n            \"$ref\": \"#/$defs/position_snapshot\"\n        },\n        \"panels\": {\n            \"type\": \"array\",\n            \"minItems\": 1,\n            \"items\": {\n                \"$ref\": \"#/$defs/panel\"\n            }\n        },\n        \"primary_status_text\": {\n            \"type\": \"string\"\n        },\n        \"live_order_ready\": {\n            \"type\": \"boolean\"\n        },\n        \"live_order_allowed\": {\n            \"type\": \"boolean\"\n        },\n        \"can_live_trade\": {\n            \"type\": \"boolean\"\n        },\n        \"scale_up_allowed\": {\n            \"type\": \"boolean\"\n        },\n        \"can_submit_order\": {\n            \"type\": \"boolean\"\n        },\n        \"final_action\": {\n            \"$ref\": \"common.defs.schema.json#/$defs/final_decision\"\n        },\n        \"blocking_reason\": {\n            \"type\": [\n                \"string\",\n                \"null\"\n            ]\n        },\n        \"next_action\": {\n            \"type\": [\n                \"string\",\n                \"null\"\n            ]\n        },\n        \"forbidden_wording_detected\": {\n            \"type\": \"boolean\"\n        },\n        \"dashboard_hash\": {\n            \"type\": \"string\",\n            \"minLength\": 64,\n            \"maxLength\": 64\n        },\n        \"shadow_runtime_harness_status\": {\n            \"$ref\": \"#/$defs/shadow_runtime_harness_status\"\n        }\n    }\n}\n"
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/validators/test_profitability_optimizer_evidence_gap_validator.py tests/dashboard/test_read_only_dashboard.py tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py -q",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_tail": "........................................................................ [ 28%]\n........................................................................ [ 56%]\n........................................................................ [ 84%]\n........................................                                 [100%]\n256 passed in 22.48s\n"
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_profitability_optimizer_evidence_gap_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_tail": "R_STALE_LOOP_REGENERATION_EXECUTION_GUARD.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_POLICY.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_REPLACEMENT_SCHEMA_NORMALIZATION_PREVIEW.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_SAFE_REGENERATION_EXECUTOR.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PAPER_VERIFIED_PORTFOLIO_LEDGER_BOOTSTRAP.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_DATA_SEQUENCE_REGIME_GUARD.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_CONTINUITY_EVIDENCE.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_CONTINUITY_HISTORY.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_READ_ONLY_TRANSFORM.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_SAMPLE_EVIDENCE.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE.patch_result.json\"\n      ],\n      \"blocking\": false\n    }\n  ],\n  \"live_order_ready\": false,\n  \"live_order_allowed\": false,\n  \"can_live_trade\": false,\n  \"scale_up_allowed\": false\n}\n"
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_read_only_dashboard_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_tail": "{\n  \"status\": \"PASS\",\n  \"validators\": [\n    {\n      \"schema_id\": \"trader1.validator_result.v1\",\n      \"generated_at_utc\": \"2026-05-05T14:32:17Z\",\n      \"project_id\": \"TRADER_1\",\n      \"authority\": {\n        \"trader1_sha256\": \"FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B\",\n        \"agents_sha256\": \"21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D\"\n      },\n      \"exchange\": null,\n      \"market_type\": null,\n      \"mode\": null,\n      \"status\": \"PASS\",\n      \"blockers\": [],\n      \"notes\": \"read-only dashboard shell remains display-only, stale-safe, and fail-closed\",\n      \"validator_id\": \"read_only_dashboard_validator\",\n      \"checked_at_utc\": \"2026-05-05T14:32:17Z\",\n      \"input_artifact_paths\": [\n        \"contracts/registry.yaml\",\n        \"contracts/schema/read_only_dashboard_shell.schema.json\",\n        \"trader1/dashboard/read_only_dashboard.py\",\n        \"trader1/runtime/boot/safe_launcher.py\",\n        \"tests/runtime/test_safe_launcher.py\",\n        \"tests/dashboard/test_read_only_dashboard.py\"\n      ],\n      \"blocking\": false\n    }\n  ],\n  \"live_order_ready\": false,\n  \"live_order_allowed\": false,\n  \"can_live_trade\": false\n}\n"
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_tail": "R_STALE_LOOP_REGENERATION_EXECUTION_GUARD.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_POLICY.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_REPLACEMENT_SCHEMA_NORMALIZATION_PREVIEW.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_SAFE_REGENERATION_EXECUTOR.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PAPER_VERIFIED_PORTFOLIO_LEDGER_BOOTSTRAP.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_DATA_SEQUENCE_REGIME_GUARD.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_CONTINUITY_EVIDENCE.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_CONTINUITY_HISTORY.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_READ_ONLY_TRANSFORM.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_SAMPLE_EVIDENCE.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.patch_result.json\",\n        \"system/evidence/patch_results/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE.patch_result.json\"\n      ],\n      \"blocking\": false\n    }\n  ],\n  \"live_order_ready\": false,\n  \"live_order_allowed\": false,\n  \"can_live_trade\": false,\n  \"scale_up_allowed\": false\n}\n"
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_hygiene_safe_pytest.py -- -q",
+      "status": "PASS",
+      "returncode": 0,
+      "stdout_tail": "........................................................... [ 61%]\n...................................................................... [ 66%]\n........................................................................ [ 71%]\n........................................................................ [ 76%]\n................................................................................................................. [ 84%]\n................................................................................................. [ 91%]\n........................................................................ [ 96%]\n.................................................                        [100%]\n=========================== short test summary info ===========================\nSKIPPED [1] tests\\contract\\test_patch_result_runtime_schema_validation.py:319: patch_result validator-run gap state-sync recheck has not been generated yet\n1404 passed, 1 skipped, 732 subtests passed in 297.10s (0:04:57)\n{\n  \"schema_id\": \"trader1.hygiene_safe_pytest_report.v1\",\n  \"created_at_utc\": \"2026-05-05T14:37:27Z\",\n  \"status\": \"PASS\",\n  \"command\": \"C:\\\\Users\\\\ksh65\\\\AppData\\\\Local\\\\Python\\\\pythoncore-3.14-64\\\\python.exe -B -m pytest -q -p no:cacheprovider\",\n  \"returncode\": 0,\n  \"preexisting_cache_artifact_count\": 0,\n  \"post_run_cache_artifact_count\": 0,\n  \"preexisting_cache_artifacts\": [],\n  \"post_run_cache_artifacts\": [],\n  \"pythondontwritebytecode\": \"1\",\n  \"pytest_cacheprovider_disabled\": true,\n  \"live_order_ready\": false,\n  \"live_order_allowed\": false,\n  \"can_live_trade\": false,\n  \"scale_up_allowed\": false\n}\n"
+    }
+  ],
   "coverage_unmapped_count": 0,
   "coverage_index_result": "UPDATED_PASS",
   "registry_yaml_parse_status": "PASS",
@@ -205,7 +259,7 @@
   "convergence_live_mutation_detected": false,
   "convergence_live_order_allowed_after": false,
   "scale_up_eligibility_changed": false,
-  "result_hash": "B80EF12223F4F24FC314A4077616B75D442B48CF59FBFD7C1AFCA8CC3BCE1ABE",
+  "result_hash": "EDA474E8690ED69AAB2F5E30FDE27CC4B8D3B565BD1F92332F705947C663E243",
   "operator_run_started_by_this_patch": false,
   "operator_run_completed_by_this_patch": false,
   "operator_run_evidence_ready_for_mvp5": false,

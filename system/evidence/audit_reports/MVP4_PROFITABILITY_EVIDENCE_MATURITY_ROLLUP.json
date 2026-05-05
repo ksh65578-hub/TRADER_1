@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-05T14:27:51Z",
+  "generated_at_utc": "2026-05-05T14:31:31Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -275,7 +275,7 @@
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
   "next_operator_action": "Use PAPER runtime-linked strategy/regime/cost evidence only as PAPER scorecard input; continue adaptive evidence-quality review across replay, OOS, walk-forward, bootstrap, PAPER, SHADOW, read-only burn-in, manual order evidence, and operator approval while live remains blocked.",
-  "rollup_hash": "968DFD2C22C2F3E5DD7ABC8601A650D4E1C52B9D9BFC80EDF7CEDB0D3FD3725D",
+  "rollup_hash": "2841DC97F71459EF793B1807386E3DF120E65C23CA73BF2589E826818BD12D14",
   "runtime_linkage_evidence": {
     "status": "PASS",
     "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/mvp4-upbit-paper-ledger-head-binding-guard-cycle-2.runtime_cycle.json",
