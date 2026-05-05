@@ -1342,6 +1342,23 @@ def load_profitability_maturity_rollup_report(report: dict[str, Any], root: Path
     return rollup
 
 
+def load_residual_open_gap_operator_action_plan_report(root: Path = ROOT) -> dict[str, Any] | None:
+    path = root / "system" / "evidence" / "audit_reports" / "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
+    report = _load_dashboard_json_artifact(path)
+    if not isinstance(report, dict):
+        return None
+    if report.get("schema_id") != "trader1.residual_open_gap_operator_action_plan_report.v1":
+        return None
+    if (
+        report.get("live_order_ready") is not False
+        or report.get("live_order_allowed") is not False
+        or report.get("can_live_trade") is not False
+        or report.get("scale_up_allowed") is not False
+    ):
+        return None
+    return report
+
+
 def load_shadow_runtime_harness_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
     if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
         return None
@@ -1586,6 +1603,7 @@ def build_launcher_dashboard_artifacts(
     paper_exposure_quality_report = load_scoped_paper_exposure_quality_report(report, root)
     candidate_scorecard = load_scoped_candidate_scorecard(report, root)
     profitability_maturity_rollup_report = load_profitability_maturity_rollup_report(report, root)
+    residual_open_gap_operator_action_plan_report = load_residual_open_gap_operator_action_plan_report(root)
     reconciliation_report = load_dashboard_reconciliation_report(report, root)
     restart_recovery_report = load_dashboard_restart_recovery_report(
         report,
@@ -1678,6 +1696,7 @@ def build_launcher_dashboard_artifacts(
         paper_exposure_quality_report=paper_exposure_quality_report,
         profitability_maturity_rollup_report=profitability_maturity_rollup_report,
         candidate_scorecard=candidate_scorecard,
+        residual_open_gap_operator_action_plan_report=residual_open_gap_operator_action_plan_report,
         reconciliation_report=reconciliation_report,
         restart_recovery_report=restart_recovery_report,
         upbit_paper_post_rerun_reconciliation_blocker_rollup_report=upbit_paper_post_rerun_reconciliation_blocker_rollup_report,

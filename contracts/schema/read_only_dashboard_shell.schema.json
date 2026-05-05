@@ -2859,6 +2859,134 @@
         }
       }
     },
+    "residual_open_gap_action_plan": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "source",
+        "source_status",
+        "open_gap_count",
+        "implementation_recheck_action_count",
+        "external_or_operator_action_required",
+        "one_line_summary",
+        "primary_next_action",
+        "other_blocker_count",
+        "other_blocker_summary",
+        "action_items",
+        "display_only",
+        "dashboard_truth_only",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "Next Operator Actions"
+        },
+        "status": {
+          "enum": [
+            "ACTION_REQUIRED",
+            "CLEAR"
+          ]
+        },
+        "source": {
+          "const": "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
+        },
+        "source_status": {
+          "enum": [
+            "LOADED",
+            "NOT_LOADED"
+          ]
+        },
+        "open_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "implementation_recheck_action_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "external_or_operator_action_required": {
+          "type": "boolean"
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "other_blocker_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "other_blocker_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_items": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": [
+              "action_class",
+              "label",
+              "gap_count",
+              "plain_next_action"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "action_class": {
+                "enum": [
+                  "OPERATOR_RECONCILIATION_ACTION",
+                  "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                  "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+                  "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+                  "SEALED_BASELINE_PRESERVATION_ACTION",
+                  "SCALE_UP_POLICY_EVIDENCE_ACTION",
+                  "CLASSIFY_OPEN_GAP_ACTION"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "gap_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "plain_next_action": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
     "operator_action_summary": {
       "type": "object",
       "required": [
@@ -6956,6 +7084,9 @@
     },
     "operator_workflow_summary": {
       "$ref": "#/$defs/operator_workflow_summary"
+    },
+    "residual_open_gap_action_plan": {
+      "$ref": "#/$defs/residual_open_gap_action_plan"
     },
     "profitability_maturity": {
       "$ref": "#/$defs/profitability_maturity"
