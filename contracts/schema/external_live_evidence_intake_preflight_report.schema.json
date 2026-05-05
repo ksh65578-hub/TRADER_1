@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.external_live_evidence_intake_preflight_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "source_manifest",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "selected_next_task_class",
+    "expected_blocked_requirement_ids",
+    "blocked_requirement_ids",
+    "blocked_requirement_count",
+    "evidence_item_count",
+    "intake_ready_count",
+    "missing_or_unusable_count",
+    "unmapped_source_review_inputs",
+    "preflight_status",
+    "external_evidence_collection_performed",
+    "credential_use_allowed",
+    "credential_loaded",
+    "api_call_performed",
+    "live_order_submitted",
+    "live_config_mutation_allowed",
+    "scale_up_allowed_by_this_patch",
+    "gap_closure_allowed_by_this_patch",
+    "evidence_items",
+    "validation_status",
+    "validation_errors",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.external_live_evidence_intake_preflight_report.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "source_manifest": {
+      "type": "object",
+      "required": ["path", "evidence_manifest_id", "patch_id", "artifact_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_manifest_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "patch_id": {
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        }
+      }
+    },
+    "state_last_patch_id_before": {
+      "type": "string"
+    },
+    "state_next_task_before": {
+      "type": "string"
+    },
+    "selected_next_task_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_blocked_requirement_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "blocked_requirement_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "blocked_requirement_count": {
+      "type": "integer",
+      "const": 4
+    },
+    "evidence_item_count": {
+      "type": "integer",
+      "const": 4
+    },
+    "intake_ready_count": {
+      "type": "integer",
+      "const": 0
+    },
+    "missing_or_unusable_count": {
+      "type": "integer",
+      "const": 4
+    },
+    "unmapped_source_review_inputs": {
+      "$ref": "#/$defs/string_array"
+    },
+    "preflight_status": {
+      "const": "BLOCKED_EXTERNAL_EVIDENCE_MISSING"
+    },
+    "external_evidence_collection_performed": {
+      "const": false
+    },
+    "credential_use_allowed": {
+      "const": false
+    },
+    "credential_loaded": {
+      "const": false
+    },
+    "api_call_performed": {
+      "const": false
+    },
+    "live_order_submitted": {
+      "const": false
+    },
+    "live_config_mutation_allowed": {
+      "const": false
+    },
+    "scale_up_allowed_by_this_patch": {
+      "const": false
+    },
+    "gap_closure_allowed_by_this_patch": {
+      "const": false
+    },
+    "evidence_items": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/evidence_item"
+      }
+    },
+    "validation_status": {
+      "const": "PASS"
+    },
+    "validation_errors": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {
+        "type": "string"
+      }
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  },
+  "$defs": {
+    "string_array": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "evidence_item": {
+      "type": "object",
+      "required": [
+        "requirement_id",
+        "evidence_kind",
+        "expected_artifact_path",
+        "source_artifact_path",
+        "source_artifact_exists",
+        "source_artifact_sha256",
+        "source_status",
+        "required_schema_id",
+        "validator_id",
+        "expected_exchange",
+        "expected_market_type",
+        "expected_mode",
+        "primary_blocker_code",
+        "closure_preconditions",
+        "intake_status",
+        "usable_for_live_enabling",
+        "credential_required_by_this_patch",
+        "api_call_required_by_this_patch",
+        "live_order_required_by_this_patch",
+        "live_config_mutation_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "requirement_id": {
+          "enum": [
+            "REQ-MVP4-OFFICIAL-API-PASS-EVIDENCE",
+            "REQ-MVP4-OPERATOR-APPROVAL-EVIDENCE",
+            "REQ-MVP4-READ-ONLY-ACCOUNT-SNAPSHOT-EVIDENCE",
+            "REQ-MVP4-READ-ONLY-BURN-IN-EVIDENCE"
+          ]
+        },
+        "evidence_kind": {
+          "enum": [
+            "OFFICIAL_API_VERIFICATION",
+            "READ_ONLY_ACCOUNT_SNAPSHOT",
+            "OPERATOR_APPROVAL",
+            "READ_ONLY_BURN_IN"
+          ]
+        },
+        "expected_artifact_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_artifact_path": {
+          "type": ["string", "null"]
+        },
+        "source_artifact_exists": {
+          "type": "boolean"
+        },
+        "source_artifact_sha256": {
+          "type": ["string", "null"],
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "source_status": {
+          "enum": ["MISSING", "UNVERIFIED", "BLOCKED", "STALE", "FAIL", "PASS"]
+        },
+        "required_schema_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_exchange": {
+          "enum": ["UPBIT"]
+        },
+        "expected_market_type": {
+          "enum": ["KRW_SPOT"]
+        },
+        "expected_mode": {
+          "enum": ["READ_ONLY", "LIVE"]
+        },
+        "primary_blocker_code": {
+          "$ref": "common.defs.schema.json#/$defs/live_blocker_code"
+        },
+        "closure_preconditions": {
+          "$ref": "#/$defs/string_array"
+        },
+        "intake_status": {
+          "enum": ["MISSING", "UNUSABLE_UNVERIFIED"]
+        },
+        "usable_for_live_enabling": {
+          "const": false
+        },
+        "credential_required_by_this_patch": {
+          "const": false
+        },
+        "api_call_required_by_this_patch": {
+          "const": false
+        },
+        "live_order_required_by_this_patch": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    }
+  }
+}
