@@ -221,7 +221,10 @@ class StaleLoopReconciliationOperatorQueuePendingRecheckTest(unittest.TestCase):
         self.assertEqual(patch_result["stale_loop_normalized_reconciliation_recheck_ledger_rollup_required_count"], 5)
         self.assertNotIn(CLOSED_BLOCKER, patch_result["remaining_blockers"])
 
-        if state["last_patch_id"].startswith("MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK_"):
+        if state["last_patch_id"].startswith("MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK_"):
+            expected_next_task = "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK"
+            self.assertEqual(state["next_allowed_task_class"], expected_next_task)
+        elif state["last_patch_id"].startswith("MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK_"):
 
             expected_next_task = "MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK"
 
