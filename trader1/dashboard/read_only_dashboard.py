@@ -16047,6 +16047,85 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             return "danger"
         return "neutral"
 
+    def plain_status(status: Any) -> str:
+        normalized = str(status or "").upper()
+        labels = {
+            "PASS": "Verified",
+            "VERIFIED": "Verified",
+            "RUNNING_SAFE_MODE": "Running",
+            "BOOTSTRAP_READ_ONLY": "Read-only boot",
+            "SAFE_MODE": "Safe mode",
+            "NORMAL": "Normal",
+            "STABLE": "Stable",
+            "RUNNING_NOW": "Running",
+            "DISPLAY_HISTORY_STABLE": "History stable",
+            "VALIDATED_STABLE": "Validated stable",
+            "LOW_RISK": "Low risk",
+            "WARN": "Needs attention",
+            "WARNING": "Needs attention",
+            "ATTENTION": "Needs attention",
+            "BLOCKED": "Blocked",
+            "STALE": "Stale data",
+            "UNVERIFIED": "Needs verification",
+            "NO_TRADE": "No trade",
+            "TRADE_DISABLED": "Trading disabled",
+            "RECONCILE_REQUIRED": "Needs reconciliation",
+            "COLLECTING": "Collecting evidence",
+            "MISSING": "Missing evidence",
+            "IN_PROGRESS": "In progress",
+            "NOT_STARTED": "Not started",
+            "UNTESTED": "Not tested",
+            "ACTIVE_ANALYSIS_ONLY": "Analysis only",
+            "PARTIAL_PATCHED": "Partially patched",
+            "EVIDENCE_MISSING": "Missing evidence",
+            "RECORDED_GAP": "Known gap",
+            "OPEN_HIGH": "Open high-priority gap",
+            "NOT_LOADED": "Not loaded",
+            "BLOCKED_LONG_RUN_EVIDENCE_MISSING": "Long-run evidence missing",
+            "STUB_ONLY": "Stub only",
+            "STUB_ESTIMATE_ONLY": "Stub estimate only",
+            "NOT_LONG_RUN_EVIDENCE": "Not long-run evidence",
+            "ACTUAL_LONG_RUN_MISSING": "Long-run evidence missing",
+            "FAIL": "Failed",
+            "ERROR": "Error",
+            "CRITICAL": "Critical",
+            "KILL_SWITCH": "Stopped",
+        }
+        if normalized in labels:
+            return labels[normalized]
+        return str(status or "Unknown").replace("_", " ").title()
+
+    def plain_source(source: Any) -> str:
+        source_text = str(source or "")
+        labels = {
+            "summary.json": "PAPER monitor summary",
+            "paper_portfolio_snapshot.json": "PAPER portfolio ledger",
+            "audited_current_evidence_snapshot.json": "audited PAPER current evidence",
+            "heartbeat.json": "PAPER monitor heartbeat",
+            "startup_probe.json": "startup probe",
+        }
+        return labels.get(source_text, source_text.replace("_", " ") or "not loaded")
+
+    def plain_blocker(blocker_code: Any) -> str:
+        normalized = str(blocker_code or "").upper()
+        labels = {
+            "HARD_TRUTH_MISSING": "Required evidence is missing",
+            "LIVE_READY_MISSING": "Live review is not complete",
+            "API_UNVERIFIED": "API permission evidence is missing",
+            "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING": "Read-only account snapshot is missing",
+            "READ_ONLY_BURN_IN_MISSING": "Read-only burn-in evidence is missing",
+            "MANUAL_ORDER_TEST_MISSING": "Manual order test evidence is missing",
+            "OPERATOR_APPROVAL_MISSING": "Operator approval is missing",
+            "LIVE_ENABLING_EVIDENCE_MISSING": "Live enabling evidence is missing",
+            "SCALE_UP_NOT_ELIGIBLE": "Risk scale-up is not eligible",
+            "POST_RERUN_RECONCILIATION_REQUIRED": "PAPER ledger reconciliation is required",
+            "POST_REPAIR_RECONCILIATION_REQUIRED": "PAPER repair reconciliation is required",
+            "PATCH_RESULT_VALIDATOR_RUN_GAP": "Patch validator run evidence is incomplete",
+            "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY": "Actual long-run runtime evidence is missing",
+            "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP": "PAPER/SHADOW observation evidence is incomplete",
+        }
+        return labels.get(normalized, str(blocker_code or "Evidence blocker").replace("_", " ").title())
+
     scope_items = [
         ("Exchange", shell.get("exchange", "")),
         ("Market", shell.get("market_type", "")),
@@ -17049,6 +17128,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     portfolio = shell.get("portfolio_snapshot", {})
     portfolio_status = portfolio.get("status", "UNVERIFIED") if isinstance(portfolio, dict) else "UNVERIFIED"
     portfolio_raw_status = str(portfolio_status or "UNVERIFIED")
+    portfolio_status_label = plain_status(portfolio_raw_status)
     portfolio_cycle_source = portfolio.get("source_runtime_cycle_id") if isinstance(portfolio, dict) else None
     portfolio_ledger_source = portfolio.get("source_paper_ledger_head_hash") if isinstance(portfolio, dict) else None
     portfolio_snapshot_source = portfolio.get("source_snapshot_hash") if isinstance(portfolio, dict) else None
@@ -17068,8 +17148,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     )
     if portfolio_status == "VERIFIED" and shell.get("mode") == "PAPER":
         portfolio_status = "PAPER LEDGER VERIFIED (SIMULATED)"
+        portfolio_status_label = "Verified PAPER ledger"
     elif portfolio_status == "STALE":
         portfolio_status = "STALE - RERUN PAPER"
+        portfolio_status_label = "Stale data"
+    portfolio_audit_status = str(portfolio_status or portfolio_raw_status)
     portfolio_kpi_ids = ("configured_paper_capital", "cash", "equity", "total_pnl", "return_pct")
     portfolio_detail_ids = ("locked_cash", "realized_pnl", "unrealized_pnl", "positions", "entry_candidates")
     portfolio_kpi_cards = []
@@ -17222,6 +17305,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "</tr>"
         )
     blocker = shell.get("blocking_reason") or "HARD_TRUTH_MISSING"
+    blocker_label = plain_blocker(blocker)
     next_action = shell.get("next_action") or "continue read-only monitoring; resolve blockers before any trading review"
     blocker_class = status_class(shell.get("final_action"))
     health_signal_items = [
@@ -17239,11 +17323,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     )
     operation_quick_status = "OK" if operation_color in {"green", "blue"} else "Check"
     portfolio_quick_status = (
-        "Verified PAPER"
+        "Verified"
         if str(portfolio_status).startswith("PAPER LEDGER VERIFIED")
-        else "Stale"
+        else "Stale data"
         if str(portfolio_status).startswith("STALE")
-        else str(portfolio_status or "UNVERIFIED").replace("_", " ").title()
+        else plain_status(portfolio_raw_status)
     )
     portfolio_quick_class = (
         "blue"
@@ -17309,6 +17393,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .quick-status-neutral { border-left-color: #98a2b3; background: #ffffff; }
     .quick-status-tile strong { font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
     .quick-status-tile small { margin-top: 0; font-size: 12px; line-height: 1.3; }
+    .plain-status-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 8px; color: var(--muted); font-size: 13px; line-height: 1.35; }
+    .raw-status-tag { display: inline-flex; max-width: 100%; border: 1px solid #cfd6df; border-radius: 999px; padding: 2px 7px; background: #ffffff; color: var(--muted); font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
     .operator-answer-grid { display: grid; gap: 18px; grid-template-columns: minmax(min(100%, 300px), 0.9fr) minmax(min(100%, 420px), 1.35fr) minmax(min(100%, 280px), 0.85fr); align-items: stretch; }
     .operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 18px; min-height: 0; min-width: 0; overflow-wrap: anywhere; }
     .operator-answer-card h2, .summary-card h2, .live-readiness h2 { font-size: 24px; line-height: 1.18; margin: 2px 0 10px; }
@@ -17638,12 +17724,12 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <section class="quick-status-tile quick-status-""" + safe_text(portfolio_quick_class) + """" aria-label="portfolio quick answer">
         <span class="eyebrow">Portfolio</span>
         <strong>""" + safe_text(portfolio_quick_status) + """</strong>
-        <small>""" + portfolio_value("equity") + """ equity</small>
+        <small>""" + portfolio_value("equity") + """ current equity</small>
       </section>
       <section class="quick-status-tile quick-status-yellow" aria-label="live execution quick answer">
         <span class="eyebrow">Live</span>
         <strong>Blocked</strong>
-        <small>live_order_allowed=false</small>
+        <small title="live_order_allowed=false">orders are disabled</small>
       </section>
     </section>
     <section class="operator-answer-grid" aria-label="operator priority answers">
@@ -17660,7 +17746,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <section class="operator-answer-card summary-card portfolio-summary" aria-label="real-time portfolio snapshot">
         <span class="eyebrow">Portfolio Detail</span>
         <h2>Portfolio Snapshot</h2>
-        <p>Status: """ + safe_text(portfolio_status) + """ | Source: """ + safe_text(portfolio.get("source", "summary.json")) + """</p>
+        <p class="plain-status-line"><strong>Current values:</strong> """ + safe_text(portfolio_status_label) + """ <span class="raw-status-tag" title="raw portfolio status">""" + safe_text(portfolio_audit_status) + """</span></p>
+        <p class="source-line">Source: """ + safe_text(plain_source(portfolio.get("source", "summary.json"))) + """</p>
         <p class="portfolio-truth-note">""" + safe_text(portfolio_truth_note) + """</p>
         <p class="source-line">""" + safe_text(portfolio_source_line) + """</p>
         <p class="source-line">""" + safe_text(portfolio.get("source_snapshot_freshness_message", "No verified paper portfolio snapshot loaded")) + """</p>
@@ -17672,7 +17759,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <section class="operator-answer-card live-readiness live-readiness-yellow" aria-label="live execution summary">
         <span class="eyebrow">Live Execution</span>
         <h2>Blocked</h2>
-        <p class="status warn">""" + safe_text(blocker) + """</p>
+        <p class="status warn">""" + safe_text(blocker_label) + """</p>
+        <p class="source-line">Raw blocker: """ + safe_text(blocker) + """</p>
         <p class="next">""" + safe_text(next_action) + """</p>
         <section class="readiness-list">
           <div class="readiness-row"><strong>Live Ready</strong><span class="pill safe-lock" title="live_order_ready=false" aria-label="live_order_ready false">false</span></div>
@@ -17689,7 +17777,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
           <span class="eyebrow">Portfolio Detail</span>
           <h2>PAPER Portfolio Details</h2>
         </div>
-        <p>Status: """ + safe_text(portfolio_status) + """<br>Source: """ + safe_text(portfolio.get("source", "summary.json")) + """</p>
+        <p>Current values: """ + safe_text(portfolio_status_label) + """<br>Source: """ + safe_text(plain_source(portfolio.get("source", "summary.json"))) + """<br>Raw: """ + safe_text(portfolio_audit_status) + """</p>
       </div>
       <p class="portfolio-truth-note">""" + safe_text(portfolio_truth_note) + """</p>
       """ + portfolio_ledger_html + """
