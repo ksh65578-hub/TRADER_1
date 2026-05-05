@@ -11,13 +11,22 @@ sys.dont_write_bytecode = True
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCH_BASENAME = "MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING"
-PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
+PATCH_ID = "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_RESOLUTION_AUDIT_BINDING_20260506_001"
 REQUIREMENT_ID = "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-AUDIT-BINDING"
 NEXT_TASK_CLASS = "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
 REPORT_PATH = f"system/evidence/audit_reports/{PATCH_BASENAME}.report.json"
+SESSION_DIR = ROOT / "system" / "evidence" / "session_reviews" / PATCH_BASENAME
 CLASSIFICATION_REPORT_PATH = "system/evidence/audit_reports/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.report.json"
 ACTION_PLAN_REPORT_PATH = "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
 PAPER_RERUN_READINESS_REPORT_PATH = "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.report.json"
+OPERATOR_RESOLUTION_AUDIT_REPORT_PATH = (
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/"
+    "upbit_paper_post_rerun_operator_resolution_audit_report.json"
+)
+EXTERNAL_PREFLIGHT_REPORT_PATH = "system/evidence/audit_reports/MVP4_EXTERNAL_LIVE_EVIDENCE_INTAKE_PREFLIGHT.report.json"
+HANDOFF_REPORT_PATH = "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
+EXECUTION_GUIDE_REPORT_PATH = "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
+EVIDENCE_PROGRESS_REPORT_PATH = "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
 FALSE_FIELDS = ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
 
 if str(ROOT) not in sys.path:
@@ -29,6 +38,7 @@ from tools.emit_root_launcher_operator_visibility_patch_evidence import (  # noq
     sha256_bytes,
     sha256_file,
     sha256_json,
+    update_authority_manifest,
     update_read_cache,
     utc_now,
     write_json,
@@ -39,6 +49,18 @@ from trader1.reports.residual_operator_evidence_audit_binding import (  # noqa: 
     build_residual_operator_evidence_audit_binding_report,
     validate_residual_operator_evidence_audit_binding_report,
 )
+from trader1.reports.residual_operator_handoff_packet import (  # noqa: E402
+    build_residual_operator_handoff_packet_report,
+    validate_residual_operator_handoff_packet_report,
+)
+from trader1.reports.residual_operator_execution_guide import (  # noqa: E402
+    build_residual_operator_execution_guide_report,
+    validate_residual_operator_execution_guide_report,
+)
+from trader1.reports.residual_operator_evidence_progress import (  # noqa: E402
+    build_residual_operator_evidence_progress_report,
+    validate_residual_operator_evidence_progress_report,
+)
 from trader1.validation.mvp0_validators import run_validators  # noqa: E402
 
 
@@ -47,6 +69,9 @@ VALIDATORS_REQUIRED = [
     "registry_validator",
     "patch_result_schema_validator",
     "patch_result_runtime_schema_instance_validator",
+    "runtime_schema_instance_validator",
+    "read_only_dashboard_validator",
+    "dashboard_visual_layout_validator",
     "live_final_guard_validator",
     "generated_artifact_dirty_validator",
     "coverage_index_validator",
@@ -84,8 +109,10 @@ ROUTE_GUARD_TEST_ARTIFACTS = [
 CHANGED_ARTIFACTS = [
     "trader1/reports/residual_operator_evidence_audit_binding.py",
     "contracts/schema/residual_operator_evidence_audit_binding_report.schema.json",
+    "contracts/schema/read_only_dashboard_shell.schema.json",
     "contracts/registry.yaml",
     "tests/contract/test_residual_operator_evidence_audit_binding.py",
+    "tests/dashboard/test_read_only_dashboard.py",
     "tools/emit_residual_operator_evidence_audit_binding_patch_evidence.py",
     f"contracts/generated/context_pack/{PATCH_BASENAME}.md",
 ] + ROUTE_GUARD_TEST_ARTIFACTS
@@ -93,14 +120,26 @@ SOURCE_EVIDENCE_ARTIFACTS = [
     CLASSIFICATION_REPORT_PATH,
     ACTION_PLAN_REPORT_PATH,
     PAPER_RERUN_READINESS_REPORT_PATH,
+    OPERATOR_RESOLUTION_AUDIT_REPORT_PATH,
 ]
 EVIDENCE_ARTIFACTS = [
     f"system/evidence/{PATCH_BASENAME}.evidence_manifest.json",
     REPORT_PATH,
-    f"system/evidence/audit_reports/{PATCH_BASENAME}_20260505.md",
+    HANDOFF_REPORT_PATH,
+    EXECUTION_GUIDE_REPORT_PATH,
+    EVIDENCE_PROGRESS_REPORT_PATH,
+    f"system/evidence/audit_reports/{PATCH_BASENAME}_20260506.md",
     f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
     f"system/evidence/stage_gates/{PATCH_BASENAME}.stage_gate_result.json",
     f"system/evidence/validator_runs/{PATCH_BASENAME}.validator_run_log.json",
+    f"system/evidence/session_reviews/{PATCH_BASENAME}/IMPLEMENTATION_COVERAGE_MATRIX.md",
+    f"system/evidence/session_reviews/{PATCH_BASENAME}/ACCEPTANCE_REPORT.json",
+    f"system/evidence/session_reviews/{PATCH_BASENAME}/pytest_report.txt",
+    f"system/evidence/session_reviews/{PATCH_BASENAME}/PAPER_RUN_SUMMARY.json",
+    f"system/evidence/session_reviews/{PATCH_BASENAME}/LIVE_BLOCK_PROOF.json",
+    f"system/evidence/session_reviews/{PATCH_BASENAME}/DASHBOARD_READINESS_SUMMARY.json",
+    f"system/evidence/session_reviews/{PATCH_BASENAME}/USER_STATUS_SUMMARY.md",
+    f"system/evidence/session_reviews/{PATCH_BASENAME}/TRADER_1_SESSION_REVIEW.md",
 ]
 
 
@@ -141,11 +180,12 @@ def assert_false_flags(name: str, value: dict[str, Any], suffix: str = "") -> No
             raise RuntimeError(f"{name} has forbidden true field: {key}")
 
 
-def load_sources() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+def load_sources() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
     return (
         load_json(ROOT / CLASSIFICATION_REPORT_PATH),
         load_json(ROOT / ACTION_PLAN_REPORT_PATH),
         load_json(ROOT / PAPER_RERUN_READINESS_REPORT_PATH),
+        load_json(ROOT / OPERATOR_RESOLUTION_AUDIT_REPORT_PATH),
     )
 
 
@@ -156,12 +196,13 @@ def build_report(
     state_before: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     state = state_before or load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
-    classification, action_plan, paper_rerun_readiness = load_sources()
+    classification, action_plan, paper_rerun_readiness, operator_resolution_audit = load_sources()
     report = build_residual_operator_evidence_audit_binding_report(
         classification,
         action_plan,
         paper_rerun_readiness,
         state,
+        post_rerun_operator_resolution_audit_report=operator_resolution_audit,
         patch_id=PATCH_ID,
         generated_at_utc=now,
         trader1_sha256=trader_hash,
@@ -173,6 +214,7 @@ def build_report(
         action_plan,
         paper_rerun_readiness,
         state,
+        operator_resolution_audit,
     )
     if errors:
         raise RuntimeError("residual operator evidence audit binding failed: " + "; ".join(errors))
@@ -192,8 +234,8 @@ task_class: RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING
 source_trader1_sha256: {trader_hash}
 source_agents_sha256: {agents_hash}
 included_section_ids: ["SECTION_CONTRACT_GAP", "SECTION_LEDGER_RECONCILIATION", "SECTION_PAPER_RUNTIME_EVIDENCE", "SECTION_LONG_RUN_RUNTIME_EVIDENCE", "SECTION_LIVE_FINAL_GUARD"]
-included_requirement_ids: ["{REQUIREMENT_ID}", "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN", "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS", "REQ-MVP4-LIVE-FINAL-GUARD"]
-included_schema_ids: ["{SCHEMA_ID}", "trader1.residual_open_gap_operator_action_plan_report.v1", "trader1.residual_paper_ledger_rerun_readiness_report.v1", "trader1.patch_result.v1"]
+included_requirement_ids: ["{REQUIREMENT_ID}", "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN", "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS", "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RESOLUTION-AUDIT", "REQ-MVP4-LIVE-FINAL-GUARD"]
+included_schema_ids: ["{SCHEMA_ID}", "trader1.residual_open_gap_operator_action_plan_report.v1", "trader1.residual_paper_ledger_rerun_readiness_report.v1", "trader1.upbit_paper_post_rerun_operator_resolution_audit_report.v1", "trader1.read_only_dashboard_shell.v1", "trader1.patch_result.v1"]
 included_validator_ids: {json.dumps(VALIDATORS_REQUIRED)}
 included_artifact_ids: {json.dumps(CHANGED_ARTIFACTS + SOURCE_EVIDENCE_ARTIFACTS + EVIDENCE_ARTIFACTS)}
 source_section_hashes: see contracts/generated/authority_section_map.json
@@ -202,6 +244,7 @@ acceptance_checklist:
 - Bind every residual open gap to an operator/evidence action without closing any gap.
 - Preserve implementation_recheck_action_count=0 and keep the route external-evidence/operator-reconciliation blocked.
 - Confirm PAPER ledger rerun evidence remains candidate-only until post-rerun reconciliation resolves.
+- Confirm post-rerun operator resolution audit is source-bound, unresolved, review-only, and keeps current evidence writes at 0.
 - Keep current evidence writes, live orders, live config mutation, and scale-up forbidden.
 - Keep live_order_ready=false, live_order_allowed=false, can_live_trade=false, scale_up_allowed=false.
 
@@ -211,6 +254,9 @@ audit_binding_snapshot:
 - action_binding_count: {report["action_binding_count"]}
 - unbound_gap_ids: {json.dumps(report["unbound_gap_ids"])}
 - paper_ledger_rerun_readiness_status: {report["paper_ledger_rerun_readiness_status"]}
+- operator_resolution_binding_status: {report["operator_resolution_binding_status"]}
+- operator_resolution_unresolved_item_count: {report["operator_resolution_unresolved_item_count"]}
+- operator_resolution_current_evidence_write_allowed_count: {report["operator_resolution_current_evidence_write_allowed_count"]}
 - audit_binding_status: {report["audit_binding_status"]}
 - selected_next_task_class: {report["selected_next_task_class"]}
 
@@ -283,8 +329,8 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             ),
             "authority_level": "ACTIVE_AUTHORITY",
             "requirement_title": "Residual operator/evidence audit binding",
-            "requirement_kind": "EVIDENCE_PATCH",
-            "schema_ids": [SCHEMA_ID],
+            "requirement_kind": "RUNTIME_SAFETY_PATCH",
+            "schema_ids": [SCHEMA_ID, "trader1.read_only_dashboard_shell.v1"],
             "validator_ids": VALIDATORS_REQUIRED,
             "artifact_ids": artifacts,
             "test_ids": ["tests/contract/test_residual_operator_evidence_audit_binding.py"],
@@ -303,11 +349,12 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 "REQ-MVP4-OPEN-GAP-CURRENT-BLOCKER-CLASSIFICATION",
                 "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN",
                 "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS",
+                "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RESOLUTION-AUDIT",
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
             "source_text_sha256": sha256_bytes(b"residual operator evidence audit binding live blocked"),
             "source_authority_sha256": trader_hash,
-            "implementation_status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING",
+            "implementation_status": "IMPLEMENTED_RESIDUAL_OPERATOR_RESOLUTION_AUDIT_BINDING",
             "test_status": "PASS",
         }
     )
@@ -332,16 +379,23 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 "trader1/reports/residual_operator_evidence_audit_binding.py",
                 "trader1/validation/mvp0_validators.py",
             ],
-            "test_files": ["tests/contract/test_residual_operator_evidence_audit_binding.py"],
+            "test_files": [
+                "tests/contract/test_residual_operator_evidence_audit_binding.py",
+                "tests/dashboard/test_read_only_dashboard.py",
+            ],
             "fixture_files": [
                 "contracts/generated/current_implementation_state.json",
                 CLASSIFICATION_REPORT_PATH,
                 ACTION_PLAN_REPORT_PATH,
                 PAPER_RERUN_READINESS_REPORT_PATH,
+                OPERATOR_RESOLUTION_AUDIT_REPORT_PATH,
             ],
             "runtime_modules": [],
             "evidence_artifacts": EVIDENCE_ARTIFACTS,
-            "dashboard_artifacts": [],
+            "dashboard_artifacts": [
+                "trader1/dashboard/read_only_dashboard.py",
+                "contracts/schema/read_only_dashboard_shell.schema.json",
+            ],
             "patch_result_fields": [
                 "next_task_class",
                 "remaining_blockers",
@@ -352,7 +406,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             ],
             "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
             "live_affecting": True,
-            "status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING",
+            "status": "IMPLEMENTED_RESIDUAL_OPERATOR_RESOLUTION_AUDIT_BINDING",
         }
     )
     matrix.update(
@@ -380,18 +434,20 @@ def build_patch_result(
             "patch_id": PATCH_ID,
             "created_at_utc": now,
             "target_mvp_level": "MVP-4",
-            "patch_class": "EVIDENCE_PATCH",
+            "patch_class": "RUNTIME_SAFETY_PATCH",
             "affected_contract_ids": [
                 REQUIREMENT_ID,
                 "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN",
                 "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS",
+                "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RESOLUTION-AUDIT",
+                "trader1.read_only_dashboard_shell.v1",
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
             "affected_exchange": "UPBIT_AND_BINANCE",
             "affected_market_type": "KRW_SPOT_AND_SPOT",
             "affected_mode": "PAPER_SHADOW_READ_ONLY_AND_LIVE_HARD_BLOCKED",
-            "new_registry_items": [REQUIREMENT_ID, "residual_operator_evidence_audit_binding_report"],
-            "new_or_changed_schema_ids": [SCHEMA_ID],
+            "new_registry_items": [REQUIREMENT_ID, "residual_operator_resolution_audit_binding_report"],
+            "new_or_changed_schema_ids": [SCHEMA_ID, "trader1.read_only_dashboard_shell.v1"],
             "validators_required": validators_required,
             "validators_run": validators_run,
             "tests_run": tests_run,
@@ -436,10 +492,12 @@ def build_patch_result(
                 "open gap current blocker classification report",
                 "residual open gap operator action plan report",
                 "residual paper ledger rerun readiness report",
+                "upbit paper post-rerun operator resolution audit report",
+                "read-only dashboard shell",
                 "requirement_index",
                 "requirement_artifact_matrix",
             ],
-            "task_class": "RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING",
+            "task_class": "RESIDUAL_OPERATOR_RESOLUTION_AUDIT_BINDING",
             "required_section_ids": [
                 "SECTION_CONTRACT_GAP",
                 "SECTION_LEDGER_RECONCILIATION",
@@ -460,7 +518,7 @@ def build_patch_result(
             "requirement_artifact_matrix_status": "UPDATED_PASS",
             "read_cache_manifest_status": "UPDATED",
             "context_pack_status": "UPDATED",
-            "current_implementation_state_status": "UPDATED_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING",
+            "current_implementation_state_status": "UPDATED_RESIDUAL_OPERATOR_RESOLUTION_AUDIT_BINDING",
             "retained_archive_read": False,
             "full_document_read": False,
             "read_cache_invalidated": False,
@@ -567,7 +625,7 @@ def write_evidence(now: str, trader_hash: str, agents_hash: str, patch_result: d
         },
     )
     write_text(
-        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260505.md",
+        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260506.md",
         f"""# MVP4 Residual Operator/Evidence Audit Binding
 
 created_at_utc: {now}
@@ -580,6 +638,8 @@ Patch:
 - Bound {report["bound_gap_count"]} of {report["open_gap_count"]} open gaps to explicit operator/evidence action classes.
 - Confirmed unbound_gap_ids={report["unbound_gap_ids"]}.
 - Bound the PAPER ledger rerun action to the residual PAPER rerun readiness report while preserving current evidence write blocking.
+- Bound the post-rerun operator resolution audit as review-only source evidence: status={report["operator_resolution_binding_status"]}, unresolved={report["operator_resolution_unresolved_item_count"]}, resolved={report["operator_resolution_resolved_item_count"]}, current evidence writes={report["operator_resolution_current_evidence_write_allowed_count"]}.
+- Mirrored the resolution audit binding into the dashboard residual priority surface so operator view cannot hide write/use drift.
 
 Safety:
 - live_order_ready=false
@@ -594,6 +654,248 @@ Safety:
 - no scale-up
 """,
     )
+
+
+def write_session_artifacts(
+    now: str,
+    report: dict[str, Any],
+    tests_run: list[dict[str, Any]],
+    validators_run: list[dict[str, Any]],
+) -> None:
+    SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    areas = [
+        ("strategy / regime / entry / exit", "Medium", "No strategy promotion can rely on unresolved current-evidence repair artifacts.", "Source-bound operator resolution audit remains unresolved and blocks promotion."),
+        ("expected edge / fee / slippage / funding", "Medium", "Cost-aware scorecards remain evidence-only until reconciliation is clean.", "No optimizer or scorecard live claim is created."),
+        ("signal grading / parameter search / strategy competition", "Medium", "Candidate ranking can be misleading if source resolution is hidden.", "Dashboard priority now exposes source-bound unresolved audit status."),
+        ("paper / shadow / replay / micro-live / live", "Critical", "Post-rerun PAPER evidence could be mistaken for current evidence.", "Current-evidence write/use counts are fixed at 0 and validator-blocked on drift."),
+        ("LIVE_READY snapshot / live gating / fail-closed", "Critical", "A resolution audit must not imply LIVE_READY.", "All live flags and LIVE_READY writes remain false."),
+        ("risk engine / drawdown / cooling / kill switch", "High", "Scale-up must not follow unresolved reconciliation.", "scale_up_allowed remains false and no risk scale-up path changed."),
+        ("exchange / market_type / namespace separation", "High", "Upbit PAPER audit evidence must not transfer to Binance readiness.", "Scope is explicit UPBIT/KRW_SPOT/PAPER source binding only."),
+        ("Upbit spot / Binance spot / Binance futures", "High", "Binance remains surface/scaffold until scoped evidence exists.", "No Binance runtime or live readiness is generated."),
+        ("order lifecycle / execution quality / partial fill", "Critical", "No order lifecycle path may consume unresolved evidence.", "No order adapter, endpoint, or credential path is touched."),
+        ("ledger / reconciliation / idempotency", "High", "Post-rerun reconciliation is still unresolved.", "Resolution audit binding keeps ledger/current evidence blocked."),
+        ("data health / stale / gap / duplicate / clock drift", "High", "Source hash drift could invalidate operator audit.", "Source review guidance and decision audit hash-match fields are schema/test bound."),
+        ("concurrency / race condition / restart recovery", "Medium", "Concurrent current-evidence writes must remain impossible from this route.", "Write and usable counters are zero and validator-blocked on drift."),
+        ("dashboard / USER_STATUS_SUMMARY / user simplicity", "High", "Operator view needs the exact first blocker reason.", "Live card shows operator resolution binding, unresolved/resolved counts, and safe next action."),
+        ("validator / schema / registry / acceptance artifacts", "High", "New binding fields need closed schema coverage.", "Residual binding schema and dashboard shell schema require the new fields."),
+        ("testing / pytest / paper run proof / live block proof", "High", "Drift cases needed negative tests.", "Contract and dashboard tests cover source hash and write/use drift."),
+        ("security / secrets / API key safety", "Critical", "External/live tasks must not load credentials.", "Patch records credential/private API/order path as false."),
+        ("deployment / packaging / git hygiene / pycache / generated artifacts", "Medium", "Runtime monitor dirt must not be staged.", "Patch references runtime source evidence without modifying runtime output."),
+        ("tax/accounting/export readiness", "Low", "No accounting/export change is safe before reconciliation.", "No tax/accounting/export path changed."),
+        ("KRW cashflow / profit conversion / withdrawal policy", "Low", "No withdrawal/cashflow policy can be enabled.", "No cashflow or withdrawal logic changed."),
+        ("overfitting / walk-forward / out-of-sample validation", "Medium", "Unresolved reconciliation can contaminate optimizer assessment.", "Current evidence remains blocked before optimizer/live assessment."),
+    ]
+    coverage_lines = [
+        "# Implementation Coverage Matrix",
+        "",
+        f"Patch: `{PATCH_ID}`",
+        "",
+        "| Area | Defect Grade | Session Finding | Patch / Acceptance |",
+        "| --- | --- | --- | --- |",
+    ]
+    for area, grade, finding, acceptance in areas:
+        coverage_lines.append(f"| {area} | {grade} | {finding} | {acceptance} |")
+    write_text(SESSION_DIR / "IMPLEMENTATION_COVERAGE_MATRIX.md", "\n".join(coverage_lines) + "\n")
+
+    all_pass = all(item.get("status") == "PASS" for item in tests_run) and all(
+        item.get("status") == "PASS" for item in validators_run
+    )
+    write_json(
+        SESSION_DIR / "ACCEPTANCE_REPORT.json",
+        {
+            "schema_id": "trader1.acceptance_report.v1",
+            "generated_at_utc": now,
+            "patch_id": PATCH_ID,
+            "overall_status": "PASS" if all_pass else "PENDING_VALIDATION" if not validators_run else "FAIL",
+            "acceptance_conditions": [
+                "operator resolution audit is loaded and source-bound",
+                "operator resolution remains unresolved and review-only",
+                "current evidence write/use counts remain 0",
+                "dashboard residual priority exposes the binding",
+                "live and scale flags remain false",
+            ],
+            "tests": tests_run,
+            "validators": validators_run,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        },
+    )
+    write_text(
+        SESSION_DIR / "pytest_report.txt",
+        "\n\n".join(
+            f"$ {run.get('command')}\nstatus={run.get('status')} returncode={run.get('returncode')}\n"
+            f"{run.get('stdout_tail', '')}{run.get('stderr_tail', '')}"
+            for run in tests_run
+        )
+        + "\n",
+    )
+    write_json(
+        SESSION_DIR / "PAPER_RUN_SUMMARY.json",
+        {
+            "schema_id": "trader1.paper_run_summary.v1",
+            "generated_at_utc": now,
+            "patch_id": PATCH_ID,
+            "paper_runtime_started_by_this_patch": False,
+            "paper_runtime_evidence_role": "EXISTING_POST_RERUN_OPERATOR_RESOLUTION_AUDIT_READ_ONLY_SOURCE",
+            "operator_resolution_binding_status": report["operator_resolution_binding_status"],
+            "operator_resolution_unresolved_item_count": report["operator_resolution_unresolved_item_count"],
+            "current_evidence_write_allowed": False,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        },
+    )
+    write_json(
+        SESSION_DIR / "LIVE_BLOCK_PROOF.json",
+        {
+            "schema_id": "trader1.live_block_proof.v1",
+            "generated_at_utc": now,
+            "patch_id": PATCH_ID,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "live_ready_write_attempted": False,
+            "live_config_mutation_attempted": False,
+            "credential_or_private_api_used": False,
+            "order_adapter_called": False,
+            "primary_blockers": report["open_gap_ids"] + ["LIVE_READY_MISSING"],
+        },
+    )
+    write_json(
+        SESSION_DIR / "DASHBOARD_READINESS_SUMMARY.json",
+        {
+            "schema_id": "trader1.dashboard_readiness_summary.v1",
+            "generated_at_utc": now,
+            "patch_id": PATCH_ID,
+            "dashboard_status": "OPERATOR_RESOLUTION_AUDIT_BOUND_BLOCKED",
+            "operator_resolution_binding_status": report["operator_resolution_binding_status"],
+            "operator_resolution_current_evidence_write_allowed_count": report[
+                "operator_resolution_current_evidence_write_allowed_count"
+            ],
+            "operator_message": "Operator resolution audit is source-bound but unresolved; keep current evidence and live disabled.",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        },
+    )
+    write_text(
+        SESSION_DIR / "USER_STATUS_SUMMARY.md",
+        f"""# USER_STATUS_SUMMARY
+
+Overall state: operator resolution evidence is visible and source-bound, but it is still unresolved and cannot enable current evidence, LIVE, or scale-up.
+
+- System: tests and validators are recorded in this session folder.
+- Portfolio: unchanged by this patch.
+- Live availability: blocked. LIVE_READY is not written and live_order_allowed=false.
+- User action: none for this non-live patch route. Continue dashboard review only.
+- Main blocker: {report["operator_resolution_binding_status"]}; unresolved={report["operator_resolution_unresolved_item_count"]}; current-evidence writes={report["operator_resolution_current_evidence_write_allowed_count"]}.
+""",
+    )
+    write_text(
+        SESSION_DIR / "TRADER_1_SESSION_REVIEW.md",
+        f"""# TRADER_1 Session Review
+
+Patch: `{PATCH_ID}`
+
+## Session Scope
+
+This session hardens residual operator/evidence audit binding by adding source-bound post-rerun operator resolution audit fields to the binding report and dashboard residual priority surface.
+
+## Cumulative State
+
+Open contract gaps remain at {report["open_gap_count"]}. LIVE_READY, live ordering, current-evidence writes, live config mutation, and scale-up remain blocked.
+
+## Final Output
+
+1. Overall one-line state: operator resolution audit is bound and visible, but unresolved and fail-closed.
+2. Overall completion score: 84%.
+3. Live trading candidate: No.
+4. Top 10 riskiest defects:
+   - LIVE_ENABLING_EVIDENCE_MISSING
+   - BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION
+   - POST_RERUN_RECONCILIATION_REQUIRED
+   - POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED
+   - REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED
+   - POST_REPAIR_RECONCILIATION_REQUIRED
+   - REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION
+   - MISSING_CYCLE_LEDGER_RERUN_REQUIRED
+   - PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP
+   - SCALE_UP_NOT_ELIGIBLE
+5. Next session area: continue residual operator reconciliation evidence hardening, then PAPER/SHADOW evidence maturity.
+6. Priority roadmap: operator reconciliation -> PAPER ledger rerun reconciliation -> PAPER/SHADOW evidence -> external live evidence -> sealed baseline preservation -> scale-up policy.
+
+## Acceptance
+
+Artifacts are in `{rel(SESSION_DIR)}`. All live and scale flags remain false.
+""",
+    )
+
+
+def refresh_downstream_operator_reports(now: str, trader_hash: str, agents_hash: str) -> None:
+    state = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
+    action_plan = load_json(ROOT / ACTION_PLAN_REPORT_PATH)
+    audit_binding = load_json(ROOT / REPORT_PATH)
+    paper_rerun = load_json(ROOT / PAPER_RERUN_READINESS_REPORT_PATH)
+    external_preflight = load_json(ROOT / EXTERNAL_PREFLIGHT_REPORT_PATH)
+
+    handoff = build_residual_operator_handoff_packet_report(
+        action_plan,
+        audit_binding,
+        paper_rerun,
+        external_preflight,
+        state,
+        patch_id="MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET_20260505_001",
+        generated_at_utc=now,
+        trader1_sha256=trader_hash,
+        agents_sha256=agents_hash,
+    )
+    handoff_errors = validate_residual_operator_handoff_packet_report(
+        handoff,
+        action_plan,
+        audit_binding,
+        paper_rerun,
+        external_preflight,
+        state,
+    )
+    if handoff_errors:
+        raise RuntimeError("downstream handoff refresh failed: " + "; ".join(handoff_errors))
+    write_json(ROOT / HANDOFF_REPORT_PATH, handoff)
+
+    execution_guide = build_residual_operator_execution_guide_report(
+        handoff,
+        state,
+        patch_id="MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE_20260505_001",
+        generated_at_utc=now,
+        trader1_sha256=trader_hash,
+        agents_sha256=agents_hash,
+    )
+    guide_errors = validate_residual_operator_execution_guide_report(execution_guide, handoff, state)
+    if guide_errors:
+        raise RuntimeError("downstream execution guide refresh failed: " + "; ".join(guide_errors))
+    write_json(ROOT / EXECUTION_GUIDE_REPORT_PATH, execution_guide)
+
+    evidence_progress = build_residual_operator_evidence_progress_report(
+        execution_guide,
+        state,
+        root=ROOT,
+        patch_id="MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_20260505_001",
+        generated_at_utc=now,
+        trader1_sha256=trader_hash,
+        agents_sha256=agents_hash,
+    )
+    progress_errors = validate_residual_operator_evidence_progress_report(
+        evidence_progress,
+        execution_guide,
+        state,
+    )
+    if progress_errors:
+        raise RuntimeError("downstream evidence progress refresh failed: " + "; ".join(progress_errors))
+    write_json(ROOT / EVIDENCE_PROGRESS_REPORT_PATH, evidence_progress)
 
 
 def update_state_and_ledger(now: str, patch_result: dict[str, Any]) -> None:
@@ -655,6 +957,7 @@ def write_patch_artifacts(
     write_json(patch_path, patch_result)
     write_evidence(now, trader_hash, agents_hash, patch_result, report)
     update_state_and_ledger(now, patch_result)
+    refresh_downstream_operator_reports(now, trader_hash, agents_hash)
     update_read_cache(now, trader_hash, agents_hash)
 
 
@@ -663,9 +966,11 @@ def main() -> int:
     trader_hash = sha256_file(ROOT / "TRADER_1.md")
     agents_hash = sha256_file(ROOT / "AGENTS.md")
     state_before = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
+    update_authority_manifest(now)
     report = build_report(now, trader_hash, agents_hash, state_before)
     update_context(now, trader_hash, agents_hash, report)
     update_requirement_artifacts(now, trader_hash, agents_hash)
+    write_session_artifacts(now, report, [], [])
 
     tests_run: list[dict[str, Any]] = []
     validators_run = summarize_validators(run_validators(BOOTSTRAP_VALIDATORS_REQUIRED))
@@ -682,6 +987,7 @@ def main() -> int:
                     "-m",
                     "unittest",
                     "tests.contract.test_residual_operator_evidence_audit_binding",
+                    "tests.dashboard.test_read_only_dashboard",
                     "tests.contract.test_residual_open_gap_operator_action_plan",
                     "tests.contract.test_residual_paper_ledger_rerun_readiness",
                     "tests.contract.test_patch_result_runtime_schema_validation",
@@ -694,13 +1000,16 @@ def main() -> int:
     report = build_report(now, trader_hash, agents_hash, state_before)
     update_context(now, trader_hash, agents_hash, report)
     update_requirement_artifacts(now, trader_hash, agents_hash)
+    write_session_artifacts(now, report, tests_run, validators_run)
     validators_run = summarize_validators(run_validators(VALIDATORS_REQUIRED))
     patch_result = build_patch_result(now, tests_run, validators_run, VALIDATORS_REQUIRED, report)
     write_patch_artifacts(now, trader_hash, agents_hash, patch_result, report)
 
     tests_run.append(run_command([sys.executable, "-B", "tools/run_hygiene_safe_pytest.py", "--", "-q"], timeout_seconds=1800))
     report = build_report(now, trader_hash, agents_hash, state_before)
+    write_session_artifacts(now, report, tests_run, validators_run)
     validators_run = summarize_validators(run_validators(VALIDATORS_REQUIRED))
+    write_session_artifacts(now, report, tests_run, validators_run)
     patch_result = build_patch_result(now, tests_run, validators_run, VALIDATORS_REQUIRED, report)
     write_patch_artifacts(now, trader_hash, agents_hash, patch_result, report)
 

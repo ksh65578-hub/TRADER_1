@@ -11801,15 +11801,19 @@
       "full_text_marker": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-AUDIT-BINDING: residual external-evidence/operator-reconciliation gaps must be audit-bound to source reports and must not be closed by code-only inference",
       "authority_level": "ACTIVE_AUTHORITY",
       "requirement_title": "Residual operator/evidence audit binding",
-      "requirement_kind": "EVIDENCE_PATCH",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
       "schema_ids": [
-        "trader1.residual_operator_evidence_audit_binding_report.v1"
+        "trader1.residual_operator_evidence_audit_binding_report.v1",
+        "trader1.read_only_dashboard_shell.v1"
       ],
       "validator_ids": [
         "schema_validator",
         "registry_validator",
         "patch_result_schema_validator",
         "patch_result_runtime_schema_instance_validator",
+        "runtime_schema_instance_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
         "live_final_guard_validator",
         "generated_artifact_dirty_validator",
         "coverage_index_validator"
@@ -11822,17 +11826,30 @@
         "contracts/generated/requirement_artifact_matrix.json",
         "contracts/generated/requirement_index.json",
         "contracts/registry.yaml",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
         "contracts/schema/residual_operator_evidence_audit_binding_report.schema.json",
         "system/evidence/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.evidence_manifest.json",
         "system/evidence/audit_reports/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.report.json",
         "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
         "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.report.json",
-        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260505.md",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260506.md",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
         "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.report.json",
         "system/evidence/implementation_patch_ledger.json",
         "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.patch_result.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/TRADER_1_SESSION_REVIEW.md",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/pytest_report.txt",
         "system/evidence/stage_gates/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.stage_gate_result.json",
         "system/evidence/validator_runs/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.validator_run_log.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
         "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
         "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
         "tests/contract/test_completed_recheck_route_depth_guard.py",
@@ -11859,6 +11876,7 @@
         "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
         "tests/contract/test_stale_loop_regeneration_required_recheck.py",
         "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
+        "tests/dashboard/test_read_only_dashboard.py",
         "tools/emit_residual_operator_evidence_audit_binding_patch_evidence.py",
         "trader1/reports/residual_operator_evidence_audit_binding.py"
       ],
@@ -11880,11 +11898,12 @@
         "REQ-MVP4-OPEN-GAP-CURRENT-BLOCKER-CLASSIFICATION",
         "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN",
         "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS",
+        "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RESOLUTION-AUDIT",
         "REQ-MVP4-LIVE-FINAL-GUARD"
       ],
       "source_text_sha256": "7253E454ACD02A8DD086581E47111A0831503C89C728DD0675FA83F0FE66C80F",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
-      "implementation_status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING",
+      "implementation_status": "IMPLEMENTED_RESIDUAL_OPERATOR_RESOLUTION_AUDIT_BINDING",
       "test_status": "PASS"
     },
     {
@@ -23504,5 +23523,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T15:25:52Z"
+  "updated_at_utc": "2026-05-05T17:16:24Z"
 }

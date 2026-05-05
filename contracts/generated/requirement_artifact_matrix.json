@@ -8768,24 +8768,40 @@
         "trader1/validation/mvp0_validators.py"
       ],
       "test_files": [
-        "tests/contract/test_residual_operator_evidence_audit_binding.py"
+        "tests/contract/test_residual_operator_evidence_audit_binding.py",
+        "tests/dashboard/test_read_only_dashboard.py"
       ],
       "fixture_files": [
         "contracts/generated/current_implementation_state.json",
         "system/evidence/audit_reports/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.report.json",
         "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
-        "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.report.json"
+        "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json"
       ],
       "runtime_modules": [],
       "evidence_artifacts": [
         "system/evidence/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.evidence_manifest.json",
         "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.report.json",
-        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260505.md",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260506.md",
         "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.patch_result.json",
         "system/evidence/stage_gates/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.stage_gate_result.json",
-        "system/evidence/validator_runs/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.validator_run_log.json"
+        "system/evidence/validator_runs/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.validator_run_log.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/pytest_report.txt",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING/TRADER_1_SESSION_REVIEW.md"
       ],
-      "dashboard_artifacts": [],
+      "dashboard_artifacts": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
       "patch_result_fields": [
         "next_task_class",
         "remaining_blockers",
@@ -8796,7 +8812,7 @@
       ],
       "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
       "live_affecting": true,
-      "status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING"
+      "status": "IMPLEMENTED_RESIDUAL_OPERATOR_RESOLUTION_AUDIT_BINDING"
     },
     {
       "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-INTAKE-AUDIT",
@@ -16851,7 +16867,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-05T15:25:52Z",
+  "updated_at_utc": "2026-05-05T17:16:24Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

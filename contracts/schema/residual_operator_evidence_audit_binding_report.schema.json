@@ -26,6 +26,23 @@
     "post_rerun_reconciliation_status",
     "current_evidence_bridge_status",
     "operator_queue_status",
+    "operator_resolution_audit_loaded",
+    "operator_resolution_audit_role",
+    "operator_resolution_audit_schema_id",
+    "operator_resolution_audit_hash",
+    "operator_resolution_audit_status",
+    "operator_resolution_audit_validation_status",
+    "operator_resolution_source_review_guidance_file_load_status",
+    "operator_resolution_source_review_guidance_file_hash_match",
+    "operator_resolution_source_decision_audit_file_load_status",
+    "operator_resolution_source_decision_audit_file_hash_match",
+    "operator_resolution_unresolved_item_count",
+    "operator_resolution_resolved_item_count",
+    "operator_resolution_controls_satisfied_count",
+    "operator_resolution_current_evidence_write_allowed_count",
+    "operator_resolution_candidate_current_evidence_usable_count",
+    "operator_resolution_binding_status",
+    "operator_resolution_next_action",
     "current_evidence_write_allowed",
     "current_evidence_mutation_allowed",
     "latest_runtime_pointer_write_allowed",
@@ -162,6 +179,61 @@
       "minLength": 1
     },
     "operator_queue_status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_resolution_audit_loaded": {
+      "const": true
+    },
+    "operator_resolution_audit_role": {
+      "const": "upbit_paper_post_rerun_operator_resolution_audit"
+    },
+    "operator_resolution_audit_schema_id": {
+      "const": "trader1.upbit_paper_post_rerun_operator_resolution_audit_report.v1"
+    },
+    "operator_resolution_audit_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "operator_resolution_audit_status": {
+      "const": "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
+    },
+    "operator_resolution_audit_validation_status": {
+      "const": "PASS"
+    },
+    "operator_resolution_source_review_guidance_file_load_status": {
+      "const": "PASS"
+    },
+    "operator_resolution_source_review_guidance_file_hash_match": {
+      "const": true
+    },
+    "operator_resolution_source_decision_audit_file_load_status": {
+      "const": "PASS"
+    },
+    "operator_resolution_source_decision_audit_file_hash_match": {
+      "const": true
+    },
+    "operator_resolution_unresolved_item_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "operator_resolution_resolved_item_count": {
+      "const": 0
+    },
+    "operator_resolution_controls_satisfied_count": {
+      "const": 0
+    },
+    "operator_resolution_current_evidence_write_allowed_count": {
+      "const": 0
+    },
+    "operator_resolution_candidate_current_evidence_usable_count": {
+      "const": 0
+    },
+    "operator_resolution_binding_status": {
+      "const": "BOUND_BLOCKED"
+    },
+    "operator_resolution_next_action": {
       "type": "string",
       "minLength": 1
     },

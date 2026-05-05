@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.residual_operator_evidence_audit_binding_report.v1",
-  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260505_001",
-  "generated_at_utc": "2026-05-05T06:44:03Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_RESOLUTION_AUDIT_BINDING_20260506_001",
+  "generated_at_utc": "2026-05-05T17:16:24Z",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
@@ -23,7 +23,7 @@
       "report_hash": "A2E7575853411246436C79B349D625FD6AF0B3D4D6C03C41B5BF13C7B0441B55"
     }
   ],
-  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260505_001",
+  "state_last_patch_id_before": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_RESOLUTION_AUDIT_BINDING_20260506_001",
   "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "open_gap_ids": [
@@ -73,6 +73,23 @@
   "post_rerun_reconciliation_status": "BLOCKED",
   "current_evidence_bridge_status": "BLOCKED_BY_POST_RERUN_CLOSURE",
   "operator_queue_status": "BLOCKED",
+  "operator_resolution_audit_loaded": true,
+  "operator_resolution_audit_role": "upbit_paper_post_rerun_operator_resolution_audit",
+  "operator_resolution_audit_schema_id": "trader1.upbit_paper_post_rerun_operator_resolution_audit_report.v1",
+  "operator_resolution_audit_hash": "BF29818B07ADFA77982E1D6FC7E2B1C2356C299FB41A2AF7B09AE91611FD3094",
+  "operator_resolution_audit_status": "UNRESOLVED_RECONCILIATION_REVIEW_ONLY",
+  "operator_resolution_audit_validation_status": "PASS",
+  "operator_resolution_source_review_guidance_file_load_status": "PASS",
+  "operator_resolution_source_review_guidance_file_hash_match": true,
+  "operator_resolution_source_decision_audit_file_load_status": "PASS",
+  "operator_resolution_source_decision_audit_file_hash_match": true,
+  "operator_resolution_unresolved_item_count": 8,
+  "operator_resolution_resolved_item_count": 0,
+  "operator_resolution_controls_satisfied_count": 0,
+  "operator_resolution_current_evidence_write_allowed_count": 0,
+  "operator_resolution_candidate_current_evidence_usable_count": 0,
+  "operator_resolution_binding_status": "BOUND_BLOCKED",
+  "operator_resolution_next_action": "Operator resolution audit is source-bound and review-only; keep current evidence writes blocked.",
   "current_evidence_write_allowed": false,
   "current_evidence_mutation_allowed": false,
   "latest_runtime_pointer_write_allowed": false,
@@ -344,5 +361,5 @@
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "report_hash": "28B4438C283642C97AF8BE44B19486C8255E5537B00BE0A90EBC855A0EE27E03"
+  "report_hash": "EE8EB11898632084F72B8E51151D2F17D7BB1A0ABDA06476C090D9B301E10A95"
 }

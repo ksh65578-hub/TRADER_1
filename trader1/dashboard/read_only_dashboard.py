@@ -10744,10 +10744,81 @@ def _residual_operator_priority_default_items() -> list[dict[str, Any]]:
     return items
 
 
+def _operator_resolution_binding_from_reconciliation(
+    reconciliation_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(reconciliation_summary, dict):
+        return {
+            "operator_reconciliation_resolution_binding_status": "NOT_LOADED_BLOCKED",
+            "operator_reconciliation_resolution_audit_status": "NOT_LOADED",
+            "operator_reconciliation_resolution_validation_status": "UNTESTED",
+            "operator_reconciliation_unresolved_item_count": 0,
+            "operator_reconciliation_resolved_item_count": 0,
+            "operator_reconciliation_controls_satisfied_count": 0,
+            "operator_reconciliation_current_evidence_write_allowed_count": 0,
+            "operator_reconciliation_candidate_current_evidence_usable_count": 0,
+            "operator_reconciliation_source_bindings_verified": False,
+            "operator_reconciliation_next_safe_action": (
+                "Load the post-rerun operator resolution audit before accepting any current evidence."
+            ),
+        }
+
+    audit_status = str(reconciliation_summary.get("post_rerun_resolution_audit_status") or "NOT_LOADED")
+    validation_status = str(
+        reconciliation_summary.get("post_rerun_resolution_audit_validation_status") or "UNTESTED"
+    )
+    unresolved_count = _safe_count(reconciliation_summary.get("post_rerun_resolution_unresolved_item_count"))
+    resolved_count = _safe_count(reconciliation_summary.get("post_rerun_resolution_resolved_item_count"))
+    controls_satisfied = _safe_count(
+        reconciliation_summary.get("post_rerun_resolution_controls_satisfied_count")
+    )
+    write_allowed_count = _safe_count(
+        reconciliation_summary.get("post_rerun_resolution_current_evidence_write_allowed_count")
+    )
+    usable_count = _safe_count(
+        reconciliation_summary.get("post_rerun_resolution_candidate_current_evidence_usable_count")
+    )
+    source_verified = (
+        reconciliation_summary.get("post_rerun_resolution_source_review_guidance_file_load_status") == "PASS"
+        and reconciliation_summary.get("post_rerun_resolution_source_review_guidance_file_hash_match") is True
+        and reconciliation_summary.get("post_rerun_resolution_source_decision_audit_file_load_status") == "PASS"
+        and reconciliation_summary.get("post_rerun_resolution_source_decision_audit_file_hash_match") is True
+    )
+    bound_blocked = (
+        audit_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
+        and validation_status == "PASS"
+        and source_verified
+        and unresolved_count > 0
+        and resolved_count == 0
+        and controls_satisfied == 0
+        and write_allowed_count == 0
+        and usable_count == 0
+    )
+    return {
+        "operator_reconciliation_resolution_binding_status": (
+            "BOUND_BLOCKED" if bound_blocked else "NOT_LOADED_BLOCKED" if audit_status == "NOT_LOADED" else "FAIL"
+        ),
+        "operator_reconciliation_resolution_audit_status": audit_status,
+        "operator_reconciliation_resolution_validation_status": validation_status,
+        "operator_reconciliation_unresolved_item_count": unresolved_count,
+        "operator_reconciliation_resolved_item_count": resolved_count,
+        "operator_reconciliation_controls_satisfied_count": controls_satisfied,
+        "operator_reconciliation_current_evidence_write_allowed_count": write_allowed_count,
+        "operator_reconciliation_candidate_current_evidence_usable_count": usable_count,
+        "operator_reconciliation_source_bindings_verified": source_verified,
+        "operator_reconciliation_next_safe_action": (
+            "Operator resolution audit is source-bound and review-only; keep current evidence writes blocked."
+            if bound_blocked
+            else "Operator resolution audit is not bound, resolved, or safe to use; keep reconciliation blocked."
+        ),
+    }
+
+
 def _residual_operator_priority_summary(
     report: dict[str, Any] | None,
     handoff_summary: dict[str, Any] | None,
     evidence_progress_summary: dict[str, Any] | None,
+    reconciliation_summary: dict[str, Any] | None,
 ) -> dict[str, Any]:
     def build(
         *,
@@ -10760,6 +10831,7 @@ def _residual_operator_priority_summary(
         safe_items = items or _residual_operator_priority_default_items()
         queue_gap_count = sum(item["gap_count"] for item in safe_items)
         first = safe_items[0]
+        operator_resolution_binding = _operator_resolution_binding_from_reconciliation(reconciliation_summary)
         progress_user_runtime_required = False
         if isinstance(evidence_progress_summary, dict):
             progress_user_runtime_required = evidence_progress_summary.get("user_runtime_required_for_next_non_live_patch") is True
@@ -10784,6 +10856,7 @@ def _residual_operator_priority_summary(
             "blocked_until": first["unlock_condition"],
             "handoff_packet_status": str(handoff_summary.get("status", "NOT_LOADED")) if isinstance(handoff_summary, dict) else "NOT_LOADED",
             "evidence_progress_status": str(evidence_progress_summary.get("status", "NOT_LOADED")) if isinstance(evidence_progress_summary, dict) else "NOT_LOADED",
+            **operator_resolution_binding,
             "user_runtime_required_for_next_non_live_patch": progress_user_runtime_required,
             "queue_items": safe_items,
             "display_only": True,
@@ -12789,6 +12862,7 @@ def build_read_only_dashboard_shell(
         residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet,
         residual_operator_evidence_progress,
+        reconciliation_recovery_summary,
     )
 
     engine = summary.get("engine", {}) if isinstance(summary, dict) else {}
@@ -13275,6 +13349,16 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "blocked_until",
                 "handoff_packet_status",
                 "evidence_progress_status",
+                "operator_reconciliation_resolution_binding_status",
+                "operator_reconciliation_resolution_audit_status",
+                "operator_reconciliation_resolution_validation_status",
+                "operator_reconciliation_unresolved_item_count",
+                "operator_reconciliation_resolved_item_count",
+                "operator_reconciliation_controls_satisfied_count",
+                "operator_reconciliation_current_evidence_write_allowed_count",
+                "operator_reconciliation_candidate_current_evidence_usable_count",
+                "operator_reconciliation_source_bindings_verified",
+                "operator_reconciliation_next_safe_action",
             )
         )
         for item in residual_priority.get("queue_items", []):
@@ -13767,6 +13851,29 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "residual operator priority single next action must mirror queue head", "SCHEMA_IDENTITY_MISMATCH")
     if residual_priority.get("single_next_action_class") != "OPERATOR_RECONCILIATION_ACTION":
         return DashboardValidationResult("BLOCKED", "residual operator priority must start with operator reconciliation", "LIVE_FINAL_GUARD_FAILED")
+    resolution_binding_status = residual_priority.get("operator_reconciliation_resolution_binding_status")
+    if resolution_binding_status not in {"BOUND_BLOCKED", "NOT_LOADED_BLOCKED", "FAIL"}:
+        return DashboardValidationResult("FAIL", "residual operator priority resolution binding status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_priority.get("operator_reconciliation_current_evidence_write_allowed_count") != 0
+        or residual_priority.get("operator_reconciliation_candidate_current_evidence_usable_count") != 0
+    ):
+        return DashboardValidationResult("BLOCKED", "residual operator priority exposed current evidence write/use", "LIVE_FINAL_GUARD_FAILED")
+    if resolution_binding_status == "BOUND_BLOCKED":
+        if (
+            residual_priority.get("operator_reconciliation_resolution_audit_status")
+            != "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
+            or residual_priority.get("operator_reconciliation_resolution_validation_status") != "PASS"
+            or residual_priority.get("operator_reconciliation_source_bindings_verified") is not True
+            or residual_priority.get("operator_reconciliation_unresolved_item_count", 0) <= 0
+            or residual_priority.get("operator_reconciliation_resolved_item_count") != 0
+            or residual_priority.get("operator_reconciliation_controls_satisfied_count") != 0
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "residual operator priority source-bound resolution audit lost unresolved fail-closed state",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
     if residual_priority.get("user_runtime_required_for_next_non_live_patch") is not False:
         return DashboardValidationResult("BLOCKED", "residual priority cannot require user runtime for the next non-live patch", "HARD_TRUTH_MISSING")
     if residual_priority.get("source_status") == "LOADED" and residual_priority.get("status") != "ACTION_REQUIRED":
@@ -19095,6 +19202,29 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             residual_priority.get(
                 "single_next_action",
                 "Review and reconcile repaired, regenerated, or hash-mismatched evidence before promotion.",
+            )
+        )
+        + "</p>"
+        '<p class="live-blocker-note"><strong>Operator resolution binding:</strong> '
+        + safe_text(residual_priority.get("operator_reconciliation_resolution_binding_status", "NOT_LOADED_BLOCKED"))
+        + "; audit="
+        + safe_text(residual_priority.get("operator_reconciliation_resolution_audit_status", "NOT_LOADED"))
+        + "; unresolved="
+        + safe_text(residual_priority.get("operator_reconciliation_unresolved_item_count", 0))
+        + "; resolved="
+        + safe_text(residual_priority.get("operator_reconciliation_resolved_item_count", 0))
+        + "; current-evidence writes="
+        + safe_text(residual_priority.get("operator_reconciliation_current_evidence_write_allowed_count", 0))
+        + "; usable="
+        + safe_text(residual_priority.get("operator_reconciliation_candidate_current_evidence_usable_count", 0))
+        + "; source-bound="
+        + safe_text(residual_priority.get("operator_reconciliation_source_bindings_verified", False))
+        + ".</p>"
+        '<p class="live-blocker-note"><strong>Safe next:</strong> '
+        + safe_text(
+            residual_priority.get(
+                "operator_reconciliation_next_safe_action",
+                "Load and bind operator resolution evidence before accepting any current evidence.",
             )
         )
         + "</p>"

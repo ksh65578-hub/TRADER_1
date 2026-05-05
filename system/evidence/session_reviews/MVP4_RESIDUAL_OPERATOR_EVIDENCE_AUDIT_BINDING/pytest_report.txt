@@ -1,0 +1,14 @@
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_bytecode_free_syntax_check.py
+status=PASS returncode=0
+
+
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B -m unittest tests.contract.test_residual_operator_evidence_audit_binding tests.dashboard.test_read_only_dashboard tests.contract.test_residual_open_gap_operator_action_plan tests.contract.test_residual_paper_ledger_rerun_readiness tests.contract.test_patch_result_runtime_schema_validation -v
+status=PASS returncode=0
+
+
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_patch_result_runtime_schema_validators.py
+status=PASS returncode=0
+
+
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_hygiene_safe_pytest.py -- -q
+status=PASS returncode=0
