@@ -11278,6 +11278,82 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY-SCHEMA-STATE-SYNC",
+      "source_section_id": "SECTION_OPERATOR_CONTROL",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Residual adaptive evidence gate schema state synchronization",
+      "full_text_marker": "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY-SCHEMA-STATE-SYNC: residual operator evidence schema artifacts must be reflected in current_implementation_state without closing evidence-dependent residual gaps",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Residual schema state synchronization",
+      "requirement_kind": "EVIDENCE_READINESS_PATCH",
+      "schema_ids": [
+        "trader1.residual_mvp5_entry_duration_policy_report.v1",
+        "trader1.residual_operator_evidence_intake_audit_report.v1",
+        "trader1.residual_operator_evidence_run_preflight_report.v1",
+        "trader1.residual_operator_evidence_trial_duration_policy_report.v1",
+        "trader1.patch_result.v1"
+      ],
+      "validator_ids": [
+        "runtime_schema_instance_validator",
+        "schema_validator",
+        "registry_validator",
+        "paper_shadow_evidence_accumulation_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_index.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_SCHEMA_STATE_SYNC.md",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_SCHEMA_STATE_SYNC.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_SCHEMA_STATE_SYNC.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_SCHEMA_STATE_SYNC.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_SCHEMA_STATE_SYNC.patch_result.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_SCHEMA_STATE_SYNC_20260505.md",
+        "tools/emit_residual_adaptive_evidence_schema_state_sync_patch_evidence.py",
+        "tests/contract/test_residual_adaptive_evidence_schema_state_sync.py",
+        "contracts/schema/residual_mvp5_entry_duration_policy_report.schema.json",
+        "contracts/schema/residual_operator_evidence_intake_audit_report.schema.json",
+        "contracts/schema/residual_operator_evidence_run_preflight_report.schema.json",
+        "contracts/schema/residual_operator_evidence_trial_duration_policy_report.schema.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_INTAKE_AUDIT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_TRIAL_DURATION_POLICY.report.json"
+      ],
+      "test_ids": [
+        "tests/contract/test_residual_adaptive_evidence_schema_state_sync.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_CONTRACT_GAP",
+        "SECTION_OPERATOR_CONTROL",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY",
+        "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-RUN-PREFLIGHT",
+        "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-INTAKE-AUDIT",
+        "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-TRIAL-DURATION-POLICY",
+        "REQ-MVP4-RESIDUAL-MVP5-ENTRY-DURATION-POLICY",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "E0EFFCB8CABF9A1F2E052355828CF5ECBE90C6AFBCC5AF0E84D3F68B750816AD",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESIDUAL-MVP5-ENTRY-DURATION-POLICY",
       "source_section_id": "SECTION_CONTRACT_GAP",
       "source_file": "TRADER_1.md",
@@ -23161,5 +23237,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T12:47:37Z"
+  "updated_at_utc": "2026-05-05T13:10:29Z"
 }
