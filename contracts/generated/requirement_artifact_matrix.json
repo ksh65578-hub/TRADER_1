@@ -8232,6 +8232,65 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-SCALE-UP-NOT-ELIGIBLE-RECHECK",
+      "section_id": "SECTION_CONVERGENCE_RISK_SCALE",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/evidence_manifest.schema.json",
+        "contracts/schema/contract_gap.schema.json",
+        "contracts/schema/validator_result.schema.json",
+        "contracts/schema/risk_scaling_decision.schema.json",
+        "contracts/schema/live_burn_in_feedback_report.schema.json",
+        "contracts/schema/execution_quality_measurement_report.schema.json",
+        "contracts/schema/survival_layer_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_scale_up_not_eligible_recheck.py",
+        "tests/validators/test_convergence_risk_scale_validators.py",
+        "tests/validators/test_optimizer_convergence_guardrails.py"
+      ],
+      "fixture_files": [
+        "tests/validators/fixtures/convergence_risk_scale_pass.json",
+        "tests/validators/fixtures/convergence_risk_scale_fail.json",
+        "tests/validators/fixtures/convergence_risk_scale_blocked.json",
+        "tests/validators/fixtures/convergence_scaleup_safety_pass.json",
+        "tests/validators/fixtures/convergence_scaleup_safety_fail.json",
+        "tests/validators/fixtures/convergence_scaleup_safety_blocked.json",
+        "system/evidence/MVP4_EXTERNAL_BLOCKER.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_SCALEUP_SAFETY_BLOCKED.patch_result.json",
+        "system/evidence/patch_results/MVP4_CONVERGENCE_RISK_SCALE_BLOCKED.patch_result.json",
+        "system/evidence/patch_results/MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK.patch_result.json"
+      ],
+      "runtime_modules": [
+        "trader1/validation/mvp0_validators.py",
+        "trader1/safety/live_order_gate.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK.validator_run_log.json",
+        "system/evidence/contract_gaps/SCALE_UP_NOT_ELIGIBLE.contract_gap.json"
+      ],
+      "dashboard_artifacts": [
+        "contracts/generated/context_pack/MVP4_DASHBOARD_STABILITY_SCALEUP_LOCK.md"
+      ],
+      "patch_result_fields": [
+        "remaining_blockers",
+        "next_task_class",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RECHECK_GAP_OPEN"
+    },
+    {
       "requirement_id": "REQ-MVP4-SCHEMA-RUNTIME-INSTANCE-VALIDATION",
       "section_id": "SECTION_SCHEMA_VALIDATION",
       "schema_files": [
@@ -15362,7 +15421,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-05T00:38:51Z",
+  "updated_at_utc": "2026-05-05T01:19:15Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

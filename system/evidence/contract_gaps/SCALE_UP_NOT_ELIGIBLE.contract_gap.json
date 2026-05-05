@@ -1,0 +1,23 @@
+{
+  "schema_id": "trader1.contract_gap.v1",
+  "generated_at_utc": "2026-05-05T01:19:15Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "status": "OPEN",
+  "blockers": [
+    {
+      "code": "SCALE_UP_NOT_ELIGIBLE",
+      "severity": "CRITICAL",
+      "message": "Scale-up is not eligible because live permission is false, live burn-in/parity/execution quality/survival dependencies remain blocked, and external live-enabling evidence is missing.",
+      "source_requirement_id": "REQ-MVP4-SCALE-UP-NOT-ELIGIBLE-RECHECK"
+    }
+  ],
+  "notes": "scale_up_eligibility_status=BLOCKED; primary_blocker=SCALE_UP_NOT_ELIGIBLE; blocked_scale_validator_count=6; no risk scale-up, live order, credential use, or live config mutation is created.",
+  "contract_gap_id": "SCALE_UP_NOT_ELIGIBLE",
+  "severity": "CRITICAL",
+  "source_section_id": "SECTION_CONVERGENCE_RISK_SCALE",
+  "live_affecting": true
+}
