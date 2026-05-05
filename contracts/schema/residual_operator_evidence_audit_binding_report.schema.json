@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.residual_operator_evidence_audit_binding_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "source_reports",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "selected_next_task_class",
+    "open_gap_ids",
+    "open_gap_count",
+    "bound_gap_ids",
+    "bound_gap_count",
+    "unbound_gap_ids",
+    "extra_bound_gap_ids",
+    "duplicate_bound_gap_ids",
+    "action_binding_count",
+    "implementation_recheck_action_count",
+    "external_or_operator_action_required",
+    "paper_ledger_rerun_gap_ids",
+    "paper_ledger_rerun_readiness_status",
+    "post_rerun_reconciliation_status",
+    "current_evidence_bridge_status",
+    "operator_queue_status",
+    "current_evidence_write_allowed",
+    "current_evidence_mutation_allowed",
+    "latest_runtime_pointer_write_allowed",
+    "gap_closure_allowed_by_this_patch",
+    "open_gaps_preserved",
+    "audit_bindings",
+    "forbidden_actions",
+    "audit_binding_status",
+    "validation_status",
+    "validation_errors",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.residual_operator_evidence_audit_binding_report.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "source_reports": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["role", "patch_id", "report_hash"],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "open_gap_current_blocker_classification",
+              "residual_open_gap_operator_action_plan",
+              "residual_paper_ledger_rerun_readiness"
+            ]
+          },
+          "patch_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "report_hash": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64
+          }
+        }
+      }
+    },
+    "state_last_patch_id_before": {
+      "type": "string"
+    },
+    "state_next_task_before": {
+      "type": "string"
+    },
+    "selected_next_task_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "open_gap_ids": {
+      "$ref": "#/$defs/gap_id_array"
+    },
+    "open_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "bound_gap_ids": {
+      "$ref": "#/$defs/gap_id_array"
+    },
+    "bound_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unbound_gap_ids": {
+      "$ref": "#/$defs/gap_id_array"
+    },
+    "extra_bound_gap_ids": {
+      "$ref": "#/$defs/gap_id_array"
+    },
+    "duplicate_bound_gap_ids": {
+      "$ref": "#/$defs/gap_id_array"
+    },
+    "action_binding_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "implementation_recheck_action_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "external_or_operator_action_required": {
+      "type": "boolean"
+    },
+    "paper_ledger_rerun_gap_ids": {
+      "$ref": "#/$defs/gap_id_array"
+    },
+    "paper_ledger_rerun_readiness_status": {
+      "enum": [
+        "BLOCKED_RECONCILIATION_REQUIRED",
+        "BLOCKED_INVALID_SOURCE",
+        "BLOCKED_LEDGER_ROLLUP_REQUIRED",
+        "BLOCKED_RERUN_INPUT_REQUIRED",
+        "UNKNOWN"
+      ]
+    },
+    "post_rerun_reconciliation_status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "current_evidence_bridge_status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_queue_status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "current_evidence_mutation_allowed": {
+      "const": false
+    },
+    "latest_runtime_pointer_write_allowed": {
+      "const": false
+    },
+    "gap_closure_allowed_by_this_patch": {
+      "const": false
+    },
+    "open_gaps_preserved": {
+      "const": true
+    },
+    "audit_bindings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/audit_binding"
+      }
+    },
+    "forbidden_actions": {
+      "$ref": "#/$defs/string_array"
+    },
+    "audit_binding_status": {
+      "enum": ["PASS_BOUND_BLOCKED", "FAIL"]
+    },
+    "validation_status": {
+      "enum": ["PASS", "FAIL"]
+    },
+    "validation_errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  },
+  "$defs": {
+    "gap_id_array": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "string_array": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "audit_binding": {
+      "type": "object",
+      "required": [
+        "action_class",
+        "priority",
+        "gap_ids",
+        "gap_count",
+        "source_categories",
+        "required_evidence_kinds",
+        "required_operator_action",
+        "closure_preconditions",
+        "audit_source_report_roles",
+        "audit_binding_status",
+        "gap_closure_allowed_by_this_patch",
+        "current_evidence_write_allowed",
+        "live_order_allowed",
+        "live_config_mutation_allowed",
+        "scale_up_allowed",
+        "forbidden_actions"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "action_class": {
+          "enum": [
+            "OPERATOR_RECONCILIATION_ACTION",
+            "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+            "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+            "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+            "SEALED_BASELINE_PRESERVATION_ACTION",
+            "SCALE_UP_POLICY_EVIDENCE_ACTION",
+            "CLASSIFY_OPEN_GAP_ACTION"
+          ]
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gap_ids": {
+          "$ref": "#/$defs/gap_id_array"
+        },
+        "gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_categories": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "RUNTIME_LONG_RUN_EVIDENCE",
+              "OPERATOR_RECONCILIATION",
+              "EXTERNAL_LIVE_EVIDENCE",
+              "LEDGER_RERUN_RECONCILIATION",
+              "PAPER_SHADOW_RUNTIME_EVIDENCE",
+              "SEALED_HISTORICAL_PATCH_RESULT_BASELINE",
+              "PROFITABILITY_EVIDENCE_MATURITY",
+              "SCALE_UP_POLICY",
+              "UNCLASSIFIED_OPEN_GAP"
+            ]
+          }
+        },
+        "required_evidence_kinds": {
+          "$ref": "#/$defs/string_array"
+        },
+        "required_operator_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closure_preconditions": {
+          "$ref": "#/$defs/string_array"
+        },
+        "audit_source_report_roles": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "open_gap_current_blocker_classification",
+              "residual_open_gap_operator_action_plan",
+              "residual_paper_ledger_rerun_readiness"
+            ]
+          }
+        },
+        "audit_binding_status": {
+          "enum": ["BOUND_BLOCKED", "FAIL_UNSAFE_PERMISSION"]
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        },
+        "forbidden_actions": {
+          "$ref": "#/$defs/string_array"
+        }
+      }
+    }
+  }
+}

@@ -8042,6 +8042,47 @@
       "status": "IMPLEMENTED_RESIDUAL_OPERATOR_ACTION_PLAN"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-AUDIT-BINDING",
+      "section_id": "SECTION_CONTRACT_GAP",
+      "schema_files": [
+        "contracts/schema/residual_operator_evidence_audit_binding_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/reports/residual_operator_evidence_audit_binding.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_residual_operator_evidence_audit_binding.py"
+      ],
+      "fixture_files": [
+        "contracts/generated/current_implementation_state.json",
+        "system/evidence/audit_reports/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.report.json"
+      ],
+      "runtime_modules": [],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260505.md",
+        "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.patch_result.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "next_task_class",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS",
       "section_id": "SECTION_LEDGER_RECONCILIATION",
       "schema_files": [
@@ -15711,7 +15752,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-05T05:51:15Z",
+  "updated_at_utc": "2026-05-05T06:44:03Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

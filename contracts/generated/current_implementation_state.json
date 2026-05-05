@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-05T05:51:15Z",
+  "updated_at_utc": "2026-05-05T06:44:03Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -205,6 +205,7 @@
     "REQ-MVP4-REPAIR-CANDIDATE-HASH-MISMATCH-RECONCILIATION-REQUIRED-RECHECK",
     "REQ-MVP4-REPRODUCIBILITY-TEST-HARNESS-RECHECK",
     "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN",
+    "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-AUDIT-BINDING",
     "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS",
     "REQ-MVP4-RESTART-RECOVERY-WAL-LEDGER-BINDING-RECHECK",
     "REQ-MVP4-REVIEW-PLAN-DELETE-POLICY",
@@ -441,6 +442,7 @@
     "trader1.release_source_identity.v1",
     "trader1.replay_consistency_report.v1",
     "trader1.residual_open_gap_operator_action_plan_report.v1",
+    "trader1.residual_operator_evidence_audit_binding_report.v1",
     "trader1.residual_paper_ledger_rerun_readiness_report.v1",
     "trader1.restart_recovery_report.v1",
     "trader1.risk_scaling_decision.v1",
@@ -711,12 +713,12 @@
     "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
     "SCALE_UP_NOT_ELIGIBLE"
   ],
-  "last_patch_id": "MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS_20260505_001",
-  "last_patch_result_hash": "26A97C9BADD46FC17A91B827F9BB6A905DB37C5A1730BD2A20CC93F1AC8A3C4F",
+  "last_patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260505_001",
+  "last_patch_result_hash": "06E02028CEBB1B6DEB6D5E0D4FC4DDEBDA743EC7FDAFB6A5D32959CE3A49AC5A",
   "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "8CE92D0626635F7EA7A3622246324CC9C442A643300BA7DFA5D338DCBF1F86B0"
+  "state_hash": "371E793C27BE42596B8271B76F13CB88F77FA0412B21AB1ECB58E5314CB5C331"
 }
