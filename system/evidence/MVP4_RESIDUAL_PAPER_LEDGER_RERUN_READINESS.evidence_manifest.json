@@ -1,0 +1,57 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "evidence_manifest_id": "MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS_EVIDENCE",
+  "created_at_utc": "2026-05-05T05:51:15Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "patch_id": "MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS_20260505_001",
+  "artifact_paths": [
+    "contracts/generated/ACTIVE_WORKING_VIEW.md",
+    "contracts/generated/context_pack/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.md",
+    "contracts/generated/current_implementation_state.json",
+    "contracts/generated/read_cache_manifest.json",
+    "contracts/generated/requirement_artifact_matrix.json",
+    "contracts/generated/requirement_index.json",
+    "contracts/registry.yaml",
+    "contracts/schema/residual_paper_ledger_rerun_readiness_report.schema.json",
+    "system/evidence/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.evidence_manifest.json",
+    "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.report.json",
+    "system/evidence/audit_reports/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS_20260505.md",
+    "system/evidence/implementation_patch_ledger.json",
+    "system/evidence/patch_results/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.patch_result.json",
+    "system/evidence/stage_gates/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.stage_gate_result.json",
+    "system/evidence/validator_runs/MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS.validator_run_log.json",
+    "tests/contract/test_residual_paper_ledger_rerun_readiness.py",
+    "tools/emit_residual_paper_ledger_rerun_readiness_patch_evidence.py",
+    "trader1/reports/residual_paper_ledger_rerun_readiness.py"
+  ],
+  "runtime_source_paths": [
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_missing_cycle_rerun_guard_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_bounded_rerun_staging_executor_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_ledger_rollup_reconciliation_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_current_evidence_closure_recheck_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_queue_report.json"
+  ],
+  "known_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

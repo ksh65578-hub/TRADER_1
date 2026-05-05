@@ -1,0 +1,320 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.residual_paper_ledger_rerun_readiness_report.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "gap_ids",
+    "gap_count",
+    "runtime_sources",
+    "readiness_status",
+    "missing_cycle_guard_status",
+    "bounded_staging_status",
+    "bounded_executor_status",
+    "post_rerun_ledger_rollup_status",
+    "post_rerun_reconciliation_status",
+    "closure_status",
+    "current_evidence_bridge_status",
+    "operator_queue_status",
+    "staged_cycle_count",
+    "staged_current_evidence_usable_count",
+    "candidate_rollup_pass_count",
+    "candidate_current_evidence_usable_count",
+    "operator_reconciliation_required_count",
+    "current_evidence_write_allowed",
+    "current_evidence_mutation_allowed",
+    "latest_runtime_pointer_write_allowed",
+    "actual_rerun_executed",
+    "operator_reconciliation_required",
+    "post_rerun_reconciliation_required",
+    "current_evidence_promotion_allowed",
+    "selected_next_task_class",
+    "operator_next_action",
+    "forbidden_actions",
+    "validation_status",
+    "validation_errors",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "report_hash"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "trader1.residual_paper_ledger_rerun_readiness_report.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trader1_sha256", "agents_sha256"],
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "exchange": {
+      "const": "UPBIT"
+    },
+    "market_type": {
+      "const": "KRW_SPOT"
+    },
+    "mode": {
+      "const": "PAPER"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state_last_patch_id_before": {
+      "type": "string"
+    },
+    "state_next_task_before": {
+      "type": "string"
+    },
+    "gap_ids": {
+      "type": "array",
+      "prefixItems": [
+        {"const": "MISSING_CYCLE_LEDGER_RERUN_REQUIRED"},
+        {"const": "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"},
+        {"const": "POST_RERUN_RECONCILIATION_REQUIRED"}
+      ],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "gap_count": {
+      "const": 3
+    },
+    "runtime_sources": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "relative_path",
+          "load_status",
+          "source_schema_id",
+          "source_hash",
+          "validation_status",
+          "validation_errors",
+          "primary_status_field",
+          "primary_status_value",
+          "primary_blocker_code",
+          "current_evidence_mutation_allowed",
+          "current_evidence_write_allowed",
+          "latest_runtime_pointer_write_allowed",
+          "actual_rerun_executed",
+          "live_order_ready",
+          "live_order_allowed",
+          "can_live_trade",
+          "scale_up_allowed"
+        ],
+        "properties": {
+          "source_id": {
+            "enum": [
+              "missing_cycle_rerun_guard",
+              "bounded_rerun_staging_executor",
+              "post_rerun_ledger_rollup_reconciliation",
+              "current_evidence_closure_recheck",
+              "operator_reconciliation_queue"
+            ]
+          },
+          "relative_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "load_status": {
+            "enum": ["PASS", "MISSING", "INVALID_UTF8", "INVALID_JSON", "NOT_OBJECT"]
+          },
+          "source_schema_id": {
+            "type": "string"
+          },
+          "source_hash": {
+            "type": ["string", "null"],
+            "minLength": 64,
+            "maxLength": 64
+          },
+          "validation_status": {
+            "enum": ["PASS", "FAIL"]
+          },
+          "validation_errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "primary_status_field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "primary_status_value": {
+            "type": "string"
+          },
+          "primary_blocker_code": {
+            "type": ["string", "null"]
+          },
+          "current_evidence_mutation_allowed": {
+            "const": false
+          },
+          "current_evidence_write_allowed": {
+            "const": false
+          },
+          "latest_runtime_pointer_write_allowed": {
+            "const": false
+          },
+          "actual_rerun_executed": {
+            "const": false
+          },
+          "live_order_ready": {
+            "const": false
+          },
+          "live_order_allowed": {
+            "const": false
+          },
+          "can_live_trade": {
+            "const": false
+          },
+          "scale_up_allowed": {
+            "const": false
+          }
+        }
+      }
+    },
+    "readiness_status": {
+      "enum": [
+        "BLOCKED_RECONCILIATION_REQUIRED",
+        "BLOCKED_LEDGER_ROLLUP_REQUIRED",
+        "BLOCKED_RERUN_INPUT_REQUIRED",
+        "BLOCKED_INVALID_SOURCE"
+      ]
+    },
+    "missing_cycle_guard_status": {
+      "const": "BLOCKED"
+    },
+    "bounded_staging_status": {
+      "const": "PASS"
+    },
+    "bounded_executor_status": {
+      "const": "BLOCKED"
+    },
+    "post_rerun_ledger_rollup_status": {
+      "const": "PASS"
+    },
+    "post_rerun_reconciliation_status": {
+      "const": "BLOCKED"
+    },
+    "closure_status": {
+      "const": "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED"
+    },
+    "current_evidence_bridge_status": {
+      "const": "BLOCKED_BY_POST_RERUN_CLOSURE"
+    },
+    "operator_queue_status": {
+      "const": "BLOCKED"
+    },
+    "staged_cycle_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "staged_current_evidence_usable_count": {
+      "const": 0
+    },
+    "candidate_rollup_pass_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_current_evidence_usable_count": {
+      "const": 0
+    },
+    "operator_reconciliation_required_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "current_evidence_mutation_allowed": {
+      "const": false
+    },
+    "latest_runtime_pointer_write_allowed": {
+      "const": false
+    },
+    "actual_rerun_executed": {
+      "const": false
+    },
+    "operator_reconciliation_required": {
+      "const": true
+    },
+    "post_rerun_reconciliation_required": {
+      "const": true
+    },
+    "current_evidence_promotion_allowed": {
+      "const": false
+    },
+    "selected_next_task_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "forbidden_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "validation_status": {
+      "const": "PASS"
+    },
+    "validation_errors": {
+      "type": "array",
+      "maxItems": 0
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}
