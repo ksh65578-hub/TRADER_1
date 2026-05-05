@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.residual_operator_evidence_intake_audit_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "source_reports",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "selected_next_task_class",
+    "open_gap_ids",
+    "open_gap_count",
+    "intake_status",
+    "operator_submission_manifest_path",
+    "operator_submission_manifest_status",
+    "operator_submission_required",
+    "operator_submission_validated",
+    "expected_artifact_count",
+    "local_runtime_output_observed_count",
+    "missing_expected_artifact_count",
+    "placeholder_expected_artifact_count",
+    "ready_for_review_artifact_count",
+    "expected_artifact_intake_items",
+    "validator_queue_count",
+    "validator_queue",
+    "preflight_command_id",
+    "preflight_command_text",
+    "minimum_duration_hours",
+    "expected_heartbeat_ticks",
+    "minimum_paper_shadow_window_count",
+    "command_executed_by_this_patch",
+    "operator_run_completed_by_this_patch",
+    "operator_run_evidence_ready_for_mvp5",
+    "intake_review_ready",
+    "mvp5_entry_blocked_until_operator_evidence",
+    "current_evidence_write_allowed",
+    "gap_closure_allowed_by_this_patch",
+    "live_config_mutation_allowed",
+    "live_ready_write_allowed",
+    "credential_values_read",
+    "credential_environment_inspection_performed",
+    "runtime_artifacts_staged_by_this_patch",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "validation_status",
+    "validation_errors",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {"const": "trader1.residual_operator_evidence_intake_audit_report.v1"},
+    "patch_id": {"type": "string", "minLength": 1},
+    "generated_at_utc": {"type": "string", "minLength": 1},
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {"type": "string", "minLength": 1},
+        "agents_sha256": {"type": "string", "minLength": 1}
+      }
+    },
+    "source_reports": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["role", "patch_id", "report_hash"],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "residual_operator_evidence_run_preflight",
+              "residual_operator_evidence_progress"
+            ]
+          },
+          "patch_id": {"type": "string", "minLength": 1},
+          "report_hash": {"type": "string", "minLength": 64, "maxLength": 64}
+        }
+      }
+    },
+    "state_last_patch_id_before": {"type": "string"},
+    "state_next_task_before": {"type": "string"},
+    "selected_next_task_class": {"type": "string", "minLength": 1},
+    "open_gap_ids": {"$ref": "#/$defs/string_array"},
+    "open_gap_count": {"type": "integer", "minimum": 0},
+    "intake_status": {"const": "BLOCKED_AWAITING_OPERATOR_EVIDENCE_PACKAGE"},
+    "operator_submission_manifest_path": {
+      "const": "system/evidence/operator_submissions/residual_operator_paper_shadow_120h_submission_manifest.json"
+    },
+    "operator_submission_manifest_status": {
+      "enum": ["MISSING_OPERATOR_SUBMISSION_MANIFEST", "PRESENT_NOT_VALIDATED"]
+    },
+    "operator_submission_required": {"const": true},
+    "operator_submission_validated": {"const": false},
+    "expected_artifact_count": {"type": "integer", "minimum": 1},
+    "local_runtime_output_observed_count": {"type": "integer", "minimum": 0},
+    "missing_expected_artifact_count": {"type": "integer", "minimum": 0},
+    "placeholder_expected_artifact_count": {"type": "integer", "minimum": 0},
+    "ready_for_review_artifact_count": {"const": 0},
+    "expected_artifact_intake_items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/artifact_intake_item"}
+    },
+    "validator_queue_count": {"type": "integer", "minimum": 1},
+    "validator_queue": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/validator_queue_item"}
+    },
+    "preflight_command_id": {"const": "UPBIT_PAPER_SAFE_MONITOR_120H"},
+    "preflight_command_text": {"type": "string", "minLength": 1},
+    "minimum_duration_hours": {"type": "integer", "minimum": 120},
+    "expected_heartbeat_ticks": {"type": "integer", "minimum": 43200},
+    "minimum_paper_shadow_window_count": {"type": "integer", "minimum": 20},
+    "command_executed_by_this_patch": {"const": false},
+    "operator_run_completed_by_this_patch": {"const": false},
+    "operator_run_evidence_ready_for_mvp5": {"const": false},
+    "intake_review_ready": {"const": false},
+    "mvp5_entry_blocked_until_operator_evidence": {"const": true},
+    "current_evidence_write_allowed": {"const": false},
+    "gap_closure_allowed_by_this_patch": {"const": false},
+    "live_config_mutation_allowed": {"const": false},
+    "live_ready_write_allowed": {"const": false},
+    "credential_values_read": {"const": false},
+    "credential_environment_inspection_performed": {"const": false},
+    "runtime_artifacts_staged_by_this_patch": {"const": false},
+    "live_order_ready": {"const": false},
+    "live_order_allowed": {"const": false},
+    "can_live_trade": {"const": false},
+    "scale_up_allowed": {"const": false},
+    "validation_status": {"const": "PASS"},
+    "validation_errors": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {"type": "string"}
+    },
+    "report_hash": {"type": "string", "minLength": 64, "maxLength": 64}
+  },
+  "$defs": {
+    "string_array": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    },
+    "artifact_intake_item": {
+      "type": "object",
+      "required": [
+        "artifact_intake_id",
+        "path",
+        "preflight_path_status",
+        "intake_path_status",
+        "operator_package_required",
+        "content_hash_recorded",
+        "content_hash_recording_policy",
+        "review_ready",
+        "blocks_mvp5_entry",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "artifact_intake_id": {"type": "string", "minLength": 1},
+        "path": {"type": "string", "minLength": 1},
+        "preflight_path_status": {"type": "string", "minLength": 1},
+        "intake_path_status": {
+          "enum": [
+            "PLACEHOLDER_PATTERN_PENDING",
+            "LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_REVIEW_PACKAGE",
+            "LOCAL_RUNTIME_OUTPUT_MISSING",
+            "OPERATOR_REVIEW_REPORT_PRESENT_NOT_BOUND",
+            "OPERATOR_REVIEW_REPORT_MISSING",
+            "PRESENT_NOT_BOUND_TO_OPERATOR_PACKAGE",
+            "MISSING_OPERATOR_EVIDENCE"
+          ]
+        },
+        "operator_package_required": {"const": true},
+        "content_hash_recorded": {"const": false},
+        "content_hash_recording_policy": {
+          "const": "DISABLED_UNTIL_OPERATOR_SUBMISSION_MANIFEST_VALIDATED"
+        },
+        "review_ready": {"const": false},
+        "blocks_mvp5_entry": {"const": true},
+        "current_evidence_write_allowed": {"const": false},
+        "gap_closure_allowed_by_this_patch": {"const": false},
+        "live_order_ready": {"const": false},
+        "live_order_allowed": {"const": false},
+        "can_live_trade": {"const": false},
+        "scale_up_allowed": {"const": false}
+      }
+    },
+    "validator_queue_item": {
+      "type": "object",
+      "required": [
+        "validator_id",
+        "required_before_mvp5_review",
+        "run_status_for_this_patch",
+        "blocks_mvp5_entry_until_pass"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "validator_id": {"type": "string", "minLength": 1},
+        "required_before_mvp5_review": {"const": true},
+        "run_status_for_this_patch": {"const": "QUEUED_AFTER_OPERATOR_EVIDENCE"},
+        "blocks_mvp5_entry_until_pass": {"const": true}
+      }
+    }
+  }
+}

@@ -8333,6 +8333,77 @@
       "status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-INTAKE-AUDIT",
+      "section_id": "SECTION_CONTRACT_GAP",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/residual_operator_evidence_intake_audit_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/reports/residual_operator_evidence_intake_audit.py"
+      ],
+      "test_files": [
+        "tests/contract/test_residual_operator_evidence_intake_audit.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py"
+      ],
+      "fixture_files": [
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_INTAKE_AUDIT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
+      ],
+      "runtime_modules": [
+        "trader1/reports/residual_operator_evidence_intake_audit.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_RESIDUAL_OPERATOR_EVIDENCE_INTAKE_AUDIT.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_OPERATOR_EVIDENCE_INTAKE_AUDIT.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_OPERATOR_EVIDENCE_INTAKE_AUDIT.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_EVIDENCE_INTAKE_AUDIT.patch_result.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_INTAKE_AUDIT.report.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "intake_report_path",
+        "intake_status",
+        "operator_submission_manifest_status",
+        "operator_submission_required",
+        "intake_review_ready",
+        "operator_run_completed_by_this_patch",
+        "operator_run_evidence_ready_for_mvp5",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-PROGRESS-AUDIT",
       "section_id": "SECTION_OPERATOR_CONTROL",
       "schema_files": [
@@ -16243,7 +16314,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-05T10:18:19Z",
+  "updated_at_utc": "2026-05-05T10:35:48Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

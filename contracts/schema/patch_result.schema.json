@@ -1335,6 +1335,21 @@
     "operator_run_evidence_ready_for_mvp5": {
       "type": "boolean"
     },
+    "intake_report_path": {
+      "type": "string"
+    },
+    "intake_status": {
+      "type": "string"
+    },
+    "operator_submission_manifest_status": {
+      "type": "string"
+    },
+    "operator_submission_required": {
+      "type": "boolean"
+    },
+    "intake_review_ready": {
+      "type": "boolean"
+    },
     "authority_hash_checked": {
       "type": "boolean"
     },
