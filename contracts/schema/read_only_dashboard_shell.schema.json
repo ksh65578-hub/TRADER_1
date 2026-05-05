@@ -4356,6 +4356,9 @@
           "type": "number",
           "minimum": 0
         },
+        "promotion_threshold_paper_runtime_hours_gate_role": {
+          "const": "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR"
+        },
         "promotion_threshold_shadow_signal_opportunities": {
           "type": "integer",
           "minimum": 0

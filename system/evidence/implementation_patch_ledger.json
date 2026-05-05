@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-05T13:48:19Z",
+  "updated_at_utc": "2026-05-05T14:27:51Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -4567,6 +4567,28 @@
       "target_mvp_level": "MVP-4",
       "patch_result_path": "system/evidence/patch_results/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_DURATION_WORDING_HYGIENE.patch_result.json",
       "patch_result_hash": "3265B6CDAD8FB47C812B0F425EECE4D9E29B5C1493686E667DAB1C7F6D60217D",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_PROFITABILITY_ADAPTIVE_EVIDENCE_QUALITY_GATE_20260505_001",
+      "patch_class": "VALIDATOR_DASHBOARD_EVIDENCE_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_PROFITABILITY_ADAPTIVE_EVIDENCE_QUALITY_GATE.patch_result.json",
+      "patch_result_hash": "7F1E0A3582E4B13B5529B2802E9BA8C02238D56F5FF6B56C7246CF5E6AE5C9D0",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE_20260505_001",
+      "patch_class": "VALIDATOR_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.patch_result.json",
+      "patch_result_hash": "B80EF12223F4F24FC314A4077616B75D442B48CF59FBFD7C1AFCA8CC3BCE1ABE",
       "live_order_ready_after": false,
       "live_order_allowed_after": false,
       "can_live_trade_after": false,

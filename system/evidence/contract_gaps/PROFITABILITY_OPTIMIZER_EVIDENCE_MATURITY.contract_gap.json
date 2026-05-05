@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.contract_gap.v1",
-  "generated_at_utc": "2026-05-04T23:10:29Z",
+  "generated_at_utc": "2026-05-05T14:27:51Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -27,7 +27,7 @@
       "source_requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES"
     }
   ],
-  "notes": "Rechecked in MVP-4. Profitability evidence maturity now carries explicit promotion threshold evidence for replay trades, OOS/walk-forward coverage, paper trades, paper runtime hours, shadow opportunities, net EV after cost, profit factor, drawdown, fill quality, paper/live parity, and open HIGH contract gaps. The gap remains OPEN and live-blocking.",
+  "notes": "Rechecked in MVP-4. Profitability evidence maturity uses adaptive evidence-quality review. PAPER runtime hours are observed context only with no fixed runtime-hour floor; replay trades, OOS/walk-forward coverage, paper trades, shadow opportunities, net EV after cost, profit factor, drawdown, fill quality, paper/live parity, and open HIGH contract gaps remain explicit blockers. The gap remains OPEN and live-blocking.",
   "contract_gap_id": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
   "severity": "HIGH",
   "source_section_id": "SECTION_STRATEGY_PROFITABILITY",

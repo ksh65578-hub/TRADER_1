@@ -818,7 +818,6 @@ PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "REPLAY_CLOSED_TRADES_BELOW_MIN",
     "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN",
     "PAPER_CLOSED_TRADES_BELOW_MIN",
-    "PAPER_RUNTIME_HOURS_BELOW_MIN",
     "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
     "NET_EV_AFTER_COST_NOT_PASS",
     "PROFIT_FACTOR_NOT_PASS",
@@ -19237,6 +19236,15 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
             errors.append(f"rollup promotion thresholds contain unknown blocker codes: {unknown_codes}")
         if not missing_codes:
             errors.append("rollup promotion thresholds must list missing_threshold_codes")
+        if promotion_thresholds.get("paper_runtime_hours_gate_role") != "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR":
+            errors.append("rollup promotion thresholds must mark PAPER runtime hours as observed context only")
+        try:
+            min_paper_runtime_hours = float(promotion_thresholds.get("min_paper_runtime_hours", 0))
+        except (TypeError, ValueError):
+            min_paper_runtime_hours = 1
+            errors.append("rollup promotion threshold min_paper_runtime_hours must be numeric")
+        if min_paper_runtime_hours != 0:
+            errors.append("rollup promotion thresholds must not impose a fixed PAPER runtime-hour floor")
 
         threshold_checks = [
             (
@@ -19253,11 +19261,6 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 "paper_closed_trades",
                 "min_paper_closed_trades",
                 "PAPER_CLOSED_TRADES_BELOW_MIN",
-            ),
-            (
-                "paper_runtime_hours",
-                "min_paper_runtime_hours",
-                "PAPER_RUNTIME_HOURS_BELOW_MIN",
             ),
             (
                 "shadow_signal_opportunities",

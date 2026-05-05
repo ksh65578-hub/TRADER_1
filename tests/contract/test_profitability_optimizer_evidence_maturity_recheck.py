@@ -82,7 +82,12 @@ class ProfitabilityOptimizerEvidenceMaturityRecheckContractTest(unittest.TestCas
         self.assertEqual(thresholds["status"], "BLOCKED_FOR_THRESHOLD_EVIDENCE")
         self.assertTrue(thresholds["explicit_insufficient_sample_blocker"])
         self.assertIn("REPLAY_CLOSED_TRADES_BELOW_MIN", thresholds["missing_threshold_codes"])
-        self.assertIn("PAPER_RUNTIME_HOURS_BELOW_MIN", thresholds["missing_threshold_codes"])
+        self.assertEqual(thresholds["min_paper_runtime_hours"], 0)
+        self.assertEqual(
+            thresholds["paper_runtime_hours_gate_role"],
+            "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR",
+        )
+        self.assertNotIn("PAPER_RUNTIME_HOURS_BELOW_MIN", thresholds["missing_threshold_codes"])
         self.assertIn("HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN", thresholds["missing_threshold_codes"])
         self.assertEqual(stage_gate["stage_gate_status"], "PASS_THRESHOLD_EXPLICIT_RECHECK_LIVE_BLOCKED")
         self.assertEqual(stage_gate["next_allowed_task_class"], NEXT_TASK)

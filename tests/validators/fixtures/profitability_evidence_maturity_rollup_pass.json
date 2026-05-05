@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-04T23:10:29Z",
+  "generated_at_utc": "2026-05-05T14:27:51Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -221,7 +221,7 @@
       "min_required_sample_count": 30,
       "freshness_status": "PASS",
       "dependency_status": "PASS",
-      "next_required_evidence": "Collect session-hashed PAPER and SHADOW evidence across at least 20 windows and 120 hours; short scorecard input is not long-run evidence.",
+      "next_required_evidence": "Collect session-hashed PAPER and SHADOW evidence until adaptive quality review has enough distinct windows, regimes, cost-adjusted scorecards, and shadow opportunities; short scorecard input is not long-run or LIVE_READY evidence.",
       "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
       "live_review_eligible": false,
       "scale_up_allowed": false,
@@ -258,8 +258,8 @@
   "live_review_eligible": false,
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
-  "next_operator_action": "Use PAPER runtime-linked strategy/regime/cost evidence only as PAPER scorecard input; collect longer PAPER/SHADOW windows, OOS, walk-forward, bootstrap, read-only burn-in, manual order evidence, and operator approval while live remains blocked.",
-  "rollup_hash": "F7AE84D56B44084E8BCEDC366466AA0067261D9F203794039C41D6F4B261D021",
+  "next_operator_action": "Use PAPER runtime-linked strategy/regime/cost evidence only as PAPER scorecard input; continue adaptive evidence-quality review across replay, OOS, walk-forward, bootstrap, PAPER, SHADOW, read-only burn-in, manual order evidence, and operator approval while live remains blocked.",
+  "rollup_hash": "00939B8ACFA5FFBAA3208981C3CCAE76D50A782E3481ABFED78F6E6D536797CB",
   "runtime_linkage_evidence": {
     "status": "PASS",
     "source_runtime_cycle_path": "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
@@ -289,7 +289,7 @@
     "paper_closed_trades": 1,
     "min_paper_closed_trades": 30,
     "paper_runtime_hours": 0.1,
-    "min_paper_runtime_hours": 72,
+    "min_paper_runtime_hours": 0,
     "shadow_signal_opportunities": 2,
     "min_shadow_signal_opportunities": 50,
     "net_ev_after_cost_status": "PARTIAL",
@@ -303,7 +303,6 @@
       "REPLAY_CLOSED_TRADES_BELOW_MIN",
       "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN",
       "PAPER_CLOSED_TRADES_BELOW_MIN",
-      "PAPER_RUNTIME_HOURS_BELOW_MIN",
       "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
       "NET_EV_AFTER_COST_NOT_PASS",
       "PROFIT_FACTOR_NOT_PASS",
@@ -316,7 +315,8 @@
     "live_order_ready": false,
     "live_order_allowed": false,
     "can_live_trade": false,
-    "scale_up_allowed": false
+    "scale_up_allowed": false,
+    "paper_runtime_hours_gate_role": "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR"
   },
   "robustness_source_type_evidence": {
     "status": "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE",

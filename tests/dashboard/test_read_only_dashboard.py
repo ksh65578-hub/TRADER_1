@@ -2135,15 +2135,22 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["promotion_threshold_replay_closed_trades"], 1)
         self.assertEqual(maturity["promotion_threshold_min_replay_closed_trades"], 100)
         self.assertEqual(maturity["promotion_threshold_paper_runtime_hours"], 0.1)
-        self.assertEqual(maturity["promotion_threshold_min_paper_runtime_hours"], 72)
+        self.assertEqual(maturity["promotion_threshold_min_paper_runtime_hours"], 0)
+        self.assertEqual(
+            maturity["promotion_threshold_paper_runtime_hours_gate_role"],
+            "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR",
+        )
         self.assertEqual(maturity["promotion_threshold_high_or_critical_contract_gap_count"], 1)
         self.assertEqual(
             maturity["promotion_threshold_missing_code_count"],
             len(maturity["promotion_threshold_missing_codes"]),
         )
-        self.assertIn("PAPER_RUNTIME_HOURS_BELOW_MIN", maturity["promotion_threshold_missing_codes"])
+        self.assertNotIn("PAPER_RUNTIME_HOURS_BELOW_MIN", maturity["promotion_threshold_missing_codes"])
         self.assertIn("HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN", maturity["promotion_threshold_missing_codes"])
         self.assertTrue(maturity["promotion_threshold_explicit_insufficient_sample_blocker"])
+        html = render_dashboard_html(dashboard)
+        self.assertIn("runtime=0.1h observed", html)
+        self.assertNotIn("runtime=0.1/72h", html)
         self.assertEqual(maturity["robustness_source_type_status"], "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE")
         self.assertEqual(maturity["robustness_source_type_missing_count"], 4)
         self.assertEqual(
@@ -2186,6 +2193,19 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         maturity = dashboard["profitability_maturity"]
         self.assertEqual(maturity["rollup_source_status"], "BLOCKED")
         self.assertEqual(maturity["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(maturity["live_order_allowed"])
+        self.assertFalse(maturity["scale_up_allowed"])
+
+    def test_dashboard_blocks_profitability_rollup_fixed_runtime_hour_floor(self):
+        rollup = profitability_maturity_rollup_fixture()
+        rollup["promotion_threshold_evidence"]["min_paper_runtime_hours"] = 72
+        dashboard = build_dashboard(profitability_maturity_rollup_report=rollup)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+        maturity = dashboard["profitability_maturity"]
+        self.assertEqual(maturity["rollup_source_status"], "LOADED")
+        self.assertEqual(maturity["primary_blocker_code"], "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY")
         self.assertFalse(maturity["live_order_allowed"])
         self.assertFalse(maturity["scale_up_allowed"])
 
