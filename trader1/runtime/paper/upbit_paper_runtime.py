@@ -9,6 +9,7 @@ from typing import Any
 
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture, validate_upbit_public_candle_data
 from trader1.adapters.upbit.symbol_rules import validate_upbit_krw_symbol
+from trader1.core.decision.decision_arbiter import order_blocker_codes, select_primary_blocker
 from trader1.core.ledger.paper_ledger import build_upbit_paper_fill_chain, validate_upbit_paper_ledger
 from trader1.core.sizing.position_sizing import build_position_sizing_decision, validate_position_sizing_decision
 from trader1.dashboard.summary_writer import build_summary_shell, validate_summary_shell
@@ -358,7 +359,7 @@ def build_upbit_paper_runtime_cycle_report(
     entry_reasons: list[dict[str, str]] = []
     if blockers:
         final_decision = "BLOCKED"
-        no_trade_reasons = [blocker["code"] for blocker in blockers]
+        no_trade_reasons = order_blocker_codes(blockers)
     elif selected["decision"] == "PAPER_ENTRY_REVIEW":
         final_decision = "ENTER_LONG"
         entry_reasons = [
@@ -389,7 +390,7 @@ def build_upbit_paper_runtime_cycle_report(
     if sizing_result.status != "PASS":
         blockers.append(_blocker(sizing_result.blocker_code or "RISK_VETO", sizing_result.message))
         final_decision = "BLOCKED"
-        no_trade_reasons = [blocker["code"] for blocker in blockers]
+        no_trade_reasons = order_blocker_codes(blockers)
 
     fill: dict[str, Any] | None = None
     ledger_events: list[dict[str, Any]] = []
@@ -515,7 +516,7 @@ def build_upbit_paper_runtime_cycle_report(
         "can_live_trade": False,
         "can_submit_order": False,
         "scale_up_allowed": False,
-        "primary_blocker_code": blockers[0]["code"] if blockers else None,
+        "primary_blocker_code": select_primary_blocker(blockers),
         "blockers": blockers,
         "cycle_hash": "",
     }

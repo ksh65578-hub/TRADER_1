@@ -3833,6 +3833,48 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-DECISION-ARBITER-CONFLICT-PRIORITY",
+      "section_id": "SECTION_STRATEGY_ENTRY_EXIT_NO_TRADE",
+      "schema_files": [
+        "contracts/schema/final_decision.schema.json",
+        "contracts/schema/common.defs.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_decision_arbiter_conflict_priority.py",
+        "tests/contract/test_strategy_unit_scope.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/core/decision/decision_arbiter.py",
+        "trader1/adapters/upbit/paper_broker.py",
+        "trader1/runtime/paper/operational_cycle.py",
+        "trader1/runtime/paper/upbit_paper_runtime.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_DECISION_ARBITER_CONFLICT_PRIORITY.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_DECISION_ARBITER_CONFLICT_PRIORITY.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_DECISION_ARBITER_CONFLICT_PRIORITY.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_DECISION_ARBITER_CONFLICT_PRIORITY.patch_result.json"
+      ],
+      "dashboard_artifacts": [
+        "primary_blocker_code",
+        "no_trade_reasons",
+        "blockers"
+      ],
+      "patch_result_fields": [
+        "validators_run",
+        "tests_run",
+        "remaining_blockers"
+      ],
+      "minimum_depth": "DEPTH_4_RUNTIME_INTEGRATION",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-EVIDENCE-WRITE-HELPER-ALIAS-AWARE-SCANNER",
       "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "schema_files": [],
@@ -7444,6 +7486,53 @@
         "scale_up_allowed_after"
       ],
       "minimum_depth": "DEPTH_3_NEGATIVE_FIXTURES",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
+      "requirement_id": "REQ-MVP4-PROFITABILITY-ADAPTIVE-EVIDENCE-QUALITY-GATE",
+      "section_id": "SECTION_STRATEGY_PROFITABILITY",
+      "schema_files": [
+        "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "test_files": [
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py"
+      ],
+      "fixture_files": [
+        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json"
+      ],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.patch_result.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.validator_run_log.json",
+        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+        "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json"
+      ],
+      "dashboard_artifacts": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "patch_result_fields": [
+        "validators_required",
+        "validators_run",
+        "tests_run",
+        "next_task_class",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
       "live_affecting": true,
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
@@ -16723,56 +16812,9 @@
       "minimum_depth": "DEPTH_1_SCHEMA_AND_ARTIFACT_STRUCTURE",
       "live_affecting": true,
       "status": "SCAFFOLD_IMPLEMENTED"
-    },
-    {
-      "requirement_id": "REQ-MVP4-PROFITABILITY-ADAPTIVE-EVIDENCE-QUALITY-GATE",
-      "section_id": "SECTION_STRATEGY_PROFITABILITY",
-      "schema_files": [
-        "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
-        "contracts/schema/read_only_dashboard_shell.schema.json"
-      ],
-      "validator_files": [
-        "trader1/validation/mvp0_validators.py",
-        "trader1/dashboard/read_only_dashboard.py"
-      ],
-      "test_files": [
-        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py"
-      ],
-      "fixture_files": [
-        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json"
-      ],
-      "runtime_modules": [
-        "trader1/dashboard/read_only_dashboard.py"
-      ],
-      "evidence_artifacts": [
-        "system/evidence/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.evidence_manifest.json",
-        "system/evidence/patch_results/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.patch_result.json",
-        "system/evidence/stage_gates/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.stage_gate_result.json",
-        "system/evidence/validator_runs/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.validator_run_log.json",
-        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
-        "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json"
-      ],
-      "dashboard_artifacts": [
-        "trader1/dashboard/read_only_dashboard.py"
-      ],
-      "patch_result_fields": [
-        "validators_required",
-        "validators_run",
-        "tests_run",
-        "next_task_class",
-        "live_order_ready_after",
-        "live_order_allowed_after",
-        "can_live_trade_after",
-        "scale_up_allowed_after"
-      ],
-      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "live_affecting": true,
-      "status": "IMPLEMENTED_FAIL_CLOSED"
     }
   ],
-  "updated_at_utc": "2026-05-05T14:31:31Z",
+  "updated_at_utc": "2026-05-05T14:55:44Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

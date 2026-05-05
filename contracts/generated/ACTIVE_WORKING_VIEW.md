@@ -1,11 +1,11 @@
 # ACTIVE_WORKING_VIEW
 
-generated_at_utc: 2026-05-05T14:31:31Z
+generated_at_utc: 2026-05-05T14:55:44Z
 source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
 source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
 authority_status: READ_CACHE_NOT_AUTHORITY
 current_mvp: MVP-4
-last_patch_id: MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE_20260505_001
+last_patch_id: MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_DECISION_ARBITER_CONFLICT_PRIORITY_20260505_001
 live_order_ready: false
 live_order_allowed: false
 can_live_trade: false
@@ -13,7 +13,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Profitability maturity now uses adaptive evidence-quality review. PAPER runtime hours are shown as observed context only; live review, live orders, and scale-up remain blocked until independent evidence and validators pass.
+PAPER decision arbitration now resolves conflicting blockers through a deterministic priority order before choosing primary_blocker_code, no_trade_reasons, and operational PAPER final_decision. This improves strategy traffic control and operator-visible blocker clarity without enabling live orders.
 
 ## Next Safe Task
 
