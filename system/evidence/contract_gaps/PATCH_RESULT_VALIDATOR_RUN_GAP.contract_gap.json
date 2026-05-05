@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.contract_gap.v1",
-  "generated_at_utc": "2026-05-04T06:47:22Z",
+  "generated_at_utc": "2026-05-04T23:50:38Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -15,7 +15,7 @@
       "source_requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-BASELINE-RECONCILIATION-RECHECK"
     }
   ],
-  "notes": "Historical gap count=9; current gap count=9; unbaselined gap count=0. Historical patch_result evidence is not backfilled. Latest reconciliation patch=MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK_20260504_001.",
+  "notes": "Historical gap count=9; current gap count=9; unbaselined gap count=0. Historical patch_result evidence is not backfilled. Latest reconciliation patch=MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK_20260505_001.",
   "contract_gap_id": "PATCH_RESULT_VALIDATOR_RUN_GAP",
   "severity": "HIGH",
   "source_section_id": "SECTION_PATCH_RESULT",
