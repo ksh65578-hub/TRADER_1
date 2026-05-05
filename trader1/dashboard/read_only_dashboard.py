@@ -11311,6 +11311,7 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
         "source": RESIDUAL_EVIDENCE_PROGRESS_SOURCE,
         "source_status": "NOT_LOADED",
         "open_gap_count": 13,
+        "execution_step_count": 0,
         "evidence_item_count": 0,
         "present_blocked_evidence_item_count": 0,
         "missing_operator_evidence_item_count": 0,
@@ -11330,6 +11331,18 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
         "codex_judgement_summary": "Operator evidence progress is not loaded.",
         "user_action_summary": "No runtime instruction is available until the progress audit loads.",
         "codex_review_next_actions": [],
+        "operator_no_action_needed_for_next_patch": False,
+        "operator_decision_status": "NOT_LOADED",
+        "operator_decision_card_count": 0,
+        "single_next_operator_decision": {
+            "action_class": "OPERATOR_RECONCILIATION_ACTION",
+            "label": "Operator reconciliation",
+            "decision_status": "NOT_LOADED",
+            "gap_count": 0,
+            "next_safe_action": "Load the operator evidence progress audit before judging residual evidence readiness.",
+            "operator_can_run_local_command": False,
+        },
+        "operator_decision_preview": [],
         "operator_evidence_ready_for_mvp5": False,
         "any_evidence_item_ready_for_closure": False,
         "mvp5_entry_blocked_until_operator_evidence": True,
@@ -11382,6 +11395,9 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
     local_runtime_commands = report.get("local_runtime_commands", [])
     if not isinstance(local_runtime_commands, list):
         local_runtime_commands = []
+    operator_decision_cards = report.get("operator_decision_cards", [])
+    if not isinstance(operator_decision_cards, list):
+        operator_decision_cards = []
 
     status_counts = {
         "PRESENT_BLOCKED": 0,
@@ -11451,6 +11467,87 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
         if command.get("command_status") == "COMPLETED":
             local_runtime_completed_count += 1
 
+    decision_preview: list[dict[str, Any]] = []
+    local_command_card_count = 0
+    for card in operator_decision_cards:
+        if not isinstance(card, dict):
+            continue
+        action_class = str(card.get("action_class") or "CLASSIFY_OPEN_GAP_ACTION")
+        if any(
+            card.get(field) is not False
+            for field in (
+                "evidence_ready_for_closure",
+                "current_evidence_write_allowed",
+                "gap_closure_allowed_by_this_patch",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+            )
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator decision card attempted closure, live, current-evidence, or scale permission.",
+                "primary_next_action": "Reject the evidence progress report and regenerate decision cards fail-closed.",
+            }
+        if card.get("codex_can_continue_non_live_patch") is not True:
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator decision card blocked Codex non-live review without evidence.",
+                "primary_next_action": "Reject the evidence progress report and preserve non-live review continuity.",
+            }
+        if card.get("user_runtime_required_for_next_non_live_patch") is not False:
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator decision card required user runtime for the next non-live patch.",
+                "primary_next_action": "Reject the evidence progress report and keep user runtime required only for closure review.",
+            }
+        if card.get("user_action_required_for_gap_closure") is not True:
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator decision card removed the gap-closure evidence requirement.",
+                "primary_next_action": "Reject the evidence progress report and keep gap closure evidence-bound.",
+            }
+        if card.get("operator_can_run_local_command") is True:
+            local_command_card_count += 1
+            if action_class != "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION":
+                return {
+                    **fallback,
+                    "status": "INVALID",
+                    "source_status": "LOADED",
+                    "one_line_summary": "Operator decision card exposed a local command outside PAPER/SHADOW collection.",
+                    "primary_next_action": "Reject the evidence progress report and keep local commands scoped to non-live PAPER/SHADOW.",
+                }
+        if len(decision_preview) < 3:
+            decision_preview.append(
+                {
+                    "decision_card_id": str(card.get("decision_card_id") or ""),
+                    "action_class": action_class,
+                    "label": str(card.get("label") or RESIDUAL_ACTION_PLAN_CLASSES.get(action_class, action_class)),
+                    "decision_status": str(card.get("decision_status") or "BLOCKED_UNKNOWN_OPERATOR_DECISION"),
+                    "gap_count": int(card.get("gap_count", 0) or 0),
+                    "required_evidence_item_count": int(card.get("required_evidence_item_count", 0) or 0),
+                    "next_safe_action": str(card.get("next_safe_action") or ""),
+                    "operator_can_run_local_command": card.get("operator_can_run_local_command") is True,
+                }
+            )
+    if operator_decision_cards and local_command_card_count != 1:
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator decision cards must expose exactly one non-live PAPER/SHADOW local command card.",
+            "primary_next_action": "Regenerate the evidence progress report with the closed command scope.",
+        }
+
     status = str(report.get("progress_status") or "BLOCKED_EVIDENCE_MISSING")
     if (
         report.get("schema_id") != "trader1.residual_operator_evidence_progress_report.v1"
@@ -11461,6 +11558,9 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
         or report.get("codex_can_continue_non_live_patches") is not True
         or report.get("user_runtime_required_for_next_non_live_patch") is not False
         or report.get("user_runtime_required_for_gap_closure") is not True
+        or report.get("operator_no_action_needed_for_next_patch") is not True
+        or report.get("operator_decision_status") != "BLOCKED_DECISION_CARDS_READY"
+        or report.get("operator_decision_card_count") != len(operator_decision_cards)
         or report.get("mvp5_entry_blocked_until_operator_evidence") is not True
         or report.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
     ):
@@ -11513,12 +11613,18 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
     codex_review_next_actions = report.get("codex_review_next_actions", [])
     if not isinstance(codex_review_next_actions, list):
         codex_review_next_actions = []
+    single_next_operator_decision = report.get("single_next_operator_decision", {})
+    if not isinstance(single_next_operator_decision, dict):
+        single_next_operator_decision = {}
     return {
         "title": "Operator Evidence Progress",
         "status": status,
         "source": RESIDUAL_EVIDENCE_PROGRESS_SOURCE,
         "source_status": "LOADED",
         "open_gap_count": report.get("open_gap_count", 13) if isinstance(report.get("open_gap_count", 13), int) else 13,
+        "execution_step_count": report.get("execution_step_count", 0)
+        if isinstance(report.get("execution_step_count", 0), int)
+        else 0,
         "evidence_item_count": evidence_item_count,
         "present_blocked_evidence_item_count": present_blocked_count,
         "missing_operator_evidence_item_count": missing_count,
@@ -11552,6 +11658,22 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
             )
         ),
         "codex_review_next_actions": [str(item) for item in codex_review_next_actions],
+        "operator_no_action_needed_for_next_patch": True,
+        "operator_decision_status": "BLOCKED_DECISION_CARDS_READY",
+        "operator_decision_card_count": len(operator_decision_cards),
+        "single_next_operator_decision": {
+            "action_class": str(single_next_operator_decision.get("action_class") or "OPERATOR_RECONCILIATION_ACTION"),
+            "label": str(single_next_operator_decision.get("label") or "Operator reconciliation"),
+            "decision_status": str(
+                single_next_operator_decision.get("decision_status")
+                or "BLOCKED_OPERATOR_RECONCILIATION_REQUIRED"
+            ),
+            "gap_count": int(single_next_operator_decision.get("gap_count", 0) or 0),
+            "next_safe_action": str(single_next_operator_decision.get("next_safe_action") or ""),
+            "operator_can_run_local_command": single_next_operator_decision.get("operator_can_run_local_command")
+            is True,
+        },
+        "operator_decision_preview": decision_preview,
         "operator_evidence_ready_for_mvp5": False,
         "any_evidence_item_ready_for_closure": False,
         "mvp5_entry_blocked_until_operator_evidence": True,
@@ -13316,8 +13438,27 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "one_line_summary",
                 "primary_next_action",
                 "binance_runtime_status",
+                "operator_decision_status",
             )
         )
+        single_decision = residual_evidence_progress.get("single_next_operator_decision", {})
+        if isinstance(single_decision, dict):
+            values.extend(
+                str(single_decision.get(key, ""))
+                for key in ("action_class", "label", "decision_status", "gap_count", "next_safe_action")
+            )
+        for item in residual_evidence_progress.get("operator_decision_preview", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "decision_card_id",
+                        "action_class",
+                        "label",
+                        "decision_status",
+                        "next_safe_action",
+                    )
+                )
         for item in residual_evidence_progress.get("status_breakdown_items", []):
             if isinstance(item, dict):
                 values.extend(str(item.get(key, "")) for key in ("label", "count", "status"))
@@ -14027,13 +14168,35 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "residual evidence progress must keep MVP-5 blocked until operator evidence", "HARD_TRUTH_MISSING")
         if residual_evidence_progress.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS":
             return DashboardValidationResult("BLOCKED", "residual evidence progress cannot transfer Upbit evidence to Binance", "LIVE_FINAL_GUARD_FAILED")
+        if residual_evidence_progress.get("operator_no_action_needed_for_next_patch") is not True:
+            return DashboardValidationResult("BLOCKED", "residual evidence progress must not require user runtime for the next non-live patch", "LIVE_FINAL_GUARD_FAILED")
+        if residual_evidence_progress.get("operator_decision_status") != "BLOCKED_DECISION_CARDS_READY":
+            return DashboardValidationResult("FAIL", "residual evidence progress must expose blocked operator decision cards", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_evidence_progress.get("operator_decision_card_count") != residual_evidence_progress.get("execution_step_count", 6):
+            return DashboardValidationResult("FAIL", "residual decision card count must match execution steps", "SCHEMA_IDENTITY_MISMATCH")
+        single_decision = residual_evidence_progress.get("single_next_operator_decision")
+        if not isinstance(single_decision, dict) or single_decision.get("action_class") != "OPERATOR_RECONCILIATION_ACTION":
+            return DashboardValidationResult("FAIL", "single next residual decision must remain operator reconciliation", "CONTRACT_GAP_HIGH")
+        decision_items = residual_evidence_progress.get("operator_decision_preview")
+        if not isinstance(decision_items, list) or len(decision_items) < 3:
+            return DashboardValidationResult("FAIL", "loaded residual evidence progress must expose operator decision preview", "SCHEMA_IDENTITY_MISMATCH")
+        local_decision_cards = [item for item in decision_items if isinstance(item, dict) and item.get("operator_can_run_local_command") is True]
+        if any(
+            isinstance(item, dict)
+            and item.get("operator_can_run_local_command") is True
+            and item.get("action_class") != "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION"
+            for item in decision_items
+        ):
+            return DashboardValidationResult("BLOCKED", "residual decision cards exposed local command outside PAPER/SHADOW", "LIVE_FINAL_GUARD_FAILED")
+        if len(local_decision_cards) != 1:
+            return DashboardValidationResult("FAIL", "residual decision cards must expose one PAPER/SHADOW local command card", "SCHEMA_IDENTITY_MISMATCH")
         status_items = residual_evidence_progress.get("status_breakdown_items")
         if not isinstance(status_items, list) or len(status_items) < 5:
             return DashboardValidationResult("FAIL", "loaded residual evidence progress must expose evidence status breakdown", "SCHEMA_IDENTITY_MISMATCH")
         preview_items = residual_evidence_progress.get("evidence_item_preview")
         if not isinstance(preview_items, list) or len(preview_items) < 3:
             return DashboardValidationResult("FAIL", "loaded residual evidence progress must expose evidence item preview", "SCHEMA_IDENTITY_MISMATCH")
-        for item in status_items + preview_items:
+        for item in status_items + preview_items + decision_items:
             if not isinstance(item, dict):
                 return DashboardValidationResult("FAIL", "residual evidence progress items must be objects", "SCHEMA_IDENTITY_MISMATCH")
 
@@ -19287,6 +19450,17 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "user_action_summary",
             "No immediate user action is required for the next non-live patch.",
         )
+        single_decision = residual_evidence_progress.get("single_next_operator_decision", {})
+        if not isinstance(single_decision, dict):
+            single_decision = {}
+        decision_card_count = residual_evidence_progress.get("operator_decision_card_count", 0)
+        decision_label = single_decision.get("label", "Operator reconciliation")
+        decision_status = single_decision.get("decision_status", "BLOCKED_OPERATOR_RECONCILIATION_REQUIRED")
+        decision_gap_count = single_decision.get("gap_count", 0)
+        decision_next_action = single_decision.get(
+            "next_safe_action",
+            "Review source-bound reconciliation artifacts; keep current evidence writes and LIVE_READY blocked.",
+        )
         residual_evidence_progress_html = (
             '<p class="live-blocker-note"><strong>Evidence Progress:</strong> '
             + safe_text(
@@ -19309,6 +19483,18 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             + "</p>"
             '<p class="live-blocker-note"><strong>User action:</strong> '
             + safe_text(user_action_summary)
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Decision cards:</strong> '
+            + safe_text(decision_card_count)
+            + " blocked card(s); next="
+            + safe_text(decision_label)
+            + "; status="
+            + safe_text(decision_status)
+            + "; gaps="
+            + safe_text(decision_gap_count)
+            + ".</p>"
+            '<p class="live-blocker-note"><strong>Decision next:</strong> '
+            + safe_text(decision_next_action)
             + "</p>"
             '<section class="live-blocker-groups" aria-label="operator evidence progress counts">'
             f'<div class="live-blocker-group"><strong>Required</strong><span>{safe_text(evidence_item_count)} required evidence items</span></div>'

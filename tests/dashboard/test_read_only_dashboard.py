@@ -6935,6 +6935,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(progress["local_runtime_command_count"], 1)
         self.assertEqual(progress["local_runtime_completed_count"], 0)
         self.assertEqual(progress["minimum_observation_hours_required"], 0)
+        self.assertEqual(progress["execution_step_count"], 6)
         self.assertEqual(
             progress["adaptive_judgement_status"],
             "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY",
@@ -6949,6 +6950,33 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES",
         )
         self.assertIn("No immediate user action", progress["user_action_summary"])
+        self.assertTrue(progress["operator_no_action_needed_for_next_patch"])
+        self.assertEqual(progress["operator_decision_status"], "BLOCKED_DECISION_CARDS_READY")
+        self.assertEqual(progress["operator_decision_card_count"], 6)
+        self.assertEqual(
+            progress["single_next_operator_decision"]["action_class"],
+            "OPERATOR_RECONCILIATION_ACTION",
+        )
+        self.assertEqual(
+            progress["single_next_operator_decision"]["decision_status"],
+            "BLOCKED_OPERATOR_RECONCILIATION_REQUIRED",
+        )
+        self.assertGreaterEqual(len(progress["operator_decision_preview"]), 3)
+        self.assertEqual(
+            [item["action_class"] for item in progress["operator_decision_preview"]],
+            [
+                "OPERATOR_RECONCILIATION_ACTION",
+                "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+            ],
+        )
+        self.assertEqual(
+            [
+                item["operator_can_run_local_command"]
+                for item in progress["operator_decision_preview"]
+            ],
+            [False, False, True],
+        )
         self.assertFalse(progress["operator_evidence_ready_for_mvp5"])
         self.assertFalse(progress["any_evidence_item_ready_for_closure"])
         self.assertTrue(progress["mvp5_entry_blocked_until_operator_evidence"])
@@ -6987,6 +7015,11 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Codex review:", answer_html)
         self.assertIn("User action:", answer_html)
         self.assertIn("No immediate user action", answer_html)
+        self.assertIn("Decision cards:", answer_html)
+        self.assertIn("6 blocked card(s)", answer_html)
+        self.assertIn("next=Operator reconciliation", answer_html)
+        self.assertIn("BLOCKED_OPERATOR_RECONCILIATION_REQUIRED", answer_html)
+        self.assertIn("Decision next:", answer_html)
         self.assertNotIn("48h minimum", answer_html)
         self.assertIn("MVP-5 blocked", answer_html)
         self.assertIn("live_order_allowed=false", answer_html)
@@ -7108,6 +7141,30 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(progress["live_ready_write_allowed"])
         self.assertFalse(progress["live_order_allowed"])
         self.assertFalse(progress["scale_up_allowed"])
+
+    def test_dashboard_rejects_residual_operator_decision_card_permission_drift(self):
+        report = residual_operator_evidence_progress_fixture()
+        report["operator_decision_cards"][0]["live_order_allowed"] = True
+        dashboard = build_dashboard(residual_operator_evidence_progress_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        progress = dashboard["residual_operator_evidence_progress"]
+        self.assertEqual(progress["source_status"], "LOADED")
+        self.assertEqual(progress["status"], "INVALID")
+        self.assertFalse(progress["live_order_allowed"])
+        self.assertFalse(progress["scale_up_allowed"])
+
+    def test_dashboard_rejects_residual_operator_decision_card_runtime_blocker_drift(self):
+        report = residual_operator_evidence_progress_fixture()
+        report["operator_decision_cards"][0]["user_runtime_required_for_next_non_live_patch"] = True
+        dashboard = build_dashboard(residual_operator_evidence_progress_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        progress = dashboard["residual_operator_evidence_progress"]
+        self.assertEqual(progress["status"], "INVALID")
+        self.assertFalse(progress["user_runtime_required_for_next_non_live_patch"])
 
     def test_dashboard_visual_layout_contract_blocks_cramped_regression(self):
         html = render_dashboard_html(build_dashboard())

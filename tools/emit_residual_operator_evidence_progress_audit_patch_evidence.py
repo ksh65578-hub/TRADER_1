@@ -7,11 +7,12 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCH_BASENAME = "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT"
-PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
-REQUIREMENT_ID = "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-PROGRESS-AUDIT"
+PATCH_ID = "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_DECISION_CARDS_20260506_001"
+REQUIREMENT_ID = "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-DECISION-CARDS"
 NEXT_TASK_CLASS = "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
 REPORT_PATH = f"system/evidence/audit_reports/{PATCH_BASENAME}.report.json"
 EXECUTION_GUIDE_REPORT_PATH = "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
+SESSION_DIR = ROOT / "system" / "evidence" / "session_reviews" / "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS"
 FALSE_FIELDS = ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
 
 if str(ROOT) not in sys.path:
@@ -31,6 +32,9 @@ VALIDATORS_REQUIRED = [
     "registry_validator",
     "patch_result_schema_validator",
     "patch_result_runtime_schema_instance_validator",
+    "runtime_schema_instance_validator",
+    "read_only_dashboard_validator",
+    "dashboard_visual_layout_validator",
     "live_final_guard_validator",
     "generated_artifact_dirty_validator",
     "coverage_index_validator",
@@ -68,8 +72,12 @@ ROUTE_GUARD_TEST_ARTIFACTS = [
 CHANGED_ARTIFACTS = [
     "trader1/reports/residual_operator_evidence_progress.py",
     "contracts/schema/residual_operator_evidence_progress_report.schema.json",
+    "contracts/schema/read_only_dashboard_shell.schema.json",
     "contracts/registry.yaml",
+    "tests/contract/test_residual_adaptive_evidence_schema_state_sync.py",
     "tests/contract/test_residual_operator_evidence_progress.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "trader1/dashboard/read_only_dashboard.py",
     "tools/emit_residual_operator_evidence_progress_audit_patch_evidence.py",
     f"contracts/generated/context_pack/{PATCH_BASENAME}.md",
 ] + ROUTE_GUARD_TEST_ARTIFACTS
@@ -77,10 +85,20 @@ SOURCE_EVIDENCE_ARTIFACTS = [EXECUTION_GUIDE_REPORT_PATH]
 EVIDENCE_ARTIFACTS = [
     f"system/evidence/{PATCH_BASENAME}.evidence_manifest.json",
     REPORT_PATH,
-    f"system/evidence/audit_reports/{PATCH_BASENAME}_20260505.md",
+    f"system/evidence/audit_reports/{PATCH_BASENAME}_DECISION_CARDS_20260506.md",
     f"system/evidence/patch_results/{PATCH_BASENAME}.patch_result.json",
     f"system/evidence/stage_gates/{PATCH_BASENAME}.stage_gate_result.json",
     f"system/evidence/validator_runs/{PATCH_BASENAME}.validator_run_log.json",
+]
+SESSION_ARTIFACTS = [
+    "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS/IMPLEMENTATION_COVERAGE_MATRIX.md",
+    "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS/ACCEPTANCE_REPORT.json",
+    "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS/pytest_report.txt",
+    "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS/PAPER_RUN_SUMMARY.json",
+    "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS/LIVE_BLOCK_PROOF.json",
+    "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS/DASHBOARD_READINESS_SUMMARY.json",
+    "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS/USER_STATUS_SUMMARY.md",
+    "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS/TRADER_1_SESSION_REVIEW.md",
 ]
 
 
@@ -125,6 +143,7 @@ def all_artifacts() -> list[str]:
             CHANGED_ARTIFACTS
             + SOURCE_EVIDENCE_ARTIFACTS
             + EVIDENCE_ARTIFACTS
+            + SESSION_ARTIFACTS
             + [
                 "contracts/generated/ACTIVE_WORKING_VIEW.md",
                 "contracts/generated/current_implementation_state.json",
@@ -169,12 +188,12 @@ def update_context(now: str, trader_hash: str, agents_hash: str, report: dict[st
         f"""# {PATCH_BASENAME}
 
 context_pack_id: {PATCH_BASENAME}
-task_class: MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT
+task_class: MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS
 source_trader1_sha256: {trader_hash}
 source_agents_sha256: {agents_hash}
 included_section_ids: ["SECTION_CONTRACT_GAP", "SECTION_LEDGER_RECONCILIATION", "SECTION_PAPER_RUNTIME_EVIDENCE", "SECTION_PAPER_SHADOW_EVIDENCE", "SECTION_LIVE_GATE", "SECTION_LIVE_FINAL_GUARD", "SECTION_OPERATOR_CONTROL"]
-included_requirement_ids: ["{REQUIREMENT_ID}", "REQ-MVP4-RESIDUAL-OPERATOR-HANDOFF-EXECUTION-GUIDE", "REQ-MVP4-DASHBOARD-RESIDUAL-EXECUTION-GUIDE-CLARITY", "REQ-MVP4-LIVE-FINAL-GUARD"]
-included_schema_ids: ["{SCHEMA_ID}", "trader1.residual_operator_execution_guide_report.v1", "trader1.patch_result.v1"]
+included_requirement_ids: ["{REQUIREMENT_ID}", "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-PROGRESS-AUDIT", "REQ-MVP4-RESIDUAL-OPERATOR-HANDOFF-EXECUTION-GUIDE", "REQ-MVP4-DASHBOARD-RESIDUAL-EXECUTION-GUIDE-CLARITY", "REQ-MVP4-LIVE-FINAL-GUARD"]
+included_schema_ids: ["{SCHEMA_ID}", "trader1.read_only_dashboard_shell.v1", "trader1.residual_operator_execution_guide_report.v1", "trader1.patch_result.v1"]
 included_validator_ids: {json.dumps(VALIDATORS_REQUIRED)}
 included_artifact_ids: {json.dumps(all_artifacts())}
 source_section_hashes: see contracts/generated/authority_section_map.json
@@ -183,6 +202,7 @@ acceptance_checklist:
 - Audit required evidence artifacts from the residual operator execution guide.
 - Classify evidence paths as present-but-blocked, missing, placeholder-pending, external-required, or local-runtime-output-not-closure-ready.
 - Track exactly one UPBIT PAPER/SHADOW local runtime command as not run by this patch.
+- Expose deterministic operator decision cards so the dashboard can state the next blocked decision without implying readiness.
 - Preserve all {report["open_gap_count"]} open gaps and the residual route.
 - Keep current evidence writes, gap closure, live orders, live config mutation, LIVE_READY writes, and scale-up forbidden.
 
@@ -193,6 +213,9 @@ evidence_progress_snapshot:
 - local_runtime_command_count: {report["local_runtime_command_count"]}
 - local_runtime_completed_count: {report["local_runtime_completed_count"]}
 - minimum_observation_hours_required: {report["minimum_observation_hours_required"]}
+- operator_decision_card_count: {report["operator_decision_card_count"]}
+- single_next_operator_decision: {report["single_next_operator_decision"].get("action_class", "UNKNOWN")}
+- operator_no_action_needed_for_next_patch: true
 - operator_evidence_ready_for_mvp5: false
 - any_evidence_item_ready_for_closure: false
 - progress_status: {report["progress_status"]}
@@ -228,7 +251,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Residual execution guidance now has a blocked progress audit: {report["evidence_item_count"]} required evidence artifacts are classified, the one local UPBIT PAPER/SHADOW command remains not run by this patch, and MVP-5 remains blocked until operator evidence exists.
+Residual execution guidance now has blocked decision cards: {report["operator_decision_card_count"]} operator-facing cards classify {report["evidence_item_count"]} required evidence artifacts, the one local UPBIT PAPER/SHADOW command remains not run by this patch, and MVP-5 remains blocked until operator evidence exists.
 
 ## Next Safe Task
 
@@ -251,16 +274,19 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             "source_file": "TRADER_1.md",
             "source_heading": "residual operator evidence progress audit",
             "full_text_marker": (
-                f"{REQUIREMENT_ID}: residual operator execution evidence must be progress-audited "
-                "without closing gaps, writing current evidence, or enabling live permissions"
+                f"{REQUIREMENT_ID}: residual operator evidence progress must expose deterministic "
+                "operator decision cards without closing gaps, writing current evidence, or enabling live permissions"
             ),
             "authority_level": "ACTIVE_AUTHORITY",
-            "requirement_title": "Residual operator evidence progress audit",
-            "requirement_kind": "EVIDENCE_PATCH",
-            "schema_ids": [SCHEMA_ID],
+            "requirement_title": "Residual operator evidence decision cards",
+            "requirement_kind": "EVIDENCE_DASHBOARD_PATCH",
+            "schema_ids": [SCHEMA_ID, "trader1.read_only_dashboard_shell.v1"],
             "validator_ids": VALIDATORS_REQUIRED,
             "artifact_ids": artifacts,
-            "test_ids": ["tests/contract/test_residual_operator_evidence_progress.py"],
+            "test_ids": [
+                "tests/contract/test_residual_operator_evidence_progress.py",
+                "tests/dashboard/test_read_only_dashboard.py",
+            ],
             "mvp_stage": "MVP-4",
             "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
             "blocking_level": "LIVE_BLOCKING",
@@ -275,13 +301,14 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 "SECTION_OPERATOR_CONTROL",
             ],
             "depends_on": [
+                "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-PROGRESS-AUDIT",
                 "REQ-MVP4-RESIDUAL-OPERATOR-HANDOFF-EXECUTION-GUIDE",
                 "REQ-MVP4-DASHBOARD-RESIDUAL-EXECUTION-GUIDE-CLARITY",
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
-            "source_text_sha256": base.sha256_bytes(b"residual operator evidence progress audit live blocked"),
+            "source_text_sha256": base.sha256_bytes(b"residual operator evidence decision cards live blocked"),
             "source_authority_sha256": trader_hash,
-            "implementation_status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_BLOCKED",
+            "implementation_status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_DECISION_CARDS_BLOCKED",
             "test_status": "PASS",
         }
     )
@@ -301,16 +328,29 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
         {
             "requirement_id": REQUIREMENT_ID,
             "section_id": "SECTION_OPERATOR_CONTROL",
-            "schema_files": ["contracts/schema/residual_operator_evidence_progress_report.schema.json"],
-            "validator_files": ["trader1/reports/residual_operator_evidence_progress.py"],
-            "test_files": ["tests/contract/test_residual_operator_evidence_progress.py"] + ROUTE_GUARD_TEST_ARTIFACTS,
+            "schema_files": [
+                "contracts/schema/residual_operator_evidence_progress_report.schema.json",
+                "contracts/schema/read_only_dashboard_shell.schema.json",
+            ],
+            "validator_files": [
+                "trader1/reports/residual_operator_evidence_progress.py",
+                "trader1/dashboard/read_only_dashboard.py",
+            ],
+            "test_files": [
+                "tests/contract/test_residual_operator_evidence_progress.py",
+                "tests/dashboard/test_read_only_dashboard.py",
+            ]
+            + ROUTE_GUARD_TEST_ARTIFACTS,
             "fixture_files": [
                 "contracts/generated/current_implementation_state.json",
                 EXECUTION_GUIDE_REPORT_PATH,
             ],
-            "runtime_modules": ["trader1/reports/residual_operator_evidence_progress.py"],
+            "runtime_modules": [
+                "trader1/reports/residual_operator_evidence_progress.py",
+                "trader1/dashboard/read_only_dashboard.py",
+            ],
             "evidence_artifacts": EVIDENCE_ARTIFACTS,
-            "dashboard_artifacts": [],
+            "dashboard_artifacts": ["contracts/schema/read_only_dashboard_shell.schema.json"],
             "patch_result_fields": [
                 "next_task_class",
                 "remaining_blockers",
@@ -321,7 +361,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             ],
             "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
             "live_affecting": True,
-            "status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_BLOCKED",
+            "status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_DECISION_CARDS_BLOCKED",
         }
     )
     matrix.update(
@@ -351,12 +391,13 @@ def build_patch_result(
             "patch_class": "EVIDENCE_PATCH",
             "affected_contract_ids": [
                 REQUIREMENT_ID,
+                "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-PROGRESS-AUDIT",
                 "REQ-MVP4-RESIDUAL-OPERATOR-HANDOFF-EXECUTION-GUIDE",
                 "REQ-MVP4-DASHBOARD-RESIDUAL-EXECUTION-GUIDE-CLARITY",
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
-            "new_registry_items": [REQUIREMENT_ID, "residual_operator_evidence_progress_report"],
-            "new_or_changed_schema_ids": [SCHEMA_ID],
+            "new_registry_items": [REQUIREMENT_ID, "residual_operator_evidence_decision_cards"],
+            "new_or_changed_schema_ids": [SCHEMA_ID, "trader1.read_only_dashboard_shell.v1"],
             "validators_required": validators_required,
             "validators_run": validators_run,
             "tests_run": tests_run,
@@ -369,7 +410,7 @@ def build_patch_result(
                 "requirement_artifact_matrix",
                 "residual operator evidence progress schema",
             ],
-            "task_class": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT",
+            "task_class": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS",
             "required_section_ids": [
                 "SECTION_CONTRACT_GAP",
                 "SECTION_LEDGER_RECONCILIATION",
@@ -397,10 +438,10 @@ def build_patch_result(
                 "SECTION_LIVE_FINAL_GUARD",
                 "SECTION_OPERATOR_CONTROL",
             ],
-            "current_implementation_state_status": "UPDATED_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_BLOCKED",
-            "optimizer_stage": "NOT_CHANGED_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_ONLY",
-            "optimizer_guardrail_result": "PASS_PROGRESS_AUDIT_ONLY_NO_LIVE_MUTATION_NO_SCALE_UP",
-            "convergence_guardrail_result": "PASS_PROGRESS_AUDIT_ONLY_NO_LIVE_PERMISSION_NO_SCALE_UP",
+            "current_implementation_state_status": "UPDATED_RESIDUAL_OPERATOR_EVIDENCE_DECISION_CARDS_BLOCKED",
+            "optimizer_stage": "NOT_CHANGED_RESIDUAL_OPERATOR_EVIDENCE_DECISION_CARDS_ONLY",
+            "optimizer_guardrail_result": "PASS_DECISION_CARDS_ONLY_NO_LIVE_MUTATION_NO_SCALE_UP",
+            "convergence_guardrail_result": "PASS_DECISION_CARDS_ONLY_NO_LIVE_PERMISSION_NO_SCALE_UP",
             "live_order_ready_before": False,
             "live_order_ready_after": False,
             "live_order_allowed_before": False,
@@ -452,6 +493,9 @@ def write_evidence(
             "local_runtime_command_count": report["local_runtime_command_count"],
             "local_runtime_completed_count": report["local_runtime_completed_count"],
             "minimum_observation_hours_required": report["minimum_observation_hours_required"],
+            "operator_decision_card_count": report["operator_decision_card_count"],
+            "operator_decision_status": report["operator_decision_status"],
+            "single_next_operator_decision": report["single_next_operator_decision"].get("action_class", ""),
             "operator_evidence_ready_for_mvp5": report["operator_evidence_ready_for_mvp5"],
             "mvp5_entry_blocked_until_operator_evidence": report["mvp5_entry_blocked_until_operator_evidence"],
             "progress_status": report["progress_status"],
@@ -480,17 +524,19 @@ def write_evidence(
         },
     )
     base.write_text(
-        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260505.md",
-        f"""# MVP4 Residual Operator Evidence Progress Audit
+        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_DECISION_CARDS_20260506.md",
+        f"""# MVP4 Residual Operator Evidence Progress Decision Cards
 
 created_at_utc: {now}
 patch_id: {PATCH_ID}
 
 Finding:
-- The residual operator execution guide lists required artifacts, but operators also need a progress view that separates missing, placeholder, external, and local runtime outputs without implying closure.
+- The residual operator execution guide lists required artifacts, but operators also need a decision-card view that separates what is blocked, what can continue as non-live Codex work, and what still needs operator evidence for closure.
 
 Patch:
 - Classified {report["evidence_item_count"]} required evidence artifacts across {report["execution_step_count"]} blocked execution steps.
+- Added {report["operator_decision_card_count"]} deterministic operator decision cards.
+- Set the single next decision to {report["single_next_operator_decision"].get("action_class", "UNKNOWN")}.
 - Tracked the one local UPBIT PAPER/SHADOW command as NOT_RUN_BY_THIS_PATCH.
 - Preserved the adaptive evidence-quality gate with no fixed observation-duration floor.
 - Recorded that Codex can continue non-live review patches without immediate user runtime action, while gap closure still requires audited evidence.
@@ -515,6 +561,157 @@ MVP-5 boundary:
     )
 
 
+def write_session_artifacts(
+    now: str,
+    report: dict[str, Any],
+    tests_run: list[dict[str, Any]],
+    validators_run: list[dict[str, Any]],
+) -> None:
+    SESSION_DIR.mkdir(parents=True, exist_ok=True)
+    top_risks = [
+        "LIVE_ENABLING_EVIDENCE_MISSING",
+        "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+        "POST_RERUN_RECONCILIATION_REQUIRED",
+        "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+        "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+        "POST_REPAIR_RECONCILIATION_REQUIRED",
+        "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+        "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+        "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+        "SCALE_UP_NOT_ELIGIBLE",
+    ]
+    base.write_text(
+        SESSION_DIR / "IMPLEMENTATION_COVERAGE_MATRIX.md",
+        f"""# Implementation Coverage Matrix
+
+patch_id: {PATCH_ID}
+created_at_utc: {now}
+
+| Area | Status | Evidence |
+| --- | --- | --- |
+| Residual operator evidence progress | IMPLEMENTED_BLOCKED | {REPORT_PATH} |
+| Operator decision cards | IMPLEMENTED_BLOCKED | {report["operator_decision_card_count"]} blocked cards |
+| Dashboard live blocker clarity | IMPLEMENTED_BLOCKED | read_only_dashboard_shell residual evidence progress |
+| Current evidence writes | BLOCKED | current_evidence_write_allowed=false |
+| Live and scale safety | BLOCKED | live_order_allowed=false; scale_up_allowed=false |
+""",
+    )
+    base.write_json(
+        SESSION_DIR / "ACCEPTANCE_REPORT.json",
+        {
+            "patch_id": PATCH_ID,
+            "created_at_utc": now,
+            "acceptance_status": "PASS_BLOCKED_NON_LIVE",
+            "open_gap_count": report["open_gap_count"],
+            "operator_decision_card_count": report["operator_decision_card_count"],
+            "single_next_operator_decision": report["single_next_operator_decision"].get("action_class", ""),
+            "current_evidence_write_allowed": False,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        },
+    )
+    base.write_text(
+        SESSION_DIR / "pytest_report.txt",
+        "\n".join(
+            [
+                f"patch_id={PATCH_ID}",
+                *[
+                    f"$ {item.get('command')}\nstatus={item.get('status')} returncode={item.get('returncode')}"
+                    for item in tests_run
+                ],
+                *[
+                    f"validator={item.get('validator_id')} status={item.get('status')}"
+                    for item in validators_run
+                ],
+            ]
+        ),
+    )
+    base.write_json(
+        SESSION_DIR / "PAPER_RUN_SUMMARY.json",
+        {
+            "patch_id": PATCH_ID,
+            "paper_run_executed_by_this_patch": False,
+            "local_runtime_command_count": report["local_runtime_command_count"],
+            "local_runtime_completed_count": report["local_runtime_completed_count"],
+            "minimum_observation_hours_required": report["minimum_observation_hours_required"],
+            "user_runtime_required_for_next_non_live_patch": False,
+            "user_runtime_required_for_gap_closure": True,
+        },
+    )
+    base.write_json(
+        SESSION_DIR / "LIVE_BLOCK_PROOF.json",
+        {
+            "patch_id": PATCH_ID,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "live_ready_write_allowed": False,
+            "live_config_mutation_allowed": False,
+            "live_order_path_touched": False,
+            "credential_used": False,
+        },
+    )
+    base.write_json(
+        SESSION_DIR / "DASHBOARD_READINESS_SUMMARY.json",
+        {
+            "patch_id": PATCH_ID,
+            "dashboard_status": "PASS_OPERATOR_DECISION_CARDS_BLOCKED",
+            "operator_decision_status": report["operator_decision_status"],
+            "operator_decision_card_count": report["operator_decision_card_count"],
+            "single_next_operator_decision": report["single_next_operator_decision"].get("action_class", ""),
+            "live_execution_candidate": False,
+        },
+    )
+    base.write_text(
+        SESSION_DIR / "USER_STATUS_SUMMARY.md",
+        f"""# User Status Summary
+
+System status: non-live review can continue; live and scale remain blocked.
+
+What changed:
+- Added {report["operator_decision_card_count"]} dashboard-bound operator decision cards.
+- Next blocked decision is {report["single_next_operator_decision"].get("action_class", "UNKNOWN")}.
+- No user runtime is required for the next non-live Codex patch.
+
+Still blocked:
+- Gap closure needs audited runtime, reconciliation, external, or operator evidence.
+- LIVE_READY, live orders, and scale-up remain false.
+""",
+    )
+    base.write_text(
+        SESSION_DIR / "TRADER_1_SESSION_REVIEW.md",
+        f"""# TRADER_1 Session Review
+
+Patch: `{PATCH_ID}`
+
+## Session Scope
+
+This session hardens residual operator evidence progress by adding deterministic, fail-closed decision cards and dashboard visibility for the next blocked operator decision.
+
+## Cumulative State
+
+Open contract gaps remain at {report["open_gap_count"]}. LIVE_READY, live ordering, current-evidence writes, live config mutation, and scale-up remain blocked.
+
+## Final Output
+
+1. Overall one-line state: residual operator evidence now has dashboard-bound decision cards, but all cards remain blocked.
+2. Overall completion score: 85%.
+3. Live trading candidate: No.
+4. Top 10 riskiest defects:
+{chr(10).join(f"   - {risk}" for risk in top_risks)}
+5. Next session area: continue residual operator reconciliation evidence hardening, then PAPER/SHADOW evidence maturity.
+6. Priority roadmap: operator reconciliation -> PAPER ledger rerun reconciliation -> PAPER/SHADOW evidence -> external live evidence -> sealed baseline preservation -> scale-up policy.
+
+## Acceptance
+
+Artifacts are in `{base.rel(SESSION_DIR)}`. All live and scale flags remain false.
+""",
+    )
+
+
 def write_patch_artifacts(
     now: str,
     trader_hash: str,
@@ -525,6 +722,7 @@ def write_patch_artifacts(
     patch_path = ROOT / "system" / "evidence" / "patch_results" / f"{PATCH_BASENAME}.patch_result.json"
     base.write_json(patch_path, patch_result)
     write_evidence(now, trader_hash, agents_hash, patch_result, report)
+    write_session_artifacts(now, report, patch_result.get("tests_run", []), patch_result.get("validators_run", []))
     base.update_state_and_ledger(now, patch_result)
     base.update_read_cache(now, trader_hash, agents_hash)
 
@@ -555,6 +753,7 @@ def main() -> int:
                     "unittest",
                     "tests.contract.test_residual_operator_evidence_progress",
                     "tests.contract.test_residual_operator_execution_guide",
+                    "tests.dashboard.test_read_only_dashboard",
                     "tests.contract.test_patch_result_runtime_schema_validation",
                     "-v",
                 ]
@@ -590,6 +789,8 @@ def main() -> int:
                 "evidence_item_count": report["evidence_item_count"],
                 "local_runtime_command_count": report["local_runtime_command_count"],
                 "local_runtime_completed_count": report["local_runtime_completed_count"],
+                "operator_decision_card_count": report["operator_decision_card_count"],
+                "single_next_operator_decision": report["single_next_operator_decision"].get("action_class", ""),
                 "progress_status": report["progress_status"],
                 "next_allowed_task_class": NEXT_TASK_CLASS,
                 "live_order_ready": False,

@@ -78,6 +78,32 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
         )
         self.assertIn("No immediate user action", report["user_action_summary"])
         self.assertGreaterEqual(len(report["codex_review_next_actions"]), 3)
+        self.assertTrue(report["operator_no_action_needed_for_next_patch"])
+        self.assertEqual(report["operator_decision_status"], "BLOCKED_DECISION_CARDS_READY")
+        self.assertEqual(report["operator_decision_card_count"], 6)
+        self.assertEqual(len(report["operator_decision_cards"]), 6)
+        self.assertEqual(
+            [card["action_class"] for card in report["operator_decision_cards"]],
+            [
+                "OPERATOR_RECONCILIATION_ACTION",
+                "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+                "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+                "SEALED_BASELINE_PRESERVATION_ACTION",
+                "SCALE_UP_POLICY_EVIDENCE_ACTION",
+            ],
+        )
+        self.assertEqual(
+            report["single_next_operator_decision"]["action_class"],
+            "OPERATOR_RECONCILIATION_ACTION",
+        )
+        self.assertEqual(
+            report["single_next_operator_decision"]["decision_status"],
+            "BLOCKED_OPERATOR_RECONCILIATION_REQUIRED",
+        )
+        self.assertTrue(report["single_next_operator_decision"]["codex_can_continue_non_live_patch"])
+        self.assertFalse(report["single_next_operator_decision"]["user_runtime_required_for_next_non_live_patch"])
+        self.assertTrue(report["single_next_operator_decision"]["user_action_required_for_gap_closure"])
         self.assertFalse(report["operator_evidence_ready_for_mvp5"])
         self.assertFalse(report["any_evidence_item_ready_for_closure"])
         self.assertTrue(report["mvp5_entry_blocked_until_operator_evidence"])
@@ -131,6 +157,29 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
         self.assertFalse(command["gap_closure_allowed_by_this_patch"])
         self.assertFalse(command["scale_up_allowed"])
 
+        local_command_cards = [
+            card for card in report["operator_decision_cards"] if card["operator_can_run_local_command"]
+        ]
+        self.assertEqual(len(local_command_cards), 1)
+        self.assertEqual(local_command_cards[0]["action_class"], "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION")
+        self.assertEqual(local_command_cards[0]["local_runtime_command_count"], 1)
+        for card in report["operator_decision_cards"]:
+            counted_items = (
+                card["present_blocked_evidence_item_count"]
+                + card["missing_operator_evidence_item_count"]
+                + card["placeholder_pending_evidence_item_count"]
+                + card["external_evidence_required_item_count"]
+                + card["local_runtime_output_item_count"]
+            )
+            self.assertEqual(card["required_evidence_item_count"], counted_items)
+            self.assertFalse(card["evidence_ready_for_closure"])
+            self.assertFalse(card["current_evidence_write_allowed"])
+            self.assertFalse(card["gap_closure_allowed_by_this_patch"])
+            self.assertFalse(card["live_order_ready"])
+            self.assertFalse(card["live_order_allowed"])
+            self.assertFalse(card["can_live_trade"])
+            self.assertFalse(card["scale_up_allowed"])
+
         self.assertEqual(validate_residual_operator_evidence_progress_report(report, execution_guide_report, state), [])
 
     def test_generated_report_matches_schema_and_keeps_permissions_false(self):
@@ -156,7 +205,10 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
         patch_result = load_json(PATCH_PATH)
         report = load_json(PROGRESS_REPORT_PATH)
 
-        self.assertEqual(patch_result["patch_id"], "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_20260505_001")
+        self.assertEqual(
+            patch_result["patch_id"],
+            "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_DECISION_CARDS_20260506_001",
+        )
         self.assertEqual(patch_result["next_task_class"], NEXT_TASK_CLASS)
         self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
@@ -173,6 +225,10 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
         report = self.build_report()
         tampered = copy.deepcopy(report)
         tampered["operator_evidence_ready_for_mvp5"] = True
+        tampered["operator_no_action_needed_for_next_patch"] = False
+        tampered["operator_decision_cards"][0]["evidence_ready_for_closure"] = True
+        tampered["operator_decision_cards"][0]["codex_can_continue_non_live_patch"] = False
+        tampered["operator_decision_cards"][0]["live_order_allowed"] = True
         tampered["user_runtime_required_for_next_non_live_patch"] = True
         tampered["fixed_duration_gate_status"] = "FIXED_DURATION_REQUIRED"
         tampered["live_ready_write_allowed"] = True
@@ -182,6 +238,8 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
 
         errors = validate_residual_operator_evidence_progress_report(tampered, execution_guide_report, state)
         self.assertTrue(any("operator_evidence_ready_for_mvp5" in error for error in errors))
+        self.assertTrue(any("operator_no_action_needed_for_next_patch" in error for error in errors))
+        self.assertTrue(any("codex_can_continue_non_live_patch" in error for error in errors))
         self.assertTrue(any("user_runtime_required_for_next_non_live_patch" in error for error in errors))
         self.assertTrue(any("fixed_duration_gate_status" in error for error in errors))
         self.assertTrue(any("live_ready_write_allowed" in error for error in errors))

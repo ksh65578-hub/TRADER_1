@@ -14,6 +14,70 @@ LIVE_FALSE_FIELDS = ("live_order_ready", "live_order_allowed", "can_live_trade",
 EXTERNAL_PREFIX = "system/evidence/external/"
 RUNTIME_PREFIX = "system/runtime/"
 PLACEHOLDER_TOKENS = ("<session_id>", "<shadow_session_id>")
+ACTION_LABELS = {
+    "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
+    "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "PAPER ledger rerun",
+    "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION": "PAPER/SHADOW evidence",
+    "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION": "External live evidence",
+    "SEALED_BASELINE_PRESERVATION_ACTION": "Sealed baseline",
+    "SCALE_UP_POLICY_EVIDENCE_ACTION": "Scale-up policy",
+}
+DECISION_STATUS_BY_ACTION = {
+    "OPERATOR_RECONCILIATION_ACTION": "BLOCKED_OPERATOR_RECONCILIATION_REQUIRED",
+    "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "BLOCKED_PAPER_LEDGER_RERUN_RECONCILIATION_REQUIRED",
+    "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION": "NON_LIVE_PAPER_SHADOW_COLLECTION_ALLOWED_NOT_CLOSURE_READY",
+    "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION": "BLOCKED_EXTERNAL_EVIDENCE_REQUIRED",
+    "SEALED_BASELINE_PRESERVATION_ACTION": "BLOCKED_BASELINE_PRESERVATION_ONLY",
+    "SCALE_UP_POLICY_EVIDENCE_ACTION": "BLOCKED_SCALE_UP_POLICY_EVIDENCE_REQUIRED",
+}
+PLAIN_ANSWER_BY_ACTION = {
+    "OPERATOR_RECONCILIATION_ACTION": (
+        "Operator reconciliation is the first blocker; no current evidence or live readiness can be accepted."
+    ),
+    "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": (
+        "PAPER ledger rerun evidence is still blocked by reconciliation and cannot promote current evidence."
+    ),
+    "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION": (
+        "Non-live PAPER/SHADOW collection is allowed, but collected data is not closure-ready by itself."
+    ),
+    "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION": (
+        "Official API, read-only account, burn-in, and operator approval evidence are still missing."
+    ),
+    "SEALED_BASELINE_PRESERVATION_ACTION": (
+        "Sealed historical validator-run baseline must be preserved and cannot be rewritten by inference."
+    ),
+    "SCALE_UP_POLICY_EVIDENCE_ACTION": (
+        "Scale-up remains disabled until exact-scope validators and operator policy evidence pass."
+    ),
+}
+NEXT_SAFE_ACTION_BY_ACTION = {
+    "OPERATOR_RECONCILIATION_ACTION": (
+        "Review source-bound reconciliation artifacts; keep current evidence writes and LIVE_READY blocked."
+    ),
+    "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": (
+        "Prepare bounded PAPER rerun evidence only after required reconciliation inputs are source-bound."
+    ),
+    "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION": (
+        "Codex may keep hardening non-live checks; an operator may run the PAPER launcher later if closure evidence is needed."
+    ),
+    "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION": (
+        "Wait for independent external evidence; do not infer live readiness from PAPER artifacts."
+    ),
+    "SEALED_BASELINE_PRESERVATION_ACTION": (
+        "Preserve the sealed baseline and only add explicit audit evidence around it."
+    ),
+    "SCALE_UP_POLICY_EVIDENCE_ACTION": (
+        "Keep scale-up false; require survival, parity, burn-in, and operator policy evidence."
+    ),
+}
+EVIDENCE_STATUSES = (
+    "PRESENT_BLOCKED",
+    "MISSING_OPERATOR_EVIDENCE",
+    "PLACEHOLDER_PATTERN_PENDING",
+    "EXTERNAL_EVIDENCE_REQUIRED",
+    "LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_CLOSURE_READY",
+    "LOCAL_RUNTIME_OUTPUT_MISSING",
+)
 
 
 def sha256_json(value: Any) -> str:
@@ -115,6 +179,87 @@ def _build_runtime_command_items(execution_guide_report: Mapping[str, Any]) -> l
     return commands
 
 
+def _status_counts(items: list[Mapping[str, Any]]) -> dict[str, int]:
+    counts = {status: 0 for status in EVIDENCE_STATUSES}
+    for item in items:
+        status = str(item.get("path_status", "MISSING_OPERATOR_EVIDENCE"))
+        if status in counts:
+            counts[status] += 1
+    return counts
+
+
+def _commands_by_action(runtime_commands: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for command in runtime_commands:
+        action_class = str(command.get("action_class", "UNKNOWN_ACTION"))
+        counts[action_class] = counts.get(action_class, 0) + 1
+    return counts
+
+
+def _build_operator_decision_cards(
+    execution_guide_report: Mapping[str, Any],
+    evidence_items: list[dict[str, Any]],
+    runtime_commands: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    by_action: dict[str, list[Mapping[str, Any]]] = {}
+    for item in evidence_items:
+        action_class = str(item.get("action_class", "UNKNOWN_ACTION"))
+        by_action.setdefault(action_class, []).append(item)
+    command_counts = _commands_by_action(runtime_commands)
+
+    cards: list[dict[str, Any]] = []
+    for step in execution_guide_report.get("execution_steps", []):
+        if not isinstance(step, Mapping):
+            continue
+        action_class = str(step.get("action_class", "UNKNOWN_ACTION"))
+        items = by_action.get(action_class, [])
+        counts = _status_counts(items)
+        local_output_count = (
+            counts["LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_CLOSURE_READY"] + counts["LOCAL_RUNTIME_OUTPUT_MISSING"]
+        )
+        local_command_count = command_counts.get(action_class, 0)
+        cards.append(
+            {
+                "decision_card_id": f"DECISION:{action_class}",
+                "step_id": str(step.get("step_id", "")),
+                "action_class": action_class,
+                "priority": int(step.get("priority", 999) or 999),
+                "label": ACTION_LABELS.get(action_class, action_class.replace("_", " ").title()),
+                "decision_status": DECISION_STATUS_BY_ACTION.get(action_class, "BLOCKED_UNKNOWN_OPERATOR_DECISION"),
+                "plain_answer": PLAIN_ANSWER_BY_ACTION.get(
+                    action_class,
+                    "This residual action remains blocked until source-bound evidence exists.",
+                ),
+                "next_safe_action": NEXT_SAFE_ACTION_BY_ACTION.get(
+                    action_class,
+                    "Keep this action blocked and collect source-bound evidence before review.",
+                ),
+                "gap_ids": sorted(str(gap_id) for gap_id in step.get("gap_ids", [])),
+                "gap_count": int(step.get("gap_count", 0) or 0),
+                "required_evidence_item_count": len(items),
+                "present_blocked_evidence_item_count": counts["PRESENT_BLOCKED"],
+                "missing_operator_evidence_item_count": counts["MISSING_OPERATOR_EVIDENCE"],
+                "placeholder_pending_evidence_item_count": counts["PLACEHOLDER_PATTERN_PENDING"],
+                "external_evidence_required_item_count": counts["EXTERNAL_EVIDENCE_REQUIRED"],
+                "local_runtime_output_item_count": local_output_count,
+                "local_runtime_command_count": local_command_count,
+                "operator_can_run_local_command": action_class == "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION"
+                and local_command_count == 1,
+                "codex_can_continue_non_live_patch": True,
+                "user_runtime_required_for_next_non_live_patch": False,
+                "user_action_required_for_gap_closure": True,
+                "evidence_ready_for_closure": False,
+                "current_evidence_write_allowed": False,
+                "gap_closure_allowed_by_this_patch": False,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+        )
+    return sorted(cards, key=lambda card: (card["priority"], card["action_class"]))
+
+
 def build_residual_operator_evidence_progress_report(
     execution_guide_report: Mapping[str, Any],
     state: Mapping[str, Any],
@@ -128,6 +273,8 @@ def build_residual_operator_evidence_progress_report(
     open_gap_ids = sorted(str(gap_id) for gap_id in state.get("open_contract_gap_ids", []))
     evidence_items = _build_evidence_items(execution_guide_report, root)
     runtime_commands = _build_runtime_command_items(execution_guide_report)
+    operator_decision_cards = _build_operator_decision_cards(execution_guide_report, evidence_items, runtime_commands)
+    single_next_operator_decision = operator_decision_cards[0] if operator_decision_cards else {}
     status_counts: dict[str, int] = {}
     for item in evidence_items:
         status = item["path_status"]
@@ -181,6 +328,11 @@ def build_residual_operator_evidence_progress_report(
             "harden non-live evidence, validator, ledger, reconciliation, and dashboard bindings",
             "keep open gaps blocked until audited closure evidence exists",
         ],
+        "operator_no_action_needed_for_next_patch": True,
+        "operator_decision_status": "BLOCKED_DECISION_CARDS_READY",
+        "operator_decision_card_count": len(operator_decision_cards),
+        "single_next_operator_decision": single_next_operator_decision,
+        "operator_decision_cards": operator_decision_cards,
         "operator_evidence_ready_for_mvp5": False,
         "any_evidence_item_ready_for_closure": False,
         "mvp5_entry_blocked_until_operator_evidence": True,
@@ -277,6 +429,71 @@ def validate_residual_operator_evidence_progress_report(
             errors.append("local runtime command cannot mark evidence ready for closure")
     if report.get("local_runtime_command_count") != 1:
         errors.append("exactly one local runtime command must be tracked")
+    cards = report.get("operator_decision_cards", [])
+    if not isinstance(cards, list):
+        return errors + ["operator_decision_cards must be an array"]
+    if report.get("operator_no_action_needed_for_next_patch") is not True:
+        errors.append("operator_no_action_needed_for_next_patch must remain true")
+    if report.get("operator_decision_status") != "BLOCKED_DECISION_CARDS_READY":
+        errors.append("operator_decision_status must remain BLOCKED_DECISION_CARDS_READY")
+    if report.get("operator_decision_card_count") != len(cards):
+        errors.append("operator_decision_card_count must match operator_decision_cards")
+    if report.get("operator_decision_card_count") != report.get("execution_step_count"):
+        errors.append("operator_decision_card_count must match execution_step_count")
+    if cards:
+        single_next = report.get("single_next_operator_decision", {})
+        if not isinstance(single_next, Mapping):
+            errors.append("single_next_operator_decision must be an object")
+        elif single_next.get("action_class") != cards[0].get("action_class") or single_next.get("priority") != cards[0].get(
+            "priority"
+        ):
+            errors.append("single_next_operator_decision must match the first priority card")
+    local_command_card_count = 0
+    for card in cards:
+        if not isinstance(card, Mapping):
+            errors.append("operator decision card must be object")
+            continue
+        action_class = str(card.get("action_class", ""))
+        if card.get("decision_status") != DECISION_STATUS_BY_ACTION.get(action_class):
+            errors.append(f"{action_class} decision_status mismatch")
+        if card.get("gap_count") != len(card.get("gap_ids", [])):
+            errors.append(f"{action_class} gap_count mismatch")
+        expected_item_count = (
+            int(card.get("present_blocked_evidence_item_count", 0) or 0)
+            + int(card.get("missing_operator_evidence_item_count", 0) or 0)
+            + int(card.get("placeholder_pending_evidence_item_count", 0) or 0)
+            + int(card.get("external_evidence_required_item_count", 0) or 0)
+            + int(card.get("local_runtime_output_item_count", 0) or 0)
+        )
+        if card.get("required_evidence_item_count") != expected_item_count:
+            errors.append(f"{action_class} evidence status count mismatch")
+        if card.get("operator_can_run_local_command") is True:
+            local_command_card_count += 1
+            if action_class != "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION" or card.get("local_runtime_command_count") != 1:
+                errors.append(f"{action_class} local command card scope mismatch")
+        elif card.get("local_runtime_command_count", 0) not in (0,):
+            errors.append(f"{action_class} local command count must be zero unless local command is allowed")
+        for field in (
+            "codex_can_continue_non_live_patch",
+            "user_action_required_for_gap_closure",
+        ):
+            if card.get(field) is not True:
+                errors.append(f"{action_class} {field} must be true")
+        if card.get("user_runtime_required_for_next_non_live_patch") is not False:
+            errors.append(f"{action_class} user_runtime_required_for_next_non_live_patch must remain false")
+        for field in (
+            "evidence_ready_for_closure",
+            "current_evidence_write_allowed",
+            "gap_closure_allowed_by_this_patch",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+        ):
+            if card.get(field) is not False:
+                errors.append(f"{action_class} {field} must remain false")
+    if local_command_card_count != 1:
+        errors.append("exactly one operator decision card may expose the non-live local command")
     if report.get("adaptive_judgement_status") != "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY":
         errors.append("adaptive_judgement_status must keep non-live review open without closure")
     if report.get("fixed_duration_gate_status") != "REMOVED_NO_FIXED_RUNTIME_FLOOR":

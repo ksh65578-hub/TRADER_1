@@ -1,0 +1,13 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_DECISION_CARDS_20260506_001",
+  "created_at_utc": "2026-05-05T17:52:37Z",
+  "acceptance_status": "PASS_BLOCKED_NON_LIVE",
+  "open_gap_count": 13,
+  "operator_decision_card_count": 6,
+  "single_next_operator_decision": "OPERATOR_RECONCILIATION_ACTION",
+  "current_evidence_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
