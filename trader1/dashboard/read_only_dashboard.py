@@ -115,9 +115,11 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
+    "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
+RESIDUAL_HANDOFF_PACKET_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
 RESIDUAL_ACTION_PLAN_CLASSES = {
     "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
     "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "PAPER ledger rerun",
@@ -10525,6 +10527,153 @@ def _residual_open_gap_action_plan_summary(report: dict[str, Any] | None) -> dic
     }
 
 
+def _residual_operator_handoff_packet_summary(report: dict[str, Any] | None) -> dict[str, Any]:
+    fallback = {
+        "title": "Operator Handoff Packets",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_HANDOFF_PACKET_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "handoff_packet_count": 0,
+        "blocked_handoff_packet_count": 0,
+        "handoff_ready_count": 0,
+        "operator_submission_required_count": 0,
+        "external_missing_or_unusable_count": 4,
+        "paper_ledger_rerun_readiness_status": "BLOCKED_RECONCILIATION_REQUIRED",
+        "one_line_summary": "Operator handoff packet report is not loaded; residual blockers remain open and live orders stay blocked.",
+        "primary_next_action": "Use the residual action plan until handoff packets are loaded.",
+        "packet_items": [],
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    unsafe_permission = any(
+        report.get(field) is not False
+        for field in (
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "current_evidence_write_allowed",
+            "current_evidence_mutation_allowed",
+            "latest_runtime_pointer_write_allowed",
+            "gap_closure_allowed_by_this_patch",
+            "live_config_mutation_allowed",
+        )
+    )
+    if unsafe_permission:
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator handoff packet attempted a forbidden write, live, or scale permission; dashboard keeps it blocked.",
+            "primary_next_action": "Inspect the handoff packet report and keep all live/scale/current-evidence writes disabled.",
+        }
+
+    packet_items: list[dict[str, Any]] = []
+    operator_submission_required_count = 0
+    for packet in report.get("handoff_packets", []):
+        if not isinstance(packet, dict):
+            continue
+        if any(
+            packet.get(field) is not False
+            for field in (
+                "evidence_ready_for_closure",
+                "current_evidence_write_allowed",
+                "current_evidence_mutation_allowed",
+                "latest_runtime_pointer_write_allowed",
+                "gap_closure_allowed_by_this_patch",
+                "live_order_allowed",
+                "live_config_mutation_allowed",
+                "scale_up_allowed",
+            )
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator handoff packet item attempted closure, live, current-evidence, or scale permission.",
+                "primary_next_action": "Reject the handoff packet report and regenerate it without permission changes.",
+            }
+        action_class = str(packet.get("action_class") or "CLASSIFY_OPEN_GAP_ACTION")
+        gap_count = packet.get("gap_count", 0)
+        if not isinstance(gap_count, int) or gap_count <= 0:
+            continue
+        evidence_kinds = packet.get("required_evidence_kinds", [])
+        if not isinstance(evidence_kinds, list):
+            evidence_kinds = []
+        operator_submission_required = packet.get("operator_submission_required") is True
+        if operator_submission_required:
+            operator_submission_required_count += 1
+        packet_items.append(
+            {
+                "action_class": action_class,
+                "label": RESIDUAL_ACTION_PLAN_CLASSES.get(action_class, action_class.replace("_", " ").title()),
+                "priority": packet.get("priority") if isinstance(packet.get("priority"), int) else len(packet_items) + 1,
+                "gap_count": gap_count,
+                "handoff_status": str(packet.get("handoff_status") or "BLOCKED_HANDOFF_REQUIRED"),
+                "operator_submission_required": operator_submission_required,
+                "required_evidence_kinds": [str(kind) for kind in evidence_kinds[:4]],
+                "required_operator_action": str(
+                    packet.get("required_operator_action") or "Resolve this handoff packet before promotion."
+                ),
+                "closure_precondition_count": len(packet.get("closure_preconditions", []))
+                if isinstance(packet.get("closure_preconditions"), list)
+                else 0,
+            }
+        )
+
+    if not packet_items:
+        return fallback
+
+    open_gap_count = report.get("open_gap_count", sum(item["gap_count"] for item in packet_items))
+    handoff_packet_count = report.get("handoff_packet_count", len(packet_items))
+    blocked_handoff_packet_count = report.get("blocked_handoff_packet_count", len(packet_items))
+    handoff_ready_count = report.get("handoff_ready_count", 0)
+    status = str(report.get("handoff_status") or "BLOCKED_HANDOFF_REQUIRED")
+    if handoff_ready_count != 0 or status != "BLOCKED_HANDOFF_REQUIRED":
+        status = "INVALID"
+    return {
+        "title": "Operator Handoff Packets",
+        "status": status,
+        "source": RESIDUAL_HANDOFF_PACKET_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": open_gap_count if isinstance(open_gap_count, int) else sum(item["gap_count"] for item in packet_items),
+        "handoff_packet_count": handoff_packet_count if isinstance(handoff_packet_count, int) else len(packet_items),
+        "blocked_handoff_packet_count": blocked_handoff_packet_count
+        if isinstance(blocked_handoff_packet_count, int)
+        else len(packet_items),
+        "handoff_ready_count": handoff_ready_count if isinstance(handoff_ready_count, int) else 0,
+        "operator_submission_required_count": operator_submission_required_count,
+        "external_missing_or_unusable_count": int(report.get("external_missing_or_unusable_count", 4) or 0),
+        "paper_ledger_rerun_readiness_status": str(
+            report.get("paper_ledger_rerun_readiness_status") or "BLOCKED_RECONCILIATION_REQUIRED"
+        ),
+        "one_line_summary": (
+            f"{open_gap_count} blockers are grouped into {handoff_packet_count} handoff packets; "
+            f"{blocked_handoff_packet_count} blocked, {handoff_ready_count} ready."
+        ),
+        "primary_next_action": "Start with operator reconciliation and PAPER ledger rerun packets; external live evidence and scale-up remain blocked.",
+        "packet_items": packet_items[:4],
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -10570,6 +10719,7 @@ def build_read_only_dashboard_shell(
     profitability_maturity_rollup_report: dict[str, Any] | None = None,
     candidate_scorecard: dict[str, Any] | None = None,
     residual_open_gap_operator_action_plan_report: dict[str, Any] | None = None,
+    residual_operator_handoff_packet_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -10611,6 +10761,7 @@ def build_read_only_dashboard_shell(
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
         "residual_open_gap_operator_action_plan": "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
+        "residual_operator_handoff_packet": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -10648,6 +10799,18 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 _freshness_from_generated_at(candidate_scorecard),
+            )
+        )
+    if isinstance(residual_operator_handoff_packet_report, dict):
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_HANDOFF_PACKET",
+                paths.get(
+                    "residual_operator_handoff_packet",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
+                ),
+                True,
+                "PASS" if residual_operator_handoff_packet_report.get("handoff_status") == "BLOCKED_HANDOFF_REQUIRED" else "STALE",
             )
         )
     if isinstance(shadow_runtime_writer_report, dict):
@@ -11717,6 +11880,9 @@ def build_read_only_dashboard_shell(
     residual_open_gap_action_plan = _residual_open_gap_action_plan_summary(
         residual_open_gap_operator_action_plan_report
     )
+    residual_operator_handoff_packet = _residual_operator_handoff_packet_summary(
+        residual_operator_handoff_packet_report
+    )
 
     engine = summary.get("engine", {}) if isinstance(summary, dict) else {}
     startup_status = summary.get("startup", {}) if isinstance(summary, dict) else {}
@@ -11769,6 +11935,7 @@ def build_read_only_dashboard_shell(
         "operator_action_summary": operator_action_summary,
         "operator_workflow_summary": operator_workflow_summary,
         "residual_open_gap_action_plan": residual_open_gap_action_plan,
+        "residual_operator_handoff_packet": residual_operator_handoff_packet,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
         "exploration_policy_status": exploration_policy_status,
@@ -12101,6 +12268,31 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 values.extend(
                     str(item.get(key, ""))
                     for key in ("action_class", "label", "gap_count", "plain_next_action")
+                )
+    residual_handoff = shell.get("residual_operator_handoff_packet", {})
+    if isinstance(residual_handoff, dict):
+        values.extend(
+            str(residual_handoff.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "source_status",
+                "one_line_summary",
+                "primary_next_action",
+                "paper_ledger_rerun_readiness_status",
+            )
+        )
+        for item in residual_handoff.get("packet_items", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "action_class",
+                        "label",
+                        "gap_count",
+                        "handoff_status",
+                        "required_operator_action",
+                    )
                 )
     workflow = shell.get("operator_workflow_summary", {})
     if isinstance(workflow, dict):
@@ -12475,6 +12667,47 @@ def validate_read_only_dashboard_shell(
     ]
     if action_classes[:3] != required_action_classes:
         return DashboardValidationResult("FAIL", "residual action plan priority order is not operator-first", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_handoff = shell.get("residual_operator_handoff_packet")
+    if not isinstance(residual_handoff, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator handoff summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_handoff.get("display_only") is not True or residual_handoff.get("dashboard_truth_only") is not True:
+        return DashboardValidationResult("BLOCKED", "residual handoff summary must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_handoff.get("live_order_ready")
+        or residual_handoff.get("live_order_allowed")
+        or residual_handoff.get("can_live_trade")
+        or residual_handoff.get("scale_up_allowed")
+        or residual_handoff.get("current_evidence_write_allowed")
+        or residual_handoff.get("gap_closure_allowed_by_this_patch")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual handoff summary attempted live, scale, or current-evidence permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_handoff.get("source") != RESIDUAL_HANDOFF_PACKET_SOURCE:
+        return DashboardValidationResult("FAIL", "residual handoff source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_handoff.get("status") not in {"NOT_LOADED", "BLOCKED_HANDOFF_REQUIRED", "INVALID"}:
+        return DashboardValidationResult("FAIL", "residual handoff status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_handoff.get("source_status") == "LOADED":
+        if residual_handoff.get("status") != "BLOCKED_HANDOFF_REQUIRED":
+            return DashboardValidationResult("BLOCKED", "loaded residual handoff packet must remain blocked", "LIVE_FINAL_GUARD_FAILED")
+        if residual_handoff.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual handoff open gap count must match residual action plan", "CONTRACT_GAP_HIGH")
+        if residual_handoff.get("handoff_ready_count") != 0:
+            return DashboardValidationResult("BLOCKED", "residual handoff cannot mark packets ready without external evidence", "HARD_TRUTH_MISSING")
+        if residual_handoff.get("blocked_handoff_packet_count") != residual_handoff.get("handoff_packet_count"):
+            return DashboardValidationResult("BLOCKED", "all residual handoff packets must remain blocked", "HARD_TRUTH_MISSING")
+        packet_items = residual_handoff.get("packet_items")
+        if not isinstance(packet_items, list) or len(packet_items) < 3:
+            return DashboardValidationResult("FAIL", "loaded residual handoff must expose at least top three packet actions", "SCHEMA_IDENTITY_MISMATCH")
+        packet_action_classes = [item.get("action_class") for item in packet_items if isinstance(item, dict)]
+        if packet_action_classes[:3] != required_action_classes:
+            return DashboardValidationResult("FAIL", "residual handoff packet priority order is not operator-first", "SCHEMA_IDENTITY_MISMATCH")
+        for packet in packet_items:
+            if not isinstance(packet, dict):
+                return DashboardValidationResult("FAIL", "residual handoff packet item must be an object", "SCHEMA_IDENTITY_MISMATCH")
+            if packet.get("handoff_status") != "BLOCKED_HANDOFF_REQUIRED":
+                return DashboardValidationResult("BLOCKED", "residual handoff packet item must remain blocked", "HARD_TRUTH_MISSING")
+            if not isinstance(packet.get("required_operator_action"), str) or not packet.get("required_operator_action", "").strip():
+                return DashboardValidationResult("FAIL", "residual handoff packet must expose operator action text", "SCHEMA_IDENTITY_MISMATCH")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -17478,8 +17711,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     residual_action_plan = shell.get("residual_open_gap_action_plan", {})
     if not isinstance(residual_action_plan, dict):
         residual_action_plan = {}
+    residual_handoff = shell.get("residual_operator_handoff_packet", {})
+    if not isinstance(residual_handoff, dict):
+        residual_handoff = {}
     residual_action_items = [
         item for item in residual_action_plan.get("action_items", []) if isinstance(item, dict)
+    ]
+    residual_handoff_items = [
+        item for item in residual_handoff.get("packet_items", []) if isinstance(item, dict)
     ]
     residual_open_gap_count = residual_action_plan.get("open_gap_count", 13)
     residual_other_count_raw = residual_action_plan.get("other_blocker_count", 3)
@@ -17534,6 +17773,28 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "<li><strong>PAPER ledger rerun: 3</strong><span>Run bounded PAPER ledger and reconciliation reruns only when inputs exist.</span></li>"
             "<li><strong>PAPER/SHADOW evidence: 3</strong><span>Collect fresh audited PAPER/SHADOW runtime and profitability evidence.</span></li>"
         )
+    residual_handoff_action_html = "".join(
+        (
+            "<li>"
+            f"<strong>{safe_text(item.get('label', 'Handoff packet'))}: {safe_text(item.get('gap_count', 0))}</strong>"
+            f"<span>{safe_text(item.get('required_operator_action', 'Resolve this handoff packet before promotion.'))}</span>"
+            "</li>"
+        )
+        for item in residual_handoff_items[:3]
+    )
+    if residual_handoff_action_html:
+        residual_next_action_html = residual_handoff_action_html
+    handoff_packet_count = residual_handoff.get("handoff_packet_count", 0)
+    blocked_handoff_count = residual_handoff.get("blocked_handoff_packet_count", 0)
+    handoff_ready_count = residual_handoff.get("handoff_ready_count", 0)
+    handoff_summary = residual_handoff.get(
+        "one_line_summary",
+        "Operator handoff packet report is not loaded; residual blockers remain open.",
+    )
+    handoff_primary_next_action = residual_handoff.get(
+        "primary_next_action",
+        "Use the residual action plan until handoff packets are loaded.",
+    )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -18021,6 +18282,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="live-blocker-summary">""" + safe_text(residual_blocker_summary) + """</p>
         <section class="live-blocker-groups" aria-label="residual blocker groups">""" + residual_blocker_group_html + """</section>
         <p class="live-blocker-note">""" + safe_text(residual_blocker_note) + """</p>
+        <p class="live-blocker-note"><strong>Handoff:</strong> """ + safe_text(handoff_summary) + """</p>
+        <p class="live-blocker-note">""" + safe_text(handoff_primary_next_action) + """</p>
+        <section class="live-blocker-groups" aria-label="operator handoff packet counts">
+          <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
+          <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>
+          <div class="live-blocker-group"><strong>Ready</strong><span>""" + safe_text(handoff_ready_count) + """ ready</span></div>
+        </section>
         <p class="source-line">Next Actions</p>
         <ol class="next-action-list" aria-label="residual blocker next actions">""" + residual_next_action_html + """</ol>
         <p class="live-blocker-note">""" + safe_text(residual_action_plan.get("other_blocker_summary", f"Other blocked evidence/policy: {residual_other_count}")) + """</p>
