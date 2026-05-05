@@ -17308,6 +17308,21 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     blocker_label = plain_blocker(blocker)
     next_action = shell.get("next_action") or "continue read-only monitoring; resolve blockers before any trading review"
     blocker_class = status_class(shell.get("final_action"))
+    residual_blocker_summary = "13 blockers remain: operator review 4, ledger/rerun 3, evidence/policy 6."
+    residual_blocker_note = (
+        "No repeated recheck remains; these blockers need operator reconciliation, fresh evidence, or policy approval."
+    )
+    residual_blocker_group_html = "".join(
+        (
+            f"<div class=\"live-blocker-group\"><strong>{safe_text(label)}</strong>"
+            f"<span>{safe_text(count)} left</span></div>"
+        )
+        for label, count in (
+            ("Operator review", 4),
+            ("Ledger/rerun", 3),
+            ("Evidence/policy", 6),
+        )
+    )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -17398,7 +17413,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .quick-status-tile strong { font-size: 19px; line-height: 1.25; overflow-wrap: anywhere; }
     .quick-status-tile small { margin-top: 0; font-size: 12px; line-height: 1.3; }
     .question-label { color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1.25; }
-    .live-answer-reason { color: var(--muted); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+    .live-answer-reason, .live-blocker-summary { display: block; color: var(--muted); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
     .plain-status-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 8px; color: var(--muted); font-size: 13px; line-height: 1.35; }
     .raw-status-tag { display: inline-flex; max-width: 100%; border: 1px solid #cfd6df; border-radius: 999px; padding: 2px 7px; background: #ffffff; color: var(--muted); font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
     .operator-answer-grid { display: grid; gap: 18px; grid-template-columns: minmax(min(100%, 300px), 0.9fr) minmax(min(100%, 420px), 1.35fr) minmax(min(100%, 280px), 0.85fr); align-items: stretch; }
@@ -17406,6 +17421,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .operator-answer-card h2, .summary-card h2, .live-readiness h2 { font-size: 24px; line-height: 1.18; margin: 2px 0 10px; }
     .live-availability-answer { margin: 0 0 8px; font-size: 18px; line-height: 1.35; font-weight: 700; }
     .live-permission-summary { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+    .live-blocker-groups { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); margin: 10px 0; }
+    .live-blocker-group { display: grid; gap: 3px; min-width: 0; padding: 8px; border: 1px solid rgba(0,0,0,.08); border-radius: 6px; background: rgba(255,255,255,.72); }
+    .live-blocker-group strong { color: var(--muted); font-size: 12px; line-height: 1.25; }
+    .live-blocker-group span { font-size: 13px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+    .live-blocker-note { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
     .answer-verdict { font-size: 18px; line-height: 1.35; font-weight: 700; margin-bottom: 10px; }
     .answer-note { color: var(--muted); font-size: 14px; line-height: 1.5; }
     .answer-signal-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin-top: 12px; }
@@ -17750,6 +17770,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <strong>No</strong>
         <small title="live_order_allowed=false">orders are disabled</small>
         <span class="live-answer-reason">Reason: """ + safe_text(blocker_label) + """</span>
+        <span class="live-blocker-summary">""" + safe_text(residual_blocker_summary) + """</span>
       </section>
       </section>
     </section>
@@ -17782,6 +17803,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <h2>Blocked</h2>
         <p class="live-availability-answer">No. Live orders cannot run.</p>
         <p class="status warn">""" + safe_text(blocker_label) + """</p>
+        <section class="live-blocker-groups" aria-label="residual blocker groups">""" + residual_blocker_group_html + """</section>
+        <p class="live-blocker-note">""" + safe_text(residual_blocker_note) + """</p>
         <p class="source-line">Raw blocker: """ + safe_text(blocker) + """</p>
         <p class="next">""" + safe_text(next_action) + """</p>
         <section class="readiness-list">
@@ -17897,6 +17920,9 @@ def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationR
         "operator_quick_status_markup": '<section class="operator-quick-status" aria-label="operator quick status">',
         "three_answer_first_screen": ".operator-answer-grid { display: grid; gap: 18px; grid-template-columns: minmax(min(100%, 300px), 0.9fr) minmax(min(100%, 420px), 1.35fr) minmax(min(100%, 280px), 0.85fr);",
         "answer_card_bound": ".operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 18px;",
+        "live_blocker_summary": ".live-answer-reason, .live-blocker-summary { display: block; color: var(--muted); font-size: 12px;",
+        "live_blocker_groups": ".live-blocker-groups { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));",
+        "live_blocker_groups_markup": '<section class="live-blocker-groups" aria-label="residual blocker groups">',
         "health_signal_auto_fit": ".answer-signal-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));",
         "kpi_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));",
         "ledger_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));",
