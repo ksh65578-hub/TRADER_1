@@ -1020,6 +1020,10 @@
       "schema_id": "trader1.residual_operator_reconciliation_review_cards_report.v1",
       "path": "contracts/schema/residual_operator_reconciliation_review_cards_report.schema.json"
     },
+    "residual_operator_reconciliation_intake_preflight_report": {
+      "schema_id": "trader1.residual_operator_reconciliation_intake_preflight_report.v1",
+      "path": "contracts/schema/residual_operator_reconciliation_intake_preflight_report.schema.json"
+    },
     "residual_operator_evidence_run_preflight_report": {
       "schema_id": "trader1.residual_operator_evidence_run_preflight_report.v1",
       "path": "contracts/schema/residual_operator_evidence_run_preflight_report.schema.json"
