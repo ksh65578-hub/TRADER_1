@@ -1,0 +1,19 @@
+patch_id=MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE_20260506_001
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_bytecode_free_syntax_check.py
+status=PASS returncode=0
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B -m unittest tests.contract.test_residual_operator_reconciliation_submission_review_queue tests.contract.test_residual_operator_reconciliation_submission_security_quarantine tests.contract.test_residual_operator_reconciliation_submission_template_packet tests.contract.test_residual_operator_reconciliation_submission_manifest_preflight tests.dashboard.test_read_only_dashboard tests.contract.test_patch_result_runtime_schema_validation -v
+status=PASS returncode=0
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_patch_result_runtime_schema_validators.py
+status=PASS returncode=0
+$ C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_hygiene_safe_pytest.py -- -q
+status=PASS returncode=0
+validator=schema_validator status=PASS
+validator=registry_validator status=PASS
+validator=patch_result_schema_validator status=PASS
+validator=patch_result_runtime_schema_instance_validator status=PASS
+validator=runtime_schema_instance_validator status=PASS
+validator=read_only_dashboard_validator status=PASS
+validator=dashboard_visual_layout_validator status=PASS
+validator=live_final_guard_validator status=PASS
+validator=generated_artifact_dirty_validator status=PASS
+validator=coverage_index_validator status=PASS

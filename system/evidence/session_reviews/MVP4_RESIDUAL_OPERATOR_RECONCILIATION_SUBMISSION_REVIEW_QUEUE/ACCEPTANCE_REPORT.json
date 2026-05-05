@@ -1,0 +1,17 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE_20260506_001",
+  "created_at_utc": "2026-05-05T21:33:19Z",
+  "acceptance_status": "PASS_BLOCKED_NON_LIVE",
+  "open_gap_count": 13,
+  "review_queue_status": "BLOCKED_OPERATOR_SUBMISSION_MISSING",
+  "single_next_operator_step": "CREATE_OPERATOR_SUBMISSION_MANIFEST",
+  "evidence_file_content_read": false,
+  "secret_pattern_content_scan_performed": false,
+  "operator_submission_validated": false,
+  "operator_submission_accepted": false,
+  "current_evidence_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

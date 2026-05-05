@@ -109,6 +109,9 @@ from trader1.reports.residual_operator_reconciliation_submission_template_packet
 from trader1.reports.residual_operator_reconciliation_submission_security_quarantine import (
     build_residual_operator_reconciliation_submission_security_quarantine_report,
 )
+from trader1.reports.residual_operator_reconciliation_submission_review_queue import (
+    build_residual_operator_reconciliation_submission_review_queue_report,
+)
 from trader1.validation.mvp0_validators import current_authority_hashes, run_validators, sha256_file, sha256_json
 
 
@@ -358,6 +361,28 @@ def residual_operator_reconciliation_submission_security_quarantine_fixture():
     )
 
 
+def residual_operator_reconciliation_submission_review_queue_fixture():
+    path = (
+        ROOT
+        / "system"
+        / "evidence"
+        / "audit_reports"
+        / "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.report.json"
+    )
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+    return build_residual_operator_reconciliation_submission_review_queue_report(
+        residual_operator_reconciliation_submission_manifest_preflight_fixture(),
+        residual_operator_reconciliation_submission_template_packet_fixture(),
+        residual_operator_reconciliation_submission_security_quarantine_fixture(),
+        json.loads((ROOT / "contracts" / "generated" / "current_implementation_state.json").read_text(encoding="utf-8")),
+        patch_id="TEST_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE",
+        generated_at_utc="2026-05-06T00:00:00Z",
+        trader1_sha256="TEST_TRADER_HASH",
+        agents_sha256="TEST_AGENTS_HASH",
+    )
+
+
 def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
     runtime = build_upbit_paper_runtime_cycle_report(
         cycle_id=f"dashboard-scorecard-{session_id}",
@@ -413,6 +438,7 @@ def build_dashboard(
     residual_operator_reconciliation_submission_manifest_preflight_report=None,
     residual_operator_reconciliation_submission_template_packet_report=None,
     residual_operator_reconciliation_submission_security_quarantine_report=None,
+    residual_operator_reconciliation_submission_review_queue_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
@@ -457,6 +483,7 @@ def build_dashboard(
         residual_operator_reconciliation_submission_manifest_preflight_report=residual_operator_reconciliation_submission_manifest_preflight_report,
         residual_operator_reconciliation_submission_template_packet_report=residual_operator_reconciliation_submission_template_packet_report,
         residual_operator_reconciliation_submission_security_quarantine_report=residual_operator_reconciliation_submission_security_quarantine_report,
+        residual_operator_reconciliation_submission_review_queue_report=residual_operator_reconciliation_submission_review_queue_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
@@ -7478,6 +7505,73 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
 
+    def test_dashboard_live_card_exposes_operator_submission_review_queue(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
+            residual_operator_reconciliation_submission_review_queue_report=(
+                residual_operator_reconciliation_submission_review_queue_fixture()
+            ),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        queue = dashboard["residual_operator_reconciliation_submission_review_queue"]
+        self.assertEqual(queue["source_status"], "LOADED")
+        self.assertEqual(queue["status"], "BLOCKED_OPERATOR_SUBMISSION_MISSING")
+        self.assertEqual(queue["open_gap_count"], 13)
+        self.assertTrue(queue["review_order_locked"])
+        self.assertEqual(queue["review_phase_count"], 4)
+        self.assertEqual(queue["blocked_phase_count"], 4)
+        self.assertEqual(queue["review_ready_phase_count"], 0)
+        self.assertEqual(queue["accepted_phase_count"], 0)
+        self.assertEqual(queue["single_next_operator_step"], "CREATE_OPERATOR_SUBMISSION_MANIFEST")
+        self.assertFalse(queue["operator_submission_present"])
+        self.assertFalse(queue["operator_submission_validated"])
+        self.assertFalse(queue["operator_submission_accepted"])
+        self.assertEqual(queue["required_manifest_item_count"], 32)
+        self.assertEqual(queue["manifest_item_count"], 0)
+        self.assertEqual(queue["missing_manifest_item_count"], 32)
+        self.assertEqual(queue["required_control_count"], 4)
+        self.assertEqual(queue["security_control_count"], 4)
+        self.assertEqual([step["phase_id"] for step in queue["review_steps"]], [
+            "TEMPLATE_PACKET",
+            "MANIFEST_PREFLIGHT",
+            "SECURITY_QUARANTINE",
+            "OPERATOR_ACCEPTANCE",
+        ])
+        self.assertFalse(queue["evidence_file_content_read"])
+        self.assertFalse(queue["current_evidence_write_allowed"])
+        self.assertFalse(queue["gap_closure_allowed_by_this_patch"])
+        self.assertFalse(queue["live_ready_write_allowed"])
+        self.assertFalse(queue["live_order_allowed"])
+        self.assertFalse(queue["scale_up_allowed"])
+
+        source = next(
+            item
+            for item in dashboard["source_artifacts"]
+            if item["artifact_id"] == "RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE"
+        )
+        self.assertEqual(
+            source["filename"],
+            "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_REVIEW_QUEUE.report.json",
+        )
+        self.assertEqual(source["freshness_status"], "PASS")
+
+        html = render_dashboard_html(dashboard)
+        answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
+        portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
+        answer_html = html[answer_start:portfolio_start]
+        self.assertIn("Submission review queue:", answer_html)
+        self.assertIn("Next operator step:", answer_html)
+        self.assertIn("ordered review only", answer_html)
+        self.assertIn("evidence read=false", answer_html)
+        self.assertIn("accepted=false", answer_html)
+        self.assertIn("current evidence write=false", answer_html)
+        self.assertIn("LIVE_READY=false", answer_html)
+        self.assertIn("4/4 blocked", answer_html)
+        self.assertIn("32 items", answer_html)
+        self.assertNotIn("<button", answer_html.lower())
+        self.assertNotIn("<form", answer_html.lower())
+
     def test_dashboard_residual_operator_priority_queue_is_deterministic_and_display_only(self):
         dashboard = build_dashboard_with_residual_priority_resolution_binding()
         result = validate_read_only_dashboard_shell(dashboard)
@@ -7784,6 +7878,43 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(quarantine["current_evidence_write_allowed"])
         self.assertFalse(quarantine["live_order_allowed"])
         self.assertFalse(quarantine["scale_up_allowed"])
+
+    def test_dashboard_rejects_operator_submission_review_queue_permission_drift(self):
+        report = residual_operator_reconciliation_submission_review_queue_fixture()
+        report["operator_submission_accepted"] = True
+        report["evidence_file_content_read"] = True
+        report["current_evidence_write_allowed"] = True
+        report["live_ready_write_allowed"] = True
+        report["live_order_allowed"] = True
+        dashboard = build_dashboard(residual_operator_reconciliation_submission_review_queue_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        queue = dashboard["residual_operator_reconciliation_submission_review_queue"]
+        self.assertEqual(queue["source_status"], "LOADED")
+        self.assertEqual(queue["status"], "INVALID")
+        self.assertFalse(queue["operator_submission_accepted"])
+        self.assertFalse(queue["evidence_file_content_read"])
+        self.assertFalse(queue["current_evidence_write_allowed"])
+        self.assertFalse(queue["live_ready_write_allowed"])
+        self.assertFalse(queue["live_order_allowed"])
+        self.assertFalse(queue["scale_up_allowed"])
+
+    def test_dashboard_rejects_operator_submission_review_queue_order_drift(self):
+        report = residual_operator_reconciliation_submission_review_queue_fixture()
+        report["review_order_locked"] = False
+        report["review_ready_phase_count"] = 1
+        report["review_steps"] = list(reversed(report["review_steps"]))
+        dashboard = build_dashboard(residual_operator_reconciliation_submission_review_queue_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        queue = dashboard["residual_operator_reconciliation_submission_review_queue"]
+        self.assertEqual(queue["source_status"], "LOADED")
+        self.assertEqual(queue["status"], "INVALID")
+        self.assertFalse(queue["current_evidence_write_allowed"])
+        self.assertFalse(queue["live_order_allowed"])
+        self.assertFalse(queue["scale_up_allowed"])
 
     def test_dashboard_visual_layout_contract_blocks_cramped_regression(self):
         html = render_dashboard_html(build_dashboard())
