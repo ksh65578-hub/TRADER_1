@@ -1,0 +1,360 @@
+{
+  "schema_id": "trader1.residual_operator_handoff_packet_report.v1",
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET_20260505_001",
+  "generated_at_utc": "2026-05-05T07:24:23Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "source_reports": [
+    {
+      "role": "residual_open_gap_operator_action_plan",
+      "patch_id": "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN_20260505_001",
+      "report_hash": "C99AA8E05CC77FF240582EE3CDCC6DAEA1210328A7F6F10EACD7518B63E9ABA3"
+    },
+    {
+      "role": "residual_operator_evidence_audit_binding",
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_AUDIT_BINDING_20260505_001",
+      "report_hash": "28B4438C283642C97AF8BE44B19486C8255E5537B00BE0A90EBC855A0EE27E03"
+    },
+    {
+      "role": "residual_paper_ledger_rerun_readiness",
+      "patch_id": "MVP4_RESIDUAL_PAPER_LEDGER_RERUN_READINESS_20260505_001",
+      "report_hash": "A2E7575853411246436C79B349D625FD6AF0B3D4D6C03C41B5BF13C7B0441B55"
+    },
+    {
+      "role": "external_live_evidence_intake_preflight",
+      "patch_id": "MVP4_EXTERNAL_LIVE_EVIDENCE_INTAKE_PREFLIGHT_20260505_001",
+      "report_hash": "3F7F83006CE0E06272FA976F1DBC78883C8A05655584AF9E141993E232A7C8A0"
+    }
+  ],
+  "state_last_patch_id_before": "MVP4_EXTERNAL_LIVE_EVIDENCE_INTAKE_PREFLIGHT_20260505_001",
+  "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "open_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "open_gap_count": 13,
+  "covered_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "covered_gap_count": 13,
+  "unassigned_gap_ids": [],
+  "extra_gap_ids": [],
+  "duplicate_gap_ids": [],
+  "blocked_requirement_ids": [
+    "REQ-MVP4-OFFICIAL-API-PASS-EVIDENCE",
+    "REQ-MVP4-OPERATOR-APPROVAL-EVIDENCE",
+    "REQ-MVP4-READ-ONLY-ACCOUNT-SNAPSHOT-EVIDENCE",
+    "REQ-MVP4-READ-ONLY-BURN-IN-EVIDENCE"
+  ],
+  "blocked_requirement_count": 4,
+  "handoff_packet_count": 6,
+  "blocked_handoff_packet_count": 6,
+  "handoff_ready_count": 0,
+  "implementation_recheck_action_count": 0,
+  "external_intake_ready_count": 0,
+  "external_missing_or_unusable_count": 4,
+  "paper_ledger_rerun_readiness_status": "BLOCKED_RECONCILIATION_REQUIRED",
+  "paper_current_evidence_write_allowed": false,
+  "operator_or_external_action_required": true,
+  "current_evidence_write_allowed": false,
+  "current_evidence_mutation_allowed": false,
+  "latest_runtime_pointer_write_allowed": false,
+  "gap_closure_allowed_by_this_patch": false,
+  "live_config_mutation_allowed": false,
+  "handoff_packets": [
+    {
+      "packet_id": "HANDOFF:OPERATOR_RECONCILIATION_ACTION",
+      "action_class": "OPERATOR_RECONCILIATION_ACTION",
+      "handoff_type": "OPERATOR_RECONCILIATION",
+      "priority": 1,
+      "gap_ids": [
+        "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+        "POST_REPAIR_RECONCILIATION_REQUIRED",
+        "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+        "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED"
+      ],
+      "gap_count": 4,
+      "source_categories": [
+        "OPERATOR_RECONCILIATION"
+      ],
+      "required_evidence_kinds": [
+        "operator_reconciliation_audit",
+        "repair_candidate_hash_review",
+        "ledger_recovery_reconciliation"
+      ],
+      "required_operator_action": "Review repaired, regenerated, and hash-mismatched evidence before any promotion.",
+      "closure_preconditions": [
+        "operator reconciliation artifact PASS for the exact exchange, market_type, mode, and session",
+        "candidate evidence hashes match the source artifacts under review",
+        "current evidence write remains blocked until reconciliation explicitly resolves the gap"
+      ],
+      "linked_source_report_roles": [
+        "residual_open_gap_operator_action_plan",
+        "residual_operator_evidence_audit_binding"
+      ],
+      "source_audit_binding_status": "BOUND_BLOCKED",
+      "handoff_status": "BLOCKED_HANDOFF_REQUIRED",
+      "evidence_ready_for_closure": false,
+      "operator_submission_required": true,
+      "current_evidence_write_allowed": false,
+      "current_evidence_mutation_allowed": false,
+      "latest_runtime_pointer_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_allowed": false,
+      "live_config_mutation_allowed": false,
+      "scale_up_allowed": false,
+      "extra_status": {}
+    },
+    {
+      "packet_id": "HANDOFF:PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+      "action_class": "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+      "handoff_type": "PAPER_RERUN_RECONCILIATION",
+      "priority": 2,
+      "gap_ids": [
+        "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+        "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+        "POST_RERUN_RECONCILIATION_REQUIRED"
+      ],
+      "gap_count": 3,
+      "source_categories": [
+        "LEDGER_RERUN_RECONCILIATION"
+      ],
+      "required_evidence_kinds": [
+        "bounded_paper_rerun_output",
+        "post_rerun_ledger_rollup",
+        "post_rerun_operator_reconciliation"
+      ],
+      "required_operator_action": "Use PAPER-only rerun outputs as candidates until post-rerun reconciliation passes.",
+      "closure_preconditions": [
+        "bounded staging report PASS",
+        "post-rerun ledger rollup report PASS",
+        "post-rerun reconciliation report PASS before current evidence promotion"
+      ],
+      "linked_source_report_roles": [
+        "residual_open_gap_operator_action_plan",
+        "residual_operator_evidence_audit_binding",
+        "residual_paper_ledger_rerun_readiness"
+      ],
+      "source_audit_binding_status": "BOUND_BLOCKED",
+      "handoff_status": "BLOCKED_HANDOFF_REQUIRED",
+      "evidence_ready_for_closure": false,
+      "operator_submission_required": true,
+      "current_evidence_write_allowed": false,
+      "current_evidence_mutation_allowed": false,
+      "latest_runtime_pointer_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_allowed": false,
+      "live_config_mutation_allowed": false,
+      "scale_up_allowed": false,
+      "extra_status": {
+        "paper_ledger_rerun_readiness_status": "BLOCKED_RECONCILIATION_REQUIRED",
+        "paper_post_rerun_reconciliation_status": "BLOCKED",
+        "paper_current_evidence_bridge_status": "BLOCKED_BY_POST_RERUN_CLOSURE",
+        "paper_current_evidence_write_allowed": false
+      }
+    },
+    {
+      "packet_id": "HANDOFF:PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+      "action_class": "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+      "handoff_type": "PAPER_SHADOW_COLLECTION",
+      "priority": 3,
+      "gap_ids": [
+        "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+        "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+        "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY"
+      ],
+      "gap_count": 3,
+      "source_categories": [
+        "RUNTIME_LONG_RUN_EVIDENCE",
+        "PAPER_SHADOW_RUNTIME_EVIDENCE",
+        "PROFITABILITY_EVIDENCE_MATURITY"
+      ],
+      "required_evidence_kinds": [
+        "long_run_paper_shadow_runtime_evidence",
+        "shadow_observation_evidence",
+        "profitability_maturity_evidence"
+      ],
+      "required_operator_action": "Collect longer PAPER/SHADOW evidence without credentials or live order paths.",
+      "closure_preconditions": [
+        "long-run PAPER/SHADOW evidence satisfies the required runtime boundary",
+        "shadow observation and profitability maturity validators pass",
+        "evidence is not inferred across exchange, market_type, mode, or session"
+      ],
+      "linked_source_report_roles": [
+        "residual_open_gap_operator_action_plan",
+        "residual_operator_evidence_audit_binding"
+      ],
+      "source_audit_binding_status": "BOUND_BLOCKED",
+      "handoff_status": "BLOCKED_HANDOFF_REQUIRED",
+      "evidence_ready_for_closure": false,
+      "operator_submission_required": false,
+      "current_evidence_write_allowed": false,
+      "current_evidence_mutation_allowed": false,
+      "latest_runtime_pointer_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_allowed": false,
+      "live_config_mutation_allowed": false,
+      "scale_up_allowed": false,
+      "extra_status": {}
+    },
+    {
+      "packet_id": "HANDOFF:EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+      "action_class": "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+      "handoff_type": "EXTERNAL_LIVE_EVIDENCE",
+      "priority": 4,
+      "gap_ids": [
+        "LIVE_ENABLING_EVIDENCE_MISSING"
+      ],
+      "gap_count": 1,
+      "source_categories": [
+        "EXTERNAL_LIVE_EVIDENCE"
+      ],
+      "required_evidence_kinds": [
+        "official_api_verification",
+        "read_only_account_snapshot",
+        "live_burn_in_feedback",
+        "operator_approval"
+      ],
+      "required_operator_action": "Provide independent live-readiness evidence outside this non-live patch path.",
+      "closure_preconditions": [
+        "external live-readiness evidence exists for the exact scope",
+        "all live-blocking validators pass independently",
+        "a separate reviewed LIVE_ENABLING path is required before live permission can change"
+      ],
+      "linked_source_report_roles": [
+        "residual_open_gap_operator_action_plan",
+        "residual_operator_evidence_audit_binding",
+        "external_live_evidence_intake_preflight"
+      ],
+      "source_audit_binding_status": "BOUND_BLOCKED",
+      "handoff_status": "BLOCKED_HANDOFF_REQUIRED",
+      "evidence_ready_for_closure": false,
+      "operator_submission_required": true,
+      "current_evidence_write_allowed": false,
+      "current_evidence_mutation_allowed": false,
+      "latest_runtime_pointer_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_allowed": false,
+      "live_config_mutation_allowed": false,
+      "scale_up_allowed": false,
+      "extra_status": {
+        "external_blocked_requirement_count": 4,
+        "external_intake_ready_count": 0,
+        "external_missing_or_unusable_count": 4,
+        "external_preflight_status": "BLOCKED_EXTERNAL_EVIDENCE_MISSING"
+      }
+    },
+    {
+      "packet_id": "HANDOFF:SEALED_BASELINE_PRESERVATION_ACTION",
+      "action_class": "SEALED_BASELINE_PRESERVATION_ACTION",
+      "handoff_type": "SEALED_BASELINE_PRESERVATION",
+      "priority": 5,
+      "gap_ids": [
+        "PATCH_RESULT_VALIDATOR_RUN_GAP"
+      ],
+      "gap_count": 1,
+      "source_categories": [
+        "SEALED_HISTORICAL_PATCH_RESULT_BASELINE"
+      ],
+      "required_evidence_kinds": [
+        "sealed_patch_result_baseline_reconciliation"
+      ],
+      "required_operator_action": "Preserve sealed validator-run history; do not rewrite historical baselines by inference.",
+      "closure_preconditions": [
+        "sealed baseline status remains explicit",
+        "historical patch_result validator-run gaps are not rewritten"
+      ],
+      "linked_source_report_roles": [
+        "residual_open_gap_operator_action_plan",
+        "residual_operator_evidence_audit_binding"
+      ],
+      "source_audit_binding_status": "BOUND_BLOCKED",
+      "handoff_status": "BLOCKED_HANDOFF_REQUIRED",
+      "evidence_ready_for_closure": false,
+      "operator_submission_required": false,
+      "current_evidence_write_allowed": false,
+      "current_evidence_mutation_allowed": false,
+      "latest_runtime_pointer_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_allowed": false,
+      "live_config_mutation_allowed": false,
+      "scale_up_allowed": false,
+      "extra_status": {}
+    },
+    {
+      "packet_id": "HANDOFF:SCALE_UP_POLICY_EVIDENCE_ACTION",
+      "action_class": "SCALE_UP_POLICY_EVIDENCE_ACTION",
+      "handoff_type": "SCALE_UP_POLICY",
+      "priority": 6,
+      "gap_ids": [
+        "SCALE_UP_NOT_ELIGIBLE"
+      ],
+      "gap_count": 1,
+      "source_categories": [
+        "SCALE_UP_POLICY"
+      ],
+      "required_evidence_kinds": [
+        "scale_up_eligibility_validation",
+        "live_burn_in_parity",
+        "survival_layer_evidence",
+        "operator_policy_permission"
+      ],
+      "required_operator_action": "Keep scale-up disabled until validators and operator policy pass for the exact scope.",
+      "closure_preconditions": [
+        "scale_up_eligibility_validator PASS",
+        "burn-in, paper/live parity, survival layer, and operator policy evidence PASS",
+        "scale-up is never enabled by optimizer score alone"
+      ],
+      "linked_source_report_roles": [
+        "residual_open_gap_operator_action_plan",
+        "residual_operator_evidence_audit_binding"
+      ],
+      "source_audit_binding_status": "BOUND_BLOCKED",
+      "handoff_status": "BLOCKED_HANDOFF_REQUIRED",
+      "evidence_ready_for_closure": false,
+      "operator_submission_required": false,
+      "current_evidence_write_allowed": false,
+      "current_evidence_mutation_allowed": false,
+      "latest_runtime_pointer_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_allowed": false,
+      "live_config_mutation_allowed": false,
+      "scale_up_allowed": false,
+      "extra_status": {}
+    }
+  ],
+  "handoff_status": "BLOCKED_HANDOFF_REQUIRED",
+  "validation_status": "PASS",
+  "validation_errors": [],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "report_hash": "013246BCC215C3D597851A23925B7FC257113DF5A59C09B0D2B8F163DAAB17E4"
+}

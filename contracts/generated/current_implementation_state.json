@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-05T07:08:51Z",
+  "updated_at_utc": "2026-05-05T07:24:23Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -207,6 +207,7 @@
     "REQ-MVP4-REPRODUCIBILITY-TEST-HARNESS-RECHECK",
     "REQ-MVP4-RESIDUAL-OPEN-GAP-OPERATOR-ACTION-PLAN",
     "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-AUDIT-BINDING",
+    "REQ-MVP4-RESIDUAL-OPERATOR-HANDOFF-PACKET",
     "REQ-MVP4-RESIDUAL-PAPER-LEDGER-RERUN-READINESS",
     "REQ-MVP4-RESTART-RECOVERY-WAL-LEDGER-BINDING-RECHECK",
     "REQ-MVP4-REVIEW-PLAN-DELETE-POLICY",
@@ -445,6 +446,7 @@
     "trader1.replay_consistency_report.v1",
     "trader1.residual_open_gap_operator_action_plan_report.v1",
     "trader1.residual_operator_evidence_audit_binding_report.v1",
+    "trader1.residual_operator_handoff_packet_report.v1",
     "trader1.residual_paper_ledger_rerun_readiness_report.v1",
     "trader1.restart_recovery_report.v1",
     "trader1.risk_scaling_decision.v1",
@@ -715,12 +717,12 @@
     "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
     "SCALE_UP_NOT_ELIGIBLE"
   ],
-  "last_patch_id": "MVP4_EXTERNAL_LIVE_EVIDENCE_INTAKE_PREFLIGHT_20260505_001",
-  "last_patch_result_hash": "977CBF20F085DD8C67C1A3457ED9B3280C91DB5265AD69E730C86C085D499D94",
+  "last_patch_id": "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET_20260505_001",
+  "last_patch_result_hash": "404948FD6E4B34B0215FBC156BDF2BA326C57CD1DF51157777C4897152704C74",
   "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "3D76118501351468C2714AA8A50A2028343B3E7EEDBFAE2CC81C03CDD9AE0872"
+  "state_hash": "18FA76684283071BCBE8CA231289FFDA5F714CF7E6D63103A1A686BA94FED2B3"
 }
