@@ -10,10 +10,13 @@ PATCH_PATH = (
     / "system"
     / "evidence"
     / "patch_results"
-    / "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.patch_result.json"
+    / "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.patch_result.json"
 )
 COMPLETED_RECONCILIATION_REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-RECONCILIATION-REQUIRED-STATE-SYNC-RECHECK"
 COMPLETED_WRITE_BLOCKED_REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK"
+COMPLETED_CURRENT_WRITE_BLOCKED_RECHECK_REQUIREMENT_ID = (
+    "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-RECHECK"
+)
 COMPLETED_POST_REPAIR_RECHECK_REQUIREMENT_ID = "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-RECHECK"
 COMPLETED_HASH_MISMATCH_RECHECK_REQUIREMENT_ID = (
     "REQ-MVP4-REPAIR-CANDIDATE-HASH-MISMATCH-RECONCILIATION-REQUIRED-RECHECK"
@@ -58,7 +61,7 @@ COMPLETED_PAPER_SHADOW_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID = (
 )
 BACKWARD_RECONCILIATION_TASK = "MVP4_POST_RERUN_RECONCILIATION_REQUIRED_RECHECK"
 BACKWARD_WRITE_BLOCKED_TASK = "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK"
-EXPECTED_NEXT_TASK = "MVP4_POST_REPAIR_RECONCILIATION_REQUIRED_RECHECK"
+EXPECTED_NEXT_TASK = "MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK"
 EXPECTED_POST_REPAIR_NEXT_TASK = "MVP4_REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED_RECHECK"
 EXPECTED_HASH_MISMATCH_NEXT_TASK = "MVP4_BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION_RECHECK"
 EXPECTED_BLOCKED_REPAIR_PLAN_NEXT_TASK = (
@@ -226,17 +229,17 @@ class PostRerunCurrentEvidenceWriteBlockedRecheckTest(unittest.TestCase):
                 self.assertFalse(item["live_order_allowed"])
                 self.assertFalse(item["scale_up_allowed"])
 
-    def test_state_sync_recheck_keeps_write_blocked_gap_open_and_routes_to_validator_gap(self):
+    def test_recheck_keeps_write_blocked_gap_open_and_routes_to_live_evidence_gap(self):
         state = load_json(STATE_PATH)
         patch_result = load_json(PATCH_PATH)
 
         self.assertEqual(
             patch_result["patch_id"],
-            "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK_20260504_001",
+            "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK_20260505_001",
         )
-        self.assertEqual(patch_result["next_task_class"], "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK")
+        self.assertEqual(patch_result["next_task_class"], EXPECTED_NEXT_TASK)
         if state["last_patch_id"] == patch_result["patch_id"]:
-            self.assertEqual(state["next_allowed_task_class"], "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK")
+            self.assertEqual(state["next_allowed_task_class"], EXPECTED_NEXT_TASK)
         else:
             self.assertNotEqual(state["next_allowed_task_class"], "")
         self.assertIn("POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED", state["open_contract_gap_ids"])
@@ -278,7 +281,11 @@ class PostRerunCurrentEvidenceWriteBlockedRecheckTest(unittest.TestCase):
         if POST_RERUN_RECONCILIATION_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK_REQUIREMENT_ID in completed:
             completed_route_task_classes.remove(BACKWARD_WRITE_BLOCKED_TASK)
         self.assertNotIn(state["next_allowed_task_class"], completed_route_task_classes)
-        if state["last_patch_id"].startswith("MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK_"):
+        if state["last_patch_id"].startswith("MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK_"):
+            self.assertIn(COMPLETED_CURRENT_WRITE_BLOCKED_RECHECK_REQUIREMENT_ID, completed)
+            expected_next_task = EXPECTED_NEXT_TASK
+            self.assertEqual(state["next_allowed_task_class"], expected_next_task)
+        elif state["last_patch_id"].startswith("MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK_"):
             expected_next_task = "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK"
             self.assertEqual(state["next_allowed_task_class"], expected_next_task)
         elif state["last_patch_id"].startswith("MVP4_ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_COLLECTION_DEPTH_RECHECK_"):

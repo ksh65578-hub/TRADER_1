@@ -6607,6 +6607,67 @@
       "status": "IMPLEMENTED_DEPTH_5_RUNTIME_CHAIN_GAP_OPEN"
     },
     {
+      "requirement_id": "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-RECHECK",
+      "section_id": "SECTION_CURRENT_EVIDENCE_CLOSURE",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/upbit_paper_post_rerun_current_evidence_promotion_guard_report.schema.json",
+        "contracts/schema/upbit_paper_post_rerun_operator_reconciliation_queue_report.schema.json",
+        "contracts/schema/upbit_paper_post_rerun_resolution_current_evidence_closure_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py"
+      ],
+      "fixture_files": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_current_evidence_promotion_guard_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_queue_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_operator_resolution_audit_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_reconciliation_decision_audit_report.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_post_rerun_resolution_current_evidence_closure_report.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_CURRENT_EVIDENCE_PROMOTION_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RECONCILIATION_QUEUE.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RECONCILIATION_REVIEW_GUIDANCE.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_OPERATOR_RESOLUTION_AUDIT.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_BLOCKER_ROLLUP.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_RECONCILIATION_DECISION_AUDIT.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_POST_RERUN_RESOLUTION_CURRENT_EVIDENCE_CLOSURE.patch_result.json",
+        "system/evidence/patch_results/MVP4_POST_RERUN_RECONCILIATION_REQUIRED_STATE_SYNC_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.patch_result.json"
+      ],
+      "runtime_modules": [
+        "trader1/runtime/paper/upbit_paper_post_rerun_current_evidence_promotion_guard.py",
+        "trader1/runtime/paper/upbit_paper_post_rerun_operator_reconciliation_queue.py",
+        "trader1/runtime/paper/upbit_paper_post_rerun_resolution_current_evidence_closure.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "post_rerun_current_evidence_promotion_guard_status",
+        "post_rerun_promotion_review_ready_count",
+        "post_rerun_promotion_candidate_verified_count",
+        "post_rerun_current_evidence_write_allowed_count",
+        "post_rerun_current_evidence_write_authorized_count",
+        "candidate_current_evidence_usable_count",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RECHECK_GAP_OPEN"
+    },
+    {
       "requirement_id": "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK",
       "section_id": "SECTION_CURRENT_EVIDENCE_CLOSURE",
       "schema_files": [
@@ -15253,7 +15314,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-04T23:50:38Z",
+  "updated_at_utc": "2026-05-05T00:09:24Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

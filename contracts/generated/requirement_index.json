@@ -8851,6 +8851,98 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-RECHECK",
+      "source_section_id": "SECTION_CURRENT_EVIDENCE_CLOSURE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "post-rerun current evidence write blocked recheck",
+      "full_text_marker": "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-RECHECK: recognize existing post-rerun current-evidence write blocker and preserve review-only candidate evidence without current evidence mutation",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Post-rerun current evidence write blocked recheck",
+      "requirement_kind": "VALIDATOR_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.upbit_paper_post_rerun_current_evidence_promotion_guard_report.v1",
+        "trader1.upbit_paper_post_rerun_operator_reconciliation_queue_report.v1",
+        "trader1.upbit_paper_post_rerun_resolution_current_evidence_closure_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "upbit_paper_post_rerun_current_evidence_promotion_guard_validator",
+        "upbit_paper_post_rerun_reconciliation_blocker_rollup_validator",
+        "upbit_paper_post_rerun_reconciliation_decision_audit_validator",
+        "upbit_paper_post_rerun_operator_reconciliation_queue_validator",
+        "upbit_paper_post_rerun_operator_reconciliation_review_guidance_validator",
+        "upbit_paper_post_rerun_operator_resolution_audit_validator",
+        "upbit_paper_post_rerun_resolution_current_evidence_closure_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "source_bundle_hygiene_validator",
+        "shipped_package_hygiene_validator",
+        "secret_scan_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/context_pack/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.md",
+        "system/evidence/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK.validator_run_log.json",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
+        "tools/emit_post_rerun_current_evidence_write_blocked_recheck_patch_evidence.py"
+      ],
+      "test_ids": [
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_CURRENT_EVIDENCE_CLOSURE",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_RUNTIME_IDEMPOTENCY",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-POST-RERUN-CURRENT-EVIDENCE-PROMOTION-GUARD",
+        "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RECONCILIATION-QUEUE",
+        "REQ-MVP4-UPBIT-PAPER-POST-RERUN-OPERATOR-RESOLUTION-AUDIT",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "E42485494BEB0D42C0095312871956129C53F78D5F8C39C806732E49FA10BDA4",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_RECHECK_GAP_OPEN",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK",
       "source_section_id": "SECTION_CURRENT_EVIDENCE_CLOSURE",
       "source_file": "TRADER_1.md",
@@ -21121,5 +21213,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-04T23:50:38Z"
+  "updated_at_utc": "2026-05-05T00:09:24Z"
 }
