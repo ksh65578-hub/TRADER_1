@@ -1,0 +1,246 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK_20260505_001",
+  "created_at_utc": "2026-05-05T00:38:51Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "VALIDATOR_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "MATCH",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-LIVE-ENABLING-EVIDENCE-MISSING-RECHECK",
+    "REQ-MVP4-LIVE-FINAL-GUARD",
+    "REQ-MVP4-LIVE-BLOCKED-NEGATIVE-RECHECK",
+    "REQ-MVP0-LIVE-BLOCKED-TEST"
+  ],
+  "affected_exchange": "UPBIT_AND_BINANCE",
+  "affected_market_type": "KRW_SPOT_AND_SPOT",
+  "affected_mode": "PAPER_READ_ONLY_AND_LIVE_HARD_BLOCKED",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "REQ-MVP4-LIVE-ENABLING-EVIDENCE-MISSING-RECHECK",
+    "contracts/generated/context_pack/MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK.md",
+    "system/evidence/contract_gaps/LIVE_ENABLING_EVIDENCE_MISSING.contract_gap.json"
+  ],
+  "new_or_changed_schema_ids": [],
+  "validators_required": [
+    "schema_validator",
+    "registry_validator",
+    "runtime_schema_instance_validator",
+    "live_blocked_scaffold_validator",
+    "live_blocked_negative_matrix_validator",
+    "single_writer_order_path_validator",
+    "strategy_direct_order_validator",
+    "live_final_guard_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator",
+    "coverage_index_validator",
+    "source_bundle_hygiene_validator",
+    "shipped_package_hygiene_validator",
+    "secret_scan_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_blocked_scaffold_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_blocked_negative_matrix_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "single_writer_order_path_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "strategy_direct_order_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "source_bundle_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shipped_package_hygiene_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "secret_scan_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/contract/test_live_enabling_evidence_missing_recheck.py tests/live_blocked/test_order_path_guard.py tests/live_blocked/test_live_blocked_scaffold.py -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_mvp0_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider -q",
+      "status": "PASS",
+      "returncode": 0
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "UPDATED_PASS",
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "LIVE_IMPACT_RECHECKED_NO_ARCHIVE_AUTHORITY",
+  "read_cache_update_required": true,
+  "context_pack_update_required": true,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK",
+  "next_required_section_ids": [
+    "SECTION_LIVE_FINAL_GUARD",
+    "SECTION_CONVERGENCE_RISK_SCALING",
+    "SECTION_LIVE_BLOCKED_TEST"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_CONVERGENCE_DASHBOARD"
+  ],
+  "next_forbidden_default_sections": [
+    "MVP5_LIVE_PERMISSION",
+    "LIVE_CONFIG_MUTATION",
+    "RISK_SCALE_UP"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "API_UNVERIFIED",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "EXECUTION_QUALITY_UNTESTED",
+    "EXTERNAL_CREDENTIAL_REQUIRED",
+    "LIVE_BURN_IN_FEEDBACK_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "LIVE_READY_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "OPERATOR_APPROVAL_MISSING",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "READ_ONLY_ACCOUNT_SNAPSHOT_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "RISK_SCALING_UNTESTED",
+    "SCALE_UP_NOT_ELIGIBLE",
+    "SURVIVAL_LAYER_BLOCKED"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "current_implementation_state",
+    "external live review blocker manifest",
+    "live final guard patch result",
+    "live blocked negative matrix",
+    "SECTION_LIVE_FINAL_GUARD",
+    "SECTION_LIVE_BLOCKED_TEST"
+  ],
+  "task_class": "MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK",
+  "required_section_ids": [
+    "SECTION_LIVE_GATE",
+    "SECTION_LIVE_FINAL_GUARD",
+    "SECTION_LIVE_BLOCKED_TEST",
+    "SECTION_ORDER_PATH_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_LIVE_GATE",
+    "SECTION_LIVE_FINAL_GUARD",
+    "SECTION_LIVE_BLOCKED_TEST",
+    "SECTION_ORDER_PATH_GUARD"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "REUSED_HASH_MATCH",
+  "requirement_index_status": "UPDATED",
+  "requirement_artifact_matrix_status": "UPDATED_PASS",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "UPDATED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "NO_OPTIMIZER_RUNTIME_CHANGE_LIVE_BLOCKED_NEGATIVE_RECHECK",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "NO_CONVERGENCE_RUNTIME_CHANGE",
+  "convergence_layer_changed": false,
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "result_hash": "1C4681C6DEF90EBF8AD7BBC2758A22C3110E3CC1A01B7FC4092E1719518F300F"
+}

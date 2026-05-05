@@ -4009,6 +4009,54 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-LIVE-ENABLING-EVIDENCE-MISSING-RECHECK",
+      "section_id": "SECTION_LIVE_FINAL_GUARD",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/evidence_manifest.schema.json",
+        "contracts/schema/contract_gap.schema.json",
+        "contracts/schema/validator_result.schema.json"
+      ],
+      "validator_files": [
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_live_enabling_evidence_missing_recheck.py",
+        "tests/live_blocked/test_order_path_guard.py",
+        "tests/live_blocked/test_live_blocked_scaffold.py"
+      ],
+      "fixture_files": [
+        "system/evidence/MVP4_EXTERNAL_BLOCKER.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_EXTERNAL_BLOCKER.patch_result.json",
+        "system/evidence/patch_results/MVP4_LIVE_FINAL_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_LIVE_BLOCKED_NEGATIVE_RECHECK.patch_result.json",
+        "tests/live_blocked/fixtures/live_blocked_matrix.json"
+      ],
+      "runtime_modules": [
+        "trader1/safety/live_order_gate.py",
+        "trader1/execution/live_order_gateway.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK.evidence_manifest.json",
+        "system/evidence/patch_results/MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK.patch_result.json",
+        "system/evidence/stage_gates/MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK.validator_run_log.json",
+        "system/evidence/contract_gaps/LIVE_ENABLING_EVIDENCE_MISSING.contract_gap.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "remaining_blockers",
+        "next_task_class",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RECHECK_GAP_OPEN"
+    },
+    {
       "requirement_id": "REQ-MVP4-LIVE-SAFETY-INVARIANTS",
       "section_id": "SECTION_LIVE_FINAL_GUARD",
       "schema_files": [
@@ -15314,7 +15362,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-05T00:09:24Z",
+  "updated_at_utc": "2026-05-05T00:38:51Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }
