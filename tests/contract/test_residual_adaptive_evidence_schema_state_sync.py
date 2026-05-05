@@ -87,7 +87,10 @@ class ResidualAdaptiveEvidenceSchemaStateSyncTest(unittest.TestCase):
         if state["last_patch_id"] == PATCH_ID:
             self.assertEqual(state["last_patch_result_hash"], patch_result["result_hash"])
         else:
-            self.assertTrue(state["last_patch_id"].startswith("MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_"))
+            self.assertTrue(
+                state["last_patch_id"].startswith("MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_")
+                or state["last_patch_id"].startswith("MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_")
+            )
         self.assertEqual(patch_result["patch_id"], PATCH_ID)
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
         self.assertEqual(state["next_allowed_task_class"], NEXT_TASK_CLASS)

@@ -1,0 +1,9 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_DECISION_CARDS_20260506_001",
+  "paper_run_executed_by_this_patch": false,
+  "local_runtime_command_count": 1,
+  "local_runtime_completed_count": 0,
+  "minimum_observation_hours_required": 0,
+  "user_runtime_required_for_next_non_live_patch": false,
+  "user_runtime_required_for_gap_closure": true
+}

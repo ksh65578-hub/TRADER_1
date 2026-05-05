@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-05T17:16:24Z",
+  "updated_at_utc": "2026-05-05T17:52:37Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -4660,11 +4660,35 @@
       "can_live_trade_after": false,
       "scale_up_allowed_after": false,
       "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
+    },
+    {
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_DECISION_CARDS_20260506_001",
+      "patch_class": "EVIDENCE_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.patch_result.json",
+      "patch_result_hash": "A95203125488109E5DC7B12FAECA68C2E7818DE17CB91740E1E113F02AD31260",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false,
+      "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
+    },
+    {
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_DECISION_CARDS_20260506_001",
+      "patch_class": "EVIDENCE_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.patch_result.json",
+      "patch_result_hash": "774E226DABB001AFE5315D5F408D1A82C56C5B264BD6239FF77554E5F935CF30",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false,
+      "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
     }
   ],
-  "ledger_hash": "CF04083EBBF2989441BA8DC74834170CF74049EFD39989965C9FD53C40FF373F",
-  "last_patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_OPERATOR_RESOLUTION_AUDIT_BINDING_20260506_001",
-  "last_patch_result_hash": "C0F5BA4585A89C4D84FFF502E8CED96FF4CE06E81B3146F11C52A201055B8391",
+  "ledger_hash": "E6CDB9DB49380DF5F8EE94D0189C4C556EEB14EB99FC85CF59B7DA70C9DA6F81",
+  "last_patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_DECISION_CARDS_20260506_001",
+  "last_patch_result_hash": "774E226DABB001AFE5315D5F408D1A82C56C5B264BD6239FF77554E5F935CF30",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,

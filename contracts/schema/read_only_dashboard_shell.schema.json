@@ -3434,6 +3434,10 @@
           "type": "integer",
           "minimum": 0
         },
+        "execution_step_count": {
+          "type": "integer",
+          "minimum": 0
+        },
         "evidence_item_count": {
           "type": "integer",
           "minimum": 0
@@ -3528,6 +3532,117 @@
         "primary_next_action": {
           "type": "string",
           "minLength": 1
+        },
+        "operator_no_action_needed_for_next_patch": {
+          "type": "boolean"
+        },
+        "operator_decision_status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_DECISION_CARDS_READY"
+          ]
+        },
+        "operator_decision_card_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "single_next_operator_decision": {
+          "type": "object",
+          "required": [
+            "action_class",
+            "label",
+            "decision_status",
+            "gap_count",
+            "next_safe_action",
+            "operator_can_run_local_command"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "action_class": {
+              "enum": [
+                "OPERATOR_RECONCILIATION_ACTION",
+                "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+                "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+                "SEALED_BASELINE_PRESERVATION_ACTION",
+                "SCALE_UP_POLICY_EVIDENCE_ACTION",
+                "CLASSIFY_OPEN_GAP_ACTION"
+              ]
+            },
+            "label": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision_status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "gap_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "next_safe_action": {
+              "type": "string"
+            },
+            "operator_can_run_local_command": {
+              "type": "boolean"
+            }
+          }
+        },
+        "operator_decision_preview": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "decision_card_id",
+              "action_class",
+              "label",
+              "decision_status",
+              "gap_count",
+              "required_evidence_item_count",
+              "next_safe_action",
+              "operator_can_run_local_command"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "decision_card_id": {
+                "type": "string"
+              },
+              "action_class": {
+                "enum": [
+                  "OPERATOR_RECONCILIATION_ACTION",
+                  "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                  "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+                  "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+                  "SEALED_BASELINE_PRESERVATION_ACTION",
+                  "SCALE_UP_POLICY_EVIDENCE_ACTION",
+                  "CLASSIFY_OPEN_GAP_ACTION"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "decision_status": {
+                "type": "string",
+                "minLength": 1
+              },
+              "gap_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "required_evidence_item_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "next_safe_action": {
+                "type": "string"
+              },
+              "operator_can_run_local_command": {
+                "type": "boolean"
+              }
+            }
+          }
         },
         "status_breakdown_items": {
           "type": "array",

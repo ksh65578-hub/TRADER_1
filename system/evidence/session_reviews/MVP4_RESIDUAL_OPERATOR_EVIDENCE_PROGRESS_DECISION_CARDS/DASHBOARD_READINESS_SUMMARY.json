@@ -1,0 +1,8 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_DECISION_CARDS_20260506_001",
+  "dashboard_status": "PASS_OPERATOR_DECISION_CARDS_BLOCKED",
+  "operator_decision_status": "BLOCKED_DECISION_CARDS_READY",
+  "operator_decision_card_count": 6,
+  "single_next_operator_decision": "OPERATOR_RECONCILIATION_ACTION",
+  "live_execution_candidate": false
+}
