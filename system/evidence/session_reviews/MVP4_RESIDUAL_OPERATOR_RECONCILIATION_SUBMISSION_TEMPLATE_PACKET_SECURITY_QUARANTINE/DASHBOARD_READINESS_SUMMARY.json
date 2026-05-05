@@ -1,0 +1,8 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE_20260506_001",
+  "dashboard_status": "PASS_SUBMISSION_SECURITY_QUARANTINE_METADATA_ONLY_BLOCKED",
+  "quarantine_status": "QUARANTINE_PENDING_OPERATOR_SUBMISSION",
+  "evidence_file_content_read": false,
+  "secret_pattern_content_scan_performed": false,
+  "live_execution_candidate": false
+}

@@ -122,6 +122,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
@@ -135,6 +136,9 @@ RESIDUAL_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_SOURCE = (
 )
 RESIDUAL_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SOURCE = (
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json"
+)
+RESIDUAL_RECONCILIATION_SUBMISSION_SECURITY_QUARANTINE_SOURCE = (
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json"
 )
 RESIDUAL_ACTION_PLAN_CLASSES = {
     "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
@@ -12561,6 +12565,186 @@ def _residual_operator_reconciliation_submission_template_packet_summary(
     }
 
 
+def _residual_operator_reconciliation_submission_security_quarantine_summary(
+    report: dict[str, Any] | None,
+) -> dict[str, Any]:
+    fallback = {
+        "title": "Operator Submission Security Quarantine",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_RECONCILIATION_SUBMISSION_SECURITY_QUARANTINE_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "quarantine_scope": "METADATA_ONLY_NO_FILE_CONTENT_READ",
+        "manifest_preflight_status": "BLOCKED_MANIFEST_MISSING",
+        "template_packet_status": "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY",
+        "operator_submission_required": True,
+        "operator_submission_present": False,
+        "operator_submission_validated": False,
+        "operator_submission_accepted": False,
+        "allowed_submission_prefix": "system/evidence/operator_submissions/residual_operator_reconciliation/",
+        "allowed_artifact_extensions": [".json", ".jsonl", ".md", ".txt", ".csv"],
+        "forbidden_path_token_count": 11,
+        "required_manifest_item_count": 32,
+        "manifest_item_count": 0,
+        "missing_manifest_item_count": 32,
+        "required_control_count": 4,
+        "manifest_control_count": 0,
+        "missing_control_count": 4,
+        "template_manifest_item_count": 0,
+        "template_control_count": 0,
+        "preflight_unsafe_manifest_flag_count": 0,
+        "preflight_path_policy_violation_count": 0,
+        "preflight_source_hash_mismatch_count": 0,
+        "template_path_placeholder_violation_count": 0,
+        "security_control_count": 0,
+        "quarantine_blocker_count": 1,
+        "quarantine_blockers": ["OPERATOR_SUBMISSION_SECURITY_QUARANTINE_NOT_LOADED"],
+        "one_line_summary": "Operator submission security quarantine is not loaded; reconciliation remains blocked.",
+        "primary_next_action": "Load the metadata-only quarantine report before reviewing an operator submission package.",
+        "operator_no_action_needed_for_next_non_live_patch": False,
+        "operator_action_required_for_gap_closure": True,
+        "evidence_file_content_read": False,
+        "evidence_artifact_hash_recomputed": False,
+        "secret_pattern_content_scan_performed": False,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "credential_values_read": False,
+        "credential_environment_inspection_performed": False,
+        "runtime_artifacts_staged_by_this_patch": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    forbidden_fields = (
+        "operator_submission_validated",
+        "operator_submission_accepted",
+        "evidence_file_content_read",
+        "evidence_artifact_hash_recomputed",
+        "secret_pattern_content_scan_performed",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "credential_values_read",
+        "credential_environment_inspection_performed",
+        "runtime_artifacts_staged_by_this_patch",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    )
+    if any(report.get(field) is not False for field in forbidden_fields):
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator submission quarantine attempted content read, acceptance, current-evidence, credential, live, or scale permission.",
+            "primary_next_action": "Reject the quarantine report and keep reconciliation blocked.",
+        }
+
+    status = str(report.get("quarantine_status") or "QUARANTINE_PENDING_OPERATOR_SUBMISSION")
+    allowed_statuses = {
+        "QUARANTINE_PENDING_OPERATOR_SUBMISSION",
+        "QUARANTINE_BLOCKED_STRUCTURAL_ERRORS",
+        "QUARANTINE_STRUCTURAL_REVIEW_ONLY_NOT_ACCEPTED",
+        "QUARANTINE_INVALID_SOURCE",
+    }
+    allowed_extensions = report.get("allowed_artifact_extensions", [])
+    forbidden_tokens = report.get("forbidden_path_tokens", [])
+    blockers = report.get("quarantine_blockers", [])
+    if not isinstance(allowed_extensions, list):
+        allowed_extensions = []
+    if not isinstance(forbidden_tokens, list):
+        forbidden_tokens = []
+    if not isinstance(blockers, list):
+        blockers = []
+    invalid = (
+        report.get("schema_id")
+        != "trader1.residual_operator_reconciliation_submission_security_quarantine_report.v1"
+        or report.get("validation_status") != "PASS"
+        or status not in allowed_statuses
+        or report.get("quarantine_scope") != "METADATA_ONLY_NO_FILE_CONTENT_READ"
+        or report.get("operator_submission_required") is not True
+        or report.get("operator_action_required_for_gap_closure") is not True
+        or report.get("allowed_submission_prefix")
+        != "system/evidence/operator_submissions/residual_operator_reconciliation/"
+        or allowed_extensions != [".json", ".jsonl", ".md", ".txt", ".csv"]
+        or report.get("required_manifest_item_count") != 32
+        or report.get("required_control_count") != 4
+        or report.get("template_manifest_item_count") != 32
+        or report.get("template_control_count") != 4
+        or report.get("security_control_count") != 4
+        or report.get("quarantine_blocker_count") != len(blockers)
+    )
+    if invalid:
+        status = "INVALID"
+    return {
+        "title": "Operator Submission Security Quarantine",
+        "status": status,
+        "source": RESIDUAL_RECONCILIATION_SUBMISSION_SECURITY_QUARANTINE_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": report.get("open_gap_count", 13) if isinstance(report.get("open_gap_count", 13), int) else 13,
+        "quarantine_scope": "METADATA_ONLY_NO_FILE_CONTENT_READ",
+        "manifest_preflight_status": str(report.get("manifest_preflight_status") or "BLOCKED_MANIFEST_MISSING"),
+        "template_packet_status": str(report.get("template_packet_status") or "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY"),
+        "operator_submission_required": True,
+        "operator_submission_present": report.get("operator_submission_present") is True,
+        "operator_submission_validated": False,
+        "operator_submission_accepted": False,
+        "allowed_submission_prefix": "system/evidence/operator_submissions/residual_operator_reconciliation/",
+        "allowed_artifact_extensions": [".json", ".jsonl", ".md", ".txt", ".csv"],
+        "forbidden_path_token_count": len(forbidden_tokens),
+        "required_manifest_item_count": int(report.get("required_manifest_item_count", 32) or 32),
+        "manifest_item_count": int(report.get("manifest_item_count", 0) or 0),
+        "missing_manifest_item_count": int(report.get("missing_manifest_item_count", 32) or 32),
+        "required_control_count": int(report.get("required_control_count", 4) or 4),
+        "manifest_control_count": int(report.get("manifest_control_count", 0) or 0),
+        "missing_control_count": int(report.get("missing_control_count", 4) or 4),
+        "template_manifest_item_count": int(report.get("template_manifest_item_count", 0) or 0),
+        "template_control_count": int(report.get("template_control_count", 0) or 0),
+        "preflight_unsafe_manifest_flag_count": int(report.get("preflight_unsafe_manifest_flag_count", 0) or 0),
+        "preflight_path_policy_violation_count": int(report.get("preflight_path_policy_violation_count", 0) or 0),
+        "preflight_source_hash_mismatch_count": int(report.get("preflight_source_hash_mismatch_count", 0) or 0),
+        "template_path_placeholder_violation_count": int(report.get("template_path_placeholder_violation_count", 0) or 0),
+        "security_control_count": int(report.get("security_control_count", 0) or 0),
+        "quarantine_blocker_count": len(blockers),
+        "quarantine_blockers": [str(item) for item in blockers[:4]],
+        "one_line_summary": str(report.get("one_line_summary", "Operator submission quarantine remains metadata-only.")),
+        "primary_next_action": str(
+            report.get(
+                "primary_next_action",
+                "Keep submitted files under the allowed folder; dashboard cannot read or accept evidence.",
+            )
+        ),
+        "operator_no_action_needed_for_next_non_live_patch": True,
+        "operator_action_required_for_gap_closure": True,
+        "evidence_file_content_read": False,
+        "evidence_artifact_hash_recomputed": False,
+        "secret_pattern_content_scan_performed": False,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "credential_values_read": False,
+        "credential_environment_inspection_performed": False,
+        "runtime_artifacts_staged_by_this_patch": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -12613,6 +12797,7 @@ def build_read_only_dashboard_shell(
     residual_operator_reconciliation_intake_preflight_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_submission_manifest_preflight_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_submission_template_packet_report: dict[str, Any] | None = None,
+    residual_operator_reconciliation_submission_security_quarantine_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -12661,6 +12846,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_reconciliation_intake_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
         "residual_operator_reconciliation_submission_manifest_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
         "residual_operator_reconciliation_submission_template_packet": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
+        "residual_operator_reconciliation_submission_security_quarantine": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -12904,6 +13090,52 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 template_packet_freshness,
+            )
+        )
+    if isinstance(residual_operator_reconciliation_submission_security_quarantine_report, dict):
+        security_quarantine_freshness = (
+            "PASS"
+            if residual_operator_reconciliation_submission_security_quarantine_report.get("schema_id")
+            == "trader1.residual_operator_reconciliation_submission_security_quarantine_report.v1"
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("validation_status") == "PASS"
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("quarantine_status")
+            in {
+                "QUARANTINE_PENDING_OPERATOR_SUBMISSION",
+                "QUARANTINE_BLOCKED_STRUCTURAL_ERRORS",
+                "QUARANTINE_STRUCTURAL_REVIEW_ONLY_NOT_ACCEPTED",
+                "QUARANTINE_INVALID_SOURCE",
+            }
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("quarantine_scope")
+            == "METADATA_ONLY_NO_FILE_CONTENT_READ"
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("operator_submission_validated")
+            is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("operator_submission_accepted")
+            is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("evidence_file_content_read")
+            is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("secret_pattern_content_scan_performed")
+            is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("current_evidence_write_allowed")
+            is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("gap_closure_allowed_by_this_patch")
+            is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("live_ready_write_allowed") is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("live_config_mutation_allowed")
+            is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("credential_values_read") is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("live_order_allowed") is False
+            and residual_operator_reconciliation_submission_security_quarantine_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_SECURITY_QUARANTINE",
+                paths.get(
+                    "residual_operator_reconciliation_submission_security_quarantine",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json",
+                ),
+                True,
+                security_quarantine_freshness,
             )
         )
     if isinstance(shadow_runtime_writer_report, dict):
@@ -13999,6 +14231,11 @@ def build_read_only_dashboard_shell(
             residual_operator_reconciliation_submission_template_packet_report
         )
     )
+    residual_operator_reconciliation_submission_security_quarantine = (
+        _residual_operator_reconciliation_submission_security_quarantine_summary(
+            residual_operator_reconciliation_submission_security_quarantine_report
+        )
+    )
     residual_operator_priority = _residual_operator_priority_summary(
         residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet,
@@ -14064,6 +14301,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_reconciliation_intake_preflight": residual_operator_reconciliation_intake_preflight,
         "residual_operator_reconciliation_submission_manifest_preflight": residual_operator_reconciliation_submission_manifest_preflight,
         "residual_operator_reconciliation_submission_template_packet": residual_operator_reconciliation_submission_template_packet,
+        "residual_operator_reconciliation_submission_security_quarantine": residual_operator_reconciliation_submission_security_quarantine,
         "residual_operator_priority": residual_operator_priority,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
@@ -15618,6 +15856,72 @@ def validate_read_only_dashboard_shell(
                 return DashboardValidationResult("FAIL", "residual template packet path placeholder missing", "SCHEMA_IDENTITY_MISMATCH")
             if item.get("evidence_artifact_sha256_placeholder") != "<64_HEX_SHA256_OF_OPERATOR_EVIDENCE_FILE>":
                 return DashboardValidationResult("FAIL", "residual template packet sha256 placeholder missing", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_security_quarantine = shell.get("residual_operator_reconciliation_submission_security_quarantine")
+    if not isinstance(residual_security_quarantine, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator submission security quarantine summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_security_quarantine.get("display_only") is not True
+        or residual_security_quarantine.get("dashboard_truth_only") is not True
+    ):
+        return DashboardValidationResult("BLOCKED", "residual submission security quarantine must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_security_quarantine.get("live_order_ready")
+        or residual_security_quarantine.get("live_order_allowed")
+        or residual_security_quarantine.get("can_live_trade")
+        or residual_security_quarantine.get("scale_up_allowed")
+        or residual_security_quarantine.get("current_evidence_write_allowed")
+        or residual_security_quarantine.get("gap_closure_allowed_by_this_patch")
+        or residual_security_quarantine.get("live_ready_write_allowed")
+        or residual_security_quarantine.get("live_config_mutation_allowed")
+        or residual_security_quarantine.get("operator_submission_validated")
+        or residual_security_quarantine.get("operator_submission_accepted")
+        or residual_security_quarantine.get("evidence_file_content_read")
+        or residual_security_quarantine.get("evidence_artifact_hash_recomputed")
+        or residual_security_quarantine.get("secret_pattern_content_scan_performed")
+        or residual_security_quarantine.get("credential_values_read")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual submission quarantine attempted content read, validation, acceptance, credential, current-evidence, live, LIVE_READY, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_security_quarantine.get("source") != RESIDUAL_RECONCILIATION_SUBMISSION_SECURITY_QUARANTINE_SOURCE:
+        return DashboardValidationResult("FAIL", "residual submission security quarantine source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_security_quarantine.get("status") not in {
+        "NOT_LOADED",
+        "QUARANTINE_PENDING_OPERATOR_SUBMISSION",
+        "QUARANTINE_BLOCKED_STRUCTURAL_ERRORS",
+        "QUARANTINE_STRUCTURAL_REVIEW_ONLY_NOT_ACCEPTED",
+        "QUARANTINE_INVALID_SOURCE",
+        "INVALID",
+    }:
+        return DashboardValidationResult("FAIL", "residual submission security quarantine status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_security_quarantine.get("source_status") == "LOADED":
+        if residual_security_quarantine.get("status") in {"INVALID", "NOT_LOADED"}:
+            return DashboardValidationResult("BLOCKED", "loaded residual security quarantine must be a blocked quarantine status", "LIVE_FINAL_GUARD_FAILED")
+        if residual_security_quarantine.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual security quarantine open gap count must match action plan", "CONTRACT_GAP_HIGH")
+        if residual_security_quarantine.get("quarantine_scope") != "METADATA_ONLY_NO_FILE_CONTENT_READ":
+            return DashboardValidationResult("BLOCKED", "residual security quarantine cannot read submitted evidence contents", "LIVE_FINAL_GUARD_FAILED")
+        if residual_security_quarantine.get("allowed_submission_prefix") != "system/evidence/operator_submissions/residual_operator_reconciliation/":
+            return DashboardValidationResult("FAIL", "residual security quarantine path prefix mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_security_quarantine.get("allowed_artifact_extensions") != [".json", ".jsonl", ".md", ".txt", ".csv"]:
+            return DashboardValidationResult("FAIL", "residual security quarantine allowed extensions drifted", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_security_quarantine.get("forbidden_path_token_count", 0) < 10:
+            return DashboardValidationResult("FAIL", "residual security quarantine forbidden path policy is too small", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_security_quarantine.get("required_manifest_item_count") != 32:
+            return DashboardValidationResult("FAIL", "residual security quarantine must expose 32 required manifest items", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_security_quarantine.get("required_control_count") != 4:
+            return DashboardValidationResult("FAIL", "residual security quarantine must expose four controls", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_security_quarantine.get("template_manifest_item_count") != 32:
+            return DashboardValidationResult("FAIL", "residual security quarantine must bind all 32 template items", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_security_quarantine.get("template_control_count") != 4:
+            return DashboardValidationResult("FAIL", "residual security quarantine must bind all four template controls", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_security_quarantine.get("security_control_count") != 4:
+            return DashboardValidationResult("FAIL", "residual security quarantine must expose four security controls", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_security_quarantine.get("quarantine_blocker_count", 0) < 1:
+            return DashboardValidationResult("FAIL", "residual security quarantine must expose blockers", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_security_quarantine.get("operator_action_required_for_gap_closure") is not True:
+            return DashboardValidationResult("BLOCKED", "residual security quarantine must keep operator reconciliation required for closure", "LIVE_FINAL_GUARD_FAILED")
+        if residual_security_quarantine.get("operator_no_action_needed_for_next_non_live_patch") is not True:
+            return DashboardValidationResult("BLOCKED", "residual security quarantine must not require user runtime for the next non-live patch", "LIVE_FINAL_GUARD_FAILED")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -21138,6 +21442,48 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             '<div class="live-blocker-group"><strong>Live</strong><span>false</span></div>'
             "</section>"
         )
+    residual_security_quarantine = shell.get("residual_operator_reconciliation_submission_security_quarantine", {})
+    if not isinstance(residual_security_quarantine, dict):
+        residual_security_quarantine = {}
+    residual_security_quarantine_html = ""
+    if residual_security_quarantine.get("source_status") == "LOADED":
+        manifest_item_count = residual_security_quarantine.get("manifest_item_count", 0)
+        missing_item_count = residual_security_quarantine.get("missing_manifest_item_count", 32)
+        unsafe_count = residual_security_quarantine.get("preflight_unsafe_manifest_flag_count", 0)
+        path_violation_count = residual_security_quarantine.get("preflight_path_policy_violation_count", 0)
+        template_violation_count = residual_security_quarantine.get("template_path_placeholder_violation_count", 0)
+        residual_security_quarantine_html = (
+            '<p class="live-blocker-note"><strong>Submission quarantine:</strong> '
+            + safe_text(
+                residual_security_quarantine.get(
+                    "one_line_summary",
+                    "Operator submission security quarantine is metadata-only.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Allowed folder:</strong> '
+            + safe_text(
+                residual_security_quarantine.get(
+                    "allowed_submission_prefix",
+                    "system/evidence/operator_submissions/residual_operator_reconciliation/",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Quarantine rule:</strong> metadata-only; file contents read=false; secret scan=false; accepted=false; LIVE_READY=false.</p>'
+            '<p class="live-blocker-note"><strong>Quarantine next:</strong> '
+            + safe_text(residual_security_quarantine.get("primary_next_action", "Keep submitted files under the allowed folder."))
+            + "</p>"
+            '<section class="live-blocker-groups" aria-label="operator submission security quarantine counts">'
+            f'<div class="live-blocker-group"><strong>Status</strong><span>{safe_text(residual_security_quarantine.get("status", "UNKNOWN"))}</span></div>'
+            f'<div class="live-blocker-group"><strong>Present</strong><span>{safe_text(manifest_item_count)} items</span></div>'
+            f'<div class="live-blocker-group"><strong>Missing</strong><span>{safe_text(missing_item_count)} missing</span></div>'
+            f'<div class="live-blocker-group"><strong>Unsafe</strong><span>{safe_text(unsafe_count)} flags</span></div>'
+            f'<div class="live-blocker-group"><strong>Paths</strong><span>{safe_text(path_violation_count)} violations</span></div>'
+            f'<div class="live-blocker-group"><strong>Template</strong><span>{safe_text(template_violation_count)} violations</span></div>'
+            '<div class="live-blocker-group"><strong>Content</strong><span>not read</span></div>'
+            '<div class="live-blocker-group"><strong>Live</strong><span>false</span></div>'
+            "</section>"
+        )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -21638,6 +21984,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         """ + residual_reconciliation_intake_html + """
         """ + residual_manifest_preflight_html + """
         """ + residual_template_packet_html + """
+        """ + residual_security_quarantine_html + """
         <section class="live-blocker-groups" aria-label="operator handoff packet counts">
           <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
           <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>

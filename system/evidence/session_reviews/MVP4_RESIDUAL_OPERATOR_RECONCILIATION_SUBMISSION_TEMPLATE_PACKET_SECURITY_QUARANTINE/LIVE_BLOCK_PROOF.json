@@ -1,0 +1,14 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE_20260506_001",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "live_ready_write_allowed": false,
+  "live_config_mutation_allowed": false,
+  "live_order_path_touched": false,
+  "credential_used": false,
+  "credential_values_read": false,
+  "submitted_evidence_file_content_read": false,
+  "live_ready_write_executed": false
+}

@@ -1,0 +1,132 @@
+{
+  "schema_id": "trader1.residual_operator_reconciliation_submission_security_quarantine_report.v1",
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE_20260506_001",
+  "generated_at_utc": "2026-05-05T20:36:56Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "source_reports": [
+    {
+      "role": "residual_operator_reconciliation_submission_manifest_preflight",
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_20260506_001",
+      "report_hash": "89682D410CB7AA5EF78667E52447179D9B58D5724683ECCE17B610D9A4A784B0"
+    },
+    {
+      "role": "residual_operator_reconciliation_submission_template_packet",
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_20260506_001",
+      "report_hash": "4EEB0BA9A3A87E51C8D3BE224DC710A06BB92E0C04CFB80C8F63698869022ACD"
+    }
+  ],
+  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE_20260506_001",
+  "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "open_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "open_gap_count": 13,
+  "quarantine_status": "QUARANTINE_PENDING_OPERATOR_SUBMISSION",
+  "quarantine_scope": "METADATA_ONLY_NO_FILE_CONTENT_READ",
+  "quarantine_source": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json",
+  "manifest_preflight_status": "BLOCKED_MANIFEST_MISSING",
+  "template_packet_status": "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY",
+  "operator_submission_required": true,
+  "operator_submission_present": false,
+  "operator_submission_validated": false,
+  "operator_submission_accepted": false,
+  "allowed_submission_prefix": "system/evidence/operator_submissions/residual_operator_reconciliation/",
+  "allowed_artifact_extensions": [
+    ".json",
+    ".jsonl",
+    ".md",
+    ".txt",
+    ".csv"
+  ],
+  "forbidden_path_tokens": [
+    ".env",
+    "secret",
+    "credential",
+    "api_key",
+    "apikey",
+    "private_key",
+    "token",
+    "password",
+    "live_ready",
+    "live_config",
+    "live_order"
+  ],
+  "required_manifest_item_count": 32,
+  "manifest_item_count": 0,
+  "missing_manifest_item_count": 32,
+  "required_control_count": 4,
+  "manifest_control_count": 0,
+  "missing_control_count": 4,
+  "template_manifest_item_count": 32,
+  "template_control_count": 4,
+  "preflight_unsafe_manifest_flag_count": 0,
+  "preflight_path_policy_violation_count": 0,
+  "preflight_source_hash_mismatch_count": 0,
+  "template_path_placeholder_violation_count": 0,
+  "template_path_placeholder_violations": [],
+  "security_control_count": 4,
+  "security_controls": [
+    {
+      "control_id": "SUBMISSION_PATH_PREFIX_ONLY",
+      "status": "PASS",
+      "required_behavior": "all metadata paths must start with system/evidence/operator_submissions/residual_operator_reconciliation/"
+    },
+    {
+      "control_id": "NO_CONTENT_READ_IN_QUARANTINE",
+      "status": "PASS",
+      "required_behavior": "quarantine review records metadata only and does not read submitted evidence file contents"
+    },
+    {
+      "control_id": "NO_CREDENTIAL_OR_LIVE_CONFIG_PATHS",
+      "status": "PASS",
+      "required_behavior": "path metadata containing credential, token, LIVE_READY, live order, or live config tokens is blocked"
+    },
+    {
+      "control_id": "NO_ACCEPTANCE_OR_GAP_CLOSURE",
+      "status": "PASS",
+      "required_behavior": "operator submission remains unvalidated, unaccepted, and cannot write current evidence"
+    }
+  ],
+  "quarantine_blocker_count": 2,
+  "quarantine_blockers": [
+    "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST",
+    "OPERATOR_SUBMISSION_SECURITY_QUARANTINE_PENDING_METADATA_ONLY"
+  ],
+  "one_line_summary": "Operator submission security quarantine is QUARANTINE_PENDING_OPERATOR_SUBMISSION; metadata only, no evidence file contents are read, and live/current-evidence/scale paths stay blocked.",
+  "primary_next_action": "Keep the operator submission under the allowed submission folder and provide hashes only; this quarantine cannot accept evidence or write current evidence.",
+  "operator_no_action_needed_for_next_non_live_patch": true,
+  "operator_action_required_for_gap_closure": true,
+  "evidence_file_content_read": false,
+  "evidence_artifact_hash_recomputed": false,
+  "secret_pattern_content_scan_performed": false,
+  "current_evidence_write_allowed": false,
+  "gap_closure_allowed_by_this_patch": false,
+  "live_ready_write_allowed": false,
+  "live_config_mutation_allowed": false,
+  "credential_values_read": false,
+  "credential_environment_inspection_performed": false,
+  "runtime_artifacts_staged_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validation_status": "PASS",
+  "validation_errors": [],
+  "report_hash": "5ED70E4C1CB4FBABC0C57F59C731DFB1BC6699B2A198E9734BA7D4E0C4420336"
+}

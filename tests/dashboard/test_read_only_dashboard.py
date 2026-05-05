@@ -106,6 +106,9 @@ from trader1.research.shadow.shadow_observation_stream import build_shadow_obser
 from trader1.reports.residual_operator_reconciliation_submission_template_packet import (
     build_residual_operator_reconciliation_submission_template_packet_report,
 )
+from trader1.reports.residual_operator_reconciliation_submission_security_quarantine import (
+    build_residual_operator_reconciliation_submission_security_quarantine_report,
+)
 from trader1.validation.mvp0_validators import current_authority_hashes, run_validators, sha256_file, sha256_json
 
 
@@ -334,6 +337,27 @@ def residual_operator_reconciliation_submission_template_packet_fixture():
     )
 
 
+def residual_operator_reconciliation_submission_security_quarantine_fixture():
+    path = (
+        ROOT
+        / "system"
+        / "evidence"
+        / "audit_reports"
+        / "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json"
+    )
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+    return build_residual_operator_reconciliation_submission_security_quarantine_report(
+        residual_operator_reconciliation_submission_manifest_preflight_fixture(),
+        residual_operator_reconciliation_submission_template_packet_fixture(),
+        json.loads((ROOT / "contracts" / "generated" / "current_implementation_state.json").read_text(encoding="utf-8")),
+        patch_id="TEST_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_SECURITY_QUARANTINE",
+        generated_at_utc="2026-05-06T00:00:00Z",
+        trader1_sha256="TEST_TRADER_HASH",
+        agents_sha256="TEST_AGENTS_HASH",
+    )
+
+
 def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
     runtime = build_upbit_paper_runtime_cycle_report(
         cycle_id=f"dashboard-scorecard-{session_id}",
@@ -388,6 +412,7 @@ def build_dashboard(
     residual_operator_reconciliation_intake_preflight_report=None,
     residual_operator_reconciliation_submission_manifest_preflight_report=None,
     residual_operator_reconciliation_submission_template_packet_report=None,
+    residual_operator_reconciliation_submission_security_quarantine_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
@@ -431,6 +456,7 @@ def build_dashboard(
         residual_operator_reconciliation_intake_preflight_report=residual_operator_reconciliation_intake_preflight_report,
         residual_operator_reconciliation_submission_manifest_preflight_report=residual_operator_reconciliation_submission_manifest_preflight_report,
         residual_operator_reconciliation_submission_template_packet_report=residual_operator_reconciliation_submission_template_packet_report,
+        residual_operator_reconciliation_submission_security_quarantine_report=residual_operator_reconciliation_submission_security_quarantine_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
@@ -7383,6 +7409,75 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
 
+    def test_dashboard_live_card_exposes_operator_submission_security_quarantine(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
+            residual_operator_reconciliation_submission_security_quarantine_report=(
+                residual_operator_reconciliation_submission_security_quarantine_fixture()
+            ),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        quarantine = dashboard["residual_operator_reconciliation_submission_security_quarantine"]
+        self.assertEqual(quarantine["source_status"], "LOADED")
+        self.assertEqual(quarantine["status"], "QUARANTINE_PENDING_OPERATOR_SUBMISSION")
+        self.assertEqual(quarantine["open_gap_count"], 13)
+        self.assertEqual(quarantine["quarantine_scope"], "METADATA_ONLY_NO_FILE_CONTENT_READ")
+        self.assertEqual(
+            quarantine["allowed_submission_prefix"],
+            "system/evidence/operator_submissions/residual_operator_reconciliation/",
+        )
+        self.assertEqual(quarantine["allowed_artifact_extensions"], [".json", ".jsonl", ".md", ".txt", ".csv"])
+        self.assertGreaterEqual(quarantine["forbidden_path_token_count"], 10)
+        self.assertTrue(quarantine["operator_submission_required"])
+        self.assertFalse(quarantine["operator_submission_validated"])
+        self.assertFalse(quarantine["operator_submission_accepted"])
+        self.assertEqual(quarantine["required_manifest_item_count"], 32)
+        self.assertEqual(quarantine["template_manifest_item_count"], 32)
+        self.assertEqual(quarantine["required_control_count"], 4)
+        self.assertEqual(quarantine["template_control_count"], 4)
+        self.assertEqual(quarantine["security_control_count"], 4)
+        self.assertGreaterEqual(quarantine["quarantine_blocker_count"], 1)
+        self.assertFalse(quarantine["evidence_file_content_read"])
+        self.assertFalse(quarantine["evidence_artifact_hash_recomputed"])
+        self.assertFalse(quarantine["secret_pattern_content_scan_performed"])
+        self.assertFalse(quarantine["current_evidence_write_allowed"])
+        self.assertFalse(quarantine["gap_closure_allowed_by_this_patch"])
+        self.assertFalse(quarantine["live_ready_write_allowed"])
+        self.assertFalse(quarantine["live_config_mutation_allowed"])
+        self.assertFalse(quarantine["credential_values_read"])
+        self.assertFalse(quarantine["live_order_ready"])
+        self.assertFalse(quarantine["live_order_allowed"])
+        self.assertFalse(quarantine["can_live_trade"])
+        self.assertFalse(quarantine["scale_up_allowed"])
+
+        source = next(
+            item
+            for item in dashboard["source_artifacts"]
+            if item["artifact_id"] == "RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_SECURITY_QUARANTINE"
+        )
+        self.assertEqual(
+            source["filename"],
+            "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SECURITY_QUARANTINE.report.json",
+        )
+        self.assertEqual(source["freshness_status"], "PASS")
+
+        html = render_dashboard_html(dashboard)
+        answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
+        portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
+        answer_html = html[answer_start:portfolio_start]
+        self.assertIn("Submission quarantine:", answer_html)
+        self.assertIn("metadata only", answer_html)
+        self.assertIn("Allowed folder:", answer_html)
+        self.assertIn("file contents read=false", answer_html)
+        self.assertIn("secret scan=false", answer_html)
+        self.assertIn("accepted=false", answer_html)
+        self.assertIn("LIVE_READY=false", answer_html)
+        self.assertIn("32 missing", answer_html)
+        self.assertIn("not read", answer_html)
+        self.assertNotIn("<button", answer_html.lower())
+        self.assertNotIn("<form", answer_html.lower())
+
     def test_dashboard_residual_operator_priority_queue_is_deterministic_and_display_only(self):
         dashboard = build_dashboard_with_residual_priority_resolution_binding()
         result = validate_read_only_dashboard_shell(dashboard)
@@ -7651,6 +7746,44 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(template["status"], "INVALID")
         self.assertFalse(template["operator_submission_validated"])
         self.assertFalse(template["operator_submission_accepted"])
+
+    def test_dashboard_rejects_operator_submission_security_quarantine_permission_drift(self):
+        report = residual_operator_reconciliation_submission_security_quarantine_fixture()
+        report["evidence_file_content_read"] = True
+        report["secret_pattern_content_scan_performed"] = True
+        report["operator_submission_accepted"] = True
+        report["current_evidence_write_allowed"] = True
+        report["live_ready_write_allowed"] = True
+        dashboard = build_dashboard(residual_operator_reconciliation_submission_security_quarantine_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        quarantine = dashboard["residual_operator_reconciliation_submission_security_quarantine"]
+        self.assertEqual(quarantine["source_status"], "LOADED")
+        self.assertEqual(quarantine["status"], "INVALID")
+        self.assertFalse(quarantine["evidence_file_content_read"])
+        self.assertFalse(quarantine["secret_pattern_content_scan_performed"])
+        self.assertFalse(quarantine["operator_submission_accepted"])
+        self.assertFalse(quarantine["current_evidence_write_allowed"])
+        self.assertFalse(quarantine["live_ready_write_allowed"])
+        self.assertFalse(quarantine["live_order_allowed"])
+        self.assertFalse(quarantine["scale_up_allowed"])
+
+    def test_dashboard_rejects_operator_submission_security_quarantine_policy_drift(self):
+        report = residual_operator_reconciliation_submission_security_quarantine_fixture()
+        report["quarantine_scope"] = "CONTENT_SCAN"
+        report["allowed_artifact_extensions"] = [".json"]
+        report["security_control_count"] = 3
+        dashboard = build_dashboard(residual_operator_reconciliation_submission_security_quarantine_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        quarantine = dashboard["residual_operator_reconciliation_submission_security_quarantine"]
+        self.assertEqual(quarantine["source_status"], "LOADED")
+        self.assertEqual(quarantine["status"], "INVALID")
+        self.assertFalse(quarantine["current_evidence_write_allowed"])
+        self.assertFalse(quarantine["live_order_allowed"])
+        self.assertFalse(quarantine["scale_up_allowed"])
 
     def test_dashboard_visual_layout_contract_blocks_cramped_regression(self):
         html = render_dashboard_html(build_dashboard())
