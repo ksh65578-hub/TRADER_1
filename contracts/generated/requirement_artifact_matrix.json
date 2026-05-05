@@ -4672,6 +4672,44 @@
       "status": "IMPLEMENTED_PRIORITY_RECHECK_NEXT_PAPER_SHADOW_DEPTH"
     },
     {
+      "requirement_id": "REQ-MVP4-OPEN-GAP-CURRENT-BLOCKER-CLASSIFICATION",
+      "section_id": "SECTION_CONTRACT_GAP",
+      "schema_files": [
+        "contracts/schema/open_contract_gap_current_blocker_classification_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/reports/open_gap_current_blocker_classification.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/contract/test_open_gap_current_blocker_classification.py"
+      ],
+      "fixture_files": [
+        "contracts/generated/current_implementation_state.json"
+      ],
+      "runtime_modules": [],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.report.json",
+        "system/evidence/audit_reports/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION_20260505.md",
+        "system/evidence/patch_results/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.patch_result.json",
+        "system/evidence/stage_gates/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION.validator_run_log.json"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "next_task_class",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_RESIDUAL_BLOCKER_CLASSIFICATION"
+    },
+    {
       "requirement_id": "REQ-MVP4-OPERATIONAL-PAPER-EVIDENCE-COUNT-BINDING",
       "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "schema_files": [
@@ -15503,7 +15541,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-05T03:18:30Z",
+  "updated_at_utc": "2026-05-05T03:47:37Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

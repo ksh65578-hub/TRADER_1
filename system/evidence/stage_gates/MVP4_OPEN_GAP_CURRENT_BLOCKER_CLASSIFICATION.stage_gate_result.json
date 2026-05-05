@@ -1,0 +1,43 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-05T03:47:37Z",
+  "patch_id": "MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION_20260505_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_RESIDUAL_OPEN_GAP_BLOCKERS_CLASSIFIED_LIVE_BLOCKED",
+  "open_gap_count": 13,
+  "completed_recheck_gap_count": 13,
+  "all_open_gaps_have_completed_recheck": true,
+  "repeat_completed_recheck_selected": false,
+  "remaining_implementation_recheck_gap_ids": [],
+  "residual_blocked_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "blocker_category_counts": {
+    "RUNTIME_LONG_RUN_EVIDENCE": 1,
+    "OPERATOR_RECONCILIATION": 4,
+    "EXTERNAL_LIVE_EVIDENCE": 1,
+    "LEDGER_RERUN_RECONCILIATION": 3,
+    "PAPER_SHADOW_RUNTIME_EVIDENCE": 1,
+    "SEALED_HISTORICAL_PATCH_RESULT_BASELINE": 1,
+    "PROFITABILITY_EVIDENCE_MATURITY": 1,
+    "SCALE_UP_POLICY": 1,
+    "UNCLASSIFIED_OPEN_GAP": 0
+  },
+  "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

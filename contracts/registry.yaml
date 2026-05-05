@@ -984,6 +984,10 @@
       "schema_id": "trader1.contract_gap.v1",
       "path": "contracts/schema/contract_gap.schema.json"
     },
+    "open_contract_gap_current_blocker_classification_report": {
+      "schema_id": "trader1.open_contract_gap_current_blocker_classification_report.v1",
+      "path": "contracts/schema/open_contract_gap_current_blocker_classification_report.schema.json"
+    },
     "patch_result": {
       "schema_id": "trader1.patch_result.v1",
       "path": "contracts/schema/patch_result.schema.json"

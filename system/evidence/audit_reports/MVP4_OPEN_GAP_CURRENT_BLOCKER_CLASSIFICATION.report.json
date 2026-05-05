@@ -1,0 +1,154 @@
+{
+  "schema_id": "trader1.open_contract_gap_current_blocker_classification_report.v1",
+  "patch_id": "MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION_20260505_001",
+  "generated_at_utc": "2026-05-05T03:47:37Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "state_last_patch_id_before": "MVP4_OPEN_GAP_CURRENT_BLOCKER_CLASSIFICATION_20260505_001",
+  "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "open_gap_count": 13,
+  "completed_recheck_gap_count": 13,
+  "all_open_gaps_have_completed_recheck": true,
+  "repeat_completed_recheck_selected": false,
+  "remaining_implementation_recheck_gap_ids": [],
+  "residual_blocked_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "blocker_category_counts": {
+    "RUNTIME_LONG_RUN_EVIDENCE": 1,
+    "OPERATOR_RECONCILIATION": 4,
+    "EXTERNAL_LIVE_EVIDENCE": 1,
+    "LEDGER_RERUN_RECONCILIATION": 3,
+    "PAPER_SHADOW_RUNTIME_EVIDENCE": 1,
+    "SEALED_HISTORICAL_PATCH_RESULT_BASELINE": 1,
+    "PROFITABILITY_EVIDENCE_MATURITY": 1,
+    "SCALE_UP_POLICY": 1,
+    "UNCLASSIFIED_OPEN_GAP": 0
+  },
+  "gap_classifications": [
+    {
+      "gap_id": "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+      "blocker_category": "RUNTIME_LONG_RUN_EVIDENCE",
+      "completed_recheck_requirement_id": "REQ-MVP4-ACTUAL-LONG-RUN-RUNTIME-EVIDENCE-BOUNDARY-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "accepted long-run PAPER/SHADOW runtime evidence is still insufficient for a current claim",
+      "next_operator_or_evidence_action": "collect fresh audited long-run PAPER/SHADOW runtime evidence"
+    },
+    {
+      "gap_id": "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+      "blocker_category": "OPERATOR_RECONCILIATION",
+      "completed_recheck_requirement_id": "REQ-MVP4-BLOCKED-REPAIR-PLAN-REQUIRES-OPERATOR-RECONCILIATION-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "operator reconciliation is required before any repaired or regenerated evidence can be promoted",
+      "next_operator_or_evidence_action": "complete operator reconciliation; keep current-evidence writes blocked"
+    },
+    {
+      "gap_id": "LIVE_ENABLING_EVIDENCE_MISSING",
+      "blocker_category": "EXTERNAL_LIVE_EVIDENCE",
+      "completed_recheck_requirement_id": "REQ-MVP4-LIVE-ENABLING-EVIDENCE-MISSING-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "official API, read-only account, burn-in, manual test, and operator approval evidence is absent",
+      "next_operator_or_evidence_action": "supply external live-readiness evidence outside this non-live patch path"
+    },
+    {
+      "gap_id": "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+      "blocker_category": "LEDGER_RERUN_RECONCILIATION",
+      "completed_recheck_requirement_id": "REQ-MVP4-MISSING-CYCLE-LEDGER-RERUN-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "bounded paper-only rerun and reconciliation outputs remain incomplete or not promotion-usable",
+      "next_operator_or_evidence_action": "rerun paper-only ledger/reconciliation jobs when required inputs exist"
+    },
+    {
+      "gap_id": "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+      "blocker_category": "PAPER_SHADOW_RUNTIME_EVIDENCE",
+      "completed_recheck_requirement_id": "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "PAPER/SHADOW observation evidence remains open even after implementation-depth scaffolding",
+      "next_operator_or_evidence_action": "continue paper/shadow evidence collection without live credentials"
+    },
+    {
+      "gap_id": "PATCH_RESULT_VALIDATOR_RUN_GAP",
+      "blocker_category": "SEALED_HISTORICAL_PATCH_RESULT_BASELINE",
+      "completed_recheck_requirement_id": "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "sealed patch_result validator-run baseline remains live-blocking and cannot be rewritten by inference",
+      "next_operator_or_evidence_action": "preserve sealed baseline and keep the gap live-blocking"
+    },
+    {
+      "gap_id": "POST_REPAIR_RECONCILIATION_REQUIRED",
+      "blocker_category": "OPERATOR_RECONCILIATION",
+      "completed_recheck_requirement_id": "REQ-MVP4-POST-REPAIR-RECONCILIATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "operator reconciliation is required before any repaired or regenerated evidence can be promoted",
+      "next_operator_or_evidence_action": "complete operator reconciliation; keep current-evidence writes blocked"
+    },
+    {
+      "gap_id": "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+      "blocker_category": "LEDGER_RERUN_RECONCILIATION",
+      "completed_recheck_requirement_id": "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "bounded paper-only rerun and reconciliation outputs remain incomplete or not promotion-usable",
+      "next_operator_or_evidence_action": "rerun paper-only ledger/reconciliation jobs when required inputs exist"
+    },
+    {
+      "gap_id": "POST_RERUN_RECONCILIATION_REQUIRED",
+      "blocker_category": "LEDGER_RERUN_RECONCILIATION",
+      "completed_recheck_requirement_id": "REQ-MVP4-POST-RERUN-RECONCILIATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "bounded paper-only rerun and reconciliation outputs remain incomplete or not promotion-usable",
+      "next_operator_or_evidence_action": "rerun paper-only ledger/reconciliation jobs when required inputs exist"
+    },
+    {
+      "gap_id": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+      "blocker_category": "PROFITABILITY_EVIDENCE_MATURITY",
+      "completed_recheck_requirement_id": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-MATURITY-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "profitability optimizer evidence has not reached the required paper/shadow maturity",
+      "next_operator_or_evidence_action": "collect more paper/shadow maturity evidence before promotion"
+    },
+    {
+      "gap_id": "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+      "blocker_category": "OPERATOR_RECONCILIATION",
+      "completed_recheck_requirement_id": "REQ-MVP4-REGENERATED-CURRENT-BLOCKED-REPAIRS-REQUIRE-LEDGER-RECOVERY-RECONCILIATION-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "operator reconciliation is required before any repaired or regenerated evidence can be promoted",
+      "next_operator_or_evidence_action": "complete operator reconciliation; keep current-evidence writes blocked"
+    },
+    {
+      "gap_id": "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+      "blocker_category": "OPERATOR_RECONCILIATION",
+      "completed_recheck_requirement_id": "REQ-MVP4-REPAIR-CANDIDATE-HASH-MISMATCH-RECONCILIATION-REQUIRED-IMPLEMENTATION-DEPTH-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "operator reconciliation is required before any repaired or regenerated evidence can be promoted",
+      "next_operator_or_evidence_action": "complete operator reconciliation; keep current-evidence writes blocked"
+    },
+    {
+      "gap_id": "SCALE_UP_NOT_ELIGIBLE",
+      "blocker_category": "SCALE_UP_POLICY",
+      "completed_recheck_requirement_id": "REQ-MVP4-SCALE-UP-NOT-ELIGIBLE-RECHECK",
+      "completed_recheck_recorded": true,
+      "residual_blocker_reason": "scale-up is not eligible without live burn-in, parity, survival, and operator evidence",
+      "next_operator_or_evidence_action": "keep scale-up disabled until all scale-up validators and operator policy pass"
+    }
+  ],
+  "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "report_hash": "E260A88878B77F10AB916915BAB3E7C9FFBBAC1691CF32B8C5E0282329EF56C5"
+}
