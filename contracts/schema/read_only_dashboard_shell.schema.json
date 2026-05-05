@@ -5255,6 +5255,118 @@
         }
       }
     },
+    "residual_operator_gap_action_map_item": {
+      "type": "object",
+      "required": [
+        "gap_id",
+        "action_class",
+        "owner",
+        "owner_rank",
+        "priority",
+        "label",
+        "next_action",
+        "acceptance_condition",
+        "fallback_behavior",
+        "reason_code",
+        "display_only",
+        "dashboard_truth_only",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "gap_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_class": {
+          "enum": [
+            "OPERATOR_RECONCILIATION_ACTION",
+            "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+            "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+            "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+            "SEALED_BASELINE_PRESERVATION_ACTION",
+            "SCALE_UP_POLICY_EVIDENCE_ACTION",
+            "CLASSIFY_OPEN_GAP_ACTION"
+          ]
+        },
+        "owner": {
+          "enum": [
+            "OPERATOR",
+            "CODEX_NON_LIVE",
+            "PAPER_SHADOW_RUNTIME",
+            "EXTERNAL_EVIDENCE",
+            "CODEX_AUDIT_ONLY",
+            "SCALE_POLICY"
+          ]
+        },
+        "owner_rank": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fallback_behavior": {
+          "const": "keep the gap open, keep current evidence writes blocked, and display the blocker until exact evidence validates"
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_ready_write_allowed": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
     "residual_operator_priority": {
       "type": "object",
       "required": [
@@ -5440,6 +5552,44 @@
           "maxItems": 6,
           "items": {
             "$ref": "#/$defs/residual_operator_priority_item"
+          }
+        },
+        "gap_action_map_coverage_status": {
+          "enum": [
+            "COVERS_ALL_OPEN_GAPS",
+            "INVALID_GAP_BINDING_BLOCKED"
+          ]
+        },
+        "gap_action_map_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gap_action_map_owner_order": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "enum": [
+              "OPERATOR",
+              "CODEX_NON_LIVE",
+              "PAPER_SHADOW_RUNTIME",
+              "EXTERNAL_EVIDENCE",
+              "CODEX_AUDIT_ONLY",
+              "SCALE_POLICY"
+            ]
+          }
+        },
+        "first_gap_action_owner": {
+          "const": "OPERATOR"
+        },
+        "first_gap_action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "gap_action_map": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/residual_operator_gap_action_map_item"
           }
         },
         "display_only": {

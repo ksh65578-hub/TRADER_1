@@ -1,0 +1,12 @@
+{
+  "schema_id": "trader1.paper_run_summary.v1",
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_GAP_ACTION_MAP_20260506_001",
+  "paper_run_executed_by_this_patch": false,
+  "paper_runtime_claim_created": false,
+  "paper_shadow_evidence_gap_closed": false,
+  "note": "This session changed dashboard/operator evidence mapping only; no PAPER runtime was run or claimed.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

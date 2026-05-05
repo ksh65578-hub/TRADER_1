@@ -1,0 +1,20 @@
+{
+  "schema_id": "trader1.dashboard_readiness_summary.v1",
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_GAP_ACTION_MAP_20260506_001",
+  "dashboard_readiness_status": "OPERATOR_ACTION_MAP_VISIBLE_LIVE_BLOCKED",
+  "open_gap_count": 13,
+  "gap_action_map_count": 13,
+  "owner_counts": {
+    "OPERATOR": 4,
+    "CODEX_NON_LIVE": 3,
+    "PAPER_SHADOW_RUNTIME": 3,
+    "EXTERNAL_EVIDENCE": 1,
+    "CODEX_AUDIT_ONLY": 1,
+    "SCALE_POLICY": 1
+  },
+  "first_gap_action_owner": "OPERATOR",
+  "first_gap_action_id": "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+  "first_gap_next_action": "Review and reconcile repaired, regenerated, or hash-mismatched evidence before promotion.",
+  "live_order_allowed": false,
+  "scale_up_allowed": false
+}

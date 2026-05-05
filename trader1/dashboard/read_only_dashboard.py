@@ -169,6 +169,25 @@ RESIDUAL_OPERATOR_CONFLICT_RULE = (
     "safety > no-trade > operator reconciliation > ledger rerun > paper/shadow evidence > "
     "external live evidence > sealed baseline > scale-up; never close gaps by inference"
 )
+RESIDUAL_OPERATOR_ACTION_MAP_OWNER_ORDER = (
+    "OPERATOR",
+    "CODEX_NON_LIVE",
+    "PAPER_SHADOW_RUNTIME",
+    "EXTERNAL_EVIDENCE",
+    "CODEX_AUDIT_ONLY",
+    "SCALE_POLICY",
+)
+RESIDUAL_OPERATOR_ACTION_MAP_OWNER_BY_CLASS = {
+    "OPERATOR_RECONCILIATION_ACTION": "OPERATOR",
+    "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "CODEX_NON_LIVE",
+    "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION": "PAPER_SHADOW_RUNTIME",
+    "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION": "EXTERNAL_EVIDENCE",
+    "SEALED_BASELINE_PRESERVATION_ACTION": "CODEX_AUDIT_ONLY",
+    "SCALE_UP_POLICY_EVIDENCE_ACTION": "SCALE_POLICY",
+}
+RESIDUAL_OPERATOR_ACTION_MAP_FALLBACK_BEHAVIOR = (
+    "keep the gap open, keep current evidence writes blocked, and display the blocker until exact evidence validates"
+)
 RESIDUAL_OPERATOR_PRIORITY_FALLBACK_GAPS = {
     "OPERATOR_RECONCILIATION_ACTION": [
         "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
@@ -10810,6 +10829,48 @@ def _residual_operator_priority_default_items() -> list[dict[str, Any]]:
     return items
 
 
+def _residual_operator_gap_action_map(queue_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    owner_rank = {owner: index for index, owner in enumerate(RESIDUAL_OPERATOR_ACTION_MAP_OWNER_ORDER, start=1)}
+    mapped: list[dict[str, Any]] = []
+    for queue_item in queue_items:
+        action_class = str(queue_item.get("action_class", "CLASSIFY_OPEN_GAP_ACTION"))
+        owner = RESIDUAL_OPERATOR_ACTION_MAP_OWNER_BY_CLASS.get(action_class, "CODEX_NON_LIVE")
+        priority = queue_item.get("priority")
+        if not isinstance(priority, int) or priority < 1:
+            priority = len(mapped) + 1
+        plain_next_action = str(queue_item.get("plain_next_action") or "Classify this open gap before promotion.")
+        unlock_condition = str(queue_item.get("unlock_condition") or "exact evidence and validator acceptance exist")
+        label = str(queue_item.get("label") or RESIDUAL_ACTION_PLAN_CLASSES.get(action_class, "Open gap"))
+        for gap_id in queue_item.get("gap_ids", []):
+            if not isinstance(gap_id, str) or not gap_id:
+                continue
+            mapped.append(
+                {
+                    "gap_id": gap_id,
+                    "action_class": action_class,
+                    "owner": owner,
+                    "owner_rank": owner_rank.get(owner, owner_rank["CODEX_NON_LIVE"]),
+                    "priority": priority,
+                    "label": label,
+                    "next_action": plain_next_action,
+                    "acceptance_condition": unlock_condition,
+                    "fallback_behavior": RESIDUAL_OPERATOR_ACTION_MAP_FALLBACK_BEHAVIOR,
+                    "reason_code": gap_id,
+                    "display_only": True,
+                    "dashboard_truth_only": True,
+                    "current_evidence_write_allowed": False,
+                    "gap_closure_allowed_by_this_patch": False,
+                    "live_ready_write_allowed": False,
+                    "live_config_mutation_allowed": False,
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                }
+            )
+    return mapped
+
+
 def _operator_resolution_binding_from_reconciliation(
     reconciliation_summary: dict[str, Any] | None,
 ) -> dict[str, Any]:
@@ -10897,6 +10958,8 @@ def _residual_operator_priority_summary(
         safe_items = items or _residual_operator_priority_default_items()
         queue_gap_count = sum(item["gap_count"] for item in safe_items)
         first = safe_items[0]
+        gap_action_map = _residual_operator_gap_action_map(safe_items)
+        first_gap_action = gap_action_map[0] if gap_action_map else {}
         operator_resolution_binding = _operator_resolution_binding_from_reconciliation(reconciliation_summary)
         progress_user_runtime_required = False
         if isinstance(evidence_progress_summary, dict):
@@ -10925,6 +10988,17 @@ def _residual_operator_priority_summary(
             **operator_resolution_binding,
             "user_runtime_required_for_next_non_live_patch": progress_user_runtime_required,
             "queue_items": safe_items,
+            "gap_action_map_coverage_status": (
+                "COVERS_ALL_OPEN_GAPS" if len(gap_action_map) == queue_gap_count else "INVALID_GAP_BINDING_BLOCKED"
+            ),
+            "gap_action_map_count": len(gap_action_map),
+            "gap_action_map_owner_order": list(RESIDUAL_OPERATOR_ACTION_MAP_OWNER_ORDER),
+            "first_gap_action_owner": first_gap_action.get("owner", "OPERATOR"),
+            "first_gap_action_id": first_gap_action.get(
+                "gap_id",
+                "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+            ),
+            "gap_action_map": gap_action_map,
             "display_only": True,
             "dashboard_truth_only": True,
             "current_evidence_write_allowed": False,
@@ -15163,6 +15237,10 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "operator_reconciliation_candidate_current_evidence_usable_count",
                 "operator_reconciliation_source_bindings_verified",
                 "operator_reconciliation_next_safe_action",
+                "gap_action_map_coverage_status",
+                "gap_action_map_count",
+                "first_gap_action_owner",
+                "first_gap_action_id",
             )
         )
         for item in residual_priority.get("queue_items", []):
@@ -15176,6 +15254,21 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                         "gap_count",
                         "plain_next_action",
                         "unlock_condition",
+                    )
+                )
+        for item in residual_priority.get("gap_action_map", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "gap_id",
+                        "action_class",
+                        "owner",
+                        "priority",
+                        "next_action",
+                        "acceptance_condition",
+                        "fallback_behavior",
+                        "reason_code",
                     )
                 )
     workflow = shell.get("operator_workflow_summary", {})
@@ -15643,6 +15736,61 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "residual operator priority queue gap count mismatch", "CONTRACT_GAP_HIGH")
     if priority_gap_count != open_gap_count:
         return DashboardValidationResult("FAIL", "residual operator priority must cover all open gaps", "CONTRACT_GAP_HIGH")
+    gap_action_map = residual_priority.get("gap_action_map")
+    if not isinstance(gap_action_map, list) or len(gap_action_map) != open_gap_count:
+        return DashboardValidationResult("FAIL", "residual operator action map must cover every open gap", "CONTRACT_GAP_HIGH")
+    if residual_priority.get("gap_action_map_count") != len(gap_action_map):
+        return DashboardValidationResult("FAIL", "residual operator action map count mismatch", "CONTRACT_GAP_HIGH")
+    if residual_priority.get("gap_action_map_coverage_status") != "COVERS_ALL_OPEN_GAPS":
+        return DashboardValidationResult("BLOCKED", "residual operator action map lost full coverage", "LIVE_FINAL_GUARD_FAILED")
+    if residual_priority.get("gap_action_map_owner_order") != list(RESIDUAL_OPERATOR_ACTION_MAP_OWNER_ORDER):
+        return DashboardValidationResult("FAIL", "residual operator action map owner order drifted", "SCHEMA_IDENTITY_MISMATCH")
+    expected_action_map = _residual_operator_gap_action_map(priority_items)
+    expected_gap_ids = [item["gap_id"] for item in expected_action_map]
+    actual_gap_ids = [item.get("gap_id") for item in gap_action_map if isinstance(item, dict)]
+    if actual_gap_ids != expected_gap_ids or len(set(actual_gap_ids)) != len(actual_gap_ids):
+        return DashboardValidationResult("FAIL", "residual operator action map gap order or uniqueness drifted", "CONTRACT_GAP_HIGH")
+    expected_by_gap = {item["gap_id"]: item for item in expected_action_map}
+    for item in gap_action_map:
+        if not isinstance(item, dict):
+            return DashboardValidationResult("FAIL", "residual operator action map item must be object", "SCHEMA_IDENTITY_MISMATCH")
+        gap_id = item.get("gap_id")
+        expected = expected_by_gap.get(gap_id)
+        if not expected:
+            return DashboardValidationResult("FAIL", "residual operator action map contains unknown gap", "CONTRACT_GAP_HIGH")
+        for key in (
+            "action_class",
+            "owner",
+            "owner_rank",
+            "priority",
+            "label",
+            "next_action",
+            "acceptance_condition",
+            "fallback_behavior",
+            "reason_code",
+        ):
+            if item.get(key) != expected.get(key):
+                return DashboardValidationResult("FAIL", "residual operator action map binding drifted", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            item.get("display_only") is not True
+            or item.get("dashboard_truth_only") is not True
+            or item.get("current_evidence_write_allowed")
+            or item.get("gap_closure_allowed_by_this_patch")
+            or item.get("live_ready_write_allowed")
+            or item.get("live_config_mutation_allowed")
+            or item.get("live_order_ready")
+            or item.get("live_order_allowed")
+            or item.get("can_live_trade")
+            or item.get("scale_up_allowed")
+        ):
+            return DashboardValidationResult("BLOCKED", "residual operator action map attempted permission drift", "LIVE_FINAL_GUARD_FAILED")
+    first_gap_action = gap_action_map[0]
+    if (
+        residual_priority.get("first_gap_action_owner") != first_gap_action.get("owner")
+        or residual_priority.get("first_gap_action_id") != first_gap_action.get("gap_id")
+        or first_gap_action.get("owner") != "OPERATOR"
+    ):
+        return DashboardValidationResult("BLOCKED", "residual operator action map must start with operator-owned reconciliation", "LIVE_FINAL_GUARD_FAILED")
     first_priority = priority_items[0]
     if (
         residual_priority.get("single_next_action_class") != first_priority.get("action_class")
@@ -21486,6 +21634,44 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         )
         + "</p>"
     )
+    residual_gap_action_map = [
+        item for item in residual_priority.get("gap_action_map", []) if isinstance(item, dict)
+    ]
+    if residual_gap_action_map:
+        owner_counts: dict[str, int] = {}
+        for item in residual_gap_action_map:
+            owner = str(item.get("owner", "CODEX_NON_LIVE"))
+            owner_counts[owner] = owner_counts.get(owner, 0) + 1
+        owner_summary = ", ".join(
+            f"{owner}={owner_counts[owner]}"
+            for owner in RESIDUAL_OPERATOR_ACTION_MAP_OWNER_ORDER
+            if owner_counts.get(owner, 0)
+        )
+        action_map_preview_html = "".join(
+            (
+                "<li>"
+                f"<strong>{safe_text(item.get('gap_id', 'OPEN_GAP'))}</strong>"
+                f"<span>{safe_text(item.get('owner', 'CODEX_NON_LIVE'))}: "
+                f"{safe_text(item.get('next_action', 'Keep this gap blocked.'))} "
+                f"Acceptance: {safe_text(item.get('acceptance_condition', 'exact evidence validates'))}</span>"
+                "</li>"
+            )
+            for item in residual_gap_action_map[:4]
+        )
+        residual_priority_note_html += (
+            '<p class="live-blocker-note"><strong>Action map:</strong> '
+            + safe_text(residual_priority.get("gap_action_map_count", len(residual_gap_action_map)))
+            + " gap(s); coverage="
+            + safe_text(residual_priority.get("gap_action_map_coverage_status", "INVALID_GAP_BINDING_BLOCKED"))
+            + "; first owner="
+            + safe_text(residual_priority.get("first_gap_action_owner", "OPERATOR"))
+            + "; owners="
+            + safe_text(owner_summary)
+            + ".</p>"
+            '<ul class="operator-action-list compact" aria-label="residual gap action map preview">'
+            + action_map_preview_html
+            + "</ul>"
+        )
     handoff_packet_count = residual_handoff.get("handoff_packet_count", 0)
     blocked_handoff_count = residual_handoff.get("blocked_handoff_packet_count", 0)
     handoff_ready_count = residual_handoff.get("handoff_ready_count", 0)
