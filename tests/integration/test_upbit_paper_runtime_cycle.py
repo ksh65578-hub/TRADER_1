@@ -33,6 +33,12 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["strategy_regime_cost_linkage"]["report_regime"], report["regime"])
         self.assertEqual(report["strategy_regime_cost_linkage"]["runtime_public_market_data_hash"], report["runtime_public_market_data_hash"])
         self.assertEqual(report["strategy_regime_cost_linkage"]["feature_snapshot_hash"], report["feature_snapshot_hash"])
+        self.assertEqual(report["summary"]["quantitative_policy_summary"]["source"], "QUANTITATIVE_POLICY_REPORT")
+        self.assertEqual(
+            report["summary"]["quantitative_policy_summary"]["source_policy_report_id"],
+            "runtime-cycle-positive_quantitative_policy",
+        )
+        self.assertEqual(report["summary"]["quantitative_policy_summary"]["dashboard_reason_code"], "LIVE_READY_MISSING")
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
@@ -56,6 +62,29 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["source_public_market_data_hash"], collection["public_market_data_hash"])
         self.assertEqual(report["runtime_public_market_data_hash"], collection["public_market_data_hash"])
         self.assertEqual(report["canonical_event_count"], collection["canonical_event_count"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_new_runtime_cycle_requires_quantitative_policy_binding(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-missing-quant-policy")
+        del report["summary"]["quantitative_policy_summary"]
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_legacy_runtime_cycle_can_be_rechecked_without_quantitative_policy_binding(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-legacy-quant-policy")
+        del report["summary"]["quantitative_policy_summary"]
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(
+            report,
+            require_quantitative_policy_summary=False,
+        )
+
+        self.assertEqual(result.status, "PASS")
         self.assertFalse(report["live_order_allowed"])
 
     def test_runtime_blocks_tampered_position_detail_rollup(self):

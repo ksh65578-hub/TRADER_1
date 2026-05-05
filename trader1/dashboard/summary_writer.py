@@ -25,6 +25,8 @@ CONFIGURED_PAPER_STARTING_CASH_STATUSES = {
     "VERIFIED_SOURCE_PRESENT",
     "UNSUPPORTED_SCOPE",
 }
+QUANTITATIVE_POLICY_SOURCES = {"SUMMARY_BUILDER", "QUANTITATIVE_POLICY_REPORT"}
+QUANTITATIVE_POLICY_STATUSES = {"IMPLEMENTED_LIVE_BLOCKED", "BLOCKED", "UNTESTED"}
 
 
 @dataclass(frozen=True)
@@ -224,6 +226,13 @@ def _decimal(value: Any) -> Decimal | None:
         return None
 
 
+def _float_or_none(value: Any) -> float | None:
+    decimal_value = _decimal(value)
+    if decimal_value is None:
+        return None
+    return float(decimal_value)
+
+
 def _is_hash64(value: Any) -> bool:
     return isinstance(value, str) and len(value) == 64 and all(char in "0123456789ABCDEFabcdef" for char in value)
 
@@ -318,6 +327,126 @@ def _validate_summary_positions(positions: Any) -> tuple[SummaryValidationResult
     return None, market_value_sum, unrealized_sum
 
 
+def _default_quantitative_policy_report(session_id: str) -> dict[str, Any]:
+    from trader1.core.strategy.quantitative_policy import build_quantitative_policy_report
+
+    return build_quantitative_policy_report(report_id=f"{session_id}_summary_quantitative_policy")
+
+
+def _quantitative_policy_summary(
+    policy_report: dict[str, Any] | None,
+    *,
+    exchange: str,
+    market_type: str,
+) -> dict[str, Any]:
+    if not isinstance(policy_report, dict):
+        if exchange == "BINANCE" and market_type == "FUTURES_USDT_M":
+            reason_code = "BINANCE_FUTURES_SURFACE_ONLY"
+        elif exchange == "BINANCE":
+            reason_code = "BINANCE_ADAPTER_SURFACE_ONLY"
+        else:
+            reason_code = "LIVE_READY_MISSING"
+        message = (
+            "LIVE blocked: Binance strategy policy is scaffold-only and cannot be used as runtime readiness."
+            if exchange == "BINANCE"
+            else "LIVE blocked: quantitative policy report is not loaded."
+        )
+        return {
+            "source": "SUMMARY_BUILDER",
+            "freshness_status": "UNTESTED",
+            "policy_status": "BLOCKED" if exchange == "BINANCE" else "UNTESTED",
+            "decision_surface": "DASHBOARD_ONLY",
+            "source_policy_report_id": None,
+            "source_policy_report_hash": None,
+            "dashboard_reason_code": reason_code,
+            "dashboard_operator_message": message,
+            "minimum_trade_count": 100,
+            "high_return_candidate_trade_count": 300,
+            "signal_grade": None,
+            "signal_score": None,
+            "net_expected_edge": None,
+            "total_cost": None,
+            "primary_blocker_code": reason_code,
+            "next_action": "Regenerate the summary with a quantitative policy report before strategy review.",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+    basis = policy_report.get("law_of_large_numbers_basis", {})
+    signal = policy_report.get("signal_policy", {})
+    edge = policy_report.get("edge_policy", {})
+    live_ready = policy_report.get("live_ready_policy", {})
+    reason_code = (
+        policy_report.get("dashboard_reason_code")
+        or live_ready.get("primary_blocker_code")
+        or policy_report.get("primary_blocker_code")
+        or "LIVE_READY_MISSING"
+    )
+    return {
+        "source": "QUANTITATIVE_POLICY_REPORT",
+        "freshness_status": "PASS",
+        "policy_status": str(policy_report.get("policy_status") or "BLOCKED"),
+        "decision_surface": "DASHBOARD_ONLY",
+        "source_policy_report_id": policy_report.get("policy_report_id"),
+        "source_policy_report_hash": policy_report.get("policy_report_hash"),
+        "dashboard_reason_code": reason_code,
+        "dashboard_operator_message": policy_report.get(
+            "dashboard_operator_message",
+            "LIVE blocked: quantitative policy is display-only and cannot approve orders.",
+        ),
+        "minimum_trade_count": int(basis.get("minimum_trade_count", 100)),
+        "high_return_candidate_trade_count": int(basis.get("high_return_candidate_trade_count", 300)),
+        "signal_grade": signal.get("signal_grade"),
+        "signal_score": _float_or_none(signal.get("signal_score")),
+        "net_expected_edge": _float_or_none(edge.get("net_expected_edge")),
+        "total_cost": _float_or_none(edge.get("total_cost")),
+        "primary_blocker_code": reason_code,
+        "next_action": "Use the policy summary for PAPER/SHADOW review only; LIVE_READY and scale-up remain blocked.",
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _validate_quantitative_policy_summary(
+    policy_summary: Any,
+    allowed_blockers: set[str] | None,
+) -> SummaryValidationResult | None:
+    if not isinstance(policy_summary, dict):
+        return SummaryValidationResult("FAIL", "quantitative policy summary must be an object", "SCHEMA_IDENTITY_MISMATCH")
+    if policy_summary.get("source") not in QUANTITATIVE_POLICY_SOURCES:
+        return SummaryValidationResult("FAIL", "quantitative policy summary source is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if policy_summary.get("policy_status") not in QUANTITATIVE_POLICY_STATUSES:
+        return SummaryValidationResult("FAIL", "quantitative policy status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if policy_summary.get("decision_surface") != "DASHBOARD_ONLY":
+        return SummaryValidationResult("BLOCKED", "quantitative policy summary must stay dashboard-only", "LIVE_FINAL_GUARD_FAILED")
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if policy_summary.get(field) is not False:
+            return SummaryValidationResult("BLOCKED", f"quantitative policy summary attempted live or scale flag: {field}", "LIVE_FINAL_GUARD_FAILED")
+    if policy_summary.get("minimum_trade_count") != 100 or policy_summary.get("high_return_candidate_trade_count") != 300:
+        return SummaryValidationResult("FAIL", "quantitative policy sample thresholds must remain 100 and 300", "SCHEMA_IDENTITY_MISMATCH")
+    reason_code = policy_summary.get("dashboard_reason_code")
+    primary_blocker = policy_summary.get("primary_blocker_code")
+    if allowed_blockers is not None:
+        for code in (reason_code, primary_blocker):
+            if code is not None and code not in allowed_blockers:
+                return SummaryValidationResult("FAIL", f"unknown quantitative policy blocker: {code}", "UNKNOWN_BLOCKED")
+    message = str(policy_summary.get("dashboard_operator_message") or "").lower()
+    if "live" not in message or "blocked" not in message:
+        return SummaryValidationResult("FAIL", "quantitative policy message must state LIVE is blocked", "SCHEMA_IDENTITY_MISMATCH")
+    if policy_summary.get("source") == "QUANTITATIVE_POLICY_REPORT":
+        if policy_summary.get("freshness_status") != "PASS":
+            return SummaryValidationResult("BLOCKED", "loaded quantitative policy report must be fresh", "LATENCY_TTL_EXPIRED")
+        if not isinstance(policy_summary.get("source_policy_report_id"), str) or not policy_summary.get("source_policy_report_id"):
+            return SummaryValidationResult("FAIL", "quantitative policy report id is missing", "SCHEMA_IDENTITY_MISMATCH")
+        if not _is_hash64(policy_summary.get("source_policy_report_hash")):
+            return SummaryValidationResult("FAIL", "quantitative policy report hash is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    return None
+
+
 def build_summary_shell(
     *,
     exchange: str,
@@ -332,6 +461,7 @@ def build_summary_shell(
     recent_entry_context: list[dict[str, Any]] | None = None,
     recent_no_trade_context: list[dict[str, Any]] | None = None,
     market_context: dict[str, Any] | None = None,
+    quantitative_policy_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     startup_blocker = startup_probe.get("primary_blocker_code") if startup_probe else "HARD_TRUTH_MISSING"
     heartbeat_blocker = heartbeat.get("primary_blocker_code") if heartbeat else "LATENCY_TTL_EXPIRED"
@@ -351,6 +481,9 @@ def build_summary_shell(
         mode=mode,
         session_id=session_id,
     )
+    policy_report = quantitative_policy_report
+    if policy_report is None and exchange == "UPBIT" and market_type == "KRW_SPOT" and mode == "PAPER":
+        policy_report = _default_quantitative_policy_report(session_id)
 
     summary = {
         "schema_id": SUMMARY_SCHEMA_ID,
@@ -418,6 +551,11 @@ def build_summary_shell(
         "recent_no_trade_context": recent_no_trade_context or [],
         "recent_entry_context": recent_entry_context or [],
         "fee_snapshot": None,
+        "quantitative_policy_summary": _quantitative_policy_summary(
+            policy_report,
+            exchange=exchange,
+            market_type=market_type,
+        ),
         "live_ready": {
             "source": "READINESS_SURFACE" if readiness_surface else "SUMMARY_BUILDER",
             "live_order_ready": False,
@@ -440,7 +578,12 @@ def build_summary_shell(
     return summary
 
 
-def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] | None = None) -> SummaryValidationResult:
+def validate_summary_shell(
+    summary: dict[str, Any],
+    allowed_blockers: set[str] | None = None,
+    *,
+    require_quantitative_policy_summary: bool = True,
+) -> SummaryValidationResult:
     if summary.get("schema_id") != SUMMARY_SCHEMA_ID:
         return SummaryValidationResult("FAIL", "summary schema_id mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if summary.get("project") != "TRADER_1":
@@ -469,6 +612,14 @@ def validate_summary_shell(summary: dict[str, Any], allowed_blockers: set[str] |
         value = summary.get(field)
         if not isinstance(value, dict) or "source" not in value or "freshness_status" not in value:
             return SummaryValidationResult("FAIL", f"summary {field} source object invalid", "SCHEMA_IDENTITY_MISMATCH")
+
+    if require_quantitative_policy_summary or "quantitative_policy_summary" in summary:
+        quantitative_policy_result = _validate_quantitative_policy_summary(
+            summary.get("quantitative_policy_summary"),
+            allowed_blockers,
+        )
+        if quantitative_policy_result is not None:
+            return quantitative_policy_result
 
     portfolio = summary.get("portfolio")
     if not isinstance(portfolio, dict):

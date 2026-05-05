@@ -5661,6 +5661,153 @@
         }
       }
     },
+    "quantitative_policy_status": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "severity",
+        "color_token",
+        "truth_role",
+        "source",
+        "policy_status",
+        "decision_surface",
+        "source_policy_report_id",
+        "source_policy_report_hash",
+        "dashboard_reason_code",
+        "dashboard_operator_message",
+        "minimum_trade_count",
+        "high_return_candidate_trade_count",
+        "signal_grade",
+        "signal_score_display",
+        "net_expected_edge_display",
+        "total_cost_display",
+        "primary_blocker_code",
+        "one_line_summary",
+        "next_operator_action",
+        "display_only",
+        "dashboard_truth_only",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "Quantitative Strategy Review"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "LIVE_BLOCKED",
+            "BLOCKED",
+            "STALE",
+            "INVALID"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "WARNING",
+            "ERROR"
+          ]
+        },
+        "color_token": {
+          "enum": [
+            "yellow",
+            "red"
+          ]
+        },
+        "truth_role": {
+          "const": "dashboard_serving_truth"
+        },
+        "source": {
+          "const": "summary.json"
+        },
+        "policy_status": {
+          "enum": [
+            "IMPLEMENTED_LIVE_BLOCKED",
+            "BLOCKED",
+            "UNTESTED"
+          ]
+        },
+        "decision_surface": {
+          "const": "DASHBOARD_ONLY"
+        },
+        "source_policy_report_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_policy_report_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "dashboard_reason_code": {
+          "$ref": "common.defs.schema.json#/$defs/no_trade_reason"
+        },
+        "dashboard_operator_message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_trade_count": {
+          "const": 100
+        },
+        "high_return_candidate_trade_count": {
+          "const": 300
+        },
+        "signal_grade": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signal_score_display": {
+          "type": "string",
+          "minLength": 1
+        },
+        "net_expected_edge_display": {
+          "type": "string",
+          "minLength": 1
+        },
+        "total_cost_display": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_blocker_code": {
+          "$ref": "common.defs.schema.json#/$defs/no_trade_reason"
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_operator_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
     "recent_event_item": {
       "type": "object",
       "required": [
@@ -7762,6 +7909,9 @@
     },
     "parameter_narrowing_status": {
       "$ref": "#/$defs/parameter_narrowing_status"
+    },
+    "quantitative_policy_status": {
+      "$ref": "#/$defs/quantitative_policy_status"
     },
     "risk_exposure_snapshot": {
       "$ref": "#/$defs/risk_exposure_snapshot"

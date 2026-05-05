@@ -113,6 +113,53 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertFalse(summary["live_ready"]["live_order_allowed"])
         self.assertEqual(summary["final_action"], "NO_TRADE")
 
+    def test_summary_binds_quantitative_policy_for_dashboard_without_live_permission(self):
+        summary = build_summary()
+        result = validate_summary_shell(summary, set(registry()["enums"]["live_blocker_code"]["values"]))
+
+        policy = summary["quantitative_policy_summary"]
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(policy["source"], "QUANTITATIVE_POLICY_REPORT")
+        self.assertEqual(policy["policy_status"], "IMPLEMENTED_LIVE_BLOCKED")
+        self.assertEqual(policy["decision_surface"], "DASHBOARD_ONLY")
+        self.assertEqual(policy["dashboard_reason_code"], "LIVE_READY_MISSING")
+        self.assertEqual(policy["minimum_trade_count"], 100)
+        self.assertEqual(policy["high_return_candidate_trade_count"], 300)
+        self.assertEqual(len(policy["source_policy_report_hash"]), 64)
+        self.assertFalse(policy["live_order_ready"])
+        self.assertFalse(policy["live_order_allowed"])
+        self.assertFalse(policy["can_live_trade"])
+        self.assertFalse(policy["scale_up_allowed"])
+
+    def test_summary_blocks_quantitative_policy_live_flag_drift(self):
+        summary = build_summary()
+        summary["quantitative_policy_summary"]["live_order_allowed"] = True
+
+        result = validate_summary_shell(summary)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_summary_keeps_binance_quantitative_policy_scaffold_only(self):
+        summary = build_summary_shell(
+            exchange="BINANCE",
+            market_type="SPOT",
+            mode="PAPER",
+            session_id="test_summary_binance_scaffold",
+            startup_probe=None,
+            heartbeat=None,
+            readiness_surface=None,
+        )
+        result = validate_summary_shell(summary, set(registry()["enums"]["live_blocker_code"]["values"]))
+
+        policy = summary["quantitative_policy_summary"]
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(policy["source"], "SUMMARY_BUILDER")
+        self.assertEqual(policy["policy_status"], "BLOCKED")
+        self.assertEqual(policy["dashboard_reason_code"], "BINANCE_ADAPTER_SURFACE_ONLY")
+        self.assertFalse(policy["live_order_allowed"])
+        self.assertFalse(policy["can_live_trade"])
+
     def test_summary_shell_cannot_emit_order_action(self):
         summary = build_summary()
         summary["final_action"] = "ENTER_LONG"
