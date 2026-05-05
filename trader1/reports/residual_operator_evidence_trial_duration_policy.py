@@ -12,6 +12,10 @@ TRIAL_DURATION_HOURS = 24
 TRIAL_HEARTBEAT_INTERVAL_SECONDS = 10
 TRIAL_HEARTBEAT_TICKS = TRIAL_DURATION_HOURS * 60 * 60 // TRIAL_HEARTBEAT_INTERVAL_SECONDS
 TRIAL_MINIMUM_PAPER_SHADOW_WINDOW_COUNT = 4
+MVP5_REVIEW_ENTRY_PROFILE_ID = "UPBIT_PAPER_SAFE_MONITOR_48H"
+MVP5_REVIEW_ENTRY_DURATION_HOURS = 48
+MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS = 17280
+MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT = 8
 LIVE_FALSE_FIELDS = ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
 
 
@@ -171,10 +175,14 @@ def validate_residual_operator_evidence_trial_duration_policy_report(
         errors.append("trial profile must remain non-live only")
     if report.get("formal_mvp5_profile_still_required_for_live_readiness") is not True:
         errors.append("formal MVP5 profile must still be required for live readiness")
-    if report.get("formal_mvp5_duration_hours") < 120:
-        errors.append("formal MVP5 duration must stay at least 120h")
-    if report.get("formal_mvp5_expected_heartbeat_ticks") < 43200:
-        errors.append("formal MVP5 heartbeat ticks must stay at least 43200")
+    if report.get("formal_mvp5_profile_id") != MVP5_REVIEW_ENTRY_PROFILE_ID:
+        errors.append("formal MVP5 profile must be the 48h review-entry profile")
+    if report.get("formal_mvp5_duration_hours") < MVP5_REVIEW_ENTRY_DURATION_HOURS:
+        errors.append("formal MVP5 duration must stay at least 48h")
+    if report.get("formal_mvp5_expected_heartbeat_ticks") < MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS:
+        errors.append("formal MVP5 heartbeat ticks must stay at least 17280")
+    if report.get("formal_mvp5_minimum_paper_shadow_window_count") < MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT:
+        errors.append("formal MVP5 PAPER/SHADOW window count must stay at least 8")
     if report.get("mvp5_entry_blocked_until_operator_evidence") is not True:
         errors.append("MVP5 entry must remain blocked")
     expected_hash = sha256_json({key: value for key, value in report.items() if key != "report_hash"})

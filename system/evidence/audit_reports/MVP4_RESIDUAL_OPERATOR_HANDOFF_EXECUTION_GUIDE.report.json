@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.residual_operator_execution_guide_report.v1",
-  "patch_id": "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE_20260505_001",
-  "generated_at_utc": "2026-05-05T08:16:09Z",
+  "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
+  "generated_at_utc": "2026-05-05T11:31:53Z",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
@@ -13,7 +13,7 @@
       "report_hash": "013246BCC215C3D597851A23925B7FC257113DF5A59C09B0D2B8F163DAAB17E4"
     }
   ],
-  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE_20260505_001",
+  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_TRIAL_DURATION_POLICY_20260505_001",
   "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "open_gap_ids": [
@@ -164,11 +164,11 @@
       "gap_count": 3,
       "allowed_local_commands": [
         {
-          "command_id": "UPBIT_PAPER_SAFE_MONITOR_120H",
+          "command_id": "UPBIT_PAPER_SAFE_MONITOR_48H",
           "shell": "powershell",
-          "command": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='43200'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
+          "command": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='17280'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
           "scope": "UPBIT/KRW_SPOT/PAPER",
-          "minimum_duration_hours": 120,
+          "minimum_duration_hours": 48,
           "non_live_only": true,
           "credential_required": false,
           "live_order_allowed": false
@@ -189,8 +189,8 @@
         "runtime_schema_instance_validator",
         "live_final_guard_validator"
       ],
-      "minimum_observation_hours": 120,
-      "minimum_paper_shadow_window_count": 20,
+      "minimum_observation_hours": 48,
+      "minimum_paper_shadow_window_count": 8,
       "forbidden_actions": [
         "LIVE_ORDER",
         "CREDENTIAL_OR_API_KEY_USE",
@@ -354,5 +354,5 @@
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "report_hash": "8D53F2B845CE5014895BB6F6A68CD63E483423DE77F04CE22F18CBE94D7C67BF"
+  "report_hash": "57EB6DBA4CA50883465D64126B4D681E61CC4705AB605639E6E83DFE7BD491EF"
 }

@@ -1373,6 +1373,37 @@
     "formal_mvp5_profile_still_required_for_live_readiness": {
       "type": "boolean"
     },
+    "mvp5_entry_duration_policy_report_path": {
+      "type": "string"
+    },
+    "mvp5_entry_duration_policy_status": {
+      "type": "string"
+    },
+    "mvp5_review_entry_duration_hours_before": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "mvp5_review_entry_duration_hours_after": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "mvp5_review_entry_heartbeat_ticks_after": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "mvp5_review_entry_window_count_after": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "extended_120h_profile_role": {
+      "type": "string"
+    },
+    "duration_only_live_ready_allowed": {
+      "type": "boolean"
+    },
+    "external_live_evidence_still_required": {
+      "type": "boolean"
+    },
     "authority_hash_checked": {
       "type": "boolean"
     },

@@ -75,14 +75,14 @@ class ResidualOperatorExecutionGuideTest(unittest.TestCase):
         steps_by_action = {step["action_class"]: step for step in report["execution_steps"]}
         runtime_step = steps_by_action["PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION"]
         self.assertEqual(runtime_step["operator_action_mode"], "LOCAL_PAPER_SHADOW_RUNTIME_ALLOWED")
-        self.assertEqual(runtime_step["minimum_observation_hours"], 120)
-        self.assertEqual(runtime_step["minimum_paper_shadow_window_count"], 20)
+        self.assertEqual(runtime_step["minimum_observation_hours"], 48)
+        self.assertEqual(runtime_step["minimum_paper_shadow_window_count"], 8)
         self.assertEqual(len(runtime_step["allowed_local_commands"]), 1)
         command = runtime_step["allowed_local_commands"][0]
-        self.assertEqual(command["command_id"], "UPBIT_PAPER_SAFE_MONITOR_120H")
+        self.assertEqual(command["command_id"], "UPBIT_PAPER_SAFE_MONITOR_48H")
         self.assertEqual(command["shell"], "powershell")
         self.assertIn("UPBIT_PAPER.py", command["command"])
-        self.assertEqual(command["minimum_duration_hours"], 120)
+        self.assertEqual(command["minimum_duration_hours"], 48)
         self.assertTrue(command["non_live_only"])
         self.assertFalse(command["credential_required"])
         self.assertFalse(command["live_order_allowed"])

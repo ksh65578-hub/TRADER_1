@@ -1,5 +1,5 @@
 {
-  "schema_id": "trader1.residual_operator_evidence_trial_duration_policy_report.v1",
+  "schema_id": "trader1.residual_mvp5_entry_duration_policy_report.v1",
   "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
   "generated_at_utc": "2026-05-05T11:31:53Z",
   "authority": {
@@ -7,6 +7,16 @@
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
   },
   "source_reports": [
+    {
+      "role": "residual_operator_execution_guide",
+      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
+      "report_hash": "57EB6DBA4CA50883465D64126B4D681E61CC4705AB605639E6E83DFE7BD491EF"
+    },
+    {
+      "role": "residual_operator_evidence_progress",
+      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
+      "report_hash": "CC9397396D9824AF1FC3AC6C61D2B2BA82E2A46914146D9F1800739B0EFA2313"
+    },
     {
       "role": "residual_operator_evidence_run_preflight",
       "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
@@ -16,6 +26,11 @@
       "role": "residual_operator_evidence_intake_audit",
       "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
       "report_hash": "55EA40E0B7052C1FE49BC1204E4D974B5C3BAF7F21E868225A963898901360AE"
+    },
+    {
+      "role": "residual_operator_evidence_trial_duration_policy",
+      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
+      "report_hash": "C129C6022185AF2474A9E5131139A9E534AFD7DDDACF32B54C9C68EE84369340"
     }
   ],
   "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_TRIAL_DURATION_POLICY_20260505_001",
@@ -37,30 +52,25 @@
     "SCALE_UP_NOT_ELIGIBLE"
   ],
   "open_gap_count": 13,
-  "duration_policy_status": "TRIAL_PROFILE_ALLOWED_FORMAL_MVP5_STILL_BLOCKED",
-  "operator_recommended_next_profile_id": "UPBIT_PAPER_SAFE_MONITOR_24H_TRIAL",
-  "operator_recommended_duration_hours": 24,
-  "operator_recommended_heartbeat_ticks": 8640,
-  "operator_recommended_heartbeat_interval_seconds": 10,
-  "operator_recommended_minimum_paper_shadow_window_count": 4,
-  "operator_recommended_command_shell": "powershell",
-  "operator_recommended_command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='8640'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
-  "trial_profile_non_live_only": true,
-  "trial_profile_credential_required": false,
-  "trial_profile_live_order_allowed": false,
-  "trial_profile_mvp5_evidence_eligible": false,
-  "trial_profile_gap_closure_allowed": false,
-  "trial_profile_current_evidence_write_allowed": false,
-  "trial_profile_purpose": "SHORT_RUNTIME_DEFECT_DISCOVERY_BEFORE_LONG_RUN",
-  "formal_mvp5_profile_id": "UPBIT_PAPER_SAFE_MONITOR_48H",
-  "formal_mvp5_duration_hours": 48,
-  "formal_mvp5_expected_heartbeat_ticks": 17280,
-  "formal_mvp5_minimum_paper_shadow_window_count": 8,
-  "formal_mvp5_profile_still_required_for_live_readiness": true,
-  "formal_mvp5_profile_replaced_by_trial": false,
-  "operator_submission_manifest_status": "MISSING_OPERATOR_SUBMISSION_MANIFEST",
-  "intake_review_ready": false,
-  "command_executed_by_this_patch": false,
+  "duration_policy_status": "MVP5_REVIEW_ENTRY_LOWERED_LIVE_STILL_BLOCKED",
+  "superseded_profile_id": "UPBIT_PAPER_SAFE_MONITOR_120H",
+  "superseded_duration_hours": 120,
+  "superseded_heartbeat_ticks": 43200,
+  "superseded_minimum_paper_shadow_window_count": 20,
+  "mvp5_review_entry_profile_id": "UPBIT_PAPER_SAFE_MONITOR_48H",
+  "mvp5_review_entry_duration_hours": 48,
+  "mvp5_review_entry_heartbeat_ticks": 17280,
+  "mvp5_review_entry_heartbeat_interval_seconds": 10,
+  "mvp5_review_entry_minimum_paper_shadow_window_count": 8,
+  "mvp5_review_entry_command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='17280'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
+  "mvp5_review_entry_lowered_by_this_patch": true,
+  "trial_24h_profile_still_not_mvp5_eligible": true,
+  "extended_120h_profile_role": "OPTIONAL_EXTENDED_OBSERVATION_OR_SCALE_UP_CONFIDENCE_ONLY",
+  "duration_only_live_ready_allowed": false,
+  "duration_only_gap_closure_allowed": false,
+  "duration_only_current_evidence_write_allowed": false,
+  "external_live_evidence_still_required": true,
+  "operator_submission_required": true,
   "operator_run_completed_by_this_patch": false,
   "operator_run_evidence_ready_for_mvp5": false,
   "mvp5_entry_blocked_until_operator_evidence": true,
@@ -76,5 +86,5 @@
   "scale_up_allowed": false,
   "validation_status": "PASS",
   "validation_errors": [],
-  "report_hash": "C129C6022185AF2474A9E5131139A9E534AFD7DDDACF32B54C9C68EE84369340"
+  "report_hash": "B5B4266C218B51215D6784B6E6D32EC383256484B667747D6B73227208BD6005"
 }
