@@ -1,0 +1,30 @@
+{
+  "patch_id": "MVP4_DASHBOARD_PAPER_TRUTH_FRESHNESS_SEPARATION_20260506_001",
+  "generated_at_utc": "2026-05-05T23:26:23Z",
+  "status": "PASS_LIVE_BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "credential_load_attempted": false,
+  "order_adapter_called": false,
+  "order_endpoint_called": false,
+  "live_ready_snapshot_written": false,
+  "live_config_mutated": false,
+  "audited_current_evidence_writer_enabled": false,
+  "validators": [
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "primary_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ]
+}

@@ -4399,6 +4399,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
         self.assertEqual(portfolio["source_snapshot_status"], "PASS")
         self.assertEqual(portfolio["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
+        self.assertEqual(portfolio["paper_value_truth_status"], "PAPER_LEDGER_CURRENT_VALUES_VERIFIED")
+        self.assertEqual(portfolio["runtime_continuity_status"], "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF")
+        self.assertEqual(
+            portfolio["audited_writer_lifecycle_status"],
+            "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED",
+        )
+        self.assertIn("display only", portfolio["paper_value_truth_message"])
+        self.assertIn("continuous current-evidence writer", portfolio["operator_truth_summary"])
         self.assertEqual(portfolio["configured_paper_capital"]["value_display"], "1,000,000 KRW")
         expected_cash_display = krw_display(current_evidence["verified_cash_krw"])
         expected_equity_display = krw_display(current_evidence["verified_equity_krw"])
@@ -4453,6 +4461,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("writer=PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN", html)
         self.assertIn(expected_cash_display, html)
         self.assertIn(expected_equity_display, html)
+        self.assertIn("PAPER_LEDGER_CURRENT_VALUES_VERIFIED", html)
+        self.assertIn("SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF", html)
+        self.assertIn("AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED", html)
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
 
@@ -4512,6 +4523,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
         self.assertEqual(portfolio["source_snapshot_status"], "PASS")
         self.assertEqual(portfolio["blocking_reason"], "LATENCY_TTL_EXPIRED")
+        self.assertEqual(portfolio["paper_value_truth_status"], "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE")
+        self.assertEqual(portfolio["runtime_continuity_status"], "STALE_SNAPSHOT_NOT_RUNTIME_PROOF")
+        self.assertEqual(
+            portfolio["audited_writer_lifecycle_status"],
+            "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED",
+        )
+        self.assertIn("Last verified audited PAPER ledger values", portfolio["paper_value_truth_message"])
+        self.assertIn("continuous current-evidence writer", portfolio["operator_truth_summary"])
         self.assertEqual(portfolio["configured_paper_capital"]["value_display"], "1,000,000 KRW")
         self.assertEqual(portfolio["configured_paper_capital"]["freshness_status"], "PASS")
         self.assertEqual(portfolio["cash"]["value_display"], krw_display(current_evidence["verified_cash_krw"]))
@@ -4549,7 +4568,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["scale_up_allowed"])
         html = render_dashboard_html(dashboard)
         self.assertIn("Configured baseline: 1,000,000 KRW", html)
-        self.assertIn("Current values:</strong> Stale data", html)
+        self.assertIn("Current values:</strong> Last verified PAPER ledger", html)
+        self.assertIn("PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE", html)
+        self.assertIn("STALE_SNAPSHOT_NOT_RUNTIME_PROOF", html)
 
     def test_dashboard_displays_bound_verified_portfolio_when_stale_loop_reconciliation_blocks_writes(self):
         report = stale_loop_post_regeneration_reconciliation_fixture()
@@ -6059,6 +6080,18 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             paper_portfolio["generated_at_utc"],
         )
         self.assertEqual(dashboard["portfolio_snapshot"]["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
+        self.assertEqual(
+            dashboard["portfolio_snapshot"]["paper_value_truth_status"],
+            "PAPER_LEDGER_CURRENT_VALUES_VERIFIED",
+        )
+        self.assertEqual(
+            dashboard["portfolio_snapshot"]["runtime_continuity_status"],
+            "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF",
+        )
+        self.assertEqual(
+            dashboard["portfolio_snapshot"]["audited_writer_lifecycle_status"],
+            "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
+        )
         self.assertIsInstance(dashboard["portfolio_snapshot"]["source_snapshot_age_seconds"], int)
         self.assertEqual(dashboard["portfolio_snapshot"]["source_snapshot_stale_after_seconds"], 300)
         rows = dashboard["position_snapshot"]["rows"]
@@ -6079,6 +6112,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn(f"Snapshot: {paper_portfolio['snapshot_hash'][:12]}...", html)
         self.assertIn("Balance: SIMULATED_PAPER_LEDGER", html)
         self.assertIn("Age:", html)
+        self.assertIn("PAPER_LEDGER_CURRENT_VALUES_VERIFIED", html)
+        self.assertIn("SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER", html)
         self.assertIn("KRW-BTC | LONG | qty 0.01 | avg 1000500 | mark 1000000 | value 10000 | PnL -10", html)
         self.assertIn("<td>1000500</td>", html)
         self.assertIn("<td>1000000</td>", html)
@@ -6092,6 +6127,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         stale_result = validate_read_only_dashboard_shell(stale_dashboard)
         self.assertEqual(stale_result.status, "BLOCKED")
         self.assertEqual(stale_result.blocker_code, "LATENCY_TTL_EXPIRED")
+
+        drift_dashboard = dict(dashboard)
+        drift_dashboard["portfolio_snapshot"] = dict(dashboard["portfolio_snapshot"])
+        drift_dashboard["portfolio_snapshot"]["runtime_continuity_status"] = "STALE_SNAPSHOT_NOT_RUNTIME_PROOF"
+        drift_dashboard["dashboard_hash"] = dashboard_shell_hash(drift_dashboard)
+        drift_result = validate_read_only_dashboard_shell(drift_dashboard)
+        self.assertEqual(drift_result.status, "BLOCKED")
+        self.assertEqual(drift_result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_dashboard_projects_paper_exposure_quality_report(self):
         dashboard = build_dashboard_with_paper_exposure_quality()
@@ -6149,6 +6192,15 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["portfolio_snapshot"]["configured_paper_capital"]["freshness_status"], "PASS")
         self.assertEqual(dashboard["portfolio_snapshot"]["cash"]["value_display"], "UNVERIFIED")
         self.assertEqual(dashboard["portfolio_snapshot"]["cash"]["freshness_status"], "STALE")
+        self.assertEqual(
+            dashboard["portfolio_snapshot"]["paper_value_truth_status"],
+            "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY",
+        )
+        self.assertEqual(dashboard["portfolio_snapshot"]["runtime_continuity_status"], "NO_CURRENT_RUNTIME_PROOF")
+        self.assertEqual(
+            dashboard["portfolio_snapshot"]["audited_writer_lifecycle_status"],
+            "NO_AUDITED_WRITER_EVIDENCE",
+        )
         self.assertEqual(dashboard["portfolio_snapshot"]["blocking_reason"], "LATENCY_TTL_EXPIRED")
         self.assertEqual(dashboard["operation_status"]["severity"], "WARNING")
         self.assertEqual(dashboard["operation_status"]["color_token"], "yellow")
