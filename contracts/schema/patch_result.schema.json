@@ -1320,6 +1320,21 @@
       "type": "integer",
       "minimum": 0
     },
+    "preflight_report_path": {
+      "type": "string"
+    },
+    "preflight_status": {
+      "type": "string"
+    },
+    "operator_run_started_by_this_patch": {
+      "type": "boolean"
+    },
+    "operator_run_completed_by_this_patch": {
+      "type": "boolean"
+    },
+    "operator_run_evidence_ready_for_mvp5": {
+      "type": "boolean"
+    },
     "authority_hash_checked": {
       "type": "boolean"
     },
