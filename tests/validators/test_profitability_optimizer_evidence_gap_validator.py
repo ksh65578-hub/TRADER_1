@@ -1,4 +1,5 @@
 import copy
+import json
 import unittest
 from pathlib import Path
 
@@ -220,12 +221,30 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         thresholds["missing_threshold_codes"] = [
             code
             for code in thresholds["missing_threshold_codes"]
-            if code != "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN"
+            if code != "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN"
         ]
 
         errors = _profitability_evidence_maturity_rollup_errors(tampered)
 
-        self.assertTrue(any("WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN" in error for error in errors), errors)
+        self.assertTrue(any("SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_fixed_runtime_hour_floor(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        thresholds = tampered["promotion_threshold_evidence"]
+        thresholds["min_paper_runtime_hours"] = 72
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("fixed PAPER runtime-hour floor" in error for error in errors), errors)
+
+    def test_maturity_rollup_active_text_has_no_fixed_runtime_hour_floor(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        text = json.dumps(rollup, sort_keys=True).lower()
+
+        self.assertNotIn("120 hours", text)
+        self.assertNotIn("paper_runtime_hours_below_min", text)
+        self.assertIn("observed_context_only_no_fixed_runtime_floor", text)
 
     def test_maturity_rollup_helper_requires_robustness_source_type_evidence(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)

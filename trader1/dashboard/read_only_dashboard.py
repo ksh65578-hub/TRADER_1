@@ -505,7 +505,6 @@ PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "REPLAY_CLOSED_TRADES_BELOW_MIN",
     "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN",
     "PAPER_CLOSED_TRADES_BELOW_MIN",
-    "PAPER_RUNTIME_HOURS_BELOW_MIN",
     "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
     "NET_EV_AFTER_COST_NOT_PASS",
     "PROFIT_FACTOR_NOT_PASS",
@@ -5128,6 +5127,7 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
             "promotion_threshold_min_paper_closed_trades": 0,
             "promotion_threshold_paper_runtime_hours": 0,
             "promotion_threshold_min_paper_runtime_hours": 0,
+            "promotion_threshold_paper_runtime_hours_gate_role": "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR",
             "promotion_threshold_shadow_signal_opportunities": 0,
             "promotion_threshold_min_shadow_signal_opportunities": 0,
             "promotion_threshold_net_ev_after_cost_status": "UNTESTED",
@@ -5164,6 +5164,9 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
     min_paper_trades = _safe_count(threshold.get("min_paper_closed_trades"))
     paper_hours = _safe_number(threshold.get("paper_runtime_hours"))
     min_paper_hours = _safe_number(threshold.get("min_paper_runtime_hours"))
+    paper_hours_gate_role = str(
+        threshold.get("paper_runtime_hours_gate_role") or "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR"
+    )
     shadow_opportunities = _safe_count(threshold.get("shadow_signal_opportunities"))
     min_shadow_opportunities = _safe_count(threshold.get("min_shadow_signal_opportunities"))
     oos_pct = _safe_number(threshold.get("walk_forward_or_oos_coverage_pct"))
@@ -5172,7 +5175,7 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
         "promotion_threshold_status": status,
         "promotion_threshold_summary": (
             f"Replay {replay_trades}/{min_replay_trades}, OOS/walk-forward {oos_pct}/{min_oos_pct}%, "
-            f"PAPER trades {paper_trades}/{min_paper_trades}, PAPER runtime {paper_hours}/{min_paper_hours}h, "
+            f"PAPER trades {paper_trades}/{min_paper_trades}, PAPER runtime {paper_hours}h observed only, "
             f"SHADOW opportunities {shadow_opportunities}/{min_shadow_opportunities}; "
             f"{len(known_missing_codes)} threshold blockers remain."
         ),
@@ -5186,6 +5189,7 @@ def _promotion_threshold_projection(threshold: Any, *, missing_status: str = "NO
         "promotion_threshold_min_paper_closed_trades": min_paper_trades,
         "promotion_threshold_paper_runtime_hours": paper_hours,
         "promotion_threshold_min_paper_runtime_hours": min_paper_hours,
+        "promotion_threshold_paper_runtime_hours_gate_role": paper_hours_gate_role,
         "promotion_threshold_shadow_signal_opportunities": shadow_opportunities,
         "promotion_threshold_min_shadow_signal_opportunities": min_shadow_opportunities,
         "promotion_threshold_net_ev_after_cost_status": str(threshold.get("net_ev_after_cost_status") or "UNTESTED"),
@@ -16330,6 +16334,10 @@ def validate_read_only_dashboard_shell(
         value = maturity.get(field)
         if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
             return DashboardValidationResult("FAIL", f"{field} must be non-negative numeric evidence", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("promotion_threshold_paper_runtime_hours_gate_role") != "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR":
+        return DashboardValidationResult("BLOCKED", "PAPER runtime hours must be displayed as observed context only", "HARD_TRUTH_MISSING")
+    if maturity.get("promotion_threshold_min_paper_runtime_hours") != 0:
+        return DashboardValidationResult("BLOCKED", "profitability threshold display cannot impose a fixed PAPER runtime-hour floor", "HARD_TRUTH_MISSING")
     if maturity.get("rollup_source_status") == "LOADED":
         if threshold_status != "BLOCKED_FOR_THRESHOLD_EVIDENCE":
             return DashboardValidationResult("BLOCKED", "loaded profitability rollup must show blocked promotion threshold evidence", "HARD_TRUTH_MISSING")
@@ -18047,7 +18055,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p><span class=\"pill {status_class(maturity.get('promotion_threshold_status'))}\">{safe_text(maturity.get('promotion_threshold_status', 'NOT_LOADED'))}</span><br>"
         f"replay={safe_text(maturity.get('promotion_threshold_replay_closed_trades', 0))}/{safe_text(maturity.get('promotion_threshold_min_replay_closed_trades', 0))}, "
         f"paper={safe_text(maturity.get('promotion_threshold_paper_closed_trades', 0))}/{safe_text(maturity.get('promotion_threshold_min_paper_closed_trades', 0))}<br>"
-        f"runtime={safe_text(maturity.get('promotion_threshold_paper_runtime_hours', 0))}/{safe_text(maturity.get('promotion_threshold_min_paper_runtime_hours', 0))}h, "
+        f"runtime={safe_text(maturity.get('promotion_threshold_paper_runtime_hours', 0))}h observed, "
         f"shadow={safe_text(maturity.get('promotion_threshold_shadow_signal_opportunities', 0))}/{safe_text(maturity.get('promotion_threshold_min_shadow_signal_opportunities', 0))}</p>"
         f"<small>{safe_text(maturity.get('promotion_threshold_summary', 'Promotion thresholds are not loaded.'))} Codes={safe_text(threshold_codes_display)}</small></div>"
         "</section>"
