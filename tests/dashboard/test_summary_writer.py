@@ -329,7 +329,7 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
-    def test_summary_downgrades_stale_paper_portfolio_snapshot(self):
+    def test_summary_keeps_stale_paper_portfolio_values_as_stale_not_unverified(self):
         paper_portfolio = build_paper_portfolio_snapshot_from_fill(
             exchange="UPBIT",
             market_type="KRW_SPOT",
@@ -344,13 +344,24 @@ class SummaryWriterTest(unittest.TestCase):
         summary = build_summary(with_paper_portfolio=True, paper_portfolio_snapshot=stale_paper_portfolio(paper_portfolio))
         result = validate_summary_shell(summary, set(registry()["enums"]["live_blocker_code"]["values"]))
         self.assertEqual(result.status, "PASS")
-        self.assertEqual(summary["portfolio"]["source"], "SUMMARY_BUILDER")
-        self.assertEqual(summary["portfolio"]["freshness_status"], "UNTESTED")
-        self.assertIsNone(summary["portfolio"]["equity"])
+        self.assertEqual(summary["portfolio"]["source"], "LEDGER")
+        self.assertEqual(summary["portfolio"]["freshness_status"], "STALE")
+        self.assertIsNotNone(summary["portfolio"]["equity"])
         self.assertEqual(summary["portfolio"]["configured_paper_starting_cash"], 1000000.0)
-        self.assertEqual(summary["portfolio"]["configured_paper_starting_cash_status"], "CONFIGURED_NOT_VERIFIED")
-        self.assertEqual(summary["positions"], [])
+        self.assertEqual(summary["portfolio"]["configured_paper_starting_cash_status"], "VERIFIED_SOURCE_PRESENT")
+        self.assertEqual(len(summary["positions"]), 1)
         self.assertIn("stale", summary["portfolio"]["source_snapshot_freshness_message"])
+        self.assertIn("Rerun PAPER", summary["portfolio"]["next_action"])
+
+    def test_summary_blocks_stale_label_on_fresh_paper_portfolio(self):
+        summary = build_summary(with_paper_portfolio=True)
+        summary["portfolio"]["freshness_status"] = "STALE"
+        summary["portfolio"]["source_snapshot_age_seconds"] = 0
+
+        result = validate_summary_shell(summary)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_summary_blocks_verified_portfolio_missing_snapshot_time(self):
         summary = build_summary(with_paper_portfolio=True)

@@ -185,15 +185,20 @@ def _portfolio_from_paper_snapshot(
             message="PAPER portfolio snapshot timestamp is invalid; rerun PAPER before trusting portfolio values",
         ), []
     if source_age_seconds > PAPER_PORTFOLIO_SNAPSHOT_STALE_AFTER_SECONDS:
-        return _empty_portfolio(
-            exchange=exchange,
-            market_type=market_type,
-            message="PAPER portfolio snapshot is stale; rerun PAPER before trusting portfolio values",
-        ), []
+        freshness_status = "STALE"
+        freshness_message = (
+            "PAPER portfolio snapshot is stale; values are the last verified simulated ledger values, "
+            "not fresh execution truth."
+        )
+        next_action = "Rerun PAPER before using cash, equity, PnL, return, or positions for operator review"
+    else:
+        freshness_status = "PASS"
+        freshness_message = "PAPER portfolio snapshot is fresh and display-only"
+        next_action = "Continue PAPER monitoring; portfolio values are display truth only"
     return (
         {
             "source": "LEDGER",
-            "freshness_status": "PASS",
+            "freshness_status": freshness_status,
             "source_snapshot_hash": snapshot["snapshot_hash"],
             "source_runtime_cycle_id": snapshot.get("source_runtime_cycle_id"),
             "source_paper_ledger_head_hash": snapshot.get("source_paper_ledger_head_hash"),
@@ -201,7 +206,7 @@ def _portfolio_from_paper_snapshot(
             "source_snapshot_generated_at_utc": snapshot["generated_at_utc"],
             "source_snapshot_age_seconds": source_age_seconds,
             "source_snapshot_stale_after_seconds": PAPER_PORTFOLIO_SNAPSHOT_STALE_AFTER_SECONDS,
-            "source_snapshot_freshness_message": "PAPER portfolio snapshot is fresh and display-only",
+            "source_snapshot_freshness_message": freshness_message,
             "source_balance_kind": snapshot["display_balance_kind"],
             "equity": float(snapshot["equity"]),
             "cash_available": float(snapshot["cash_available"]),
@@ -212,7 +217,7 @@ def _portfolio_from_paper_snapshot(
             "unrealized_pnl": float(snapshot["unrealized_pnl"]),
             "total_pnl": float(snapshot.get("total_pnl", 0)),
             "mdd": 0.0,
-            "next_action": "Continue PAPER monitoring; portfolio values are display truth only",
+            "next_action": next_action,
             **_configured_paper_capital_fields(exchange=exchange, market_type=market_type, snapshot=snapshot, verified_source=True),
         },
         list(snapshot.get("positions", [])),
@@ -641,7 +646,7 @@ def validate_summary_shell(
         )
     ):
         return SummaryValidationResult("BLOCKED", "summary builder cannot claim portfolio snapshot provenance", "LIVE_FINAL_GUARD_FAILED")
-    if portfolio.get("source") in {"LEDGER", "RECONCILIATION"} and portfolio.get("freshness_status") == "PASS":
+    if portfolio.get("source") in {"LEDGER", "RECONCILIATION"} and portfolio.get("freshness_status") in {"PASS", "STALE"}:
         if any(portfolio.get(key) is None for key in ("equity", "cash_available", "locked_balance")):
             return SummaryValidationResult("BLOCKED", "verified portfolio source must include cash and equity", "HARD_TRUTH_MISSING")
         if portfolio.get("source_snapshot_status") != "PASS" or not _is_hash64(portfolio.get("source_snapshot_hash")):
@@ -658,8 +663,10 @@ def validate_summary_shell(
         stale_after = _decimal(portfolio.get("source_snapshot_stale_after_seconds"))
         if source_age is None or stale_after is None or source_age < 0 or stale_after <= 0:
             return SummaryValidationResult("FAIL", "verified portfolio snapshot age fields must be numeric", "SCHEMA_IDENTITY_MISMATCH")
-        if source_age > stale_after:
+        if portfolio.get("freshness_status") == "PASS" and source_age > stale_after:
             return SummaryValidationResult("BLOCKED", "verified portfolio source snapshot is stale", "LATENCY_TTL_EXPIRED")
+        if portfolio.get("freshness_status") == "STALE" and source_age <= stale_after:
+            return SummaryValidationResult("FAIL", "stale portfolio source must exceed stale threshold", "SCHEMA_IDENTITY_MISMATCH")
         if portfolio.get("source_balance_kind") != "SIMULATED_PAPER_LEDGER":
             return SummaryValidationResult("BLOCKED", "verified summary portfolio must remain simulated PAPER ledger truth", "LIVE_FINAL_GUARD_FAILED")
         if summary.get("mode") != "PAPER":
@@ -687,6 +694,8 @@ def validate_summary_shell(
             return SummaryValidationResult("FAIL", "verified portfolio equity arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH")
         if not _nearly_equal(total_pnl, realized + unrealized):
             return SummaryValidationResult("FAIL", "verified portfolio total PnL arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    elif portfolio.get("source") in {"LEDGER", "RECONCILIATION"}:
+        return SummaryValidationResult("FAIL", "portfolio ledger freshness status is invalid", "SCHEMA_IDENTITY_MISMATCH")
 
     orders = summary.get("orders")
     if not isinstance(orders, dict):

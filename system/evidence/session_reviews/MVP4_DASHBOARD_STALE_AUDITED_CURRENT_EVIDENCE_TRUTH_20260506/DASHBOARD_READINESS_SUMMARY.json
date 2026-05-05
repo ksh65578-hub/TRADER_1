@@ -1,0 +1,21 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_20260506_002",
+  "generated_at_utc": "2026-05-05T22:10:19Z",
+  "status": "PASS_OPERATOR_DISPLAY_IMPROVED_LIVE_BLOCKED",
+  "first_screen_focus": [
+    "normal operation status",
+    "portfolio truth and freshness",
+    "live availability and exact blockers"
+  ],
+  "portfolio_truth_states": {
+    "VERIFIED": "fresh audited PAPER ledger display truth",
+    "STALE": "last verified audited PAPER ledger display truth that requires PAPER rerun",
+    "UNVERIFIED": "missing, invalid, or unbound current evidence"
+  },
+  "stale_current_evidence_display": "cash, equity, PnL, return, and positions remain visible with STALE freshness",
+  "configured_paper_capital_display": "configured PAPER baseline remains PASS when source is bound",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

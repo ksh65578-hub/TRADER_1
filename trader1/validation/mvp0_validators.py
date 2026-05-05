@@ -2410,8 +2410,19 @@ def summary_shell_validator() -> ValidatorResult:
         paper_portfolio_snapshot=stale_portfolio,
     )
     stale_result = validate_summary_shell(stale_summary, allowed_blockers)
-    if stale_result.status != "PASS" or stale_summary["portfolio"]["source"] != "SUMMARY_BUILDER":
-        return fail_result("summary_shell_validator", "stale paper portfolio snapshot was not downgraded before dashboard display", paths, "LATENCY_TTL_EXPIRED")
+    if (
+        stale_result.status != "PASS"
+        or stale_summary["portfolio"]["source"] != "LEDGER"
+        or stale_summary["portfolio"]["freshness_status"] != "STALE"
+        or stale_summary["portfolio"].get("equity") is None
+        or len(stale_summary.get("positions", [])) != 1
+    ):
+        return fail_result(
+            "summary_shell_validator",
+            "stale paper portfolio snapshot was not preserved as stale ledger display truth",
+            paths,
+            "LATENCY_TTL_EXPIRED",
+        )
 
     stale_claim_summary = json.loads(json.dumps(ledger_summary))
     stale_claim_summary["portfolio"]["source_snapshot_age_seconds"] = stale_claim_summary["portfolio"]["source_snapshot_stale_after_seconds"] + 1

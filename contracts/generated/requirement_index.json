@@ -4825,6 +4825,66 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-STALE-AUDITED-CURRENT-EVIDENCE-TRUTH",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Dashboard stale audited current evidence truth",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-STALE-AUDITED-CURRENT-EVIDENCE-TRUTH: stale audited PAPER current evidence remains bound display truth with STALE status, not UNVERIFIED and never LIVE_READY",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Dashboard stale audited current evidence truth",
+      "requirement_kind": "DASHBOARD_UX_PATCH",
+      "schema_ids": [
+        "trader1.summary.v1",
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "runtime_schema_instance_validator",
+        "summary_shell_validator",
+        "read_only_dashboard_validator",
+        "dashboard_visual_layout_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "trader1/dashboard/summary_writer.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py",
+        "tests/dashboard/test_summary_writer.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_dashboard_stale_audited_current_evidence_truth_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH.md"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_summary_writer.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_PORTFOLIO_TRUTH",
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER",
+        "REQ-MVP4-UPBIT-PAPER-AUDITED-CURRENT-EVIDENCE-WRITER-DASHBOARD-BINDING",
+        "REQ-MVP4-DASHBOARD-PAPER-PORTFOLIO-CURRENT-TRUTH-UX",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "9BEC11769A52FA4434243FDED9D526A112B9808DC5898EA9450BEBFF3E67D122",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_DASHBOARD_VISIBLE_STALE_LEDGER_TRUTH_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-STALE-ROLLUP-TRUTH-GUARD",
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
@@ -24253,5 +24313,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T21:33:19Z"
+  "updated_at_utc": "2026-05-05T22:10:19Z"
 }

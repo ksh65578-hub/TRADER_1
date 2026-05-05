@@ -1,0 +1,61 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-05-05T22:10:19Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "status": "PASS_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_LIVE_BLOCKED",
+  "blockers": [
+    {
+      "code": "LIVE_READY_MISSING",
+      "severity": "CRITICAL",
+      "message": "No LIVE_READY snapshot exists; live orders remain blocked.",
+      "source_requirement_id": "REQ-MVP4-LIVE-FINAL-GUARD"
+    },
+    {
+      "code": "LATENCY_TTL_EXPIRED",
+      "severity": "HIGH",
+      "message": "Audited PAPER current evidence can be displayed as stale ledger truth only.",
+      "source_requirement_id": "REQ-MVP4-DASHBOARD-STALE-AUDITED-CURRENT-EVIDENCE-TRUTH"
+    }
+  ],
+  "notes": "Session review artifacts capture the 20-area review, acceptance, paper summary, live block proof, dashboard readiness, and user summary.",
+  "evidence_manifest_id": "MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_EVIDENCE",
+  "artifact_paths": [
+    "trader1/dashboard/summary_writer.py",
+    "trader1/dashboard/read_only_dashboard.py",
+    "trader1/validation/mvp0_validators.py",
+    "tests/dashboard/test_summary_writer.py",
+    "tests/dashboard/test_read_only_dashboard.py",
+    "tools/emit_dashboard_stale_audited_current_evidence_truth_patch_evidence.py",
+    "contracts/generated/context_pack/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH.md",
+    "system/evidence/session_reviews/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_20260506/IMPLEMENTATION_COVERAGE_MATRIX.md",
+    "system/evidence/session_reviews/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_20260506/ACCEPTANCE_REPORT.json",
+    "system/evidence/session_reviews/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_20260506/pytest_report.txt",
+    "system/evidence/session_reviews/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_20260506/PAPER_RUN_SUMMARY.json",
+    "system/evidence/session_reviews/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_20260506/LIVE_BLOCK_PROOF.json",
+    "system/evidence/session_reviews/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_20260506/DASHBOARD_READINESS_SUMMARY.json",
+    "system/evidence/session_reviews/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_20260506/USER_STATUS_SUMMARY.md",
+    "system/evidence/session_reviews/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_20260506/SESSION_REVIEW.md",
+    "system/evidence/validator_runs/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH.stage_gate_result.json",
+    "system/evidence/patch_results/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH.patch_result.json"
+  ],
+  "known_blockers": [
+    "LIVE_READY_MISSING",
+    "API_UNVERIFIED",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}
