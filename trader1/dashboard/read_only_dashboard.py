@@ -17398,11 +17398,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .quick-status-tile strong { font-size: 19px; line-height: 1.25; overflow-wrap: anywhere; }
     .quick-status-tile small { margin-top: 0; font-size: 12px; line-height: 1.3; }
     .question-label { color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1.25; }
+    .live-answer-reason { color: var(--muted); font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
     .plain-status-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 8px; color: var(--muted); font-size: 13px; line-height: 1.35; }
     .raw-status-tag { display: inline-flex; max-width: 100%; border: 1px solid #cfd6df; border-radius: 999px; padding: 2px 7px; background: #ffffff; color: var(--muted); font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
     .operator-answer-grid { display: grid; gap: 18px; grid-template-columns: minmax(min(100%, 300px), 0.9fr) minmax(min(100%, 420px), 1.35fr) minmax(min(100%, 280px), 0.85fr); align-items: stretch; }
     .operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 18px; min-height: 0; min-width: 0; overflow-wrap: anywhere; }
     .operator-answer-card h2, .summary-card h2, .live-readiness h2 { font-size: 24px; line-height: 1.18; margin: 2px 0 10px; }
+    .live-availability-answer { margin: 0 0 8px; font-size: 18px; line-height: 1.35; font-weight: 700; }
+    .live-permission-summary { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
     .answer-verdict { font-size: 18px; line-height: 1.35; font-weight: 700; margin-bottom: 10px; }
     .answer-note { color: var(--muted); font-size: 14px; line-height: 1.5; }
     .answer-signal-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin-top: 12px; }
@@ -17744,8 +17747,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <section class="quick-status-tile quick-status-yellow" aria-label="live execution quick answer" data-primary-question="live">
         <span class="eyebrow">Live</span>
         <span class="question-label">Can live orders run?</span>
-        <strong>Blocked</strong>
+        <strong>No</strong>
         <small title="live_order_allowed=false">orders are disabled</small>
+        <span class="live-answer-reason">Reason: """ + safe_text(blocker_label) + """</span>
       </section>
       </section>
     </section>
@@ -17776,6 +17780,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <section class="operator-answer-card live-readiness live-readiness-yellow" aria-label="live execution summary">
         <span class="eyebrow">Live Execution</span>
         <h2>Blocked</h2>
+        <p class="live-availability-answer">No. Live orders cannot run.</p>
         <p class="status warn">""" + safe_text(blocker_label) + """</p>
         <p class="source-line">Raw blocker: """ + safe_text(blocker) + """</p>
         <p class="next">""" + safe_text(next_action) + """</p>
@@ -17785,6 +17790,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
           <div class="readiness-row"><strong>Live Trading</strong><span class="pill safe-lock" title="can_live_trade=false" aria-label="can_live_trade false">false</span></div>
           <div class="readiness-row"><strong>Risk Scale-Up</strong><span class="pill safe-lock" title="scale_up_allowed=false" aria-label="scale_up_allowed false">false</span></div>
         </section>
+        <p class="live-permission-summary">All live and scale permissions are false.</p>
         <p class="summary-note">Dashboard display truth only. Engine, ledger, and exchange truth remain separate.</p>
       </section>
     </section>
