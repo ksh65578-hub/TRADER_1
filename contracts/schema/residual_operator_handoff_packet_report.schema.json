@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.residual_operator_handoff_packet_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "source_reports",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "selected_next_task_class",
+    "open_gap_ids",
+    "open_gap_count",
+    "covered_gap_ids",
+    "covered_gap_count",
+    "unassigned_gap_ids",
+    "extra_gap_ids",
+    "duplicate_gap_ids",
+    "blocked_requirement_ids",
+    "blocked_requirement_count",
+    "handoff_packet_count",
+    "blocked_handoff_packet_count",
+    "handoff_ready_count",
+    "implementation_recheck_action_count",
+    "external_intake_ready_count",
+    "external_missing_or_unusable_count",
+    "paper_ledger_rerun_readiness_status",
+    "paper_current_evidence_write_allowed",
+    "operator_or_external_action_required",
+    "current_evidence_write_allowed",
+    "current_evidence_mutation_allowed",
+    "latest_runtime_pointer_write_allowed",
+    "gap_closure_allowed_by_this_patch",
+    "live_config_mutation_allowed",
+    "handoff_packets",
+    "handoff_status",
+    "validation_status",
+    "validation_errors",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.residual_operator_handoff_packet_report.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "source_reports": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["role", "patch_id", "report_hash"],
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "enum": [
+              "residual_open_gap_operator_action_plan",
+              "residual_operator_evidence_audit_binding",
+              "residual_paper_ledger_rerun_readiness",
+              "external_live_evidence_intake_preflight"
+            ]
+          },
+          "patch_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "report_hash": {
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64
+          }
+        }
+      }
+    },
+    "state_last_patch_id_before": {
+      "type": "string"
+    },
+    "state_next_task_before": {
+      "type": "string"
+    },
+    "selected_next_task_class": {
+      "type": "string",
+      "minLength": 1
+    },
+    "open_gap_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "open_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "covered_gap_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "covered_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unassigned_gap_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "extra_gap_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "duplicate_gap_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "blocked_requirement_ids": {
+      "$ref": "#/$defs/string_array"
+    },
+    "blocked_requirement_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "handoff_packet_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blocked_handoff_packet_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "handoff_ready_count": {
+      "type": "integer",
+      "const": 0
+    },
+    "implementation_recheck_action_count": {
+      "type": "integer",
+      "const": 0
+    },
+    "external_intake_ready_count": {
+      "type": "integer",
+      "const": 0
+    },
+    "external_missing_or_unusable_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "paper_ledger_rerun_readiness_status": {
+      "const": "BLOCKED_RECONCILIATION_REQUIRED"
+    },
+    "paper_current_evidence_write_allowed": {
+      "const": false
+    },
+    "operator_or_external_action_required": {
+      "const": true
+    },
+    "current_evidence_write_allowed": {
+      "const": false
+    },
+    "current_evidence_mutation_allowed": {
+      "const": false
+    },
+    "latest_runtime_pointer_write_allowed": {
+      "const": false
+    },
+    "gap_closure_allowed_by_this_patch": {
+      "const": false
+    },
+    "live_config_mutation_allowed": {
+      "const": false
+    },
+    "handoff_packets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/handoff_packet"
+      }
+    },
+    "handoff_status": {
+      "const": "BLOCKED_HANDOFF_REQUIRED"
+    },
+    "validation_status": {
+      "const": "PASS"
+    },
+    "validation_errors": {
+      "type": "array",
+      "maxItems": 0,
+      "items": {
+        "type": "string"
+      }
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  },
+  "$defs": {
+    "string_array": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "extra_status": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "integer", "boolean"]
+      }
+    },
+    "handoff_packet": {
+      "type": "object",
+      "required": [
+        "packet_id",
+        "action_class",
+        "handoff_type",
+        "priority",
+        "gap_ids",
+        "gap_count",
+        "source_categories",
+        "required_evidence_kinds",
+        "required_operator_action",
+        "closure_preconditions",
+        "linked_source_report_roles",
+        "source_audit_binding_status",
+        "handoff_status",
+        "evidence_ready_for_closure",
+        "operator_submission_required",
+        "current_evidence_write_allowed",
+        "current_evidence_mutation_allowed",
+        "latest_runtime_pointer_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_order_allowed",
+        "live_config_mutation_allowed",
+        "scale_up_allowed",
+        "extra_status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "packet_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_class": {
+          "enum": [
+            "OPERATOR_RECONCILIATION_ACTION",
+            "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+            "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+            "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+            "SEALED_BASELINE_PRESERVATION_ACTION",
+            "SCALE_UP_POLICY_EVIDENCE_ACTION"
+          ]
+        },
+        "handoff_type": {
+          "enum": [
+            "OPERATOR_RECONCILIATION",
+            "PAPER_RERUN_RECONCILIATION",
+            "PAPER_SHADOW_COLLECTION",
+            "EXTERNAL_LIVE_EVIDENCE",
+            "SEALED_BASELINE_PRESERVATION",
+            "SCALE_UP_POLICY"
+          ]
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gap_ids": {
+          "$ref": "#/$defs/string_array"
+        },
+        "gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_categories": {
+          "$ref": "#/$defs/string_array"
+        },
+        "required_evidence_kinds": {
+          "$ref": "#/$defs/string_array"
+        },
+        "required_operator_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "closure_preconditions": {
+          "$ref": "#/$defs/string_array"
+        },
+        "linked_source_report_roles": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "residual_open_gap_operator_action_plan",
+              "residual_operator_evidence_audit_binding",
+              "residual_paper_ledger_rerun_readiness",
+              "external_live_evidence_intake_preflight"
+            ]
+          }
+        },
+        "source_audit_binding_status": {
+          "const": "BOUND_BLOCKED"
+        },
+        "handoff_status": {
+          "const": "BLOCKED_HANDOFF_REQUIRED"
+        },
+        "evidence_ready_for_closure": {
+          "const": false
+        },
+        "operator_submission_required": {
+          "type": "boolean"
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "current_evidence_mutation_allowed": {
+          "const": false
+        },
+        "latest_runtime_pointer_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        },
+        "extra_status": {
+          "$ref": "#/$defs/extra_status"
+        }
+      }
+    }
+  }
+}

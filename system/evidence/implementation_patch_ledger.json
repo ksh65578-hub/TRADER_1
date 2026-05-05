@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-05T07:08:51Z",
+  "updated_at_utc": "2026-05-05T07:24:23Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -4414,11 +4414,23 @@
       "can_live_trade_after": false,
       "scale_up_allowed_after": false,
       "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
+    },
+    {
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET_20260505_001",
+      "patch_class": "EVIDENCE_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.patch_result.json",
+      "patch_result_hash": "404948FD6E4B34B0215FBC156BDF2BA326C57CD1DF51157777C4897152704C74",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false,
+      "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
     }
   ],
-  "ledger_hash": "E5452569424BBA1C1CCD570ED43DB0E2E40055D162A1B300EDF2BFC57E908122",
-  "last_patch_id": "MVP4_EXTERNAL_LIVE_EVIDENCE_INTAKE_PREFLIGHT_20260505_001",
-  "last_patch_result_hash": "977CBF20F085DD8C67C1A3457ED9B3280C91DB5265AD69E730C86C085D499D94",
+  "ledger_hash": "D9FD7EBC2C3A7E2FFFE6815D3A099B652C5E03E91E8A0E8AA2779528A2D373A5",
+  "last_patch_id": "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET_20260505_001",
+  "last_patch_result_hash": "404948FD6E4B34B0215FBC156BDF2BA326C57CD1DF51157777C4897152704C74",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
