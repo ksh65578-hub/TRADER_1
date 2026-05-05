@@ -1,0 +1,194 @@
+{
+  "schema_id": "trader1.residual_operator_evidence_run_preflight_report.v1",
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT_20260505_001",
+  "generated_at_utc": "2026-05-05T10:18:19Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "source_reports": [
+    {
+      "role": "residual_operator_execution_guide",
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE_20260505_001",
+      "report_hash": "8D53F2B845CE5014895BB6F6A68CD63E483423DE77F04CE22F18CBE94D7C67BF"
+    },
+    {
+      "role": "residual_operator_evidence_progress",
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_20260505_001",
+      "report_hash": "7DDCA414B1FB3B4DA86B5AEF78D48E87AE823693AB894F3EF06EDC2387A01BEE"
+    }
+  ],
+  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT_20260505_001",
+  "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "preflight_status": "NON_LIVE_OPERATOR_RUN_PRECHECK_PASS",
+  "open_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "open_gap_count": 13,
+  "command_id": "UPBIT_PAPER_SAFE_MONITOR_120H",
+  "command_shell": "powershell",
+  "command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='43200'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
+  "command_scope": "UPBIT/KRW_SPOT/PAPER",
+  "command_entrypoint": "UPBIT_PAPER.py",
+  "command_environment_overrides": [
+    {
+      "name": "TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS",
+      "value": "43200"
+    },
+    {
+      "name": "TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS",
+      "value": "10"
+    }
+  ],
+  "minimum_duration_hours": 120,
+  "minimum_paper_shadow_window_count": 20,
+  "expected_heartbeat_ticks": 43200,
+  "heartbeat_interval_seconds": 10,
+  "expected_runtime_artifacts": [
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/heartbeat.json",
+      "artifact_role": "PAPER_SHADOW_OPERATOR_EVIDENCE_INPUT",
+      "required_before_next_review": true,
+      "current_path_status": "PRESENT_LOCAL_RUNTIME_OUTPUT_NOT_CLOSURE_READY",
+      "evidence_ready_for_closure": false,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+      "artifact_role": "PAPER_SHADOW_OPERATOR_EVIDENCE_INPUT",
+      "required_before_next_review": true,
+      "current_path_status": "PRESENT_LOCAL_RUNTIME_OUTPUT_NOT_CLOSURE_READY",
+      "evidence_ready_for_closure": false,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_persistent_loop_report.json",
+      "artifact_role": "PAPER_SHADOW_OPERATOR_EVIDENCE_INPUT",
+      "required_before_next_review": true,
+      "current_path_status": "PRESENT_LOCAL_RUNTIME_OUTPUT_NOT_CLOSURE_READY",
+      "evidence_ready_for_closure": false,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false
+    },
+    {
+      "path": "system/runtime/upbit/krw_spot/shadow/<shadow_session_id>/shadow_observation_persistent_runtime_report.json",
+      "artifact_role": "PAPER_SHADOW_OPERATOR_EVIDENCE_INPUT",
+      "required_before_next_review": true,
+      "current_path_status": "PLACEHOLDER_PATTERN_PENDING",
+      "evidence_ready_for_closure": false,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false
+    },
+    {
+      "path": "system/evidence/audit_reports/paper_shadow_evidence_accumulation_report.json",
+      "artifact_role": "PAPER_SHADOW_OPERATOR_EVIDENCE_INPUT",
+      "required_before_next_review": true,
+      "current_path_status": "MISSING_EXPECTED_RUNTIME_OUTPUT",
+      "evidence_ready_for_closure": false,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false
+    }
+  ],
+  "required_validator_ids": [
+    "upbit_paper_persistent_loop_validator",
+    "shadow_observation_persistent_runtime_validator",
+    "paper_shadow_evidence_accumulation_validator",
+    "profitability_evidence_maturity_rollup_validator",
+    "runtime_schema_instance_validator",
+    "live_final_guard_validator"
+  ],
+  "preflight_checks": [
+    {
+      "check_id": "STATE_ROUTE_RESIDUAL_OPERATOR_EVIDENCE",
+      "status": "PASS",
+      "message": "state remains on residual external-evidence/operator-reconciliation route"
+    },
+    {
+      "check_id": "LIVE_AND_SCALE_FLAGS_FALSE",
+      "status": "PASS",
+      "message": "state, progress, and execution guide keep live/scale flags false"
+    },
+    {
+      "check_id": "PROGRESS_REPORT_BLOCKED",
+      "status": "PASS",
+      "message": "progress report remains blocked and does not close evidence"
+    },
+    {
+      "check_id": "COMMAND_NON_LIVE_ONLY",
+      "status": "PASS",
+      "message": "operator command is declared non-live and cannot allow live orders"
+    },
+    {
+      "check_id": "COMMAND_CREDENTIAL_FREE",
+      "status": "PASS",
+      "message": "operator command is declared credential-free"
+    },
+    {
+      "check_id": "COMMAND_NOT_EXECUTED_BY_PATCH",
+      "status": "PASS",
+      "message": "this patch records preflight only and does not start the runtime command"
+    },
+    {
+      "check_id": "ENTRYPOINT_EXISTS",
+      "status": "PASS",
+      "message": "UPBIT_PAPER.py entrypoint exists for the operator-run PAPER command"
+    },
+    {
+      "check_id": "DURATION_FLOOR_DECLARED",
+      "status": "PASS",
+      "message": "operator command declares at least 120h / 43200 heartbeat ticks"
+    },
+    {
+      "check_id": "PAPER_SHADOW_WINDOW_FLOOR_DECLARED",
+      "status": "PASS",
+      "message": "execution guide declares at least 20 PAPER/SHADOW windows"
+    },
+    {
+      "check_id": "EXPECTED_ARTIFACTS_DECLARED",
+      "status": "PASS",
+      "message": "required PAPER/SHADOW evidence artifacts are listed"
+    },
+    {
+      "check_id": "NEXT_REVIEW_VALIDATORS_DECLARED",
+      "status": "PASS",
+      "message": "next-review validators are listed"
+    }
+  ],
+  "preflight_check_count": 11,
+  "preflight_pass_count": 11,
+  "preflight_blocked_count": 0,
+  "non_live_operator_command_preflight_passed": true,
+  "credential_values_read": false,
+  "credential_environment_inspection_performed": false,
+  "command_executed_by_this_patch": false,
+  "operator_run_started_by_this_patch": false,
+  "operator_run_completed_by_this_patch": false,
+  "operator_run_evidence_ready_for_mvp5": false,
+  "mvp5_entry_blocked_until_operator_evidence": true,
+  "current_evidence_write_allowed": false,
+  "gap_closure_allowed_by_this_patch": false,
+  "live_config_mutation_allowed": false,
+  "live_ready_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validation_status": "PASS",
+  "validation_errors": [],
+  "report_hash": "90B0AF067CE93A74242741C21D3B27BE29A0BEDAA50A74331320524F94C046CD"
+}
