@@ -121,6 +121,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
 RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
@@ -131,6 +132,9 @@ RESIDUAL_RECONCILIATION_REVIEW_CARDS_SOURCE = "MVP4_RESIDUAL_OPERATOR_RECONCILIA
 RESIDUAL_RECONCILIATION_INTAKE_PREFLIGHT_SOURCE = "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json"
 RESIDUAL_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_SOURCE = (
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json"
+)
+RESIDUAL_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SOURCE = (
+    "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json"
 )
 RESIDUAL_ACTION_PLAN_CLASSES = {
     "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
@@ -12380,6 +12384,183 @@ def _residual_operator_reconciliation_submission_manifest_preflight_summary(
     }
 
 
+def _residual_operator_reconciliation_submission_template_packet_summary(
+    report: dict[str, Any] | None,
+) -> dict[str, Any]:
+    fallback = {
+        "title": "Operator Submission Template Packet",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "template_packet_scope": "OPERATOR_PREPARATION_ONLY_NOT_EVIDENCE",
+        "template_packet_path": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
+        "actual_submission_manifest_path": "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json",
+        "actual_submission_manifest_written_by_this_patch": False,
+        "operator_submission_required": True,
+        "operator_submission_present": False,
+        "operator_submission_validated": False,
+        "operator_submission_accepted": False,
+        "source_manifest_preflight_status": "BLOCKED_MANIFEST_MISSING",
+        "required_manifest_item_count": 32,
+        "template_manifest_item_count": 0,
+        "required_control_count": 4,
+        "template_control_count": 0,
+        "template_item_preview": [],
+        "blocking_reasons": ["OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_NOT_LOADED"],
+        "one_line_summary": "Operator submission template packet is not loaded; reconciliation remains blocked.",
+        "primary_next_action": "Load the template packet before preparing an operator submission package.",
+        "operator_no_action_needed_for_next_non_live_patch": False,
+        "operator_action_required_for_gap_closure": True,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    forbidden_fields = (
+        "actual_submission_manifest_written_by_this_patch",
+        "operator_submission_validated",
+        "operator_submission_accepted",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_config_mutation_allowed",
+        "credential_values_read",
+        "credential_environment_inspection_performed",
+        "runtime_artifacts_staged_by_this_patch",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    )
+    if any(report.get(field) is not False for field in forbidden_fields):
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "one_line_summary": "Operator template packet attempted submission, validation, current-evidence, live, credential, runtime-stage, or scale permission.",
+            "primary_next_action": "Reject the template packet and keep reconciliation blocked.",
+        }
+
+    status = str(report.get("template_packet_status") or "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY")
+    allowed_statuses = {"TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY"}
+    invalid = (
+        report.get("schema_id")
+        != "trader1.residual_operator_reconciliation_submission_template_packet_report.v1"
+        or report.get("validation_status") != "PASS"
+        or status not in allowed_statuses
+        or report.get("template_packet_scope") != "OPERATOR_PREPARATION_ONLY_NOT_EVIDENCE"
+        or report.get("operator_submission_required") is not True
+        or report.get("operator_action_required_for_gap_closure") is not True
+        or report.get("required_manifest_item_count") != 32
+        or report.get("template_manifest_item_count") != 32
+        or report.get("required_control_count") != 4
+        or report.get("template_control_count") != 4
+    )
+    if invalid:
+        status = "INVALID"
+
+    template_items = report.get("template_manifest_items", [])
+    if not isinstance(template_items, list):
+        template_items = []
+    safe_preview: list[dict[str, Any]] = []
+    for item in template_items[:4]:
+        if not isinstance(item, dict):
+            continue
+        if (
+            item.get("current_evidence_write_requested") is not False
+            or item.get("accepted_for_reconciliation") is not False
+            or item.get("live_order_allowed") is not False
+            or item.get("scale_up_allowed") is not False
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "one_line_summary": "Operator template item attempted write, acceptance, live, or scale permission.",
+                "primary_next_action": "Reject the template packet and regenerate it as preparation-only.",
+            }
+        safe_preview.append(
+            {
+                "intake_item_id": str(item.get("intake_item_id") or ""),
+                "priority_order": int(item.get("priority_order", 0) or 0),
+                "cycle_id": str(item.get("cycle_id") or ""),
+                "required_resolution_evidence_kind": str(item.get("required_resolution_evidence_kind") or ""),
+                "evidence_artifact_path_placeholder": str(item.get("evidence_artifact_path_placeholder") or ""),
+                "evidence_artifact_sha256_placeholder": str(item.get("evidence_artifact_sha256_placeholder") or ""),
+            }
+        )
+
+    blocking_reasons = report.get("blocking_reasons", [])
+    if not isinstance(blocking_reasons, list):
+        blocking_reasons = []
+    return {
+        "title": "Operator Submission Template Packet",
+        "status": status,
+        "source": RESIDUAL_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": report.get("open_gap_count", 13) if isinstance(report.get("open_gap_count", 13), int) else 13,
+        "template_packet_scope": "OPERATOR_PREPARATION_ONLY_NOT_EVIDENCE",
+        "template_packet_path": str(
+            report.get(
+                "template_packet_path",
+                "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
+            )
+        ),
+        "actual_submission_manifest_path": str(
+            report.get(
+                "actual_submission_manifest_path",
+                "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json",
+            )
+        ),
+        "actual_submission_manifest_written_by_this_patch": False,
+        "operator_submission_required": True,
+        "operator_submission_present": report.get("operator_submission_present") is True,
+        "operator_submission_validated": False,
+        "operator_submission_accepted": False,
+        "source_manifest_preflight_status": str(report.get("source_manifest_preflight_status") or "BLOCKED_MANIFEST_MISSING"),
+        "required_manifest_item_count": int(report.get("required_manifest_item_count", 32) or 32),
+        "template_manifest_item_count": int(report.get("template_manifest_item_count", 0) or 0),
+        "required_control_count": int(report.get("required_control_count", 4) or 4),
+        "template_control_count": int(report.get("template_control_count", 0) or 0),
+        "template_item_preview": safe_preview,
+        "blocking_reasons": [str(item) for item in blocking_reasons[:4]],
+        "one_line_summary": str(
+            report.get(
+                "one_line_summary",
+                "Operator submission template packet is preparation-only and blocked.",
+            )
+        ),
+        "primary_next_action": str(
+            report.get(
+                "primary_next_action",
+                "Use the template as a checklist; dashboard cannot accept evidence.",
+            )
+        ),
+        "operator_no_action_needed_for_next_non_live_patch": True,
+        "operator_action_required_for_gap_closure": True,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_config_mutation_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -12431,6 +12612,7 @@ def build_read_only_dashboard_shell(
     residual_operator_reconciliation_review_cards_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_intake_preflight_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_submission_manifest_preflight_report: dict[str, Any] | None = None,
+    residual_operator_reconciliation_submission_template_packet_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -12478,6 +12660,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_reconciliation_review_cards": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
         "residual_operator_reconciliation_intake_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
         "residual_operator_reconciliation_submission_manifest_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
+        "residual_operator_reconciliation_submission_template_packet": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -12681,6 +12864,46 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 manifest_preflight_freshness,
+            )
+        )
+    if isinstance(residual_operator_reconciliation_submission_template_packet_report, dict):
+        template_packet_freshness = (
+            "PASS"
+            if residual_operator_reconciliation_submission_template_packet_report.get("schema_id")
+            == "trader1.residual_operator_reconciliation_submission_template_packet_report.v1"
+            and residual_operator_reconciliation_submission_template_packet_report.get("validation_status") == "PASS"
+            and residual_operator_reconciliation_submission_template_packet_report.get("template_packet_status")
+            == "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY"
+            and residual_operator_reconciliation_submission_template_packet_report.get("template_packet_scope")
+            == "OPERATOR_PREPARATION_ONLY_NOT_EVIDENCE"
+            and residual_operator_reconciliation_submission_template_packet_report.get(
+                "actual_submission_manifest_written_by_this_patch"
+            )
+            is False
+            and residual_operator_reconciliation_submission_template_packet_report.get("operator_submission_validated")
+            is False
+            and residual_operator_reconciliation_submission_template_packet_report.get("operator_submission_accepted")
+            is False
+            and residual_operator_reconciliation_submission_template_packet_report.get("current_evidence_write_allowed")
+            is False
+            and residual_operator_reconciliation_submission_template_packet_report.get("gap_closure_allowed_by_this_patch")
+            is False
+            and residual_operator_reconciliation_submission_template_packet_report.get("live_ready_write_allowed") is False
+            and residual_operator_reconciliation_submission_template_packet_report.get("live_config_mutation_allowed")
+            is False
+            and residual_operator_reconciliation_submission_template_packet_report.get("live_order_allowed") is False
+            and residual_operator_reconciliation_submission_template_packet_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET",
+                paths.get(
+                    "residual_operator_reconciliation_submission_template_packet",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
+                ),
+                True,
+                template_packet_freshness,
             )
         )
     if isinstance(shadow_runtime_writer_report, dict):
@@ -13771,6 +13994,11 @@ def build_read_only_dashboard_shell(
             residual_operator_reconciliation_submission_manifest_preflight_report
         )
     )
+    residual_operator_reconciliation_submission_template_packet = (
+        _residual_operator_reconciliation_submission_template_packet_summary(
+            residual_operator_reconciliation_submission_template_packet_report
+        )
+    )
     residual_operator_priority = _residual_operator_priority_summary(
         residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet,
@@ -13835,6 +14063,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_reconciliation_review_cards": residual_operator_reconciliation_review_cards,
         "residual_operator_reconciliation_intake_preflight": residual_operator_reconciliation_intake_preflight,
         "residual_operator_reconciliation_submission_manifest_preflight": residual_operator_reconciliation_submission_manifest_preflight,
+        "residual_operator_reconciliation_submission_template_packet": residual_operator_reconciliation_submission_template_packet,
         "residual_operator_priority": residual_operator_priority,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
@@ -15324,6 +15553,71 @@ def validate_read_only_dashboard_shell(
                 "must start with system/evidence/operator_submissions/residual_operator_reconciliation/"
             ):
                 return DashboardValidationResult("FAIL", "residual submission manifest path rule missing", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_template_packet = shell.get("residual_operator_reconciliation_submission_template_packet")
+    if not isinstance(residual_template_packet, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator submission template packet summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_template_packet.get("display_only") is not True
+        or residual_template_packet.get("dashboard_truth_only") is not True
+    ):
+        return DashboardValidationResult("BLOCKED", "residual submission template packet must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_template_packet.get("live_order_ready")
+        or residual_template_packet.get("live_order_allowed")
+        or residual_template_packet.get("can_live_trade")
+        or residual_template_packet.get("scale_up_allowed")
+        or residual_template_packet.get("current_evidence_write_allowed")
+        or residual_template_packet.get("gap_closure_allowed_by_this_patch")
+        or residual_template_packet.get("live_ready_write_allowed")
+        or residual_template_packet.get("live_config_mutation_allowed")
+        or residual_template_packet.get("operator_submission_validated")
+        or residual_template_packet.get("operator_submission_accepted")
+        or residual_template_packet.get("actual_submission_manifest_written_by_this_patch")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual submission template packet attempted submission, validation, acceptance, current-evidence, live, LIVE_READY, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_template_packet.get("source") != RESIDUAL_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET_SOURCE:
+        return DashboardValidationResult("FAIL", "residual submission template packet source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_template_packet.get("status") not in {
+        "NOT_LOADED",
+        "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY",
+        "INVALID",
+    }:
+        return DashboardValidationResult("FAIL", "residual submission template packet status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_template_packet.get("source_status") == "LOADED":
+        if residual_template_packet.get("status") != "TEMPLATE_PACKET_READY_FOR_OPERATOR_PREPARATION_ONLY":
+            return DashboardValidationResult("BLOCKED", "loaded residual template packet must remain preparation-only", "LIVE_FINAL_GUARD_FAILED")
+        if residual_template_packet.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual template packet open gap count must match action plan", "CONTRACT_GAP_HIGH")
+        if residual_template_packet.get("template_packet_scope") != "OPERATOR_PREPARATION_ONLY_NOT_EVIDENCE":
+            return DashboardValidationResult("BLOCKED", "residual template packet cannot claim evidence scope", "LIVE_FINAL_GUARD_FAILED")
+        if residual_template_packet.get("required_manifest_item_count") != 32:
+            return DashboardValidationResult("FAIL", "residual template packet must expose 32 required manifest items", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_template_packet.get("template_manifest_item_count") != 32:
+            return DashboardValidationResult("FAIL", "residual template packet must contain 32 template manifest items", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_template_packet.get("required_control_count") != 4:
+            return DashboardValidationResult("FAIL", "residual template packet must expose four required controls", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_template_packet.get("template_control_count") != 4:
+            return DashboardValidationResult("FAIL", "residual template packet must contain four template controls", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_template_packet.get("operator_action_required_for_gap_closure") is not True:
+            return DashboardValidationResult("BLOCKED", "residual template packet must keep operator reconciliation required for closure", "LIVE_FINAL_GUARD_FAILED")
+        if residual_template_packet.get("operator_no_action_needed_for_next_non_live_patch") is not True:
+            return DashboardValidationResult("BLOCKED", "residual template packet must not require user runtime for the next non-live patch", "LIVE_FINAL_GUARD_FAILED")
+        if residual_template_packet.get("source_manifest_preflight_status") not in {
+            "BLOCKED_MANIFEST_MISSING",
+            "BLOCKED_MANIFEST_STRUCTURAL_ERRORS",
+            "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY",
+        }:
+            return DashboardValidationResult("BLOCKED", "residual template packet source manifest preflight must remain blocked", "LIVE_FINAL_GUARD_FAILED")
+        for item in residual_template_packet.get("template_item_preview", []):
+            if not isinstance(item, dict):
+                return DashboardValidationResult("FAIL", "residual template packet preview items must be objects", "SCHEMA_IDENTITY_MISMATCH")
+            if not str(item.get("evidence_artifact_path_placeholder", "")).startswith(
+                "system/evidence/operator_submissions/residual_operator_reconciliation/"
+            ):
+                return DashboardValidationResult("FAIL", "residual template packet path placeholder missing", "SCHEMA_IDENTITY_MISMATCH")
+            if item.get("evidence_artifact_sha256_placeholder") != "<64_HEX_SHA256_OF_OPERATOR_EVIDENCE_FILE>":
+                return DashboardValidationResult("FAIL", "residual template packet sha256 placeholder missing", "SCHEMA_IDENTITY_MISMATCH")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -20798,6 +21092,52 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             f'<div class="live-blocker-group"><strong>Errors</strong><span>{safe_text(error_count)} errors</span></div>'
             "</section>"
         )
+    residual_template_packet = shell.get("residual_operator_reconciliation_submission_template_packet", {})
+    if not isinstance(residual_template_packet, dict):
+        residual_template_packet = {}
+    residual_template_packet_html = ""
+    if residual_template_packet.get("source_status") == "LOADED":
+        template_item_count = residual_template_packet.get("template_manifest_item_count", 32)
+        required_item_count = residual_template_packet.get("required_manifest_item_count", 32)
+        template_control_count = residual_template_packet.get("template_control_count", 4)
+        required_control_count = residual_template_packet.get("required_control_count", 4)
+        residual_template_packet_html = (
+            '<p class="live-blocker-note"><strong>Submission template packet:</strong> '
+            + safe_text(
+                residual_template_packet.get(
+                    "one_line_summary",
+                    "Operator submission template packet is preparation-only.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Template source:</strong> '
+            + safe_text(
+                residual_template_packet.get(
+                    "template_packet_path",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_TEMPLATE_PACKET.report.json",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Actual manifest target:</strong> '
+            + safe_text(
+                residual_template_packet.get(
+                    "actual_submission_manifest_path",
+                    "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json",
+                )
+            )
+            + "; written_by_patch=false; accepted=false; LIVE_READY=false.</p>"
+            '<p class="live-blocker-note"><strong>Template next:</strong> '
+            + safe_text(residual_template_packet.get("primary_next_action", "Use the template as a checklist only."))
+            + "</p>"
+            '<section class="live-blocker-groups" aria-label="operator submission template packet counts">'
+            f'<div class="live-blocker-group"><strong>Items</strong><span>{safe_text(template_item_count)} of {safe_text(required_item_count)}</span></div>'
+            f'<div class="live-blocker-group"><strong>Controls</strong><span>{safe_text(template_control_count)} of {safe_text(required_control_count)}</span></div>'
+            '<div class="live-blocker-group"><strong>Scope</strong><span>not evidence</span></div>'
+            '<div class="live-blocker-group"><strong>Writes</strong><span>0</span></div>'
+            '<div class="live-blocker-group"><strong>Accept</strong><span>false</span></div>'
+            '<div class="live-blocker-group"><strong>Live</strong><span>false</span></div>'
+            "</section>"
+        )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -21297,6 +21637,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         """ + residual_reconciliation_review_html + """
         """ + residual_reconciliation_intake_html + """
         """ + residual_manifest_preflight_html + """
+        """ + residual_template_packet_html + """
         <section class="live-blocker-groups" aria-label="operator handoff packet counts">
           <div class="live-blocker-group"><strong>Packets</strong><span>""" + safe_text(handoff_packet_count) + """ total</span></div>
           <div class="live-blocker-group"><strong>Blocked</strong><span>""" + safe_text(blocked_handoff_count) + """ blocked</span></div>
