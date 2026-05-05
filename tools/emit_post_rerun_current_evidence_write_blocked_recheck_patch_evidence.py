@@ -12,11 +12,13 @@ sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
-PATCH_BASENAME = "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK"
-PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
-REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-STATE-SYNC-RECHECK"
+PATCH_BASENAME = "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_RECHECK"
+PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
+REQUIREMENT_ID = "REQ-MVP4-POST-RERUN-CURRENT-EVIDENCE-WRITE-BLOCKED-RECHECK"
 GAP_ID = "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
-NEXT_TASK_CLASS = "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_RECHECK"
+PREVIOUS_REQUIREMENT_ID = "REQ-MVP4-PATCH-RESULT-VALIDATOR-RUN-GAP-BASELINE-RECONCILIATION-RECHECK"
+PREVIOUS_PATCH_PREFIX = "MVP4_PATCH_RESULT_VALIDATOR_RUN_GAP_BASELINE_RECONCILIATION_RECHECK_"
+NEXT_TASK_CLASS = "MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK"
 
 RUNTIME_BASE = "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime"
 PROMOTION_GUARD_REPORT = f"{RUNTIME_BASE}/upbit_paper_post_rerun_current_evidence_promotion_guard_report.json"
@@ -58,6 +60,12 @@ PREVIOUS_CLOSURE_PATCH_RESULT = (
 PREVIOUS_STATE_SYNC_PATCH_RESULT = (
     "system/evidence/patch_results/MVP4_POST_RERUN_RECONCILIATION_REQUIRED_STATE_SYNC_RECHECK.patch_result.json"
 )
+PREVIOUS_WRITE_BLOCKED_STATE_SYNC_PATCH_ID = (
+    "MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK_20260504_001"
+)
+PREVIOUS_WRITE_BLOCKED_STATE_SYNC_PATCH_RESULT = (
+    "system/evidence/patch_results/MVP4_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_STATE_SYNC_RECHECK.patch_result.json"
+)
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -90,11 +98,42 @@ VALIDATORS_REQUIRED = [
 BOOTSTRAP_VALIDATORS_REQUIRED = [
     item for item in VALIDATORS_REQUIRED if item != "generated_artifact_dirty_validator"
 ]
-CHANGED_ARTIFACTS = [
+ROUTE_GUARD_TEST_ARTIFACTS = [
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+    "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+    "tests/contract/test_completed_recheck_route_depth_guard.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+    "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+    "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+    "tests/contract/test_patch_result_runtime_schema_validation.py",
+    "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+    "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
     "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
-    "tools/emit_post_rerun_current_evidence_write_blocked_recheck_patch_evidence.py",
-    f"contracts/generated/context_pack/{PATCH_BASENAME}.md",
+    "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+    "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+    "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+    "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+    "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+    "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+    "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
 ]
+CHANGED_ARTIFACTS = sorted(
+    set(
+        ROUTE_GUARD_TEST_ARTIFACTS
+        + [
+            "tools/emit_post_rerun_current_evidence_write_blocked_recheck_patch_evidence.py",
+            f"contracts/generated/context_pack/{PATCH_BASENAME}.md",
+        ]
+    )
+)
 BLOCKERS = [
     "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
     "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
@@ -168,6 +207,30 @@ def assert_false_fields(name: str, artifact: dict[str, Any], suffix: str = "") -
             raise RuntimeError(f"{name} has forbidden true field: {key}")
 
 
+def assert_current_state_ready_for_write_blocked_recheck() -> None:
+    state = load_json(ROOT / "contracts" / "generated" / "current_implementation_state.json")
+    completed = set(state.get("completed_requirement_ids", []))
+    gaps = set(state.get("open_contract_gap_ids", []))
+    last_patch_id = str(state.get("last_patch_id", ""))
+    next_allowed = state.get("next_allowed_task_class")
+
+    for field in FALSE_FIELDS:
+        if state.get(field) is not False:
+            raise RuntimeError(f"{field} must stay false before {PATCH_BASENAME}")
+    if GAP_ID not in gaps:
+        raise RuntimeError(f"{GAP_ID} must remain open before {PATCH_BASENAME}")
+
+    previous_route_ready = last_patch_id.startswith(PREVIOUS_PATCH_PREFIX) and next_allowed == PATCH_BASENAME
+    idempotent_rerun_ready = last_patch_id.startswith(PATCH_BASENAME) and next_allowed == NEXT_TASK_CLASS
+    if not (previous_route_ready or idempotent_rerun_ready):
+        raise RuntimeError(
+            f"{PATCH_BASENAME} expected previous route {PREVIOUS_PATCH_PREFIX} -> {PATCH_BASENAME}; "
+            f"got last_patch_id={last_patch_id!r}, next_allowed_task_class={next_allowed!r}"
+        )
+    if previous_route_ready and PREVIOUS_REQUIREMENT_ID not in completed:
+        raise RuntimeError(f"{PREVIOUS_REQUIREMENT_ID} must be completed before {PATCH_BASENAME}")
+
+
 def assert_previous_patch(path_text: str, expected_patch_id: str) -> dict[str, Any]:
     patch = load_json(ROOT / path_text)
     if patch.get("patch_id") != expected_patch_id:
@@ -214,6 +277,15 @@ def current_gap_summary() -> dict[str, Any]:
     if GAP_ID not in state_sync_patch.get("remaining_blockers", []):
         raise RuntimeError("previous state sync lost current evidence write blocker")
 
+    write_blocked_state_sync_patch = load_json(ROOT / PREVIOUS_WRITE_BLOCKED_STATE_SYNC_PATCH_RESULT)
+    if write_blocked_state_sync_patch.get("patch_id") != PREVIOUS_WRITE_BLOCKED_STATE_SYNC_PATCH_ID:
+        raise RuntimeError("previous current-evidence write-blocked state-sync patch_id drifted")
+    assert_false_fields(PREVIOUS_WRITE_BLOCKED_STATE_SYNC_PATCH_RESULT, write_blocked_state_sync_patch, "_after")
+    if GAP_ID not in write_blocked_state_sync_patch.get("remaining_blockers", []):
+        raise RuntimeError("previous current-evidence write-blocked state sync lost blocker")
+    if write_blocked_state_sync_patch.get("patch_id") == PATCH_ID:
+        raise RuntimeError("current recheck patch_id must not duplicate the prior state-sync patch_id")
+
     promotion = load_json(ROOT / PROMOTION_GUARD_REPORT)
     queue = load_json(ROOT / OPERATOR_QUEUE_REPORT)
     guidance = load_json(ROOT / REVIEW_GUIDANCE_REPORT)
@@ -258,6 +330,7 @@ def current_gap_summary() -> dict[str, Any]:
         "decision_patch_result_hash": decision_patch.get("result_hash"),
         "closure_patch_result_hash": closure_patch.get("result_hash"),
         "state_sync_patch_result_hash": state_sync_patch.get("result_hash"),
+        "write_blocked_state_sync_patch_result_hash": write_blocked_state_sync_patch.get("result_hash"),
         "promotion_guard_status": promotion.get("promotion_guard_status"),
         "promotion_review_ready_count": promotion.get("promotion_review_ready_count"),
         "promotion_candidate_verified_count": promotion.get("candidate_rollup_verified_count"),
@@ -376,13 +449,13 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             "requirement_id": REQUIREMENT_ID,
             "source_section_id": "SECTION_CURRENT_EVIDENCE_CLOSURE",
             "source_file": "TRADER_1.md",
-            "source_heading": "post-rerun current evidence write blocked state sync recheck",
+            "source_heading": "post-rerun current evidence write blocked recheck",
             "full_text_marker": (
                 f"{REQUIREMENT_ID}: recognize existing post-rerun current-evidence write blocker and preserve "
                 "review-only candidate evidence without current evidence mutation"
             ),
             "authority_level": "ACTIVE_AUTHORITY",
-            "requirement_title": "Post-rerun current evidence write blocked state sync recheck",
+            "requirement_title": "Post-rerun current evidence write blocked recheck",
             "requirement_kind": "VALIDATOR_PATCH",
             "schema_ids": [
                 "trader1.patch_result.v1",
@@ -413,7 +486,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 b"post rerun current evidence writes remain blocked and review-only"
             ),
             "source_authority_sha256": trader_hash,
-            "implementation_status": "IMPLEMENTED_STATE_SYNC_RECHECK_GAP_OPEN",
+            "implementation_status": "IMPLEMENTED_RECHECK_GAP_OPEN",
             "test_status": "PASS",
         }
     )
@@ -457,6 +530,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 PREVIOUS_DECISION_PATCH_RESULT,
                 PREVIOUS_CLOSURE_PATCH_RESULT,
                 PREVIOUS_STATE_SYNC_PATCH_RESULT,
+                PREVIOUS_WRITE_BLOCKED_STATE_SYNC_PATCH_RESULT,
             ],
             "runtime_modules": [
                 "trader1/runtime/paper/upbit_paper_post_rerun_current_evidence_promotion_guard.py",
@@ -484,7 +558,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             ],
             "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
             "live_affecting": True,
-            "status": "IMPLEMENTED_STATE_SYNC_RECHECK_GAP_OPEN",
+            "status": "IMPLEMENTED_RECHECK_GAP_OPEN",
         }
     )
     matrix.update(
@@ -636,7 +710,7 @@ def write_evidence(
             "created_at_utc": now,
             "patch_id": PATCH_ID,
             "target_mvp_level": "MVP-4",
-            "stage_gate_status": "PASS_STATE_SYNC_RECHECK_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_REMAINS_LIVE_BLOCKING",
+            "stage_gate_status": "PASS_RECHECK_POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED_REMAINS_LIVE_BLOCKING",
             **summary,
             "next_allowed_task_class": NEXT_TASK_CLASS,
             "live_order_ready": False,
@@ -664,6 +738,7 @@ def write_evidence(
                 PREVIOUS_DECISION_PATCH_RESULT,
                 PREVIOUS_CLOSURE_PATCH_RESULT,
                 PREVIOUS_STATE_SYNC_PATCH_RESULT,
+                PREVIOUS_WRITE_BLOCKED_STATE_SYNC_PATCH_RESULT,
                 PROMOTION_GUARD_REPORT,
                 OPERATOR_QUEUE_REPORT,
                 REVIEW_GUIDANCE_REPORT,
@@ -713,6 +788,7 @@ def write_patch_artifacts(
 
 def main() -> int:
     configure_base()
+    assert_current_state_ready_for_write_blocked_recheck()
     now = base.utc_now()
     trader_hash = base.sha256_file(ROOT / "TRADER_1.md")
     agents_hash = base.sha256_file(ROOT / "AGENTS.md")
