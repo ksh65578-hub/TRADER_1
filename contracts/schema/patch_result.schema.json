@@ -1350,6 +1350,29 @@
     "intake_review_ready": {
       "type": "boolean"
     },
+    "duration_policy_report_path": {
+      "type": "string"
+    },
+    "duration_policy_status": {
+      "type": "string"
+    },
+    "operator_recommended_next_profile_id": {
+      "type": "string"
+    },
+    "operator_recommended_duration_hours": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "operator_recommended_heartbeat_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "trial_profile_mvp5_evidence_eligible": {
+      "type": "boolean"
+    },
+    "formal_mvp5_profile_still_required_for_live_readiness": {
+      "type": "boolean"
+    },
     "authority_hash_checked": {
       "type": "boolean"
     },
