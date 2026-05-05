@@ -108,7 +108,8 @@
             "AUDITED_PAPER_PORTFOLIO_SNAPSHOT",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
-            "CANDIDATE_SCORECARD"
+            "CANDIDATE_SCORECARD",
+            "RESIDUAL_OPERATOR_HANDOFF_PACKET"
           ]
         },
         "path": {
@@ -148,7 +149,8 @@
             "paper_portfolio_snapshot.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
-            "candidate_scorecard.json"
+            "candidate_scorecard.json",
+            "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
           ]
         },
         "truth_role": {
@@ -2972,6 +2974,179 @@
         },
         "dashboard_truth_only": {
           "const": true
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "residual_operator_handoff_packet": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "source",
+        "source_status",
+        "open_gap_count",
+        "handoff_packet_count",
+        "blocked_handoff_packet_count",
+        "handoff_ready_count",
+        "operator_submission_required_count",
+        "external_missing_or_unusable_count",
+        "paper_ledger_rerun_readiness_status",
+        "one_line_summary",
+        "primary_next_action",
+        "packet_items",
+        "display_only",
+        "dashboard_truth_only",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "Operator Handoff Packets"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "BLOCKED_HANDOFF_REQUIRED",
+            "INVALID"
+          ]
+        },
+        "source": {
+          "const": "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
+        },
+        "source_status": {
+          "enum": [
+            "LOADED",
+            "NOT_LOADED"
+          ]
+        },
+        "open_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "handoff_packet_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocked_handoff_packet_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "handoff_ready_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "operator_submission_required_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "external_missing_or_unusable_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_ledger_rerun_readiness_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packet_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "action_class",
+              "label",
+              "priority",
+              "gap_count",
+              "handoff_status",
+              "operator_submission_required",
+              "required_evidence_kinds",
+              "required_operator_action",
+              "closure_precondition_count"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "action_class": {
+                "enum": [
+                  "OPERATOR_RECONCILIATION_ACTION",
+                  "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+                  "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+                  "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION",
+                  "SEALED_BASELINE_PRESERVATION_ACTION",
+                  "SCALE_UP_POLICY_EVIDENCE_ACTION",
+                  "CLASSIFY_OPEN_GAP_ACTION"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "priority": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "gap_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "handoff_status": {
+                "const": "BLOCKED_HANDOFF_REQUIRED"
+              },
+              "operator_submission_required": {
+                "type": "boolean"
+              },
+              "required_evidence_kinds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required_operator_action": {
+                "type": "string",
+                "minLength": 1
+              },
+              "closure_precondition_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
         },
         "live_order_ready": {
           "const": false
@@ -7038,7 +7213,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 28,
+      "maxItems": 29,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -7087,6 +7262,9 @@
     },
     "residual_open_gap_action_plan": {
       "$ref": "#/$defs/residual_open_gap_action_plan"
+    },
+    "residual_operator_handoff_packet": {
+      "$ref": "#/$defs/residual_operator_handoff_packet"
     },
     "profitability_maturity": {
       "$ref": "#/$defs/profitability_maturity"
