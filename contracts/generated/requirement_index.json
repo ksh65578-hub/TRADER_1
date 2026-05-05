@@ -3186,7 +3186,7 @@
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
       "source_heading": "Dashboard operator focus and portfolio-first visibility",
-      "full_text_marker": "REQ-MVP4-DASHBOARD-OPERATOR-FOCUS-SIMPLIFICATION: dashboard must answer running status, portfolio detail, and live availability before technical evidence",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-OPERATOR-FOCUS-SIMPLIFICATION: dashboard must answer running status, portfolio detail, and live availability before technical evidence in a dedicated decision surface",
       "authority_level": "ACTIVE_AUTHORITY",
       "requirement_title": "Dashboard answers Run, Portfolio, and Live first",
       "requirement_kind": "DASHBOARD_UX_PATCH",
@@ -3237,7 +3237,7 @@
         "REQ-MVP1-READ-ONLY-DASHBOARD-SHELL",
         "REQ-MVP4-LIVE-FINAL-GUARD"
       ],
-      "source_text_sha256": "10E455D270E4996E4824A48DD66542E1335B3B2D4D42CBDF0E5FA66F32193793",
+      "source_text_sha256": "2767083512170618A6627B219F56027AC1A464EE7CB8F581DC513970FC98C5C9",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS"
@@ -21458,5 +21458,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T02:26:38Z"
+  "updated_at_utc": "2026-05-05T02:49:07Z"
 }

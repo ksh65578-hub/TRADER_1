@@ -17382,8 +17382,12 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .source-count-attention { border-color: #f2c75c; background: #fff8e6; color: var(--warn); }
     .freshness-fresh { background: var(--ok-bg); border-left-color: var(--ok); }
     .freshness-stale { background: var(--warn-bg); border-color: #f2c75c; border-left-color: var(--warn); }
-    .operator-quick-status { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); }
-    .quick-status-tile { display: grid; gap: 5px; min-width: 0; background: #ffffff; border: 1px solid var(--line); border-left: 6px solid var(--safe); border-radius: 8px; padding: 11px 12px; }
+    .operator-decision-surface { display: grid; gap: 12px; background: #ffffff; border: 1px solid #cfd6df; border-left: 8px solid var(--safe); border-radius: 8px; padding: 16px; min-width: 0; }
+    .decision-surface-head { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: space-between; align-items: flex-end; min-width: 0; }
+    .decision-surface-head h2 { margin: 0; font-size: 22px; line-height: 1.2; }
+    .decision-surface-head p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.45; max-width: 740px; }
+    .operator-quick-status { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+    .quick-status-tile { display: grid; gap: 7px; min-width: 0; background: #ffffff; border: 1px solid var(--line); border-left: 6px solid var(--safe); border-radius: 8px; padding: 13px 14px; }
     .quick-status-green { border-left-color: var(--ok); background: var(--ok-bg); }
     .quick-status-blue { border-left-color: var(--safe); background: var(--safe-bg); }
     .quick-status-yellow { border-left-color: var(--warn); background: var(--warn-bg); }
@@ -17391,8 +17395,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .quick-status-warn { border-left-color: var(--warn); background: var(--warn-bg); }
     .quick-status-ok { border-left-color: var(--ok); background: var(--ok-bg); }
     .quick-status-neutral { border-left-color: #98a2b3; background: #ffffff; }
-    .quick-status-tile strong { font-size: 16px; line-height: 1.25; overflow-wrap: anywhere; }
+    .quick-status-tile strong { font-size: 19px; line-height: 1.25; overflow-wrap: anywhere; }
     .quick-status-tile small { margin-top: 0; font-size: 12px; line-height: 1.3; }
+    .question-label { color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1.25; }
     .plain-status-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 8px; color: var(--muted); font-size: 13px; line-height: 1.35; }
     .raw-status-tag { display: inline-flex; max-width: 100%; border: 1px solid #cfd6df; border-radius: 999px; padding: 2px 7px; background: #ffffff; color: var(--muted); font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
     .operator-answer-grid { display: grid; gap: 18px; grid-template-columns: minmax(min(100%, 300px), 0.9fr) minmax(min(100%, 420px), 1.35fr) minmax(min(100%, 280px), 0.85fr); align-items: stretch; }
@@ -17715,21 +17720,33 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     <p>""" + safe_text(shell.get("primary_status_text", "")) + """</p>
   </header>
   <main>
-    <section class="operator-quick-status" aria-label="operator quick status">
-      <section class="quick-status-tile quick-status-""" + operation_color + """" aria-label="running state quick answer">
+    <section class="operator-decision-surface" aria-label="operator decision surface">
+      <div class="decision-surface-head">
+        <div>
+          <span class="eyebrow">Operator View</span>
+          <h2>Check these first</h2>
+        </div>
+        <p>Running status, PAPER portfolio, and live execution availability are the primary dashboard answers. Technical evidence stays below.</p>
+      </div>
+      <section class="operator-quick-status" aria-label="operator quick status">
+      <section class="quick-status-tile quick-status-""" + operation_color + """" aria-label="running state quick answer" data-primary-question="run">
         <span class="eyebrow">Run</span>
+        <span class="question-label">Is it running normally?</span>
         <strong>""" + safe_text(operation_quick_status) + """</strong>
         <small>""" + safe_text(operation.get("heartbeat_status", "STALE")) + """ heartbeat</small>
       </section>
-      <section class="quick-status-tile quick-status-""" + safe_text(portfolio_quick_class) + """" aria-label="portfolio quick answer">
+      <section class="quick-status-tile quick-status-""" + safe_text(portfolio_quick_class) + """" aria-label="portfolio quick answer" data-primary-question="portfolio">
         <span class="eyebrow">Portfolio</span>
+        <span class="question-label">What is the PAPER portfolio?</span>
         <strong>""" + safe_text(portfolio_quick_status) + """</strong>
         <small>""" + portfolio_value("equity") + """ current equity</small>
       </section>
-      <section class="quick-status-tile quick-status-yellow" aria-label="live execution quick answer">
+      <section class="quick-status-tile quick-status-yellow" aria-label="live execution quick answer" data-primary-question="live">
         <span class="eyebrow">Live</span>
+        <span class="question-label">Can live orders run?</span>
         <strong>Blocked</strong>
         <small title="live_order_allowed=false">orders are disabled</small>
+      </section>
       </section>
     </section>
     <section class="operator-answer-grid" aria-label="operator priority answers">
@@ -17870,7 +17887,7 @@ def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationR
         "freshness_auto_fit": ".freshness-strip dl { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));",
         "freshness_source_summary_wrap": ".source-summary { display: flex; flex-wrap: wrap; gap: 6px; align-items: center;",
         "freshness_source_count_bound": ".source-count { display: inline-flex; align-items: center; max-width: 100%;",
-        "operator_quick_status": ".operator-quick-status { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));",
+        "operator_quick_status": ".operator-quick-status { display: grid;",
         "operator_quick_status_markup": '<section class="operator-quick-status" aria-label="operator quick status">',
         "three_answer_first_screen": ".operator-answer-grid { display: grid; gap: 18px; grid-template-columns: minmax(min(100%, 300px), 0.9fr) minmax(min(100%, 420px), 1.35fr) minmax(min(100%, 280px), 0.85fr);",
         "answer_card_bound": ".operator-answer-card { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 18px;",
