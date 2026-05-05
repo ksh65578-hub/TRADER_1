@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
 PATCH_BASENAME = "MVP4_DASHBOARD_PAPER_PORTFOLIO_CURRENT_TRUTH_UX"
-PATCH_ID = f"{PATCH_BASENAME}_20260505_001"
+PATCH_ID = f"{PATCH_BASENAME}_20260505_002"
 REQUIREMENT_ID = "REQ-MVP4-DASHBOARD-PAPER-PORTFOLIO-CURRENT-TRUTH-UX"
 NEXT_TASK_CLASS = "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK"
 
@@ -88,6 +88,7 @@ included_artifact_ids: {json.dumps(CHANGED_ARTIFACTS)}
 acceptance_checklist:
 - Configured PAPER capital remains visible as a known PAPER configuration baseline.
 - UNVERIFIED is scoped to current cash, equity, PnL, return, and positions when fresh ledger/current-evidence proof is missing.
+- First-screen portfolio and live-readiness labels use plain operator wording while raw statuses remain available in detail text.
 - Stale or missing current portfolio evidence remains fail-closed and cannot appear as VERIFIED.
 - The dashboard keeps live_order_ready=false, live_order_allowed=false, can_live_trade=false, and scale_up_allowed=false.
 
@@ -118,7 +119,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-The dashboard now separates configured PAPER starting capital from current portfolio truth. Configured capital may display as a known PAPER baseline, while current cash, equity, PnL, return, and positions remain UNVERIFIED until fresh ledger/current-evidence proof is loaded.
+The dashboard now separates configured PAPER starting capital from current portfolio truth. Configured capital may display as a known PAPER baseline, while current cash, equity, PnL, return, and positions remain UNVERIFIED until fresh ledger/current-evidence proof is loaded. First-screen labels use plain operator wording; raw statuses stay visible for audit.
 
 ## Next Safe Task
 
@@ -140,7 +141,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             "source_file": "TRADER_1.md",
             "source_heading": "Dashboard PAPER portfolio current truth UX",
             "full_text_marker": (
-                f"{REQUIREMENT_ID}: dashboard must distinguish configured PAPER capital from current cash/equity truth"
+                f"{REQUIREMENT_ID}: dashboard must distinguish configured PAPER capital from current cash/equity truth and render first-screen operator labels without hiding raw audit status"
             ),
             "authority_level": "ACTIVE_AUTHORITY",
             "requirement_title": "Dashboard PAPER portfolio current truth UX",
@@ -160,7 +161,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
             "source_text_sha256": base.sha256_bytes(
-                b"dashboard must distinguish configured PAPER capital from current cash equity truth"
+                b"dashboard must distinguish configured PAPER capital from current cash equity truth and plain first screen labels"
             ),
             "source_authority_sha256": trader_hash,
             "implementation_status": "IMPLEMENTED_DASHBOARD_VISIBLE_LIVE_BLOCKED",
@@ -200,6 +201,8 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 "portfolio_snapshot.equity",
                 "portfolio_snapshot.return_pct",
                 "render_dashboard_html.portfolio_truth_note",
+                "render_dashboard_html.plain_status_label",
+                "render_dashboard_html.plain_blocker_label",
             ],
             "patch_result_fields": [
                 "live_order_ready_after",
@@ -359,6 +362,7 @@ Patch:
 - Kept current cash, equity, PnL, return, and positions fail-closed when current evidence is stale or missing.
 - Marked configured PAPER capital as a known configuration baseline without treating it as current cash/equity.
 - Added dashboard copy that states UNVERIFIED applies to current portfolio values, not the configured starting baseline.
+- Changed first-screen portfolio/live labels to plain operator wording while keeping raw statuses visible for audit in the same card or detail drawer.
 
 Safety:
 - live_order_ready=false

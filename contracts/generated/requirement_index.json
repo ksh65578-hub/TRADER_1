@@ -3295,7 +3295,7 @@
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
       "source_heading": "Dashboard PAPER portfolio current truth UX",
-      "full_text_marker": "REQ-MVP4-DASHBOARD-PAPER-PORTFOLIO-CURRENT-TRUTH-UX: dashboard must distinguish configured PAPER capital from current cash/equity truth",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-PAPER-PORTFOLIO-CURRENT-TRUTH-UX: dashboard must distinguish configured PAPER capital from current cash/equity truth and render first-screen operator labels without hiding raw audit status",
       "authority_level": "ACTIVE_AUTHORITY",
       "requirement_title": "Dashboard PAPER portfolio current truth UX",
       "requirement_kind": "DASHBOARD_UX_PATCH",
@@ -3337,7 +3337,7 @@
         "REQ-MVP4-UPBIT-PAPER-CONFIGURED-PORTFOLIO-UNVERIFIED-EXPLANATION",
         "REQ-MVP4-LIVE-FINAL-GUARD"
       ],
-      "source_text_sha256": "1DF7EFD75CCE6150D22D6523B3B63A4F91C9087A168BB777496E8A2A57A516C5",
+      "source_text_sha256": "A31E66958879D0502638A37F4056D72EDF6A6B72864D2D25CDC0BB960DA8AEF2",
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "IMPLEMENTED_DASHBOARD_VISIBLE_LIVE_BLOCKED",
       "test_status": "PASS"
@@ -21458,5 +21458,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T02:10:46Z"
+  "updated_at_utc": "2026-05-05T02:26:38Z"
 }

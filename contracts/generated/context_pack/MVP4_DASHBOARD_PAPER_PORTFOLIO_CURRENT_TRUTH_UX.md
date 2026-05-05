@@ -13,6 +13,7 @@ included_artifact_ids: ["trader1/dashboard/read_only_dashboard.py", "tests/dashb
 acceptance_checklist:
 - Configured PAPER capital remains visible as a known PAPER configuration baseline.
 - UNVERIFIED is scoped to current cash, equity, PnL, return, and positions when fresh ledger/current-evidence proof is missing.
+- First-screen portfolio and live-readiness labels use plain operator wording while raw statuses remain available in detail text.
 - Stale or missing current portfolio evidence remains fail-closed and cannot appear as VERIFIED.
 - The dashboard keeps live_order_ready=false, live_order_allowed=false, can_live_trade=false, and scale_up_allowed=false.
 
@@ -23,4 +24,4 @@ known_omissions_by_design:
 
 conflict_resolution_rule:
 TRADER_1.md active authority wins over this context pack. This context pack is a read cache only.
-generated_at_utc: 2026-05-05T02:10:46Z
+generated_at_utc: 2026-05-05T02:26:38Z
