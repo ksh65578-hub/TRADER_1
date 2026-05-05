@@ -1,0 +1,200 @@
+{
+  "schema_id": "trader1.residual_operator_evidence_intake_audit_report.v1",
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_INTAKE_AUDIT_20260505_001",
+  "generated_at_utc": "2026-05-05T10:35:48Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "source_reports": [
+    {
+      "role": "residual_operator_evidence_run_preflight",
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT_20260505_001",
+      "report_hash": "90B0AF067CE93A74242741C21D3B27BE29A0BEDAA50A74331320524F94C046CD"
+    },
+    {
+      "role": "residual_operator_evidence_progress",
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_20260505_001",
+      "report_hash": "7DDCA414B1FB3B4DA86B5AEF78D48E87AE823693AB894F3EF06EDC2387A01BEE"
+    }
+  ],
+  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT_20260505_001",
+  "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "open_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "open_gap_count": 13,
+  "intake_status": "BLOCKED_AWAITING_OPERATOR_EVIDENCE_PACKAGE",
+  "operator_submission_manifest_path": "system/evidence/operator_submissions/residual_operator_paper_shadow_120h_submission_manifest.json",
+  "operator_submission_manifest_status": "MISSING_OPERATOR_SUBMISSION_MANIFEST",
+  "operator_submission_required": true,
+  "operator_submission_validated": false,
+  "expected_artifact_count": 5,
+  "local_runtime_output_observed_count": 3,
+  "missing_expected_artifact_count": 1,
+  "placeholder_expected_artifact_count": 1,
+  "ready_for_review_artifact_count": 0,
+  "expected_artifact_intake_items": [
+    {
+      "artifact_intake_id": "OPERATOR-EVIDENCE-ARTIFACT:1",
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/heartbeat.json",
+      "preflight_path_status": "PRESENT_LOCAL_RUNTIME_OUTPUT_NOT_CLOSURE_READY",
+      "intake_path_status": "LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_REVIEW_PACKAGE",
+      "operator_package_required": true,
+      "content_hash_recorded": false,
+      "content_hash_recording_policy": "DISABLED_UNTIL_OPERATOR_SUBMISSION_MANIFEST_VALIDATED",
+      "review_ready": false,
+      "blocks_mvp5_entry": true,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "artifact_intake_id": "OPERATOR-EVIDENCE-ARTIFACT:2",
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/summary.json",
+      "preflight_path_status": "PRESENT_LOCAL_RUNTIME_OUTPUT_NOT_CLOSURE_READY",
+      "intake_path_status": "LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_REVIEW_PACKAGE",
+      "operator_package_required": true,
+      "content_hash_recorded": false,
+      "content_hash_recording_policy": "DISABLED_UNTIL_OPERATOR_SUBMISSION_MANIFEST_VALIDATED",
+      "review_ready": false,
+      "blocks_mvp5_entry": true,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "artifact_intake_id": "OPERATOR-EVIDENCE-ARTIFACT:3",
+      "path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_persistent_loop_report.json",
+      "preflight_path_status": "PRESENT_LOCAL_RUNTIME_OUTPUT_NOT_CLOSURE_READY",
+      "intake_path_status": "LOCAL_RUNTIME_OUTPUT_PRESENT_NOT_REVIEW_PACKAGE",
+      "operator_package_required": true,
+      "content_hash_recorded": false,
+      "content_hash_recording_policy": "DISABLED_UNTIL_OPERATOR_SUBMISSION_MANIFEST_VALIDATED",
+      "review_ready": false,
+      "blocks_mvp5_entry": true,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "artifact_intake_id": "OPERATOR-EVIDENCE-ARTIFACT:4",
+      "path": "system/runtime/upbit/krw_spot/shadow/<shadow_session_id>/shadow_observation_persistent_runtime_report.json",
+      "preflight_path_status": "PLACEHOLDER_PATTERN_PENDING",
+      "intake_path_status": "PLACEHOLDER_PATTERN_PENDING",
+      "operator_package_required": true,
+      "content_hash_recorded": false,
+      "content_hash_recording_policy": "DISABLED_UNTIL_OPERATOR_SUBMISSION_MANIFEST_VALIDATED",
+      "review_ready": false,
+      "blocks_mvp5_entry": true,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
+    {
+      "artifact_intake_id": "OPERATOR-EVIDENCE-ARTIFACT:5",
+      "path": "system/evidence/audit_reports/paper_shadow_evidence_accumulation_report.json",
+      "preflight_path_status": "MISSING_EXPECTED_RUNTIME_OUTPUT",
+      "intake_path_status": "OPERATOR_REVIEW_REPORT_MISSING",
+      "operator_package_required": true,
+      "content_hash_recorded": false,
+      "content_hash_recording_policy": "DISABLED_UNTIL_OPERATOR_SUBMISSION_MANIFEST_VALIDATED",
+      "review_ready": false,
+      "blocks_mvp5_entry": true,
+      "current_evidence_write_allowed": false,
+      "gap_closure_allowed_by_this_patch": false,
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    }
+  ],
+  "validator_queue_count": 6,
+  "validator_queue": [
+    {
+      "validator_id": "upbit_paper_persistent_loop_validator",
+      "required_before_mvp5_review": true,
+      "run_status_for_this_patch": "QUEUED_AFTER_OPERATOR_EVIDENCE",
+      "blocks_mvp5_entry_until_pass": true
+    },
+    {
+      "validator_id": "shadow_observation_persistent_runtime_validator",
+      "required_before_mvp5_review": true,
+      "run_status_for_this_patch": "QUEUED_AFTER_OPERATOR_EVIDENCE",
+      "blocks_mvp5_entry_until_pass": true
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "required_before_mvp5_review": true,
+      "run_status_for_this_patch": "QUEUED_AFTER_OPERATOR_EVIDENCE",
+      "blocks_mvp5_entry_until_pass": true
+    },
+    {
+      "validator_id": "profitability_evidence_maturity_rollup_validator",
+      "required_before_mvp5_review": true,
+      "run_status_for_this_patch": "QUEUED_AFTER_OPERATOR_EVIDENCE",
+      "blocks_mvp5_entry_until_pass": true
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "required_before_mvp5_review": true,
+      "run_status_for_this_patch": "QUEUED_AFTER_OPERATOR_EVIDENCE",
+      "blocks_mvp5_entry_until_pass": true
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "required_before_mvp5_review": true,
+      "run_status_for_this_patch": "QUEUED_AFTER_OPERATOR_EVIDENCE",
+      "blocks_mvp5_entry_until_pass": true
+    }
+  ],
+  "preflight_command_id": "UPBIT_PAPER_SAFE_MONITOR_120H",
+  "preflight_command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='43200'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
+  "minimum_duration_hours": 120,
+  "expected_heartbeat_ticks": 43200,
+  "minimum_paper_shadow_window_count": 20,
+  "command_executed_by_this_patch": false,
+  "operator_run_completed_by_this_patch": false,
+  "operator_run_evidence_ready_for_mvp5": false,
+  "intake_review_ready": false,
+  "mvp5_entry_blocked_until_operator_evidence": true,
+  "current_evidence_write_allowed": false,
+  "gap_closure_allowed_by_this_patch": false,
+  "live_config_mutation_allowed": false,
+  "live_ready_write_allowed": false,
+  "credential_values_read": false,
+  "credential_environment_inspection_performed": false,
+  "runtime_artifacts_staged_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validation_status": "PASS",
+  "validation_errors": [],
+  "report_hash": "A0D395B3463EF67D6E7ACF4AE609217A9879906063E43406AA117663160E9991"
+}
