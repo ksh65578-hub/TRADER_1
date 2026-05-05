@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from trader1.adapters.upbit.paper_broker import build_upbit_paper_dry_run_report, validate_upbit_paper_dry_run_report
-from trader1.core.decision.decision_arbiter import choose_operational_paper_decision
+from trader1.core.decision.decision_arbiter import choose_operational_paper_decision, select_primary_blocker
 from trader1.core.ledger.restart_recovery import build_restart_recovery_report, validate_restart_recovery_report
 from trader1.core.sizing.position_sizing import build_position_sizing_decision, validate_position_sizing_decision
 from trader1.core.strategy.strategy_unit import build_basic_strategy_unit, validate_strategy_unit
@@ -157,7 +157,7 @@ def build_upbit_operational_paper_cycle(
         blocker = _collect_blocker(result, label)
         if blocker:
             blockers.append(blocker)
-    primary_code = primary or (blockers[0]["code"] if blockers else None)
+    primary_code = select_primary_blocker(blockers) or primary
     report = {
         "schema_id": PAPER_OPERATION_GATE_SCHEMA_ID,
         "generated_at_utc": utc_now(),

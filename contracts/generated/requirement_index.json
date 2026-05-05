@@ -5028,6 +5028,58 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-DECISION-ARBITER-CONFLICT-PRIORITY",
+      "source_section_id": "SECTION_STRATEGY_ENTRY_EXIT_NO_TRADE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Strategy decision conflict priority and no-trade traffic control",
+      "full_text_marker": "REQ-MVP4-DECISION-ARBITER-CONFLICT-PRIORITY: deterministic primary blocker and PAPER-safe final decision arbitration",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Decision arbiter must resolve conflicting blockers deterministically before PAPER entry/no-trade handling",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.final_decision.v1",
+        "trader1.common_defs.v1"
+      ],
+      "validator_ids": [
+        "upbit_paper_dry_run_validator",
+        "upbit_operational_paper_gate_validator",
+        "upbit_paper_runtime_cycle_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "trader1/core/decision/decision_arbiter.py",
+        "trader1/adapters/upbit/paper_broker.py",
+        "trader1/runtime/paper/operational_cycle.py",
+        "trader1/runtime/paper/upbit_paper_runtime.py",
+        "tests/contract/test_decision_arbiter_conflict_priority.py",
+        "tools/emit_decision_arbiter_conflict_priority_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_DECISION_ARBITER_CONFLICT_PRIORITY.md"
+      ],
+      "test_ids": [
+        "tests/contract/test_decision_arbiter_conflict_priority.py",
+        "tests/contract/test_strategy_unit_scope.py",
+        "tests/integration/test_upbit_paper_runtime_cycle.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_4_RUNTIME_INTEGRATION",
+      "blocking_level": "PAPER_RUNTIME_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "DASHBOARD_UX",
+        "PROFIT_CONVERGENCE_MVP3",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP0-LIVE-DEFAULT-FALSE",
+        "REQ-MVP0-ORDER-PATH-GUARD",
+        "REQ-MVP4-STRATEGY-REGIME-COST-RUNTIME-LINKAGE",
+        "REQ-MVP4-UPBIT-PAPER-CANDIDATE-DECISION-THRESHOLD-GUARD"
+      ],
+      "source_text_sha256": "A8043E73756C9E469BF318128F9BBF87AC54D0C19E39AE3CF4AB5488BCEA1A98",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-EVIDENCE-WRITE-HELPER-ALIAS-AWARE-SCANNER",
       "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
       "source_file": "TRADER_1.md",
@@ -10061,6 +10113,82 @@
       "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
       "test_status": "PASS",
       "updated_at_utc": "2026-04-29T13:34:39Z"
+    },
+    {
+      "requirement_id": "REQ-MVP4-PROFITABILITY-ADAPTIVE-EVIDENCE-QUALITY-GATE",
+      "source_section_id": "SECTION_STRATEGY_PROFITABILITY",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Profitability adaptive evidence quality gate",
+      "full_text_marker": "REQ-MVP4-PROFITABILITY-ADAPTIVE-EVIDENCE-QUALITY-GATE: profitability maturity must use adaptive evidence-quality review, not a fixed PAPER runtime-hour floor, while preserving all live and scale-up blockers",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Profitability adaptive evidence quality gate",
+      "requirement_kind": "VALIDATOR_DASHBOARD_EVIDENCE_PATCH",
+      "schema_ids": [
+        "trader1.profitability_evidence_maturity_rollup.v1",
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "runtime_schema_instance_validator",
+        "profitability_evidence_maturity_rollup_validator",
+        "profitability_optimizer_evidence_gap_validator",
+        "read_only_dashboard_validator",
+        "optimizer_no_live_mutation_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.md",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/requirement_index.json",
+        "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "system/evidence/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+        "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/patch_results/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.patch_result.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.validator_run_log.json",
+        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+        "tools/emit_profitability_adaptive_evidence_quality_gate_patch_evidence.py",
+        "tools/emit_profitability_optimizer_evidence_maturity_recheck_patch_evidence.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_ids": [
+        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_STRATEGY_PROFITABILITY",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_OPTIMIZER_GUARDRAIL",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-ROLLUP-VALIDATOR",
+        "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT",
+        "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "0B1F4812CECBB4466D652EDD3E89709764D81183C3861CED9731F2EAA7EAC0CE",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
     },
     {
       "requirement_id": "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-ROLLUP-VALIDATOR",
@@ -23319,83 +23447,7 @@
       "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
       "implementation_status": "SCAFFOLD_IMPLEMENTED",
       "test_status": "PASS"
-    },
-    {
-      "requirement_id": "REQ-MVP4-PROFITABILITY-ADAPTIVE-EVIDENCE-QUALITY-GATE",
-      "source_section_id": "SECTION_STRATEGY_PROFITABILITY",
-      "source_file": "TRADER_1.md",
-      "source_heading": "Profitability adaptive evidence quality gate",
-      "full_text_marker": "REQ-MVP4-PROFITABILITY-ADAPTIVE-EVIDENCE-QUALITY-GATE: profitability maturity must use adaptive evidence-quality review, not a fixed PAPER runtime-hour floor, while preserving all live and scale-up blockers",
-      "authority_level": "ACTIVE_AUTHORITY",
-      "requirement_title": "Profitability adaptive evidence quality gate",
-      "requirement_kind": "VALIDATOR_DASHBOARD_EVIDENCE_PATCH",
-      "schema_ids": [
-        "trader1.profitability_evidence_maturity_rollup.v1",
-        "trader1.read_only_dashboard_shell.v1"
-      ],
-      "validator_ids": [
-        "schema_validator",
-        "runtime_schema_instance_validator",
-        "profitability_evidence_maturity_rollup_validator",
-        "profitability_optimizer_evidence_gap_validator",
-        "read_only_dashboard_validator",
-        "optimizer_no_live_mutation_validator",
-        "patch_result_schema_validator",
-        "patch_result_runtime_schema_instance_validator",
-        "coverage_index_validator",
-        "live_final_guard_validator"
-      ],
-      "artifact_ids": [
-        "contracts/generated/ACTIVE_WORKING_VIEW.md",
-        "contracts/generated/context_pack/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.md",
-        "contracts/generated/current_implementation_state.json",
-        "contracts/generated/read_cache_manifest.json",
-        "contracts/generated/requirement_artifact_matrix.json",
-        "contracts/generated/requirement_index.json",
-        "contracts/schema/profitability_evidence_maturity_rollup.schema.json",
-        "contracts/schema/read_only_dashboard_shell.schema.json",
-        "system/evidence/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.evidence_manifest.json",
-        "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
-        "system/evidence/contract_gaps/PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY.contract_gap.json",
-        "system/evidence/implementation_patch_ledger.json",
-        "system/evidence/patch_results/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.patch_result.json",
-        "system/evidence/stage_gates/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.stage_gate_result.json",
-        "system/evidence/validator_runs/MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROFITABILITY_QUALITY_GATE.validator_run_log.json",
-        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
-        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
-        "tools/emit_profitability_adaptive_evidence_quality_gate_patch_evidence.py",
-        "tools/emit_profitability_optimizer_evidence_maturity_recheck_patch_evidence.py",
-        "trader1/dashboard/read_only_dashboard.py",
-        "trader1/validation/mvp0_validators.py"
-      ],
-      "test_ids": [
-        "tests/validators/test_profitability_optimizer_evidence_gap_validator.py",
-        "tests/dashboard/test_read_only_dashboard.py",
-        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py"
-      ],
-      "mvp_stage": "MVP-4",
-      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
-      "blocking_level": "LIVE_BLOCKING",
-      "live_affecting": true,
-      "read_when": [
-        "SECTION_STRATEGY_PROFITABILITY",
-        "SECTION_DASHBOARD_OPERATOR_UX",
-        "SECTION_OPTIMIZER_GUARDRAIL",
-        "SECTION_LIVE_FINAL_GUARD"
-      ],
-      "depends_on": [
-        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-ROLLUP-VALIDATOR",
-        "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT",
-        "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY",
-        "REQ-MVP4-LIVE-FINAL-GUARD"
-      ],
-      "source_text_sha256": "0B1F4812CECBB4466D652EDD3E89709764D81183C3861CED9731F2EAA7EAC0CE",
-      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
-      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
-      "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T14:31:31Z"
+  "updated_at_utc": "2026-05-05T14:55:44Z"
 }

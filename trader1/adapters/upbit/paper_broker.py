@@ -9,7 +9,7 @@ from typing import Any
 from trader1.adapters.upbit.fee_model import build_upbit_fee_slippage_baseline
 from trader1.adapters.upbit.market_data import build_upbit_public_market_data_fixture, validate_upbit_public_market_data
 from trader1.adapters.upbit.symbol_rules import validate_upbit_krw_symbol
-from trader1.core.decision.decision_arbiter import choose_paper_final_decision
+from trader1.core.decision.decision_arbiter import choose_paper_final_decision, order_blocker_codes, select_primary_blocker
 from trader1.core.ledger.paper_ledger import build_upbit_paper_intent_chain, validate_upbit_paper_ledger
 from trader1.core.risk.risk_veto import evaluate_paper_risk_veto
 from trader1.reports.no_trade_reason import build_entry_reason
@@ -115,7 +115,7 @@ def build_upbit_paper_dry_run_report(
             build_entry_reason("FEE_SLIPPAGE_BASELINE_PASS", "fee and slippage baseline present"),
         ]
     elif blockers:
-        no_trade_reasons = [blocker["code"] for blocker in blockers]
+        no_trade_reasons = order_blocker_codes(blockers)
     else:
         no_trade_reasons = ["MIN_EDGE_FAIL"]
 
@@ -155,7 +155,7 @@ def build_upbit_paper_dry_run_report(
         "can_live_trade": False,
         "can_submit_order": False,
         "order_adapter_called": False,
-        "primary_blocker_code": blockers[0]["code"] if blockers else None,
+        "primary_blocker_code": select_primary_blocker(blockers),
         "blockers": blockers,
         "dry_run_hash": "",
     }
