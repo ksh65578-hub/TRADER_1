@@ -1000,6 +1000,10 @@
       "schema_id": "trader1.residual_operator_evidence_audit_binding_report.v1",
       "path": "contracts/schema/residual_operator_evidence_audit_binding_report.schema.json"
     },
+    "external_live_evidence_intake_preflight_report": {
+      "schema_id": "trader1.external_live_evidence_intake_preflight_report.v1",
+      "path": "contracts/schema/external_live_evidence_intake_preflight_report.schema.json"
+    },
     "patch_result": {
       "schema_id": "trader1.patch_result.v1",
       "path": "contracts/schema/patch_result.schema.json"
