@@ -298,6 +298,18 @@ def residual_operator_reconciliation_intake_preflight_fixture():
     )
 
 
+def residual_operator_reconciliation_submission_manifest_preflight_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "evidence"
+            / "audit_reports"
+            / "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
     runtime = build_upbit_paper_runtime_cycle_report(
         cycle_id=f"dashboard-scorecard-{session_id}",
@@ -350,6 +362,7 @@ def build_dashboard(
     residual_operator_evidence_progress_report=None,
     residual_operator_reconciliation_review_cards_report=None,
     residual_operator_reconciliation_intake_preflight_report=None,
+    residual_operator_reconciliation_submission_manifest_preflight_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
@@ -391,6 +404,7 @@ def build_dashboard(
         residual_operator_evidence_progress_report=residual_operator_evidence_progress_report,
         residual_operator_reconciliation_review_cards_report=residual_operator_reconciliation_review_cards_report,
         residual_operator_reconciliation_intake_preflight_report=residual_operator_reconciliation_intake_preflight_report,
+        residual_operator_reconciliation_submission_manifest_preflight_report=residual_operator_reconciliation_submission_manifest_preflight_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
@@ -7212,6 +7226,76 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
 
+    def test_dashboard_live_card_exposes_operator_submission_manifest_preflight(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
+            residual_operator_reconciliation_submission_manifest_preflight_report=(
+                residual_operator_reconciliation_submission_manifest_preflight_fixture()
+            ),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        manifest = dashboard["residual_operator_reconciliation_submission_manifest_preflight"]
+        self.assertEqual(manifest["source_status"], "LOADED")
+        self.assertEqual(manifest["status"], "BLOCKED_MANIFEST_MISSING")
+        self.assertEqual(manifest["open_gap_count"], 13)
+        self.assertEqual(manifest["manifest_schema_id"], "trader1.residual_operator_reconciliation_submission_manifest.v1")
+        self.assertEqual(
+            manifest["manifest_path"],
+            "system/evidence/operator_submissions/residual_operator_reconciliation_submission_manifest.json",
+        )
+        self.assertEqual(manifest["manifest_status"], "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST")
+        self.assertEqual(manifest["manifest_schema_validation_status"], "NOT_RUN_MISSING")
+        self.assertFalse(manifest["operator_submission_present"])
+        self.assertFalse(manifest["operator_submission_validated"])
+        self.assertFalse(manifest["operator_submission_accepted"])
+        self.assertFalse(manifest["manifest_structural_check_only"])
+        self.assertEqual(manifest["required_manifest_item_count"], 32)
+        self.assertEqual(manifest["manifest_item_count"], 0)
+        self.assertEqual(manifest["missing_manifest_item_count"], 32)
+        self.assertEqual(manifest["required_control_count"], 4)
+        self.assertEqual(manifest["manifest_control_count"], 0)
+        self.assertEqual(manifest["missing_control_count"], 4)
+        self.assertEqual(manifest["unsafe_manifest_flag_count"], 0)
+        self.assertEqual(manifest["path_policy_violation_count"], 0)
+        self.assertEqual(manifest["source_hash_mismatch_count"], 0)
+        self.assertTrue(manifest["operator_no_action_needed_for_next_non_live_patch"])
+        self.assertTrue(manifest["operator_action_required_for_gap_closure"])
+        self.assertFalse(manifest["current_evidence_write_allowed"])
+        self.assertFalse(manifest["gap_closure_allowed_by_this_patch"])
+        self.assertFalse(manifest["live_ready_write_allowed"])
+        self.assertFalse(manifest["live_config_mutation_allowed"])
+        self.assertFalse(manifest["live_order_ready"])
+        self.assertFalse(manifest["live_order_allowed"])
+        self.assertFalse(manifest["can_live_trade"])
+        self.assertFalse(manifest["scale_up_allowed"])
+
+        source = next(
+            item
+            for item in dashboard["source_artifacts"]
+            if item["artifact_id"] == "RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT"
+        )
+        self.assertEqual(source["filename"], "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json")
+        self.assertEqual(source["freshness_status"], "PASS")
+
+        html = render_dashboard_html(dashboard)
+        answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
+        portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
+        answer_html = html[answer_start:portfolio_start]
+        self.assertIn("Submission manifest preflight:", answer_html)
+        self.assertIn("Operator reconciliation submission manifest is MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST", answer_html)
+        self.assertIn("Structural check:", answer_html)
+        self.assertIn("accepted=false", answer_html)
+        self.assertIn("current-evidence writes=false", answer_html)
+        self.assertIn("LIVE_READY=false", answer_html)
+        self.assertIn("32 items", answer_html)
+        self.assertIn("32 missing", answer_html)
+        self.assertIn("4 missing", answer_html)
+        self.assertIn("0 flags", answer_html)
+        self.assertIn("0 violations", answer_html)
+        self.assertNotIn("<button", answer_html.lower())
+        self.assertNotIn("<form", answer_html.lower())
+
     def test_dashboard_residual_operator_priority_queue_is_deterministic_and_display_only(self):
         dashboard = build_dashboard_with_residual_priority_resolution_binding()
         result = validate_read_only_dashboard_shell(dashboard)
@@ -7410,6 +7494,42 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(intake["status"], "INVALID")
         self.assertEqual(intake["ready_for_review_intake_item_count"], 0)
         self.assertEqual(intake["accepted_intake_item_count"], 0)
+
+    def test_dashboard_rejects_operator_submission_manifest_preflight_permission_drift(self):
+        report = residual_operator_reconciliation_submission_manifest_preflight_fixture()
+        report["operator_submission_accepted"] = True
+        report["current_evidence_write_allowed"] = True
+        report["live_ready_write_allowed"] = True
+        dashboard = build_dashboard(residual_operator_reconciliation_submission_manifest_preflight_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        manifest = dashboard["residual_operator_reconciliation_submission_manifest_preflight"]
+        self.assertEqual(manifest["source_status"], "LOADED")
+        self.assertEqual(manifest["status"], "INVALID")
+        self.assertFalse(manifest["operator_submission_accepted"])
+        self.assertFalse(manifest["current_evidence_write_allowed"])
+        self.assertFalse(manifest["live_ready_write_allowed"])
+        self.assertFalse(manifest["live_order_allowed"])
+        self.assertFalse(manifest["scale_up_allowed"])
+
+    def test_dashboard_rejects_operator_submission_manifest_preflight_structural_drift(self):
+        report = residual_operator_reconciliation_submission_manifest_preflight_fixture()
+        report["manifest_preflight_status"] = "BLOCKED_MANIFEST_STRUCTURAL_REVIEW_ONLY"
+        report["manifest_schema_validation_status"] = "PASS_STRUCTURAL_ONLY"
+        report["operator_submission_present"] = True
+        report["manifest_structural_check_only"] = True
+        report["manifest_item_count"] = 32
+        report["missing_manifest_item_count"] = 1
+        dashboard = build_dashboard(residual_operator_reconciliation_submission_manifest_preflight_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        manifest = dashboard["residual_operator_reconciliation_submission_manifest_preflight"]
+        self.assertEqual(manifest["source_status"], "LOADED")
+        self.assertEqual(manifest["status"], "INVALID")
+        self.assertFalse(manifest["operator_submission_validated"])
+        self.assertFalse(manifest["operator_submission_accepted"])
 
     def test_dashboard_visual_layout_contract_blocks_cramped_regression(self):
         html = render_dashboard_html(build_dashboard())

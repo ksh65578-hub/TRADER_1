@@ -1,0 +1,9 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_20260506_001",
+  "dashboard_status": "PASS_SUBMISSION_MANIFEST_PREFLIGHT_BLOCKED",
+  "manifest_status": "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST",
+  "manifest_preflight_status": "BLOCKED_MANIFEST_MISSING",
+  "required_manifest_item_count": 32,
+  "missing_manifest_item_count": 32,
+  "live_execution_candidate": false
+}

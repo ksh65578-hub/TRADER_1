@@ -1,0 +1,20 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_20260506_001",
+  "created_at_utc": "2026-05-05T19:36:29Z",
+  "acceptance_status": "PASS_BLOCKED_NON_LIVE",
+  "open_gap_count": 13,
+  "manifest_status": "MISSING_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST",
+  "manifest_preflight_status": "BLOCKED_MANIFEST_MISSING",
+  "manifest_schema_validation_status": "NOT_RUN_MISSING",
+  "required_manifest_item_count": 32,
+  "missing_manifest_item_count": 32,
+  "required_control_count": 4,
+  "missing_control_count": 4,
+  "operator_submission_validated": false,
+  "operator_submission_accepted": false,
+  "current_evidence_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

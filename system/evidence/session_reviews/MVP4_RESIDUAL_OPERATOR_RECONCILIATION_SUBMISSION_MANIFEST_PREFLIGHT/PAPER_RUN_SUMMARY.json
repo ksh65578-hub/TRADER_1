@@ -1,0 +1,7 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_20260506_001",
+  "paper_run_executed_by_this_patch": false,
+  "operator_reconciliation_run_executed_by_this_patch": false,
+  "user_runtime_required_for_next_non_live_patch": false,
+  "user_runtime_required_for_gap_closure": true
+}
