@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-05T03:47:37Z",
+  "updated_at_utc": "2026-05-05T04:17:12Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -4344,6 +4344,17 @@
       "can_live_trade_after": false,
       "scale_up_allowed_after": false,
       "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
+    },
+    {
+      "patch_id": "MVP4_DASHBOARD_RESIDUAL_BLOCKER_SUMMARY_20260505_001",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_DASHBOARD_RESIDUAL_BLOCKER_SUMMARY.patch_result.json",
+      "patch_result_hash": "ECF053ED428D70A00A08D4E2F406DD921A5F6CAFAE798D6767F304EC73B5B7F5",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
     }
   ],
   "ledger_hash": "0E28040C7F58CEBF1A49F46E7DF25C0E4F0CC91EF35220344BBC89D1A0D554F6",

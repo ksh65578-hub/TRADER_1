@@ -1,0 +1,11 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-05T04:17:12Z",
+  "patch_id": "MVP4_DASHBOARD_RESIDUAL_BLOCKER_SUMMARY_20260505_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_DASHBOARD_RESIDUAL_BLOCKERS_SUMMARIZED_LIVE_BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
