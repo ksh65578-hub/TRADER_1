@@ -10678,6 +10678,12 @@ def _residual_operator_handoff_packet_summary(report: dict[str, Any] | None) -> 
     }
 
 
+def _observation_requirement_label(hours: Any) -> str:
+    if isinstance(hours, int) and hours > 0:
+        return f"{hours}h minimum"
+    return "Adaptive evidence gate"
+
+
 def _residual_operator_execution_guide_summary(report: dict[str, Any] | None) -> dict[str, Any]:
     fallback = {
         "title": "Operator Execution Guide",
@@ -10832,6 +10838,7 @@ def _residual_operator_execution_guide_summary(report: dict[str, Any] | None) ->
         status = "INVALID"
 
     command_label = "command" if local_paper_shadow_runtime_step_count == 1 else "commands"
+    observation_label = _observation_requirement_label(minimum_observation_hours)
     return {
         "title": "Operator Execution Guide",
         "status": status,
@@ -10849,7 +10856,7 @@ def _residual_operator_execution_guide_summary(report: dict[str, Any] | None) ->
         "one_line_summary": (
             f"{execution_step_count} blocked execution steps; "
             f"{local_paper_shadow_runtime_step_count} local PAPER/SHADOW {command_label}; "
-            f"{minimum_observation_hours}h minimum observation."
+            f"{observation_label}."
         ),
         "primary_next_action": "MVP-5 blocked until operator evidence is collected; Binance remains scaffold-only.",
         "execution_step_items": step_items[:4],
@@ -11056,6 +11063,7 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
         },
     ]
     command_label = "command" if local_runtime_command_count == 1 else "commands"
+    observation_label = _observation_requirement_label(minimum_observation_hours)
     return {
         "title": "Operator Evidence Progress",
         "status": status,
@@ -11080,7 +11088,7 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
             f"missing={missing_count}, placeholder={placeholder_count}, local-runtime={local_runtime_output_count}."
         ),
         "primary_next_action": (
-            f"MVP-5 blocked; run {minimum_observation_hours}h PAPER/SHADOW collection only when operator setup is ready, "
+            f"MVP-5 blocked; run PAPER/SHADOW collection under the {observation_label} only when operator setup is ready, "
             f"then submit external/read-only evidence separately. {local_runtime_command_count} local PAPER/SHADOW {command_label} remains non-live."
         ),
         "status_breakdown_items": status_breakdown_items,
@@ -13290,8 +13298,9 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "residual execution guide must keep MVP-5 blocked until operator evidence", "HARD_TRUTH_MISSING")
         if residual_execution_guide.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS":
             return DashboardValidationResult("BLOCKED", "residual execution guide cannot transfer Upbit evidence to Binance", "LIVE_FINAL_GUARD_FAILED")
-        if residual_execution_guide.get("minimum_observation_hours", 0) < 48:
-            return DashboardValidationResult("FAIL", "residual execution guide must show the 48h PAPER/SHADOW observation requirement", "CONTRACT_GAP_HIGH")
+        guide_minimum_observation_hours = residual_execution_guide.get("minimum_observation_hours", 0)
+        if not isinstance(guide_minimum_observation_hours, int) or guide_minimum_observation_hours < 0:
+            return DashboardValidationResult("FAIL", "residual execution guide must expose a non-negative observation policy", "CONTRACT_GAP_HIGH")
         guide_items = residual_execution_guide.get("execution_step_items")
         if not isinstance(guide_items, list) or len(guide_items) < 3:
             return DashboardValidationResult("FAIL", "loaded residual execution guide must expose at least top three execution steps", "SCHEMA_IDENTITY_MISMATCH")
@@ -13350,8 +13359,9 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("FAIL", "residual evidence progress must expose exactly one local PAPER/SHADOW command", "SCHEMA_IDENTITY_MISMATCH")
         if residual_evidence_progress.get("local_runtime_completed_count") != 0:
             return DashboardValidationResult("BLOCKED", "this patch cannot mark the local PAPER/SHADOW evidence command completed", "LIVE_FINAL_GUARD_FAILED")
-        if residual_evidence_progress.get("minimum_observation_hours_required", 0) < 48:
-            return DashboardValidationResult("FAIL", "residual evidence progress must show the 48h PAPER/SHADOW observation requirement", "CONTRACT_GAP_HIGH")
+        progress_minimum_observation_hours = residual_evidence_progress.get("minimum_observation_hours_required", 0)
+        if not isinstance(progress_minimum_observation_hours, int) or progress_minimum_observation_hours < 0:
+            return DashboardValidationResult("FAIL", "residual evidence progress must expose a non-negative observation policy", "CONTRACT_GAP_HIGH")
         if residual_evidence_progress.get("mvp5_entry_blocked_until_operator_evidence") is not True:
             return DashboardValidationResult("BLOCKED", "residual evidence progress must keep MVP-5 blocked until operator evidence", "HARD_TRUTH_MISSING")
         if residual_evidence_progress.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS":
@@ -18463,6 +18473,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         guide_step_count = residual_execution_guide.get("execution_step_count", 0)
         local_runtime_step_count = residual_execution_guide.get("local_paper_shadow_runtime_step_count", 0)
         minimum_observation_hours = residual_execution_guide.get("minimum_observation_hours", 0)
+        observation_label = _observation_requirement_label(minimum_observation_hours)
         residual_execution_guide_html = (
             '<p class="live-blocker-note"><strong>Execution guide:</strong> '
             + safe_text(
@@ -18483,7 +18494,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             '<section class="live-blocker-groups" aria-label="operator execution guide counts">'
             f'<div class="live-blocker-group"><strong>Steps</strong><span>{safe_text(guide_step_count)} steps</span></div>'
             f'<div class="live-blocker-group"><strong>PAPER/SHADOW</strong><span>{safe_text(local_runtime_step_count)} local command</span></div>'
-            f'<div class="live-blocker-group"><strong>Observation</strong><span>{safe_text(minimum_observation_hours)}h minimum</span></div>'
+            f'<div class="live-blocker-group"><strong>Observation</strong><span>{safe_text(observation_label)}</span></div>'
             "</section>"
         )
     residual_evidence_progress_html = ""
@@ -18495,6 +18506,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         local_runtime_count = residual_evidence_progress.get("local_runtime_output_item_count", 0)
         local_command_count = residual_evidence_progress.get("local_runtime_command_count", 0)
         evidence_observation_hours = residual_evidence_progress.get("minimum_observation_hours_required", 0)
+        evidence_observation_label = _observation_requirement_label(evidence_observation_hours)
         residual_evidence_progress_html = (
             '<p class="live-blocker-note"><strong>Evidence Progress:</strong> '
             + safe_text(
@@ -18519,7 +18531,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             f'<div class="live-blocker-group"><strong>Placeholder</strong><span>placeholder={safe_text(placeholder_count)}</span></div>'
             f'<div class="live-blocker-group"><strong>Local</strong><span>local-runtime={safe_text(local_runtime_count)}</span></div>'
             f'<div class="live-blocker-group"><strong>Command</strong><span>{safe_text(local_command_count)} local PAPER/SHADOW command</span></div>'
-            f'<div class="live-blocker-group"><strong>Observation</strong><span>{safe_text(evidence_observation_hours)}h minimum</span></div>'
+            f'<div class="live-blocker-group"><strong>Observation</strong><span>{safe_text(evidence_observation_label)}</span></div>'
             "</section>"
         )
     health_signal_items = [

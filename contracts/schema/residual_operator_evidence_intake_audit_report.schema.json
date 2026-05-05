@@ -92,7 +92,7 @@
     "open_gap_count": {"type": "integer", "minimum": 0},
     "intake_status": {"const": "BLOCKED_AWAITING_OPERATOR_EVIDENCE_PACKAGE"},
     "operator_submission_manifest_path": {
-      "const": "system/evidence/operator_submissions/residual_operator_paper_shadow_48h_submission_manifest.json"
+      "const": "system/evidence/operator_submissions/residual_operator_adaptive_evidence_submission_manifest.json"
     },
     "operator_submission_manifest_status": {
       "enum": ["MISSING_OPERATOR_SUBMISSION_MANIFEST", "PRESENT_NOT_VALIDATED"]
@@ -115,11 +115,17 @@
       "minItems": 1,
       "items": {"$ref": "#/$defs/validator_queue_item"}
     },
-    "preflight_command_id": {"enum": ["UPBIT_PAPER_SAFE_MONITOR_48H", "UPBIT_PAPER_SAFE_MONITOR_120H"]},
+    "preflight_command_id": {
+      "enum": [
+        "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW",
+        "UPBIT_PAPER_SAFE_MONITOR_48H",
+        "UPBIT_PAPER_SAFE_MONITOR_120H"
+      ]
+    },
     "preflight_command_text": {"type": "string", "minLength": 1},
-    "minimum_duration_hours": {"type": "integer", "minimum": 48},
-    "expected_heartbeat_ticks": {"type": "integer", "minimum": 17280},
-    "minimum_paper_shadow_window_count": {"type": "integer", "minimum": 8},
+    "minimum_duration_hours": {"type": "integer", "minimum": 0},
+    "expected_heartbeat_ticks": {"type": "integer", "minimum": 0},
+    "minimum_paper_shadow_window_count": {"type": "integer", "minimum": 0},
     "command_executed_by_this_patch": {"const": false},
     "operator_run_completed_by_this_patch": {"const": false},
     "operator_run_evidence_ready_for_mvp5": {"const": false},

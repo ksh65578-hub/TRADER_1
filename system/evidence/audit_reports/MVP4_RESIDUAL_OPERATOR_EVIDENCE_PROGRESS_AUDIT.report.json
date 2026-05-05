@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.residual_operator_evidence_progress_report.v1",
-  "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-  "generated_at_utc": "2026-05-05T11:31:53Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+  "generated_at_utc": "2026-05-05T12:10:12Z",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
@@ -9,11 +9,11 @@
   "source_reports": [
     {
       "role": "residual_operator_execution_guide",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "57EB6DBA4CA50883465D64126B4D681E61CC4705AB605639E6E83DFE7BD491EF"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "614E0636CB8034C8145D829225553178E0F3D03F1E8E8C75839090BC74D5D15A"
     }
   ],
-  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_TRIAL_DURATION_POLICY_20260505_001",
+  "state_last_patch_id_before": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
   "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "open_gap_ids": [
@@ -41,7 +41,7 @@
   "local_runtime_output_item_count": 3,
   "local_runtime_command_count": 1,
   "local_runtime_completed_count": 0,
-  "minimum_observation_hours_required": 48,
+  "minimum_observation_hours_required": 0,
   "operator_evidence_ready_for_mvp5": false,
   "any_evidence_item_ready_for_closure": false,
   "mvp5_entry_blocked_until_operator_evidence": true,
@@ -351,10 +351,10 @@
   ],
   "local_runtime_commands": [
     {
-      "command_id": "UPBIT_PAPER_SAFE_MONITOR_48H",
+      "command_id": "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW",
       "action_class": "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
       "scope": "UPBIT/KRW_SPOT/PAPER",
-      "minimum_duration_hours": 48,
+      "minimum_duration_hours": 0,
       "command_status": "NOT_RUN_BY_THIS_PATCH",
       "non_live_only": true,
       "credential_required": false,
@@ -375,5 +375,5 @@
   "scale_up_allowed": false,
   "validation_status": "PASS",
   "validation_errors": [],
-  "report_hash": "CC9397396D9824AF1FC3AC6C61D2B2BA82E2A46914146D9F1800739B0EFA2313"
+  "report_hash": "2A774675541B39F4DCB63D70C42AD743FBC1091B6ABA7C45B062D772C9426BE7"
 }

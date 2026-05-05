@@ -9,13 +9,11 @@ from trader1.reports.open_gap_current_blocker_classification import NEXT_TASK_CL
 
 SCHEMA_ID = "trader1.residual_operator_execution_guide_report.v1"
 LIVE_FALSE_FIELDS = ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
-MVP5_REVIEW_ENTRY_PROFILE_ID = "UPBIT_PAPER_SAFE_MONITOR_48H"
-MVP5_REVIEW_ENTRY_DURATION_HOURS = 48
+MVP5_REVIEW_ENTRY_PROFILE_ID = "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW"
+MVP5_REVIEW_ENTRY_DURATION_HOURS = 0
 MVP5_REVIEW_ENTRY_HEARTBEAT_INTERVAL_SECONDS = 10
-MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS = (
-    MVP5_REVIEW_ENTRY_DURATION_HOURS * 60 * 60 // MVP5_REVIEW_ENTRY_HEARTBEAT_INTERVAL_SECONDS
-)
-MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT = 8
+MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS = 0
+MVP5_REVIEW_ENTRY_MINIMUM_PAPER_SHADOW_WINDOW_COUNT = 0
 
 STEP_MODE_BY_ACTION = {
     "OPERATOR_RECONCILIATION_ACTION": "OPERATOR_REVIEW_REQUIRED",
@@ -124,7 +122,7 @@ def _allowed_local_commands(action_class: str) -> list[dict[str, Any]]:
             "command_id": MVP5_REVIEW_ENTRY_PROFILE_ID,
             "shell": "powershell",
             "command": (
-                f"$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='{MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS}'; "
+                "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS=''; "
                 f"$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='{MVP5_REVIEW_ENTRY_HEARTBEAT_INTERVAL_SECONDS}'; "
                 "python -B UPBIT_PAPER.py"
             ),
@@ -140,7 +138,7 @@ def _allowed_local_commands(action_class: str) -> list[dict[str, Any]]:
 def _operator_goal(packet: Mapping[str, Any]) -> str:
     action_class = str(packet.get("action_class", ""))
     if action_class == "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION":
-        return "Collect long-run UPBIT PAPER plus SHADOW evidence without credentials or live order paths."
+        return "Collect UPBIT PAPER plus SHADOW evidence until validators have enough audited data, without credentials or live order paths."
     if action_class == "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION":
         return "Prepare bounded PAPER rerun and post-rerun reconciliation evidence before any current evidence promotion."
     if action_class == "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION":

@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.residual_operator_evidence_run_preflight_report.v1",
-  "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-  "generated_at_utc": "2026-05-05T11:31:53Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+  "generated_at_utc": "2026-05-05T12:10:12Z",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
@@ -9,16 +9,16 @@
   "source_reports": [
     {
       "role": "residual_operator_execution_guide",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "57EB6DBA4CA50883465D64126B4D681E61CC4705AB605639E6E83DFE7BD491EF"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "614E0636CB8034C8145D829225553178E0F3D03F1E8E8C75839090BC74D5D15A"
     },
     {
       "role": "residual_operator_evidence_progress",
-      "patch_id": "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001",
-      "report_hash": "CC9397396D9824AF1FC3AC6C61D2B2BA82E2A46914146D9F1800739B0EFA2313"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+      "report_hash": "2A774675541B39F4DCB63D70C42AD743FBC1091B6ABA7C45B062D772C9426BE7"
     }
   ],
-  "state_last_patch_id_before": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_TRIAL_DURATION_POLICY_20260505_001",
+  "state_last_patch_id_before": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
   "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "preflight_status": "NON_LIVE_OPERATOR_RUN_PRECHECK_PASS",
@@ -38,24 +38,24 @@
     "SCALE_UP_NOT_ELIGIBLE"
   ],
   "open_gap_count": 13,
-  "command_id": "UPBIT_PAPER_SAFE_MONITOR_48H",
+  "command_id": "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW",
   "command_shell": "powershell",
-  "command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='17280'; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
+  "command_text": "$env:TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS=''; $env:TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS='10'; python -B UPBIT_PAPER.py",
   "command_scope": "UPBIT/KRW_SPOT/PAPER",
   "command_entrypoint": "UPBIT_PAPER.py",
   "command_environment_overrides": [
     {
       "name": "TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS",
-      "value": "17280"
+      "value": ""
     },
     {
       "name": "TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS",
       "value": "10"
     }
   ],
-  "minimum_duration_hours": 48,
-  "minimum_paper_shadow_window_count": 8,
-  "expected_heartbeat_ticks": 17280,
+  "minimum_duration_hours": 0,
+  "minimum_paper_shadow_window_count": 0,
+  "expected_heartbeat_ticks": 0,
   "heartbeat_interval_seconds": 10,
   "expected_runtime_artifacts": [
     {
@@ -149,14 +149,14 @@
       "message": "UPBIT_PAPER.py entrypoint exists for the operator-run PAPER command"
     },
     {
-      "check_id": "DURATION_FLOOR_DECLARED",
+      "check_id": "ADAPTIVE_EVIDENCE_GATE_DECLARED",
       "status": "PASS",
-      "message": "operator command declares at least 48h / 17280 heartbeat ticks"
+      "message": "operator command declares an adaptive evidence gate with no fixed duration floor"
     },
     {
       "check_id": "PAPER_SHADOW_WINDOW_FLOOR_DECLARED",
       "status": "PASS",
-      "message": "execution guide declares at least 8 PAPER/SHADOW windows"
+      "message": "operator command leaves PAPER/SHADOW window sufficiency to evidence validators"
     },
     {
       "check_id": "EXPECTED_ARTIFACTS_DECLARED",
@@ -190,5 +190,5 @@
   "scale_up_allowed": false,
   "validation_status": "PASS",
   "validation_errors": [],
-  "report_hash": "71977AF4B7B188E6D9F17AA31D4A68D1F0F724D52306CBF3F1B9D72F754C90A3"
+  "report_hash": "B1DBE4B01162D30DD7DA88D2795CFBDD42465408399210F0D9C58106C85C059A"
 }

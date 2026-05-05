@@ -37,9 +37,9 @@ POLICY_PATH = (
     ROOT / "system" / "evidence" / "audit_reports" / "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY.report.json"
 )
 PATCH_PATH = (
-    ROOT / "system" / "evidence" / "patch_results" / "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY.patch_result.json"
+    ROOT / "system" / "evidence" / "patch_results" / "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY.patch_result.json"
 )
-REQUIREMENT_ID = "REQ-MVP4-RESIDUAL-MVP5-ENTRY-DURATION-POLICY"
+REQUIREMENT_ID = "REQ-MVP4-RESIDUAL-ADAPTIVE-EVIDENCE-GATE-POLICY"
 
 
 def load_json(path: Path):
@@ -72,16 +72,20 @@ class ResidualMvp5EntryDurationPolicyTest(unittest.TestCase):
             agents_sha256="A" * 64,
         )
 
-    def test_mvp5_review_entry_is_lowered_without_live_permission(self):
+    def test_mvp5_review_entry_uses_adaptive_evidence_gate_without_live_permission(self):
         execution_guide, progress, preflight, intake, trial_policy, state = self.source_inputs()
         report = self.build_report()
 
-        self.assertEqual(report["duration_policy_status"], "MVP5_REVIEW_ENTRY_LOWERED_LIVE_STILL_BLOCKED")
+        self.assertEqual(report["duration_policy_status"], "FIXED_DURATION_GATE_REMOVED_LIVE_STILL_BLOCKED")
         self.assertEqual(report["superseded_duration_hours"], 120)
         self.assertEqual(report["mvp5_review_entry_duration_hours"], MVP5_REVIEW_ENTRY_DURATION_HOURS)
         self.assertEqual(report["mvp5_review_entry_heartbeat_ticks"], MVP5_REVIEW_ENTRY_HEARTBEAT_TICKS)
-        self.assertEqual(report["mvp5_review_entry_minimum_paper_shadow_window_count"], 8)
-        self.assertIn("TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS='17280'", report["mvp5_review_entry_command_text"])
+        self.assertEqual(report["mvp5_review_entry_minimum_paper_shadow_window_count"], 0)
+        self.assertEqual(report["mvp5_review_entry_gate_type"], "ADAPTIVE_EVIDENCE_QUALITY_GATE")
+        self.assertTrue(report["fixed_duration_gate_removed_by_this_patch"])
+        self.assertTrue(report["adaptive_evidence_gate_enabled"])
+        self.assertTrue(report["adaptive_stepwise_judgement_required"])
+        self.assertIn("TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS=''", report["mvp5_review_entry_command_text"])
         self.assertTrue(report["trial_24h_profile_still_not_mvp5_eligible"])
         self.assertEqual(report["extended_120h_profile_role"], "OPTIONAL_EXTENDED_OBSERVATION_OR_SCALE_UP_CONFIDENCE_ONLY")
         self.assertFalse(report["duration_only_live_ready_allowed"])
@@ -134,10 +138,13 @@ class ResidualMvp5EntryDurationPolicyTest(unittest.TestCase):
         patch_result = load_json(PATCH_PATH)
         report = load_json(POLICY_PATH)
 
-        self.assertEqual(patch_result["patch_id"], "MVP4_RESIDUAL_MVP5_ENTRY_DURATION_POLICY_20260505_001")
+        self.assertEqual(patch_result["patch_id"], "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001")
         self.assertEqual(report["open_gap_ids"], state["open_contract_gap_ids"])
         self.assertIn(REQUIREMENT_ID, state["completed_requirement_ids"])
-        self.assertEqual(patch_result["mvp5_review_entry_duration_hours_after"], 48)
+        self.assertEqual(patch_result["mvp5_review_entry_duration_hours_after"], 0)
+        self.assertEqual(patch_result["mvp5_review_entry_gate_type"], "ADAPTIVE_EVIDENCE_QUALITY_GATE")
+        self.assertTrue(patch_result["fixed_duration_gate_removed"])
+        self.assertTrue(patch_result["adaptive_evidence_gate_enabled"])
         self.assertFalse(patch_result["duration_only_live_ready_allowed"])
         self.assertFalse(patch_result["live_order_ready_after"])
         self.assertFalse(patch_result["live_order_allowed_after"])

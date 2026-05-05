@@ -327,7 +327,11 @@
       "additionalProperties": false,
       "properties": {
         "command_id": {
-          "enum": ["UPBIT_PAPER_SAFE_MONITOR_48H", "UPBIT_PAPER_SAFE_MONITOR_120H"]
+          "enum": [
+            "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW",
+            "UPBIT_PAPER_SAFE_MONITOR_48H",
+            "UPBIT_PAPER_SAFE_MONITOR_120H"
+          ]
         },
         "action_class": {
           "const": "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION"
@@ -337,7 +341,7 @@
         },
         "minimum_duration_hours": {
           "type": "integer",
-          "minimum": 48
+          "minimum": 0
         },
         "command_status": {
           "const": "NOT_RUN_BY_THIS_PATCH"
