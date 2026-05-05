@@ -1,0 +1,14 @@
+{
+  "schema_id": "trader1.paper_run_summary.v1",
+  "generated_at_utc": "2026-05-05T15:25:52Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_QUANTITATIVE_POLICY_CLOSURE_20260506_001",
+  "paper_runtime_executed_by_this_patch": false,
+  "reason": "This session implemented deterministic non-live quantitative policy and validators only.",
+  "paper_candidate_logic_verified": true,
+  "paper_order_submission_enabled": false,
+  "binance_futures_short_candidate_scope": "PAPER_POLICY_CANDIDATE_ONLY_RUNTIME_SURFACE_BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

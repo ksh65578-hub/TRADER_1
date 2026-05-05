@@ -773,6 +773,7 @@ PROFITABILITY_OPTIMIZER_EVIDENCE_VALIDATORS = [
     "optimizer_memory_state_validator",
     "strategy_performance_memory_validator",
     "strategy_condition_matrix_validator",
+    "quantitative_policy_validator",
     "symbol_strategy_regime_fit_validator",
     "market_regime_adaptation_validator",
     "overfit_diagnostic_validator",
@@ -20942,6 +20943,257 @@ def strategy_condition_matrix_validator() -> ValidatorResult:
     )
 
 
+def _quantitative_policy_report_errors(report: dict[str, Any]) -> list[str]:
+    schema_dir = ROOT / "contracts" / "schema"
+    schema_bundle = load_schema_bundle(schema_dir)
+    schema = schema_for_instance(report, schema_bundle)
+    errors: list[str] = []
+    if schema is None:
+        return ["quantitative policy report schema not found"]
+    instance_result = validate_instance_against_schema(report, schema, schema_bundle)
+    if instance_result.status != "PASS":
+        return instance_result.errors
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if _live_flag_is_true(report.get(field)):
+            errors.append(f"quantitative policy report has forbidden true field: {field}")
+    live_ready = report.get("live_ready_policy", {})
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed", "writer_input_eligible"):
+        if _live_flag_is_true(live_ready.get(field)):
+            errors.append(f"quantitative live-ready policy has forbidden true field: {field}")
+    if report.get("dashboard_reason_code") != "LIVE_READY_MISSING":
+        errors.append("dashboard_reason_code must identify LIVE_READY_MISSING for current non-live state")
+    message = str(report.get("dashboard_operator_message", "")).lower()
+    if "live blocked" not in message:
+        errors.append("dashboard operator message must say LIVE blocked")
+    blockers = report.get("blockers", [])
+    blocker_codes = [item.get("code") for item in blockers if isinstance(item, dict)]
+    if "LIVE_READY_MISSING" not in blocker_codes:
+        errors.append("quantitative policy report must carry LIVE_READY_MISSING blocker")
+    basis = report.get("law_of_large_numbers_basis", {})
+    if basis.get("minimum_trade_count") != 100 or basis.get("high_return_candidate_trade_count") != 300:
+        errors.append("law-of-large-numbers thresholds must be closed at 100 and 300 trades")
+    return errors
+
+
+def quantitative_policy_validator() -> ValidatorResult:
+    schema_path = ROOT / "contracts" / "schema" / "quantitative_policy_report.schema.json"
+    policy_path = ROOT / "trader1" / "core" / "strategy" / "quantitative_policy.py"
+    test_path = ROOT / "tests" / "contract" / "test_quantitative_policy.py"
+    state_path = ROOT / "contracts" / "generated" / "current_implementation_state.json"
+    paths = [schema_path, policy_path, test_path, state_path]
+    state = load_json(state_path)
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if _live_flag_is_true(state.get(field)):
+            return fail_result(
+                "quantitative_policy_validator",
+                f"current implementation state has forbidden live or scale flag: {field}",
+                paths,
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+
+    from trader1.core.strategy.quantitative_policy import (  # noqa: WPS433
+        build_quantitative_policy_report,
+        compute_net_expected_edge,
+        deduplicate_events,
+        evaluate_binance_futures_short_entry,
+        evaluate_live_ready_snapshot_candidate,
+        evaluate_pullback_trend_entry,
+        evaluate_risk_state,
+        grade_signal,
+        size_position,
+    )
+
+    report_errors = _quantitative_policy_report_errors(build_quantitative_policy_report())
+    if report_errors:
+        return fail_result(
+            "quantitative_policy_validator",
+            f"quantitative policy report failed validation: {report_errors[0]}",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    weak_signal = grade_signal(
+        {
+            "regime_confidence": 0.50,
+            "strategy_fit_score": 0.50,
+            "confirmation_score": 0.50,
+            "net_edge_score": 0.50,
+            "liquidity_score": 0.50,
+            "execution_quality_score": 0.50,
+            "historical_pattern_score": 0.50,
+        }
+    )
+    if weak_signal.get("entry_candidate_allowed") is not False or weak_signal.get("primary_blocker_code") != "STRATEGY_CONFIDENCE_LOW":
+        return fail_result(
+            "quantitative_policy_validator",
+            "weak signal did not fail closed to no-trade",
+            paths,
+            "STRATEGY_CONFIDENCE_LOW",
+        )
+
+    negative_edge = compute_net_expected_edge(
+        {
+            "expected_target_move": 0.010,
+            "probability_of_target": 0.40,
+            "expected_stop_move": 0.012,
+            "probability_of_stop": 0.60,
+            "fee_cost": 0.0010,
+            "spread_cost": 0.0008,
+            "slippage_cost": 0.0008,
+            "funding_cost": 0.0,
+        }
+    )
+    if negative_edge.get("primary_blocker_code") != "MIN_EDGE_FAIL":
+        return fail_result(
+            "quantitative_policy_validator",
+            "negative net edge did not emit MIN_EDGE_FAIL",
+            paths,
+            "MIN_EDGE_FAIL",
+        )
+
+    downtrend_long = evaluate_pullback_trend_entry(
+        {
+            "mode": "PAPER",
+            "regime": "downtrend",
+            "ema50": 90,
+            "ema200": 100,
+            "ema50_slope": -0.2,
+            "adx": 30,
+            "pullback_depth_atr": 0.8,
+            "price_distance_to_anchor_atr": 0.2,
+            "confirmation_score": 0.9,
+            "regime_confidence": 0.85,
+            "strategy_fit_score": 0.9,
+            "net_edge_score": 0.9,
+            "liquidity_score": 0.9,
+            "execution_quality_score": 0.9,
+            "historical_pattern_score": 0.9,
+            "edge": {
+                "net_expected_edge": 0.01,
+                "total_cost": 0.002,
+                "net_edge_positive": True,
+                "blockers": [],
+            },
+        }
+    )
+    if downtrend_long.get("candidate_allowed") is not False or downtrend_long.get("primary_blocker_code") != "REGIME_MISMATCH":
+        return fail_result(
+            "quantitative_policy_validator",
+            "downtrend did not block spot long pullback",
+            paths,
+            "REGIME_MISMATCH",
+        )
+
+    futures_short = evaluate_binance_futures_short_entry(
+        {
+            "exchange": "BINANCE",
+            "market_type": "FUTURES_USDT_M",
+            "leverage": 1,
+            "regime": "downtrend",
+            "breakdown_confirmation": True,
+            "failed_rebound": True,
+            "funding_cost_acceptable": True,
+            "liquidity_score": 0.75,
+            "spread_percentile": 55,
+            "panic_spread_percentile": 70,
+            "edge": {
+                "net_expected_edge": 0.01,
+                "total_cost": 0.002,
+                "net_edge_positive": True,
+                "blockers": [],
+            },
+        }
+    )
+    if futures_short.get("candidate_allowed") is not True or futures_short.get("primary_blocker_code") != "BINANCE_FUTURES_SURFACE_ONLY":
+        return fail_result(
+            "quantitative_policy_validator",
+            "Binance futures short did not remain paper candidate with surface-only runtime block",
+            paths,
+            "BINANCE_FUTURES_SURFACE_ONLY",
+        )
+
+    capped = size_position(
+        {
+            "equity": 1_000_000,
+            "risk_per_trade": 0.002,
+            "signal_grade": "strong",
+            "regime_confidence": 0.80,
+            "strategy_score": 0.80,
+            "drawdown_pct": 0.01,
+            "liquidity_score": 0.90,
+            "volatility_percentile": 50,
+            "stop_distance": 1000,
+            "daily_loss_pct": 0.011,
+            "weekly_loss_pct": 0.0,
+            "monthly_loss_pct": 0.0,
+            "current_exposure": 0,
+            "max_exposure": 400_000,
+            "liquidity_notional": 5_000_000,
+        }
+    )
+    if capped.get("position_size") != 0.0 or capped.get("primary_blocker_code") != "DRAWDOWN_FREEZE_ACTIVE":
+        return fail_result("quantitative_policy_validator", "risk cap did not block sizing", paths, "RISK_VETO")
+
+    reduced = size_position(
+        {
+            "equity": 1_000_000,
+            "risk_per_trade": 0.002,
+            "signal_grade": "strong",
+            "regime_confidence": 0.80,
+            "strategy_score": 0.80,
+            "drawdown_pct": 0.03,
+            "liquidity_score": 0.90,
+            "volatility_percentile": 50,
+            "stop_distance": 1000,
+            "daily_loss_pct": 0.0,
+            "weekly_loss_pct": 0.0,
+            "monthly_loss_pct": 0.0,
+            "current_exposure": 0,
+            "max_exposure": 400_000,
+            "liquidity_notional": 5_000_000,
+        }
+    )
+    if reduced.get("risk_multiplier") != 0.5:
+        return fail_result("quantitative_policy_validator", "drawdown did not reduce sizing multiplier", paths, "RISK_VETO")
+
+    cooling = evaluate_risk_state(
+        {
+            "equity_high": 1_000_000,
+            "current_equity": 990_000,
+            "daily_loss_pct": 0.010,
+            "weekly_loss_pct": 0.0,
+            "monthly_loss_pct": 0.0,
+            "consecutive_losses": 3,
+        }
+    )
+    if cooling.get("new_entry_allowed") is not False or cooling.get("primary_blocker_code") != "COOLDOWN":
+        return fail_result("quantitative_policy_validator", "cooling state did not block new entry", paths, "COOLDOWN")
+
+    deduped = deduplicate_events([{"event_id": "a"}, {"event_id": "a"}, {"event_id": "b"}])
+    if deduped.get("unique_count") != 2 or deduped.get("duplicate_count") != 1:
+        return fail_result(
+            "quantitative_policy_validator",
+            "duplicate event was not deterministically removed",
+            paths,
+            "DUPLICATE_CANDIDATE",
+        )
+
+    live_block = evaluate_live_ready_snapshot_candidate({"snapshot_present": False})
+    if live_block.get("primary_blocker_code") != "LIVE_READY_MISSING" or live_block.get("live_order_allowed") is not False:
+        return fail_result(
+            "quantitative_policy_validator",
+            "LIVE without snapshot did not remain blocked",
+            paths,
+            "LIVE_READY_MISSING",
+        )
+
+    return pass_result(
+        "quantitative_policy_validator",
+        "closed quantitative formulas cover regime, symbol, signal, net edge, entries, exits, sizing, risk state, idempotency, and live block proof",
+        paths,
+    )
+
+
 def _symbol_strategy_regime_fit_errors(report: dict[str, Any]) -> list[str]:
     schema_dir = ROOT / "contracts" / "schema"
     schema_bundle = load_schema_bundle(schema_dir)
@@ -22718,6 +22970,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "candidate_cooldown_validator": candidate_cooldown_validator,
     "parameter_narrowing_validator": parameter_narrowing_validator,
     "strategy_condition_matrix_validator": strategy_condition_matrix_validator,
+    "quantitative_policy_validator": quantitative_policy_validator,
     "symbol_strategy_regime_fit_validator": symbol_strategy_regime_fit_validator,
     "market_regime_adaptation_validator": market_regime_adaptation_validator,
     "paper_exposure_quality_report_validator": paper_exposure_quality_report_validator,

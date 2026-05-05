@@ -1252,6 +1252,10 @@
       "schema_id": "trader1.strategy_condition_matrix.v1",
       "path": "contracts/schema/strategy_condition_matrix.schema.json"
     },
+    "quantitative_policy_report": {
+      "schema_id": "trader1.quantitative_policy_report.v1",
+      "path": "contracts/schema/quantitative_policy_report.schema.json"
+    },
     "paper_shadow_evidence_accumulation_report": {
       "schema_id": "trader1.paper_shadow_evidence_accumulation_report.v1",
       "path": "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json"
@@ -1531,6 +1535,7 @@
       "profitability_optimizer_evidence_gap_validator",
       "candidate_scorecard_net_ev_validator",
       "strategy_condition_matrix_validator",
+      "quantitative_policy_validator",
       "symbol_strategy_regime_fit_validator",
       "market_regime_adaptation_validator",
       "overfit_diagnostic_validator",

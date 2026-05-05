@@ -1,0 +1,16 @@
+{
+  "schema_id": "trader1.dashboard_readiness_summary.v1",
+  "generated_at_utc": "2026-05-05T15:25:52Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_QUANTITATIVE_POLICY_CLOSURE_20260506_001",
+  "first_screen_status": {
+    "system_running_status": "CODE_POLICY_VERIFIED_RUNTIME_EVIDENCE_STILL_REQUIRED",
+    "portfolio_status": "PAPER_TRUTH_ONLY_WHEN_AUDITED_CURRENT_EVIDENCE_EXISTS",
+    "live_availability": "BLOCKED",
+    "primary_reason_code": "LIVE_READY_MISSING"
+  },
+  "operator_next_action": "Continue PAPER/SHADOW evidence collection when code-only non-live patches are exhausted.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

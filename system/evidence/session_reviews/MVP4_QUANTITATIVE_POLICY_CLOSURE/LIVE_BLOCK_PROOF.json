@@ -1,0 +1,21 @@
+{
+  "schema_id": "trader1.live_block_proof.v1",
+  "generated_at_utc": "2026-05-05T15:25:52Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_QUANTITATIVE_POLICY_CLOSURE_20260506_001",
+  "live_ready_snapshot_present": false,
+  "official_api_verified": false,
+  "read_only_burn_in_pass": false,
+  "operator_approved": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "primary_blocker_code": "LIVE_READY_MISSING",
+  "secondary_blockers": [
+    "API_UNVERIFIED",
+    "READ_ONLY_BURN_IN_MISSING",
+    "OPERATOR_APPROVAL_MISSING"
+  ],
+  "live_mutation_detected": false,
+  "live_config_mutation_detected": false
+}
