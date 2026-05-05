@@ -23,6 +23,16 @@
     "local_runtime_command_count",
     "local_runtime_completed_count",
     "minimum_observation_hours_required",
+    "adaptive_judgement_status",
+    "fixed_duration_gate_status",
+    "codex_stepwise_review_allowed",
+    "codex_can_continue_non_live_patches",
+    "user_runtime_required_for_next_non_live_patch",
+    "user_runtime_required_for_gap_closure",
+    "evidence_quality_status",
+    "codex_judgement_summary",
+    "user_action_summary",
+    "codex_review_next_actions",
     "operator_evidence_ready_for_mvp5",
     "any_evidence_item_ready_for_closure",
     "mvp5_entry_blocked_until_operator_evidence",
@@ -149,6 +159,43 @@
     "minimum_observation_hours_required": {
       "type": "integer",
       "minimum": 0
+    },
+    "adaptive_judgement_status": {
+      "const": "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY"
+    },
+    "fixed_duration_gate_status": {
+      "const": "REMOVED_NO_FIXED_RUNTIME_FLOOR"
+    },
+    "codex_stepwise_review_allowed": {
+      "const": true
+    },
+    "codex_can_continue_non_live_patches": {
+      "const": true
+    },
+    "user_runtime_required_for_next_non_live_patch": {
+      "const": false
+    },
+    "user_runtime_required_for_gap_closure": {
+      "const": true
+    },
+    "evidence_quality_status": {
+      "const": "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES"
+    },
+    "codex_judgement_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "user_action_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "codex_review_next_actions": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "operator_evidence_ready_for_mvp5": {
       "const": false

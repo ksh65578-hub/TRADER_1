@@ -1,7 +1,7 @@
 {
   "schema_id": "trader1.residual_operator_evidence_progress_report.v1",
-  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
-  "generated_at_utc": "2026-05-05T12:10:12Z",
+  "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROGRESS_CLARITY_20260505_001",
+  "generated_at_utc": "2026-05-05T12:47:37Z",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
@@ -9,11 +9,11 @@
   "source_reports": [
     {
       "role": "residual_operator_execution_guide",
-      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
-      "report_hash": "614E0636CB8034C8145D829225553178E0F3D03F1E8E8C75839090BC74D5D15A"
+      "patch_id": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROGRESS_CLARITY_20260505_001",
+      "report_hash": "A08D336F584271CF095C98D86C01234BE497850639E38765763DCB19EAE21E25"
     }
   ],
-  "state_last_patch_id_before": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_20260505_001",
+  "state_last_patch_id_before": "MVP4_RESIDUAL_ADAPTIVE_EVIDENCE_GATE_POLICY_PROGRESS_CLARITY_20260505_001",
   "state_next_task_before": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "selected_next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "open_gap_ids": [
@@ -42,6 +42,20 @@
   "local_runtime_command_count": 1,
   "local_runtime_completed_count": 0,
   "minimum_observation_hours_required": 0,
+  "adaptive_judgement_status": "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY",
+  "fixed_duration_gate_status": "REMOVED_NO_FIXED_RUNTIME_FLOOR",
+  "codex_stepwise_review_allowed": true,
+  "codex_can_continue_non_live_patches": true,
+  "user_runtime_required_for_next_non_live_patch": false,
+  "user_runtime_required_for_gap_closure": true,
+  "evidence_quality_status": "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES",
+  "codex_judgement_summary": "Codex may continue non-live implementation and evidence review from existing artifacts; gap closure still requires audited runtime, reconciliation, external, or operator evidence.",
+  "user_action_summary": "No immediate user action is required for the next non-live patch; PAPER/SHADOW runtime is only required when Codex reaches an evidence-dependent closure review.",
+  "codex_review_next_actions": [
+    "review existing residual evidence reports",
+    "harden non-live evidence, validator, ledger, reconciliation, and dashboard bindings",
+    "keep open gaps blocked until audited closure evidence exists"
+  ],
   "operator_evidence_ready_for_mvp5": false,
   "any_evidence_item_ready_for_closure": false,
   "mvp5_entry_blocked_until_operator_evidence": true,
@@ -375,5 +389,5 @@
   "scale_up_allowed": false,
   "validation_status": "PASS",
   "validation_errors": [],
-  "report_hash": "2A774675541B39F4DCB63D70C42AD743FBC1091B6ABA7C45B062D772C9426BE7"
+  "report_hash": "08833A78B751B62E7557E014C7905572AC6296AD610EA3BAB67ED65D754173D6"
 }

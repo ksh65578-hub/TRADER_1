@@ -63,6 +63,21 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
         self.assertEqual(report["local_runtime_command_count"], 1)
         self.assertEqual(report["local_runtime_completed_count"], 0)
         self.assertEqual(report["minimum_observation_hours_required"], 0)
+        self.assertEqual(
+            report["adaptive_judgement_status"],
+            "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY",
+        )
+        self.assertEqual(report["fixed_duration_gate_status"], "REMOVED_NO_FIXED_RUNTIME_FLOOR")
+        self.assertTrue(report["codex_stepwise_review_allowed"])
+        self.assertTrue(report["codex_can_continue_non_live_patches"])
+        self.assertFalse(report["user_runtime_required_for_next_non_live_patch"])
+        self.assertTrue(report["user_runtime_required_for_gap_closure"])
+        self.assertEqual(
+            report["evidence_quality_status"],
+            "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES",
+        )
+        self.assertIn("No immediate user action", report["user_action_summary"])
+        self.assertGreaterEqual(len(report["codex_review_next_actions"]), 3)
         self.assertFalse(report["operator_evidence_ready_for_mvp5"])
         self.assertFalse(report["any_evidence_item_ready_for_closure"])
         self.assertTrue(report["mvp5_entry_blocked_until_operator_evidence"])
@@ -158,6 +173,8 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
         report = self.build_report()
         tampered = copy.deepcopy(report)
         tampered["operator_evidence_ready_for_mvp5"] = True
+        tampered["user_runtime_required_for_next_non_live_patch"] = True
+        tampered["fixed_duration_gate_status"] = "FIXED_DURATION_REQUIRED"
         tampered["live_ready_write_allowed"] = True
         tampered["live_order_allowed"] = True
         tampered["evidence_items"][0]["evidence_ready_for_closure"] = True
@@ -165,6 +182,8 @@ class ResidualOperatorEvidenceProgressTest(unittest.TestCase):
 
         errors = validate_residual_operator_evidence_progress_report(tampered, execution_guide_report, state)
         self.assertTrue(any("operator_evidence_ready_for_mvp5" in error for error in errors))
+        self.assertTrue(any("user_runtime_required_for_next_non_live_patch" in error for error in errors))
+        self.assertTrue(any("fixed_duration_gate_status" in error for error in errors))
         self.assertTrue(any("live_ready_write_allowed" in error for error in errors))
         self.assertTrue(any("live_order_allowed" in error for error in errors))
         self.assertTrue(any("ready for closure" in error for error in errors))

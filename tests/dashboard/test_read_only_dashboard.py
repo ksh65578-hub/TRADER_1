@@ -6861,6 +6861,20 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(progress["local_runtime_command_count"], 1)
         self.assertEqual(progress["local_runtime_completed_count"], 0)
         self.assertEqual(progress["minimum_observation_hours_required"], 0)
+        self.assertEqual(
+            progress["adaptive_judgement_status"],
+            "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY",
+        )
+        self.assertEqual(progress["fixed_duration_gate_status"], "REMOVED_NO_FIXED_RUNTIME_FLOOR")
+        self.assertTrue(progress["codex_stepwise_review_allowed"])
+        self.assertTrue(progress["codex_can_continue_non_live_patches"])
+        self.assertFalse(progress["user_runtime_required_for_next_non_live_patch"])
+        self.assertTrue(progress["user_runtime_required_for_gap_closure"])
+        self.assertEqual(
+            progress["evidence_quality_status"],
+            "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES",
+        )
+        self.assertIn("No immediate user action", progress["user_action_summary"])
         self.assertFalse(progress["operator_evidence_ready_for_mvp5"])
         self.assertFalse(progress["any_evidence_item_ready_for_closure"])
         self.assertTrue(progress["mvp5_entry_blocked_until_operator_evidence"])
@@ -6896,6 +6910,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("local-runtime=3", answer_html)
         self.assertIn("1 local PAPER/SHADOW command", answer_html)
         self.assertIn("Adaptive evidence gate", answer_html)
+        self.assertIn("Codex review:", answer_html)
+        self.assertIn("User action:", answer_html)
+        self.assertIn("No immediate user action", answer_html)
         self.assertNotIn("48h minimum", answer_html)
         self.assertIn("MVP-5 blocked", answer_html)
         self.assertIn("live_order_allowed=false", answer_html)

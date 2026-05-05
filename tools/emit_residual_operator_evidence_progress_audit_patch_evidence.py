@@ -492,7 +492,8 @@ Finding:
 Patch:
 - Classified {report["evidence_item_count"]} required evidence artifacts across {report["execution_step_count"]} blocked execution steps.
 - Tracked the one local UPBIT PAPER/SHADOW command as NOT_RUN_BY_THIS_PATCH.
-- Preserved the 120 hour minimum observation requirement before the next review.
+- Preserved the adaptive evidence-quality gate with no fixed observation-duration floor.
+- Recorded that Codex can continue non-live review patches without immediate user runtime action, while gap closure still requires audited evidence.
 - Marked Binance as scaffold-only and not eligible for readiness transfer.
 
 Safety:

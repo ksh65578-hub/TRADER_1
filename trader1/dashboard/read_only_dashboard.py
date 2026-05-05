@@ -10889,6 +10889,16 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
         "local_runtime_command_count": 0,
         "local_runtime_completed_count": 0,
         "minimum_observation_hours_required": 0,
+        "adaptive_judgement_status": "NOT_LOADED",
+        "fixed_duration_gate_status": "NOT_LOADED",
+        "codex_stepwise_review_allowed": False,
+        "codex_can_continue_non_live_patches": False,
+        "user_runtime_required_for_next_non_live_patch": False,
+        "user_runtime_required_for_gap_closure": True,
+        "evidence_quality_status": "NOT_LOADED",
+        "codex_judgement_summary": "Operator evidence progress is not loaded.",
+        "user_action_summary": "No runtime instruction is available until the progress audit loads.",
+        "codex_review_next_actions": [],
         "operator_evidence_ready_for_mvp5": False,
         "any_evidence_item_ready_for_closure": False,
         "mvp5_entry_blocked_until_operator_evidence": True,
@@ -11015,6 +11025,11 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
         report.get("schema_id") != "trader1.residual_operator_evidence_progress_report.v1"
         or report.get("validation_status") != "PASS"
         or status != "BLOCKED_EVIDENCE_MISSING"
+        or report.get("fixed_duration_gate_status") != "REMOVED_NO_FIXED_RUNTIME_FLOOR"
+        or report.get("codex_stepwise_review_allowed") is not True
+        or report.get("codex_can_continue_non_live_patches") is not True
+        or report.get("user_runtime_required_for_next_non_live_patch") is not False
+        or report.get("user_runtime_required_for_gap_closure") is not True
         or report.get("mvp5_entry_blocked_until_operator_evidence") is not True
         or report.get("binance_runtime_status") != "SCAFFOLD_ONLY_NOT_ELIGIBLE_FOR_READINESS"
     ):
@@ -11064,6 +11079,9 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
     ]
     command_label = "command" if local_runtime_command_count == 1 else "commands"
     observation_label = _observation_requirement_label(minimum_observation_hours)
+    codex_review_next_actions = report.get("codex_review_next_actions", [])
+    if not isinstance(codex_review_next_actions, list):
+        codex_review_next_actions = []
     return {
         "title": "Operator Evidence Progress",
         "status": status,
@@ -11079,6 +11097,30 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
         "local_runtime_command_count": local_runtime_command_count,
         "local_runtime_completed_count": local_runtime_completed_count,
         "minimum_observation_hours_required": minimum_observation_hours,
+        "adaptive_judgement_status": str(
+            report.get("adaptive_judgement_status", "CODEX_CAN_CONTINUE_NON_LIVE_REVIEW_EVIDENCE_NOT_CLOSURE_READY")
+        ),
+        "fixed_duration_gate_status": "REMOVED_NO_FIXED_RUNTIME_FLOOR",
+        "codex_stepwise_review_allowed": True,
+        "codex_can_continue_non_live_patches": True,
+        "user_runtime_required_for_next_non_live_patch": False,
+        "user_runtime_required_for_gap_closure": True,
+        "evidence_quality_status": str(
+            report.get("evidence_quality_status", "INSUFFICIENT_FOR_GAP_CLOSURE_NON_LIVE_WORK_CONTINUES")
+        ),
+        "codex_judgement_summary": str(
+            report.get(
+                "codex_judgement_summary",
+                "Codex may continue non-live implementation and evidence review from existing artifacts.",
+            )
+        ),
+        "user_action_summary": str(
+            report.get(
+                "user_action_summary",
+                "No immediate user action is required for the next non-live patch.",
+            )
+        ),
+        "codex_review_next_actions": [str(item) for item in codex_review_next_actions],
         "operator_evidence_ready_for_mvp5": False,
         "any_evidence_item_ready_for_closure": False,
         "mvp5_entry_blocked_until_operator_evidence": True,
@@ -11088,8 +11130,14 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
             f"missing={missing_count}, placeholder={placeholder_count}, local-runtime={local_runtime_output_count}."
         ),
         "primary_next_action": (
-            f"MVP-5 blocked; run PAPER/SHADOW collection under the {observation_label} only when operator setup is ready, "
-            f"then submit external/read-only evidence separately. {local_runtime_command_count} local PAPER/SHADOW {command_label} remains non-live."
+            str(
+                report.get(
+                    "user_action_summary",
+                    "No immediate user action is required for the next non-live patch.",
+                )
+            )
+            + " "
+            + f"{local_runtime_command_count} local PAPER/SHADOW {command_label} remains non-live under {observation_label}."
         ),
         "status_breakdown_items": status_breakdown_items,
         "evidence_item_preview": preview_items,
@@ -18507,6 +18555,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         local_command_count = residual_evidence_progress.get("local_runtime_command_count", 0)
         evidence_observation_hours = residual_evidence_progress.get("minimum_observation_hours_required", 0)
         evidence_observation_label = _observation_requirement_label(evidence_observation_hours)
+        codex_judgement_summary = residual_evidence_progress.get(
+            "codex_judgement_summary",
+            "Codex may continue non-live review from existing artifacts.",
+        )
+        user_action_summary = residual_evidence_progress.get(
+            "user_action_summary",
+            "No immediate user action is required for the next non-live patch.",
+        )
         residual_evidence_progress_html = (
             '<p class="live-blocker-note"><strong>Evidence Progress:</strong> '
             + safe_text(
@@ -18523,6 +18579,12 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
                     "MVP-5 blocked until operator evidence is collected; Binance remains scaffold-only.",
                 )
             )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Codex review:</strong> '
+            + safe_text(codex_judgement_summary)
+            + "</p>"
+            '<p class="live-blocker-note"><strong>User action:</strong> '
+            + safe_text(user_action_summary)
             + "</p>"
             '<section class="live-blocker-groups" aria-label="operator evidence progress counts">'
             f'<div class="live-blocker-group"><strong>Required</strong><span>{safe_text(evidence_item_count)} required evidence items</span></div>'
