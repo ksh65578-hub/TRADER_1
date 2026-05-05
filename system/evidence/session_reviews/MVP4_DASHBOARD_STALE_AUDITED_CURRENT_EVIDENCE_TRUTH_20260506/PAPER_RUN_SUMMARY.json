@@ -1,0 +1,22 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_20260506_002",
+  "generated_at_utc": "2026-05-05T22:10:19Z",
+  "new_paper_run_started_by_this_patch": false,
+  "paper_only": true,
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "audited_current_evidence_status": "PASS",
+  "audited_current_evidence_generated_at_utc": "2026-05-03T09:36:48Z",
+  "paper_portfolio_snapshot_status": "PASS",
+  "paper_portfolio_generated_at_utc": "2026-05-02T04:42:58Z",
+  "starting_cash_krw": "1000000",
+  "cash_available_krw": "845923",
+  "equity_krw": "999922.9999999999999999999997",
+  "total_pnl_krw": "-77.0000000000000000000003",
+  "open_position_count": 1,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

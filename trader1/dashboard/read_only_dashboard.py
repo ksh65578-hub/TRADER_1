@@ -1078,11 +1078,13 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
     portfolio = summary.get("portfolio") if isinstance(summary, dict) else None
     if not isinstance(portfolio, dict):
         return None
-    if portfolio.get("source") != "LEDGER" or portfolio.get("freshness_status") != "PASS":
+    portfolio_freshness = portfolio.get("freshness_status")
+    if portfolio.get("source") != "LEDGER" or portfolio_freshness not in {"PASS", "STALE"}:
         return None
     if any(portfolio.get(key) is None for key in ("equity", "cash_available", "locked_balance", "realized_pnl", "unrealized_pnl")):
         return None
     currency = _currency_for_scope(exchange, market_type)
+    stale = portfolio_freshness == "STALE"
     positions = summary.get("positions", [])
     position_count = len(positions) if isinstance(positions, list) else 0
     candidate_symbols = _candidate_symbols_from_summary(summary)
@@ -1093,7 +1095,7 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
     unrealized_pnl = portfolio.get("unrealized_pnl")
     snapshot = {
         "title": "Portfolio Snapshot",
-        "status": "VERIFIED",
+        "status": "STALE" if stale else "VERIFIED",
         "truth_role": "dashboard_serving_truth",
         "source": "summary.json",
         "source_runtime_cycle_id": portfolio.get("source_runtime_cycle_id"),
@@ -1109,7 +1111,7 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
             exchange,
             market_type,
             summary,
-            portfolio_status="VERIFIED",
+            portfolio_status="STALE" if stale else "VERIFIED",
         ),
         "cash": _portfolio_card(
             "cash",
@@ -1165,8 +1167,12 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
             _format_return(realized_pnl, unrealized_pnl, portfolio.get("equity")),
             "PAPER return from realized and unrealized PnL",
         ),
-        "blocking_reason": "HARD_TRUTH_MISSING",
-        "next_action": "PAPER portfolio is simulated; inspect orders and blockers before any live review",
+        "blocking_reason": "LATENCY_TTL_EXPIRED" if stale else "HARD_TRUTH_MISSING",
+        "next_action": (
+            "Rerun PAPER before using stale simulated ledger portfolio values for operator review"
+            if stale
+            else "PAPER portfolio is simulated; inspect orders and blockers before any live review"
+        ),
         "display_only": True,
         "dashboard_truth_only": True,
         "live_order_ready": False,
@@ -1175,7 +1181,7 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         "scale_up_allowed": False,
     }
     for card_id in PORTFOLIO_CARD_IDS:
-        snapshot[card_id]["freshness_status"] = "PASS"
+        snapshot[card_id]["freshness_status"] = "STALE" if stale and card_id != "configured_paper_capital" else "PASS"
     return snapshot
 
 
@@ -1345,14 +1351,15 @@ def _audited_current_evidence_portfolio_snapshot(
         )
 
     source_age_seconds = _snapshot_age_seconds(audited_current_evidence_snapshot.get("generated_at_utc"))
-    if source_age_seconds is None or source_age_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS:
+    if source_age_seconds is None:
         return _audited_current_evidence_unverified_portfolio_snapshot(
             exchange=exchange,
             market_type=market_type,
             summary=summary,
             blocker_code="LATENCY_TTL_EXPIRED",
-            message="Audited PAPER current-evidence portfolio source is stale; regenerate audited PAPER evidence before trusting portfolio values.",
+            message="Audited PAPER current-evidence portfolio timestamp is invalid; regenerate audited PAPER evidence before trusting portfolio values.",
         )
+    audited_source_stale = source_age_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS
 
     currency = str(audited_paper_portfolio_snapshot.get("currency") or _currency_for_scope(exchange, market_type))
     positions = audited_paper_portfolio_snapshot.get("positions", [])
@@ -1365,7 +1372,7 @@ def _audited_current_evidence_portfolio_snapshot(
     unrealized_pnl = audited_paper_portfolio_snapshot.get("unrealized_pnl")
     snapshot = {
         "title": "Portfolio Snapshot",
-        "status": "VERIFIED",
+        "status": "STALE" if audited_source_stale else "VERIFIED",
         "truth_role": "dashboard_serving_truth",
         "source": "audited_current_evidence_snapshot.json",
         "source_runtime_cycle_id": audited_current_evidence_snapshot.get("source_runtime_cycle_id"),
@@ -1376,15 +1383,20 @@ def _audited_current_evidence_portfolio_snapshot(
         "source_snapshot_age_seconds": source_age_seconds,
         "source_snapshot_stale_after_seconds": SOURCE_FRESHNESS_MAX_AGE_SECONDS,
         "source_snapshot_freshness_message": (
-            "Audited PAPER current evidence verifies cash, equity, PnL, and positions from the PAPER ledger rollup; "
-            "this is display-only and not LIVE_READY."
+            "Audited PAPER current evidence is stale; the values are last verified simulated ledger values, "
+            "not fresh execution truth."
+            if audited_source_stale
+            else (
+                "Audited PAPER current evidence verifies cash, equity, PnL, and positions from the PAPER ledger rollup; "
+                "this is display-only and not LIVE_READY."
+            )
         ),
         "source_balance_kind": audited_paper_portfolio_snapshot.get("display_balance_kind"),
         "configured_paper_capital": _configured_paper_capital_card(
             exchange,
             market_type,
             summary,
-            portfolio_status="VERIFIED",
+            portfolio_status="STALE" if audited_source_stale else "VERIFIED",
         ),
         "cash": _portfolio_card(
             "cash",
@@ -1440,8 +1452,12 @@ def _audited_current_evidence_portfolio_snapshot(
             _format_return(realized_pnl, unrealized_pnl, audited_paper_portfolio_snapshot.get("equity")),
             "Verified PAPER return from audited current evidence",
         ),
-        "blocking_reason": "LIVE_READY_MISSING",
-        "next_action": "Use these verified PAPER ledger values for review only; live orders and scale-up remain blocked.",
+        "blocking_reason": "LATENCY_TTL_EXPIRED" if audited_source_stale else "LIVE_READY_MISSING",
+        "next_action": (
+            "Regenerate audited PAPER current evidence before using stale cash, equity, PnL, return, or positions for review."
+            if audited_source_stale
+            else "Use these verified PAPER ledger values for review only; live orders and scale-up remain blocked."
+        ),
         "display_only": True,
         "dashboard_truth_only": True,
         "live_order_ready": False,
@@ -1450,7 +1466,9 @@ def _audited_current_evidence_portfolio_snapshot(
         "scale_up_allowed": False,
     }
     for card_id in PORTFOLIO_CARD_IDS:
-        snapshot[card_id]["freshness_status"] = "PASS"
+        snapshot[card_id]["freshness_status"] = (
+            "STALE" if audited_source_stale and card_id != "configured_paper_capital" else "PASS"
+        )
     return snapshot
 
 
@@ -2321,6 +2339,34 @@ def _position_snapshot(
             )
         source_age_seconds = _snapshot_age_seconds(audited_current_evidence_snapshot.get("generated_at_utc"))
         if source_age_seconds is None or source_age_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS:
+            if source_age_seconds is not None and isinstance(audited_paper_portfolio_snapshot, dict):
+                current_portfolio_hash = audited_current_evidence_snapshot.get("source_portfolio_snapshot_hash")
+                portfolio_hash = audited_paper_portfolio_snapshot.get("snapshot_hash")
+                portfolio_result = validate_paper_portfolio_snapshot(audited_paper_portfolio_snapshot)
+                if (
+                    current_portfolio_hash
+                    and current_portfolio_hash == portfolio_hash
+                    and portfolio_result.status == "PASS"
+                    and audited_paper_portfolio_snapshot.get("snapshot_status") == "PASS"
+                ):
+                    audited_positions = audited_paper_portfolio_snapshot.get("positions", [])
+                    audited_positions = audited_positions if isinstance(audited_positions, list) else []
+                    rows = [_position_row(position) for position in audited_positions[:20] if isinstance(position, dict)]
+                    return {
+                        "title": "Open PAPER Positions",
+                        "status": "STALE",
+                        "truth_role": "dashboard_serving_truth",
+                        "source": "paper_portfolio_snapshot.json",
+                        "open_position_count": len(audited_positions),
+                        "rows": rows,
+                        "empty_message": "Position detail is stale; regenerate audited PAPER evidence before using positions.",
+                        "display_only": True,
+                        "dashboard_truth_only": True,
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                    }
             return _unverified_position_snapshot(
                 source="audited_current_evidence_snapshot.json",
                 empty_message=(
@@ -19713,9 +19759,14 @@ def validate_read_only_dashboard_shell(
             "portfolio snapshot attempted to create live, trade, or scale-up permission",
             "LIVE_FINAL_GUARD_FAILED",
         )
-    if portfolio.get("status") == "VERIFIED" and shell.get("mode") != "PAPER":
+    portfolio_has_snapshot_provenance = (
+        portfolio.get("source_snapshot_hash") is not None or portfolio.get("source_snapshot_status") == "PASS"
+    )
+    if portfolio.get("status") in {"VERIFIED", "STALE"} and portfolio_has_snapshot_provenance and shell.get("mode") != "PAPER":
         return DashboardValidationResult("BLOCKED", "verified portfolio display is PAPER-only without live evidence", "LIVE_FINAL_GUARD_FAILED")
-    if portfolio.get("status") == "VERIFIED":
+    if portfolio.get("status") == "VERIFIED" or (
+        portfolio.get("status") == "STALE" and portfolio_has_snapshot_provenance
+    ):
         source_cycle_id = portfolio.get("source_runtime_cycle_id")
         source_ledger_head = portfolio.get("source_paper_ledger_head_hash")
         source_snapshot_hash = portfolio.get("source_snapshot_hash")
@@ -19745,11 +19796,13 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("FAIL", "portfolio source age is invalid", "SCHEMA_IDENTITY_MISMATCH")
         if not isinstance(source_stale_after_seconds, int) or source_stale_after_seconds <= 0:
             return DashboardValidationResult("FAIL", "portfolio source stale threshold is invalid", "SCHEMA_IDENTITY_MISMATCH")
-        if source_age_seconds > source_stale_after_seconds:
+        if portfolio.get("status") == "VERIFIED" and source_age_seconds > source_stale_after_seconds:
             return DashboardValidationResult("BLOCKED", "verified portfolio source is stale", "LATENCY_TTL_EXPIRED")
+        if portfolio.get("status") == "STALE" and source_age_seconds <= source_stale_after_seconds:
+            return DashboardValidationResult("FAIL", "stale portfolio source must exceed stale threshold", "SCHEMA_IDENTITY_MISMATCH")
         if not isinstance(source_freshness_message, str) or not source_freshness_message:
             return DashboardValidationResult("FAIL", "portfolio source freshness message is missing", "SCHEMA_IDENTITY_MISMATCH")
-    elif portfolio.get("source_snapshot_hash") is not None or portfolio.get("source_snapshot_status") == "PASS":
+    elif portfolio_has_snapshot_provenance:
         return DashboardValidationResult("BLOCKED", "unverified portfolio cannot carry PASS snapshot provenance", "HARD_TRUTH_MISSING")
     for card_id in PORTFOLIO_CARD_IDS:
         card = portfolio.get(card_id)
@@ -19765,8 +19818,11 @@ def validate_read_only_dashboard_shell(
         )
         if card.get("freshness_status") == "PASS" and portfolio.get("status") != "VERIFIED" and not configured_baseline_pass:
             return DashboardValidationResult("BLOCKED", "unverified portfolio cannot show fresh values", "HARD_TRUTH_MISSING")
-        if portfolio.get("status") == "VERIFIED" and card.get("value_display") == "UNVERIFIED":
-            return DashboardValidationResult("FAIL", "verified portfolio cannot show unverified card values", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            portfolio.get("status") == "VERIFIED"
+            or (portfolio.get("status") == "STALE" and portfolio_has_snapshot_provenance)
+        ) and card.get("value_display") == "UNVERIFIED":
+            return DashboardValidationResult("FAIL", "portfolio with bound ledger provenance cannot show unverified card values", "SCHEMA_IDENTITY_MISMATCH")
 
     positions = shell.get("position_snapshot")
     if not isinstance(positions, dict):

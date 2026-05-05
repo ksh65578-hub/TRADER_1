@@ -1,7 +1,7 @@
 {
   "ledger_schema_id": "trader1.implementation_patch_ledger.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-05T21:33:19Z",
+  "updated_at_utc": "2026-05-05T22:10:19Z",
   "patches": [
     {
       "patch_id": "MVP0_CONTRACT_BASELINE_20260428_001",
@@ -4756,6 +4756,39 @@
       "can_live_trade_after": false,
       "scale_up_allowed_after": false,
       "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION"
+    },
+    {
+      "patch_id": "MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH_20260506_001",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH.patch_result.json",
+      "patch_result_hash": "22B99CC666B0BE3BF72A90E1923B16923C713504D22452B954F7F9513692574D",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_DASHBOARD_RESIDUAL_EVIDENCE_PROGRESS_CLARITY_20260506_002",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH.patch_result.json",
+      "patch_result_hash": "4622B18A434C81054D898A42C0010D4E7B62F70433A8A269593FEBBB41FDB318",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
+    },
+    {
+      "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_20260506_002",
+      "patch_class": "RUNTIME_SAFETY_PATCH",
+      "target_mvp_level": "MVP-4",
+      "patch_result_path": "system/evidence/patch_results/MVP4_DASHBOARD_STALE_AUDITED_CURRENT_EVIDENCE_TRUTH.patch_result.json",
+      "patch_result_hash": "768A84B40A1CFFE872AE021F1A4034B888E6449C2934B3877A9A5F7D1C32C955",
+      "live_order_ready_after": false,
+      "live_order_allowed_after": false,
+      "can_live_trade_after": false,
+      "scale_up_allowed_after": false
     }
   ],
   "ledger_hash": "6C9DBE215A505950EB0CC81EAEEDAB485D04E33A672FAF83D450F143D5C0B5F0",

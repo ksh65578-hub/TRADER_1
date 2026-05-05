@@ -4484,7 +4484,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["can_live_trade"])
         self.assertFalse(dashboard["scale_up_allowed"])
 
-    def test_dashboard_keeps_stale_audited_current_evidence_portfolio_unverified(self):
+    def test_dashboard_keeps_stale_audited_current_evidence_portfolio_values_stale_not_unverified(self):
         writer_report, current_evidence, paper_portfolio, implementation_prep = audited_writer_output_fixture()
         current_evidence = dict(current_evidence)
         writer_report = dict(writer_report)
@@ -4508,22 +4508,23 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS", result.message)
 
         portfolio = dashboard["portfolio_snapshot"]
-        self.assertEqual(portfolio["status"], "UNVERIFIED")
+        self.assertEqual(portfolio["status"], "STALE")
         self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
-        self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
+        self.assertEqual(portfolio["source_snapshot_status"], "PASS")
         self.assertEqual(portfolio["blocking_reason"], "LATENCY_TTL_EXPIRED")
         self.assertEqual(portfolio["configured_paper_capital"]["value_display"], "1,000,000 KRW")
         self.assertEqual(portfolio["configured_paper_capital"]["freshness_status"], "PASS")
-        self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
+        self.assertEqual(portfolio["cash"]["value_display"], krw_display(current_evidence["verified_cash_krw"]))
+        self.assertEqual(portfolio["cash"]["freshness_status"], "STALE")
         self.assertEqual(portfolio["cash"]["label"], "Current Cash")
         self.assertEqual(portfolio["equity"]["label"], "Current Equity")
-        self.assertIn("current-evidence portfolio source is stale", portfolio["equity"]["detail"])
+        self.assertIn("Verified simulated PAPER ledger equity", portfolio["equity"]["detail"])
+        self.assertIn("Audited PAPER current evidence is stale", portfolio["source_snapshot_freshness_message"])
         positions = dashboard["position_snapshot"]
-        self.assertEqual(positions["status"], "UNVERIFIED")
-        self.assertEqual(positions["source"], "audited_current_evidence_snapshot.json")
-        self.assertEqual(positions["open_position_count"], 0)
-        self.assertEqual(positions["rows"], [])
-        self.assertIn("stale", positions["empty_message"])
+        self.assertEqual(positions["status"], "STALE")
+        self.assertEqual(positions["source"], "paper_portfolio_snapshot.json")
+        self.assertEqual(positions["open_position_count"], 1)
+        self.assertEqual(len(positions["rows"]), 1)
         source_status = {
             source["artifact_id"]: source["freshness_status"]
             for source in dashboard["source_artifacts"]
@@ -4548,7 +4549,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["scale_up_allowed"])
         html = render_dashboard_html(dashboard)
         self.assertIn("Configured baseline: 1,000,000 KRW", html)
-        self.assertIn("UNVERIFIED applies to current cash, equity", html)
+        self.assertIn("Current values:</strong> Stale data", html)
 
     def test_dashboard_displays_bound_verified_portfolio_when_stale_loop_reconciliation_blocks_writes(self):
         report = stale_loop_post_regeneration_reconciliation_fixture()
