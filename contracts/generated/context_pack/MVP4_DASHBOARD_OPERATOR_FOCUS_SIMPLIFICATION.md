@@ -12,7 +12,8 @@ included_artifact_ids: ["trader1/dashboard/read_only_dashboard.py", "tests/dashb
 source_section_hashes: see contracts/generated/authority_section_map.json
 
 acceptance_checklist:
-- First visible dashboard strip answers Run, Portfolio, and Live before technical evidence.
+- First visible dashboard decision surface answers Run, Portfolio, and Live before technical evidence.
+- The decision surface names the three operator questions: running normally, PAPER portfolio, and live orders.
 - Portfolio details and open PAPER positions are visible before the detailed evidence drawer.
 - Dashboard Data Freshness and Source Artifacts are preserved for audit, but moved below the operator answers.
 - Base text size, answer card spacing, and portfolio KPI minimum widths are increased.
@@ -25,4 +26,4 @@ known_omissions_by_design:
 
 conflict_resolution_rule:
 TRADER_1.md active authority wins over this context pack. This context pack is a read cache only.
-generated_at_utc: 2026-05-04T11:30:01Z
+generated_at_utc: 2026-05-05T02:49:07Z

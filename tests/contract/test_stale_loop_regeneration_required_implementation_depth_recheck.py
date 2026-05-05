@@ -242,7 +242,7 @@ class StaleLoopRegenerationRequiredImplementationDepthRecheckTest(unittest.TestC
         self.assertFalse(patch_result["stale_loop_regeneration_overwrite_source_allowed"])
 
         completed = set(state["completed_requirement_ids"])
-        if (state["last_patch_id"].startswith("MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK_") or state["last_patch_id"].startswith("MVP4_DASHBOARD_PAPER_PORTFOLIO_CURRENT_TRUTH_UX_")):
+        if (state["last_patch_id"].startswith("MVP4_SCALE_UP_NOT_ELIGIBLE_RECHECK_") or (state["last_patch_id"].startswith("MVP4_DASHBOARD_PAPER_PORTFOLIO_CURRENT_TRUTH_UX_") or state["last_patch_id"].startswith("MVP4_DASHBOARD_OPERATOR_FOCUS_SIMPLIFICATION_"))):
             expected_next_task = "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK"
             self.assertEqual(state["next_allowed_task_class"], expected_next_task)
         elif state["last_patch_id"].startswith("MVP4_LIVE_ENABLING_EVIDENCE_MISSING_RECHECK_"):

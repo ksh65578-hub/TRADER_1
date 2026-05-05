@@ -7,9 +7,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCH_BASENAME = "MVP4_DASHBOARD_OPERATOR_FOCUS_SIMPLIFICATION"
-PATCH_ID = f"{PATCH_BASENAME}_20260504_001"
+PATCH_ID = f"{PATCH_BASENAME}_20260505_002"
 REQUIREMENT_ID = "REQ-MVP4-DASHBOARD-OPERATOR-FOCUS-SIMPLIFICATION"
-NEXT_TASK_CLASS = "MVP4_MISSING_CYCLE_LEDGER_RERUN_REQUIRED_IMPLEMENTATION_DEPTH_RECHECK"
+NEXT_TASK_CLASS = "MVP4_OPEN_CONTRACT_GAP_IMPLEMENTATION_PRIORITY_RECHECK"
 
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -99,7 +99,8 @@ included_artifact_ids: {json.dumps(CHANGED_ARTIFACTS + DASHBOARD_ARTIFACTS)}
 source_section_hashes: see contracts/generated/authority_section_map.json
 
 acceptance_checklist:
-- First visible dashboard strip answers Run, Portfolio, and Live before technical evidence.
+- First visible dashboard decision surface answers Run, Portfolio, and Live before technical evidence.
+- The decision surface names the three operator questions: running normally, PAPER portfolio, and live orders.
 - Portfolio details and open PAPER positions are visible before the detailed evidence drawer.
 - Dashboard Data Freshness and Source Artifacts are preserved for audit, but moved below the operator answers.
 - Base text size, answer card spacing, and portfolio KPI minimum widths are increased.
@@ -132,7 +133,7 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-Dashboard first view now answers the operator's three questions first: Run, Portfolio, and Live. Portfolio details and open PAPER positions are visible before technical evidence; detailed source and validator evidence remains collapsed below.
+Dashboard first view now answers the operator's three questions first in a dedicated decision surface: Run, Portfolio, and Live. Portfolio details and open PAPER positions are visible before technical evidence; detailed source and validator evidence remains collapsed below.
 
 ## Next Safe Task
 
@@ -153,7 +154,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
             "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
             "source_file": "TRADER_1.md",
             "source_heading": "Dashboard operator focus and portfolio-first visibility",
-            "full_text_marker": f"{REQUIREMENT_ID}: dashboard must answer running status, portfolio detail, and live availability before technical evidence",
+            "full_text_marker": f"{REQUIREMENT_ID}: dashboard must answer running status, portfolio detail, and live availability before technical evidence in a dedicated decision surface",
             "authority_level": "ACTIVE_AUTHORITY",
             "requirement_title": "Dashboard answers Run, Portfolio, and Live first",
             "requirement_kind": "DASHBOARD_UX_PATCH",
@@ -173,7 +174,7 @@ def update_requirement_artifacts(now: str, trader_hash: str, agents_hash: str) -
                 "REQ-MVP4-LIVE-FINAL-GUARD",
             ],
             "source_text_sha256": base.sha256_bytes(
-                b"dashboard must answer running status, portfolio detail, and live availability before technical evidence"
+                b"dashboard must answer running status, portfolio detail, and live availability before technical evidence in a dedicated decision surface"
             ),
             "source_authority_sha256": trader_hash,
             "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
@@ -320,7 +321,7 @@ def write_evidence(now: str, trader_hash: str, agents_hash: str, patch_result: d
         },
     )
     write_text(
-        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260504.md",
+        ROOT / "system" / "evidence" / "audit_reports" / f"{PATCH_BASENAME}_20260505.md",
         f"""# MVP4 Dashboard Operator Focus Simplification Audit
 
 created_at_utc: {now}
@@ -331,7 +332,7 @@ Finding:
 - The operator primarily needs running status, detailed portfolio status, and live execution availability.
 
 Patch:
-- Added a compact Run / Portfolio / Live status strip before all technical sections.
+- Added a dedicated decision surface for the Run / Portfolio / Live operator questions before all technical sections.
 - Kept the three answer cards, but increased base font size, answer card spacing, and KPI minimum width.
 - Moved full freshness/source evidence below the operator answers.
 - Promoted PAPER portfolio details and open position table before the detailed evidence drawer.
@@ -376,6 +377,7 @@ def main() -> int:
     write_patch_artifacts(now, trader_hash, agents_hash, patch_result)
 
     tests_run.append(base.run_command([sys.executable, "tools/run_patch_result_runtime_schema_validators.py"]))
+    tests_run.append(base.run_command([sys.executable, "-B", "tools/run_hygiene_safe_pytest.py", "--", "-q"]))
     validators_run = base.summarize_validators(run_validators(VALIDATORS_REQUIRED))
     patch_result = build_patch_result(now, tests_run, validators_run, regenerated)
     write_patch_artifacts(now, trader_hash, agents_hash, patch_result)
