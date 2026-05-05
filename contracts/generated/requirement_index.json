@@ -10761,6 +10761,61 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-QUANTITATIVE-POLICY-CLOSURE",
+      "source_section_id": "SECTION_PROFIT_CONVERGENCE_STRATEGY_POLICY",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Closed quantitative strategy, risk, and live-blocking policy",
+      "full_text_marker": "REQ-MVP4-QUANTITATIVE-POLICY-CLOSURE: formulas, thresholds, priority, and fail-closed acceptance for strategy policy",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Quantitative policy formulas must be implemented as deterministic non-live fail-closed code",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.quantitative_policy_report.v1"
+      ],
+      "validator_ids": [
+        "quantitative_policy_validator"
+      ],
+      "artifact_ids": [
+        "trader1/core/strategy/quantitative_policy.py",
+        "trader1/validation/mvp0_validators.py",
+        "contracts/schema/quantitative_policy_report.schema.json",
+        "contracts/registry.yaml",
+        "tests/contract/test_quantitative_policy.py",
+        "tools/emit_quantitative_policy_closure_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_QUANTITATIVE_POLICY_CLOSURE.md",
+        "system/evidence/session_reviews/MVP4_QUANTITATIVE_POLICY_CLOSURE/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_QUANTITATIVE_POLICY_CLOSURE/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_QUANTITATIVE_POLICY_CLOSURE/pytest_report.txt",
+        "system/evidence/session_reviews/MVP4_QUANTITATIVE_POLICY_CLOSURE/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_QUANTITATIVE_POLICY_CLOSURE/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_QUANTITATIVE_POLICY_CLOSURE/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_QUANTITATIVE_POLICY_CLOSURE/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_QUANTITATIVE_POLICY_CLOSURE/TRADER_1_SESSION_REVIEW.md",
+        "system/evidence/session_reviews/MVP4_QUANTITATIVE_POLICY_CLOSURE/QUANTITATIVE_POLICY_REPORT.json"
+      ],
+      "test_ids": [
+        "tests/contract/test_quantitative_policy.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING_POLICY",
+      "live_affecting": true,
+      "read_when": [
+        "PROFIT_CONVERGENCE_MVP3",
+        "DASHBOARD_UX",
+        "LIVE_BLOCKED_TEST"
+      ],
+      "depends_on": [
+        "REQ-MVP0-LIVE-DEFAULT-FALSE",
+        "REQ-MVP4-STRATEGY-CONDITION-MATRIX-SCHEMA-HARDENING",
+        "REQ-MVP4-STRATEGY-REGIME-COST-RUNTIME-LINKAGE",
+        "REQ-MVP4-DECISION-ARBITER-CONFLICT-PRIORITY"
+      ],
+      "source_text_sha256": "50A7901AD79E110ADF8A1505509F354FEB353FB5B4BA73F8D4302FDFF1B3A188",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-REGENERATED-CURRENT-BLOCKED-REPAIRS-REQUIRE-LEDGER-RECOVERY-RECONCILIATION-IMPLEMENTATION-DEPTH-RECHECK",
       "source_section_id": "SECTION_LEDGER_RECONCILIATION",
       "source_file": "TRADER_1.md",
@@ -23449,5 +23504,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-05T14:55:44Z"
+  "updated_at_utc": "2026-05-05T15:25:52Z"
 }

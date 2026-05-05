@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.quantitative_policy_report.v1",
+  "title": "quantitative_policy_report",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "policy_report_id",
+    "policy_status",
+    "law_of_large_numbers_basis",
+    "regime_policy",
+    "symbol_policy",
+    "signal_policy",
+    "edge_policy",
+    "exit_policy",
+    "risk_policy",
+    "capital_allocation_policy",
+    "live_ready_policy",
+    "dashboard_reason_code",
+    "dashboard_operator_message",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "blockers",
+    "policy_report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {"const": "trader1.quantitative_policy_report.v1"},
+    "generated_at_utc": {"type": "string", "minLength": 1},
+    "project_id": {"const": "TRADER_1"},
+    "policy_report_id": {"type": "string", "minLength": 1},
+    "policy_status": {"enum": ["IMPLEMENTED_LIVE_BLOCKED", "BLOCKED"]},
+    "law_of_large_numbers_basis": {
+      "type": "object",
+      "required": [
+        "minimum_trade_count",
+        "high_return_candidate_trade_count",
+        "walk_forward_required",
+        "out_of_sample_required",
+        "bootstrap_stability_required"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "minimum_trade_count": {"const": 100},
+        "high_return_candidate_trade_count": {"const": 300},
+        "walk_forward_required": {"const": true},
+        "out_of_sample_required": {"const": true},
+        "bootstrap_stability_required": {"const": true}
+      }
+    },
+    "regime_policy": {"type": "object"},
+    "symbol_policy": {"type": "object"},
+    "signal_policy": {"type": "object"},
+    "edge_policy": {"type": "object"},
+    "exit_policy": {"type": "object"},
+    "risk_policy": {"type": "object"},
+    "capital_allocation_policy": {"type": "object"},
+    "live_ready_policy": {
+      "type": "object",
+      "required": [
+        "snapshot_candidate_metrics_pass",
+        "writer_input_eligible",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "blockers",
+        "primary_blocker_code"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "snapshot_candidate_metrics_pass": {"type": "boolean"},
+        "writer_input_eligible": {"const": false},
+        "live_order_ready": {"const": false},
+        "live_order_allowed": {"const": false},
+        "can_live_trade": {"const": false},
+        "scale_up_allowed": {"const": false},
+        "blockers": {
+          "type": "array",
+          "items": {"$ref": "common.defs.schema.json#/$defs/blocker_object"}
+        },
+        "primary_blocker_code": {"$ref": "common.defs.schema.json#/$defs/no_trade_reason"}
+      }
+    },
+    "dashboard_reason_code": {"$ref": "common.defs.schema.json#/$defs/no_trade_reason"},
+    "dashboard_operator_message": {"type": "string", "minLength": 1},
+    "live_order_ready": {"const": false},
+    "live_order_allowed": {"const": false},
+    "can_live_trade": {"const": false},
+    "scale_up_allowed": {"const": false},
+    "blockers": {
+      "type": "array",
+      "items": {"$ref": "common.defs.schema.json#/$defs/blocker_object"}
+    },
+    "policy_report_hash": {"type": "string", "minLength": 64, "maxLength": 64}
+  }
+}

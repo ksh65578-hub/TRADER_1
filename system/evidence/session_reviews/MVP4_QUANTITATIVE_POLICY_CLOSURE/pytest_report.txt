@@ -1,0 +1,181 @@
+COMMAND: clean_bytecode_cache()
+STATUS: PASS
+RETURNCODE: 0
+STDOUT_TAIL:
+{
+  "removed_count": 0,
+  "sample": []
+}
+STDERR_TAIL:
+
+
+COMMAND: C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B -m unittest tests.contract.test_quantitative_policy -v
+STATUS: PASS
+RETURNCODE: 0
+STDOUT_TAIL:
+
+STDERR_TAIL:
+test_binance_futures_short_paper_candidate_is_surface_only_and_live_false (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_binance_futures_short_paper_candidate_is_surface_only_and_live_false) ... ok
+test_cooling_blocks_new_entry (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_cooling_blocks_new_entry) ... ok
+test_dashboard_reason_code_emitted (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_dashboard_reason_code_emitted) ... ok
+test_downtrend_blocks_spot_long_pullback (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_downtrend_blocks_spot_long_pullback) ... ok
+test_drawdown_reduces_sizing_before_freeze (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_drawdown_reduces_sizing_before_freeze) ... ok
+test_duplicate_event_not_double_counted (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_duplicate_event_not_double_counted) ... ok
+test_live_without_snapshot_is_blocked (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_live_without_snapshot_is_blocked) ... ok
+test_negative_net_edge_blocks_entry (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_negative_net_edge_blocks_entry) ... ok
+test_quantitative_policy_validator_passes (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_quantitative_policy_validator_passes) ... ok
+test_regime_priority_panic_beats_uptrend (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_regime_priority_panic_beats_uptrend) ... ok
+test_risk_cap_blocks_position_sizing (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_risk_cap_blocks_position_sizing) ... ok
+test_weak_signal_is_no_trade (tests.contract.test_quantitative_policy.QuantitativePolicyClosureTest.test_weak_signal_is_no_trade) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.033s
+
+OK
+
+
+COMMAND: C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_hygiene_safe_pytest.py -- -q tests/contract/test_quantitative_policy.py tests/validators/test_strategy_condition_matrix_validator.py tests/validators/test_candidate_scorecard_net_ev_validator.py
+STATUS: PASS
+RETURNCODE: 0
+STDOUT_TAIL:
+.............................                                            [100%]
+29 passed in 2.81s
+{
+  "schema_id": "trader1.hygiene_safe_pytest_report.v1",
+  "created_at_utc": "2026-05-05T15:26:02Z",
+  "status": "PASS",
+  "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -q tests/contract/test_quantitative_policy.py tests/validators/test_strategy_condition_matrix_validator.py tests/validators/test_candidate_scorecard_net_ev_validator.py -p no:cacheprovider",
+  "returncode": 0,
+  "preexisting_cache_artifact_count": 0,
+  "post_run_cache_artifact_count": 0,
+  "preexisting_cache_artifacts": [],
+  "post_run_cache_artifacts": [],
+  "pythondontwritebytecode": "1",
+  "pytest_cacheprovider_disabled": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
+
+STDERR_TAIL:
+
+
+COMMAND: C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_patch_result_runtime_schema_validators.py
+STATUS: PASS
+RETURNCODE: 0
+STDOUT_TAIL:
+e/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DASHBOARD_BINDING.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_DUPLICATE_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_OPERATOR_REVIEW_BINDING.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_EVENT_ID_SCOPE_REPAIRED_ROLLUP_REBUILD.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_ISOLATED_LEDGER_ROLLUP_REBUILD.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_INPUT_SCOPE_REPAIR_EXECUTOR.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_INPUT_SCOPE_REPAIR_PLAN.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_RECHECK_PREVIEW.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_EXECUTOR_RECONCILIATION_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_RECONCILIATION_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_EXECUTOR.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_LEDGER_ROLLUP_REGENERATION_PLAN.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_NORMALIZED_RECONCILIATION_PREVIEW.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_NORMALIZED_RECONCILIATION_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_POST_REGENERATION_DASHBOARD_BINDING.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_POST_REGENERATION_RECONCILIATION.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_RECONCILIATION.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_CLOSURE.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_RECONCILIATION_OPERATOR_QUEUE_DASHBOARD_BINDING.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_EXECUTION_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_REGENERATION_POLICY.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_REPLACEMENT_SCHEMA_NORMALIZATION_PREVIEW.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_STALE_LOOP_SAFE_REGENERATION_EXECUTOR.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PAPER_VERIFIED_PORTFOLIO_LEDGER_BOOTSTRAP.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PUBLIC_DATA_SEQUENCE_REGIME_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_CONTINUITY_EVIDENCE.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_CONTINUITY_HISTORY.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_READ_ONLY_TRANSFORM.patch_result.json",
+        "system/evidence/patch_results/MVP4_UPBIT_PUBLIC_REST_SAMPLE_EVIDENCE.patch_result.json",
+        "system/evidence/patch_results/MVP4_VALIDATOR_DEPTH_AUDIT_RECHECK.patch_result.json",
+        "system/evidence/patch_results/MVP4_WINDOWS_CONSOLE_SAFE_MONITOR_DEFAULT.patch_result.json",
+        "system/evidence/patch_results/MVP4_WINDOWS_RESTART_RECOVERY_ARTIFACT_PATH_GUARD.patch_result.json",
+        "system/evidence/patch_results/MVP4_WINDOWS_ROOT_LAUNCHER_CONSOLE_PERSISTENCE.patch_result.json"
+      ],
+      "blocking": false
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
+
+STDERR_TAIL:
+
+
+COMMAND: clean_bytecode_cache()
+STATUS: PASS
+RETURNCODE: 0
+STDOUT_TAIL:
+{
+  "removed_count": 0,
+  "sample": []
+}
+STDERR_TAIL:
+
+
+COMMAND: C:\Users\ksh65\AppData\Local\Python\pythoncore-3.14-64\python.exe -B tools/run_hygiene_safe_pytest.py -- -q
+STATUS: PASS
+RETURNCODE: 0
+STDOUT_TAIL:
+..................................................... [  3%]
+...................................s.................................... [  8%]
+.................................................... [ 12%]
+.................................................................. [ 17%]
+........................................................................ [ 22%]
+........................................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 37%]
+................................................................................................................ [ 45%]
+........................................................................ [ 50%]
+........................................................................ [ 55%]
+........................................................................ [ 60%]
+........................................................................ [ 65%]
+...................................................................... [ 70%]
+........................................................................ [ 75%]
+........................................................................ [ 80%]
+.................................................. [ 84%]
+...................................................................................... [ 90%]
+........................................................................ [ 95%]
+.....................................................................    [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] tests\contract\test_patch_result_runtime_schema_validation.py:319: patch_result validator-run gap state-sync recheck has not been generated yet
+1421 passed, 1 skipped, 735 subtests passed in 269.33s (0:04:29)
+{
+  "schema_id": "trader1.hygiene_safe_pytest_report.v1",
+  "created_at_utc": "2026-05-05T15:30:41Z",
+  "status": "PASS",
+  "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -q -p no:cacheprovider",
+  "returncode": 0,
+  "preexisting_cache_artifact_count": 0,
+  "post_run_cache_artifact_count": 0,
+  "preexisting_cache_artifacts": [],
+  "post_run_cache_artifacts": [],
+  "pythondontwritebytecode": "1",
+  "pytest_cacheprovider_disabled": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
+
+STDERR_TAIL:
+
+
+COMMAND: clean_bytecode_cache()
+STATUS: PASS
+RETURNCODE: 0
+STDOUT_TAIL:
+{
+  "removed_count": 0,
+  "sample": []
+}
+STDERR_TAIL:

@@ -1,0 +1,299 @@
+{
+  "schema_id": "trader1.quantitative_policy_report.v1",
+  "generated_at_utc": "2026-05-05T15:30:42Z",
+  "project_id": "TRADER_1",
+  "policy_report_id": "MVP4_QUANTITATIVE_POLICY_CLOSURE_REPORT",
+  "policy_status": "IMPLEMENTED_LIVE_BLOCKED",
+  "law_of_large_numbers_basis": {
+    "minimum_trade_count": 100,
+    "high_return_candidate_trade_count": 300,
+    "walk_forward_required": true,
+    "out_of_sample_required": true,
+    "bootstrap_stability_required": true
+  },
+  "regime_policy": {
+    "regime": "uptrend",
+    "regime_confidence": 0.889667,
+    "scores": {
+      "trend_score": 0.889667,
+      "range_score": 0.454667,
+      "downtrend_score": 0.239667,
+      "panic_score": 0.285316,
+      "quiet_score": 0.05
+    },
+    "priority_order": [
+      "panic",
+      "data_bad",
+      "downtrend",
+      "uptrend",
+      "range",
+      "quiet",
+      "uncertain"
+    ],
+    "blockers": [],
+    "primary_blocker_code": null
+  },
+  "symbol_policy": {
+    "symbol_score": 0.725,
+    "eligible_for_entry_candidate": true,
+    "candidate_ranges": {
+      "UPBIT": "top_20_to_40_universe_then_top_3_to_10_entry_candidates",
+      "BINANCE_SPOT": "top_30_to_60_universe_then_top_3_to_10_entry_candidates",
+      "BINANCE_FUTURES": "top_30_to_80_universe_then_top_3_to_10_entry_candidates"
+    },
+    "blockers": [],
+    "primary_blocker_code": null
+  },
+  "signal_policy": {
+    "signal_score": 0.805933,
+    "signal_grade": "strong",
+    "entry_candidate_allowed": true,
+    "live_candidate_input_grade": true,
+    "blockers": [],
+    "primary_blocker_code": null
+  },
+  "edge_policy": {
+    "gross_expected_edge": 0.0074,
+    "total_cost": 0.0022,
+    "net_expected_edge": 0.0052,
+    "net_edge_positive": true,
+    "high_return_candidate": true,
+    "blockers": [],
+    "primary_blocker_code": null
+  },
+  "exit_policy": {
+    "side": "LONG",
+    "hard_stop": 97.6,
+    "tp1": 102.4,
+    "tp2": 105.0,
+    "partial_take_profit_ratio": 0.4,
+    "trailing_start": 103.0,
+    "trailing_distance": 2.0,
+    "time_stop_candles": 8,
+    "invalidation_rule": "regime_reversal_or_signal_score_below_0.55",
+    "exit_priority": [
+      "kill_switch",
+      "hard_stop",
+      "position_uncertainty",
+      "signal_invalidation",
+      "regime_reversal",
+      "time_stop",
+      "partial_tp",
+      "trailing_stop"
+    ]
+  },
+  "risk_policy": {
+    "drawdown_pct": 0.01,
+    "risk_state": "normal",
+    "new_entry_allowed": true,
+    "daily_loss_cap_range": [
+      0.01,
+      0.015
+    ],
+    "weekly_loss_cap_range": [
+      0.03,
+      0.04
+    ],
+    "monthly_hard_stop_range": [
+      0.08,
+      0.1
+    ],
+    "blockers": [],
+    "primary_blocker_code": null
+  },
+  "capital_allocation_policy": {
+    "allocations": [
+      {
+        "strategy_id": "top_fixture",
+        "status": "top",
+        "risk_budget": 0.4
+      },
+      {
+        "strategy_id": "experimental_fixture",
+        "status": "experimental",
+        "risk_budget": 0.1
+      }
+    ],
+    "rules": {
+      "top_strategy_max": 0.4,
+      "secondary_strategy_range": [
+        0.2,
+        0.3
+      ],
+      "experimental_range": [
+        0.05,
+        0.1
+      ],
+      "deteriorating_range": [
+        0.0,
+        0.05
+      ],
+      "disabled": 0.0
+    },
+    "forbidden": [
+      "no_averaging_down_losing_strategy",
+      "no_risk_increase_to_hit_monthly_target",
+      "no_large_capital_to_unverified_strategy"
+    ]
+  },
+  "live_ready_policy": {
+    "snapshot_candidate_metrics_pass": false,
+    "writer_input_eligible": false,
+    "live_order_ready": false,
+    "live_order_allowed": false,
+    "can_live_trade": false,
+    "scale_up_allowed": false,
+    "blockers": [
+      {
+        "code": "LIVE_READY_MISSING",
+        "severity": "HIGH",
+        "message": "LIVE_READY snapshot is absent"
+      },
+      {
+        "code": "SAMPLE_INSUFFICIENT",
+        "severity": "HIGH",
+        "message": "trade_count must be >= 100"
+      },
+      {
+        "code": "STRATEGY_NOT_ELIGIBLE",
+        "severity": "HIGH",
+        "message": "profit_factor below promotion threshold"
+      },
+      {
+        "code": "MIN_EDGE_FAIL",
+        "severity": "HIGH",
+        "message": "net_expectancy must be > 0"
+      },
+      {
+        "code": "COST_AFTER_EDGE_UNVERIFIED",
+        "severity": "HIGH",
+        "message": "fee/slippage/funding costs must be reflected"
+      },
+      {
+        "code": "DRAWDOWN_FREEZE_ACTIVE",
+        "severity": "HIGH",
+        "message": "max drawdown must be within limit"
+      },
+      {
+        "code": "REGIME_FIT_UNTESTED",
+        "severity": "HIGH",
+        "message": "regime breakdown verification required"
+      },
+      {
+        "code": "SYMBOL_SELECTION_BIAS",
+        "severity": "HIGH",
+        "message": "symbol concentration verification required"
+      },
+      {
+        "code": "RECONCILIATION_REQUIRED",
+        "severity": "HIGH",
+        "message": "reconciliation must be clean"
+      },
+      {
+        "code": "DATA_QUALITY_INSUFFICIENT",
+        "severity": "HIGH",
+        "message": "data health must PASS"
+      },
+      {
+        "code": "LIVE_FINAL_GUARD_FAILED",
+        "severity": "HIGH",
+        "message": "live block proof must PASS"
+      },
+      {
+        "code": "API_UNVERIFIED",
+        "severity": "HIGH",
+        "message": "official API verification required before live readiness"
+      },
+      {
+        "code": "OPERATOR_APPROVAL_MISSING",
+        "severity": "HIGH",
+        "message": "operator approval required before live readiness"
+      },
+      {
+        "code": "READ_ONLY_BURN_IN_MISSING",
+        "severity": "HIGH",
+        "message": "read-only burn-in evidence required"
+      }
+    ],
+    "primary_blocker_code": "LIVE_READY_MISSING"
+  },
+  "dashboard_reason_code": "LIVE_READY_MISSING",
+  "dashboard_operator_message": "LIVE blocked: LIVE_READY snapshot and external live evidence are missing.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "blockers": [
+    {
+      "code": "LIVE_READY_MISSING",
+      "severity": "HIGH",
+      "message": "LIVE_READY snapshot is absent"
+    },
+    {
+      "code": "SAMPLE_INSUFFICIENT",
+      "severity": "HIGH",
+      "message": "trade_count must be >= 100"
+    },
+    {
+      "code": "STRATEGY_NOT_ELIGIBLE",
+      "severity": "HIGH",
+      "message": "profit_factor below promotion threshold"
+    },
+    {
+      "code": "MIN_EDGE_FAIL",
+      "severity": "HIGH",
+      "message": "net_expectancy must be > 0"
+    },
+    {
+      "code": "COST_AFTER_EDGE_UNVERIFIED",
+      "severity": "HIGH",
+      "message": "fee/slippage/funding costs must be reflected"
+    },
+    {
+      "code": "DRAWDOWN_FREEZE_ACTIVE",
+      "severity": "HIGH",
+      "message": "max drawdown must be within limit"
+    },
+    {
+      "code": "REGIME_FIT_UNTESTED",
+      "severity": "HIGH",
+      "message": "regime breakdown verification required"
+    },
+    {
+      "code": "SYMBOL_SELECTION_BIAS",
+      "severity": "HIGH",
+      "message": "symbol concentration verification required"
+    },
+    {
+      "code": "RECONCILIATION_REQUIRED",
+      "severity": "HIGH",
+      "message": "reconciliation must be clean"
+    },
+    {
+      "code": "DATA_QUALITY_INSUFFICIENT",
+      "severity": "HIGH",
+      "message": "data health must PASS"
+    },
+    {
+      "code": "LIVE_FINAL_GUARD_FAILED",
+      "severity": "HIGH",
+      "message": "live block proof must PASS"
+    },
+    {
+      "code": "API_UNVERIFIED",
+      "severity": "HIGH",
+      "message": "official API verification required before live readiness"
+    },
+    {
+      "code": "OPERATOR_APPROVAL_MISSING",
+      "severity": "HIGH",
+      "message": "operator approval required before live readiness"
+    },
+    {
+      "code": "READ_ONLY_BURN_IN_MISSING",
+      "severity": "HIGH",
+      "message": "read-only burn-in evidence required"
+    }
+  ],
+  "policy_report_hash": "581E3E437A120E946A598925071BAC0738DBEF4FDE491BFB07424911C590F681"
+}
