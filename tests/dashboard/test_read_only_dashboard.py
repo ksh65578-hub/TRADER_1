@@ -226,6 +226,18 @@ def profitability_maturity_rollup_fixture():
     )
 
 
+def residual_open_gap_action_plan_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "evidence"
+            / "audit_reports"
+            / "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
     runtime = build_upbit_paper_runtime_cycle_report(
         cycle_id=f"dashboard-scorecard-{session_id}",
@@ -272,6 +284,7 @@ def build_dashboard(
     audited_current_evidence_snapshot=None,
     audited_paper_portfolio_snapshot=None,
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
+    residual_open_gap_operator_action_plan_report=None,
 ):
     summary, heartbeat, startup_probe = build_inputs(
         with_paper_portfolio=with_paper_portfolio,
@@ -307,6 +320,7 @@ def build_dashboard(
         audited_current_evidence_snapshot=audited_current_evidence_snapshot,
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
+        residual_open_gap_operator_action_plan_report=residual_open_gap_operator_action_plan_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
@@ -6677,6 +6691,34 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Open PAPER Positions", portfolio_html)
         self.assertIn("Held Positions", portfolio_html)
         self.assertNotIn("Source Artifacts", portfolio_html)
+
+    def test_dashboard_live_card_exposes_residual_next_actions(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture()
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        action_plan = dashboard["residual_open_gap_action_plan"]
+        self.assertEqual(action_plan["source_status"], "LOADED")
+        self.assertEqual(action_plan["open_gap_count"], 13)
+        self.assertEqual(action_plan["implementation_recheck_action_count"], 0)
+        self.assertFalse(action_plan["live_order_allowed"])
+        self.assertFalse(action_plan["scale_up_allowed"])
+
+        html = render_dashboard_html(dashboard)
+        answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
+        portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
+        answer_html = html[answer_start:portfolio_start]
+        self.assertIn("Next Actions", answer_html)
+        self.assertIn("Operator reconciliation: 4", answer_html)
+        self.assertIn("PAPER ledger rerun: 3", answer_html)
+        self.assertIn("PAPER/SHADOW evidence: 3", answer_html)
+        self.assertIn("<strong>Evidence/policy</strong><span>6 left</span>", answer_html)
+        self.assertIn("Other blocked evidence/policy: 3", answer_html)
+        self.assertIn("No repeated implementation recheck remains", answer_html)
+        self.assertIn("live_order_allowed=false", answer_html)
+        self.assertNotIn("<button", answer_html.lower())
+        self.assertNotIn("<form", answer_html.lower())
 
     def test_dashboard_visual_layout_contract_blocks_cramped_regression(self):
         html = render_dashboard_html(build_dashboard())

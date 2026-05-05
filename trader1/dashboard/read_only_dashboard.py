@@ -117,6 +117,16 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "candidate_scorecard.json",
 }
 DISPLAY_SOURCE_FILENAMES = REQUIRED_DISPLAY_SOURCE_FILENAMES | OPTIONAL_DISPLAY_SOURCE_FILENAMES
+RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json"
+RESIDUAL_ACTION_PLAN_CLASSES = {
+    "OPERATOR_RECONCILIATION_ACTION": "Operator reconciliation",
+    "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION": "PAPER ledger rerun",
+    "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION": "PAPER/SHADOW evidence",
+    "EXTERNAL_LIVE_READINESS_EVIDENCE_ACTION": "External live evidence",
+    "SEALED_BASELINE_PRESERVATION_ACTION": "Sealed baseline",
+    "SCALE_UP_POLICY_EVIDENCE_ACTION": "Scale-up policy",
+    "CLASSIFY_OPEN_GAP_ACTION": "Classify open gap",
+}
 RECONCILIATION_RECOVERY_SOURCES = {
     "summary.json",
     "reconciliation_report.json",
@@ -10412,6 +10422,109 @@ def _first_blocker(*codes: str | None) -> str | None:
     return None
 
 
+def _residual_open_gap_action_plan_summary(report: dict[str, Any] | None) -> dict[str, Any]:
+    fallback_items = [
+        {
+            "action_class": "OPERATOR_RECONCILIATION_ACTION",
+            "label": "Operator reconciliation",
+            "gap_count": 4,
+            "plain_next_action": "Review repaired or hash-mismatched evidence before promotion.",
+        },
+        {
+            "action_class": "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+            "label": "PAPER ledger rerun",
+            "gap_count": 3,
+            "plain_next_action": "Run bounded PAPER ledger and reconciliation reruns only when inputs exist.",
+        },
+        {
+            "action_class": "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+            "label": "PAPER/SHADOW evidence",
+            "gap_count": 3,
+            "plain_next_action": "Collect fresh audited PAPER/SHADOW runtime and profitability evidence.",
+        },
+    ]
+    fallback = {
+        "title": "Next Operator Actions",
+        "status": "ACTION_REQUIRED",
+        "source": RESIDUAL_ACTION_PLAN_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "implementation_recheck_action_count": 0,
+        "external_or_operator_action_required": True,
+        "one_line_summary": "13 blockers remain: operator review 4, ledger/rerun 3, evidence/policy 6. No repeated recheck remains; No repeated implementation recheck remains.",
+        "primary_next_action": "Complete operator reconciliation, PAPER reruns, and PAPER/SHADOW evidence collection before promotion.",
+        "other_blocker_count": 3,
+        "other_blocker_summary": "Other blocked evidence/policy: 3",
+        "action_items": fallback_items,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+    if any(report.get(field) is not False for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+        return fallback
+    action_items = []
+    for item in report.get("action_items", []):
+        if not isinstance(item, dict):
+            continue
+        action_class = str(item.get("action_class", "CLASSIFY_OPEN_GAP_ACTION"))
+        gap_count = item.get("gap_count", 0)
+        if not isinstance(gap_count, int) or gap_count <= 0:
+            continue
+        if item.get("allows_live_order") is not False or item.get("allows_live_config_mutation") is not False:
+            continue
+        if item.get("allows_scale_up") is not False:
+            continue
+        action_items.append(
+            {
+                "action_class": action_class,
+                "label": RESIDUAL_ACTION_PLAN_CLASSES.get(action_class, action_class.replace("_", " ").title()),
+                "gap_count": gap_count,
+                "plain_next_action": str(item.get("plain_next_action", "Resolve this blocker before promotion.")),
+            }
+        )
+    if not action_items:
+        return fallback
+    primary_items = action_items[:3]
+    other_count = sum(item["gap_count"] for item in action_items[3:])
+    open_gap_count = report.get("open_gap_count", sum(item["gap_count"] for item in action_items))
+    implementation_recheck_count = report.get("implementation_recheck_action_count", 0)
+    operator_count = next((item["gap_count"] for item in action_items if item["action_class"] == "OPERATOR_RECONCILIATION_ACTION"), 0)
+    ledger_count = next((item["gap_count"] for item in action_items if item["action_class"] == "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION"), 0)
+    evidence_policy_count = (
+        next((item["gap_count"] for item in action_items if item["action_class"] == "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION"), 0)
+        + other_count
+    )
+    return {
+        "title": "Next Operator Actions",
+        "status": "ACTION_REQUIRED" if open_gap_count else "CLEAR",
+        "source": RESIDUAL_ACTION_PLAN_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": open_gap_count if isinstance(open_gap_count, int) else sum(item["gap_count"] for item in action_items),
+        "implementation_recheck_action_count": implementation_recheck_count if isinstance(implementation_recheck_count, int) else 0,
+        "external_or_operator_action_required": bool(report.get("external_or_operator_action_required", True)),
+        "one_line_summary": (
+            f"{open_gap_count} blockers remain: operator review {operator_count}, ledger/rerun {ledger_count}, evidence/policy {evidence_policy_count}. No repeated recheck remains; No repeated implementation recheck remains."
+            if implementation_recheck_count == 0
+            else f"{open_gap_count} blockers remain; {implementation_recheck_count} implementation rechecks remain."
+        ),
+        "primary_next_action": "Do these first: operator reconciliation, bounded PAPER ledger reruns, then PAPER/SHADOW evidence collection.",
+        "other_blocker_count": other_count,
+        "other_blocker_summary": f"Other blocked evidence/policy: {other_count}",
+        "action_items": primary_items,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def build_read_only_dashboard_shell(
     *,
     exchange: str,
@@ -10456,6 +10569,7 @@ def build_read_only_dashboard_shell(
     parameter_narrowing_report: dict[str, Any] | None = None,
     profitability_maturity_rollup_report: dict[str, Any] | None = None,
     candidate_scorecard: dict[str, Any] | None = None,
+    residual_open_gap_operator_action_plan_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
@@ -10496,6 +10610,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
+        "residual_open_gap_operator_action_plan": "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
     }
 
     summary_live = summary.get("live_ready", {}) if isinstance(summary, dict) else {}
@@ -11599,6 +11714,9 @@ def build_read_only_dashboard_shell(
         profitability_maturity=profitability_maturity,
         execution_feedback_snapshot=execution_feedback_snapshot,
     )
+    residual_open_gap_action_plan = _residual_open_gap_action_plan_summary(
+        residual_open_gap_operator_action_plan_report
+    )
 
     engine = summary.get("engine", {}) if isinstance(summary, dict) else {}
     startup_status = summary.get("startup", {}) if isinstance(summary, dict) else {}
@@ -11650,6 +11768,7 @@ def build_read_only_dashboard_shell(
         "shadow_runtime_orchestration_status": shadow_runtime_orchestration_status,
         "operator_action_summary": operator_action_summary,
         "operator_workflow_summary": operator_workflow_summary,
+        "residual_open_gap_action_plan": residual_open_gap_action_plan,
         "profitability_maturity": profitability_maturity,
         "convergence_assessment_status": convergence_assessment_status,
         "exploration_policy_status": exploration_policy_status,
@@ -11964,6 +12083,25 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "decision_final_action",
             )
         )
+    residual_action_plan = shell.get("residual_open_gap_action_plan", {})
+    if isinstance(residual_action_plan, dict):
+        values.extend(
+            str(residual_action_plan.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "source_status",
+                "one_line_summary",
+                "primary_next_action",
+                "other_blocker_summary",
+            )
+        )
+        for item in residual_action_plan.get("action_items", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in ("action_class", "label", "gap_count", "plain_next_action")
+                )
     workflow = shell.get("operator_workflow_summary", {})
     if isinstance(workflow, dict):
         values.extend(
@@ -12308,6 +12446,35 @@ def validate_read_only_dashboard_shell(
             )
     if operation.get("color_token") == "red" and operation.get("severity") != "ERROR":
         return DashboardValidationResult("FAIL", "red dashboard color is reserved for error severity", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_action_plan = shell.get("residual_open_gap_action_plan")
+    if not isinstance(residual_action_plan, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual action plan summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_action_plan.get("display_only") is not True or residual_action_plan.get("dashboard_truth_only") is not True:
+        return DashboardValidationResult("BLOCKED", "residual action plan must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_action_plan.get("live_order_ready")
+        or residual_action_plan.get("live_order_allowed")
+        or residual_action_plan.get("can_live_trade")
+        or residual_action_plan.get("scale_up_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual action plan attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_action_plan.get("implementation_recheck_action_count") != 0:
+        return DashboardValidationResult("BLOCKED", "residual action plan must not route back to completed rechecks", "CONTRACT_GAP_HIGH")
+    open_gap_count = residual_action_plan.get("open_gap_count")
+    if not isinstance(open_gap_count, int) or open_gap_count < 0:
+        return DashboardValidationResult("FAIL", "residual action plan open gap count is invalid", "CONTRACT_GAP_HIGH")
+    action_items = residual_action_plan.get("action_items")
+    if not isinstance(action_items, list) or len(action_items) < 3:
+        return DashboardValidationResult("FAIL", "residual action plan must expose the top three next actions", "SCHEMA_IDENTITY_MISMATCH")
+    action_classes = [item.get("action_class") for item in action_items if isinstance(item, dict)]
+    required_action_classes = [
+        "OPERATOR_RECONCILIATION_ACTION",
+        "PAPER_LEDGER_RERUN_RECONCILIATION_ACTION",
+        "PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION",
+    ]
+    if action_classes[:3] != required_action_classes:
+        return DashboardValidationResult("FAIL", "residual action plan priority order is not operator-first", "SCHEMA_IDENTITY_MISMATCH")
 
     reconciliation = shell.get("reconciliation_recovery_summary")
     if not isinstance(reconciliation, dict):
@@ -17308,21 +17475,65 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     blocker_label = plain_blocker(blocker)
     next_action = shell.get("next_action") or "continue read-only monitoring; resolve blockers before any trading review"
     blocker_class = status_class(shell.get("final_action"))
-    residual_blocker_summary = "13 blockers remain: operator review 4, ledger/rerun 3, evidence/policy 6."
-    residual_blocker_note = (
-        "No repeated recheck remains; these blockers need operator reconciliation, fresh evidence, or policy approval."
+    residual_action_plan = shell.get("residual_open_gap_action_plan", {})
+    if not isinstance(residual_action_plan, dict):
+        residual_action_plan = {}
+    residual_action_items = [
+        item for item in residual_action_plan.get("action_items", []) if isinstance(item, dict)
+    ]
+    residual_open_gap_count = residual_action_plan.get("open_gap_count", 13)
+    residual_other_count_raw = residual_action_plan.get("other_blocker_count", 3)
+    residual_other_count = residual_other_count_raw if isinstance(residual_other_count_raw, int) else 3
+    residual_blocker_summary = str(
+        residual_action_plan.get(
+            "one_line_summary",
+            f"{residual_open_gap_count} blockers remain; no repeated implementation recheck remains.",
+        )
     )
+    residual_blocker_note = str(
+        residual_action_plan.get(
+            "primary_next_action",
+            "Complete operator reconciliation, PAPER reruns, and PAPER/SHADOW evidence collection before promotion.",
+        )
+    )
+    if residual_action_items:
+        residual_count_by_class = {
+            str(item.get("action_class")): item.get("gap_count", 0)
+            for item in residual_action_items
+            if isinstance(item.get("gap_count", 0), int)
+        }
+        residual_group_items = [
+            ("Operator review", residual_count_by_class.get("OPERATOR_RECONCILIATION_ACTION", 0)),
+            ("Ledger/rerun", residual_count_by_class.get("PAPER_LEDGER_RERUN_RECONCILIATION_ACTION", 0)),
+            (
+                "Evidence/policy",
+                residual_count_by_class.get("PAPER_SHADOW_EVIDENCE_COLLECTION_ACTION", 0) + residual_other_count,
+            ),
+        ]
+    else:
+        residual_group_items = [("Operator review", 4), ("Ledger/rerun", 3), ("Evidence/policy", 6)]
     residual_blocker_group_html = "".join(
         (
             f"<div class=\"live-blocker-group\"><strong>{safe_text(label)}</strong>"
             f"<span>{safe_text(count)} left</span></div>"
         )
-        for label, count in (
-            ("Operator review", 4),
-            ("Ledger/rerun", 3),
-            ("Evidence/policy", 6),
-        )
+        for label, count in residual_group_items
     )
+    residual_next_action_html = "".join(
+        (
+            "<li>"
+            f"<strong>{safe_text(item.get('label', 'Open blocker'))}: {safe_text(item.get('gap_count', 0))}</strong>"
+            f"<span>{safe_text(item.get('plain_next_action', 'Resolve this blocker before promotion.'))}</span>"
+            "</li>"
+        )
+        for item in residual_action_items[:3]
+    )
+    if not residual_next_action_html:
+        residual_next_action_html = (
+            "<li><strong>Operator reconciliation: 4</strong><span>Review repaired or hash-mismatched evidence before promotion.</span></li>"
+            "<li><strong>PAPER ledger rerun: 3</strong><span>Run bounded PAPER ledger and reconciliation reruns only when inputs exist.</span></li>"
+            "<li><strong>PAPER/SHADOW evidence: 3</strong><span>Collect fresh audited PAPER/SHADOW runtime and profitability evidence.</span></li>"
+        )
     health_signal_items = [
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
@@ -17426,6 +17637,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .live-blocker-group strong { color: var(--muted); font-size: 12px; line-height: 1.25; }
     .live-blocker-group span { font-size: 13px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
     .live-blocker-note { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+    .next-action-list { display: grid; gap: 8px; margin: 10px 0 0; padding: 0; list-style: none; }
+    .next-action-list li { display: grid; gap: 3px; min-width: 0; padding: 9px 10px; border: 1px solid rgba(0,0,0,.08); border-radius: 6px; background: rgba(255,255,255,.76); }
+    .next-action-list strong { font-size: 13px; line-height: 1.25; color: var(--ink); overflow-wrap: anywhere; }
+    .next-action-list span { font-size: 12px; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
     .answer-verdict { font-size: 18px; line-height: 1.35; font-weight: 700; margin-bottom: 10px; }
     .answer-note { color: var(--muted); font-size: 14px; line-height: 1.5; }
     .answer-signal-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin-top: 12px; }
@@ -17803,8 +18018,12 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <h2>Blocked</h2>
         <p class="live-availability-answer">No. Live orders cannot run.</p>
         <p class="status warn">""" + safe_text(blocker_label) + """</p>
+        <p class="live-blocker-summary">""" + safe_text(residual_blocker_summary) + """</p>
         <section class="live-blocker-groups" aria-label="residual blocker groups">""" + residual_blocker_group_html + """</section>
         <p class="live-blocker-note">""" + safe_text(residual_blocker_note) + """</p>
+        <p class="source-line">Next Actions</p>
+        <ol class="next-action-list" aria-label="residual blocker next actions">""" + residual_next_action_html + """</ol>
+        <p class="live-blocker-note">""" + safe_text(residual_action_plan.get("other_blocker_summary", f"Other blocked evidence/policy: {residual_other_count}")) + """</p>
         <p class="source-line">Raw blocker: """ + safe_text(blocker) + """</p>
         <p class="next">""" + safe_text(next_action) + """</p>
         <section class="readiness-list">
@@ -17923,6 +18142,8 @@ def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationR
         "live_blocker_summary": ".live-answer-reason, .live-blocker-summary { display: block; color: var(--muted); font-size: 12px;",
         "live_blocker_groups": ".live-blocker-groups { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));",
         "live_blocker_groups_markup": '<section class="live-blocker-groups" aria-label="residual blocker groups">',
+        "residual_next_actions": ".next-action-list { display: grid; gap: 8px;",
+        "residual_next_actions_markup": '<ol class="next-action-list" aria-label="residual blocker next actions">',
         "health_signal_auto_fit": ".answer-signal-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));",
         "kpi_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));",
         "ledger_auto_fit": "grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));",
