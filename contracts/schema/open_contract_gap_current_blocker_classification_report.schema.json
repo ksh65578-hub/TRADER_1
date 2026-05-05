@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.open_contract_gap_current_blocker_classification_report.v1",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "patch_id",
+    "generated_at_utc",
+    "authority",
+    "state_last_patch_id_before",
+    "state_next_task_before",
+    "open_gap_count",
+    "completed_recheck_gap_count",
+    "all_open_gaps_have_completed_recheck",
+    "repeat_completed_recheck_selected",
+    "remaining_implementation_recheck_gap_ids",
+    "residual_blocked_gap_ids",
+    "blocker_category_counts",
+    "gap_classifications",
+    "selected_next_task_class",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "report_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {
+      "const": "trader1.open_contract_gap_current_blocker_classification_report.v1"
+    },
+    "patch_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "minLength": 1
+    },
+    "authority": {
+      "type": "object",
+      "required": ["trader1_sha256", "agents_sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "trader1_sha256": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_sha256": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "state_last_patch_id_before": {
+      "type": "string"
+    },
+    "state_next_task_before": {
+      "type": "string"
+    },
+    "open_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "completed_recheck_gap_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "all_open_gaps_have_completed_recheck": {
+      "type": "boolean"
+    },
+    "repeat_completed_recheck_selected": {
+      "type": "boolean"
+    },
+    "remaining_implementation_recheck_gap_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "residual_blocked_gap_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "blocker_category_counts": {
+      "type": "object",
+      "required": [
+        "RUNTIME_LONG_RUN_EVIDENCE",
+        "OPERATOR_RECONCILIATION",
+        "EXTERNAL_LIVE_EVIDENCE",
+        "LEDGER_RERUN_RECONCILIATION",
+        "PAPER_SHADOW_RUNTIME_EVIDENCE",
+        "SEALED_HISTORICAL_PATCH_RESULT_BASELINE",
+        "PROFITABILITY_EVIDENCE_MATURITY",
+        "SCALE_UP_POLICY",
+        "UNCLASSIFIED_OPEN_GAP"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "RUNTIME_LONG_RUN_EVIDENCE": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "OPERATOR_RECONCILIATION": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "EXTERNAL_LIVE_EVIDENCE": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "LEDGER_RERUN_RECONCILIATION": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "PAPER_SHADOW_RUNTIME_EVIDENCE": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "SEALED_HISTORICAL_PATCH_RESULT_BASELINE": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "PROFITABILITY_EVIDENCE_MATURITY": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "SCALE_UP_POLICY": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "UNCLASSIFIED_OPEN_GAP": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "gap_classifications": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "gap_id",
+          "blocker_category",
+          "completed_recheck_requirement_id",
+          "completed_recheck_recorded",
+          "residual_blocker_reason",
+          "next_operator_or_evidence_action"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "gap_id": {
+            "type": "string"
+          },
+          "blocker_category": {
+            "enum": [
+              "RUNTIME_LONG_RUN_EVIDENCE",
+              "OPERATOR_RECONCILIATION",
+              "EXTERNAL_LIVE_EVIDENCE",
+              "LEDGER_RERUN_RECONCILIATION",
+              "PAPER_SHADOW_RUNTIME_EVIDENCE",
+              "SEALED_HISTORICAL_PATCH_RESULT_BASELINE",
+              "PROFITABILITY_EVIDENCE_MATURITY",
+              "SCALE_UP_POLICY",
+              "UNCLASSIFIED_OPEN_GAP"
+            ]
+          },
+          "completed_recheck_requirement_id": {
+            "type": "string"
+          },
+          "completed_recheck_recorded": {
+            "type": "boolean"
+          },
+          "residual_blocker_reason": {
+            "type": "string"
+          },
+          "next_operator_or_evidence_action": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "selected_next_task_class": {
+      "type": "string"
+    },
+    "live_order_ready": {
+      "type": "boolean"
+    },
+    "live_order_allowed": {
+      "type": "boolean"
+    },
+    "can_live_trade": {
+      "type": "boolean"
+    },
+    "scale_up_allowed": {
+      "type": "boolean"
+    },
+    "report_hash": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64
+    }
+  }
+}
