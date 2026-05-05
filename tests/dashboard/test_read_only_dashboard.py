@@ -7618,6 +7618,45 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(priority["operator_reconciliation_current_evidence_write_allowed_count"], 0)
         self.assertEqual(priority["operator_reconciliation_candidate_current_evidence_usable_count"], 0)
         self.assertTrue(priority["operator_reconciliation_source_bindings_verified"])
+        self.assertEqual(priority["gap_action_map_coverage_status"], "COVERS_ALL_OPEN_GAPS")
+        self.assertEqual(priority["gap_action_map_count"], 13)
+        self.assertEqual(priority["gap_action_map_owner_order"], [
+            "OPERATOR",
+            "CODEX_NON_LIVE",
+            "PAPER_SHADOW_RUNTIME",
+            "EXTERNAL_EVIDENCE",
+            "CODEX_AUDIT_ONLY",
+            "SCALE_POLICY",
+        ])
+        self.assertEqual(priority["first_gap_action_owner"], "OPERATOR")
+        self.assertEqual(
+            priority["first_gap_action_id"],
+            "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+        )
+        action_map = priority["gap_action_map"]
+        self.assertEqual(len(action_map), 13)
+        self.assertEqual(len({item["gap_id"] for item in action_map}), 13)
+        self.assertEqual(
+            [item["owner"] for item in action_map[:4]],
+            ["OPERATOR", "OPERATOR", "OPERATOR", "OPERATOR"],
+        )
+        self.assertEqual(action_map[4]["owner"], "CODEX_NON_LIVE")
+        self.assertEqual(action_map[7]["owner"], "PAPER_SHADOW_RUNTIME")
+        self.assertEqual(action_map[10]["owner"], "EXTERNAL_EVIDENCE")
+        self.assertEqual(action_map[11]["owner"], "CODEX_AUDIT_ONLY")
+        self.assertEqual(action_map[12]["owner"], "SCALE_POLICY")
+        for item in action_map:
+            self.assertEqual(item["reason_code"], item["gap_id"])
+            self.assertTrue(item["display_only"])
+            self.assertTrue(item["dashboard_truth_only"])
+            self.assertFalse(item["current_evidence_write_allowed"])
+            self.assertFalse(item["gap_closure_allowed_by_this_patch"])
+            self.assertFalse(item["live_ready_write_allowed"])
+            self.assertFalse(item["live_config_mutation_allowed"])
+            self.assertFalse(item["live_order_ready"])
+            self.assertFalse(item["live_order_allowed"])
+            self.assertFalse(item["can_live_trade"])
+            self.assertFalse(item["scale_up_allowed"])
         for item in priority["queue_items"]:
             self.assertEqual(item["gap_count"], len(item["gap_ids"]))
             self.assertFalse(item["allows_live_order"])
@@ -7636,6 +7675,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("BOUND_BLOCKED", answer_html)
         self.assertIn("current-evidence writes=0", answer_html)
         self.assertIn("source-bound=True", answer_html)
+        self.assertIn("Action map:</strong> 13 gap(s); coverage=COVERS_ALL_OPEN_GAPS", answer_html)
+        self.assertIn("owners=OPERATOR=4, CODEX_NON_LIVE=3", answer_html)
+        self.assertIn("BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION", answer_html)
+        self.assertIn("Acceptance:", answer_html)
         self.assertIn("live_order_allowed=false", answer_html)
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
@@ -7648,6 +7691,22 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_rejects_residual_operator_action_map_permission_drift(self):
+        dashboard = build_dashboard_with_residual_priority_resolution_binding()
+        dashboard["residual_operator_priority"]["gap_action_map"][0]["gap_closure_allowed_by_this_patch"] = True
+        dashboard["residual_operator_priority"]["gap_action_map"][0]["live_order_allowed"] = True
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_rejects_residual_operator_action_map_gap_binding_drift(self):
+        dashboard = build_dashboard_with_residual_priority_resolution_binding()
+        duplicate = dict(dashboard["residual_operator_priority"]["gap_action_map"][0])
+        dashboard["residual_operator_priority"]["gap_action_map"][1] = duplicate
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "CONTRACT_GAP_HIGH")
 
     def test_dashboard_rejects_residual_operator_priority_resolution_write_drift(self):
         dashboard = build_dashboard_with_residual_priority_resolution_binding()
