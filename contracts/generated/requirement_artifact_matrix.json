@@ -6161,6 +6161,63 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-PAPER-CONTINUOUS-CURRENT-TRUTH-WRITER-STATUS",
+      "section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "schema_files": [
+        "contracts/schema/paper_continuous_current_evidence_writer_report.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "trader1/runtime/portfolio/paper_continuous_current_evidence_writer.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/runtime/test_paper_continuous_current_evidence_writer.py",
+        "tests/runtime/test_safe_launcher.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "fixture_files": [
+        "tests/runtime/test_paper_continuous_current_evidence_writer.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "runtime_modules": [
+        "trader1/runtime/portfolio/paper_continuous_current_evidence_writer.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.report.json",
+        "system/evidence/audit_reports/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS_20260506.md",
+        "system/evidence/patch_results/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.validator_run_log.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/pytest_report.txt",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/TRADER_1_SESSION_REVIEW.md"
+      ],
+      "dashboard_artifacts": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "patch_result_fields": [
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-PAPER-CURRENT-TRUTH-REFRESH-DASHBOARD-BINDING",
       "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "schema_files": [
@@ -18463,7 +18520,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-06T08:46:41Z",
+  "updated_at_utc": "2026-05-06T09:37:56Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

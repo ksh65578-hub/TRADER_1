@@ -8527,6 +8527,88 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-PAPER-CONTINUOUS-CURRENT-TRUTH-WRITER-STATUS",
+      "source_section_id": "SECTION_UPBIT_PAPER_RUNTIME",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Continuous PAPER current-evidence writer status",
+      "full_text_marker": "REQ-MVP4-PAPER-CONTINUOUS-CURRENT-TRUTH-WRITER-STATUS: continuous PAPER current-evidence writer status report must be source-bound, stale-aware, dashboard-visible, and live-blocked",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "PAPER continuous current-truth writer status",
+      "requirement_kind": "RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.paper_continuous_current_evidence_writer_report.v1",
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "read_only_dashboard_validator",
+        "runtime_schema_instance_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/context_pack/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.md",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/requirement_index.json",
+        "contracts/schema/paper_continuous_current_evidence_writer_report.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "system/evidence/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.report.json",
+        "system/evidence/audit_reports/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS_20260506.md",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/patch_results/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.patch_result.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/TRADER_1_SESSION_REVIEW.md",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS/pytest_report.txt",
+        "system/evidence/stage_gates/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS.validator_run_log.json",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/runtime/test_paper_continuous_current_evidence_writer.py",
+        "tests/runtime/test_safe_launcher.py",
+        "tools/emit_paper_continuous_current_truth_writer_status_patch_evidence.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/runtime/boot/safe_launcher.py",
+        "trader1/runtime/portfolio/paper_continuous_current_evidence_writer.py"
+      ],
+      "test_ids": [
+        "tests/runtime/test_paper_continuous_current_evidence_writer.py",
+        "tests/runtime/test_safe_launcher.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_UPBIT_PAPER_RUNTIME",
+        "SECTION_LEDGER_RECONCILIATION",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PAPER-CURRENT-TRUTH-REFRESH-WRITER",
+        "REQ-MVP4-UPBIT-PAPER-REPAIRED-CURRENT-EVIDENCE-AUDITED-WRITER",
+        "REQ-MVP4-DASHBOARD-AUDITED-WRITER-READINESS-LADDER",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "6F50D6094FAC819E24C3F09FAC6644C9A9F7737257383C9F7C028D66146279D4",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PAPER-CURRENT-TRUTH-REFRESH-DASHBOARD-BINDING",
       "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "source_file": "TRADER_1.md",
@@ -26269,5 +26351,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-06T08:46:41Z"
+  "updated_at_utc": "2026-05-06T09:37:56Z"
 }

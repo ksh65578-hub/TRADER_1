@@ -1,0 +1,15 @@
+{
+  "patch_id": "MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS_20260506_001",
+  "generated_at_utc": "2026-05-06T09:37:56Z",
+  "status": "PASS_LIVE_BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "credential_load_attempted": false,
+  "private_endpoint_called": false,
+  "order_adapter_called": false,
+  "order_endpoint_called": false,
+  "live_ready_snapshot_written": false,
+  "live_config_mutated": false
+}

@@ -107,6 +107,7 @@
             "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER",
             "AUDITED_CURRENT_EVIDENCE_SNAPSHOT",
             "PAPER_CURRENT_TRUTH_REFRESH",
+            "PAPER_CONTINUOUS_CURRENT_EVIDENCE_WRITER",
             "PAPER_RUNTIME_TRUTH_STATE",
             "AUDITED_PAPER_PORTFOLIO_SNAPSHOT",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
@@ -160,6 +161,7 @@
             "upbit_paper_repaired_current_evidence_audited_writer_report.json",
             "audited_current_evidence_snapshot.json",
             "paper_current_truth_refresh_report.json",
+            "paper_continuous_current_evidence_writer_report.json",
             "paper_runtime_truth_state_report.json",
             "paper_portfolio_snapshot.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
@@ -8818,6 +8820,8 @@
             "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER",
             "BLOCKED_INPUTS",
             "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED",
+            "CONTINUOUS_WRITER_ACTIVE_PAPER_ONLY",
+            "CONTINUOUS_WRITER_STALE_DISPLAY_ONLY",
             "INVALID_DRIFT"
           ]
         },
@@ -8826,6 +8830,8 @@
             "NO_AUDITED_WRITER_EVIDENCE",
             "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
             "CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED",
+            "LIVE_READY_MISSING",
+            "STALE_CURRENT_TRUTH",
             "LIVE_FINAL_GUARD_FAILED"
           ]
         },
@@ -8834,6 +8840,7 @@
             "CONFIGURED_PAPER_BASELINE_ONLY",
             "SUMMARY_LEDGER_DISPLAY_ONLY",
             "SINGLE_RUN_AUDITED_PAPER_SNAPSHOT_DISPLAY_ONLY",
+            "CONTINUOUS_PAPER_CURRENT_EVIDENCE_DISPLAY_ONLY",
             "INVALID_OR_DRIFTED_WRITER_EVIDENCE"
           ]
         },
@@ -8863,7 +8870,7 @@
           "type": "boolean"
         },
         "audited_writer_blocker_blocks_continuous_current_evidence_write": {
-          "const": true
+          "type": "boolean"
         },
         "audited_writer_blocker_current_evidence_write_allowed": {
           "const": false
@@ -8901,7 +8908,9 @@
             "SUMMARY_LEDGER_ONLY",
             "BLOCKED_INPUTS",
             "STALE_SINGLE_RUN_SNAPSHOT",
-            "BLOCKED_CONTINUOUS_WRITER"
+            "BLOCKED_CONTINUOUS_WRITER",
+            "CONTINUOUS_WRITER_ACTIVE",
+            "CONTINUOUS_WRITER_STALE"
           ]
         },
         "audited_writer_readiness_ladder_current_step_id": {
@@ -9112,6 +9121,8 @@
             "REVIEW_CHAIN_BLOCKED",
             "SNAPSHOT_ONLY_SOURCE_CHAIN_PARTIAL",
             "SNAPSHOT_ONLY_CONTINUOUS_WRITER_BLOCKED",
+            "CONTINUOUS_WRITER_ACTIVE",
+            "CONTINUOUS_WRITER_STALE",
             "INVALID_DRIFT"
           ]
         },

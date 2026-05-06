@@ -1,6 +1,6 @@
 import json
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -27,6 +27,11 @@ from trader1.runtime.portfolio.paper_portfolio import (
 from trader1.runtime.portfolio.paper_current_truth_refresh import (
     build_paper_current_truth_refresh_report,
     paper_current_truth_refresh_report_hash,
+)
+from trader1.runtime.portfolio.paper_continuous_current_evidence_writer import (
+    PAPER_CONTINUOUS_WRITER_STALE_STATUS,
+    PAPER_CONTINUOUS_WRITER_WRITING_STATUS,
+    build_paper_continuous_current_evidence_writer_report,
 )
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
@@ -451,6 +456,7 @@ def build_dashboard(
     upbit_paper_repaired_current_evidence_audited_writer_report=None,
     audited_current_evidence_snapshot=None,
     audited_paper_portfolio_snapshot=None,
+    paper_continuous_current_evidence_writer_report=None,
     upbit_paper_ledger_idempotency_runtime_evidence_report=None,
     residual_open_gap_operator_action_plan_report=None,
     residual_operator_handoff_packet_report=None,
@@ -497,6 +503,7 @@ def build_dashboard(
         upbit_paper_repaired_current_evidence_audited_writer_report=upbit_paper_repaired_current_evidence_audited_writer_report,
         audited_current_evidence_snapshot=audited_current_evidence_snapshot,
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
+        paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         residual_open_gap_operator_action_plan_report=residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet_report=residual_operator_handoff_packet_report,
@@ -1081,6 +1088,43 @@ def build_dashboard_with_audited_current_evidence_writer(outputs=None):
         upbit_paper_repaired_current_evidence_audited_writer_report=writer_report,
         audited_current_evidence_snapshot=current_evidence,
         audited_paper_portfolio_snapshot=paper_portfolio,
+    )
+
+
+def _add_seconds_to_utc(value: str, seconds: int) -> str:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return (
+        (parsed + timedelta(seconds=seconds))
+        .astimezone(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+
+def continuous_current_evidence_writer_report_fixture(outputs=None, *, age_seconds: int = 1):
+    bundle = outputs or audited_writer_output_fixture()
+    writer_report, current_evidence, paper_portfolio = bundle[:3]
+    refresh_report = build_paper_current_truth_refresh_report(
+        exchange=writer_report["exchange"],
+        market_type=writer_report["market_type"],
+        mode=writer_report["mode"],
+        session_id=writer_report["session_id"],
+        paper_portfolio_snapshot=paper_portfolio,
+        heartbeat=None,
+        startup_probe=None,
+        generated_at_utc=writer_report["generated_at_utc"],
+    )
+    return build_paper_continuous_current_evidence_writer_report(
+        exchange=writer_report["exchange"],
+        market_type=writer_report["market_type"],
+        mode=writer_report["mode"],
+        session_id=writer_report["session_id"],
+        audited_writer_report=writer_report,
+        audited_current_evidence_snapshot=current_evidence,
+        audited_paper_portfolio_snapshot=paper_portfolio,
+        paper_current_truth_refresh_report=refresh_report,
+        generated_at_utc=_add_seconds_to_utc(writer_report["generated_at_utc"], age_seconds),
     )
 
 
@@ -4761,6 +4805,100 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_ready"])
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_projects_continuous_current_evidence_writer_active_paper_only(self):
+        outputs = audited_writer_full_activation_outputs_fixture()
+        continuous_report = continuous_current_evidence_writer_report_fixture(outputs, age_seconds=1)
+        self.assertEqual(
+            continuous_report["continuous_writer_status"],
+            PAPER_CONTINUOUS_WRITER_WRITING_STATUS,
+        )
+        summary, heartbeat, startup_probe = build_inputs(session_id=outputs[0]["session_id"], with_paper_portfolio=False)
+        dashboard = build_read_only_dashboard_shell(
+            exchange=outputs[0]["exchange"],
+            market_type=outputs[0]["market_type"],
+            mode=outputs[0]["mode"],
+            session_id=outputs[0]["session_id"],
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_repaired_current_evidence_audited_writer_precheck_report=outputs[3],
+            upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=outputs[4],
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=outputs[5],
+            upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=outputs[6],
+            upbit_paper_repaired_current_evidence_audited_writer_report=outputs[0],
+            audited_current_evidence_snapshot=outputs[1],
+            audited_paper_portfolio_snapshot=outputs[2],
+            paper_continuous_current_evidence_writer_report=continuous_report,
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_status"], "CONTINUOUS_WRITER_ACTIVE")
+        self.assertEqual(
+            portfolio["audited_writer_readiness_ladder_highest_passed_step_id"],
+            "CONTINUOUS_CURRENT_EVIDENCE_WRITER",
+        )
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_blocking_count"], 0)
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_critical_blocker_count"], 0)
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_non_live_regeneration_blocker_count"], 0)
+        self.assertEqual(
+            portfolio["audited_writer_readiness_ladder_steps"][-1]["source"],
+            "paper_continuous_current_evidence_writer_report.json",
+        )
+        self.assertEqual(portfolio["audited_writer_activation_preflight_status"], "CONTINUOUS_WRITER_ACTIVE")
+        self.assertEqual(portfolio["audited_writer_activation_preflight_primary_blocker_code"], "LIVE_READY_MISSING")
+        self.assertFalse(portfolio["audited_writer_activation_preflight_current_evidence_write_allowed"])
+        self.assertFalse(portfolio["audited_writer_activation_preflight_live_order_allowed"])
+        source_status = {
+            source["artifact_id"]: source["freshness_status"]
+            for source in dashboard["source_artifacts"]
+            if source["artifact_id"] == "PAPER_CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+        }
+        self.assertEqual(source_status, {"PAPER_CONTINUOUS_CURRENT_EVIDENCE_WRITER": "PASS"})
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_projects_continuous_current_evidence_writer_stale_as_warning(self):
+        outputs = audited_writer_full_activation_outputs_fixture()
+        continuous_report = continuous_current_evidence_writer_report_fixture(outputs, age_seconds=301)
+        self.assertEqual(
+            continuous_report["continuous_writer_status"],
+            PAPER_CONTINUOUS_WRITER_STALE_STATUS,
+        )
+        summary, heartbeat, startup_probe = build_inputs(session_id=outputs[0]["session_id"], with_paper_portfolio=False)
+        dashboard = build_read_only_dashboard_shell(
+            exchange=outputs[0]["exchange"],
+            market_type=outputs[0]["market_type"],
+            mode=outputs[0]["mode"],
+            session_id=outputs[0]["session_id"],
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_repaired_current_evidence_audited_writer_precheck_report=outputs[3],
+            upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=outputs[4],
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=outputs[5],
+            upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=outputs[6],
+            upbit_paper_repaired_current_evidence_audited_writer_report=outputs[0],
+            audited_current_evidence_snapshot=outputs[1],
+            audited_paper_portfolio_snapshot=outputs[2],
+            paper_continuous_current_evidence_writer_report=continuous_report,
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_status"], "CONTINUOUS_WRITER_STALE")
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_current_step_id"], "CONTINUOUS_CURRENT_EVIDENCE_WRITER")
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_warning_count"], 1)
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_critical_blocker_count"], 0)
+        self.assertEqual(portfolio["audited_writer_activation_preflight_status"], "CONTINUOUS_WRITER_STALE")
+        self.assertEqual(portfolio["audited_writer_activation_preflight_primary_blocker_code"], "STALE_CURRENT_TRUTH")
+        self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
 
     def test_dashboard_compacts_audited_writer_blocker_decision_for_single_run_snapshot(self):
