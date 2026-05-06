@@ -5336,6 +5336,26 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertLess(maturity["shadow_sample_count"], maturity["min_required_samples"])
         self.assertEqual(maturity["actual_runtime_source_status"], "MISSING")
         self.assertEqual(maturity["actual_runtime_source_count"], 0)
+        self.assertEqual(maturity["actual_runtime_source_binding_status"], "MISSING_SOURCE_IDS")
+        self.assertEqual(
+            maturity["actual_runtime_source_binding_next_action"],
+            "ATTACH_PAPER_AND_SHADOW_RUNTIME_SOURCE_IDS",
+        )
+        self.assertEqual(maturity["actual_runtime_source_mode_coverage"], "MISSING_BOTH")
+        self.assertEqual(maturity["actual_runtime_requirement_pass_count"], 0)
+        self.assertEqual(maturity["actual_runtime_requirement_total_count"], 5)
+        self.assertEqual(
+            maturity["actual_runtime_requirement_missing_ids"],
+            [
+                "runtime_span",
+                "cycle_count",
+                "heartbeat_freshness",
+                "recovery_clean",
+                "partial_write_clean",
+            ],
+        )
+        self.assertTrue(all(status == "MISSING" for status in maturity["actual_runtime_requirement_statuses"].values()))
+        self.assertIn("Attach scoped PAPER and SHADOW", maturity["actual_runtime_source_binding_message"])
         self.assertFalse(maturity["long_run_evidence_eligible"])
         self.assertEqual(maturity["long_run_blocker_code"], "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
         self.assertIn("validated non-live persistent runtime source", maturity["actual_runtime_source_summary"])
@@ -5385,6 +5405,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER_EVIDENCE_COLLECTION_ONLY", html)
         self.assertIn("NOT_LIVE_READY", html)
         self.assertIn("Long-Run Evidence", html)
+        self.assertIn("Runtime Binding", html)
+        self.assertIn("MISSING_SOURCE_IDS", html)
+        self.assertIn("ATTACH_PAPER_AND_SHADOW_RUNTIME_SOURCE_IDS", html)
         self.assertIn("MISSING", html)
         self.assertIn("0 runtime sources", html)
         self.assertIn("Next Evidence", html)
@@ -5420,6 +5443,34 @@ class ReadOnlyDashboardTest(unittest.TestCase):
 
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_blocks_hidden_runtime_requirement_binding(self):
+        dashboard = build_dashboard_with_operation_gate()
+        maturity = dashboard["profitability_maturity"]
+        maturity["actual_runtime_requirement_statuses"] = None
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_blocks_false_ready_runtime_binding(self):
+        dashboard = build_dashboard_with_operation_gate()
+        maturity = dashboard["profitability_maturity"]
+        maturity["actual_runtime_source_binding_status"] = "READY_NON_LIVE"
+        maturity["actual_runtime_source_binding_next_action"] = "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE"
+        maturity["actual_runtime_source_mode_coverage"] = "PAPER_AND_SHADOW"
+        maturity["actual_runtime_requirement_missing_ids"] = []
+        maturity["actual_runtime_requirement_pass_count"] = 5
+        for requirement_id in maturity["actual_runtime_requirement_statuses"]:
+            maturity["actual_runtime_requirement_statuses"][requirement_id] = "PASS"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
 
     def test_dashboard_blocks_profitability_actionability_hidden_for_operation_gate(self):
         dashboard = build_dashboard_with_operation_gate()
