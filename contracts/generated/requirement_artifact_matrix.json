@@ -9383,6 +9383,84 @@
       "status": "IMPLEMENTED_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-RUN-COMPLETION-ACCEPTANCE",
+      "section_id": "SECTION_CONTRACT_GAP",
+      "schema_files": [
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/residual_operator_evidence_run_preflight_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/reports/residual_operator_evidence_run_preflight.py"
+      ],
+      "test_files": [
+        "tests/contract/test_residual_operator_evidence_run_preflight.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py"
+      ],
+      "fixture_files": [
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
+      ],
+      "runtime_modules": [
+        "trader1/reports/residual_operator_evidence_run_preflight.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.evidence_manifest.json",
+        "system/evidence/validator_runs/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.validator_run_log.json",
+        "system/evidence/stage_gates/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.stage_gate_result.json",
+        "system/evidence/patch_results/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.patch_result.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/pytest_report.txt",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/TRADER_1_SESSION_REVIEW.md"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "preflight_report_path",
+        "preflight_status",
+        "operator_run_started_by_this_patch",
+        "operator_run_completed_by_this_patch",
+        "operator_run_evidence_ready_for_mvp5",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-RUN-PREFLIGHT",
       "section_id": "SECTION_CONTRACT_GAP",
       "schema_files": [
@@ -17623,7 +17701,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-06T01:24:22Z",
+  "updated_at_utc": "2026-05-06T01:47:27Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

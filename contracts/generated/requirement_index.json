@@ -12765,6 +12765,97 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-RUN-COMPLETION-ACCEPTANCE",
+      "source_section_id": "SECTION_CONTRACT_GAP",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Residual operator evidence run completion acceptance",
+      "full_text_marker": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-RUN-COMPLETION-ACCEPTANCE: preflight the non-live operator PAPER/SHADOW evidence run without executing it, reading credentials, writing current evidence, closing gaps, or enabling live/scale",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Residual operator evidence run completion acceptance",
+      "requirement_kind": "EVIDENCE_READINESS_PATCH",
+      "schema_ids": [
+        "trader1.patch_result.v1",
+        "trader1.residual_operator_evidence_run_preflight_report.v1"
+      ],
+      "validator_ids": [
+        "runtime_schema_instance_validator",
+        "schema_validator",
+        "registry_validator",
+        "live_final_guard_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator"
+      ],
+      "artifact_ids": [
+        "contracts/registry.yaml",
+        "contracts/schema/patch_result.schema.json",
+        "contracts/schema/residual_operator_evidence_run_preflight_report.schema.json",
+        "trader1/reports/residual_operator_evidence_run_preflight.py",
+        "tests/contract/test_residual_operator_evidence_run_preflight.py",
+        "tools/emit_residual_operator_evidence_run_completion_acceptance_patch_evidence.py",
+        "contracts/generated/context_pack/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.md",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/pytest_report.txt",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE/TRADER_1_SESSION_REVIEW.md",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_PREFLIGHT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
+      ],
+      "test_ids": [
+        "tests/contract/test_residual_operator_evidence_run_preflight.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_CONTRACT_GAP",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-PROGRESS-AUDIT",
+        "REQ-MVP4-RESIDUAL-OPERATOR-HANDOFF-EXECUTION-GUIDE",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "F071EE9BCCC126F37F47DC85387D3E20EFF2102BDB4E3F43AC09ACD6FA1F1C3C",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_FAIL_CLOSED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-RESIDUAL-OPERATOR-EVIDENCE-RUN-PREFLIGHT",
       "source_section_id": "SECTION_CONTRACT_GAP",
       "source_file": "TRADER_1.md",
@@ -24896,5 +24987,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-06T01:24:22Z"
+  "updated_at_utc": "2026-05-06T01:47:27Z"
 }

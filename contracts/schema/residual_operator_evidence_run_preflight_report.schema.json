@@ -26,6 +26,13 @@
     "heartbeat_interval_seconds",
     "expected_runtime_artifacts",
     "required_validator_ids",
+    "operator_completion_acceptance_status",
+    "operator_completion_acceptance_summary",
+    "operator_completion_acceptance_items",
+    "operator_completion_acceptance_count",
+    "operator_completion_acceptance_pending_count",
+    "operator_completion_acceptance_artifact_count",
+    "operator_completion_acceptance_validator_count",
     "preflight_checks",
     "preflight_check_count",
     "preflight_pass_count",
@@ -194,6 +201,36 @@
     "required_validator_ids": {
       "$ref": "#/$defs/string_array"
     },
+    "operator_completion_acceptance_status": {
+      "const": "PENDING_OPERATOR_RUNTIME_EVIDENCE"
+    },
+    "operator_completion_acceptance_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_completion_acceptance_items": {
+      "type": "array",
+      "minItems": 12,
+      "items": {
+        "$ref": "#/$defs/operator_completion_acceptance_item"
+      }
+    },
+    "operator_completion_acceptance_count": {
+      "type": "integer",
+      "minimum": 12
+    },
+    "operator_completion_acceptance_pending_count": {
+      "type": "integer",
+      "minimum": 12
+    },
+    "operator_completion_acceptance_artifact_count": {
+      "type": "integer",
+      "minimum": 5
+    },
+    "operator_completion_acceptance_validator_count": {
+      "type": "integer",
+      "minimum": 6
+    },
     "preflight_checks": {
       "type": "array",
       "minItems": 1,
@@ -341,6 +378,104 @@
         "message": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "operator_completion_acceptance_item": {
+      "type": "object",
+      "required": [
+        "acceptance_id",
+        "acceptance_kind",
+        "evidence_path",
+        "responsible_validator_id",
+        "current_preflight_status",
+        "required_after_operator_run",
+        "operator_message",
+        "blocks_mvp5_entry_until_pass",
+        "blocks_live_until_pass",
+        "blocks_gap_closure_until_pass",
+        "evidence_ready_for_closure",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_ready_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_kind": {
+          "enum": [
+            "RUNTIME_ARTIFACT",
+            "VALIDATOR",
+            "SAFETY_INVARIANT"
+          ]
+        },
+        "evidence_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responsible_validator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_preflight_status": {
+          "enum": [
+            "PRESENT_LOCAL_RUNTIME_OUTPUT_NOT_CLOSURE_READY",
+            "MISSING_EXPECTED_RUNTIME_OUTPUT",
+            "PLACEHOLDER_PATTERN_PENDING",
+            "PENDING_OPERATOR_RUN",
+            "PASS_FALSE_FLAGS"
+          ]
+        },
+        "required_after_operator_run": {
+          "enum": [
+            "ARTIFACT_PRESENT_AND_VALIDATOR_PASS",
+            "VALIDATOR_PASS_WITH_FRESH_SCOPE_EVIDENCE",
+            "LIVE_AND_SCALE_FLAGS_FALSE"
+          ]
+        },
+        "operator_message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocks_mvp5_entry_until_pass": {
+          "const": true
+        },
+        "blocks_live_until_pass": {
+          "const": true
+        },
+        "blocks_gap_closure_until_pass": {
+          "const": true
+        },
+        "evidence_ready_for_closure": {
+          "const": false
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_ready_write_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
         }
       }
     }

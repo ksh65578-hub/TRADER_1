@@ -68,6 +68,106 @@ def _check(check_id: str, passed: bool, message: str) -> dict[str, str]:
     }
 
 
+def _completion_acceptance_item(
+    *,
+    acceptance_id: str,
+    acceptance_kind: str,
+    evidence_path: str,
+    responsible_validator_id: str,
+    current_preflight_status: str,
+    required_after_operator_run: str,
+    operator_message: str,
+) -> dict[str, Any]:
+    return {
+        "acceptance_id": acceptance_id,
+        "acceptance_kind": acceptance_kind,
+        "evidence_path": evidence_path,
+        "responsible_validator_id": responsible_validator_id,
+        "current_preflight_status": current_preflight_status,
+        "required_after_operator_run": required_after_operator_run,
+        "operator_message": operator_message,
+        "blocks_mvp5_entry_until_pass": True,
+        "blocks_live_until_pass": True,
+        "blocks_gap_closure_until_pass": True,
+        "evidence_ready_for_closure": False,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_ready_write_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _completion_acceptance_matrix(
+    expected_artifacts: list[dict[str, Any]],
+    required_validators: list[str],
+) -> list[dict[str, Any]]:
+    validator_by_path = {
+        "heartbeat.json": "runtime_schema_instance_validator",
+        "summary.json": "runtime_schema_instance_validator",
+        "upbit_paper_persistent_loop_report.json": "upbit_paper_persistent_loop_validator",
+        "shadow_observation_persistent_runtime_report.json": "shadow_observation_persistent_runtime_validator",
+        "paper_shadow_evidence_accumulation_report.json": "paper_shadow_evidence_accumulation_validator",
+    }
+    items: list[dict[str, Any]] = []
+    for index, artifact in enumerate(expected_artifacts, 1):
+        path = str(artifact.get("path", ""))
+        validator_id = next(
+            (
+                validator
+                for marker, validator in validator_by_path.items()
+                if marker in path and validator in required_validators
+            ),
+            "runtime_schema_instance_validator",
+        )
+        items.append(
+            _completion_acceptance_item(
+                acceptance_id=f"RUNTIME_ARTIFACT_{index:02d}",
+                acceptance_kind="RUNTIME_ARTIFACT",
+                evidence_path=path,
+                responsible_validator_id=validator_id,
+                current_preflight_status=str(artifact.get("current_path_status") or "MISSING_EXPECTED_RUNTIME_OUTPUT"),
+                required_after_operator_run="ARTIFACT_PRESENT_AND_VALIDATOR_PASS",
+                operator_message=(
+                    "After the operator PAPER/SHADOW run, this artifact must exist for the exact scope and its "
+                    f"responsible validator must PASS: {validator_id}."
+                ),
+            )
+        )
+    for validator_id in required_validators:
+        items.append(
+            _completion_acceptance_item(
+                acceptance_id=f"VALIDATOR_{validator_id.upper()}",
+                acceptance_kind="VALIDATOR",
+                evidence_path="VALIDATOR_RUN_LOG",
+                responsible_validator_id=validator_id,
+                current_preflight_status="PENDING_OPERATOR_RUN",
+                required_after_operator_run="VALIDATOR_PASS_WITH_FRESH_SCOPE_EVIDENCE",
+                operator_message=(
+                    "After the operator PAPER/SHADOW run, this validator must PASS with fresh evidence from the "
+                    f"same exchange/market_type/mode scope: {validator_id}."
+                ),
+            )
+        )
+    items.append(
+        _completion_acceptance_item(
+            acceptance_id="LIVE_FLAGS_REMAIN_FALSE",
+            acceptance_kind="SAFETY_INVARIANT",
+            evidence_path="contracts/generated/current_implementation_state.json",
+            responsible_validator_id="live_final_guard_validator",
+            current_preflight_status="PASS_FALSE_FLAGS",
+            required_after_operator_run="LIVE_AND_SCALE_FLAGS_FALSE",
+            operator_message=(
+                "After the operator run, live_order_ready, live_order_allowed, can_live_trade, and scale_up_allowed "
+                "must still be false unless a separate authorized LIVE_READY path exists."
+            ),
+        )
+    )
+    return items
+
+
 def build_residual_operator_evidence_run_preflight_report(
     execution_guide_report: Mapping[str, Any],
     progress_report: Mapping[str, Any],
@@ -144,6 +244,10 @@ def build_residual_operator_evidence_run_preflight_report(
         _check("EXPECTED_ARTIFACTS_DECLARED", len(expected_artifacts) >= 5, "required PAPER/SHADOW evidence artifacts are listed"),
         _check("NEXT_REVIEW_VALIDATORS_DECLARED", len(required_validators) >= 6, "next-review validators are listed"),
     ]
+    completion_items = _completion_acceptance_matrix(expected_artifacts, required_validators)
+    completion_pending_count = sum(1 for item in completion_items if item["evidence_ready_for_closure"] is False)
+    completion_artifact_count = sum(1 for item in completion_items if item["acceptance_kind"] == "RUNTIME_ARTIFACT")
+    completion_validator_count = sum(1 for item in completion_items if item["acceptance_kind"] == "VALIDATOR")
     blocked_count = sum(1 for item in checks if item["status"] != "PASS")
     status = "NON_LIVE_OPERATOR_RUN_PRECHECK_PASS" if blocked_count == 0 else "BLOCKED_PREFLIGHT"
     env_overrides = [
@@ -181,6 +285,16 @@ def build_residual_operator_evidence_run_preflight_report(
         "heartbeat_interval_seconds": heartbeat_interval_seconds,
         "expected_runtime_artifacts": expected_artifacts,
         "required_validator_ids": required_validators,
+        "operator_completion_acceptance_status": "PENDING_OPERATOR_RUNTIME_EVIDENCE",
+        "operator_completion_acceptance_summary": (
+            "PAPER/SHADOW run completion is not accepted by this preflight. The operator run must produce the listed "
+            "runtime artifacts and every listed validator must PASS before any next review can consider evidence closure."
+        ),
+        "operator_completion_acceptance_items": completion_items,
+        "operator_completion_acceptance_count": len(completion_items),
+        "operator_completion_acceptance_pending_count": completion_pending_count,
+        "operator_completion_acceptance_artifact_count": completion_artifact_count,
+        "operator_completion_acceptance_validator_count": completion_validator_count,
         "preflight_checks": checks,
         "preflight_check_count": len(checks),
         "preflight_pass_count": len(checks) - blocked_count,
@@ -279,6 +393,72 @@ def validate_residual_operator_evidence_run_preflight_report(
                 errors.append("expected artifact cannot allow current evidence write")
             if artifact.get("gap_closure_allowed_by_this_patch") is not False:
                 errors.append("expected artifact cannot allow gap closure")
+    completion_items = report.get("operator_completion_acceptance_items", [])
+    if report.get("operator_completion_acceptance_status") != "PENDING_OPERATOR_RUNTIME_EVIDENCE":
+        errors.append("operator completion acceptance status must remain pending")
+    if not isinstance(report.get("operator_completion_acceptance_summary"), str) or not report.get(
+        "operator_completion_acceptance_summary", ""
+    ):
+        errors.append("operator completion acceptance summary is required")
+    if not isinstance(completion_items, list) or len(completion_items) < 12:
+        errors.append("operator completion acceptance matrix must include artifacts, validators, and safety invariant")
+    else:
+        artifact_count = validator_count = pending_count = 0
+        acceptance_ids: set[str] = set()
+        for item in completion_items:
+            if not isinstance(item, Mapping):
+                errors.append("operator completion acceptance item must be object")
+                continue
+            acceptance_id = str(item.get("acceptance_id", ""))
+            if not acceptance_id:
+                errors.append("operator completion acceptance item missing acceptance_id")
+            if acceptance_id in acceptance_ids:
+                errors.append(f"duplicate operator completion acceptance_id {acceptance_id}")
+            acceptance_ids.add(acceptance_id)
+            if item.get("acceptance_kind") == "RUNTIME_ARTIFACT":
+                artifact_count += 1
+            elif item.get("acceptance_kind") == "VALIDATOR":
+                validator_count += 1
+            elif item.get("acceptance_kind") != "SAFETY_INVARIANT":
+                errors.append("operator completion acceptance kind is unknown")
+            for field in (
+                "evidence_path",
+                "responsible_validator_id",
+                "current_preflight_status",
+                "required_after_operator_run",
+                "operator_message",
+            ):
+                if not isinstance(item.get(field), str) or not item.get(field, "").strip():
+                    errors.append(f"operator completion acceptance item missing {field}")
+            for field in (
+                "blocks_mvp5_entry_until_pass",
+                "blocks_live_until_pass",
+                "blocks_gap_closure_until_pass",
+            ):
+                if item.get(field) is not True:
+                    errors.append(f"operator completion acceptance item must keep {field}=true")
+            for field in (
+                "evidence_ready_for_closure",
+                "current_evidence_write_allowed",
+                "gap_closure_allowed_by_this_patch",
+                "live_ready_write_allowed",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+            ):
+                if item.get(field) is not False:
+                    errors.append(f"operator completion acceptance item must keep {field}=false")
+            if item.get("evidence_ready_for_closure") is False:
+                pending_count += 1
+        if report.get("operator_completion_acceptance_count") != len(completion_items):
+            errors.append("operator completion acceptance count mismatch")
+        if report.get("operator_completion_acceptance_pending_count") != pending_count:
+            errors.append("operator completion acceptance pending count mismatch")
+        if report.get("operator_completion_acceptance_artifact_count") != artifact_count:
+            errors.append("operator completion acceptance artifact count mismatch")
+        if report.get("operator_completion_acceptance_validator_count") != validator_count:
+            errors.append("operator completion acceptance validator count mismatch")
     validators = report.get("required_validator_ids", [])
     for validator_id in (
         "upbit_paper_persistent_loop_validator",

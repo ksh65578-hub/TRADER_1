@@ -76,6 +76,36 @@ class ResidualOperatorEvidenceRunPreflightTest(unittest.TestCase):
         self.assertEqual(report["heartbeat_interval_seconds"], 10)
         self.assertGreaterEqual(len(report["expected_runtime_artifacts"]), 5)
         self.assertGreaterEqual(len(report["required_validator_ids"]), 6)
+        self.assertEqual(report["operator_completion_acceptance_status"], "PENDING_OPERATOR_RUNTIME_EVIDENCE")
+        self.assertGreaterEqual(report["operator_completion_acceptance_count"], 12)
+        self.assertEqual(
+            report["operator_completion_acceptance_pending_count"],
+            report["operator_completion_acceptance_count"],
+        )
+        self.assertEqual(
+            report["operator_completion_acceptance_artifact_count"],
+            len(report["expected_runtime_artifacts"]),
+        )
+        self.assertEqual(
+            report["operator_completion_acceptance_validator_count"],
+            len(report["required_validator_ids"]),
+        )
+        acceptance_ids = {item["acceptance_id"] for item in report["operator_completion_acceptance_items"]}
+        self.assertIn("RUNTIME_ARTIFACT_01", acceptance_ids)
+        self.assertIn("VALIDATOR_UPBIT_PAPER_PERSISTENT_LOOP_VALIDATOR", acceptance_ids)
+        self.assertIn("LIVE_FLAGS_REMAIN_FALSE", acceptance_ids)
+        for item in report["operator_completion_acceptance_items"]:
+            self.assertTrue(item["blocks_mvp5_entry_until_pass"])
+            self.assertTrue(item["blocks_live_until_pass"])
+            self.assertTrue(item["blocks_gap_closure_until_pass"])
+            self.assertFalse(item["evidence_ready_for_closure"])
+            self.assertFalse(item["current_evidence_write_allowed"])
+            self.assertFalse(item["gap_closure_allowed_by_this_patch"])
+            self.assertFalse(item["live_ready_write_allowed"])
+            self.assertFalse(item["live_order_ready"])
+            self.assertFalse(item["live_order_allowed"])
+            self.assertFalse(item["can_live_trade"])
+            self.assertFalse(item["scale_up_allowed"])
         self.assertEqual(report["preflight_blocked_count"], 0)
         self.assertTrue(report["non_live_operator_command_preflight_passed"])
         self.assertFalse(report["credential_values_read"])
@@ -167,6 +197,9 @@ class ResidualOperatorEvidenceRunPreflightTest(unittest.TestCase):
         tampered["operator_run_completed_by_this_patch"] = True
         tampered["operator_run_evidence_ready_for_mvp5"] = True
         tampered["expected_runtime_artifacts"][0]["evidence_ready_for_closure"] = True
+        tampered["operator_completion_acceptance_items"][0]["evidence_ready_for_closure"] = True
+        tampered["operator_completion_acceptance_items"][0]["blocks_live_until_pass"] = False
+        tampered["operator_completion_acceptance_items"][0]["live_order_allowed"] = True
 
         errors = validate_residual_operator_evidence_run_preflight_report(
             tampered,
@@ -180,6 +213,8 @@ class ResidualOperatorEvidenceRunPreflightTest(unittest.TestCase):
         self.assertTrue(any("operator_run_completed_by_this_patch" in error for error in errors))
         self.assertTrue(any("operator_run_evidence_ready_for_mvp5" in error for error in errors))
         self.assertTrue(any("ready for closure" in error for error in errors))
+        self.assertTrue(any("blocks_live_until_pass" in error for error in errors))
+        self.assertTrue(any("live_order_allowed" in error for error in errors))
 
 
 if __name__ == "__main__":
