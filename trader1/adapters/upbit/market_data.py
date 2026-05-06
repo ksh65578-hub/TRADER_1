@@ -14,6 +14,13 @@ def utc_now() -> str:
 
 UPBIT_PUBLIC_CANDLE_HOST = "api.upbit.com"
 UPBIT_PUBLIC_CANDLE_PATH = "/v1/candles/minutes/1"
+UPBIT_PUBLIC_MARKET_ALL_PATH = "/v1/market/all"
+UPBIT_PUBLIC_TICKER_PATH = "/v1/ticker"
+UPBIT_PUBLIC_SYMBOL_DISCOVERY_SCHEMA_ID = "trader1.upbit_public_krw_symbol_discovery_report.v1"
+UPBIT_PUBLIC_TICKER_SNAPSHOT_SCHEMA_ID = "trader1.upbit_public_ticker_snapshot_report.v1"
+UPBIT_PUBLIC_SYMBOL_RANKING_SCHEMA_ID = "trader1.upbit_public_krw_symbol_ranking_report.v1"
+DEFAULT_DISCOVERY_EVALUATION_LIMIT = 30
+DEFAULT_MINIMUM_DISCOVERY_QUOTE_VOLUME_KRW = Decimal("50000000")
 
 
 def _decimal_text(value: Any) -> str:
@@ -22,6 +29,281 @@ def _decimal_text(value: Any) -> str:
     except (InvalidOperation, ValueError):
         return "0"
     return format(decimal.normalize(), "f") if decimal != decimal.to_integral() else str(decimal.quantize(Decimal("1")))
+
+
+def _decimal_or_zero(value: Any) -> Decimal:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return Decimal("0")
+
+
+def _public_read_only_safety_fields() -> dict[str, bool]:
+    return {
+        "is_public": True,
+        "private_account_fields_present": False,
+        "raw_payload_private_fields_present": False,
+        "credential_load_attempted": False,
+        "authorization_header_present": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def build_upbit_krw_market_symbols_from_rest_payload(payload: list[dict[str, Any]]) -> list[str]:
+    symbols: set[str] = set()
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        market = str(item.get("market", "")).strip().upper()
+        if not market.startswith("KRW-"):
+            continue
+        quote, _, base = market.partition("-")
+        if quote != "KRW" or not base or not base.replace("-", "").isalnum():
+            continue
+        symbols.add(market)
+    return sorted(symbols)
+
+
+def build_upbit_public_krw_symbol_discovery_report_from_payload(
+    *,
+    payload: list[dict[str, Any]],
+    session_id: str = "mvp1_upbit_paper_launcher",
+) -> dict[str, Any]:
+    symbols = build_upbit_krw_market_symbols_from_rest_payload(payload)
+    status = "PASS" if symbols else "BLOCKED"
+    primary_blocker_code = None if symbols else "DATA_UNAVAILABLE"
+    return {
+        "schema_id": UPBIT_PUBLIC_SYMBOL_DISCOVERY_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "source": "PUBLIC_REST_READ_ONLY",
+        "public_endpoint_host": UPBIT_PUBLIC_CANDLE_HOST,
+        "public_endpoint_path": UPBIT_PUBLIC_MARKET_ALL_PATH,
+        "query_is_details": "false",
+        "discovery_status": status,
+        "primary_blocker_code": primary_blocker_code,
+        "market_count": len(symbols),
+        "symbols": symbols,
+        "selection_scope": "ALL_UPBIT_KRW_MARKETS",
+        "blockers": [] if status == "PASS" else [{"code": primary_blocker_code, "severity": "HIGH", "message": "Upbit KRW market list returned no usable symbols"}],
+        **_public_read_only_safety_fields(),
+    }
+
+
+def fetch_upbit_krw_market_symbols_read_only(
+    *,
+    session_id: str = "mvp1_upbit_paper_launcher",
+    timeout_seconds: float = 3.0,
+) -> dict[str, Any]:
+    query = urlencode({"isDetails": "false"})
+    url = f"https://{UPBIT_PUBLIC_CANDLE_HOST}{UPBIT_PUBLIC_MARKET_ALL_PATH}?{query}"
+    request = Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "TRADER_1-public-read-only-paper-symbol-discovery",
+        },
+        method="GET",
+    )
+    try:
+        with urlopen(request, timeout=timeout_seconds) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception as exc:
+        return {
+            "schema_id": UPBIT_PUBLIC_SYMBOL_DISCOVERY_SCHEMA_ID,
+            "generated_at_utc": utc_now(),
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": session_id,
+            "source": "PUBLIC_REST_READ_ONLY",
+            "public_endpoint_host": UPBIT_PUBLIC_CANDLE_HOST,
+            "public_endpoint_path": UPBIT_PUBLIC_MARKET_ALL_PATH,
+            "query_is_details": "false",
+            "discovery_status": "BLOCKED",
+            "primary_blocker_code": "DATA_UNAVAILABLE",
+            "market_count": 0,
+            "symbols": [],
+            "selection_scope": "ALL_UPBIT_KRW_MARKETS",
+            "blockers": [{"code": "DATA_UNAVAILABLE", "severity": "HIGH", "message": f"Upbit KRW market discovery failed: {exc}"}],
+            **_public_read_only_safety_fields(),
+        }
+    if not isinstance(payload, list):
+        payload = []
+    return build_upbit_public_krw_symbol_discovery_report_from_payload(payload=payload, session_id=session_id)
+
+
+def build_upbit_public_ticker_snapshot_from_rest_payload(
+    *,
+    payload: list[dict[str, Any]],
+    requested_symbols: list[str],
+    session_id: str = "mvp1_upbit_paper_launcher",
+) -> dict[str, Any]:
+    requested_set = {str(symbol).upper() for symbol in requested_symbols}
+    ticker_by_symbol: dict[str, dict[str, str]] = {}
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        symbol = str(item.get("market", "")).strip().upper()
+        if symbol not in requested_set:
+            continue
+        ticker_by_symbol[symbol] = {
+            "symbol": symbol,
+            "trade_price": _decimal_text(item.get("trade_price")),
+            "acc_trade_price_24h": _decimal_text(item.get("acc_trade_price_24h")),
+            "signed_change_rate": _decimal_text(item.get("signed_change_rate")),
+            "acc_trade_volume_24h": _decimal_text(item.get("acc_trade_volume_24h")),
+        }
+    status = "PASS" if ticker_by_symbol else "BLOCKED"
+    primary_blocker_code = None if ticker_by_symbol else "DATA_UNAVAILABLE"
+    return {
+        "schema_id": UPBIT_PUBLIC_TICKER_SNAPSHOT_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "source": "PUBLIC_REST_READ_ONLY",
+        "public_endpoint_host": UPBIT_PUBLIC_CANDLE_HOST,
+        "public_endpoint_path": UPBIT_PUBLIC_TICKER_PATH,
+        "requested_symbol_count": len(requested_symbols),
+        "ticker_count": len(ticker_by_symbol),
+        "ticker_status": status,
+        "primary_blocker_code": primary_blocker_code,
+        "ticker_by_symbol": ticker_by_symbol,
+        "blockers": [] if status == "PASS" else [{"code": primary_blocker_code, "severity": "HIGH", "message": "Upbit public ticker returned no usable KRW ticker samples"}],
+        **_public_read_only_safety_fields(),
+    }
+
+
+def fetch_upbit_public_ticker_snapshot_read_only(
+    *,
+    symbols: list[str],
+    session_id: str = "mvp1_upbit_paper_launcher",
+    timeout_seconds: float = 3.0,
+    chunk_size: int = 100,
+) -> dict[str, Any]:
+    unique_symbols = sorted({str(symbol).strip().upper() for symbol in symbols if str(symbol).strip().upper().startswith("KRW-")})
+    if not unique_symbols:
+        return build_upbit_public_ticker_snapshot_from_rest_payload(payload=[], requested_symbols=[], session_id=session_id)
+    payload: list[dict[str, Any]] = []
+    safe_chunk_size = max(1, min(int(chunk_size), 100))
+    try:
+        for index in range(0, len(unique_symbols), safe_chunk_size):
+            chunk = unique_symbols[index : index + safe_chunk_size]
+            query = urlencode({"markets": ",".join(chunk)})
+            url = f"https://{UPBIT_PUBLIC_CANDLE_HOST}{UPBIT_PUBLIC_TICKER_PATH}?{query}"
+            request = Request(
+                url,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "TRADER_1-public-read-only-paper-ticker-snapshot",
+                },
+                method="GET",
+            )
+            with urlopen(request, timeout=timeout_seconds) as response:
+                chunk_payload = json.loads(response.read().decode("utf-8"))
+            if isinstance(chunk_payload, list):
+                payload.extend(item for item in chunk_payload if isinstance(item, dict))
+    except Exception as exc:
+        report = build_upbit_public_ticker_snapshot_from_rest_payload(
+            payload=[],
+            requested_symbols=unique_symbols,
+            session_id=session_id,
+        )
+        report["blockers"] = [{"code": "DATA_UNAVAILABLE", "severity": "HIGH", "message": f"Upbit public ticker snapshot failed: {exc}"}]
+        return report
+    return build_upbit_public_ticker_snapshot_from_rest_payload(
+        payload=payload,
+        requested_symbols=unique_symbols,
+        session_id=session_id,
+    )
+
+
+def rank_upbit_krw_symbols_by_public_ticker(
+    *,
+    symbols: list[str],
+    ticker_by_symbol: dict[str, dict[str, Any]],
+    session_id: str = "mvp1_upbit_paper_launcher",
+    limit: int = DEFAULT_DISCOVERY_EVALUATION_LIMIT,
+    minimum_quote_volume_krw: Decimal = DEFAULT_MINIMUM_DISCOVERY_QUOTE_VOLUME_KRW,
+) -> dict[str, Any]:
+    safe_limit = max(1, min(int(limit), 80))
+    rankings: list[dict[str, Any]] = []
+    for input_order, symbol in enumerate(sorted({str(item).strip().upper() for item in symbols if str(item).strip().upper().startswith("KRW-")}), start=1):
+        ticker = ticker_by_symbol.get(symbol, {})
+        trade_price = _decimal_or_zero(ticker.get("trade_price"))
+        quote_volume_24h = _decimal_or_zero(ticker.get("acc_trade_price_24h"))
+        signed_change_rate = _decimal_or_zero(ticker.get("signed_change_rate"))
+        liquidity_score = min(Decimal("1"), max(Decimal("0"), quote_volume_24h / Decimal("5000000000")))
+        momentum_score = min(Decimal("1"), max(Decimal("0"), abs(signed_change_rate) / Decimal("0.08")))
+        price_valid = trade_price > Decimal("0")
+        quote_volume_valid = quote_volume_24h >= minimum_quote_volume_krw
+        source_complete = bool(ticker)
+        score = Decimal("0.70") * liquidity_score + Decimal("0.20") * momentum_score + Decimal("0.10") * (Decimal("1") if price_valid else Decimal("0"))
+        rankings.append(
+            {
+                "rank_input_order": input_order,
+                "symbol": symbol,
+                "source_complete": source_complete,
+                "trade_price": _decimal_text(trade_price),
+                "quote_volume_24h_krw": _decimal_text(quote_volume_24h),
+                "signed_change_rate": _decimal_text(signed_change_rate),
+                "abs_change_rate": _decimal_text(abs(signed_change_rate)),
+                "liquidity_score": _decimal_text(liquidity_score.quantize(Decimal("0.0001"))),
+                "momentum_score": _decimal_text(momentum_score.quantize(Decimal("0.0001"))),
+                "rank_score": _decimal_text(score.quantize(Decimal("0.0001"))),
+                "rank_formula": "0.70*liquidity_score+0.20*abs_change_rate_score+0.10*valid_price_score",
+                "minimum_quote_volume_24h_krw": _decimal_text(minimum_quote_volume_krw),
+                "eligible_for_candle_evaluation": source_complete and price_valid and quote_volume_valid,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+        )
+    ranked = sorted(
+        rankings,
+        key=lambda item: (
+            not bool(item["eligible_for_candle_evaluation"]),
+            -_decimal_or_zero(item["rank_score"]),
+            -_decimal_or_zero(item["quote_volume_24h_krw"]),
+            item["symbol"],
+        ),
+    )
+    eligible_symbols = [item["symbol"] for item in ranked if item["eligible_for_candle_evaluation"]]
+    selected_symbols = (eligible_symbols or [item["symbol"] for item in ranked])[:safe_limit]
+    status = "PASS" if selected_symbols else "BLOCKED"
+    primary_blocker_code = None if selected_symbols else "DATA_UNAVAILABLE"
+    return {
+        "schema_id": UPBIT_PUBLIC_SYMBOL_RANKING_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "ranking_status": status,
+        "primary_blocker_code": primary_blocker_code,
+        "selection_scope": "ALL_UPBIT_KRW_MARKETS_RANKED_BY_PUBLIC_TICKER",
+        "input_symbol_count": len({str(item).strip().upper() for item in symbols if str(item).strip().upper().startswith("KRW-")}),
+        "ranked_symbol_count": len(ranked),
+        "eligible_symbol_count": len(eligible_symbols),
+        "evaluation_limit": safe_limit,
+        "selected_symbols_for_candle_evaluation": selected_symbols,
+        "ranking_formula": "0.70*liquidity_score+0.20*abs_change_rate_score+0.10*valid_price_score",
+        "minimum_quote_volume_24h_krw": _decimal_text(minimum_quote_volume_krw),
+        "symbol_rankings": ranked,
+        "blockers": [] if status == "PASS" else [{"code": primary_blocker_code, "severity": "HIGH", "message": "No Upbit KRW symbols were available for candle evaluation"}],
+        **_public_read_only_safety_fields(),
+    }
 
 
 def build_upbit_public_market_data_fixture(

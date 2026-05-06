@@ -105,7 +105,7 @@ class UpbitPaperLedgerIdempotencyRuntimeEvidenceTest(unittest.TestCase):
             self.assertTrue(report["ledger_head_cycle_in_persistent_loop"])
             self.assertIn(report["source_ledger_head_cycle_id"], report["source_runtime_cycle_ids"])
             self.assertIn(report["ledger_head_runtime_cycle_hash"], report["source_runtime_cycle_hashes"])
-            self.assertEqual(report["source_runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
+            self.assertEqual(report["source_runtime_input_role"], "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION")
             self.assertEqual(report["source_public_market_data_hash"], report["source_runtime_public_market_data_hash"])
             self.assertGreaterEqual(report["source_canonical_event_count"], 5)
             self.assertEqual(report["source_ledger_jsonl_count"], 2)

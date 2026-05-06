@@ -4,8 +4,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from trader1.adapters.upbit.market_data import (
+    build_upbit_public_krw_symbol_discovery_report_from_payload,
     build_upbit_public_candle_data_from_rest_payload,
     build_upbit_public_candle_fixture,
+    build_upbit_public_ticker_snapshot_from_rest_payload,
     validate_upbit_public_candle_data,
 )
 from trader1.core.sizing.position_sizing import sizing_decision_hash
@@ -262,10 +264,23 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(guard["long_run_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
             latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
             latest = json.loads(latest_path.read_text(encoding="utf-8"))
-            self.assertEqual(latest["runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
+            self.assertEqual(latest["runtime_input_role"], "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION")
+            self.assertGreaterEqual(len(latest["symbol_universe"]), 10)
+            self.assertIn("KRW-BTC", latest["symbol_universe"])
+            self.assertIn("KRW-ETH", latest["symbol_universe"])
+            self.assertIn("KRW-XRP", latest["symbol_universe"])
+            self.assertIn(latest["selected_symbol"], latest["symbol_universe"])
             self.assertFalse(latest["live_order_allowed"])
+            self.assertEqual(loop["symbol_universe_source"], "STATIC_FALLBACK_CONFIGURED_KRW_UNIVERSE")
+            self.assertEqual(loop["symbol_universe_discovery_status"], "SKIPPED")
+            self.assertFalse(loop["public_symbol_discovery_attempted"])
+            self.assertEqual(loop["symbol_universe_evaluated_count"], len(loop["symbol_universe"]))
             for cycle_result in loop["cycle_results"]:
-                self.assertEqual(cycle_result["runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
+                self.assertEqual(cycle_result["runtime_input_role"], "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION")
+                self.assertEqual(cycle_result["symbol_universe"], latest["symbol_universe"])
+                self.assertEqual(cycle_result["symbol_universe_source"], "STATIC_FALLBACK_CONFIGURED_KRW_UNIVERSE")
+                self.assertEqual(cycle_result["symbol_universe_evaluated_count"], len(cycle_result["symbol_universe"]))
+                self.assertIn(cycle_result["selected_symbol"], cycle_result["symbol_universe"])
                 self.assertEqual(len(cycle_result["source_collection_report_hash"]), 64)
                 self.assertEqual(len(cycle_result["source_public_market_data_hash"]), 64)
                 self.assertEqual(cycle_result["source_public_market_data_hash"], cycle_result["runtime_public_market_data_hash"])
@@ -303,6 +318,106 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(rollup["portfolio_snapshot"]["source_runtime_cycle_id"], "bounded-paper-loop-cycle-2")
             self.assertEqual(rollup["portfolio_snapshot"]["source_paper_ledger_head_hash"], rollup["latest_ledger_head_hash"])
             self.assertFalse(rollup["live_order_allowed"])
+
+    def test_bounded_paper_loop_can_select_non_btc_from_multi_symbol_universe(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp1_upbit_paper_launcher",
+            profile="WEAK_RANGE",
+        )
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp1_upbit_paper_launcher",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-multi-symbol-select",
+                requested_cycle_count=1,
+                market_data_universe_sequence=[[weak_btc, strong_eth]],
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(loop["cycle_results"][0]["selected_symbol"], "KRW-ETH")
+        self.assertEqual(latest["selected_symbol"], "KRW-ETH")
+        self.assertEqual(latest["paper_fill"]["symbol"], "KRW-ETH")
+        self.assertEqual(latest["paper_portfolio_snapshot"]["positions"][0]["symbol"], "KRW-ETH")
+        self.assertFalse(latest["live_order_allowed"])
+
+    def test_bounded_paper_loop_discovers_all_krw_markets_then_evaluates_ranked_public_candidates(self):
+        def fake_market_symbols_fetcher(**_: object) -> dict[str, object]:
+            return build_upbit_public_krw_symbol_discovery_report_from_payload(
+                session_id="mvp1_upbit_paper_launcher",
+                payload=[
+                    {"market": "KRW-BTC"},
+                    {"market": "KRW-ETH"},
+                    {"market": "KRW-XRP"},
+                    {"market": "KRW-SOL"},
+                    {"market": "KRW-ADA"},
+                    {"market": "BTC-USDT"},
+                ],
+            )
+
+        def fake_ticker_fetcher(*, symbols: list[str], session_id: str, **_: object) -> dict[str, object]:
+            payload = [
+                {"market": "KRW-BTC", "trade_price": 100000000, "acc_trade_price_24h": 900000000, "signed_change_rate": "0.01", "acc_trade_volume_24h": 12},
+                {"market": "KRW-ETH", "trade_price": 6000000, "acc_trade_price_24h": 1200000000, "signed_change_rate": "0.02", "acc_trade_volume_24h": 200},
+                {"market": "KRW-XRP", "trade_price": 800, "acc_trade_price_24h": 70000000, "signed_change_rate": "0.01", "acc_trade_volume_24h": 90000},
+                {"market": "KRW-SOL", "trade_price": 220000, "acc_trade_price_24h": 8000000000, "signed_change_rate": "0.04", "acc_trade_volume_24h": 50000},
+                {"market": "KRW-ADA", "trade_price": 900, "acc_trade_price_24h": 30000000, "signed_change_rate": "0.03", "acc_trade_volume_24h": 20000},
+            ]
+            return build_upbit_public_ticker_snapshot_from_rest_payload(
+                payload=payload,
+                requested_symbols=symbols,
+                session_id=session_id,
+            )
+
+        def fake_candle_fetcher(*, symbol: str, session_id: str, **_: object) -> dict[str, object]:
+            profile = "UPTREND_PULLBACK" if symbol == "KRW-SOL" else "WEAK_RANGE"
+            data = build_upbit_public_candle_fixture(symbol=symbol, session_id=session_id, profile=profile)
+            if symbol == "KRW-SOL":
+                for index, candle in enumerate(data["candles"], start=1):
+                    candle["volume"] = str(10 + index * 4)
+            return data
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-public-discovery",
+                requested_cycle_count=1,
+                attempt_public_symbol_discovery=True,
+                attempt_network_market_data=True,
+                max_symbol_evaluation_count=3,
+                market_symbols_fetcher=fake_market_symbols_fetcher,
+                public_ticker_fetcher=fake_ticker_fetcher,
+                public_candle_fetcher=fake_candle_fetcher,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(loop["symbol_universe_source"], "PUBLIC_KRW_MARKET_DISCOVERY_TICKER_RANKED")
+        self.assertEqual(loop["symbol_universe_discovery_status"], "PASS")
+        self.assertTrue(loop["public_symbol_discovery_attempted"])
+        self.assertEqual(loop["symbol_universe_total_count"], 5)
+        self.assertEqual(loop["symbol_universe_evaluated_count"], 3)
+        self.assertEqual(loop["symbol_universe"][0], "KRW-SOL")
+        self.assertIn("KRW-ETH", loop["symbol_universe"])
+        self.assertEqual(loop["public_ticker_eligible_symbol_count"], 4)
+        self.assertEqual(latest["selected_symbol"], "KRW-SOL")
+        self.assertEqual(loop["cycle_results"][0]["symbol_universe_source"], "PUBLIC_KRW_MARKET_DISCOVERY_TICKER_RANKED")
+        self.assertEqual(loop["cycle_results"][0]["symbol_universe_evaluated_count"], 3)
+        self.assertFalse(loop["live_order_allowed"])
+        self.assertFalse(latest["live_order_allowed"])
 
     def test_bounded_paper_loop_allows_clean_preflight_resume(self):
         with TemporaryDirectory() as tmp:

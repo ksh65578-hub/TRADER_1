@@ -3922,7 +3922,7 @@ def upbit_paper_ledger_idempotency_runtime_evidence_validator() -> ValidatorResu
             or report.get("source_persistent_loop_validation_status") != "PASS"
             or report.get("source_runtime_depth_status") != "PASS"
             or report.get("ledger_head_cycle_in_persistent_loop") is not True
-            or report.get("source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION"
+            or report.get("source_runtime_input_role") not in {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"}
             or report.get("source_public_market_data_hash") != report.get("source_runtime_public_market_data_hash")
             or report.get("source_canonical_event_count", 0) < 5
             or report.get("idempotency_status") != "PASS"
@@ -5460,8 +5460,9 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
     loop_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_persistent_loop.py"
     collector_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_public_collector.py"
     runtime_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_runtime.py"
+    market_data_path = ROOT / "trader1" / "adapters" / "upbit" / "market_data.py"
     test_path = ROOT / "tests" / "integration" / "test_upbit_public_collection_persistent_loop.py"
-    paths = [schema_path, recovery_schema_path, rollup_schema_path, loop_path, collector_path, runtime_path, test_path]
+    paths = [schema_path, recovery_schema_path, rollup_schema_path, loop_path, collector_path, runtime_path, market_data_path, test_path]
     schema = load_json(schema_path)
     if schema.get("$id") != "trader1.upbit_paper_persistent_loop_report.v1":
         return fail_result("upbit_paper_persistent_loop_validator", "Upbit PAPER persistent loop schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
@@ -5477,6 +5478,20 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         "requested_cycle_count",
         "completed_cycle_count",
         "cycle_results",
+        "symbol_universe",
+        "symbol_universe_source",
+        "public_symbol_discovery_attempted",
+        "symbol_universe_discovery_status",
+        "symbol_universe_discovery_blocker_code",
+        "symbol_universe_total_count",
+        "symbol_universe_evaluated_count",
+        "max_symbol_evaluation_count",
+        "public_symbol_discovery_market_count",
+        "public_ticker_ranked_symbol_count",
+        "public_ticker_eligible_symbol_count",
+        "public_symbol_discovery_report",
+        "public_ticker_snapshot_report",
+        "public_symbol_ranking_report",
         "preflight_existing_runtime_state_detected",
         "preflight_recovery_guard_status",
         "preflight_recovery_guard_hash",
@@ -5528,6 +5543,10 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         "runtime_public_market_data_hash",
         "feature_snapshot_hash",
         "regime",
+        "symbol_universe",
+        "symbol_universe_source",
+        "symbol_universe_total_count",
+        "symbol_universe_evaluated_count",
         "selected_candidate_id",
         "selected_candidate_net_ev_after_cost_bps",
         "strategy_regime_cost_linkage",
@@ -5570,6 +5589,15 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
             return fail_result("upbit_paper_persistent_loop_validator", f"valid persistent PAPER loop failed: {result.message}", paths, result.blocker_code or "UNKNOWN_BLOCKED")
         if loop.get("completed_cycle_count") != 2 or not loop.get("actual_paper_runtime_executed"):
             return fail_result("upbit_paper_persistent_loop_validator", "persistent loop did not execute requested PAPER cycles", paths, "MEASUREMENT_MISSING")
+        if (
+            loop.get("symbol_universe_source") not in {"STATIC_FALLBACK_CONFIGURED_KRW_UNIVERSE", "EXPLICIT_SYMBOL_UNIVERSE", "PUBLIC_KRW_MARKET_DISCOVERY_TICKER_RANKED"}
+            or loop.get("symbol_universe_discovery_status") not in {"SKIPPED", "PASS"}
+            or loop.get("symbol_universe_evaluated_count") != len(loop.get("symbol_universe") or [])
+            or loop.get("symbol_universe_total_count", 0) < loop.get("symbol_universe_evaluated_count", 0)
+        ):
+            return fail_result("upbit_paper_persistent_loop_validator", "persistent loop did not expose coherent symbol universe discovery state", paths, "SCHEMA_IDENTITY_MISMATCH")
+        if len(loop.get("symbol_universe") or []) < 10:
+            return fail_result("upbit_paper_persistent_loop_validator", "default PAPER symbol universe is too narrow for practical candidate selection", paths, "MEASUREMENT_MISSING")
         if loop.get("preflight_recovery_guard_status") != "SKIPPED" or not loop.get("current_evidence_write_allowed"):
             return fail_result("upbit_paper_persistent_loop_validator", "initial persistent loop did not skip clean preflight safely", paths, "SCHEMA_IDENTITY_MISMATCH")
         if loop.get("long_run_evidence_eligible") or loop.get("promotion_eligible") or loop.get("live_order_allowed"):
@@ -5584,8 +5612,14 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         if loop.get("paper_ledger_rollup_status") != "PASS" or loop.get("paper_ledger_rollup_primary_blocker_code") is not None:
             return fail_result("upbit_paper_persistent_loop_validator", "valid persistent loop did not pass ledger rollup", paths, "RECONCILIATION_REQUIRED")
         for cycle_result in loop.get("cycle_results", []):
-            if cycle_result.get("runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION":
+            if cycle_result.get("runtime_input_role") not in {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"}:
                 return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cycle summary is not public-collection bound", paths, "MEASUREMENT_MISSING")
+            if (
+                cycle_result.get("symbol_universe_source") != loop.get("symbol_universe_source")
+                or cycle_result.get("symbol_universe_evaluated_count") != len(cycle_result.get("symbol_universe") or [])
+                or cycle_result.get("selected_symbol") not in (cycle_result.get("symbol_universe") or [])
+            ):
+                return fail_result("upbit_paper_persistent_loop_validator", "persistent loop cycle summary lost symbol universe binding", paths, "SCHEMA_IDENTITY_MISMATCH")
             for hash_field in (
                 "source_collection_report_hash",
                 "source_public_market_data_hash",
@@ -5636,7 +5670,7 @@ def upbit_paper_persistent_loop_validator() -> ValidatorResult:
         if not latest_path.exists():
             return fail_result("upbit_paper_persistent_loop_validator", "persistent loop did not write latest PAPER runtime cycle", paths, "MEASUREMENT_MISSING")
         latest_cycle = load_json(latest_path)
-        if latest_cycle.get("runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION":
+        if latest_cycle.get("runtime_input_role") not in {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"}:
             return fail_result("upbit_paper_persistent_loop_validator", "latest cycle is not bound to public collection input", paths, "SCHEMA_IDENTITY_MISMATCH")
         if latest_cycle.get("live_order_allowed") or latest_cycle.get("can_live_trade") or latest_cycle.get("scale_up_allowed"):
             return fail_result("upbit_paper_persistent_loop_validator", "latest cycle drifted into live or scale-up permission", paths, "LIVE_FINAL_GUARD_FAILED")
@@ -14522,7 +14556,7 @@ def upbit_paper_post_rerun_current_evidence_closure_recheck_validator() -> Valid
         or report.get("ledger_source_persistent_loop_validation_status") != "PASS"
         or report.get("ledger_source_persistent_loop_hash_self_check") != "PASS"
         or report.get("ledger_head_cycle_in_persistent_loop") is not True
-        or report.get("ledger_source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION"
+        or report.get("ledger_source_runtime_input_role") not in {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"}
         or report.get("ledger_source_public_market_data_hash") != report.get("ledger_source_runtime_public_market_data_hash")
         or report.get("ledger_source_canonical_event_count", 0) < 5
         or report.get("ledger_source_runtime_depth_status") != "PASS"
@@ -14776,7 +14810,7 @@ def upbit_paper_post_rerun_reconciliation_repair_path_validator() -> ValidatorRe
         or report.get("source_recheck_ledger_source_persistent_loop_validation_status") != "PASS"
         or report.get("source_recheck_ledger_source_persistent_loop_hash_self_check") != "PASS"
         or report.get("source_recheck_ledger_head_cycle_in_persistent_loop") is not True
-        or report.get("source_recheck_ledger_source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION"
+        or report.get("source_recheck_ledger_source_runtime_input_role") not in {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"}
         or report.get("source_recheck_ledger_source_public_market_data_hash")
         != report.get("source_recheck_ledger_source_runtime_public_market_data_hash")
         or report.get("source_recheck_ledger_source_canonical_event_count", 0) < 5
