@@ -4721,6 +4721,99 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["can_live_trade"])
         self.assertFalse(dashboard["scale_up_allowed"])
 
+    def test_dashboard_compacts_audited_writer_blocker_decision_for_single_run_snapshot(self):
+        dashboard = build_dashboard_with_full_audited_writer_activation_chain()
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(
+            portfolio["audited_writer_blocker_decision_status"],
+            "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED",
+        )
+        self.assertEqual(
+            portfolio["audited_writer_blocker_decision_code"],
+            "CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED",
+        )
+        self.assertEqual(
+            portfolio["audited_writer_blocker_truth_class"],
+            "SINGLE_RUN_AUDITED_PAPER_SNAPSHOT_DISPLAY_ONLY",
+        )
+        self.assertEqual(portfolio["audited_writer_blocker_priority_rank"], 3)
+        self.assertEqual(portfolio["audited_writer_blocker_current_stage_id"], "CONTINUOUS_WRITER_LOOP")
+        self.assertTrue(portfolio["audited_writer_blocker_allows_single_run_paper_display"])
+        self.assertTrue(portfolio["audited_writer_blocker_blocks_continuous_current_evidence_write"])
+        self.assertIn(
+            "continuous current-evidence writer remains blocked",
+            portfolio["audited_writer_blocker_summary"],
+        )
+        for field in (
+            "audited_writer_blocker_current_evidence_write_allowed",
+            "audited_writer_blocker_portfolio_truth_write_allowed",
+            "audited_writer_blocker_live_review_allowed",
+            "audited_writer_blocker_gap_closure_allowed",
+            "audited_writer_blocker_live_order_ready",
+            "audited_writer_blocker_live_order_allowed",
+            "audited_writer_blocker_can_live_trade",
+            "audited_writer_blocker_scale_up_allowed",
+        ):
+            self.assertFalse(portfolio[field])
+
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Writer blocker:", html)
+        self.assertIn("SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED", html)
+        self.assertIn("CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED", html)
+        self.assertNotIn("<button", html)
+        self.assertNotIn("<form", html)
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_compacts_audited_writer_blocker_decision_for_precheck_blocker(self):
+        dashboard = build_dashboard_with_audited_writer_precheck()
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["audited_writer_blocker_decision_status"], "BLOCKED_INPUTS")
+        self.assertEqual(
+            portfolio["audited_writer_blocker_decision_code"],
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+        )
+        self.assertEqual(portfolio["audited_writer_blocker_truth_class"], "CONFIGURED_PAPER_BASELINE_ONLY")
+        self.assertEqual(portfolio["audited_writer_blocker_priority_rank"], 1)
+        self.assertEqual(portfolio["audited_writer_blocker_current_stage_id"], "DRY_RUN_REPORT")
+        self.assertFalse(portfolio["audited_writer_blocker_allows_single_run_paper_display"])
+        self.assertTrue(portfolio["audited_writer_blocker_blocks_continuous_current_evidence_write"])
+        self.assertIn("configured PAPER capital is not current cash", portfolio["audited_writer_blocker_summary"])
+        self.assertFalse(portfolio["audited_writer_blocker_current_evidence_write_allowed"])
+        self.assertFalse(portfolio["audited_writer_blocker_portfolio_truth_write_allowed"])
+        self.assertFalse(portfolio["audited_writer_blocker_live_review_allowed"])
+        self.assertFalse(portfolio["audited_writer_blocker_gap_closure_allowed"])
+        self.assertFalse(portfolio["audited_writer_blocker_live_order_ready"])
+        self.assertFalse(portfolio["audited_writer_blocker_live_order_allowed"])
+        self.assertFalse(portfolio["audited_writer_blocker_can_live_trade"])
+        self.assertFalse(portfolio["audited_writer_blocker_scale_up_allowed"])
+
+    def test_dashboard_blocks_audited_writer_blocker_decision_permission_drift(self):
+        dashboard = build_dashboard_with_full_audited_writer_activation_chain()
+        portfolio = dashboard["portfolio_snapshot"]
+        portfolio["audited_writer_blocker_current_evidence_write_allowed"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_blocks_audited_writer_blocker_decision_status_drift(self):
+        dashboard = build_dashboard_with_full_audited_writer_activation_chain()
+        portfolio = dashboard["portfolio_snapshot"]
+        portfolio["audited_writer_blocker_decision_status"] = "BLOCKED_INPUTS"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
     def test_dashboard_keeps_audited_current_evidence_writer_portfolio_unverified_on_live_drift(self):
         writer_report, current_evidence, paper_portfolio, implementation_prep = audited_writer_output_fixture()
         current_evidence = dict(current_evidence)

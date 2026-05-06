@@ -8501,6 +8501,11 @@
         "source_snapshot_stale_after_seconds",
         "source_snapshot_freshness_message",
         "source_balance_kind",
+        "paper_value_truth_status",
+        "paper_value_truth_message",
+        "runtime_continuity_status",
+        "audited_writer_lifecycle_status",
+        "operator_truth_summary",
         "configured_paper_capital",
         "cash",
         "equity",
@@ -8635,6 +8640,89 @@
         "operator_truth_summary": {
           "type": "string",
           "minLength": 1
+        },
+        "audited_writer_blocker_decision_status": {
+          "enum": [
+            "NO_CHAIN_LOADED",
+            "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER",
+            "BLOCKED_INPUTS",
+            "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED",
+            "INVALID_DRIFT"
+          ]
+        },
+        "audited_writer_blocker_decision_code": {
+          "enum": [
+            "NO_AUDITED_WRITER_EVIDENCE",
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+            "CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED",
+            "LIVE_FINAL_GUARD_FAILED"
+          ]
+        },
+        "audited_writer_blocker_truth_class": {
+          "enum": [
+            "CONFIGURED_PAPER_BASELINE_ONLY",
+            "SUMMARY_LEDGER_DISPLAY_ONLY",
+            "SINGLE_RUN_AUDITED_PAPER_SNAPSHOT_DISPLAY_ONLY",
+            "INVALID_OR_DRIFTED_WRITER_EVIDENCE"
+          ]
+        },
+        "audited_writer_blocker_priority_rank": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audited_writer_blocker_current_stage_id": {
+          "enum": [
+            "PRECHECK_REPORT",
+            "DRY_RUN_REPORT",
+            "LOCKED_OUTPUT_REPORT",
+            "IMPLEMENTATION_PREP_REPORT",
+            "SINGLE_RUN_AUDITED_WRITER_OUTPUT",
+            "CONTINUOUS_WRITER_LOOP"
+          ]
+        },
+        "audited_writer_blocker_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "audited_writer_blocker_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "audited_writer_blocker_allows_single_run_paper_display": {
+          "type": "boolean"
+        },
+        "audited_writer_blocker_blocks_continuous_current_evidence_write": {
+          "const": true
+        },
+        "audited_writer_blocker_current_evidence_write_allowed": {
+          "const": false
+        },
+        "audited_writer_blocker_portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "audited_writer_blocker_live_review_allowed": {
+          "const": false
+        },
+        "audited_writer_blocker_gap_closure_allowed": {
+          "const": false
+        },
+        "audited_writer_blocker_live_order_ready": {
+          "const": false
+        },
+        "audited_writer_blocker_live_order_allowed": {
+          "const": false
+        },
+        "audited_writer_blocker_can_live_trade": {
+          "const": false
+        },
+        "audited_writer_blocker_scale_up_allowed": {
+          "const": false
+        },
+        "audited_writer_blocker_display_only": {
+          "const": true
+        },
+        "audited_writer_blocker_dashboard_truth_only": {
+          "const": true
         },
         "audited_writer_readiness_ladder_status": {
           "enum": [

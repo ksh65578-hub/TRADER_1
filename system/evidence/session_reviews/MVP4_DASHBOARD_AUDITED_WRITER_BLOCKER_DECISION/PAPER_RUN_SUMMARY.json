@@ -1,0 +1,13 @@
+{
+  "patch_id": "MVP4_DASHBOARD_AUDITED_WRITER_BLOCKER_DECISION_20260506_001",
+  "generated_at_utc": "2026-05-06T03:07:41Z",
+  "new_paper_run_started_by_this_patch": false,
+  "paper_only": true,
+  "audited_writer_blocker_decision_added": true,
+  "continuous_current_evidence_writer_enabled_by_this_patch": false,
+  "runtime_evidence_claimed_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
