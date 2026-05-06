@@ -1,0 +1,13 @@
+{
+  "patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_20260506_001",
+  "generated_at_utc": "2026-05-06T06:02:39Z",
+  "status": "PASS_RUNTIME_TRUTH_STATE_VISIBLE_LIVE_BLOCKED",
+  "dashboard_source_artifact_added": "paper_runtime_truth_state_report.json",
+  "dashboard_operation_status_distinguishes_monitor_from_engine": true,
+  "market_continuity_warn_visible": true,
+  "dashboard_display_truth_only": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

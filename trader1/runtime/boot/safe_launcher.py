@@ -90,6 +90,10 @@ from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence impor
 )
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
+from trader1.runtime.paper.paper_runtime_truth_state import (
+    build_paper_runtime_truth_state_report,
+    validate_paper_runtime_truth_state_report,
+)
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
     validate_paper_portfolio_snapshot,
@@ -604,6 +608,9 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         / "paper_runtime"
         / "current_evidence"
         / "paper_current_truth_refresh_report.json",
+        "paper_runtime_truth_state_report": base
+        / "paper_runtime"
+        / "paper_runtime_truth_state_report.json",
         "audited_paper_portfolio_snapshot": base
         / "paper_runtime"
         / "portfolio"
@@ -1797,6 +1804,10 @@ def build_launcher_dashboard_artifacts(
             paths["paper_current_truth_refresh_report"],
             root,
         ),
+        "paper_runtime_truth_state_report": _runtime_display_path(
+            paths["paper_runtime_truth_state_report"],
+            root,
+        ),
         "audited_paper_portfolio_snapshot": _runtime_display_path(
             paths["audited_paper_portfolio_snapshot"],
             root,
@@ -1912,6 +1923,22 @@ def build_launcher_dashboard_artifacts(
         load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(report, root)
     )
     upbit_public_rest_continuity_history = load_scoped_upbit_public_rest_continuity_history(report, root)
+    paper_runtime_truth_state_report = None
+    if report["exchange"] == "UPBIT" and report["market_type"] == "KRW_SPOT" and report["mode"] == "PAPER":
+        paper_runtime_truth_state_report = build_paper_runtime_truth_state_report(
+            exchange=report["exchange"],
+            market_type=report["market_type"],
+            mode=report["mode"],
+            session_id=report["session_id"],
+            heartbeat=heartbeat,
+            upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
+            upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
+            paper_ledger_rollup_report=paper_ledger_rollup_report,
+            paper_current_truth_refresh_report=paper_current_truth_refresh_report,
+        )
+        runtime_truth_result = validate_paper_runtime_truth_state_report(paper_runtime_truth_state_report)
+        if runtime_truth_result.status == "FAIL":
+            raise RuntimeError(f"paper runtime truth state failed closed validation: {runtime_truth_result.message}")
     shadow_runtime_harness_report = load_shadow_runtime_harness_report(report, root)
     shadow_persistent_runtime_report = load_shadow_persistent_runtime_report(report, root)
     shadow_runtime_orchestration_report = load_shadow_runtime_orchestration_report(report, root)
@@ -1958,6 +1985,7 @@ def build_launcher_dashboard_artifacts(
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
         upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
+        paper_runtime_truth_state_report=paper_runtime_truth_state_report,
         stability_history=stability_history,
         shadow_runtime_harness_report=shadow_runtime_harness_report,
         shadow_persistent_runtime_report=shadow_persistent_runtime_report,
@@ -1971,6 +1999,7 @@ def build_launcher_dashboard_artifacts(
         "audited_current_evidence_snapshot": audited_current_evidence_snapshot,
         "audited_paper_portfolio_snapshot": audited_paper_portfolio_snapshot,
         "paper_current_truth_refresh_report": paper_current_truth_refresh_report,
+        "paper_runtime_truth_state_report": paper_runtime_truth_state_report,
         "summary": summary,
         "dashboard_shell": dashboard,
         "dashboard_html": render_dashboard_html(dashboard),
@@ -2006,6 +2035,8 @@ def _write_launcher_dashboard_unlocked(report: dict[str, Any], root: Path = ROOT
         write_json(paths["paper_portfolio_snapshot"], artifacts["paper_portfolio_snapshot"])
     if artifacts["paper_current_truth_refresh_report"] is not None:
         write_json(paths["paper_current_truth_refresh_report"], artifacts["paper_current_truth_refresh_report"])
+    if artifacts["paper_runtime_truth_state_report"] is not None:
+        write_json(paths["paper_runtime_truth_state_report"], artifacts["paper_runtime_truth_state_report"])
     write_json(paths["stability_history"], stability_history)
     write_json(paths["summary"], artifacts["summary"])
     write_json(paths["dashboard_shell"], artifacts["dashboard_shell"])

@@ -132,12 +132,16 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertTrue(dashboard_paths["dashboard_shell"].exists())
             self.assertTrue(dashboard_paths["paper_portfolio_snapshot"].exists())
             self.assertTrue(dashboard_paths["paper_current_truth_refresh_report"].exists())
+            self.assertTrue(dashboard_paths["paper_runtime_truth_state_report"].exists())
             self.assertTrue(dashboard_paths["stability_history"].exists())
             dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
             current_truth_refresh = load_json(dashboard_paths["paper_current_truth_refresh_report"])
+            runtime_truth = load_json(dashboard_paths["paper_runtime_truth_state_report"])
             stability_history = load_json(dashboard_paths["stability_history"])
             self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "VERIFIED")
             self.assertEqual(current_truth_refresh["refresh_status"], "PASS_PAPER_CURRENT_TRUTH_REFRESHED")
+            self.assertEqual(runtime_truth["runtime_truth_status"], "MONITOR_ALIVE_ENGINE_NOT_PROVEN")
+            self.assertIn("PAPER engine not proven", dashboard_shell["operation_status"]["message"])
             self.assertEqual(
                 current_truth_refresh["source_portfolio_snapshot_hash"],
                 load_json(dashboard_paths["paper_portfolio_snapshot"])["snapshot_hash"],
@@ -156,6 +160,7 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertIn(str(dashboard_paths["dashboard_html"]), message)
             source_files = {source["filename"] for source in dashboard_shell["source_artifacts"]}
             self.assertIn("paper_current_truth_refresh_report.json", source_files)
+            self.assertIn("paper_runtime_truth_state_report.json", source_files)
 
     def test_launcher_dashboard_loads_audited_current_evidence_portfolio_truth(self):
         report = build_launcher_report("UPBIT_PAPER")

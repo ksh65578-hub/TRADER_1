@@ -88,12 +88,14 @@ def build_upbit_public_rest_continuity_history_report(
 
     if not attempts:
         blockers.append(_blocker("DATA_UNAVAILABLE", "public REST continuity history has no attempts yet"))
+    elif latest_status == "WARN":
+        blockers.append(_blocker(str(latest_blocker or "DATA_QUALITY_INSUFFICIENT"), "latest public REST continuity attempt is structurally valid but short-window non-advancing"))
     elif latest_status != "PASS":
         blockers.append(_blocker(str(latest_blocker or "DATA_QUALITY_INSUFFICIENT"), "latest public REST continuity attempt is not PASS"))
     elif pass_count < min_required_pass_attempts:
         blockers.append(_blocker("DATA_QUALITY_INSUFFICIENT", "public REST continuity history has insufficient PASS attempts"))
 
-    status = "PASS" if not blockers else "BLOCKED"
+    status = "PASS" if not blockers else "WARN" if latest_status == "WARN" and pass_count >= 1 else "BLOCKED"
     report = {
         "schema_id": UPBIT_PUBLIC_REST_CONTINUITY_HISTORY_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -230,6 +232,8 @@ def validate_upbit_public_rest_continuity_history_report(report: dict[str, Any])
             pass_count += 1
         elif result.status == "BLOCKED":
             blocked_count += 1
+        elif result.status == "WARN":
+            pass
     if pass_count != report.get("pass_attempt_count") or blocked_count != report.get("blocked_attempt_count"):
         return UpbitPublicRestContinuityHistoryValidationResult("FAIL", "continuity history status counts mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if _count_with_flag(attempts, "duplicate_latest_event_time_detected") != report.get("duplicate_latest_event_block_count"):
@@ -256,6 +260,14 @@ def validate_upbit_public_rest_continuity_history_report(report: dict[str, Any])
         if expected_latest_status != "PASS":
             return UpbitPublicRestContinuityHistoryValidationResult("FAIL", "PASS continuity history requires latest PASS attempt", "DATA_QUALITY_INSUFFICIENT")
         return UpbitPublicRestContinuityHistoryValidationResult("PASS", "Upbit public REST continuity history is PAPER-only and currently healthy", None)
+    if report.get("continuity_health_status") == "WARN":
+        if not blockers or report.get("primary_blocker_code") is None:
+            return UpbitPublicRestContinuityHistoryValidationResult("FAIL", "WARN continuity history must expose blocker", "SCHEMA_IDENTITY_MISMATCH")
+        if expected_latest_status != "WARN":
+            return UpbitPublicRestContinuityHistoryValidationResult("FAIL", "WARN continuity history requires latest WARN attempt", "DATA_QUALITY_INSUFFICIENT")
+        if pass_count < 1:
+            return UpbitPublicRestContinuityHistoryValidationResult("BLOCKED", "WARN continuity history requires at least one PASS attempt in the short window", "DATA_QUALITY_INSUFFICIENT")
+        return UpbitPublicRestContinuityHistoryValidationResult("WARN", "Upbit public REST continuity history is structurally valid but waiting for advancing samples", report.get("primary_blocker_code"))
     if not blockers or report.get("primary_blocker_code") is None:
         return UpbitPublicRestContinuityHistoryValidationResult("BLOCKED", "blocked continuity history must expose blocker", "DATA_QUALITY_INSUFFICIENT")
     return UpbitPublicRestContinuityHistoryValidationResult("BLOCKED", "Upbit public REST continuity history is blocked", report.get("primary_blocker_code"))
@@ -282,7 +294,7 @@ def append_upbit_public_rest_continuity_history(
             previous = json.loads(history_path.read_text(encoding="utf-8"))
             if isinstance(previous, dict):
                 previous_result = validate_upbit_public_rest_continuity_history_report(previous)
-                if previous_result.status in {"PASS", "BLOCKED"} and isinstance(previous.get("continuity_attempts"), list):
+                if previous_result.status in {"PASS", "WARN", "BLOCKED"} and isinstance(previous.get("continuity_attempts"), list):
                     previous_attempts = [attempt for attempt in previous["continuity_attempts"] if isinstance(attempt, dict)]
                 else:
                     _quarantine_history(history_path, "invalid")

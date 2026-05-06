@@ -81,6 +81,12 @@ from trader1.runtime.portfolio.paper_current_truth_refresh import (
     validate_paper_current_truth_refresh_report,
 )
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
+from trader1.runtime.paper.paper_runtime_truth_state import (
+    MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS,
+    PAPER_RUNTIME_ACTIVE_STATUS,
+    PAPER_RUNTIME_TRUTH_ROLE,
+    validate_paper_runtime_truth_state_report,
+)
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
 from tools.run_upbit_paper_runtime_evidence_collection_profile import (
     validate_upbit_paper_runtime_evidence_collection_profile_report,
@@ -116,6 +122,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_repaired_current_evidence_audited_writer_report.json",
     "audited_current_evidence_snapshot.json",
     "paper_current_truth_refresh_report.json",
+    "paper_runtime_truth_state_report.json",
     "paper_portfolio_snapshot.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
@@ -433,9 +440,11 @@ PAPER_RUNTIME_MODE_DEPTH_SOURCE_STATUSES = {
     "BLOCKED",
 }
 PAPER_RUNTIME_MODE_DEPTH_MODES = {"PAPER", "SHADOW"}
-MARKET_DATA_CONTINUITY_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
+MARKET_DATA_CONTINUITY_STATUSES = {"NOT_LOADED", "PASS", "WARN", "BLOCKED", "STALE", "INVALID"}
 MARKET_DATA_CONTINUITY_SOURCES = {"NOT_LOADED", "rest_continuity_history.json"}
 MARKET_DATA_CONTINUITY_EVIDENCE_ROLES = {"PAPER_DATA_CONTINUITY_HISTORY_ONLY_NOT_LIVE_READY"}
+PAPER_RUNTIME_TRUTH_STATE_SOURCES = {"NOT_LOADED", "paper_runtime_truth_state_report.json"}
+PAPER_RUNTIME_TRUTH_STATE_EVIDENCE_ROLES = {PAPER_RUNTIME_TRUTH_ROLE}
 RUNTIME_EVIDENCE_BOUNDARY_STATUSES = {
     "ACTUAL_LONG_RUN_MISSING",
     "ACTUAL_LONG_RUN_COLLECTING",
@@ -5459,6 +5468,13 @@ def _market_data_continuity_status(
         primary_blocker = validation_result.blocker_code or report.get("primary_blocker_code") or "DATA_QUALITY_INSUFFICIENT"
         summary = "Market-data continuity is blocked, so candidate, entry, and regime signals remain review-only."
         next_action = "Collect additional public REST continuity attempts until latest data advances and enough PASS attempts exist."
+    elif validation_result.status == "WARN":
+        status = "WARN"
+        severity = "WARNING"
+        color_token = "yellow"
+        primary_blocker = validation_result.blocker_code or report.get("primary_blocker_code") or "DATA_QUALITY_INSUFFICIENT"
+        summary = "Market-data continuity is structurally valid, but the short public REST window did not advance yet."
+        next_action = "Keep collecting public REST samples; this is PAPER data-quality evidence only, not live readiness."
     elif freshness_status != "PASS":
         status = "STALE"
         severity = "WARNING"
@@ -8875,6 +8891,7 @@ def _operation_status(
     startup_freshness: str,
     portfolio_snapshot: dict[str, Any] | None,
     reconciliation_recovery_summary: dict[str, Any] | None = None,
+    paper_runtime_truth_state_report: dict[str, Any] | None = None,
     primary_blocker: str | None = None,
 ) -> dict[str, Any]:
     heartbeat_status = heartbeat.get("heartbeat_status") if isinstance(heartbeat, dict) else "STALE"
@@ -8886,19 +8903,63 @@ def _operation_status(
     portfolio_next_action_text = str(
         portfolio_next_action or "Run PAPER with a verified paper portfolio ledger before trusting portfolio values."
     )
+    runtime_truth_result = (
+        validate_paper_runtime_truth_state_report(paper_runtime_truth_state_report)
+        if isinstance(paper_runtime_truth_state_report, dict)
+        else None
+    )
+    runtime_truth_status = (
+        str(paper_runtime_truth_state_report.get("runtime_truth_status"))
+        if isinstance(paper_runtime_truth_state_report, dict)
+        else "NOT_LOADED"
+    )
+    runtime_truth_message = (
+        str(paper_runtime_truth_state_report.get("state_summary"))
+        if isinstance(paper_runtime_truth_state_report, dict)
+        else "Monitor alive, PAPER engine not proven."
+    )
+    runtime_truth_next_action = (
+        str(paper_runtime_truth_state_report.get("next_action"))
+        if isinstance(paper_runtime_truth_state_report, dict)
+        else "Run the scoped PAPER runtime loop so ledger, market data, and current evidence can advance."
+    )
     reconciliation_blocker = _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary)
     if heartbeat_status == "PASS" and heartbeat_freshness == "PASS":
+        if runtime_truth_result is not None and runtime_truth_status == PAPER_RUNTIME_ACTIVE_STATUS:
+            return {
+                "status": "RUNNING_SAFE_MODE",
+                "severity": "NORMAL",
+                "color_token": "green",
+                "label": "PAPER runtime active",
+                "message": runtime_truth_message,
+                "recovery_hint": runtime_truth_next_action,
+                "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+                "runtime_presence": "PAPER_RUNTIME_ACTIVE",
+                "operator_meaning": "The continuous PAPER engine is connected through loop, public market data, ledger rollup, and current-evidence refresh for this session. This is still not live readiness.",
+                "source": "heartbeat.json",
+                "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
+                "heartbeat_status": "PASS",
+                "summary_freshness_status": summary_freshness,
+                "startup_freshness_status": startup_freshness,
+                "portfolio_status": portfolio_status,
+                "portfolio_blocking_reason": portfolio_blocker,
+                "portfolio_next_action": portfolio_next_action_text,
+                "primary_blocker": primary_blocker or "LIVE_READY_MISSING",
+                "live_orders_blocked": live_orders_blocked,
+            }
+        if runtime_truth_status == MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS:
+            runtime_truth_message = "Monitor alive, PAPER engine not proven."
         if portfolio_status == "STALE":
             return {
                 "status": "CHECKING_SAFE_MODE",
                 "severity": "WARNING",
                 "color_token": "yellow",
                 "label": "Running with stale portfolio",
-                "message": "Program heartbeat is fresh, but portfolio cash, equity, positions, or PnL are stale.",
-                "recovery_hint": portfolio_next_action_text,
+                "message": runtime_truth_message if runtime_truth_status == MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS else "Program heartbeat is fresh, but portfolio cash, equity, positions, or PnL are stale.",
+                "recovery_hint": runtime_truth_next_action if runtime_truth_status == MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS else portfolio_next_action_text,
                 "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
                 "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
-                "operator_meaning": "The dashboard heartbeat is fresh, but it does not prove a continuous PAPER engine is updating portfolio values.",
+                "operator_meaning": "The monitor heartbeat is fresh, but the dashboard does not have proof that the continuous PAPER engine is advancing current truth.",
                 "source": "summary.json",
                 "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
                 "heartbeat_status": "PASS",
@@ -8916,11 +8977,11 @@ def _operation_status(
                 "severity": "WARNING",
                 "color_token": "yellow",
                 "label": "Running without verified portfolio",
-                "message": "Program heartbeat is fresh, but portfolio cash, equity, positions, and PnL are not verified yet.",
-                "recovery_hint": portfolio_next_action_text,
+                "message": runtime_truth_message if runtime_truth_status == MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS else "Program heartbeat is fresh, but portfolio cash, equity, positions, and PnL are not verified yet.",
+                "recovery_hint": runtime_truth_next_action if runtime_truth_status == MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS else portfolio_next_action_text,
                 "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
                 "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
-                "operator_meaning": "The dashboard heartbeat is fresh, but it does not prove a continuous PAPER engine is updating portfolio values.",
+                "operator_meaning": "The monitor heartbeat is fresh, but the dashboard does not have proof that the continuous PAPER engine is advancing current truth.",
                 "source": "summary.json",
                 "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
                 "heartbeat_status": "PASS",
@@ -8959,11 +9020,11 @@ def _operation_status(
             "severity": "NORMAL",
             "color_token": "green",
             "label": "Running safely",
-            "message": "Program heartbeat is fresh for this safe boot; SAFE_MODE is active and live orders remain blocked.",
-            "recovery_hint": "No recovery needed for the latest safe boot. Use explicit PAPER runtime evidence before treating portfolio or strategy output as continuously updated.",
+            "message": runtime_truth_message if runtime_truth_status == MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS else "Program heartbeat is fresh for this safe boot; SAFE_MODE is active and live orders remain blocked.",
+            "recovery_hint": runtime_truth_next_action if runtime_truth_status == MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS else "No recovery needed for the latest safe boot. Use explicit PAPER runtime evidence before treating portfolio or strategy output as continuously updated.",
             "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
             "runtime_presence": "DASHBOARD_HEARTBEAT_ONLY",
-            "operator_meaning": "This status means the latest launcher/dashboard heartbeat is fresh. It is not live readiness and it is not proof that a continuous PAPER engine is running.",
+            "operator_meaning": "Monitor alive, continuous PAPER engine not proven. This is not live readiness.",
             "source": "heartbeat.json",
             "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
             "heartbeat_status": "PASS",
@@ -14910,6 +14971,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_paper_runtime_evidence_collection_profile_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
+    paper_runtime_truth_state_report: dict[str, Any] | None = None,
     optimizer_feedback_report: dict[str, Any] | None = None,
     convergence_assessment_report: dict[str, Any] | None = None,
     exploration_exploitation_policy: dict[str, Any] | None = None,
@@ -14964,6 +15026,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_repaired_current_evidence_audited_writer": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_report.json",
         "audited_current_evidence_snapshot": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
         "paper_current_truth_refresh_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/current_evidence/paper_current_truth_refresh_report.json",
+        "paper_runtime_truth_state_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/paper_runtime_truth_state_report.json",
         "audited_paper_portfolio_snapshot": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/portfolio/paper_portfolio_snapshot.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
@@ -15028,6 +15091,30 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 refresh_freshness,
+            )
+        )
+    if isinstance(paper_runtime_truth_state_report, dict):
+        runtime_truth_result = validate_paper_runtime_truth_state_report(paper_runtime_truth_state_report)
+        runtime_truth_freshness = (
+            "PASS"
+            if _freshness_from_generated_at(paper_runtime_truth_state_report) == "PASS"
+            and runtime_truth_result.status in {"PASS", "BLOCKED"}
+            and paper_runtime_truth_state_report.get("evidence_role") == PAPER_RUNTIME_TRUTH_ROLE
+            and paper_runtime_truth_state_report.get("live_order_ready") is False
+            and paper_runtime_truth_state_report.get("live_order_allowed") is False
+            and paper_runtime_truth_state_report.get("can_live_trade") is False
+            and paper_runtime_truth_state_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "PAPER_RUNTIME_TRUTH_STATE",
+                paths.get(
+                    "paper_runtime_truth_state_report",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/paper_runtime_truth_state_report.json",
+                ),
+                True,
+                runtime_truth_freshness,
             )
         )
     if isinstance(candidate_scorecard, dict):
@@ -16276,7 +16363,7 @@ def build_read_only_dashboard_shell(
         continuity_freshness = (
             "PASS"
             if _freshness_from_generated_at(upbit_public_rest_continuity_history) == "PASS"
-            and market_data_continuity_status["status"] in {"PASS", "BLOCKED"}
+            and market_data_continuity_status["status"] in {"PASS", "WARN", "BLOCKED"}
             else "STALE"
         )
         source_artifacts.append(
@@ -16343,6 +16430,7 @@ def build_read_only_dashboard_shell(
         startup_freshness=startup_freshness,
         portfolio_snapshot=portfolio_snapshot,
         reconciliation_recovery_summary=reconciliation_recovery_summary,
+        paper_runtime_truth_state_report=paper_runtime_truth_state_report,
         primary_blocker=primary_blocker,
     )
     stability_trends = _stability_trends(
@@ -17550,7 +17638,7 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "operation status must expose recovery guidance", "SCHEMA_IDENTITY_MISMATCH")
     if operation.get("launcher_execution_mode") != "SAFE_BOOT_OR_EXPLICIT_MONITOR":
         return DashboardValidationResult("FAIL", "operation status must distinguish safe boot from runtime execution", "SCHEMA_IDENTITY_MISMATCH")
-    if operation.get("runtime_presence") not in {"DASHBOARD_HEARTBEAT_ONLY", "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED"}:
+    if operation.get("runtime_presence") not in {"DASHBOARD_HEARTBEAT_ONLY", "PAPER_RUNTIME_ACTIVE", "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED"}:
         return DashboardValidationResult("FAIL", "operation status runtime presence is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if not isinstance(operation.get("operator_meaning"), str) or "continuous PAPER engine" not in operation.get("operator_meaning", ""):
         return DashboardValidationResult("FAIL", "operation status must prevent continuous-runtime misunderstanding", "SCHEMA_IDENTITY_MISMATCH")
@@ -20210,8 +20298,8 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "PASS market-data continuity requires repeated PAPER PASS attempts and live still blocked", "LIVE_FINAL_GUARD_FAILED")
     if market_data.get("status") == "NOT_LOADED" and market_data.get("source") != "NOT_LOADED":
         return DashboardValidationResult("FAIL", "not-loaded market-data continuity must not cite a report source", "SCHEMA_IDENTITY_MISMATCH")
-    if market_data.get("status") in {"BLOCKED", "STALE"} and market_data.get("severity") != "WARNING":
-        return DashboardValidationResult("FAIL", "blocked or stale market-data continuity must render as warning", "SCHEMA_IDENTITY_MISMATCH")
+    if market_data.get("status") in {"WARN", "BLOCKED", "STALE"} and market_data.get("severity") != "WARNING":
+        return DashboardValidationResult("FAIL", "warn, blocked, or stale market-data continuity must render as warning", "SCHEMA_IDENTITY_MISMATCH")
     if market_data.get("status") == "INVALID" and market_data.get("severity") != "ERROR":
         return DashboardValidationResult("FAIL", "invalid market-data continuity must render as error", "SCHEMA_IDENTITY_MISMATCH")
 
