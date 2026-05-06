@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 from trader1.runtime.portfolio.paper_portfolio import (
+    MARK_TO_MARKET_BLOCKED_STATUS,
+    MARK_TO_MARKET_NOT_REQUIRED_STATUS,
+    MARK_TO_MARKET_PASS_STATUS,
     PAPER_PORTFOLIO_SCHEMA_ID,
     paper_portfolio_hash,
     validate_paper_portfolio_snapshot,
@@ -215,6 +218,46 @@ def build_paper_current_truth_refresh_report(
             if portfolio_valid and isinstance(paper_portfolio_snapshot.get("positions"), list)
             else []
         ),
+        "mark_to_market_status": (
+            paper_portfolio_snapshot.get("mark_to_market_status")
+            if portfolio_valid
+            else MARK_TO_MARKET_BLOCKED_STATUS
+        ),
+        "mark_price_source": (
+            paper_portfolio_snapshot.get("mark_price_source")
+            if portfolio_valid
+            else None
+        ),
+        "source_public_market_data_hash": (
+            paper_portfolio_snapshot.get("source_public_market_data_hash")
+            if portfolio_valid
+            else None
+        ),
+        "source_public_market_data_generated_at_utc": (
+            paper_portfolio_snapshot.get("source_public_market_data_generated_at_utc")
+            if portfolio_valid
+            else None
+        ),
+        "source_public_market_event_time_utc": (
+            paper_portfolio_snapshot.get("source_public_market_event_time_utc")
+            if portfolio_valid
+            else None
+        ),
+        "source_public_market_event_hash": (
+            paper_portfolio_snapshot.get("source_public_market_event_hash")
+            if portfolio_valid
+            else None
+        ),
+        "marked_to_market_position_count": (
+            paper_portfolio_snapshot.get("marked_to_market_position_count", 0)
+            if portfolio_valid
+            else 0
+        ),
+        "mark_to_market_blocker_code": (
+            paper_portfolio_snapshot.get("mark_to_market_blocker_code")
+            if portfolio_valid
+            else primary_blocker_code
+        ),
         "heartbeat_pass": heartbeat_pass,
         "startup_probe_pass": startup_pass,
         "paper_only": True,
@@ -374,6 +417,25 @@ def validate_paper_current_truth_refresh_report(
         ):
             return PaperCurrentTruthRefreshValidationResult(
                 "FAIL", "paper current truth refresh PASS invariant mismatch", "SCHEMA_IDENTITY_MISMATCH"
+            )
+        if report.get("open_position_count", 0) > 0 and report.get("mark_to_market_status") is not None:
+            if report.get("mark_to_market_status") != MARK_TO_MARKET_PASS_STATUS:
+                return PaperCurrentTruthRefreshValidationResult(
+                    "BLOCKED",
+                    "open PAPER positions require public mark-to-market current truth",
+                    report.get("mark_to_market_blocker_code") or "DATA_UNAVAILABLE",
+                )
+            if not isinstance(report.get("source_public_market_data_hash"), str) or len(report["source_public_market_data_hash"]) != 64:
+                return PaperCurrentTruthRefreshValidationResult(
+                    "FAIL", "marked current truth missing public market data hash", "SCHEMA_IDENTITY_MISMATCH"
+                )
+            if report.get("marked_to_market_position_count") != report.get("open_position_count"):
+                return PaperCurrentTruthRefreshValidationResult(
+                    "FAIL", "marked current truth position count mismatch", "SCHEMA_IDENTITY_MISMATCH"
+                )
+        elif report.get("mark_to_market_status") not in {MARK_TO_MARKET_NOT_REQUIRED_STATUS, MARK_TO_MARKET_PASS_STATUS, None}:
+            return PaperCurrentTruthRefreshValidationResult(
+                "FAIL", "empty PAPER portfolio mark status is invalid", "SCHEMA_IDENTITY_MISMATCH"
             )
     elif report.get("refresh_status") == PAPER_CURRENT_TRUTH_REFRESH_BLOCKED_STATUS:
         if report.get("refresh_passed") is not False or not report.get("primary_blocker_code"):

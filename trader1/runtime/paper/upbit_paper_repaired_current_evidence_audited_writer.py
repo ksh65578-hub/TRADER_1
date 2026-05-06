@@ -11,6 +11,7 @@ from typing import Any
 from trader1.runtime.ledger.paper_ledger_rollup import (
     validate_paper_ledger_rollup_report,
 )
+from trader1.runtime.ledger.paper_ledger_input_manifest import PAPER_LEDGER_INPUT_MANIFEST_SCOPE
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_implementation_prep import (
     AUDITED_WRITER_IMPLEMENTATION_PREP_STATUS,
     validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
@@ -19,7 +20,10 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
     AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED_BLOCKER_CODE,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
-from trader1.runtime.portfolio.paper_portfolio import validate_paper_portfolio_snapshot
+from trader1.runtime.portfolio.paper_portfolio import (
+    mark_paper_portfolio_snapshot_to_public_market,
+    validate_paper_portfolio_snapshot,
+)
 
 
 UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_SCHEMA_ID = (
@@ -254,6 +258,7 @@ def _build_current_evidence_snapshot(
     source_implementation_prep_report: dict[str, Any],
     source_ledger_rollup_report: dict[str, Any],
     portfolio_snapshot: dict[str, Any],
+    public_market_data_collection_report: dict[str, Any] | None = None,
     generated_at_utc: str,
 ) -> dict[str, Any]:
     snapshot = {
@@ -290,6 +295,19 @@ def _build_current_evidence_snapshot(
         "verified_total_pnl_krw": portfolio_snapshot.get("total_pnl"),
         "verified_return_pct": portfolio_snapshot.get("return_pct"),
         "open_position_count": portfolio_snapshot.get("open_position_count"),
+        "mark_to_market_status": portfolio_snapshot.get("mark_to_market_status"),
+        "mark_price_source": portfolio_snapshot.get("mark_price_source"),
+        "source_public_market_data_hash": portfolio_snapshot.get("source_public_market_data_hash"),
+        "source_public_market_data_generated_at_utc": portfolio_snapshot.get(
+            "source_public_market_data_generated_at_utc"
+        ),
+        "source_public_market_event_time_utc": portfolio_snapshot.get("source_public_market_event_time_utc"),
+        "source_public_market_event_hash": portfolio_snapshot.get("source_public_market_event_hash"),
+        "source_public_market_data_collection_hash": (
+            public_market_data_collection_report.get("collection_hash")
+            if isinstance(public_market_data_collection_report, dict)
+            else None
+        ),
         "paper_only": True,
         "display_only": True,
         "dashboard_truth_only": True,
@@ -321,6 +339,7 @@ def _build_idempotency_manifest(
     source_ledger_rollup_report: dict[str, Any],
     current_evidence_snapshot: dict[str, Any],
     portfolio_snapshot: dict[str, Any],
+    public_market_data_collection_report: dict[str, Any] | None = None,
     generated_at_utc: str,
 ) -> dict[str, Any]:
     manifest = {
@@ -340,6 +359,14 @@ def _build_idempotency_manifest(
         ),
         "source_ledger_rollup_hash": source_ledger_rollup_report.get("rollup_hash"),
         "source_paper_ledger_head_hash": source_ledger_rollup_report.get("latest_ledger_head_hash"),
+        "source_public_market_data_hash": portfolio_snapshot.get("source_public_market_data_hash"),
+        "source_public_market_event_time_utc": portfolio_snapshot.get("source_public_market_event_time_utc"),
+        "source_public_market_event_hash": portfolio_snapshot.get("source_public_market_event_hash"),
+        "source_public_market_data_collection_hash": (
+            public_market_data_collection_report.get("collection_hash")
+            if isinstance(public_market_data_collection_report, dict)
+            else None
+        ),
         "current_evidence_snapshot_hash": current_evidence_snapshot["snapshot_hash"],
         "portfolio_snapshot_hash": portfolio_snapshot["snapshot_hash"],
         "planned_artifact_paths": EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS,
@@ -357,6 +384,8 @@ def _build_idempotency_manifest(
             "source_implementation_prep_hash": manifest["source_implementation_prep_hash"],
             "source_ledger_rollup_hash": manifest["source_ledger_rollup_hash"],
             "source_paper_ledger_head_hash": manifest["source_paper_ledger_head_hash"],
+            "source_public_market_data_hash": manifest["source_public_market_data_hash"],
+            "source_public_market_event_hash": manifest["source_public_market_event_hash"],
             "planned_artifact_paths": manifest["planned_artifact_paths"],
         }
     )
@@ -384,6 +413,17 @@ def _ledger_rollup_valid(report: dict[str, Any], session_id: str) -> tuple[bool,
     result = validate_paper_ledger_rollup_report(report)
     portfolio = report.get("portfolio_snapshot") if isinstance(report, dict) else None
     portfolio_result = validate_paper_portfolio_snapshot(portfolio) if isinstance(portfolio, dict) else None
+    ledger_head_bound = report.get("ledger_head_match_status") == "PASS" or (
+        report.get("ledger_input_scope") == PAPER_LEDGER_INPUT_MANIFEST_SCOPE
+        and report.get("ledger_head_match_status") == "NOT_APPLICABLE"
+        and isinstance(report.get("latest_ledger_head_hash"), str)
+        and len(report.get("latest_ledger_head_hash")) == 64
+        and any(
+            path.endswith("/ledger/paper_ledger_input_manifest.json")
+            for path in report.get("artifact_paths", [])
+            if isinstance(path, str)
+        )
+    )
     valid = (
         result.status == "PASS"
         and report.get("rollup_status") == "PASS"
@@ -391,7 +431,7 @@ def _ledger_rollup_valid(report: dict[str, Any], session_id: str) -> tuple[bool,
         and report.get("market_type") == "KRW_SPOT"
         and report.get("mode") == "PAPER"
         and report.get("session_id") == session_id
-        and report.get("ledger_head_match_status") == "PASS"
+        and ledger_head_bound
         and portfolio_result is not None
         and portfolio_result.status == "PASS"
         and portfolio.get("snapshot_status") == "PASS"
@@ -426,9 +466,10 @@ def _outputs_match_sources(
     outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
     source_implementation_prep_report: dict[str, Any],
     source_ledger_rollup_report: dict[str, Any],
+    source_public_market_data_hash: str | None = None,
 ) -> bool:
     current_evidence, manifest, portfolio = outputs
-    return (
+    base_match = (
         validate_upbit_paper_audited_current_evidence_snapshot(current_evidence).status == "PASS"
         and validate_upbit_paper_audited_current_evidence_idempotency_manifest(manifest).status == "PASS"
         and validate_paper_portfolio_snapshot(portfolio).status == "PASS"
@@ -441,6 +482,15 @@ def _outputs_match_sources(
         and manifest.get("source_ledger_rollup_hash") == source_ledger_rollup_report.get("rollup_hash")
         and manifest.get("current_evidence_snapshot_hash") == current_evidence.get("snapshot_hash")
         and manifest.get("portfolio_snapshot_hash") == portfolio.get("snapshot_hash")
+    )
+    if not base_match:
+        return False
+    if source_public_market_data_hash is None:
+        return True
+    return (
+        current_evidence.get("source_public_market_data_hash") == source_public_market_data_hash
+        and manifest.get("source_public_market_data_hash") == source_public_market_data_hash
+        and portfolio.get("source_public_market_data_hash") == source_public_market_data_hash
     )
 
 
@@ -507,6 +557,70 @@ def _outputs_are_stale_for_current_ledger(
         != source_ledger_rollup_report.get("latest_ledger_head_hash")
         and portfolio.get("source_paper_ledger_head_hash")
         != source_ledger_rollup_report.get("latest_ledger_head_hash")
+    )
+
+
+def _outputs_bind_current_head_but_stale_rollup(
+    *,
+    outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+    source_implementation_prep_report: dict[str, Any],
+    source_ledger_rollup_report: dict[str, Any],
+    session_id: str,
+) -> bool:
+    current_evidence, manifest, portfolio = outputs
+    latest_head_hash = source_ledger_rollup_report.get("latest_ledger_head_hash")
+    current_rollup_hash = source_ledger_rollup_report.get("rollup_hash")
+    return (
+        _outputs_are_complete_and_valid_for_scope(
+            outputs=outputs,
+            source_implementation_prep_report=source_implementation_prep_report,
+            session_id=session_id,
+        )
+        and isinstance(latest_head_hash, str)
+        and len(latest_head_hash) == 64
+        and isinstance(current_rollup_hash, str)
+        and len(current_rollup_hash) == 64
+        and current_evidence.get("source_ledger_rollup_hash") != current_rollup_hash
+        and manifest.get("source_ledger_rollup_hash") != current_rollup_hash
+        and current_evidence.get("source_paper_ledger_head_hash") == latest_head_hash
+        and manifest.get("source_paper_ledger_head_hash") == latest_head_hash
+        and portfolio.get("source_paper_ledger_head_hash") == latest_head_hash
+    )
+
+
+def _outputs_bind_current_ledger_but_stale_public_mark(
+    *,
+    outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+    source_implementation_prep_report: dict[str, Any],
+    source_ledger_rollup_report: dict[str, Any],
+    session_id: str,
+    source_public_market_data_hash: str | None,
+) -> bool:
+    if source_public_market_data_hash is None:
+        return False
+    current_evidence, manifest, portfolio = outputs
+    latest_head_hash = source_ledger_rollup_report.get("latest_ledger_head_hash")
+    current_rollup_hash = source_ledger_rollup_report.get("rollup_hash")
+    return (
+        _outputs_are_complete_and_valid_for_scope(
+            outputs=outputs,
+            source_implementation_prep_report=source_implementation_prep_report,
+            session_id=session_id,
+        )
+        and isinstance(latest_head_hash, str)
+        and len(latest_head_hash) == 64
+        and isinstance(current_rollup_hash, str)
+        and len(current_rollup_hash) == 64
+        and current_evidence.get("source_ledger_rollup_hash") == current_rollup_hash
+        and manifest.get("source_ledger_rollup_hash") == current_rollup_hash
+        and current_evidence.get("source_paper_ledger_head_hash") == latest_head_hash
+        and manifest.get("source_paper_ledger_head_hash") == latest_head_hash
+        and portfolio.get("source_paper_ledger_head_hash") == latest_head_hash
+        and (
+            current_evidence.get("source_public_market_data_hash") != source_public_market_data_hash
+            or manifest.get("source_public_market_data_hash") != source_public_market_data_hash
+            or portfolio.get("source_public_market_data_hash") != source_public_market_data_hash
+        )
     )
 
 
@@ -589,6 +703,7 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
     root: Path,
     source_implementation_prep_report: dict[str, Any],
     source_ledger_rollup_report: dict[str, Any],
+    public_market_data_collection_report: dict[str, Any] | None = None,
     audited_writer_id: str = "upbit-paper-repaired-current-evidence-audited-writer",
 ) -> dict[str, Any]:
     root = Path(root).resolve()
@@ -601,6 +716,11 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
     temp_paths_clear = all(not _target_path(runtime_base, path).exists() for path in EXPECTED_AUDITED_WRITER_TEMP_PATHS)
     lock_path = _target_path(runtime_base, EXPECTED_AUDITED_WRITER_LOCK_PATH)
     existing_outputs = _load_existing_outputs(runtime_base)
+    source_public_market_data_hash = None
+    if isinstance(public_market_data_collection_report, dict):
+        value = public_market_data_collection_report.get("collection_hash")
+        if isinstance(value, str) and len(value) == 64:
+            source_public_market_data_hash = value
     final_path_states = [
         {
             "relative_final_path": relative_path,
@@ -652,6 +772,7 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
                 outputs=existing_outputs,
                 source_implementation_prep_report=source_implementation_prep_report,
                 source_ledger_rollup_report=source_ledger_rollup_report,
+                source_public_market_data_hash=source_public_market_data_hash,
             ):
                 if _outputs_exceed_refresh_ttl(outputs=existing_outputs, now_utc=now):
                     target_dirty_cause = TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED
@@ -671,6 +792,27 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
                 target_dirty_cause = TARGET_DIRTY_CAUSE_STALE_LEDGER_SUPERSEDED
                 archive_id = _archive_id(generated_at_utc=now, outputs=existing_outputs)
                 stale_existing_outputs = existing_outputs
+            elif _outputs_bind_current_head_but_stale_rollup(
+                outputs=existing_outputs,
+                source_implementation_prep_report=source_implementation_prep_report,
+                source_ledger_rollup_report=source_ledger_rollup_report,
+                session_id=session_id,
+            ):
+                target_dirty_cause = TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED
+                archive_id = _archive_id(generated_at_utc=now, outputs=existing_outputs)
+                stale_existing_outputs = existing_outputs
+                status = AUDITED_WRITER_REFRESHED_STATUS
+            elif _outputs_bind_current_ledger_but_stale_public_mark(
+                outputs=existing_outputs,
+                source_implementation_prep_report=source_implementation_prep_report,
+                source_ledger_rollup_report=source_ledger_rollup_report,
+                session_id=session_id,
+                source_public_market_data_hash=source_public_market_data_hash,
+            ):
+                target_dirty_cause = TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED
+                archive_id = _archive_id(generated_at_utc=now, outputs=existing_outputs)
+                stale_existing_outputs = existing_outputs
+                status = AUDITED_WRITER_REFRESHED_STATUS
             else:
                 target_dirty_cause = TARGET_DIRTY_CAUSE_CONFLICTING_PROVENANCE
                 status = AUDITED_WRITER_BLOCKED_TARGET_STATUS
@@ -683,68 +825,93 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
             blocker_codes.add(primary_blocker)
         if primary_blocker is None and not idempotent_replay:
             portfolio_snapshot = dict(source_ledger_rollup_report["portfolio_snapshot"])
-            current_evidence_snapshot = _build_current_evidence_snapshot(
-                source_implementation_prep_report=source_implementation_prep_report,
-                source_ledger_rollup_report=source_ledger_rollup_report,
-                portfolio_snapshot=portfolio_snapshot,
-                generated_at_utc=now,
-            )
-            manifest = _build_idempotency_manifest(
-                source_implementation_prep_report=source_implementation_prep_report,
-                source_ledger_rollup_report=source_ledger_rollup_report,
-                current_evidence_snapshot=current_evidence_snapshot,
-                portfolio_snapshot=portfolio_snapshot,
-                generated_at_utc=now,
-            )
-            artifact_payloads = (current_evidence_snapshot, manifest, portfolio_snapshot)
-            lock_acquire_attempted = True
-            lock_acquired = _acquire_lock(
-                lock_path,
-                {
-                    "lock_schema_id": "trader1.upbit_paper_audited_current_evidence_writer_lock.v1",
-                    "created_at_utc": now,
-                    "project_id": "TRADER_1",
-                    "exchange": "UPBIT",
-                    "market_type": "KRW_SPOT",
-                    "mode": "PAPER",
-                    "session_id": session_id,
-                    "source_implementation_prep_hash": source_implementation_prep_report.get(
-                        "audited_writer_implementation_prep_hash"
-                    ),
-                    "source_ledger_rollup_hash": source_ledger_rollup_report.get("rollup_hash"),
-                    "live_order_allowed": False,
-                    "scale_up_allowed": False,
-                },
-            )
-            lock_file_written = lock_acquired
-            if not lock_acquired:
-                status = AUDITED_WRITER_BLOCKED_LOCK_STATUS
-                primary_blocker = "POST_RERUN_RECONCILIATION_REQUIRED"
-                blocker_codes.add(primary_blocker)
-                target_dirty_cause = TARGET_DIRTY_CAUSE_LOCK_BUSY
-                artifact_payloads = None
-            else:
-                try:
-                    if stale_existing_outputs is not None and archive_id is not None:
-                        archived_artifacts = _archive_existing_outputs(runtime_base=runtime_base, archive_id=archive_id)
-                        archived_artifact_count = len(archived_artifacts)
-                        stale_output_superseded = archived_artifact_count == len(EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS)
-                    for relative_final, relative_temp, payload in zip(
-                        EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS,
-                        EXPECTED_AUDITED_WRITER_TEMP_PATHS,
-                        artifact_payloads,
-                        strict=True,
-                    ):
-                        _write_json_via_declared_temp(
-                            _target_path(runtime_base, relative_final),
-                            _target_path(runtime_base, relative_temp),
-                            payload,
-                        )
-                        artifact_written_count += 1
-                finally:
-                    _release_lock(lock_path)
-                    lock_released = True
-                artifact_payloads = _load_existing_outputs(runtime_base)
+            if isinstance(public_market_data_collection_report, dict):
+                portfolio_snapshot = mark_paper_portfolio_snapshot_to_public_market(
+                    paper_portfolio_snapshot=portfolio_snapshot,
+                    public_market_data_collection_report=public_market_data_collection_report,
+                    generated_at_utc=now,
+                    require_public_mark=True,
+                )
+                portfolio_mark_result = validate_paper_portfolio_snapshot(portfolio_snapshot)
+                if portfolio_snapshot.get("snapshot_status") != "PASS" or portfolio_mark_result.status != "PASS":
+                    status = AUDITED_WRITER_BLOCKED_LEDGER_STATUS
+                    primary_blocker = (
+                        portfolio_snapshot.get("mark_to_market_blocker_code")
+                        or portfolio_snapshot.get("primary_blocker_code")
+                        or portfolio_mark_result.blocker_code
+                        or "DATA_UNAVAILABLE"
+                    )
+                    blocker_codes.add(primary_blocker)
+                    artifact_payloads = None
+                    portfolio_snapshot = {}
+            current_evidence_snapshot = None
+            manifest = None
+            if primary_blocker is None:
+                current_evidence_snapshot = _build_current_evidence_snapshot(
+                    source_implementation_prep_report=source_implementation_prep_report,
+                    source_ledger_rollup_report=source_ledger_rollup_report,
+                    portfolio_snapshot=portfolio_snapshot,
+                    public_market_data_collection_report=public_market_data_collection_report,
+                    generated_at_utc=now,
+                )
+                manifest = _build_idempotency_manifest(
+                    source_implementation_prep_report=source_implementation_prep_report,
+                    source_ledger_rollup_report=source_ledger_rollup_report,
+                    current_evidence_snapshot=current_evidence_snapshot,
+                    portfolio_snapshot=portfolio_snapshot,
+                    public_market_data_collection_report=public_market_data_collection_report,
+                    generated_at_utc=now,
+                )
+                artifact_payloads = (current_evidence_snapshot, manifest, portfolio_snapshot)
+                lock_acquire_attempted = True
+                lock_acquired = _acquire_lock(
+                    lock_path,
+                    {
+                        "lock_schema_id": "trader1.upbit_paper_audited_current_evidence_writer_lock.v1",
+                        "created_at_utc": now,
+                        "project_id": "TRADER_1",
+                        "exchange": "UPBIT",
+                        "market_type": "KRW_SPOT",
+                        "mode": "PAPER",
+                        "session_id": session_id,
+                        "source_implementation_prep_hash": source_implementation_prep_report.get(
+                            "audited_writer_implementation_prep_hash"
+                        ),
+                        "source_ledger_rollup_hash": source_ledger_rollup_report.get("rollup_hash"),
+                        "live_order_allowed": False,
+                        "scale_up_allowed": False,
+                    },
+                )
+            if primary_blocker is None:
+                lock_file_written = lock_acquired
+                if not lock_acquired:
+                    status = AUDITED_WRITER_BLOCKED_LOCK_STATUS
+                    primary_blocker = "POST_RERUN_RECONCILIATION_REQUIRED"
+                    blocker_codes.add(primary_blocker)
+                    target_dirty_cause = TARGET_DIRTY_CAUSE_LOCK_BUSY
+                    artifact_payloads = None
+                else:
+                    try:
+                        if stale_existing_outputs is not None and archive_id is not None:
+                            archived_artifacts = _archive_existing_outputs(runtime_base=runtime_base, archive_id=archive_id)
+                            archived_artifact_count = len(archived_artifacts)
+                            stale_output_superseded = archived_artifact_count == len(EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS)
+                        for relative_final, relative_temp, payload in zip(
+                            EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS,
+                            EXPECTED_AUDITED_WRITER_TEMP_PATHS,
+                            artifact_payloads,
+                            strict=True,
+                        ):
+                            _write_json_via_declared_temp(
+                                _target_path(runtime_base, relative_final),
+                                _target_path(runtime_base, relative_temp),
+                                payload,
+                            )
+                            artifact_written_count += 1
+                    finally:
+                        _release_lock(lock_path)
+                        lock_released = True
+                    artifact_payloads = _load_existing_outputs(runtime_base)
     if status == AUDITED_WRITER_BLOCKED_TARGET_STATUS and target_dirty_cause == TARGET_DIRTY_CAUSE_NONE:
         target_dirty_cause = (
             TARGET_DIRTY_CAUSE_TEMP_PATH_DIRTY if not temp_paths_clear else TARGET_DIRTY_CAUSE_CONFLICTING_PROVENANCE
@@ -873,6 +1040,7 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
         "source_ledger_rollup_status": source_ledger_rollup_report.get("rollup_status"),
         "source_ledger_rollup_validator_status": ledger_validator_status,
         "source_paper_ledger_head_hash": source_ledger_rollup_report.get("latest_ledger_head_hash"),
+        "source_public_market_data_hash": source_public_market_data_hash,
         "source_runtime_cycle_id": (source_ledger_rollup_report.get("portfolio_snapshot") or {}).get(
             "source_runtime_cycle_id"
         )
@@ -1058,10 +1226,16 @@ def validate_upbit_paper_audited_current_evidence_snapshot(
         return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
             "BLOCKED", "audited current evidence attempted live, order, or scale permission", "LIVE_FINAL_GUARD_FAILED"
         )
+    ledger_head_status_valid = snapshot.get("ledger_head_status") == "PASS" or (
+        snapshot.get("ledger_head_status") == "NOT_APPLICABLE"
+        and snapshot.get("source_ledger_rollup_status") == "PASS"
+        and isinstance(snapshot.get("source_paper_ledger_head_hash"), str)
+        and len(snapshot.get("source_paper_ledger_head_hash")) == 64
+    )
     if (
         snapshot.get("current_evidence_status") != "PASS"
         or snapshot.get("portfolio_truth_status") != "VERIFIED_PAPER_LEDGER_ROLLUP"
-        or snapshot.get("ledger_head_status") != "PASS"
+        or not ledger_head_status_valid
         or snapshot.get("cash_status") != "VERIFIED"
         or snapshot.get("equity_status") != "VERIFIED"
         or snapshot.get("paper_only") is not True

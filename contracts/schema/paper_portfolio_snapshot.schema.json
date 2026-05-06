@@ -114,8 +114,22 @@
         "source": {
           "enum": [
             "PAPER_LEDGER_SCAFFOLD",
-            "PAPER_LEDGER_ROLLUP"
+            "PAPER_LEDGER_ROLLUP",
+            "PAPER_LEDGER_ROLLUP_PUBLIC_MARK"
           ]
+        },
+        "mark_price_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_public_market_event_time_utc": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_public_market_event_hash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
         },
         "paper_only": {
           "const": true
@@ -170,7 +184,61 @@
     "source": {
       "enum": [
         "PAPER_LEDGER_SCAFFOLD",
-        "PAPER_LEDGER_ROLLUP"
+        "PAPER_LEDGER_ROLLUP",
+        "PAPER_LEDGER_ROLLUP_PUBLIC_MARK"
+      ]
+    },
+    "mark_to_market_status": {
+      "enum": [
+        "PASS_PUBLIC_MARK_TO_MARKET",
+        "NOT_REQUIRED_NO_POSITION",
+        "BLOCKED_PUBLIC_MARK_UNAVAILABLE"
+      ]
+    },
+    "mark_price_source": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_public_market_data_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "source_public_market_data_generated_at_utc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_public_market_event_time_utc": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_public_market_event_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 64,
+      "maxLength": 64
+    },
+    "source_public_market_symbol_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "marked_to_market_position_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "mark_to_market_blocker_code": {
+      "type": [
+        "string",
+        "null"
       ]
     },
     "starting_cash_source": {
@@ -233,6 +301,9 @@
       "const": false
     },
     "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
       "const": false
     },
     "can_submit_order": {

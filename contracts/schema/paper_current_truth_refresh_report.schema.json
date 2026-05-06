@@ -114,6 +114,22 @@
     "verified_return_pct": {"$ref": "#/$defs/string_or_null"},
     "open_position_count": {"type": "integer", "minimum": 0},
     "positions": {"type": "array"},
+    "mark_to_market_status": {
+      "type": ["string", "null"],
+      "enum": [
+        "PASS_PUBLIC_MARK_TO_MARKET",
+        "NOT_REQUIRED_NO_POSITION",
+        "BLOCKED_PUBLIC_MARK_UNAVAILABLE",
+        null
+      ]
+    },
+    "mark_price_source": {"$ref": "#/$defs/string_or_null"},
+    "source_public_market_data_hash": {"$ref": "#/$defs/hash_or_null"},
+    "source_public_market_data_generated_at_utc": {"$ref": "#/$defs/string_or_null"},
+    "source_public_market_event_time_utc": {"$ref": "#/$defs/string_or_null"},
+    "source_public_market_event_hash": {"$ref": "#/$defs/hash_or_null"},
+    "marked_to_market_position_count": {"type": "integer", "minimum": 0},
+    "mark_to_market_blocker_code": {"$ref": "#/$defs/string_or_null"},
     "heartbeat_pass": {"type": "boolean"},
     "startup_probe_pass": {"type": "boolean"},
     "paper_only": {"const": true},
