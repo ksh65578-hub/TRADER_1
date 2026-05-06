@@ -1,0 +1,11 @@
+{
+  "patch_id": "MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING_20260506_001",
+  "generated_at_utc": "2026-05-06T07:09:12Z",
+  "new_paper_run_started_by_this_patch": false,
+  "paper_risk_exposure_truth_binding_implemented": true,
+  "runtime_evidence_claimed_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

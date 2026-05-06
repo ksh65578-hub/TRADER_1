@@ -1,0 +1,12 @@
+{
+  "patch_id": "MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING_20260506_001",
+  "generated_at_utc": "2026-05-06T07:09:12Z",
+  "status": "PASS_RISK_EXPOSURE_TRUTH_VISIBLE_LIVE_BLOCKED",
+  "stale_verified_values_render_as_stale": true,
+  "unverified_only_when_no_valid_source": true,
+  "dashboard_display_truth_only": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

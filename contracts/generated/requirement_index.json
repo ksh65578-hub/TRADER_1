@@ -8843,6 +8843,81 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-PAPER-RISK-EXPOSURE-TRUTH-BINDING",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Risk exposure PAPER portfolio truth",
+      "full_text_marker": "REQ-MVP4-PAPER-RISK-EXPOSURE-TRUTH-BINDING: compute PAPER exposure and drawdown from ledger-backed current truth and separate stale from unverified",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "PAPER risk exposure truth binding",
+      "requirement_kind": "DASHBOARD_UX_RUNTIME_SAFETY_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1",
+        "trader1.paper_exposure_quality_report.v1",
+        "trader1.paper_current_truth_refresh_report.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "read_only_dashboard_validator",
+        "paper_exposure_quality_report_validator",
+        "paper_runtime_truth_state_validator",
+        "runtime_schema_instance_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/context_pack/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING.md",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/requirement_index.json",
+        "system/evidence/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING.report.json",
+        "system/evidence/audit_reports/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING_20260506.md",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/patch_results/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING.patch_result.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING/TRADER_1_SESSION_REVIEW.md",
+        "system/evidence/session_reviews/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING/pytest_report.txt",
+        "system/evidence/stage_gates/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING.validator_run_log.json",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_paper_risk_exposure_truth_binding_patch_evidence.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_STRATEGY_PROFITABILITY",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-PAPER-CURRENT-TRUTH-REFRESH-WRITER",
+        "REQ-MVP4-DASHBOARD-PAPER-EXPOSURE-QUALITY-BINDING",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "7B1E0C46F5F1B3AED9A225DCB50E3B9B0FDA003D37B2E13C422A4903C54D3773",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PAPER-RUNTIME-CANDIDATE-NET-EV-AFTER-COST",
       "source_section_id": "SECTION_STRATEGY_PROFITABILITY_LOOP",
       "source_file": "TRADER_1.md",
@@ -25973,5 +26048,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-06T06:46:20Z"
+  "updated_at_utc": "2026-05-06T07:09:12Z"
 }

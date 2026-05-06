@@ -1,0 +1,16 @@
+{
+  "patch_id": "MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_RISK_EXPOSURE_TRUTH_BINDING_20260506_001",
+  "generated_at_utc": "2026-05-06T07:09:12Z",
+  "status": "PASS_LIVE_BLOCKED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "credential_load_attempted": false,
+  "private_endpoint_called": false,
+  "order_adapter_called": false,
+  "order_endpoint_called": false,
+  "live_ready_snapshot_written": false,
+  "live_config_mutated": false,
+  "gap_closure_allowed_by_this_patch": false
+}
