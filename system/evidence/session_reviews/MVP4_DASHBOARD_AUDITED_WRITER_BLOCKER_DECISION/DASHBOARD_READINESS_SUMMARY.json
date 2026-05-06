@@ -1,0 +1,17 @@
+{
+  "patch_id": "MVP4_DASHBOARD_AUDITED_WRITER_BLOCKER_DECISION_20260506_001",
+  "generated_at_utc": "2026-05-06T03:07:41Z",
+  "status": "PASS_OPERATOR_DISPLAY_IMPROVED_LIVE_BLOCKED",
+  "audited_writer_blocker_decision_statuses": [
+    "NO_CHAIN_LOADED",
+    "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER",
+    "BLOCKED_INPUTS",
+    "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED",
+    "INVALID_DRIFT"
+  ],
+  "continuous_current_evidence_writer_enabled_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

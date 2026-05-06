@@ -356,6 +356,25 @@ AUDITED_WRITER_ACTIVATION_PREFLIGHT_OVERALL_STATUSES = {
     "SNAPSHOT_ONLY_CONTINUOUS_WRITER_BLOCKED",
     "INVALID_DRIFT",
 }
+AUDITED_WRITER_BLOCKER_DECISION_STATUSES = {
+    "NO_CHAIN_LOADED",
+    "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER",
+    "BLOCKED_INPUTS",
+    "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED",
+    "INVALID_DRIFT",
+}
+AUDITED_WRITER_BLOCKER_DECISION_CODES = {
+    "NO_AUDITED_WRITER_EVIDENCE",
+    "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+    "CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED",
+    "LIVE_FINAL_GUARD_FAILED",
+}
+AUDITED_WRITER_BLOCKER_TRUTH_CLASSES = {
+    "CONFIGURED_PAPER_BASELINE_ONLY",
+    "SUMMARY_LEDGER_DISPLAY_ONLY",
+    "SINGLE_RUN_AUDITED_PAPER_SNAPSHOT_DISPLAY_ONLY",
+    "INVALID_OR_DRIFTED_WRITER_EVIDENCE",
+}
 SOURCE_FRESHNESS_MAX_AGE_SECONDS = 300
 SOURCE_CLOCK_SKEW_ALLOWANCE_SECONDS = 60
 DASHBOARD_AUTO_REFRESH_SECONDS = 10
@@ -1486,6 +1505,7 @@ def _attach_audited_writer_activation_preflight(
     reconciliation_recovery_summary: dict[str, Any] | None,
 ) -> dict[str, Any]:
     portfolio.update(_audited_writer_activation_preflight_matrix(reconciliation_recovery_summary))
+    portfolio.update(_audited_writer_blocker_decision(portfolio))
     return portfolio
 
 
@@ -1665,6 +1685,224 @@ def _validate_audited_writer_activation_preflight_matrix(
             "audited writer activation preflight status drifted from stage states",
             "SCHEMA_IDENTITY_MISMATCH",
         )
+    return None
+
+
+def _audited_writer_blocker_decision(portfolio: dict[str, Any]) -> dict[str, Any]:
+    lifecycle_status = str(portfolio.get("audited_writer_lifecycle_status") or "NO_AUDITED_WRITER_EVIDENCE")
+    activation_status = str(portfolio.get("audited_writer_activation_preflight_status") or "NO_CHAIN_LOADED")
+    current_stage_id = str(portfolio.get("audited_writer_activation_preflight_current_stage_id") or "PRECHECK_REPORT")
+    primary_blocker_code = str(
+        portfolio.get("audited_writer_activation_preflight_primary_blocker_code")
+        or "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+    )
+    if primary_blocker_code in {"NOT_LOADED", "NONE", ""}:
+        primary_blocker_code = "NO_AUDITED_WRITER_EVIDENCE"
+
+    status = "NO_CHAIN_LOADED"
+    decision_code = "NO_AUDITED_WRITER_EVIDENCE"
+    truth_class = "CONFIGURED_PAPER_BASELINE_ONLY"
+    priority_rank = 4
+    allows_single_run_display = False
+    summary = "No audited current-evidence writer chain is loaded; configured PAPER baseline is display-only."
+    next_action = "Load validated PAPER writer review artifacts before trusting current portfolio evidence."
+
+    if activation_status == "INVALID_DRIFT":
+        status = "INVALID_DRIFT"
+        decision_code = "LIVE_FINAL_GUARD_FAILED"
+        truth_class = "INVALID_OR_DRIFTED_WRITER_EVIDENCE"
+        priority_rank = 0
+        summary = "Audited writer evidence drifted or attempted forbidden permission; all writer conclusions are blocked."
+        next_action = "Reject the drifted writer evidence and regenerate the display-only review chain."
+    elif lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
+        status = "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED"
+        decision_code = "CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED"
+        truth_class = "SINGLE_RUN_AUDITED_PAPER_SNAPSHOT_DISPLAY_ONLY"
+        priority_rank = 3
+        allows_single_run_display = portfolio.get("source_snapshot_status") == "PASS"
+        summary = (
+            "Single-run audited PAPER values may be displayed, but the continuous current-evidence writer remains "
+            "blocked and cannot update current truth."
+        )
+        next_action = (
+            "Use the audited PAPER snapshot for review only; collect operator/runtime evidence before any future "
+            "continuous writer activation review."
+        )
+    elif lifecycle_status == "AUDITED_WRITER_INPUTS_BLOCKED" or activation_status in {
+        "SOURCE_CHAIN_BLOCKED",
+        "REVIEW_CHAIN_BLOCKED",
+        "SNAPSHOT_ONLY_SOURCE_CHAIN_PARTIAL",
+    }:
+        status = "BLOCKED_INPUTS"
+        decision_code = (
+            primary_blocker_code
+            if primary_blocker_code in AUDITED_WRITER_BLOCKER_DECISION_CODES
+            else "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+        )
+        truth_class = "CONFIGURED_PAPER_BASELINE_ONLY"
+        priority_rank = 1
+        summary = (
+            f"Audited writer input chain is blocked at {current_stage_id}; configured PAPER capital is not current "
+            "cash, equity, PnL, or position truth."
+        )
+        next_action = (
+            "Inspect the current writer blocker, keep all current-evidence and portfolio-truth writes disabled, "
+            "and resolve the review-only chain in order."
+        )
+    elif lifecycle_status == "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER":
+        status = "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER"
+        decision_code = "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+        truth_class = "SUMMARY_LEDGER_DISPLAY_ONLY"
+        priority_rank = 2
+        summary = (
+            "Summary ledger values are display-only and are not audited current-evidence writer output or continuous "
+            "runtime proof."
+        )
+        next_action = "Keep summary values for dashboard review only; do not infer audited writer readiness."
+
+    return {
+        "audited_writer_blocker_decision_status": status,
+        "audited_writer_blocker_decision_code": decision_code,
+        "audited_writer_blocker_truth_class": truth_class,
+        "audited_writer_blocker_priority_rank": priority_rank,
+        "audited_writer_blocker_current_stage_id": current_stage_id,
+        "audited_writer_blocker_summary": summary,
+        "audited_writer_blocker_next_action": next_action,
+        "audited_writer_blocker_allows_single_run_paper_display": allows_single_run_display,
+        "audited_writer_blocker_blocks_continuous_current_evidence_write": True,
+        "audited_writer_blocker_current_evidence_write_allowed": False,
+        "audited_writer_blocker_portfolio_truth_write_allowed": False,
+        "audited_writer_blocker_live_review_allowed": False,
+        "audited_writer_blocker_gap_closure_allowed": False,
+        "audited_writer_blocker_live_order_ready": False,
+        "audited_writer_blocker_live_order_allowed": False,
+        "audited_writer_blocker_can_live_trade": False,
+        "audited_writer_blocker_scale_up_allowed": False,
+        "audited_writer_blocker_display_only": True,
+        "audited_writer_blocker_dashboard_truth_only": True,
+    }
+
+
+def _validate_audited_writer_blocker_decision(portfolio: dict[str, Any]) -> DashboardValidationResult | None:
+    status = portfolio.get("audited_writer_blocker_decision_status")
+    code = portfolio.get("audited_writer_blocker_decision_code")
+    truth_class = portfolio.get("audited_writer_blocker_truth_class")
+    lifecycle_status = portfolio.get("audited_writer_lifecycle_status")
+    activation_status = portfolio.get("audited_writer_activation_preflight_status")
+    activation_primary_blocker = portfolio.get("audited_writer_activation_preflight_primary_blocker_code")
+    allows_single_run_display = portfolio.get("audited_writer_blocker_allows_single_run_paper_display")
+    if (
+        status not in AUDITED_WRITER_BLOCKER_DECISION_STATUSES
+        or code not in AUDITED_WRITER_BLOCKER_DECISION_CODES
+        or truth_class not in AUDITED_WRITER_BLOCKER_TRUTH_CLASSES
+        or not isinstance(portfolio.get("audited_writer_blocker_priority_rank"), int)
+        or portfolio.get("audited_writer_blocker_priority_rank") < 0
+        or not isinstance(portfolio.get("audited_writer_blocker_current_stage_id"), str)
+        or not isinstance(portfolio.get("audited_writer_blocker_summary"), str)
+        or not portfolio.get("audited_writer_blocker_summary")
+        or not isinstance(portfolio.get("audited_writer_blocker_next_action"), str)
+        or not portfolio.get("audited_writer_blocker_next_action")
+        or not isinstance(allows_single_run_display, bool)
+    ):
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer blocker decision is missing or malformed",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    for field in (
+        "audited_writer_blocker_current_evidence_write_allowed",
+        "audited_writer_blocker_portfolio_truth_write_allowed",
+        "audited_writer_blocker_live_review_allowed",
+        "audited_writer_blocker_gap_closure_allowed",
+        "audited_writer_blocker_live_order_ready",
+        "audited_writer_blocker_live_order_allowed",
+        "audited_writer_blocker_can_live_trade",
+        "audited_writer_blocker_scale_up_allowed",
+    ):
+        if portfolio.get(field) is not False:
+            return DashboardValidationResult(
+                "BLOCKED",
+                "audited writer blocker decision attempted write, live, scale, or gap-closure permission",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+    if (
+        portfolio.get("audited_writer_blocker_blocks_continuous_current_evidence_write") is not True
+        or portfolio.get("audited_writer_blocker_display_only") is not True
+        or portfolio.get("audited_writer_blocker_dashboard_truth_only") is not True
+    ):
+        return DashboardValidationResult(
+            "BLOCKED",
+            "audited writer blocker decision must remain display-only and continuous-writer blocked",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
+        if (
+            status != "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED"
+            or code != "CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED"
+            or truth_class != "SINGLE_RUN_AUDITED_PAPER_SNAPSHOT_DISPLAY_ONLY"
+            or allows_single_run_display is not True
+            or portfolio.get("audited_writer_blocker_priority_rank") != 3
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "audited snapshot display must resolve to a continuous-writer-blocked decision",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+    elif activation_status == "INVALID_DRIFT":
+        if status != "INVALID_DRIFT" or code != "LIVE_FINAL_GUARD_FAILED" or allows_single_run_display:
+            return DashboardValidationResult(
+                "BLOCKED",
+                "invalid audited writer drift must fail closed",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+    elif lifecycle_status == "AUDITED_WRITER_INPUTS_BLOCKED":
+        if (
+            status != "BLOCKED_INPUTS"
+            or truth_class != "CONFIGURED_PAPER_BASELINE_ONLY"
+            or allows_single_run_display
+            or portfolio.get("audited_writer_blocker_priority_rank") != 1
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "blocked audited writer inputs must remain configured-baseline-only",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+        normalized_primary = (
+            activation_primary_blocker
+            if activation_primary_blocker in AUDITED_WRITER_BLOCKER_DECISION_CODES
+            else code
+        )
+        if code != normalized_primary:
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer blocker decision drifted from activation primary blocker",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+    elif lifecycle_status == "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER":
+        if (
+            status != "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER"
+            or code != "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+            or truth_class != "SUMMARY_LEDGER_DISPLAY_ONLY"
+            or allows_single_run_display
+            or portfolio.get("audited_writer_blocker_priority_rank") != 2
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "summary ledger display cannot claim audited writer output",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+    elif lifecycle_status == "NO_AUDITED_WRITER_EVIDENCE":
+        if (
+            status != "NO_CHAIN_LOADED"
+            or code != "NO_AUDITED_WRITER_EVIDENCE"
+            or truth_class != "CONFIGURED_PAPER_BASELINE_ONLY"
+            or allows_single_run_display
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "missing audited writer evidence must stay configured-baseline-only",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
     return None
 
 
@@ -21584,6 +21822,9 @@ def validate_read_only_dashboard_shell(
     audited_writer_activation_result = _validate_audited_writer_activation_preflight_matrix(portfolio)
     if audited_writer_activation_result is not None:
         return audited_writer_activation_result
+    audited_writer_blocker_result = _validate_audited_writer_blocker_decision(portfolio)
+    if audited_writer_blocker_result is not None:
+        return audited_writer_blocker_result
     if portfolio.get("status") in {"VERIFIED", "STALE"} and portfolio_has_snapshot_provenance and shell.get("mode") != "PAPER":
         return DashboardValidationResult("BLOCKED", "verified portfolio display is PAPER-only without live evidence", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("status") == "VERIFIED" or (
@@ -23182,6 +23423,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<ol class=\"runtime-ladder\" aria-label=\"audited writer activation preflight\">{activation_stage_html}</ol>"
         "</details>"
     )
+    audited_writer_blocker_html = (
+        "<div class=\"operator-note\">"
+        f"<strong>Writer blocker: {safe_text(portfolio.get('audited_writer_blocker_decision_status', 'NO_CHAIN_LOADED'))}</strong>"
+        f"<p>{safe_text(portfolio.get('audited_writer_blocker_summary', 'Audited writer blocker decision is display-only.'))}</p>"
+        f"<small>code={safe_text(portfolio.get('audited_writer_blocker_decision_code', 'NO_AUDITED_WRITER_EVIDENCE'))}"
+        f" | truth={safe_text(portfolio.get('audited_writer_blocker_truth_class', 'CONFIGURED_PAPER_BASELINE_ONLY'))}"
+        f" | stage={safe_text(portfolio.get('audited_writer_blocker_current_stage_id', 'PRECHECK_REPORT'))}</small>"
+        "</div>"
+    )
 
     portfolio_ledger_html = (
         "<dl class=\"portfolio-ledger\" aria-label=\"portfolio compact ledger\">"
@@ -24414,6 +24664,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="source-line">""" + safe_text(portfolio_runtime_line) + """</p>
         """ + audited_writer_ladder_html + """
         """ + audited_writer_activation_html + """
+        """ + audited_writer_blocker_html + """
         <p class="source-line">""" + safe_text(portfolio.get("source_snapshot_freshness_message", "No verified paper portfolio snapshot loaded")) + """</p>
         <section class="portfolio-kpi-grid">
           """ + portfolio_kpi_html + """
@@ -24473,6 +24724,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <p class="source-line">""" + safe_text(portfolio_runtime_line) + """</p>
       """ + audited_writer_ladder_html + """
       """ + audited_writer_activation_html + """
+      """ + audited_writer_blocker_html + """
       """ + portfolio_ledger_html + """
       <section class="portfolio-detail-grid">
         """ + portfolio_detail_html + """

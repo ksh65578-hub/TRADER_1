@@ -1,11 +1,12 @@
 # ACTIVE_WORKING_VIEW
 
-generated_at_utc: 2026-05-06T02:35:07Z
+generated_at_utc: 2026-05-06T03:07:41Z
 source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
 source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
 authority_status: READ_CACHE_NOT_AUTHORITY
 current_mvp: MVP-4
-last_patch_id: MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY_20260506_001
+last_patch_id: MVP4_DASHBOARD_AUDITED_WRITER_BLOCKER_DECISION_20260506_001
+next_allowed_task_class: MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION
 live_order_ready: false
 live_order_allowed: false
 can_live_trade: false
@@ -13,8 +14,4 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-The dashboard now exposes PAPER/SHADOW completion acceptance as operator-facing display truth: all 12 gates remain pending and no closure or live permission exists.
-
-## Next Safe Task
-
-MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION
+The dashboard now has a compact audited writer blocker decision. A single-run audited PAPER snapshot can be shown as review-only display truth, but continuous current-evidence writing, portfolio truth writing, live review, gap closure, LIVE_READY, live orders, and scale-up remain blocked.
