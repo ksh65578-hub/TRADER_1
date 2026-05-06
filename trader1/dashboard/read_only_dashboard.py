@@ -9225,7 +9225,55 @@ def _operation_status(
     )
     reconciliation_blocker = _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary)
     if heartbeat_status == "PASS" and heartbeat_freshness == "PASS":
-        if runtime_truth_result is not None and runtime_truth_status == PAPER_RUNTIME_ACTIVE_STATUS:
+        if runtime_truth_result is not None and runtime_truth_result.status == "FAIL":
+            return {
+                "status": "ERROR",
+                "severity": "ERROR",
+                "color_token": "red",
+                "label": "PAPER runtime truth invalid",
+                "message": runtime_truth_result.message,
+                "recovery_hint": "Regenerate the PAPER runtime truth report before trusting current runtime status.",
+                "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+                "runtime_presence": "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED",
+                "operator_meaning": "The monitor heartbeat is fresh, but the continuous PAPER engine status report is invalid and cannot prove runtime truth.",
+                "source": "heartbeat.json",
+                "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
+                "heartbeat_status": "PASS",
+                "summary_freshness_status": summary_freshness,
+                "startup_freshness_status": startup_freshness,
+                "portfolio_status": portfolio_status,
+                "portfolio_blocking_reason": portfolio_blocker,
+                "portfolio_next_action": portfolio_next_action_text,
+                "primary_blocker": runtime_truth_result.blocker_code or primary_blocker or "SCHEMA_IDENTITY_MISMATCH",
+                "live_orders_blocked": live_orders_blocked,
+            }
+        if runtime_truth_result is not None and runtime_truth_result.blocker_code == "LIVE_FINAL_GUARD_FAILED":
+            return {
+                "status": "ERROR",
+                "severity": "ERROR",
+                "color_token": "red",
+                "label": "PAPER runtime truth blocked",
+                "message": runtime_truth_result.message,
+                "recovery_hint": "Block the run, inspect the PAPER runtime truth source, and keep live orders disabled.",
+                "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+                "runtime_presence": "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED",
+                "operator_meaning": "The monitor heartbeat is fresh, but the continuous PAPER engine status report attempted live or scale permission and is blocked.",
+                "source": "heartbeat.json",
+                "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
+                "heartbeat_status": "PASS",
+                "summary_freshness_status": summary_freshness,
+                "startup_freshness_status": startup_freshness,
+                "portfolio_status": portfolio_status,
+                "portfolio_blocking_reason": portfolio_blocker,
+                "portfolio_next_action": portfolio_next_action_text,
+                "primary_blocker": "LIVE_FINAL_GUARD_FAILED",
+                "live_orders_blocked": live_orders_blocked,
+            }
+        if (
+            runtime_truth_result is not None
+            and runtime_truth_result.status == "PASS"
+            and runtime_truth_status == PAPER_RUNTIME_ACTIVE_STATUS
+        ):
             return {
                 "status": "RUNNING_SAFE_MODE",
                 "severity": "NORMAL",
@@ -9245,6 +9293,32 @@ def _operation_status(
                 "portfolio_blocking_reason": portfolio_blocker,
                 "portfolio_next_action": portfolio_next_action_text,
                 "primary_blocker": primary_blocker or "LIVE_READY_MISSING",
+                "live_orders_blocked": live_orders_blocked,
+            }
+        if (
+            runtime_truth_result is not None
+            and runtime_truth_result.status == "BLOCKED"
+            and runtime_truth_status == "PAPER_RUNTIME_BLOCKED"
+        ):
+            return {
+                "status": "CHECKING_SAFE_MODE",
+                "severity": "WARNING",
+                "color_token": "yellow",
+                "label": "PAPER runtime needs evidence",
+                "message": runtime_truth_message,
+                "recovery_hint": runtime_truth_next_action,
+                "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+                "runtime_presence": "PAPER_RUNTIME_PARTIAL",
+                "operator_meaning": "The monitor heartbeat is fresh and part of the continuous PAPER engine path is connected, but one or more runtime truth sources are not passing.",
+                "source": "heartbeat.json",
+                "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
+                "heartbeat_status": "PASS",
+                "summary_freshness_status": summary_freshness,
+                "startup_freshness_status": startup_freshness,
+                "portfolio_status": portfolio_status,
+                "portfolio_blocking_reason": portfolio_blocker,
+                "portfolio_next_action": portfolio_next_action_text,
+                "primary_blocker": paper_runtime_truth_state_report.get("primary_blocker_code") or primary_blocker or "HARD_TRUTH_MISSING",
                 "live_orders_blocked": live_orders_blocked,
             }
         if runtime_truth_status == MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS:
@@ -17960,7 +18034,12 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "operation status must expose recovery guidance", "SCHEMA_IDENTITY_MISMATCH")
     if operation.get("launcher_execution_mode") != "SAFE_BOOT_OR_EXPLICIT_MONITOR":
         return DashboardValidationResult("FAIL", "operation status must distinguish safe boot from runtime execution", "SCHEMA_IDENTITY_MISMATCH")
-    if operation.get("runtime_presence") not in {"DASHBOARD_HEARTBEAT_ONLY", "PAPER_RUNTIME_ACTIVE", "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED"}:
+    if operation.get("runtime_presence") not in {
+        "DASHBOARD_HEARTBEAT_ONLY",
+        "PAPER_RUNTIME_ACTIVE",
+        "PAPER_RUNTIME_PARTIAL",
+        "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED",
+    }:
         return DashboardValidationResult("FAIL", "operation status runtime presence is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if not isinstance(operation.get("operator_meaning"), str) or "continuous PAPER engine" not in operation.get("operator_meaning", ""):
         return DashboardValidationResult("FAIL", "operation status must prevent continuous-runtime misunderstanding", "SCHEMA_IDENTITY_MISMATCH")
