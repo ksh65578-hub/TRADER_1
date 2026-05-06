@@ -404,6 +404,7 @@
           "enum": [
             "DASHBOARD_HEARTBEAT_ONLY",
             "PAPER_RUNTIME_ACTIVE",
+            "PAPER_RUNTIME_PARTIAL",
             "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED"
           ]
         },

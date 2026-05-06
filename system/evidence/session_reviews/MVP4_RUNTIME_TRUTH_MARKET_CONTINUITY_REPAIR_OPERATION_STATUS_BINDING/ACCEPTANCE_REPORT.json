@@ -1,0 +1,45 @@
+{
+  "patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_OPERATION_STATUS_BINDING_20260506_001",
+  "generated_at_utc": "2026-05-06T08:14:34Z",
+  "status": "PASS",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "accepted_checks": [
+    "PAPER_RUNTIME_ACTIVE remains the only runtime truth status that may show PAPER runtime active",
+    "PAPER_RUNTIME_BLOCKED renders CHECKING_SAFE_MODE, WARNING, and PAPER_RUNTIME_PARTIAL",
+    "Verified PAPER portfolio values no longer hide missing market, ledger, or current refresh proof",
+    "The runtime truth state remains PAPER-only, display-only, and not long-run evidence",
+    "Open contract gap count remains 13 and live/scale flags remain false"
+  ],
+  "test_status_counts": {
+    "PASS": 5
+  },
+  "validator_status_counts": {
+    "PASS": 10
+  },
+  "blockers_precisely_narrowed": [
+    "Dashboard first screen no longer labels partial PAPER runtime truth as normal running",
+    "Runtime source blocker is promoted to operation_status.primary_blocker when runtime truth is blocked"
+  ],
+  "open_contract_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

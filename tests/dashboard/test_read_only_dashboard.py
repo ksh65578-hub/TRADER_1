@@ -88,6 +88,10 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
     upbit_paper_runtime_recovery_guard_hash,
 )
+from trader1.runtime.paper.paper_runtime_truth_state import (
+    build_paper_runtime_truth_state_report,
+    paper_runtime_truth_state_hash,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity_history import (
     build_upbit_public_rest_continuity_history_report,
     upbit_public_rest_continuity_history_hash,
@@ -6866,6 +6870,106 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(portfolio["live_order_allowed"])
         self.assertFalse(portfolio["can_live_trade"])
         self.assertFalse(portfolio["scale_up_allowed"])
+
+    def test_dashboard_prioritizes_partial_runtime_truth_over_verified_portfolio(self):
+        session_id = "test_read_only_dashboard_partial_runtime_truth"
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="test-dashboard-partial-runtime-truth-loop",
+                session_id=session_id,
+                requested_cycle_count=1,
+            )
+        runtime_truth = build_paper_runtime_truth_state_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            heartbeat=heartbeat,
+            upbit_paper_persistent_loop_report=loop,
+            upbit_public_rest_continuity_history=None,
+            paper_ledger_rollup_report=None,
+            paper_current_truth_refresh_report=None,
+        )
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_persistent_loop_report=loop,
+            paper_runtime_truth_state_report=runtime_truth,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        operation = dashboard["operation_status"]
+        self.assertEqual(operation["status"], "CHECKING_SAFE_MODE")
+        self.assertEqual(operation["severity"], "WARNING")
+        self.assertEqual(operation["color_token"], "yellow")
+        self.assertEqual(operation["label"], "PAPER runtime needs evidence")
+        self.assertEqual(operation["runtime_presence"], "PAPER_RUNTIME_PARTIAL")
+        self.assertEqual(operation["primary_blocker"], "DATA_UNAVAILABLE")
+        self.assertEqual(operation["portfolio_status"], "VERIFIED")
+        self.assertIn("partially connected", operation["message"])
+        self.assertIn("continuous PAPER engine", operation["operator_meaning"])
+        source_by_id = {source["artifact_id"]: source for source in dashboard["source_artifacts"]}
+        self.assertEqual(source_by_id["PAPER_RUNTIME_TRUTH_STATE"]["freshness_status"], "PASS")
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_runtime_truth_permission_drift_before_active_label(self):
+        session_id = "test_read_only_dashboard_runtime_truth_permission_drift"
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+        with TemporaryDirectory() as tmp:
+            loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="test-dashboard-runtime-truth-drift-loop",
+                session_id=session_id,
+                requested_cycle_count=1,
+            )
+        runtime_truth = build_paper_runtime_truth_state_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            heartbeat=heartbeat,
+            upbit_paper_persistent_loop_report=loop,
+            upbit_public_rest_continuity_history=None,
+            paper_ledger_rollup_report=None,
+            paper_current_truth_refresh_report=None,
+        )
+        runtime_truth["live_order_allowed"] = True
+        runtime_truth["truth_state_hash"] = paper_runtime_truth_state_hash(runtime_truth)
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_persistent_loop_report=loop,
+            paper_runtime_truth_state_report=runtime_truth,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        operation = dashboard["operation_status"]
+        self.assertEqual(operation["status"], "ERROR")
+        self.assertEqual(operation["severity"], "ERROR")
+        self.assertEqual(operation["color_token"], "red")
+        self.assertEqual(operation["primary_blocker"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertNotEqual(operation["runtime_presence"], "PAPER_RUNTIME_ACTIVE")
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
 
     def test_dashboard_blocks_paper_exposure_quality_live_or_scale_drift(self):
         dashboard = build_dashboard_with_paper_exposure_quality(
