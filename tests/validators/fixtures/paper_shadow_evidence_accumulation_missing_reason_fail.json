@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.paper_shadow_evidence_accumulation_report.v1",
-  "generated_at_utc": "2026-04-30T23:38:47Z",
+  "generated_at_utc": "2026-05-06T03:22:52Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -110,5 +110,19 @@
       "message": "entry and no-trade reason evidence are required"
     }
   ],
-  "evidence_hash": "812EF519DDCB743222921525DE1B7BF0B74C67D73CC0EA2FD587053819E96F86"
+  "evidence_hash": "BA2B57CF5C27D7EF9B95FD00FD7E957EB7BF11657EAA4A9C9469EBE51F0CC82F",
+  "paper_shadow_actionability_version": "paper_shadow_actionability.v1",
+  "evidence_actionability_status": "COLLECT_REASON_AND_COST_EVIDENCE",
+  "primary_collection_deficit_code": "REASON_OR_COST_EVIDENCE_DEFICIT",
+  "primary_collection_deficit_message": "Record entry reason, no-trade reason, and cost evidence before scorecard input.",
+  "next_collection_action": "RECORD_ENTRY_NO_TRADE_AND_COST_REASONS",
+  "scorecard_input_truth_status": "BLOCKED_NOT_SCORECARD_INPUT",
+  "paper_sample_deficit": 0,
+  "shadow_sample_deficit": 0,
+  "evidence_window_deficit": 20,
+  "evidence_span_hours_deficit": 116,
+  "supporting_window_deficit": 20,
+  "reason_coverage_deficit_count": 2,
+  "stale_artifact_count": 0,
+  "actual_runtime_source_deficit": 2
 }

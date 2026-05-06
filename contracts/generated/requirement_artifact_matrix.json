@@ -6243,6 +6243,88 @@
       "status": "IMPLEMENTED"
     },
     {
+      "requirement_id": "REQ-MVP4-PAPER-SHADOW-ACTIONABILITY-DEFICIT-SUMMARY",
+      "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
+      "schema_files": [
+        "contracts/schema/paper_shadow_evidence_accumulation_report.schema.json"
+      ],
+      "validator_files": [
+        "trader1/research/shadow/shadow_runner.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_files": [
+        "tests/validators/test_paper_shadow_evidence_accumulation_validator.py",
+        "tests/research/test_paper_shadow_evidence_accumulator.py",
+        "tests/research/test_shadow_observation_runtime.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_blocked_repair_plan_requires_operator_reconciliation_recheck.py",
+        "tests/contract/test_completed_recheck_route_depth_guard.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_implementation_depth_recheck.py",
+        "tests/contract/test_missing_cycle_ledger_rerun_required_recheck.py",
+        "tests/contract/test_open_contract_gap_implementation_priority_recheck.py",
+        "tests/contract/test_patch_result_runtime_schema_validation.py",
+        "tests/contract/test_patch_result_validator_run_gap_baseline_reconciliation_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_post_repair_reconciliation_required_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_implementation_depth_recheck.py",
+        "tests/contract/test_post_rerun_current_evidence_write_blocked_recheck.py",
+        "tests/contract/test_post_rerun_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_profitability_optimizer_evidence_maturity_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_implementation_depth_recheck.py",
+        "tests/contract/test_regenerated_current_blocked_repairs_require_ledger_recovery_reconciliation_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_implementation_depth_recheck.py",
+        "tests/contract/test_repair_candidate_hash_mismatch_reconciliation_required_recheck.py",
+        "tests/contract/test_residual_adaptive_evidence_schema_state_sync.py",
+        "tests/contract/test_stale_loop_reconciliation_after_regeneration_required_recheck.py",
+        "tests/contract/test_stale_loop_reconciliation_operator_queue_pending_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_execution_required_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_implementation_depth_recheck.py",
+        "tests/contract/test_stale_loop_regeneration_required_recheck.py",
+        "tests/contract/test_upbit_paper_audited_current_evidence_writer_dashboard_binding.py"
+      ],
+      "fixture_files": [
+        "tests/validators/fixtures/paper_shadow_evidence_accumulation_false_long_run_claim_fail.json",
+        "tests/validators/fixtures/paper_shadow_evidence_accumulation_identity_mismatch_fail.json",
+        "tests/validators/fixtures/paper_shadow_evidence_accumulation_identity_stale_fail.json",
+        "tests/validators/fixtures/paper_shadow_evidence_accumulation_insufficient_sample_fail.json",
+        "tests/validators/fixtures/paper_shadow_evidence_accumulation_live_flag_fail.json",
+        "tests/validators/fixtures/paper_shadow_evidence_accumulation_missing_reason_fail.json",
+        "tests/validators/fixtures/paper_shadow_evidence_accumulation_pass.json",
+        "tests/validators/fixtures/paper_shadow_evidence_accumulation_stale_fail.json"
+      ],
+      "runtime_modules": [
+        "trader1/research/shadow/shadow_runner.py",
+        "trader1/research/shadow/evidence_accumulator.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY.report.json",
+        "system/evidence/audit_reports/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY_20260506.md",
+        "system/evidence/patch_results/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY.patch_result.json",
+        "system/evidence/stage_gates/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY.validator_run_log.json",
+        "system/evidence/session_reviews/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY/pytest_report.txt",
+        "system/evidence/session_reviews/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY/TRADER_1_SESSION_REVIEW.md"
+      ],
+      "dashboard_artifacts": [],
+      "patch_result_fields": [
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_5_EVIDENCE_AND_STAGE_GATE",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_ACTIONABILITY_DEFICITS_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-PAPER-SHADOW-ACTUAL-RUNTIME-SOURCE-GUARD",
       "section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "schema_files": [
@@ -17834,7 +17916,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-06T03:07:41Z",
+  "updated_at_utc": "2026-05-06T03:32:59Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

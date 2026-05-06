@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.paper_shadow_evidence_accumulation_report.v1",
-  "generated_at_utc": "2026-04-30T23:38:47Z",
+  "generated_at_utc": "2026-05-06T03:22:52Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -110,5 +110,19 @@
       "message": "paper/shadow evidence artifacts are stale"
     }
   ],
-  "evidence_hash": "88C6BB131B9E669298629B2B11FB145E5910B1DE89B3251539A4A557F6E574DA"
+  "evidence_hash": "BCAF07EE65EA979339534D3CB1F2EC65E28498949027B8784BB3C6D5E316FC1A",
+  "paper_shadow_actionability_version": "paper_shadow_actionability.v1",
+  "evidence_actionability_status": "BLOCKED_DATA_FRESHNESS",
+  "primary_collection_deficit_code": "DATA_FRESHNESS_DEFICIT",
+  "primary_collection_deficit_message": "PAPER/SHADOW evidence artifacts are stale and must be regenerated before scorecard use.",
+  "next_collection_action": "REFRESH_STALE_PAPER_SHADOW_ARTIFACTS",
+  "scorecard_input_truth_status": "BLOCKED_NOT_SCORECARD_INPUT",
+  "paper_sample_deficit": 0,
+  "shadow_sample_deficit": 0,
+  "evidence_window_deficit": 20,
+  "evidence_span_hours_deficit": 116,
+  "supporting_window_deficit": 20,
+  "reason_coverage_deficit_count": 0,
+  "stale_artifact_count": 2,
+  "actual_runtime_source_deficit": 2
 }

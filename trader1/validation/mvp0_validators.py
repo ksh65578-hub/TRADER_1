@@ -526,6 +526,7 @@ from trader1.research.shadow.shadow_runner import (
     build_paper_shadow_separation_report,
     paper_shadow_actual_runtime_source_id_errors,
     paper_shadow_actual_runtime_requirement_status_errors,
+    paper_shadow_evidence_actionability_fields,
     paper_shadow_evidence_hash,
     paper_shadow_expected_artifact_paths,
     paper_shadow_paired_supporting_window_count,
@@ -19789,6 +19790,10 @@ def _paper_shadow_evidence_accumulation_errors(report: dict[str, Any]) -> list[s
         errors.append("raw paper/shadow evidence joins are forbidden")
     if report.get("evidence_hash") != paper_shadow_evidence_hash(report):
         errors.append("paper/shadow evidence hash mismatch")
+    expected_actionability = paper_shadow_evidence_actionability_fields(report)
+    for field, expected_value in expected_actionability.items():
+        if report.get(field) != expected_value:
+            errors.append(f"paper/shadow evidence actionability field drifted: {field}")
 
     blockers = report.get("blockers", [])
     blocker_codes = {blocker.get("code") for blocker in blockers if isinstance(blocker, dict)}

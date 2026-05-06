@@ -1,0 +1,11 @@
+{
+  "patch_id": "MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY_20260506_001",
+  "generated_at_utc": "2026-05-06T03:32:59Z",
+  "new_paper_run_started_by_this_patch": false,
+  "paper_shadow_actionability_added": true,
+  "runtime_evidence_claimed_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -31,6 +31,7 @@ ACTUAL_RUNTIME_REQUIREMENT_IDS = (
 )
 ACTUAL_RUNTIME_REQUIREMENT_PASS = "PASS"
 ACTUAL_RUNTIME_REQUIREMENT_MISSING = "MISSING"
+PAPER_SHADOW_ACTIONABILITY_VERSION = "paper_shadow_actionability.v1"
 
 
 @dataclass(frozen=True)
@@ -180,6 +181,129 @@ def paper_shadow_expected_artifact_paths(report: dict[str, Any]) -> tuple[str, s
         paper_session_id=str(report.get("paper_session_id") or ""),
         shadow_session_id=str(report.get("shadow_session_id") or ""),
     )
+
+
+def paper_shadow_evidence_actionability_fields(report: dict[str, Any]) -> dict[str, Any]:
+    min_samples = _as_int(report.get("min_required_sample_count"), 1)
+    paper_samples = _as_int(report.get("paper_sample_count"), 0)
+    shadow_samples = _as_int(report.get("shadow_sample_count"), 0)
+    min_windows = _as_int(report.get("min_required_evidence_window_count"), 1)
+    windows = _as_int(report.get("evidence_window_count"), 0)
+    supporting_windows = paper_shadow_paired_supporting_window_count(
+        list(report.get("supporting_source_evidence_ids") or [])
+    )
+    min_span = _as_int(report.get("min_required_evidence_span_hours"), 1)
+    span_hours = _as_int(report.get("evidence_span_hours"), 0)
+    max_age = _as_int(report.get("max_artifact_age_seconds"), 1)
+    paper_age = _as_int(report.get("paper_artifact_age_seconds"), 0)
+    shadow_age = _as_int(report.get("shadow_artifact_age_seconds"), 0)
+    paper_deficit = max(0, min_samples - paper_samples)
+    shadow_deficit = max(0, min_samples - shadow_samples)
+    window_deficit = max(0, min_windows - min(windows, supporting_windows))
+    span_deficit = max(0, min_span - span_hours)
+    stale_count = int(paper_age > max_age) + int(shadow_age > max_age)
+    reason_deficit = sum(
+        1
+        for field in ("entry_reason_count", "no_trade_reason_count", "cost_evidence_count")
+        if _as_int(report.get(field), 0) <= 0
+    )
+    actual_runtime_source_validated = (
+        report.get("actual_runtime_source_status") == "VALIDATED_NON_LIVE_RUNTIME"
+        and bool(report.get("actual_runtime_source_evidence_ids"))
+        and not paper_shadow_actual_runtime_source_id_errors(report)
+        and not paper_shadow_actual_runtime_requirement_status_errors(report)
+    )
+    actual_runtime_source_deficit = 0 if actual_runtime_source_validated else 2
+    blocker_codes = {
+        str(blocker.get("code"))
+        for blocker in report.get("blockers", [])
+        if isinstance(blocker, dict) and blocker.get("code")
+    }
+    scope_or_safety_blocked = bool(
+        blocker_codes & {"LIVE_FINAL_GUARD_FAILED", "SNAPSHOT_SCOPE_MISMATCH"}
+    ) or bool(report.get("raw_join_attempted"))
+
+    if report.get("long_run_evidence_eligible"):
+        scorecard_truth_status = "LONG_RUN_REVIEW_READY_NON_LIVE"
+    elif report.get("scorecard_input_eligible"):
+        scorecard_truth_status = "PAPER_SCORECARD_INPUT_READY_ONLY"
+    else:
+        scorecard_truth_status = "BLOCKED_NOT_SCORECARD_INPUT"
+
+    if scope_or_safety_blocked:
+        status = "BLOCKED_SCOPE_OR_SAFETY"
+        deficit_code = "SCOPE_OR_LIVE_SAFETY_BLOCKED"
+        next_action = "STOP_AND_INSPECT_SCOPE_OR_SAFETY"
+        message = "Scope, namespace, raw join, or live-safety drift blocks PAPER/SHADOW evidence use."
+    elif stale_count:
+        status = "BLOCKED_DATA_FRESHNESS"
+        deficit_code = "DATA_FRESHNESS_DEFICIT"
+        next_action = "REFRESH_STALE_PAPER_SHADOW_ARTIFACTS"
+        message = "PAPER/SHADOW evidence artifacts are stale and must be regenerated before scorecard use."
+    elif paper_deficit > 0 and (shadow_deficit == 0 or paper_deficit >= shadow_deficit):
+        status = "COLLECT_PAPER_SAMPLES"
+        deficit_code = "PAPER_SAMPLE_DEFICIT"
+        next_action = "RUN_MORE_PAPER_SAMPLE_WINDOWS"
+        message = f"Collect {paper_deficit} more PAPER samples for the same candidate/strategy/parameter scope."
+    elif shadow_deficit > 0:
+        status = "COLLECT_SHADOW_SAMPLES"
+        deficit_code = "SHADOW_SAMPLE_DEFICIT"
+        next_action = "RUN_MORE_SHADOW_SAMPLE_WINDOWS"
+        message = f"Collect {shadow_deficit} more SHADOW observations for the same candidate/strategy/parameter scope."
+    elif reason_deficit > 0:
+        status = "COLLECT_REASON_AND_COST_EVIDENCE"
+        deficit_code = "REASON_OR_COST_EVIDENCE_DEFICIT"
+        next_action = "RECORD_ENTRY_NO_TRADE_AND_COST_REASONS"
+        message = "Record entry reason, no-trade reason, and cost evidence before scorecard input."
+    elif window_deficit > 0:
+        status = "SCORECARD_READY_COLLECT_PAIRED_WINDOWS"
+        deficit_code = "PAIRED_WINDOW_DEFICIT"
+        next_action = "RUN_PAIRED_PAPER_SHADOW_WINDOWS"
+        message = f"Scorecard input can be PAPER-only, but {window_deficit} more paired PAPER/SHADOW windows are needed for long-run review."
+    elif span_deficit > 0:
+        status = "SCORECARD_READY_EXTEND_RUNTIME_SPAN"
+        deficit_code = "EVIDENCE_SPAN_DEFICIT"
+        next_action = "EXTEND_NON_LIVE_RUNTIME_SPAN"
+        message = f"Scorecard input can be PAPER-only, but {span_deficit} more non-live span hours are needed for long-run review."
+    elif actual_runtime_source_deficit > 0:
+        status = "SCORECARD_READY_BIND_ACTUAL_RUNTIME_SOURCE"
+        deficit_code = "ACTUAL_RUNTIME_SOURCE_DEFICIT"
+        next_action = "ATTACH_VALIDATED_NON_LIVE_RUNTIME_SOURCE"
+        message = "Bind validated non-live PAPER and SHADOW runtime source evidence before long-run review."
+    elif report.get("long_run_evidence_eligible"):
+        status = "LONG_RUN_REVIEW_READY"
+        deficit_code = "NONE"
+        next_action = "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE"
+        message = "PAPER/SHADOW long-run evidence is review-ready but still non-live and cannot write LIVE_READY."
+    else:
+        status = "SCORECARD_READY_COLLECT_PAIRED_WINDOWS"
+        deficit_code = "PAIRED_WINDOW_DEFICIT"
+        next_action = "USE_FOR_PAPER_SCORECARD_ONLY"
+        message = "Use as PAPER scorecard input only; long-run review remains blocked."
+
+    return {
+        "paper_shadow_actionability_version": PAPER_SHADOW_ACTIONABILITY_VERSION,
+        "evidence_actionability_status": status,
+        "primary_collection_deficit_code": deficit_code,
+        "primary_collection_deficit_message": message,
+        "next_collection_action": next_action,
+        "scorecard_input_truth_status": scorecard_truth_status,
+        "paper_sample_deficit": paper_deficit,
+        "shadow_sample_deficit": shadow_deficit,
+        "evidence_window_deficit": window_deficit,
+        "evidence_span_hours_deficit": span_deficit,
+        "supporting_window_deficit": max(0, min_windows - supporting_windows),
+        "reason_coverage_deficit_count": reason_deficit,
+        "stale_artifact_count": stale_count,
+        "actual_runtime_source_deficit": actual_runtime_source_deficit,
+    }
+
+
+def _as_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def build_paper_shadow_separation_report(
@@ -482,6 +606,7 @@ def build_paper_shadow_evidence_accumulation_report(
         "blockers": blockers,
         "evidence_hash": "",
     }
+    report.update(paper_shadow_evidence_actionability_fields(report))
     report["evidence_hash"] = paper_shadow_evidence_hash(report)
     return report
 
@@ -593,6 +718,20 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
         "order_adapter_called",
         "primary_blocker_code",
         "blockers",
+        "paper_shadow_actionability_version",
+        "evidence_actionability_status",
+        "primary_collection_deficit_code",
+        "primary_collection_deficit_message",
+        "next_collection_action",
+        "scorecard_input_truth_status",
+        "paper_sample_deficit",
+        "shadow_sample_deficit",
+        "evidence_window_deficit",
+        "evidence_span_hours_deficit",
+        "supporting_window_deficit",
+        "reason_coverage_deficit_count",
+        "stale_artifact_count",
+        "actual_runtime_source_deficit",
         "evidence_hash",
     }
     missing = sorted(required - set(report))
@@ -602,6 +741,14 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
         return PaperShadowEvidenceValidationResult("FAIL", "paper/shadow evidence schema_id mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("evidence_hash") != paper_shadow_evidence_hash(report):
         return PaperShadowEvidenceValidationResult("FAIL", "paper/shadow evidence hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    expected_actionability = paper_shadow_evidence_actionability_fields(report)
+    for field, expected_value in expected_actionability.items():
+        if report.get(field) != expected_value:
+            return PaperShadowEvidenceValidationResult(
+                "BLOCKED",
+                f"paper/shadow evidence actionability field drifted: {field}",
+                "MEASUREMENT_MISSING",
+            )
     if not _scope_supported(str(report.get("exchange")), str(report.get("market_type"))):
         return PaperShadowEvidenceValidationResult("BLOCKED", "paper/shadow evidence scope must stay spot-only for MVP-4", "SNAPSHOT_SCOPE_MISMATCH")
     if report.get("paper_mode") != "PAPER" or report.get("shadow_mode") != "SHADOW":

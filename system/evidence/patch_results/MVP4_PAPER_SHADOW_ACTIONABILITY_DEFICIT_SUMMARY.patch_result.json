@@ -1,0 +1,238 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY_20260506_001",
+  "created_at_utc": "2026-05-06T03:32:59Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "PASS",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-PAPER-SHADOW-ACTIONABILITY-DEFICIT-SUMMARY",
+    "REQ-MVP4-PAPER-SHADOW-EVIDENCE-ACCUMULATION-HARDENING",
+    "REQ-MVP4-LIVE-FINAL-GUARD"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER,SHADOW",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [
+    "REQ-MVP4-PAPER-SHADOW-ACTIONABILITY-DEFICIT-SUMMARY"
+  ],
+  "new_or_changed_schema_ids": [
+    "trader1.paper_shadow_evidence_accumulation_report.v1"
+  ],
+  "validators_required": [
+    "schema_validator",
+    "registry_validator",
+    "runtime_schema_instance_validator",
+    "paper_shadow_evidence_accumulation_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "generated_artifact_dirty_validator",
+    "coverage_index_validator",
+    "live_final_guard_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "registry_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "paper_shadow_evidence_accumulation_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "generated_artifact_dirty_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "coverage_index_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/validators/test_paper_shadow_evidence_accumulation_validator.py -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B -m pytest -p no:cacheprovider tests/research/test_paper_shadow_evidence_accumulator.py tests/research/test_shadow_observation_runtime.py -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_hygiene_safe_pytest.py -- -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "C:\\Users\\ksh65\\AppData\\Local\\Python\\pythoncore-3.14-64\\python.exe -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "UPDATED_PASS",
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED",
+  "read_cache_update_required": true,
+  "context_pack_update_required": true,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "next_required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_PROFIT_CONVERGENCE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_UPBIT_PAPER_RUNTIME"
+  ],
+  "next_forbidden_default_sections": [
+    "RETAINED_ARCHIVE",
+    "LIVE_ENABLING_PATCH",
+    "LIVE_READY_WRITE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_PAPER_SHADOW_ACTIONABILITY_DEFICIT_SUMMARY.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "current_implementation_state",
+    "paper_shadow_evidence_accumulation_report schema",
+    "paper_shadow_evidence_accumulation_validator",
+    "live final guard"
+  ],
+  "task_class": "PROFIT_CONVERGENCE_MVP3",
+  "required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_PROFIT_CONVERGENCE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_PROFIT_CONVERGENCE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "UNCHANGED_FRESH",
+  "requirement_index_status": "UPDATED_PASS",
+  "requirement_artifact_matrix_status": "UPDATED_PASS",
+  "read_cache_manifest_status": "UPDATED",
+  "context_pack_status": "UPDATED",
+  "current_implementation_state_status": "UPDATED_PAPER_SHADOW_ACTIONABILITY_DEFICITS_LIVE_BLOCKED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "false",
+  "optimizer_stage": "NOT_CHANGED_DASHBOARD_VISIBILITY_ONLY",
+  "optimizer_status_before": "PAPER_SCORECARD_INPUT_ONLY_LIVE_BLOCKED",
+  "optimizer_status_after": "PAPER_SCORECARD_INPUT_ONLY_LIVE_BLOCKED",
+  "optimizer_maturity_level_before": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_maturity_level_after": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_output_type": "NO_OPTIMIZER_OUTPUT_CREATED",
+  "optimizer_validators_required": [
+    "read_only_dashboard_validator",
+    "live_final_guard_validator"
+  ],
+  "optimizer_validators_run": [
+    "read_only_dashboard_validator:PASS",
+    "live_final_guard_validator:PASS"
+  ],
+  "optimizer_guardrail_result": "PASS_DASHBOARD_COMPLETION_ACCEPTANCE_VISIBILITY_LIVE_BLOCKED",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "false",
+  "convergence_layer_changed": false,
+  "convergence_state_before": "LIVE_BLOCKED_DASHBOARD_OPERATOR_VISIBILITY_REPAIR",
+  "convergence_state_after": "LIVE_BLOCKED_DASHBOARD_OPERATOR_VISIBILITY_FIXED",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_CHANGED",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "read_only_dashboard_validator",
+    "live_final_guard_validator"
+  ],
+  "convergence_validators_run": [
+    "read_only_dashboard_validator:PASS",
+    "live_final_guard_validator:PASS"
+  ],
+  "convergence_guardrail_result": "PASS_DASHBOARD_COMPLETION_ACCEPTANCE_VISIBILITY_LIVE_BLOCKED",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "result_hash": "0370F5B238C93A61D4B226ED8C8FAE99D943D88767175D3302542917C1106070",
+  "dashboard_operator_visibility_changed": false,
+  "operator_run_started_by_this_patch": false,
+  "operator_run_completed_by_this_patch": false,
+  "operator_run_evidence_ready_for_mvp5": false
+}

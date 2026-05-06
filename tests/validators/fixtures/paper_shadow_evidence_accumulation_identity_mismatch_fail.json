@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.paper_shadow_evidence_accumulation_report.v1",
-  "generated_at_utc": "2026-04-30T23:38:47Z",
+  "generated_at_utc": "2026-05-06T03:22:52Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -104,5 +104,19 @@
   "order_adapter_called": false,
   "primary_blocker_code": null,
   "blockers": [],
-  "evidence_hash": "77F75FCB5D6357B30412518E75BE8DB1FE3944B90DB1BFD5FAB40FB6CB6A19F6"
+  "evidence_hash": "86A8ABF44B7A9720C3C343676369509F2D17414F14E086CE7CA268C46D9A3080",
+  "paper_shadow_actionability_version": "paper_shadow_actionability.v1",
+  "evidence_actionability_status": "SCORECARD_READY_COLLECT_PAIRED_WINDOWS",
+  "primary_collection_deficit_code": "PAIRED_WINDOW_DEFICIT",
+  "primary_collection_deficit_message": "Scorecard input can be PAPER-only, but 20 more paired PAPER/SHADOW windows are needed for long-run review.",
+  "next_collection_action": "RUN_PAIRED_PAPER_SHADOW_WINDOWS",
+  "scorecard_input_truth_status": "PAPER_SCORECARD_INPUT_READY_ONLY",
+  "paper_sample_deficit": 0,
+  "shadow_sample_deficit": 0,
+  "evidence_window_deficit": 20,
+  "evidence_span_hours_deficit": 116,
+  "supporting_window_deficit": 20,
+  "reason_coverage_deficit_count": 0,
+  "stale_artifact_count": 0,
+  "actual_runtime_source_deficit": 2
 }
