@@ -6886,7 +6886,28 @@ def _operator_action_summary(
         reconciliation_blocker_line = reconciliation_recovery_summary.get("one_line_blocker")
         if isinstance(reconciliation_blocker_line, str) and reconciliation_blocker_line.strip():
             one_line_blocker = reconciliation_blocker_line
-        if post_repair_reconciliation_blocked:
+        if audited_writer_implementation_prep_blocked:
+            prep_pass_count = _safe_count(
+                reconciliation_recovery_summary.get(
+                    "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_check_pass_count"
+                )
+            )
+            prep_check_count = _safe_count(
+                reconciliation_recovery_summary.get(
+                    "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_check_count"
+                )
+            )
+            target_count = _safe_count(
+                reconciliation_recovery_summary.get(
+                    "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_target_state_count"
+                )
+            )
+            one_line_blocker = (
+                f"{blocker}: audited current-evidence writer implementation prep is review-only; "
+                f"prep checks={prep_pass_count}/{prep_check_count}, targets={target_count}, "
+                "current-evidence writes=0, portfolio truth writes=0, idempotency manifest writes=0, lock writes=0."
+            )
+        elif post_repair_reconciliation_blocked:
             item_count = _safe_count(reconciliation_recovery_summary.get("post_repair_reconciliation_item_count"))
             hash_mismatch_count = _safe_count(
                 reconciliation_recovery_summary.get("post_repair_source_loop_expected_rollup_hash_mismatch_count")
@@ -20461,7 +20482,11 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("color_token") != "red"
             or reconciliation.get("source")
             != "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json"
-            or reconciliation.get("primary_blocker_code") != "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+            or reconciliation.get("primary_blocker_code")
+            not in {
+                "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+                "POST_RERUN_RECONCILIATION_REQUIRED",
+            }
             or reconciliation.get(
                 "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validation_status"
             )
