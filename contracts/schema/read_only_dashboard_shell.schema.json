@@ -82,6 +82,7 @@
             "STARTUP_PROBE",
             "SHADOW_RUNTIME_WRITER",
             "SHADOW_RUNTIME_HARNESS",
+            "PAPER_SHADOW_HARNESS_BINDING",
             "SHADOW_PERSISTENT_RUNTIME",
             "SHADOW_RUNTIME_ORCHESTRATION",
             "PAPER_PERSISTENT_LOOP",
@@ -134,6 +135,7 @@
             "startup_probe.json",
             "shadow_observation_runtime_artifact_writer_report.json",
             "actual_runtime_harness_report.json",
+            "paper_shadow_harness_binding_report.json",
             "shadow_observation_persistent_runtime_report.json",
             "runtime_orchestration_report.json",
             "upbit_paper_persistent_loop_report.json",
@@ -10884,7 +10886,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 39,
+      "maxItems": 40,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }

@@ -9267,6 +9267,90 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-PAPER-SHADOW-HARNESS-BINDING",
+      "source_section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
+      "source_file": "TRADER_1.md",
+      "source_heading": "PAPER/SHADOW runtime harness and evidence graph reduction",
+      "full_text_marker": "REQ-MVP4-PAPER-SHADOW-HARNESS-BINDING: bind non-live PAPER/SHADOW harness output to evidence accumulation status and classify evidence as critical warning informational",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "PAPER/SHADOW harness binding and evidence graph reduction",
+      "requirement_kind": "RUNTIME_EVIDENCE_BINDING_PATCH",
+      "schema_ids": [
+        "trader1.paper_shadow_harness_binding_report.v1",
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "paper_shadow_harness_binding_validator",
+        "shadow_observation_actual_runtime_harness_validator",
+        "paper_shadow_evidence_accumulation_validator",
+        "read_only_dashboard_validator",
+        "runtime_schema_instance_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/context_pack/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING.md",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/requirement_index.json",
+        "contracts/registry.yaml",
+        "contracts/schema/paper_shadow_harness_binding_report.schema.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "system/evidence/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING.report.json",
+        "system/evidence/audit_reports/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING_20260506.md",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/patch_results/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING.patch_result.json",
+        "system/evidence/session_reviews/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING/TRADER_1_SESSION_REVIEW.md",
+        "system/evidence/session_reviews/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING/pytest_report.txt",
+        "system/evidence/stage_gates/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING.validator_run_log.json",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tests/research/test_paper_shadow_harness_binding.py",
+        "tests/validators/test_paper_shadow_harness_binding_validator.py",
+        "tools/emit_paper_shadow_harness_binding_patch_evidence.py",
+        "trader1/dashboard/read_only_dashboard.py",
+        "trader1/research/shadow/paper_shadow_harness_binding.py",
+        "trader1/validation/mvp0_validators.py"
+      ],
+      "test_ids": [
+        "tests/research/test_paper_shadow_harness_binding.py",
+        "tests/validators/test_paper_shadow_harness_binding_validator.py",
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_PAPER_SHADOW_EVIDENCE",
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-SHADOW-OBSERVATION-ACTUAL-RUNTIME-HARNESS",
+        "REQ-MVP4-PAPER-SHADOW-EVIDENCE-ACCUMULATION-HARDENING",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "4D0B668A699AB3B090306E1B01979D5DB268B9B11CB48B8E3BD38A3AEEE7851A",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-PAPER-SHADOW-LONG-RUN-EVIDENCE-VISIBILITY",
       "source_section_id": "SECTION_PAPER_SHADOW_EVIDENCE",
       "source_file": "TRADER_1.md",
@@ -25889,5 +25973,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-06T06:02:39Z"
+  "updated_at_utc": "2026-05-06T06:46:20Z"
 }

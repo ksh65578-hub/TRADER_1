@@ -94,6 +94,7 @@ from trader1.runtime.readiness.readiness_surface import build_readiness_surface
 from trader1.runtime.reconciliation.reconciliation import build_reconciliation_report
 from trader1.research.shadow.shadow_observation import build_shadow_observation_report
 from trader1.research.shadow.shadow_observation_actual_runtime_harness import build_shadow_observation_actual_runtime_harness_report
+from trader1.research.shadow.paper_shadow_harness_binding import build_paper_shadow_harness_binding_report
 from trader1.research.shadow.shadow_observation_persistent_runtime import (
     build_shadow_observation_persistent_runtime_report,
     shadow_observation_persistent_runtime_hash,
@@ -422,6 +423,7 @@ def build_dashboard(
     candidate_scorecard=None,
     upbit_public_rest_continuity_history=None,
     shadow_runtime_harness_report=None,
+    paper_shadow_harness_binding_report=None,
     shadow_persistent_runtime_report=None,
     upbit_paper_post_rerun_operator_resolution_audit_report=None,
     upbit_paper_post_rerun_operator_reconciliation_queue_report=None,
@@ -510,6 +512,7 @@ def build_dashboard(
         candidate_scorecard=candidate_scorecard,
         upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
         shadow_runtime_harness_report=shadow_runtime_harness_report,
+        paper_shadow_harness_binding_report=paper_shadow_harness_binding_report,
         shadow_persistent_runtime_report=shadow_persistent_runtime_report,
     )
 
@@ -1683,6 +1686,24 @@ def build_dashboard_with_shadow_runtime_harness(report=None):
             monotonic_timer_stopped=True,
             measured_runtime_seconds_verified=True,
         ),
+    )
+
+
+def build_dashboard_with_paper_shadow_harness_binding(binding_report=None):
+    harness = build_shadow_observation_actual_runtime_harness_report(
+        harness_id="test-dashboard-paper-shadow-binding-harness",
+        runtime_measurement_source="MONOTONIC_LOCAL_TIMER_VERIFIED",
+        monotonic_timer_started=True,
+        monotonic_timer_stopped=True,
+        measured_runtime_seconds_verified=True,
+    )
+    binding = binding_report or build_paper_shadow_harness_binding_report(
+        binding_report_id="test-dashboard-paper-shadow-binding",
+        shadow_runtime_harness_report=harness,
+    )
+    return build_dashboard(
+        shadow_runtime_harness_report=harness,
+        paper_shadow_harness_binding_report=binding,
     )
 
 
@@ -6822,6 +6843,24 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Short Window Executed", html)
         self.assertIn("not execution truth and not LIVE_READY evidence", html)
         self.assertIn("long_run_evidence_eligible=false", html)
+
+    def test_dashboard_lists_paper_shadow_harness_binding_source_without_live_permission(self):
+        dashboard = build_dashboard_with_paper_shadow_harness_binding()
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        binding_sources = [
+            source for source in dashboard["source_artifacts"] if source["artifact_id"] == "PAPER_SHADOW_HARNESS_BINDING"
+        ]
+        self.assertEqual(len(binding_sources), 1)
+        self.assertEqual(binding_sources[0]["filename"], "paper_shadow_harness_binding_report.json")
+        self.assertEqual(binding_sources[0]["freshness_status"], "PASS")
+        self.assertEqual(binding_sources[0]["truth_role"], "dashboard_serving_truth")
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+        html = render_dashboard_html(dashboard)
+        self.assertIn("PAPER_SHADOW_HARNESS_BINDING=PASS", html)
+        self.assertIn("paper_shadow_harness_binding_report.json", html)
 
     def test_dashboard_shows_persistent_runtime_stub_as_not_long_run_evidence(self):
         dashboard = build_dashboard_with_shadow_persistent_runtime()

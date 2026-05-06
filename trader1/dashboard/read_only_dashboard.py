@@ -87,6 +87,9 @@ from trader1.runtime.paper.paper_runtime_truth_state import (
     PAPER_RUNTIME_TRUTH_ROLE,
     validate_paper_runtime_truth_state_report,
 )
+from trader1.research.shadow.paper_shadow_harness_binding import (
+    validate_paper_shadow_harness_binding_report,
+)
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
 from tools.run_upbit_paper_runtime_evidence_collection_profile import (
     validate_upbit_paper_runtime_evidence_collection_profile_report,
@@ -98,6 +101,7 @@ REQUIRED_DISPLAY_SOURCE_FILENAMES = {"summary.json", "heartbeat.json", "startup_
 OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "shadow_observation_runtime_artifact_writer_report.json",
     "actual_runtime_harness_report.json",
+    "paper_shadow_harness_binding_report.json",
     "shadow_observation_persistent_runtime_report.json",
     "runtime_orchestration_report.json",
     "upbit_paper_persistent_loop_report.json",
@@ -14991,6 +14995,7 @@ def build_read_only_dashboard_shell(
     residual_operator_reconciliation_submission_review_queue_report: dict[str, Any] | None = None,
     shadow_runtime_writer_report: dict[str, Any] | None = None,
     shadow_runtime_harness_report: dict[str, Any] | None = None,
+    paper_shadow_harness_binding_report: dict[str, Any] | None = None,
     shadow_persistent_runtime_report: dict[str, Any] | None = None,
     shadow_runtime_orchestration_report: dict[str, Any] | None = None,
     source_paths: dict[str, str] | None = None,
@@ -15002,6 +15007,7 @@ def build_read_only_dashboard_shell(
         "startup_probe": "system/runtime/upbit/krw_spot/paper/startup_probe.json",
         "shadow_runtime_writer": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/shadow_observation/shadow_observation_runtime_artifact_writer_report.json",
         "shadow_runtime_harness": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/actual_runtime_harness_report.json",
+        "paper_shadow_harness_binding": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/paper_shadow_harness_binding_report.json",
         "shadow_persistent_runtime": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/shadow_observation_persistent_runtime_report.json",
         "shadow_runtime_orchestration": f"system/runtime/{exchange.lower()}/{market_type.lower()}/shadow/{session_id}/runtime_orchestration_report.json",
         "upbit_paper_persistent_loop": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_persistent_loop_report.json",
@@ -15505,6 +15511,25 @@ def build_read_only_dashboard_shell(
                 paths.get("shadow_runtime_harness", "system/runtime/upbit/krw_spot/shadow/unknown/actual_runtime_harness_report.json"),
                 True,
                 harness_freshness,
+            )
+        )
+    if isinstance(paper_shadow_harness_binding_report, dict):
+        binding_result = validate_paper_shadow_harness_binding_report(paper_shadow_harness_binding_report)
+        binding_freshness = (
+            "PASS"
+            if binding_result.status == "PASS"
+            and paper_shadow_harness_binding_report.get("binding_status") != "STALE_DISPLAY_ONLY"
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "PAPER_SHADOW_HARNESS_BINDING",
+                paths.get(
+                    "paper_shadow_harness_binding",
+                    "system/runtime/upbit/krw_spot/shadow/unknown/paper_shadow_harness_binding_report.json",
+                ),
+                True,
+                binding_freshness,
             )
         )
     shadow_runtime_orchestration_status = _shadow_runtime_orchestration_status(
