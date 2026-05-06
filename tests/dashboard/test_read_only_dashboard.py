@@ -5339,6 +5339,16 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(maturity["long_run_evidence_eligible"])
         self.assertEqual(maturity["long_run_blocker_code"], "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
         self.assertIn("validated non-live persistent runtime source", maturity["actual_runtime_source_summary"])
+        self.assertEqual(maturity["evidence_actionability_status"], "COLLECT_SHADOW_SAMPLES")
+        self.assertEqual(maturity["primary_collection_deficit_code"], "SHADOW_SAMPLE_DEFICIT")
+        self.assertEqual(maturity["next_collection_action"], "RUN_MORE_SHADOW_SAMPLE_WINDOWS")
+        self.assertEqual(maturity["scorecard_input_truth_status"], "BLOCKED_NOT_SCORECARD_INPUT")
+        self.assertGreater(maturity["paper_sample_deficit"], 0)
+        self.assertGreater(maturity["shadow_sample_deficit"], 0)
+        self.assertGreater(maturity["evidence_window_deficit"], 0)
+        self.assertGreater(maturity["evidence_span_hours_deficit"], 0)
+        self.assertGreater(maturity["actual_runtime_source_deficit"], 0)
+        self.assertIn("SHADOW observations", maturity["primary_collection_deficit_message"])
         self.assertEqual(maturity["cost_evidence_status"], "PASS")
         self.assertEqual(maturity["entry_reason_status"], "PASS")
         self.assertEqual(maturity["no_trade_reason_status"], "UNTESTED")
@@ -5377,6 +5387,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Long-Run Evidence", html)
         self.assertIn("MISSING", html)
         self.assertIn("0 runtime sources", html)
+        self.assertIn("Next Evidence", html)
+        self.assertIn("RUN_MORE_SHADOW_SAMPLE_WINDOWS", html)
+        self.assertIn("SHADOW_SAMPLE_DEFICIT", html)
+        self.assertIn("Deficit Counts", html)
         self.assertIn("not LIVE_READY", html)
         self.assertIn("maturity-yellow", html)
         self.assertIn("before ranking", html)
@@ -5406,6 +5420,31 @@ class ReadOnlyDashboardTest(unittest.TestCase):
 
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_blocks_profitability_actionability_hidden_for_operation_gate(self):
+        dashboard = build_dashboard_with_operation_gate()
+        maturity = dashboard["profitability_maturity"]
+        maturity["evidence_actionability_status"] = "NOT_LOADED"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_blocks_false_profitability_long_run_actionability(self):
+        dashboard = build_dashboard_with_operation_gate()
+        maturity = dashboard["profitability_maturity"]
+        maturity["evidence_actionability_status"] = "LONG_RUN_REVIEW_READY"
+        maturity["primary_collection_deficit_code"] = "NONE"
+        maturity["next_collection_action"] = "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE"
+        maturity["scorecard_input_truth_status"] = "LONG_RUN_REVIEW_READY_NON_LIVE"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
 
     def test_dashboard_blocks_profitability_maturity_live_permission(self):
         dashboard = build_dashboard_with_operation_gate()

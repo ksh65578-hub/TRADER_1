@@ -1,0 +1,53 @@
+{
+  "schema_id": "trader1.dashboard_paper_shadow_actionability_visibility_report.v1",
+  "patch_id": "MVP4_DASHBOARD_PAPER_SHADOW_ACTIONABILITY_VISIBILITY_20260506_001",
+  "generated_at_utc": "2026-05-06T04:10:22Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "finding": "PAPER/SHADOW evidence accumulation now computes deterministic actionability fields, but the dashboard profitability maturity panel did not require or display them. Operators could see sample counts without a closed next collection action for PAPER samples, SHADOW samples, reason/cost evidence, paired windows, span, or validated runtime source binding.",
+  "actionability_version": "paper_shadow_actionability.v1",
+  "dashboard_visibility_status": "DISPLAYED_AND_VALIDATED_NON_LIVE",
+  "closed_priority_order": [
+    "SCOPE_OR_LIVE_SAFETY_BLOCKED",
+    "DATA_FRESHNESS_DEFICIT",
+    "PAPER_SAMPLE_DEFICIT",
+    "SHADOW_SAMPLE_DEFICIT",
+    "REASON_OR_COST_EVIDENCE_DEFICIT",
+    "PAIRED_WINDOW_DEFICIT",
+    "EVIDENCE_SPAN_DEFICIT",
+    "ACTUAL_RUNTIME_SOURCE_DEFICIT",
+    "NONE"
+  ],
+  "acceptance_conditions": [
+    "profitability_maturity carries actionability status, primary deficit code, next action, scorecard truth status, and numeric deficits",
+    "read_only_dashboard_shell schema defines the actionability fields while the dashboard validator requires them for operation-gate evidence",
+    "read_only_dashboard_validator blocks hidden, invalid, or false long-run actionability",
+    "dashboard HTML exposes next evidence and deficit counts without pushing details onto the first operator screen",
+    "scorecard input ready remains PAPER-only until paired windows, span, and actual runtime source evidence pass",
+    "validated long-run review readiness remains non-live and does not write LIVE_READY",
+    "open contract gap count remains 13 and all live/scale flags remain false"
+  ],
+  "open_contract_gap_count": 13,
+  "open_contract_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

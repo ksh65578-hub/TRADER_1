@@ -1,0 +1,12 @@
+{
+  "patch_id": "MVP4_DASHBOARD_PAPER_SHADOW_ACTIONABILITY_VISIBILITY_20260506_001",
+  "generated_at_utc": "2026-05-06T04:10:22Z",
+  "new_paper_run_started_by_this_patch": false,
+  "paper_shadow_actionability_added": false,
+  "dashboard_actionability_visibility_added": true,
+  "runtime_evidence_claimed_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
