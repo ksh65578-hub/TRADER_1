@@ -4565,6 +4565,66 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
 
+    def test_dashboard_accepts_implementation_prep_with_post_rerun_primary_blocker(self):
+        runtime_base = (
+            ROOT
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+        )
+        implementation_prep = json.loads(
+            (runtime_base / "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        blocked_writer = json.loads(
+            (runtime_base / "upbit_paper_repaired_current_evidence_audited_writer_report.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        summary, heartbeat, startup_probe = build_inputs(session_id=implementation_prep["session_id"])
+        dashboard = build_read_only_dashboard_shell(
+            exchange=implementation_prep["exchange"],
+            market_type=implementation_prep["market_type"],
+            mode=implementation_prep["mode"],
+            session_id=implementation_prep["session_id"],
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=implementation_prep,
+            upbit_paper_repaired_current_evidence_audited_writer_report=blocked_writer,
+        )
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertIn(
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_blocker_codes"],
+        )
+        self.assertIn("POST_RERUN_RECONCILIATION_REQUIRED", reconciliation["post_rerun_blocker_codes"])
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(reconciliation["severity"], "ERROR")
+        self.assertEqual(reconciliation["color_token"], "red")
+        self.assertEqual(
+            reconciliation["source"],
+            "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
+        )
+        self.assertEqual(reconciliation["primary_blocker_code"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["primary_action_label"], "Inspect audited writer implementation prep")
+        self.assertIn(
+            "audited current-evidence writer implementation prep is review-only",
+            operator_action["one_line_blocker"],
+        )
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
     def test_dashboard_blocks_audited_writer_implementation_prep_operator_action_drift(self):
         dashboard = build_dashboard_with_audited_writer_implementation_prep()
         dashboard["operator_action_summary"]["primary_action_label"] = "Inspect audited writer locked output"
