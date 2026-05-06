@@ -2,22 +2,6 @@
   "authorization_header_present": false,
   "candles": [
     {
-      "close": "119598000",
-      "high": "119600000",
-      "low": "119584000",
-      "open": "119585000",
-      "timestamp": "2026-05-06T22:42:00Z",
-      "volume": "0.24414067"
-    },
-    {
-      "close": "119622000",
-      "high": "119625000",
-      "low": "119584000",
-      "open": "119600000",
-      "timestamp": "2026-05-06T22:43:00Z",
-      "volume": "0.42114462"
-    },
-    {
       "close": "119585000",
       "high": "119622000",
       "low": "119585000",
@@ -44,17 +28,33 @@
     {
       "close": "119600000",
       "high": "119640000",
-      "low": "119600000",
+      "low": "119585000",
       "open": "119622000",
       "timestamp": "2026-05-06T22:47:00Z",
-      "volume": "0.17260759"
+      "volume": "1.62031951"
+    },
+    {
+      "close": "119571000",
+      "high": "119600000",
+      "low": "119568000",
+      "open": "119600000",
+      "timestamp": "2026-05-06T22:48:00Z",
+      "volume": "1.80442503"
+    },
+    {
+      "close": "119566000",
+      "high": "119571000",
+      "low": "119565000",
+      "open": "119571000",
+      "timestamp": "2026-05-06T22:49:00Z",
+      "volume": "0.56018189"
     }
   ],
   "credential_load_attempted": false,
   "exchange": "UPBIT",
   "interval": "1m",
   "is_public": true,
-  "loaded_at_utc": "2026-05-06T22:47:17Z",
+  "loaded_at_utc": "2026-05-06T22:49:50Z",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
   "order_endpoint_called": false,

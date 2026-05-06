@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.shadow_observation_runtime_orchestration_report.v1",
-  "generated_at_utc": "2026-05-06T22:47:41Z",
+  "generated_at_utc": "2026-05-06T22:49:50Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -24,7 +24,7 @@
     {
       "source_role": "PERSISTENT_RUNTIME_SHORT_WINDOW",
       "source_id": "mvp1_upbit_paper_launcher",
-      "source_hash": "A0E0FA03B820CAF592ADE7AEF46D0496E0A657AA06CA2B4F8941792565B20C0F",
+      "source_hash": "460BAF224DC61A0576539311015E764FDD0FE6E95B06D2631028CD7503AFC722",
       "hash_verified": true,
       "validation_status": "PASS",
       "evidence_role": "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
@@ -32,7 +32,7 @@
     {
       "source_role": "SHORT_WINDOW_HARNESS",
       "source_id": "mvp1_upbit_paper_launcher",
-      "source_hash": "A4E537574468D43B68DB5AB057B31855BC7E6C41697911CE5049634682305D2B",
+      "source_hash": "3A17940ED074CD6A20D28A0A8A3105E63D64090797BF7358D3E9013DE63171E7",
       "hash_verified": true,
       "validation_status": "PASS",
       "evidence_role": "EXECUTION_HARNESS_PROOF_ONLY_NOT_LONG_RUN"
@@ -74,5 +74,5 @@
   ],
   "operator_message": "Runtime orchestration is healthy enough for display-only review, but it is short-window only and not long-run evidence. Live orders remain blocked.",
   "next_operator_action": "Continue PAPER/SHADOW collection until actual duration, cycle, heartbeat, recovery, and per-window source coverage pass; do not treat short-window harness output as LIVE_READY.",
-  "orchestration_report_hash": "407E45B94A3D85C65716B2B45D8AFD88131983CA43CD041DFE686A7A64A508FB"
+  "orchestration_report_hash": "96B00CD15C5534AB7D895D0BEA0650CC6AFCDCDA842F656B4677F025E1E99643"
 }

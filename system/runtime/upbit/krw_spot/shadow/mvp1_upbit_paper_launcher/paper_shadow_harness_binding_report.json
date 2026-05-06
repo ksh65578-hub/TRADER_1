@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.paper_shadow_harness_binding_report.v1",
-  "generated_at_utc": "2026-05-06T22:47:41Z",
+  "generated_at_utc": "2026-05-06T22:49:50Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -13,7 +13,7 @@
   "shadow_mode": "SHADOW",
   "session_id": "mvp1_upbit_paper_launcher",
   "harness_id": "mvp1_upbit_paper_launcher",
-  "harness_report_hash": "A4E537574468D43B68DB5AB057B31855BC7E6C41697911CE5049634682305D2B",
+  "harness_report_hash": "3A17940ED074CD6A20D28A0A8A3105E63D64090797BF7358D3E9013DE63171E7",
   "harness_hash_verified": true,
   "harness_validation_status": "PASS",
   "evidence_report_id": null,
@@ -94,5 +94,5 @@
   "live_order_api_attempted": false,
   "order_adapter_called": false,
   "live_ready_snapshot_written": false,
-  "binding_report_hash": "B63C6D98E78229D151183DD6471294B385C8345DC1B53830E3ECFF7A2256450C"
+  "binding_report_hash": "27B11177DD7DA793867988CD1327C3EEF73C9E80216FE5C9FFAD508FE0A882A4"
 }

@@ -1,0 +1,38 @@
+{
+  "current_evidence_snapshot_hash": "9E97D8567EE4180FB8A23497E94CF28D9EAB1655C8646E7368081871F40C652C",
+  "current_evidence_write_allowed": false,
+  "exchange": "UPBIT",
+  "generated_at_utc": "2026-05-06T22:49:39Z",
+  "idempotency_key": "488FCF1FE1D1BC7D25BCEC473CDCBC406F8C0B46884C963A6EC3642B78150814",
+  "live_order_allowed": false,
+  "lock_path": "paper_runtime/locks/audited_current_evidence_writer.lock",
+  "manifest_hash": "E5DFBDE9D1825C4372EBFAE336FF5FAC1421A8836B03503F62299E11AB54E401",
+  "manifest_schema_id": "trader1.upbit_paper_audited_current_evidence_idempotency_manifest.v1",
+  "manifest_status": "PASS",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "paper_only": true,
+  "planned_artifact_paths": [
+    "paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
+    "paper_runtime/current_evidence/audited_current_evidence_idempotency_manifest.json",
+    "paper_runtime/portfolio/paper_portfolio_snapshot.json"
+  ],
+  "planned_temp_paths": [
+    "paper_runtime/current_evidence/audited_current_evidence_snapshot.json.tmp",
+    "paper_runtime/current_evidence/audited_current_evidence_idempotency_manifest.json.tmp",
+    "paper_runtime/portfolio/paper_portfolio_snapshot.json.tmp"
+  ],
+  "portfolio_snapshot_hash": "BEB3A06A4BC884FC51C54B7C845C8E997315D824B8E6BAEDF8A6B18CA078A41B",
+  "portfolio_truth_write_allowed": false,
+  "project_id": "TRADER_1",
+  "scale_up_allowed": false,
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source_implementation_prep_hash": "06DCE6A57900E07E0029969770BC9A399C9533796E9247000C2282D8A13158B0",
+  "source_ledger_rollup_hash": "C095E1AEC3C22E2CF8AFAE84B4FF3955A6FCBC620DB74CA3341BD0FE1E319D79",
+  "source_locked_output_hash": "447DC716C982CA435FACB191CEE837D07582C7EAAE8EC137E95D26FB77EF35C1",
+  "source_paper_ledger_head_hash": "4A04A8EFD976F5C3C31D08F325FA82006696E3C8850949535050BCB671D603CE",
+  "source_public_market_data_collection_hash": "42B324727BB8973ACCAEAEA60D9A1A64668375F48B0250C44349CC983D73F2E3",
+  "source_public_market_data_hash": "42B324727BB8973ACCAEAEA60D9A1A64668375F48B0250C44349CC983D73F2E3",
+  "source_public_market_event_hash": "879C3963282B60E2AF7EE2E89A046AFB4631D1EE23E615A529ECAC4DEE94EBB7",
+  "source_public_market_event_time_utc": "2026-05-06T22:49:00Z"
+}

@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.paper_runtime_truth_state_report.v1",
-  "generated_at_utc": "2026-05-06T22:47:41Z",
+  "generated_at_utc": "2026-05-06T22:49:50Z",
   "project_id": "TRADER_1",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
@@ -17,11 +17,11 @@
   "current_evidence_refreshing": true,
   "validated_paper_cycle_count": 20,
   "validated_paper_ledger_event_count": 378,
-  "source_heartbeat_hash": "399D1445896F7DD7861EC7785CD7212D6A0FEBF0648A5923A296CC1DD2E170A7",
+  "source_heartbeat_hash": "F3F52DA1584A94734397F961DDE9450ACBF85084B782F5644EFAC5B4A1F71CC1",
   "source_persistent_loop_hash": "D3A1B4356F3DCD627DA9AD482D02712609F919F4E32C551E43070CDCE2D729FD",
-  "source_market_continuity_history_hash": "10C0499F284E6AC4FCEE8ECA2C0F5B8C0BCC83F3DAE53A8E8279C89C34DFE8C1",
+  "source_market_continuity_history_hash": "DEF0ABFB6E748557FA1AA9FD8B2EBFDF9F53691C58778C8693BBD5B0DC5DC423",
   "source_paper_ledger_rollup_hash": "C095E1AEC3C22E2CF8AFAE84B4FF3955A6FCBC620DB74CA3341BD0FE1E319D79",
-  "source_current_truth_refresh_hash": "0FF28B09C2D2163FA2F65A1742533A0A4D85ED05F0574BC482E02504ADC03234",
+  "source_current_truth_refresh_hash": "4CF41A9C6AA1B20DB83A84C99719C19C810BC01146A687B50D65AAC0832082E2",
   "primary_blocker_code": "LATENCY_TTL_EXPIRED",
   "blockers": [
     {
@@ -50,5 +50,5 @@
   "can_live_trade": false,
   "can_submit_order": false,
   "scale_up_allowed": false,
-  "truth_state_hash": "2A28BA37745F02835F5059246C96F2FAB5D026B7AEC9D49583C5A83EA352708A"
+  "truth_state_hash": "056C9F584B605C05FFFB27A75CC434A0C40AE14EE5C64D413837202202421426"
 }

@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.shadow_observation_persistent_runtime_report.v1",
-  "generated_at_utc": "2026-05-06T22:47:41Z",
+  "generated_at_utc": "2026-05-06T22:49:50Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -17,7 +17,7 @@
   "runtime_execution_mode": "ACTUAL_PAPER_SHADOW_SHORT_WINDOW",
   "runtime_evidence_role": "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY",
   "actual_persistent_runtime_executed": true,
-  "source_scheduler_guard_hash": "99BF5CEB689A0BF31D94B43B9237F480B02E7AD265A1F5A15164F40DAC298A59",
+  "source_scheduler_guard_hash": "0116A5AEC0FC079CC02535B85E29BA3A6E332390695FDF0E488C2B8BF6C7BE30",
   "source_scheduler_guard_status": "PASS",
   "source_scheduler_validation_status": "PASS",
   "source_paper_loop_hash": "D3A1B4356F3DCD627DA9AD482D02712609F919F4E32C551E43070CDCE2D729FD",
@@ -130,5 +130,5 @@
   "order_adapter_called": false,
   "primary_blocker_code": null,
   "blockers": [],
-  "runtime_report_hash": "A0E0FA03B820CAF592ADE7AEF46D0496E0A657AA06CA2B4F8941792565B20C0F"
+  "runtime_report_hash": "460BAF224DC61A0576539311015E764FDD0FE6E95B06D2631028CD7503AFC722"
 }

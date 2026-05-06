@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.startup_probe.v1",
-  "generated_at_utc": "2026-05-06T22:47:05Z",
+  "generated_at_utc": "2026-05-06T22:49:50Z",
   "project_id": "TRADER_1",
   "exchange": "UPBIT",
   "market_type": "KRW_SPOT",
@@ -76,5 +76,5 @@
   ],
   "final_action": "NO_TRADE",
   "next_action": "provide missing hard truth and rerun startup probe",
-  "probe_hash": "C6937E9C0A11D25F2BEC0CA07301485D69371EBC3B77F8B18CB8D0A55A8E826B"
+  "probe_hash": "FB92130AB56C52C2C3665BE3DCD13C7E35521A34DF4F8BA26C0A0A2841C30123"
 }
