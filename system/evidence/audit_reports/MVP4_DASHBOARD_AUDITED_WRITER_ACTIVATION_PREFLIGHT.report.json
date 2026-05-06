@@ -1,0 +1,52 @@
+{
+  "schema_id": "trader1.dashboard_audited_writer_activation_preflight_report.v1",
+  "patch_id": "MVP4_DASHBOARD_AUDITED_WRITER_ACTIVATION_PREFLIGHT_20260506_001",
+  "generated_at_utc": "2026-05-06T01:24:22Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "finding": "The dashboard could show an audited PAPER snapshot, but it did not give a compact operator activation preflight matrix that separates single-run audited snapshot truth from the still-blocked continuous current-evidence writer.",
+  "audited_writer_activation_preflight_stages": [
+    "PRECHECK_REPORT",
+    "DRY_RUN_REPORT",
+    "LOCKED_OUTPUT_REPORT",
+    "IMPLEMENTATION_PREP_REPORT",
+    "SINGLE_RUN_AUDITED_WRITER_OUTPUT",
+    "CONTINUOUS_WRITER_LOOP"
+  ],
+  "long_run_floor_seconds": 86400,
+  "long_run_stable_sample_floor": 2880,
+  "floor_policy_changed": false,
+  "gap_closure_allowed_by_this_patch": false,
+  "live_ready_write_allowed": false,
+  "acceptance_conditions": [
+    "portfolio_snapshot includes a six-stage audited writer activation preflight matrix",
+    "single-run audited PAPER snapshot display remains separate from continuous writer proof",
+    "each activation preflight stage is display-only and cannot create write, live, scale, or gap-closure permission",
+    "stale audited PAPER snapshots stay last-verified display truth rather than current runtime proof",
+    "continuous current-evidence writer remains BLOCKED without closing POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "live_order_ready/live_order_allowed/can_live_trade/scale_up_allowed remain false"
+  ],
+  "open_contract_gap_count": 13,
+  "open_contract_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

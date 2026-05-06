@@ -330,6 +330,30 @@ AUDITED_WRITER_READINESS_LADDER_OVERALL_STATUSES = {
     "STALE_SINGLE_RUN_SNAPSHOT",
     "BLOCKED_CONTINUOUS_WRITER",
 }
+AUDITED_WRITER_ACTIVATION_PREFLIGHT_STAGE_IDS = (
+    "PRECHECK_REPORT",
+    "DRY_RUN_REPORT",
+    "LOCKED_OUTPUT_REPORT",
+    "IMPLEMENTATION_PREP_REPORT",
+    "SINGLE_RUN_AUDITED_WRITER_OUTPUT",
+    "CONTINUOUS_WRITER_LOOP",
+)
+AUDITED_WRITER_ACTIVATION_PREFLIGHT_STAGE_STATUSES = {
+    "NOT_LOADED",
+    "PASS_REVIEW_ONLY",
+    "PASS_SNAPSHOT_ONLY",
+    "BLOCKED_REVIEW_ONLY",
+    "BLOCKED",
+    "INVALID",
+}
+AUDITED_WRITER_ACTIVATION_PREFLIGHT_OVERALL_STATUSES = {
+    "NO_CHAIN_LOADED",
+    "SOURCE_CHAIN_BLOCKED",
+    "REVIEW_CHAIN_BLOCKED",
+    "SNAPSHOT_ONLY_SOURCE_CHAIN_PARTIAL",
+    "SNAPSHOT_ONLY_CONTINUOUS_WRITER_BLOCKED",
+    "INVALID_DRIFT",
+}
 SOURCE_FRESHNESS_MAX_AGE_SECONDS = 300
 SOURCE_CLOCK_SKEW_ALLOWANCE_SECONDS = 60
 DASHBOARD_AUTO_REFRESH_SECONDS = 10
@@ -1185,6 +1209,459 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
             "BLOCKED",
             "dashboard cannot claim continuous audited current-evidence writer PASS",
             "LIVE_FINAL_GUARD_FAILED",
+        )
+    return None
+
+
+def _audited_writer_activation_preflight_stage(
+    *,
+    stage_id: str,
+    label: str,
+    status: str,
+    source: str,
+    validation_status: str,
+    primary_blocker_code: str,
+    pass_count: int,
+    total_count: int,
+    detail: str,
+) -> dict[str, Any]:
+    return {
+        "stage_id": stage_id,
+        "label": label,
+        "status": status,
+        "source": source,
+        "validation_status": validation_status,
+        "primary_blocker_code": primary_blocker_code,
+        "pass_count": pass_count,
+        "total_count": total_count,
+        "detail": detail,
+        "loaded": status != "NOT_LOADED",
+        "review_only": status in {"PASS_REVIEW_ONLY", "PASS_SNAPSHOT_ONLY", "BLOCKED_REVIEW_ONLY"},
+        "blocks_writer_activation_until_pass": status not in {"PASS_REVIEW_ONLY", "PASS_SNAPSHOT_ONLY"},
+        "current_evidence_write_allowed": False,
+        "portfolio_truth_write_allowed": False,
+        "writer_enablement_allowed": False,
+        "counts_as_live_ready_evidence": False,
+        "counts_as_gap_closure_evidence": False,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "gap_closure_allowed": False,
+    }
+
+
+def _audited_writer_review_stage_from_summary(
+    summary: dict[str, Any],
+    *,
+    stage_id: str,
+    label: str,
+    source: str,
+    status_field: str,
+    validation_field: str,
+    expected_status: str,
+    blocked_source_statuses: set[str],
+    pass_count_field: str,
+    total_count_field: str,
+    blocker_field: str,
+) -> dict[str, Any]:
+    raw_status = str(summary.get(status_field) or "NOT_LOADED")
+    validation_status = str(summary.get(validation_field) or "UNTESTED")
+    primary_blocker_code = str(summary.get(blocker_field) or "NOT_LOADED")
+    pass_count = int(summary.get(pass_count_field) or 0)
+    total_count = int(summary.get(total_count_field) or 0)
+    if raw_status == "NOT_LOADED":
+        status = "NOT_LOADED"
+        detail = f"{label} source is not loaded in this dashboard shell."
+    elif raw_status == "INVALID" or validation_status in {"FAIL", "BLOCKED"}:
+        status = "INVALID"
+        detail = f"{label} source failed validation; activation remains blocked."
+    elif raw_status == expected_status and validation_status == "PASS":
+        status = "PASS_REVIEW_ONLY"
+        detail = f"{label} validates as review-only: {pass_count}/{total_count} checks pass; writes stay disabled."
+    elif raw_status in blocked_source_statuses and validation_status == "PASS":
+        status = "BLOCKED_REVIEW_ONLY"
+        detail = f"{label} validates but is blocked by an upstream source state; writes stay disabled."
+    else:
+        status = "INVALID"
+        detail = f"{label} status is inconsistent with the closed activation contract."
+    return _audited_writer_activation_preflight_stage(
+        stage_id=stage_id,
+        label=label,
+        status=status,
+        source=source if raw_status != "NOT_LOADED" else "NOT_LOADED",
+        validation_status=validation_status,
+        primary_blocker_code=primary_blocker_code,
+        pass_count=pass_count,
+        total_count=total_count,
+        detail=detail,
+    )
+
+
+def _audited_writer_output_stage_from_summary(summary: dict[str, Any]) -> dict[str, Any]:
+    raw_status = str(summary.get("upbit_paper_repaired_current_evidence_audited_writer_status") or "NOT_LOADED")
+    validation_status = str(
+        summary.get("upbit_paper_repaired_current_evidence_audited_writer_validation_status") or "UNTESTED"
+    )
+    primary_blocker_code = str(
+        summary.get("upbit_paper_repaired_current_evidence_audited_writer_primary_blocker_code")
+        or "NOT_LOADED"
+    )
+    pass_count = int(summary.get("upbit_paper_repaired_current_evidence_audited_writer_control_pass_count") or 0)
+    total_count = int(summary.get("upbit_paper_repaired_current_evidence_audited_writer_control_count") or 0)
+    if raw_status == "NOT_LOADED":
+        status = "NOT_LOADED"
+        detail = "Single-run audited writer output is not loaded."
+    elif summary.get("upbit_paper_repaired_current_evidence_audited_writer_verified_for_display") is True:
+        status = "PASS_SNAPSHOT_ONLY"
+        detail = "Single-run audited writer output is verified for PAPER display only; it is not a continuous writer loop."
+    elif raw_status == "INVALID" or validation_status in {"FAIL", "BLOCKED"}:
+        status = "INVALID"
+        detail = "Single-run audited writer output failed validation."
+    elif raw_status.startswith("BLOCKED_"):
+        status = "BLOCKED_REVIEW_ONLY"
+        detail = "Single-run audited writer output is blocked and cannot write current portfolio truth."
+    else:
+        status = "INVALID"
+        detail = "Single-run audited writer output status is inconsistent with the activation contract."
+    return _audited_writer_activation_preflight_stage(
+        stage_id="SINGLE_RUN_AUDITED_WRITER_OUTPUT",
+        label="Single-run audited writer output",
+        status=status,
+        source="upbit_paper_repaired_current_evidence_audited_writer_report.json"
+        if raw_status != "NOT_LOADED"
+        else "NOT_LOADED",
+        validation_status=validation_status,
+        primary_blocker_code=primary_blocker_code,
+        pass_count=pass_count,
+        total_count=total_count,
+        detail=detail,
+    )
+
+
+def _audited_writer_activation_preflight_matrix(
+    reconciliation_recovery_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    summary = reconciliation_recovery_summary if isinstance(reconciliation_recovery_summary, dict) else {}
+    stages = [
+        _audited_writer_review_stage_from_summary(
+            summary,
+            stage_id="PRECHECK_REPORT",
+            label="Writer precheck",
+            source="upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json",
+            status_field="upbit_paper_repaired_current_evidence_audited_writer_precheck_status",
+            validation_field="upbit_paper_repaired_current_evidence_audited_writer_precheck_validation_status",
+            expected_status="BLOCKED_AUDITED_WRITER_DISABLED",
+            blocked_source_statuses={"BLOCKED_SOURCE_GUARD_INVALID"},
+            pass_count_field="upbit_paper_repaired_current_evidence_audited_writer_precheck_gate_pass_count",
+            total_count_field="upbit_paper_repaired_current_evidence_audited_writer_precheck_gate_count",
+            blocker_field="upbit_paper_repaired_current_evidence_audited_writer_precheck_primary_blocker_code",
+        ),
+        _audited_writer_review_stage_from_summary(
+            summary,
+            stage_id="DRY_RUN_REPORT",
+            label="Writer dry-run",
+            source="upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.json",
+            status_field="upbit_paper_repaired_current_evidence_audited_writer_dry_run_status",
+            validation_field="upbit_paper_repaired_current_evidence_audited_writer_dry_run_validation_status",
+            expected_status="BLOCKED_DRY_RUN_ONLY_WRITER_NOT_ENABLED",
+            blocked_source_statuses={"BLOCKED_SOURCE_DESIGN_INVALID"},
+            pass_count_field="upbit_paper_repaired_current_evidence_audited_writer_dry_run_check_pass_count",
+            total_count_field="upbit_paper_repaired_current_evidence_audited_writer_dry_run_check_count",
+            blocker_field="upbit_paper_repaired_current_evidence_audited_writer_dry_run_primary_blocker_code",
+        ),
+        _audited_writer_review_stage_from_summary(
+            summary,
+            stage_id="LOCKED_OUTPUT_REPORT",
+            label="Locked output",
+            source="upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json",
+            status_field="upbit_paper_repaired_current_evidence_audited_writer_locked_output_status",
+            validation_field="upbit_paper_repaired_current_evidence_audited_writer_locked_output_validation_status",
+            expected_status="BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED",
+            blocked_source_statuses={"BLOCKED_SOURCE_DRY_RUN_INVALID"},
+            pass_count_field="upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_pass_count",
+            total_count_field="upbit_paper_repaired_current_evidence_audited_writer_locked_output_control_count",
+            blocker_field="upbit_paper_repaired_current_evidence_audited_writer_locked_output_primary_blocker_code",
+        ),
+        _audited_writer_review_stage_from_summary(
+            summary,
+            stage_id="IMPLEMENTATION_PREP_REPORT",
+            label="Implementation prep",
+            source="upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
+            status_field="upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_status",
+            validation_field="upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validation_status",
+            expected_status="BLOCKED_IMPLEMENTATION_PREP_WRITER_NOT_ENABLED",
+            blocked_source_statuses={
+                "BLOCKED_SOURCE_LOCKED_OUTPUT_INVALID",
+                "BLOCKED_IMPLEMENTATION_PREP_TARGET_DIRTY",
+            },
+            pass_count_field="upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_check_pass_count",
+            total_count_field="upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_check_count",
+            blocker_field="upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_primary_blocker_code",
+        ),
+        _audited_writer_output_stage_from_summary(summary),
+        _audited_writer_activation_preflight_stage(
+            stage_id="CONTINUOUS_WRITER_LOOP",
+            label="Continuous writer loop",
+            status="BLOCKED",
+            source="POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+            validation_status="BLOCKED",
+            primary_blocker_code="POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+            pass_count=0,
+            total_count=1,
+            detail="Continuous audited current-evidence writing remains blocked and cannot be activated by the dashboard.",
+        ),
+    ]
+    loaded_count = sum(1 for stage in stages if stage["loaded"])
+    pass_review_count = sum(1 for stage in stages if stage["status"] == "PASS_REVIEW_ONLY")
+    pass_snapshot_count = sum(1 for stage in stages if stage["status"] == "PASS_SNAPSHOT_ONLY")
+    invalid_count = sum(1 for stage in stages if stage["status"] == "INVALID")
+    blocked_count = sum(1 for stage in stages if stage["status"] not in {"PASS_REVIEW_ONLY", "PASS_SNAPSHOT_ONLY"})
+    first_blocking_stage = next(
+        (stage["stage_id"] for stage in stages if stage["status"] not in {"PASS_REVIEW_ONLY", "PASS_SNAPSHOT_ONLY"}),
+        "CONTINUOUS_WRITER_LOOP",
+    )
+    review_chain_complete = all(stage["status"] == "PASS_REVIEW_ONLY" for stage in stages[:4])
+    if invalid_count:
+        overall_status = "INVALID_DRIFT"
+    elif pass_snapshot_count and review_chain_complete:
+        overall_status = "SNAPSHOT_ONLY_CONTINUOUS_WRITER_BLOCKED"
+    elif pass_snapshot_count:
+        overall_status = "SNAPSHOT_ONLY_SOURCE_CHAIN_PARTIAL"
+    elif any(stage["status"] == "BLOCKED_REVIEW_ONLY" for stage in stages):
+        overall_status = "SOURCE_CHAIN_BLOCKED"
+    elif pass_review_count:
+        overall_status = "REVIEW_CHAIN_BLOCKED"
+    else:
+        overall_status = "NO_CHAIN_LOADED"
+    primary_blocker_code = (
+        "LIVE_FINAL_GUARD_FAILED"
+        if overall_status == "INVALID_DRIFT"
+        else (
+            "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
+            if pass_snapshot_count
+            else (
+                next(
+                    (
+                        str(stage["primary_blocker_code"])
+                        for stage in stages
+                        if stage["primary_blocker_code"] not in {"NOT_LOADED", ""}
+                    ),
+                    "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+                )
+            )
+        )
+    )
+    return {
+        "audited_writer_activation_preflight_status": overall_status,
+        "audited_writer_activation_preflight_current_stage_id": str(first_blocking_stage),
+        "audited_writer_activation_preflight_loaded_stage_count": loaded_count,
+        "audited_writer_activation_preflight_pass_review_count": pass_review_count,
+        "audited_writer_activation_preflight_pass_snapshot_count": pass_snapshot_count,
+        "audited_writer_activation_preflight_blocking_count": blocked_count,
+        "audited_writer_activation_preflight_primary_blocker_code": primary_blocker_code,
+        "audited_writer_activation_preflight_summary": (
+            f"Audited writer activation preflight: {overall_status}; loaded stages={loaded_count}/"
+            f"{len(stages)}; review-only pass={pass_review_count}; snapshot-only pass={pass_snapshot_count}; "
+            f"current blocker={first_blocking_stage}. No dashboard path can enable continuous current-evidence writes."
+        ),
+        "audited_writer_activation_preflight_stages": stages,
+        "audited_writer_activation_preflight_writer_enablement_allowed": False,
+        "audited_writer_activation_preflight_current_evidence_write_allowed": False,
+        "audited_writer_activation_preflight_portfolio_truth_write_allowed": False,
+        "audited_writer_activation_preflight_live_review_allowed": False,
+        "audited_writer_activation_preflight_gap_closure_allowed": False,
+        "audited_writer_activation_preflight_live_order_allowed": False,
+        "audited_writer_activation_preflight_can_live_trade": False,
+        "audited_writer_activation_preflight_scale_up_allowed": False,
+    }
+
+
+def _attach_audited_writer_activation_preflight(
+    portfolio: dict[str, Any],
+    reconciliation_recovery_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    portfolio.update(_audited_writer_activation_preflight_matrix(reconciliation_recovery_summary))
+    return portfolio
+
+
+def _validate_audited_writer_activation_preflight_matrix(
+    portfolio: dict[str, Any],
+) -> DashboardValidationResult | None:
+    stages = portfolio.get("audited_writer_activation_preflight_stages")
+    if (
+        portfolio.get("audited_writer_activation_preflight_status")
+        not in AUDITED_WRITER_ACTIVATION_PREFLIGHT_OVERALL_STATUSES
+        or portfolio.get("audited_writer_activation_preflight_current_stage_id")
+        not in set(AUDITED_WRITER_ACTIVATION_PREFLIGHT_STAGE_IDS)
+        or not isinstance(portfolio.get("audited_writer_activation_preflight_loaded_stage_count"), int)
+        or not isinstance(portfolio.get("audited_writer_activation_preflight_pass_review_count"), int)
+        or not isinstance(portfolio.get("audited_writer_activation_preflight_pass_snapshot_count"), int)
+        or not isinstance(portfolio.get("audited_writer_activation_preflight_blocking_count"), int)
+        or not isinstance(portfolio.get("audited_writer_activation_preflight_primary_blocker_code"), str)
+        or not isinstance(portfolio.get("audited_writer_activation_preflight_summary"), str)
+        or not isinstance(stages, list)
+        or len(stages) != len(AUDITED_WRITER_ACTIVATION_PREFLIGHT_STAGE_IDS)
+    ):
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer activation preflight matrix is missing or malformed",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if (
+        portfolio.get("audited_writer_activation_preflight_writer_enablement_allowed") is not False
+        or portfolio.get("audited_writer_activation_preflight_current_evidence_write_allowed") is not False
+        or portfolio.get("audited_writer_activation_preflight_portfolio_truth_write_allowed") is not False
+        or portfolio.get("audited_writer_activation_preflight_live_review_allowed") is not False
+        or portfolio.get("audited_writer_activation_preflight_gap_closure_allowed") is not False
+        or portfolio.get("audited_writer_activation_preflight_live_order_allowed") is not False
+        or portfolio.get("audited_writer_activation_preflight_can_live_trade") is not False
+        or portfolio.get("audited_writer_activation_preflight_scale_up_allowed") is not False
+    ):
+        return DashboardValidationResult(
+            "BLOCKED",
+            "audited writer activation preflight attempted write, live, scale, or gap-closure permission",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    stage_ids = [stage.get("stage_id") for stage in stages if isinstance(stage, dict)]
+    if stage_ids != list(AUDITED_WRITER_ACTIVATION_PREFLIGHT_STAGE_IDS):
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer activation preflight stages are incomplete or reordered",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    loaded_count = pass_review_count = pass_snapshot_count = blocking_count = 0
+    first_blocking_stage = "CONTINUOUS_WRITER_LOOP"
+    first_blocking_seen = False
+    invalid_count = 0
+    for stage in stages:
+        if not isinstance(stage, dict):
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer activation preflight stage entry is invalid",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        status = stage.get("status")
+        if status not in AUDITED_WRITER_ACTIVATION_PREFLIGHT_STAGE_STATUSES:
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer activation preflight stage status is unknown",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        for field in ("label", "source", "validation_status", "primary_blocker_code", "detail"):
+            if not isinstance(stage.get(field), str) or not stage.get(field, "").strip():
+                return DashboardValidationResult(
+                    "FAIL",
+                    f"audited writer activation preflight stage missing {field}",
+                    "SCHEMA_IDENTITY_MISMATCH",
+                )
+        if stage.get("loaded") != (status != "NOT_LOADED"):
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer activation preflight loaded flag drifted from status",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if stage.get("review_only") != (status in {"PASS_REVIEW_ONLY", "PASS_SNAPSHOT_ONLY", "BLOCKED_REVIEW_ONLY"}):
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer activation preflight review-only flag drifted from status",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if stage.get("blocks_writer_activation_until_pass") != (
+            status not in {"PASS_REVIEW_ONLY", "PASS_SNAPSHOT_ONLY"}
+        ):
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer activation preflight blocker flag drifted from status",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        for field in (
+            "current_evidence_write_allowed",
+            "portfolio_truth_write_allowed",
+            "writer_enablement_allowed",
+            "counts_as_live_ready_evidence",
+            "counts_as_gap_closure_evidence",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "gap_closure_allowed",
+        ):
+            if stage.get(field) is not False:
+                return DashboardValidationResult(
+                    "BLOCKED",
+                    "audited writer activation preflight stage attempted forbidden permission",
+                    "LIVE_FINAL_GUARD_FAILED",
+                )
+        if stage.get("display_only") is not True or stage.get("dashboard_truth_only") is not True:
+            return DashboardValidationResult(
+                "BLOCKED",
+                "audited writer activation preflight stage must remain display-only",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+        if not isinstance(stage.get("pass_count"), int) or not isinstance(stage.get("total_count"), int):
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer activation preflight stage counts are invalid",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if stage["pass_count"] < 0 or stage["total_count"] < 0 or stage["pass_count"] > stage["total_count"]:
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer activation preflight stage count relationship is invalid",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if status != "NOT_LOADED":
+            loaded_count += 1
+        if status == "PASS_REVIEW_ONLY":
+            pass_review_count += 1
+        if status == "PASS_SNAPSHOT_ONLY":
+            pass_snapshot_count += 1
+        if status == "INVALID":
+            invalid_count += 1
+        if status not in {"PASS_REVIEW_ONLY", "PASS_SNAPSHOT_ONLY"}:
+            blocking_count += 1
+            if not first_blocking_seen:
+                first_blocking_stage = str(stage["stage_id"])
+                first_blocking_seen = True
+    if stages[-1].get("stage_id") != "CONTINUOUS_WRITER_LOOP" or stages[-1].get("status") != "BLOCKED":
+        return DashboardValidationResult(
+            "BLOCKED",
+            "dashboard cannot claim continuous writer loop is unblocked",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if (
+        portfolio.get("audited_writer_activation_preflight_loaded_stage_count") != loaded_count
+        or portfolio.get("audited_writer_activation_preflight_pass_review_count") != pass_review_count
+        or portfolio.get("audited_writer_activation_preflight_pass_snapshot_count") != pass_snapshot_count
+        or portfolio.get("audited_writer_activation_preflight_blocking_count") != blocking_count
+        or portfolio.get("audited_writer_activation_preflight_current_stage_id") != first_blocking_stage
+    ):
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer activation preflight aggregate count mismatch",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    review_chain_complete = all(stage["status"] == "PASS_REVIEW_ONLY" for stage in stages[:4])
+    if invalid_count:
+        expected_status = "INVALID_DRIFT"
+    elif pass_snapshot_count and review_chain_complete:
+        expected_status = "SNAPSHOT_ONLY_CONTINUOUS_WRITER_BLOCKED"
+    elif pass_snapshot_count:
+        expected_status = "SNAPSHOT_ONLY_SOURCE_CHAIN_PARTIAL"
+    elif any(stage["status"] == "BLOCKED_REVIEW_ONLY" for stage in stages):
+        expected_status = "SOURCE_CHAIN_BLOCKED"
+    elif pass_review_count:
+        expected_status = "REVIEW_CHAIN_BLOCKED"
+    else:
+        expected_status = "NO_CHAIN_LOADED"
+    if portfolio.get("audited_writer_activation_preflight_status") != expected_status:
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer activation preflight status drifted from stage states",
+            "SCHEMA_IDENTITY_MISMATCH",
         )
     return None
 
@@ -2092,7 +2569,10 @@ def _portfolio_snapshot(
     audited_paper_portfolio_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if summary is not None and summary_freshness != "PASS":
-        return _stale_portfolio_snapshot(exchange, market_type, summary)
+        return _attach_audited_writer_activation_preflight(
+            _stale_portfolio_snapshot(exchange, market_type, summary),
+            reconciliation_recovery_summary,
+        )
     audited = _audited_current_evidence_portfolio_snapshot(
         exchange=exchange,
         market_type=market_type,
@@ -2104,7 +2584,7 @@ def _portfolio_snapshot(
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
     )
     if audited is not None:
-        return audited
+        return _attach_audited_writer_activation_preflight(audited, reconciliation_recovery_summary)
     post_rerun_current_truth_blocked = isinstance(reconciliation_recovery_summary, dict) and (
         reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_status")
         == "BLOCKED_REPAIR_PATH_DECLARED"
@@ -2133,7 +2613,7 @@ def _portfolio_snapshot(
     if mode == "PAPER" and isinstance(summary, dict) and not post_rerun_current_truth_blocked:
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
         if verified is not None:
-            return verified
+            return _attach_audited_writer_activation_preflight(verified, reconciliation_recovery_summary)
     repair_path_current_truth_blocked = (
         isinstance(reconciliation_recovery_summary, dict)
         and reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_status")
@@ -2163,11 +2643,11 @@ def _portfolio_snapshot(
                     "PAPER portfolio ledger values are verified for display by idempotency runtime evidence; "
                     f"current-evidence writes and live review remain blocked by {blocker_code}."
                 )
-                verified["next_action"] = (
-                    "Use these PAPER ledger values for dashboard review only; keep current-evidence writes, live orders, "
-                    "and risk scale-up blocked until the reconciliation panel is resolved."
-                )
-            return verified
+            verified["next_action"] = (
+                "Use these PAPER ledger values for dashboard review only; keep current-evidence writes, live orders, "
+                "and risk scale-up blocked until the reconciliation panel is resolved."
+            )
+            return _attach_audited_writer_activation_preflight(verified, reconciliation_recovery_summary)
     configured_card = _configured_paper_capital_card(
         exchange,
         market_type,
@@ -2686,7 +3166,7 @@ def _portfolio_snapshot(
             "Resolve post-rerun reconciliation before treating configured PAPER capital or ledger provenance as "
             "current portfolio cash/equity."
         )
-    return {
+    snapshot = {
         "title": "Portfolio Snapshot",
         "status": "UNVERIFIED",
         "truth_role": "dashboard_serving_truth",
@@ -2736,6 +3216,7 @@ def _portfolio_snapshot(
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
+    return _attach_audited_writer_activation_preflight(snapshot, reconciliation_recovery_summary)
 
 
 def _context_message(items: Any, fallback: str) -> str:
@@ -16132,6 +16613,9 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "operator_truth_summary",
                 "audited_writer_readiness_ladder_status",
                 "audited_writer_readiness_ladder_summary",
+                "audited_writer_activation_preflight_status",
+                "audited_writer_activation_preflight_summary",
+                "audited_writer_activation_preflight_primary_blocker_code",
             )
         )
         ladder_steps = portfolio.get("audited_writer_readiness_ladder_steps", [])
@@ -16139,6 +16623,14 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
             for step in ladder_steps:
                 if isinstance(step, dict):
                     values.extend(str(step.get(key, "")) for key in ("label", "status", "source", "detail"))
+        activation_stages = portfolio.get("audited_writer_activation_preflight_stages", [])
+        if isinstance(activation_stages, list):
+            for stage in activation_stages:
+                if isinstance(stage, dict):
+                    values.extend(
+                        str(stage.get(key, ""))
+                        for key in ("label", "status", "source", "validation_status", "primary_blocker_code", "detail")
+                    )
         for card_id in PORTFOLIO_CARD_IDS:
             card = portfolio.get(card_id, {})
             if isinstance(card, dict):
@@ -20705,6 +21197,9 @@ def validate_read_only_dashboard_shell(
     audited_writer_ladder_result = _validate_audited_writer_readiness_ladder(portfolio)
     if audited_writer_ladder_result is not None:
         return audited_writer_ladder_result
+    audited_writer_activation_result = _validate_audited_writer_activation_preflight_matrix(portfolio)
+    if audited_writer_activation_result is not None:
+        return audited_writer_activation_result
     if portfolio.get("status") in {"VERIFIED", "STALE"} and portfolio_has_snapshot_provenance and shell.get("mode") != "PAPER":
         return DashboardValidationResult("BLOCKED", "verified portfolio display is PAPER-only without live evidence", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("status") == "VERIFIED" or (
@@ -22277,6 +22772,32 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<ol class=\"runtime-ladder\" aria-label=\"audited writer readiness ladder\">{audited_writer_ladder_step_html}</ol>"
         "</details>"
     )
+    activation_status_display = str(
+        portfolio.get("audited_writer_activation_preflight_status", "NO_CHAIN_LOADED")
+        if isinstance(portfolio, dict)
+        else "NO_CHAIN_LOADED"
+    ).replace("_", " ").title()
+    activation_stages = (
+        portfolio.get("audited_writer_activation_preflight_stages", []) if isinstance(portfolio, dict) else []
+    )
+    activation_stage_html = "\n".join(
+        (
+            "<li>"
+            f"<span class=\"pill {status_class(stage.get('status'))}\">{safe_text(stage.get('status', 'NOT_LOADED'))}</span>"
+            f"<strong>{safe_text(stage.get('label', 'Activation stage'))}</strong>"
+            f"<small>{safe_text(stage.get('detail', 'Display-only activation preflight stage.'))}</small>"
+            "</li>"
+        )
+        for stage in activation_stages
+        if isinstance(stage, dict)
+    )
+    audited_writer_activation_html = (
+        "<details class=\"writer-ladder\">"
+        f"<summary>Activation preflight: {safe_text(activation_status_display)}</summary>"
+        f"<p>{safe_text(portfolio.get('audited_writer_activation_preflight_summary', 'Writer activation remains blocked.'))}</p>"
+        f"<ol class=\"runtime-ladder\" aria-label=\"audited writer activation preflight\">{activation_stage_html}</ol>"
+        "</details>"
+    )
 
     portfolio_ledger_html = (
         "<dl class=\"portfolio-ledger\" aria-label=\"portfolio compact ledger\">"
@@ -23460,6 +23981,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="source-line">""" + safe_text(portfolio_interpretation_line) + """</p>
         <p class="source-line">""" + safe_text(portfolio_runtime_line) + """</p>
         """ + audited_writer_ladder_html + """
+        """ + audited_writer_activation_html + """
         <p class="source-line">""" + safe_text(portfolio.get("source_snapshot_freshness_message", "No verified paper portfolio snapshot loaded")) + """</p>
         <section class="portfolio-kpi-grid">
           """ + portfolio_kpi_html + """
@@ -23517,6 +24039,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <p class="source-line">""" + safe_text(portfolio_interpretation_line) + """</p>
       <p class="source-line">""" + safe_text(portfolio_runtime_line) + """</p>
       """ + audited_writer_ladder_html + """
+      """ + audited_writer_activation_html + """
       """ + portfolio_ledger_html + """
       <section class="portfolio-detail-grid">
         """ + portfolio_detail_html + """

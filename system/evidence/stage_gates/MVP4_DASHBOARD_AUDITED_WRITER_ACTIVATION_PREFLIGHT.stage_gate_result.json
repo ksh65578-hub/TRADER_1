@@ -1,0 +1,24 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-06T01:24:22Z",
+  "patch_id": "MVP4_DASHBOARD_AUDITED_WRITER_ACTIVATION_PREFLIGHT_20260506_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_AUDITED_WRITER_ACTIVATION_PREFLIGHT_LIVE_BLOCKED",
+  "audited_writer_activation_preflight_stages": [
+    "PRECHECK_REPORT",
+    "DRY_RUN_REPORT",
+    "LOCKED_OUTPUT_REPORT",
+    "IMPLEMENTATION_PREP_REPORT",
+    "SINGLE_RUN_AUDITED_WRITER_OUTPUT",
+    "CONTINUOUS_WRITER_LOOP"
+  ],
+  "long_run_floor_seconds": 86400,
+  "long_run_stable_sample_floor": 2880,
+  "floor_policy_changed": false,
+  "gap_closure_allowed_by_this_patch": false,
+  "live_ready_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
