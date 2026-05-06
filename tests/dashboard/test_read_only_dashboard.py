@@ -4432,6 +4432,33 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         )
         self.assertIn("display only", portfolio["paper_value_truth_message"])
         self.assertIn("continuous current-evidence writer", portfolio["operator_truth_summary"])
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_status"], "BLOCKED_CONTINUOUS_WRITER")
+        self.assertEqual(
+            portfolio["audited_writer_readiness_ladder_highest_passed_step_id"],
+            "SINGLE_RUN_AUDITED_SNAPSHOT",
+        )
+        self.assertEqual(
+            portfolio["audited_writer_readiness_ladder_current_step_id"],
+            "CONTINUOUS_CURRENT_EVIDENCE_WRITER",
+        )
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_blocking_count"], 1)
+        self.assertFalse(portfolio["audited_writer_readiness_ladder_current_evidence_write_allowed"])
+        self.assertFalse(portfolio["audited_writer_readiness_ladder_portfolio_truth_write_allowed"])
+        self.assertFalse(portfolio["audited_writer_readiness_ladder_live_order_allowed"])
+        self.assertFalse(portfolio["audited_writer_readiness_ladder_gap_closure_allowed"])
+        self.assertEqual(
+            [step["step_id"] for step in portfolio["audited_writer_readiness_ladder_steps"]],
+            [
+                "SOURCE_GUARD_CLEAN",
+                "WRITER_PRECHECK_REVIEW_ONLY",
+                "WRITER_DRY_RUN_REVIEW_ONLY",
+                "LOCKED_OUTPUT_REVIEW_ONLY",
+                "IMPLEMENTATION_PREP_REVIEW_ONLY",
+                "SINGLE_RUN_AUDITED_SNAPSHOT",
+                "CONTINUOUS_CURRENT_EVIDENCE_WRITER",
+            ],
+        )
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_steps"][-1]["status"], "BLOCKED")
         self.assertEqual(portfolio["configured_paper_capital"]["value_display"], "1,000,000 KRW")
         expected_cash_display = krw_display(current_evidence["verified_cash_krw"])
         expected_equity_display = krw_display(current_evidence["verified_equity_krw"])
@@ -4489,6 +4516,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER_LEDGER_CURRENT_VALUES_VERIFIED", html)
         self.assertIn("SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF", html)
         self.assertIn("AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED", html)
+        self.assertIn("Audited writer ladder", html)
+        self.assertIn("Continuous current-evidence writer", html)
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
 
@@ -4509,6 +4538,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
         self.assertEqual(portfolio["source_snapshot_status"], "BLOCKED")
         self.assertEqual(portfolio["blocking_reason"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_status"], "BLOCKED_INPUTS")
         self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
         positions = dashboard["position_snapshot"]
         self.assertEqual(positions["status"], "UNVERIFIED")
@@ -4519,6 +4549,32 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["can_live_trade"])
         self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_blocks_audited_writer_readiness_ladder_permission_drift(self):
+        dashboard = build_dashboard_with_audited_current_evidence_writer()
+        portfolio = dashboard["portfolio_snapshot"]
+        portfolio["audited_writer_readiness_ladder_current_evidence_write_allowed"] = True
+        portfolio["audited_writer_readiness_ladder_steps"][0]["current_evidence_write_allowed"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_blocks_audited_writer_readiness_ladder_continuous_writer_pass_drift(self):
+        dashboard = build_dashboard_with_audited_current_evidence_writer()
+        portfolio = dashboard["portfolio_snapshot"]
+        continuous_step = portfolio["audited_writer_readiness_ladder_steps"][-1]
+        continuous_step["status"] = "PASS"
+        continuous_step["blocks_current_evidence_write_until_pass"] = False
+        continuous_step["blocks_portfolio_truth_write_until_pass"] = False
+        continuous_step["blocks_live_review_until_pass"] = False
+        portfolio["audited_writer_readiness_ladder_blocking_count"] = 0
+        portfolio["audited_writer_readiness_ladder_highest_passed_step_id"] = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+        portfolio["audited_writer_readiness_ladder_current_step_id"] = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_dashboard_keeps_stale_audited_current_evidence_portfolio_values_stale_not_unverified(self):
         writer_report, current_evidence, paper_portfolio, implementation_prep = audited_writer_output_fixture()

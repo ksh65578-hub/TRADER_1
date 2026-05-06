@@ -313,6 +313,23 @@ AUDITED_WRITER_LIFECYCLE_STATUSES = {
     "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
     "NO_AUDITED_WRITER_EVIDENCE",
 }
+AUDITED_WRITER_READINESS_LADDER_STEP_IDS = (
+    "SOURCE_GUARD_CLEAN",
+    "WRITER_PRECHECK_REVIEW_ONLY",
+    "WRITER_DRY_RUN_REVIEW_ONLY",
+    "LOCKED_OUTPUT_REVIEW_ONLY",
+    "IMPLEMENTATION_PREP_REVIEW_ONLY",
+    "SINGLE_RUN_AUDITED_SNAPSHOT",
+    "CONTINUOUS_CURRENT_EVIDENCE_WRITER",
+)
+AUDITED_WRITER_READINESS_LADDER_STEP_STATUSES = {"MISSING", "PASS", "BLOCKED", "STALE"}
+AUDITED_WRITER_READINESS_LADDER_OVERALL_STATUSES = {
+    "MISSING",
+    "SUMMARY_LEDGER_ONLY",
+    "BLOCKED_INPUTS",
+    "STALE_SINGLE_RUN_SNAPSHOT",
+    "BLOCKED_CONTINUOUS_WRITER",
+}
 SOURCE_FRESHNESS_MAX_AGE_SECONDS = 300
 SOURCE_CLOCK_SKEW_ALLOWANCE_SECONDS = 60
 DASHBOARD_AUTO_REFRESH_SECONDS = 10
@@ -850,6 +867,328 @@ def _portfolio_card(card_id: str, label: str, value_display: str, detail: str) -
     }
 
 
+def _audited_writer_readiness_ladder_step(
+    step_id: str,
+    label: str,
+    status: str,
+    source: str,
+    detail: str,
+    next_operator_action: str,
+) -> dict[str, Any]:
+    return {
+        "step_id": step_id,
+        "label": label,
+        "status": status,
+        "source": source,
+        "detail": detail,
+        "next_operator_action": next_operator_action,
+        "blocks_current_evidence_write_until_pass": status != "PASS",
+        "blocks_portfolio_truth_write_until_pass": status != "PASS",
+        "blocks_live_review_until_pass": status != "PASS",
+        "current_evidence_write_allowed": False,
+        "portfolio_truth_write_allowed": False,
+        "counts_as_live_ready_evidence": False,
+        "counts_as_gap_closure_evidence": False,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "gap_closure_allowed": False,
+    }
+
+
+def _audited_writer_readiness_ladder(
+    *,
+    lifecycle_status: str,
+    snapshot_stale: bool = False,
+    source_snapshot_status: str | None = None,
+) -> dict[str, Any]:
+    source_guard_status = "PASS" if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED" else "MISSING"
+    precheck_status = source_guard_status
+    dry_run_status = source_guard_status
+    locked_output_status = source_guard_status
+    implementation_prep_status = source_guard_status
+    if lifecycle_status == "AUDITED_WRITER_INPUTS_BLOCKED":
+        source_guard_status = "BLOCKED"
+        precheck_status = "BLOCKED"
+    if lifecycle_status == "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER":
+        source_guard_status = "MISSING"
+    if lifecycle_status == "NO_AUDITED_WRITER_EVIDENCE":
+        source_guard_status = "MISSING"
+
+    snapshot_step_status = "MISSING"
+    if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
+        snapshot_step_status = "STALE" if snapshot_stale else "PASS"
+    elif source_snapshot_status == "BLOCKED":
+        snapshot_step_status = "BLOCKED"
+    continuous_writer_status = "BLOCKED"
+    if lifecycle_status in {"SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER", "NO_AUDITED_WRITER_EVIDENCE"}:
+        continuous_writer_status = "MISSING"
+
+    steps = [
+        _audited_writer_readiness_ladder_step(
+            "SOURCE_GUARD_CLEAN",
+            "Source guard clean",
+            source_guard_status,
+            "repaired_current_evidence_guard_report.json" if source_guard_status != "MISSING" else "NOT_LOADED",
+            "Ledger and repaired-current evidence inputs are checked before any audited writer path is trusted.",
+            "Resolve source guard or operator reconciliation blockers before current-evidence writer review.",
+        ),
+        _audited_writer_readiness_ladder_step(
+            "WRITER_PRECHECK_REVIEW_ONLY",
+            "Writer precheck review only",
+            precheck_status,
+            "upbit_paper_repaired_current_evidence_audited_writer_precheck_report.json"
+            if precheck_status != "MISSING"
+            else "NOT_LOADED",
+            "Precheck output is review-only and cannot write current evidence or portfolio truth.",
+            "Keep precheck PASS before reviewing dry-run writer outputs.",
+        ),
+        _audited_writer_readiness_ladder_step(
+            "WRITER_DRY_RUN_REVIEW_ONLY",
+            "Writer dry run review only",
+            dry_run_status,
+            "upbit_paper_repaired_current_evidence_audited_writer_dry_run_report.json"
+            if dry_run_status != "MISSING"
+            else "NOT_LOADED",
+            "Dry-run output proves proposed writer payload shape only; it cannot persist current truth.",
+            "Use dry-run output for review only, then keep locked-output checks display-only.",
+        ),
+        _audited_writer_readiness_ladder_step(
+            "LOCKED_OUTPUT_REVIEW_ONLY",
+            "Locked output review only",
+            locked_output_status,
+            "upbit_paper_repaired_current_evidence_audited_writer_locked_output_report.json"
+            if locked_output_status != "MISSING"
+            else "NOT_LOADED",
+            "Locked output prevents uncontrolled writes; it remains review-only.",
+            "Do not treat locked output as continuous writer activation.",
+        ),
+        _audited_writer_readiness_ladder_step(
+            "IMPLEMENTATION_PREP_REVIEW_ONLY",
+            "Implementation prep review only",
+            implementation_prep_status,
+            "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json"
+            if implementation_prep_status != "MISSING"
+            else "NOT_LOADED",
+            "Implementation prep lists safe writer inputs but does not enable the writer.",
+            "Keep current-evidence writes blocked until all reconciliation and operator evidence is resolved.",
+        ),
+        _audited_writer_readiness_ladder_step(
+            "SINGLE_RUN_AUDITED_SNAPSHOT",
+            "Single-run audited snapshot",
+            snapshot_step_status,
+            "audited_current_evidence_snapshot.json" if snapshot_step_status != "MISSING" else "NOT_LOADED",
+            (
+                "A last verified audited PAPER snapshot exists but is stale; it is not continuous runtime truth."
+                if snapshot_step_status == "STALE"
+                else "A single audited PAPER snapshot can display portfolio truth, but it is not continuous writer proof."
+            ),
+            "Refresh audited PAPER evidence when stale; do not infer live readiness from a single snapshot.",
+        ),
+        _audited_writer_readiness_ladder_step(
+            "CONTINUOUS_CURRENT_EVIDENCE_WRITER",
+            "Continuous current-evidence writer",
+            continuous_writer_status,
+            "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+            "Continuous audited current-evidence writing remains blocked and cannot be activated by the dashboard.",
+            "Resolve open reconciliation/operator evidence gaps before any future non-live writer activation review.",
+        ),
+    ]
+
+    highest_passed_step_id = "NONE"
+    current_step_id = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+    first_non_pass_seen = False
+    for step in steps:
+        if step["status"] == "PASS":
+            highest_passed_step_id = str(step["step_id"])
+        elif not first_non_pass_seen:
+            current_step_id = str(step["step_id"])
+            first_non_pass_seen = True
+    blocking_count = sum(1 for step in steps if step["status"] != "PASS")
+    if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
+        ladder_status = "STALE_SINGLE_RUN_SNAPSHOT" if snapshot_stale else "BLOCKED_CONTINUOUS_WRITER"
+    elif lifecycle_status == "AUDITED_WRITER_INPUTS_BLOCKED":
+        ladder_status = "BLOCKED_INPUTS"
+    elif lifecycle_status == "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER":
+        ladder_status = "SUMMARY_LEDGER_ONLY"
+    else:
+        ladder_status = "MISSING"
+    return {
+        "audited_writer_readiness_ladder_status": ladder_status,
+        "audited_writer_readiness_ladder_current_step_id": current_step_id,
+        "audited_writer_readiness_ladder_highest_passed_step_id": highest_passed_step_id,
+        "audited_writer_readiness_ladder_blocking_count": blocking_count,
+        "audited_writer_readiness_ladder_summary": (
+            f"Audited writer readiness: {ladder_status}; highest passed step: {highest_passed_step_id}; "
+            f"current required step: {current_step_id}. Snapshot display is separate from continuous writer proof."
+        ),
+        "audited_writer_readiness_ladder_steps": steps,
+        "audited_writer_readiness_ladder_current_evidence_write_allowed": False,
+        "audited_writer_readiness_ladder_portfolio_truth_write_allowed": False,
+        "audited_writer_readiness_ladder_live_review_allowed": False,
+        "audited_writer_readiness_ladder_gap_closure_allowed": False,
+        "audited_writer_readiness_ladder_live_order_allowed": False,
+        "audited_writer_readiness_ladder_can_live_trade": False,
+        "audited_writer_readiness_ladder_scale_up_allowed": False,
+    }
+
+
+def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> DashboardValidationResult | None:
+    lifecycle_status = portfolio.get("audited_writer_lifecycle_status")
+    steps = portfolio.get("audited_writer_readiness_ladder_steps")
+    if (
+        portfolio.get("audited_writer_readiness_ladder_status") not in AUDITED_WRITER_READINESS_LADDER_OVERALL_STATUSES
+        or portfolio.get("audited_writer_readiness_ladder_current_step_id")
+        not in set(AUDITED_WRITER_READINESS_LADDER_STEP_IDS)
+        or portfolio.get("audited_writer_readiness_ladder_highest_passed_step_id")
+        not in {*AUDITED_WRITER_READINESS_LADDER_STEP_IDS, "NONE"}
+        or not isinstance(portfolio.get("audited_writer_readiness_ladder_blocking_count"), int)
+        or not isinstance(portfolio.get("audited_writer_readiness_ladder_summary"), str)
+        or not isinstance(steps, list)
+        or len(steps) != len(AUDITED_WRITER_READINESS_LADDER_STEP_IDS)
+    ):
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder is missing or malformed",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if (
+        portfolio.get("audited_writer_readiness_ladder_current_evidence_write_allowed") is not False
+        or portfolio.get("audited_writer_readiness_ladder_portfolio_truth_write_allowed") is not False
+        or portfolio.get("audited_writer_readiness_ladder_live_review_allowed") is not False
+        or portfolio.get("audited_writer_readiness_ladder_gap_closure_allowed") is not False
+        or portfolio.get("audited_writer_readiness_ladder_live_order_allowed") is not False
+        or portfolio.get("audited_writer_readiness_ladder_can_live_trade") is not False
+        or portfolio.get("audited_writer_readiness_ladder_scale_up_allowed") is not False
+    ):
+        return DashboardValidationResult(
+            "BLOCKED",
+            "audited writer readiness ladder attempted write, live, scale, or gap-closure permission",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    step_ids = [step.get("step_id") for step in steps if isinstance(step, dict)]
+    if step_ids != list(AUDITED_WRITER_READINESS_LADDER_STEP_IDS):
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder steps are incomplete or reordered",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    highest_passed_step_id = "NONE"
+    current_step_id = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+    first_non_pass_seen = False
+    blocking_count = 0
+    for step in steps:
+        if not isinstance(step, dict):
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer readiness ladder step entry is invalid",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        for field in ("label", "status", "source", "detail", "next_operator_action"):
+            if not isinstance(step.get(field), str) or not step.get(field, "").strip():
+                return DashboardValidationResult(
+                    "FAIL",
+                    f"audited writer readiness ladder step missing {field}",
+                    "SCHEMA_IDENTITY_MISMATCH",
+                )
+        status = step.get("status")
+        if status not in AUDITED_WRITER_READINESS_LADDER_STEP_STATUSES:
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer readiness ladder step status is unknown",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if status == "PASS":
+            highest_passed_step_id = str(step["step_id"])
+        else:
+            blocking_count += 1
+            if not first_non_pass_seen:
+                current_step_id = str(step["step_id"])
+                first_non_pass_seen = True
+        if (
+            step.get("blocks_current_evidence_write_until_pass") != (status != "PASS")
+            or step.get("blocks_portfolio_truth_write_until_pass") != (status != "PASS")
+            or step.get("blocks_live_review_until_pass") != (status != "PASS")
+        ):
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer readiness ladder blocker flags drifted from status",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if (
+            step.get("current_evidence_write_allowed")
+            or step.get("portfolio_truth_write_allowed")
+            or step.get("counts_as_live_ready_evidence")
+            or step.get("counts_as_gap_closure_evidence")
+            or step.get("display_only") is not True
+            or step.get("dashboard_truth_only") is not True
+            or step.get("live_order_ready")
+            or step.get("live_order_allowed")
+            or step.get("can_live_trade")
+            or step.get("scale_up_allowed")
+            or step.get("gap_closure_allowed")
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "audited writer readiness ladder attempted live, write, scale, or gap-closure permission",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+    if portfolio.get("audited_writer_readiness_ladder_blocking_count") != blocking_count:
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder blocking count mismatch",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if portfolio.get("audited_writer_readiness_ladder_highest_passed_step_id") != highest_passed_step_id:
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder highest-passed step mismatch",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if portfolio.get("audited_writer_readiness_ladder_current_step_id") != current_step_id:
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder current step mismatch",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    step_by_id = {step["step_id"]: step for step in steps if isinstance(step, dict)}
+    if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
+        expected_status = (
+            "STALE_SINGLE_RUN_SNAPSHOT"
+            if portfolio.get("paper_value_truth_status") == "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+            else "BLOCKED_CONTINUOUS_WRITER"
+        )
+        expected_snapshot_status = "STALE" if expected_status == "STALE_SINGLE_RUN_SNAPSHOT" else "PASS"
+        if step_by_id["SINGLE_RUN_AUDITED_SNAPSHOT"].get("status") != expected_snapshot_status:
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer snapshot step drifted from portfolio freshness",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+    elif lifecycle_status == "AUDITED_WRITER_INPUTS_BLOCKED":
+        expected_status = "BLOCKED_INPUTS"
+    elif lifecycle_status == "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER":
+        expected_status = "SUMMARY_LEDGER_ONLY"
+    else:
+        expected_status = "MISSING"
+    if portfolio.get("audited_writer_readiness_ladder_status") != expected_status:
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder status drifted from portfolio writer lifecycle",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if step_by_id["CONTINUOUS_CURRENT_EVIDENCE_WRITER"].get("status") == "PASS":
+        return DashboardValidationResult(
+            "BLOCKED",
+            "dashboard cannot claim continuous audited current-evidence writer PASS",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    return None
+
+
 def _parse_utc(value: Any) -> datetime | None:
     if not isinstance(value, str) or not value:
         return None
@@ -1249,6 +1588,13 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
+    snapshot.update(
+        _audited_writer_readiness_ladder(
+            lifecycle_status="SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
+            snapshot_stale=stale,
+            source_snapshot_status=portfolio.get("source_snapshot_status"),
+        )
+    )
     for card_id in PORTFOLIO_CARD_IDS:
         snapshot[card_id]["freshness_status"] = "STALE" if stale and card_id != "configured_paper_capital" else "PASS"
     return snapshot
@@ -1332,6 +1678,12 @@ def _audited_current_evidence_unverified_portfolio_snapshot(
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
+    snapshot.update(
+        _audited_writer_readiness_ladder(
+            lifecycle_status="AUDITED_WRITER_INPUTS_BLOCKED",
+            source_snapshot_status="BLOCKED",
+        )
+    )
     return snapshot
 
 
@@ -1562,6 +1914,13 @@ def _audited_current_evidence_portfolio_snapshot(
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
+    snapshot.update(
+        _audited_writer_readiness_ladder(
+            lifecycle_status="AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED",
+            snapshot_stale=audited_source_stale,
+            source_snapshot_status="PASS",
+        )
+    )
     for card_id in PORTFOLIO_CARD_IDS:
         snapshot[card_id]["freshness_status"] = (
             "STALE" if audited_source_stale and card_id != "configured_paper_capital" else "PASS"
@@ -1707,6 +2066,12 @@ def _stale_portfolio_snapshot(exchange: str, market_type: str, summary: dict[str
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
+    snapshot.update(
+        _audited_writer_readiness_ladder(
+            lifecycle_status="NO_AUDITED_WRITER_EVIDENCE",
+            source_snapshot_status="STALE",
+        )
+    )
     for card_id in PORTFOLIO_CARD_IDS:
         if card_id != "configured_paper_capital":
             snapshot[card_id]["freshness_status"] = "STALE"
@@ -2345,6 +2710,12 @@ def _portfolio_snapshot(
         ),
         "operator_truth_summary": (
             "Do not treat configured PAPER capital or partial repair evidence as current portfolio truth."
+        ),
+        **_audited_writer_readiness_ladder(
+            lifecycle_status=(
+                "AUDITED_WRITER_INPUTS_BLOCKED" if source_snapshot_status == "BLOCKED" else "NO_AUDITED_WRITER_EVIDENCE"
+            ),
+            source_snapshot_status=source_snapshot_status,
         ),
         "configured_paper_capital": configured_card,
         "cash": _portfolio_card("cash", "Current Cash", "UNVERIFIED", cash_detail),
@@ -15759,8 +16130,15 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "runtime_continuity_status",
                 "audited_writer_lifecycle_status",
                 "operator_truth_summary",
+                "audited_writer_readiness_ladder_status",
+                "audited_writer_readiness_ladder_summary",
             )
         )
+        ladder_steps = portfolio.get("audited_writer_readiness_ladder_steps", [])
+        if isinstance(ladder_steps, list):
+            for step in ladder_steps:
+                if isinstance(step, dict):
+                    values.extend(str(step.get(key, "")) for key in ("label", "status", "source", "detail"))
         for card_id in PORTFOLIO_CARD_IDS:
             card = portfolio.get(card_id, {})
             if isinstance(card, dict):
@@ -20324,6 +20702,9 @@ def validate_read_only_dashboard_shell(
     for text_field in ("paper_value_truth_message", "operator_truth_summary"):
         if not isinstance(portfolio.get(text_field), str) or not portfolio.get(text_field):
             return DashboardValidationResult("FAIL", f"portfolio {text_field} is missing", "SCHEMA_IDENTITY_MISMATCH")
+    audited_writer_ladder_result = _validate_audited_writer_readiness_ladder(portfolio)
+    if audited_writer_ladder_result is not None:
+        return audited_writer_ladder_result
     if portfolio.get("status") in {"VERIFIED", "STALE"} and portfolio_has_snapshot_provenance and shell.get("mode") != "PAPER":
         return DashboardValidationResult("BLOCKED", "verified portfolio display is PAPER-only without live evidence", "LIVE_FINAL_GUARD_FAILED")
     if portfolio.get("status") == "VERIFIED" or (
@@ -21870,6 +22251,32 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"Runtime proof: {runtime_continuity_status or 'UNKNOWN'} | Writer: "
         f"{audited_writer_lifecycle_status or 'UNKNOWN'} | {operator_truth_summary or 'No operator summary'}"
     )
+    audited_writer_ladder_status_display = str(
+        portfolio.get("audited_writer_readiness_ladder_status", "MISSING")
+        if isinstance(portfolio, dict)
+        else "MISSING"
+    ).replace("_", " ").title()
+    audited_writer_ladder_steps = (
+        portfolio.get("audited_writer_readiness_ladder_steps", []) if isinstance(portfolio, dict) else []
+    )
+    audited_writer_ladder_step_html = "\n".join(
+        (
+            "<li>"
+            f"<span class=\"pill {status_class(step.get('status'))}\">{safe_text(step.get('status', 'MISSING'))}</span>"
+            f"<strong>{safe_text(step.get('label', 'Audited writer step'))}</strong>"
+            f"<small>{safe_text(step.get('detail', 'Display-only writer readiness evidence.'))}</small>"
+            "</li>"
+        )
+        for step in audited_writer_ladder_steps
+        if isinstance(step, dict)
+    )
+    audited_writer_ladder_html = (
+        "<details class=\"writer-ladder\">"
+        f"<summary>Audited writer ladder: {safe_text(audited_writer_ladder_status_display)}</summary>"
+        f"<p>{safe_text(portfolio.get('audited_writer_readiness_ladder_summary', 'Writer readiness is display-only.'))}</p>"
+        f"<ol class=\"runtime-ladder\" aria-label=\"audited writer readiness ladder\">{audited_writer_ladder_step_html}</ol>"
+        "</details>"
+    )
 
     portfolio_ledger_html = (
         "<dl class=\"portfolio-ledger\" aria-label=\"portfolio compact ledger\">"
@@ -22735,6 +23142,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .runtime-ladder li { display: grid; gap: 6px; align-content: start; min-width: 0; padding: 10px; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; background: rgba(255,255,255,.64); }
     .runtime-ladder strong { font-size: 13px; line-height: 1.25; }
     .runtime-ladder small { color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
+    .writer-ladder { margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #f8fafc; }
+    .writer-ladder summary { cursor: pointer; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+    .writer-ladder p { margin: 8px 0 10px; color: var(--muted); font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
     .eyebrow { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
     .alert { background: var(--warn-bg); border: 1px solid #f2c75c; border-left: 6px solid var(--warn); border-radius: 6px; padding: 14px; }
     .decision { background: white; border: 1px solid var(--line); border-left: 6px solid var(--safe); border-radius: 8px; padding: 14px; }
@@ -23049,6 +23459,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="source-line">""" + safe_text(portfolio_source_line) + """</p>
         <p class="source-line">""" + safe_text(portfolio_interpretation_line) + """</p>
         <p class="source-line">""" + safe_text(portfolio_runtime_line) + """</p>
+        """ + audited_writer_ladder_html + """
         <p class="source-line">""" + safe_text(portfolio.get("source_snapshot_freshness_message", "No verified paper portfolio snapshot loaded")) + """</p>
         <section class="portfolio-kpi-grid">
           """ + portfolio_kpi_html + """
@@ -23105,6 +23516,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
       <p class="portfolio-truth-note">""" + safe_text(portfolio_truth_note) + """</p>
       <p class="source-line">""" + safe_text(portfolio_interpretation_line) + """</p>
       <p class="source-line">""" + safe_text(portfolio_runtime_line) + """</p>
+      """ + audited_writer_ladder_html + """
       """ + portfolio_ledger_html + """
       <section class="portfolio-detail-grid">
         """ + portfolio_detail_html + """
