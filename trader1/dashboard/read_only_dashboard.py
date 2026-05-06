@@ -388,6 +388,25 @@ RUNTIME_EVIDENCE_REQUIREMENT_IDS = (
     "RECOVERY_AND_PARTIAL_WRITE_CLEAN",
 )
 RUNTIME_EVIDENCE_REQUIREMENT_STATUSES = {"MISSING", "COLLECTING", "PASS", "BLOCKED", "STALE"}
+RUNTIME_CONTINUITY_LADDER_STEP_IDS = (
+    "PAPER_VALUE_SNAPSHOT",
+    "CURRENT_HEARTBEAT",
+    "SHORT_WINDOW_PAPER_SHADOW_CHECK",
+    "BOUNDED_RUNTIME_PROFILE",
+    "ACTUAL_LONG_RUN_VALIDATED",
+)
+RUNTIME_CONTINUITY_LADDER_STATUSES = {"MISSING", "COLLECTING", "PASS", "BLOCKED", "STALE"}
+RUNTIME_CONTINUITY_LADDER_OVERALL_STATUSES = {
+    "MISSING",
+    "STALE",
+    "BLOCKED",
+    "VALUE_SNAPSHOT_ONLY",
+    "CURRENT_HEARTBEAT_ONLY",
+    "SHORT_WINDOW_CHECKED",
+    "BOUNDED_PROFILE_READY",
+    "ACTUAL_LONG_RUN_COLLECTING",
+    "ACTUAL_LONG_RUN_VALIDATED",
+}
 RECONCILIATION_RECOVERY_STATUSES = {"NOT_LOADED", "PASS", "RECONCILE_REQUIRED", "BLOCKED", "INVALID"}
 RECONCILIATION_RECOVERY_REPORT_STATUSES = {
     "NOT_LOADED",
@@ -4297,10 +4316,12 @@ def _market_data_continuity_status(
 
 def _runtime_evidence_boundary_status(
     *,
+    portfolio_snapshot: dict[str, Any],
     long_run_operator_summary: dict[str, Any],
     shadow_runtime_harness_status: dict[str, Any],
     shadow_persistent_runtime_status: dict[str, Any],
     shadow_runtime_orchestration_status: dict[str, Any],
+    paper_runtime_evidence_collection_profile_status: dict[str, Any],
 ) -> dict[str, Any]:
     long_run_status = str(long_run_operator_summary.get("status", "ATTENTION"))
     harness_status = str(shadow_runtime_harness_status.get("status", "NOT_LOADED"))
@@ -4524,6 +4545,151 @@ def _runtime_evidence_boundary_status(
         "LIVE review remains blocked."
     )
 
+    def source_to_step_status(source_status: str, pass_status: str) -> str:
+        if source_status == pass_status:
+            return "PASS"
+        if source_status == "STALE":
+            return "STALE"
+        if source_status in {"BLOCKED", "ERROR", "INVALID"}:
+            return "BLOCKED"
+        return "MISSING"
+
+    portfolio_truth_status = (
+        str(portfolio_snapshot.get("paper_value_truth_status") or "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY")
+        if isinstance(portfolio_snapshot, dict)
+        else "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY"
+    )
+    if portfolio_truth_status == "PAPER_LEDGER_CURRENT_VALUES_VERIFIED":
+        paper_value_step_status = "PASS"
+        paper_value_detail = "Fresh audited PAPER ledger values are available for display-only portfolio review."
+    elif portfolio_truth_status == "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE":
+        paper_value_step_status = "STALE"
+        paper_value_detail = "Last verified PAPER ledger values exist, but they are stale and do not prove current runtime continuity."
+    else:
+        paper_value_step_status = "MISSING"
+        paper_value_detail = "No verified PAPER ledger value snapshot is loaded for current portfolio review."
+
+    heartbeat_step_status = source_to_step_status(long_run_status, "RUNNING_NOW")
+    if long_run_status in {"DISPLAY_HISTORY_STABLE", "VALIDATED_STABLE"}:
+        heartbeat_step_status = "PASS"
+
+    bounded_profile_status = str(paper_runtime_evidence_collection_profile_status.get("status", "NOT_LOADED"))
+    bounded_profile_step_status = source_to_step_status(bounded_profile_status, "PASS")
+    actual_long_run_step_status = {
+        "VALIDATED_STABLE": "PASS",
+        "COLLECTING": "COLLECTING",
+        "STALE": "STALE",
+        "BLOCKED": "BLOCKED",
+    }.get(actual_status, "MISSING")
+
+    def ladder_step(
+        step_id: str,
+        label: str,
+        step_status: str,
+        source: str,
+        detail: str,
+        next_operator_action: str,
+    ) -> dict[str, Any]:
+        return {
+            "step_id": step_id,
+            "label": label,
+            "status": step_status,
+            "source": source,
+            "detail": detail,
+            "next_operator_action": next_operator_action,
+            "blocks_live_review_until_pass": step_status != "PASS",
+            "counts_as_live_ready_evidence": False,
+            "counts_as_gap_closure_evidence": False,
+            "display_only": True,
+            "dashboard_truth_only": True,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+    runtime_continuity_ladder_steps = [
+        ladder_step(
+            "PAPER_VALUE_SNAPSHOT",
+            "PAPER value snapshot",
+            paper_value_step_status,
+            "paper_portfolio_snapshot.json" if paper_value_step_status != "MISSING" else "NOT_LOADED",
+            paper_value_detail,
+            "Refresh audited PAPER portfolio evidence when this step is stale or missing.",
+        ),
+        ladder_step(
+            "CURRENT_HEARTBEAT",
+            "Current heartbeat",
+            heartbeat_step_status,
+            str(long_run_operator_summary.get("source") or "heartbeat.json"),
+            "Shows the dashboard can see a current PAPER monitor heartbeat; it does not prove long-run behavior.",
+            "Keep PAPER monitor heartbeat fresh while collecting longer evidence.",
+        ),
+        ladder_step(
+            "SHORT_WINDOW_PAPER_SHADOW_CHECK",
+            "Short-window PAPER/SHADOW check",
+            source_to_step_status(harness_status, "SHORT_WINDOW_EXECUTED"),
+            "actual_runtime_harness_report.json" if harness_status != "NOT_LOADED" else "NOT_LOADED",
+            "Confirms a bounded non-live PAPER/SHADOW check ran; it is defect-discovery evidence only.",
+            "Use this step to find defects, not to promote live readiness.",
+        ),
+        ladder_step(
+            "BOUNDED_RUNTIME_PROFILE",
+            "Bounded runtime profile",
+            bounded_profile_step_status,
+            (
+                "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json"
+                if bounded_profile_status != "NOT_LOADED"
+                else "NOT_LOADED"
+            ),
+            "Confirms a bounded non-live runtime profile exists; it cannot replace actual long-run evidence.",
+            "Collect bounded profile evidence for debugging, then continue to actual long-run collection.",
+        ),
+        ladder_step(
+            "ACTUAL_LONG_RUN_VALIDATED",
+            "Actual long-run validated",
+            actual_long_run_step_status,
+            str(long_run_operator_summary.get("source") or "heartbeat.json"),
+            (
+                f"Requires at least {ACTUAL_LONG_RUN_MIN_VALIDATED_SPAN_SECONDS}s and "
+                f"{ACTUAL_LONG_RUN_MIN_ACTUAL_CYCLE_COUNT} clean stable samples before any review can treat runtime continuity as mature."
+            ),
+            "Continue PAPER/SHADOW monitoring until the duration and stable-sample floors both pass.",
+        ),
+    ]
+    highest_passed_step_id = "NONE"
+    for step in runtime_continuity_ladder_steps:
+        if step["status"] == "PASS":
+            highest_passed_step_id = str(step["step_id"])
+    current_step_id = "ACTUAL_LONG_RUN_VALIDATED"
+    for step in runtime_continuity_ladder_steps:
+        if step["status"] != "PASS":
+            current_step_id = str(step["step_id"])
+            break
+    if any(step["status"] == "BLOCKED" for step in runtime_continuity_ladder_steps):
+        ladder_status = "BLOCKED"
+    elif actual_long_run_step_status == "PASS":
+        ladder_status = "ACTUAL_LONG_RUN_VALIDATED"
+    elif actual_long_run_step_status == "COLLECTING":
+        ladder_status = "ACTUAL_LONG_RUN_COLLECTING"
+    elif bounded_profile_step_status == "PASS":
+        ladder_status = "BOUNDED_PROFILE_READY"
+    elif source_to_step_status(harness_status, "SHORT_WINDOW_EXECUTED") == "PASS":
+        ladder_status = "SHORT_WINDOW_CHECKED"
+    elif heartbeat_step_status == "PASS":
+        ladder_status = "CURRENT_HEARTBEAT_ONLY"
+    elif paper_value_step_status in {"PASS", "STALE"}:
+        ladder_status = "VALUE_SNAPSHOT_ONLY"
+    elif any(step["status"] == "STALE" for step in runtime_continuity_ladder_steps):
+        ladder_status = "STALE"
+    else:
+        ladder_status = "MISSING"
+    ladder_blocking_count = sum(1 for step in runtime_continuity_ladder_steps if step["status"] != "PASS")
+    runtime_continuity_ladder_summary = (
+        f"Runtime continuity level: {ladder_status}; highest passed step: {highest_passed_step_id}; "
+        f"current required step: {current_step_id}. Earlier steps are display/debug evidence only and cannot close gaps or allow live orders."
+    )
+
     return {
         "title": "Runtime Evidence Boundary",
         "status": status,
@@ -4541,6 +4707,14 @@ def _runtime_evidence_boundary_status(
         "evidence_requirement_summary": evidence_requirement_summary,
         "evidence_requirements_blocking_count": evidence_requirements_blocking_count,
         "evidence_requirements": evidence_requirements,
+        "runtime_continuity_ladder_status": ladder_status,
+        "runtime_continuity_ladder_current_step_id": current_step_id,
+        "runtime_continuity_ladder_highest_passed_step_id": highest_passed_step_id,
+        "runtime_continuity_ladder_blocking_count": ladder_blocking_count,
+        "runtime_continuity_ladder_summary": runtime_continuity_ladder_summary,
+        "runtime_continuity_ladder_steps": runtime_continuity_ladder_steps,
+        "runtime_continuity_ladder_live_review_allowed": False,
+        "runtime_continuity_ladder_gap_closure_allowed": False,
         "primary_blocker_code": blocker_code,
         "next_operator_action": next_action,
         "live_review_evidence_eligible": False,
@@ -14554,10 +14728,12 @@ def build_read_only_dashboard_shell(
         source_artifacts=source_artifacts,
     )
     runtime_evidence_boundary = _runtime_evidence_boundary_status(
+        portfolio_snapshot=portfolio_snapshot,
         long_run_operator_summary=long_run_operator_summary,
         shadow_runtime_harness_status=shadow_runtime_harness_status,
         shadow_persistent_runtime_status=shadow_persistent_runtime_status,
         shadow_runtime_orchestration_status=shadow_runtime_orchestration_status,
+        paper_runtime_evidence_collection_profile_status=paper_runtime_evidence_collection_profile_status,
     )
     profitability_maturity = _profitability_maturity(
         exchange=exchange,
@@ -14886,6 +15062,10 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "actual_long_run_evidence_status",
                 "short_window_evidence_status",
                 "stub_runtime_evidence_status",
+                "runtime_continuity_ladder_status",
+                "runtime_continuity_ladder_current_step_id",
+                "runtime_continuity_ladder_highest_passed_step_id",
+                "runtime_continuity_ladder_summary",
                 "one_line_summary",
                 "stub_boundary_message",
                 "primary_blocker_code",
@@ -18798,6 +18978,64 @@ def validate_read_only_dashboard_shell(
     if runtime_requirement_ids != list(RUNTIME_EVIDENCE_REQUIREMENT_IDS):
         return DashboardValidationResult("FAIL", "runtime evidence boundary requirements are incomplete or reordered", "SCHEMA_IDENTITY_MISMATCH")
     runtime_requirement_by_id = {item["requirement_id"]: item for item in runtime_requirements if isinstance(item, dict)}
+    ladder_steps = runtime_boundary.get("runtime_continuity_ladder_steps")
+    if (
+        runtime_boundary.get("runtime_continuity_ladder_status") not in RUNTIME_CONTINUITY_LADDER_OVERALL_STATUSES
+        or runtime_boundary.get("runtime_continuity_ladder_current_step_id") not in {*RUNTIME_CONTINUITY_LADDER_STEP_IDS}
+        or runtime_boundary.get("runtime_continuity_ladder_highest_passed_step_id") not in {*RUNTIME_CONTINUITY_LADDER_STEP_IDS, "NONE"}
+        or not isinstance(runtime_boundary.get("runtime_continuity_ladder_blocking_count"), int)
+        or not isinstance(runtime_boundary.get("runtime_continuity_ladder_summary"), str)
+        or not isinstance(ladder_steps, list)
+        or len(ladder_steps) != len(RUNTIME_CONTINUITY_LADDER_STEP_IDS)
+    ):
+        return DashboardValidationResult("FAIL", "runtime continuity ladder is missing or malformed", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        runtime_boundary.get("runtime_continuity_ladder_live_review_allowed") is not False
+        or runtime_boundary.get("runtime_continuity_ladder_gap_closure_allowed") is not False
+    ):
+        return DashboardValidationResult("BLOCKED", "runtime continuity ladder attempted live review or gap-closure permission", "LIVE_FINAL_GUARD_FAILED")
+    ladder_step_ids = [step.get("step_id") for step in ladder_steps if isinstance(step, dict)]
+    if ladder_step_ids != list(RUNTIME_CONTINUITY_LADDER_STEP_IDS):
+        return DashboardValidationResult("FAIL", "runtime continuity ladder steps are incomplete or reordered", "SCHEMA_IDENTITY_MISMATCH")
+    ladder_step_by_id = {step["step_id"]: step for step in ladder_steps if isinstance(step, dict)}
+    computed_ladder_blocking_count = 0
+    highest_passed_step_id = "NONE"
+    current_ladder_step_id = "ACTUAL_LONG_RUN_VALIDATED"
+    first_non_pass_seen = False
+    for step in ladder_steps:
+        if not isinstance(step, dict):
+            return DashboardValidationResult("FAIL", "runtime continuity ladder step entry is invalid", "SCHEMA_IDENTITY_MISMATCH")
+        for field in ("label", "status", "source", "detail", "next_operator_action"):
+            if not isinstance(step.get(field), str) or not step.get(field, "").strip():
+                return DashboardValidationResult("FAIL", f"runtime continuity ladder step missing {field}", "SCHEMA_IDENTITY_MISMATCH")
+        if step.get("status") not in RUNTIME_CONTINUITY_LADDER_STATUSES:
+            return DashboardValidationResult("FAIL", "runtime continuity ladder step status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+        if step.get("status") == "PASS":
+            highest_passed_step_id = str(step["step_id"])
+        else:
+            computed_ladder_blocking_count += 1
+            if not first_non_pass_seen:
+                current_ladder_step_id = str(step["step_id"])
+                first_non_pass_seen = True
+        if step.get("blocks_live_review_until_pass") != (step.get("status") != "PASS"):
+            return DashboardValidationResult("FAIL", "runtime continuity ladder live-review blocker flag drifted from status", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            step.get("counts_as_live_ready_evidence")
+            or step.get("counts_as_gap_closure_evidence")
+            or step.get("display_only") is not True
+            or step.get("dashboard_truth_only") is not True
+            or step.get("live_order_ready")
+            or step.get("live_order_allowed")
+            or step.get("can_live_trade")
+            or step.get("scale_up_allowed")
+        ):
+            return DashboardValidationResult("BLOCKED", "runtime continuity ladder attempted live, scale, or gap-closure permission", "LIVE_FINAL_GUARD_FAILED")
+    if runtime_boundary.get("runtime_continuity_ladder_blocking_count") != computed_ladder_blocking_count:
+        return DashboardValidationResult("FAIL", "runtime continuity ladder blocking count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if runtime_boundary.get("runtime_continuity_ladder_highest_passed_step_id") != highest_passed_step_id:
+        return DashboardValidationResult("FAIL", "runtime continuity ladder highest-passed step mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if runtime_boundary.get("runtime_continuity_ladder_current_step_id") != current_ladder_step_id:
+        return DashboardValidationResult("FAIL", "runtime continuity ladder current step mismatch", "SCHEMA_IDENTITY_MISMATCH")
     computed_blocking_count = 0
     for item in runtime_requirements:
         if not isinstance(item, dict):
@@ -18821,6 +19059,45 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "runtime evidence requirement attempted to hide live-review blocker or create permission", "LIVE_FINAL_GUARD_FAILED")
     if runtime_boundary.get("evidence_requirements_blocking_count") != computed_blocking_count:
         return DashboardValidationResult("FAIL", "runtime evidence boundary blocking count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    portfolio_truth_status = (
+        str(portfolio.get("paper_value_truth_status") or "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY")
+        if isinstance(portfolio, dict)
+        else "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY"
+    )
+    expected_paper_value_step_status = (
+        "PASS"
+        if portfolio_truth_status == "PAPER_LEDGER_CURRENT_VALUES_VERIFIED"
+        else "STALE"
+        if portfolio_truth_status == "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+        else "MISSING"
+    )
+    if ladder_step_by_id["PAPER_VALUE_SNAPSHOT"].get("status") != expected_paper_value_step_status:
+        return DashboardValidationResult("FAIL", "runtime continuity ladder paper value step drifted from portfolio truth", "SCHEMA_IDENTITY_MISMATCH")
+    expected_heartbeat_step_status = "PASS" if long_run.get("status") in {"RUNNING_NOW", "DISPLAY_HISTORY_STABLE", "VALIDATED_STABLE"} else "STALE" if long_run.get("status") == "STALE" else "BLOCKED" if long_run.get("status") == "ERROR" else "MISSING"
+    if ladder_step_by_id["CURRENT_HEARTBEAT"].get("status") != expected_heartbeat_step_status:
+        return DashboardValidationResult("FAIL", "runtime continuity ladder heartbeat step drifted from long-run summary", "SCHEMA_IDENTITY_MISMATCH")
+    expected_short_window_step_status = (
+        "PASS"
+        if shadow_harness.get("status") == "SHORT_WINDOW_EXECUTED"
+        else "STALE"
+        if shadow_harness.get("status") == "STALE"
+        else "BLOCKED"
+        if shadow_harness.get("status") == "BLOCKED"
+        else "MISSING"
+    )
+    if ladder_step_by_id["SHORT_WINDOW_PAPER_SHADOW_CHECK"].get("status") != expected_short_window_step_status:
+        return DashboardValidationResult("FAIL", "runtime continuity ladder short-window step drifted from harness status", "SCHEMA_IDENTITY_MISMATCH")
+    expected_bounded_profile_step_status = (
+        "PASS"
+        if paper_runtime_profile.get("status") == "PASS"
+        else "STALE"
+        if paper_runtime_profile.get("status") == "STALE"
+        else "BLOCKED"
+        if paper_runtime_profile.get("status") in {"BLOCKED", "INVALID"}
+        else "MISSING"
+    )
+    if ladder_step_by_id["BOUNDED_RUNTIME_PROFILE"].get("status") != expected_bounded_profile_step_status:
+        return DashboardValidationResult("FAIL", "runtime continuity ladder bounded profile step drifted from profile status", "SCHEMA_IDENTITY_MISMATCH")
     long_run_duration_floor_met = int(long_run.get("observed_span_seconds", 0) or 0) >= ACTUAL_LONG_RUN_MIN_VALIDATED_SPAN_SECONDS
     long_run_cycle_floor_met = (
         int(long_run.get("history_sample_count", 0) or 0) >= ACTUAL_LONG_RUN_MIN_ACTUAL_CYCLE_COUNT
@@ -18828,6 +19105,43 @@ def validate_read_only_dashboard_shell(
         and int(long_run.get("degraded_sample_count", 0) or 0) == 0
         and int(long_run.get("stale_sample_count", 0) or 0) == 0
     )
+    if runtime_boundary.get("actual_long_run_evidence_status") == "VALIDATED_STABLE":
+        if long_run.get("status") == "DISPLAY_HISTORY_STABLE":
+            return DashboardValidationResult("BLOCKED", "display-history stability cannot claim validated actual long-run evidence", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
+        if long_run.get("status") != "VALIDATED_STABLE" or runtime_boundary.get("status") != "ACTUAL_LONG_RUN_VALIDATED":
+            return DashboardValidationResult("BLOCKED", "runtime boundary cannot claim validated long-run evidence without validated long-run summary", "HARD_TRUTH_MISSING")
+        if not (long_run_duration_floor_met and long_run_cycle_floor_met):
+            return DashboardValidationResult("BLOCKED", "runtime boundary cannot claim validated actual long-run evidence before duration and stable-sample floors are met", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
+    expected_actual_long_run_step_status = {
+        "VALIDATED_STABLE": "PASS",
+        "COLLECTING": "COLLECTING",
+        "STALE": "STALE",
+        "BLOCKED": "BLOCKED",
+    }.get(runtime_boundary.get("actual_long_run_evidence_status"), "MISSING")
+    if ladder_step_by_id["ACTUAL_LONG_RUN_VALIDATED"].get("status") != expected_actual_long_run_step_status:
+        return DashboardValidationResult("FAIL", "runtime continuity ladder long-run step drifted from actual runtime status", "SCHEMA_IDENTITY_MISMATCH")
+    if any(step.get("status") == "BLOCKED" for step in ladder_steps):
+        expected_ladder_status = "BLOCKED"
+    elif expected_actual_long_run_step_status == "PASS":
+        expected_ladder_status = "ACTUAL_LONG_RUN_VALIDATED"
+    elif expected_actual_long_run_step_status == "COLLECTING":
+        expected_ladder_status = "ACTUAL_LONG_RUN_COLLECTING"
+    elif expected_bounded_profile_step_status == "PASS":
+        expected_ladder_status = "BOUNDED_PROFILE_READY"
+    elif expected_short_window_step_status == "PASS":
+        expected_ladder_status = "SHORT_WINDOW_CHECKED"
+    elif expected_heartbeat_step_status == "PASS":
+        expected_ladder_status = "CURRENT_HEARTBEAT_ONLY"
+    elif expected_paper_value_step_status in {"PASS", "STALE"}:
+        expected_ladder_status = "VALUE_SNAPSHOT_ONLY"
+    elif any(step.get("status") == "STALE" for step in ladder_steps):
+        expected_ladder_status = "STALE"
+    else:
+        expected_ladder_status = "MISSING"
+    if runtime_boundary.get("runtime_continuity_ladder_status") != expected_ladder_status:
+        return DashboardValidationResult("FAIL", "runtime continuity ladder status drifted from source steps", "SCHEMA_IDENTITY_MISMATCH")
+    if expected_ladder_status != "ACTUAL_LONG_RUN_VALIDATED" and ladder_step_by_id["ACTUAL_LONG_RUN_VALIDATED"].get("status") == "PASS":
+        return DashboardValidationResult("BLOCKED", "runtime continuity ladder cannot pass long-run while overall status is lower", "LIVE_FINAL_GUARD_FAILED")
     if runtime_requirement_by_id["ACTUAL_RUNTIME_DURATION"].get("status") == "PASS" and not long_run_duration_floor_met:
         return DashboardValidationResult("BLOCKED", "actual runtime duration cannot pass before the 86400s floor is met", "LIVE_FINAL_GUARD_FAILED")
     if (
@@ -20508,6 +20822,19 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     market_data_status_display = str(market_data.get("status", "NOT_LOADED")).replace("_", " ").title()
     runtime_boundary = shell.get("runtime_evidence_boundary", {}) if isinstance(shell.get("runtime_evidence_boundary"), dict) else {}
     runtime_boundary_status_display = str(runtime_boundary.get("actual_long_run_evidence_status", "MISSING")).replace("_", " ").title()
+    runtime_ladder_status_display = str(runtime_boundary.get("runtime_continuity_ladder_status", "MISSING")).replace("_", " ").title()
+    runtime_ladder_steps = runtime_boundary.get("runtime_continuity_ladder_steps", [])
+    runtime_ladder_step_html = "\n".join(
+        (
+            "<li>"
+            f"<span class=\"pill {status_class(step.get('status'))}\">{safe_text(step.get('status', 'MISSING'))}</span>"
+            f"<strong>{safe_text(step.get('label', 'Runtime step'))}</strong>"
+            f"<small>{safe_text(step.get('detail', 'Display/debug evidence only.'))}</small>"
+            "</li>"
+        )
+        for step in runtime_ladder_steps
+        if isinstance(step, dict)
+    )
     runtime_orchestration = shell.get("shadow_runtime_orchestration_status", {}) if isinstance(shell.get("shadow_runtime_orchestration_status"), dict) else {}
     runtime_orchestration_status_display = str(runtime_orchestration.get("status", "NOT_LOADED")).replace("_", " ").title()
     operation_color = safe_text(operation.get("color_token", "yellow"))
@@ -20533,8 +20860,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>PAPER profile</dt><dd class=\"pill {status_class(paper_runtime_profile.get('status'))}\">{safe_text(paper_runtime_profile_status_display)}</dd></div>"
         f"<div><dt>Source pairing</dt><dd class=\"pill {status_class(runtime_orchestration.get('status'))}\">{safe_text(runtime_orchestration_status_display)}</dd></div>"
         f"<div><dt>Actual long-run evidence</dt><dd class=\"pill {status_class(runtime_boundary.get('status'))}\">{safe_text(runtime_boundary_status_display)}</dd></div>"
+        f"<div><dt>Runtime ladder</dt><dd class=\"pill {status_class(runtime_boundary.get('runtime_continuity_ladder_status'))}\">{safe_text(runtime_ladder_status_display)}</dd></div>"
         f"<div><dt>Live orders</dt><dd class=\"pill safe-lock\">blocked</dd></div>"
         "</dl>"
+        f"<p class=\"runtime-ladder-summary\">{safe_text(runtime_boundary.get('runtime_continuity_ladder_summary', 'Runtime evidence ladder is display-only.'))}</p>"
+        f"<ol class=\"runtime-ladder\" aria-label=\"runtime continuity evidence ladder\">{runtime_ladder_step_html}</ol>"
         "</section>"
     )
 
@@ -22400,6 +22730,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .operation dt { color: var(--muted); font-size: 12px; }
     .operation dd { margin: 5px 0 0; font-weight: 700; overflow-wrap: anywhere; }
     .operation dd:not(.pill) { font-size: 14px; line-height: 1.4; white-space: normal; overflow-wrap: anywhere; word-break: normal; }
+    .runtime-ladder-summary { margin: 0; font-size: 13px; color: var(--ink); max-width: 90ch; }
+    .runtime-ladder { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .runtime-ladder li { display: grid; gap: 6px; align-content: start; min-width: 0; padding: 10px; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; background: rgba(255,255,255,.64); }
+    .runtime-ladder strong { font-size: 13px; line-height: 1.25; }
+    .runtime-ladder small { color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
     .eyebrow { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
     .alert { background: var(--warn-bg); border: 1px solid #f2c75c; border-left: 6px solid var(--warn); border-radius: 6px; padding: 14px; }
     .decision { background: white; border: 1px solid var(--line); border-left: 6px solid var(--safe); border-radius: 8px; padding: 14px; }

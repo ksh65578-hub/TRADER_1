@@ -1,0 +1,18 @@
+{
+  "patch_id": "MVP4_DASHBOARD_RUNTIME_CONTINUITY_LADDER_20260506_001",
+  "generated_at_utc": "2026-05-06T00:28:26Z",
+  "status": "PASS_OPERATOR_DISPLAY_IMPROVED_LIVE_BLOCKED",
+  "runtime_ladder_steps": [
+    "PAPER_VALUE_SNAPSHOT",
+    "CURRENT_HEARTBEAT",
+    "SHORT_WINDOW_PAPER_SHADOW_CHECK",
+    "BOUNDED_RUNTIME_PROFILE",
+    "ACTUAL_LONG_RUN_VALIDATED"
+  ],
+  "actual_long_run_required": true,
+  "floor_policy_changed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

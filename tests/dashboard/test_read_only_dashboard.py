@@ -1824,6 +1824,31 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(runtime_boundary["live_order_allowed"])
         self.assertFalse(runtime_boundary["can_live_trade"])
         self.assertFalse(runtime_boundary["scale_up_allowed"])
+        self.assertEqual(runtime_boundary["runtime_continuity_ladder_status"], "ACTUAL_LONG_RUN_COLLECTING")
+        self.assertEqual(runtime_boundary["runtime_continuity_ladder_current_step_id"], "SHORT_WINDOW_PAPER_SHADOW_CHECK")
+        self.assertEqual(runtime_boundary["runtime_continuity_ladder_highest_passed_step_id"], "CURRENT_HEARTBEAT")
+        self.assertEqual(runtime_boundary["runtime_continuity_ladder_blocking_count"], 3)
+        self.assertFalse(runtime_boundary["runtime_continuity_ladder_live_review_allowed"])
+        self.assertFalse(runtime_boundary["runtime_continuity_ladder_gap_closure_allowed"])
+        ladder_steps = runtime_boundary["runtime_continuity_ladder_steps"]
+        self.assertEqual([step["step_id"] for step in ladder_steps], [
+            "PAPER_VALUE_SNAPSHOT",
+            "CURRENT_HEARTBEAT",
+            "SHORT_WINDOW_PAPER_SHADOW_CHECK",
+            "BOUNDED_RUNTIME_PROFILE",
+            "ACTUAL_LONG_RUN_VALIDATED",
+        ])
+        ladder_by_id = {step["step_id"]: step for step in ladder_steps}
+        self.assertEqual(ladder_by_id["PAPER_VALUE_SNAPSHOT"]["status"], "PASS")
+        self.assertEqual(ladder_by_id["CURRENT_HEARTBEAT"]["status"], "PASS")
+        self.assertEqual(ladder_by_id["SHORT_WINDOW_PAPER_SHADOW_CHECK"]["status"], "MISSING")
+        self.assertEqual(ladder_by_id["BOUNDED_RUNTIME_PROFILE"]["status"], "MISSING")
+        self.assertEqual(ladder_by_id["ACTUAL_LONG_RUN_VALIDATED"]["status"], "COLLECTING")
+        for step in ladder_steps:
+            self.assertFalse(step["counts_as_live_ready_evidence"])
+            self.assertFalse(step["counts_as_gap_closure_evidence"])
+            self.assertFalse(step["live_order_allowed"])
+            self.assertFalse(step["scale_up_allowed"])
         requirement_ids = [item["requirement_id"] for item in runtime_boundary["evidence_requirements"]]
         self.assertEqual(requirement_ids, [
             "PERSISTENT_RUNTIME_SOURCE",
@@ -5924,6 +5949,19 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         dashboard["runtime_evidence_boundary"]["severity"] = "WARNING"
         dashboard["runtime_evidence_boundary"]["color_token"] = "yellow"
         dashboard["runtime_evidence_boundary"]["primary_blocker_code"] = "LATENCY_TTL_EXPIRED"
+        ladder = dashboard["runtime_evidence_boundary"]
+        ladder["runtime_continuity_ladder_status"] = "VALUE_SNAPSHOT_ONLY"
+        ladder["runtime_continuity_ladder_current_step_id"] = "CURRENT_HEARTBEAT"
+        ladder["runtime_continuity_ladder_highest_passed_step_id"] = "PAPER_VALUE_SNAPSHOT"
+        ladder["runtime_continuity_ladder_blocking_count"] = 4
+        ladder_steps = {
+            step["step_id"]: step
+            for step in ladder["runtime_continuity_ladder_steps"]
+        }
+        ladder_steps["CURRENT_HEARTBEAT"]["status"] = "STALE"
+        ladder_steps["CURRENT_HEARTBEAT"]["blocks_live_review_until_pass"] = True
+        ladder_steps["ACTUAL_LONG_RUN_VALIDATED"]["status"] = "STALE"
+        ladder_steps["ACTUAL_LONG_RUN_VALIDATED"]["blocks_live_review_until_pass"] = True
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "PASS")
@@ -6435,6 +6473,31 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_blocks_runtime_continuity_ladder_live_or_gap_claim(self):
+        dashboard = build_dashboard_with_shadow_persistent_runtime()
+        ladder = dashboard["runtime_evidence_boundary"]
+        ladder["runtime_continuity_ladder_live_review_allowed"] = True
+        ladder["runtime_continuity_ladder_gap_closure_allowed"] = True
+        ladder["runtime_continuity_ladder_steps"][0]["counts_as_live_ready_evidence"] = True
+        ladder["runtime_continuity_ladder_steps"][0]["counts_as_gap_closure_evidence"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_dashboard_blocks_runtime_continuity_ladder_source_drift(self):
+        dashboard = build_dashboard_with_shadow_runtime_harness()
+        steps = {
+            step["step_id"]: step
+            for step in dashboard["runtime_evidence_boundary"]["runtime_continuity_ladder_steps"]
+        }
+        steps["SHORT_WINDOW_PAPER_SHADOW_CHECK"]["status"] = "MISSING"
+        dashboard["runtime_evidence_boundary"]["runtime_continuity_ladder_blocking_count"] += 1
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_dashboard_blocks_runtime_evidence_boundary_source_status_drift(self):
         dashboard = build_dashboard_with_shadow_runtime_harness()
