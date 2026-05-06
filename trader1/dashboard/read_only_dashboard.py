@@ -76,6 +76,10 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
+from trader1.runtime.portfolio.paper_current_truth_refresh import (
+    PAPER_CURRENT_TRUTH_REFRESH_PASS_STATUS,
+    validate_paper_current_truth_refresh_report,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
 from tools.run_upbit_paper_runtime_evidence_collection_profile import (
@@ -111,6 +115,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
     "upbit_paper_repaired_current_evidence_audited_writer_report.json",
     "audited_current_evidence_snapshot.json",
+    "paper_current_truth_refresh_report.json",
     "paper_portfolio_snapshot.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
@@ -14899,6 +14904,7 @@ def build_read_only_dashboard_shell(
     upbit_paper_repaired_current_evidence_audited_writer_report: dict[str, Any] | None = None,
     audited_current_evidence_snapshot: dict[str, Any] | None = None,
     audited_paper_portfolio_snapshot: dict[str, Any] | None = None,
+    paper_current_truth_refresh_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_persistent_loop_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
@@ -14957,6 +14963,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
         "upbit_paper_repaired_current_evidence_audited_writer": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_report.json",
         "audited_current_evidence_snapshot": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
+        "paper_current_truth_refresh_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/current_evidence/paper_current_truth_refresh_report.json",
         "audited_paper_portfolio_snapshot": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/portfolio/paper_portfolio_snapshot.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
@@ -14999,6 +15006,30 @@ def build_read_only_dashboard_shell(
         ),
         _source_artifact("STARTUP_PROBE", paths["startup_probe"], startup_probe is not None, startup_freshness),
     ]
+    if isinstance(paper_current_truth_refresh_report, dict):
+        refresh_result = validate_paper_current_truth_refresh_report(paper_current_truth_refresh_report)
+        refresh_freshness = (
+            "PASS"
+            if refresh_result.status == "PASS"
+            and paper_current_truth_refresh_report.get("refresh_status") == PAPER_CURRENT_TRUTH_REFRESH_PASS_STATUS
+            and paper_current_truth_refresh_report.get("live_order_ready") is False
+            and paper_current_truth_refresh_report.get("live_order_allowed") is False
+            and paper_current_truth_refresh_report.get("can_live_trade") is False
+            and paper_current_truth_refresh_report.get("scale_up_allowed") is False
+            and _freshness_from_generated_at(paper_current_truth_refresh_report) == "PASS"
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "PAPER_CURRENT_TRUTH_REFRESH",
+                paths.get(
+                    "paper_current_truth_refresh_report",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/current_evidence/paper_current_truth_refresh_report.json",
+                ),
+                True,
+                refresh_freshness,
+            )
+        )
     if isinstance(candidate_scorecard, dict):
         source_artifacts.append(
             _source_artifact(

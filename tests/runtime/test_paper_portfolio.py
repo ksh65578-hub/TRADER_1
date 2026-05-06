@@ -6,6 +6,11 @@ from trader1.runtime.portfolio.paper_portfolio import (
     paper_portfolio_hash,
     validate_paper_portfolio_snapshot,
 )
+from trader1.runtime.portfolio.paper_current_truth_refresh import (
+    build_paper_current_truth_refresh_report,
+    paper_current_truth_refresh_report_hash,
+    validate_paper_current_truth_refresh_report,
+)
 
 
 class PaperPortfolioTest(unittest.TestCase):
@@ -31,6 +36,57 @@ class PaperPortfolioTest(unittest.TestCase):
         self.assertFalse(snapshot["live_order_allowed"])
         self.assertFalse(snapshot["can_live_trade"])
         self.assertFalse(snapshot["can_submit_order"])
+
+    def test_paper_current_truth_refresh_binds_verified_snapshot_without_live_permission(self):
+        snapshot = build_initial_paper_portfolio_snapshot(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-current-truth-refresh",
+        )
+        report = build_paper_current_truth_refresh_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="test-paper-current-truth-refresh",
+            paper_portfolio_snapshot=snapshot,
+            heartbeat={"heartbeat_status": "PASS", "heartbeat_hash": "A" * 64},
+            startup_probe={"startup_probe_passed": True, "probe_hash": "B" * 64},
+        )
+        result = validate_paper_current_truth_refresh_report(report)
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["refresh_status"], "PASS_PAPER_CURRENT_TRUTH_REFRESHED")
+        self.assertEqual(report["source_portfolio_snapshot_hash"], snapshot["snapshot_hash"])
+        self.assertEqual(report["verified_cash"], "1000000")
+        self.assertEqual(report["verified_equity"], "1000000")
+        self.assertEqual(report["verified_locked_cash"], "0")
+        self.assertEqual(report["verified_realized_pnl"], "0")
+        self.assertEqual(report["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
+        self.assertFalse(report["audited_current_evidence_writer"])
+        self.assertFalse(report["current_evidence_write_allowed"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+
+    def test_paper_current_truth_refresh_blocks_permission_drift(self):
+        snapshot = build_initial_paper_portfolio_snapshot(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-current-truth-refresh-live",
+        )
+        report = build_paper_current_truth_refresh_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="test-paper-current-truth-refresh-live",
+            paper_portfolio_snapshot=snapshot,
+            heartbeat={"heartbeat_status": "PASS", "heartbeat_hash": "A" * 64},
+            startup_probe={"startup_probe_passed": True, "probe_hash": "B" * 64},
+        )
+        report["live_order_allowed"] = True
+        report["refresh_report_hash"] = paper_current_truth_refresh_report_hash(report)
+        result = validate_paper_current_truth_refresh_report(report)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_binance_paper_portfolio_snapshot_is_scoped(self):
         snapshot = build_initial_paper_portfolio_snapshot(

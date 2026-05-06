@@ -80,8 +80,10 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
     validate_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report,
 )
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
+    build_upbit_paper_repaired_current_evidence_audited_writer_report,
     validate_upbit_paper_audited_current_evidence_snapshot,
     validate_upbit_paper_repaired_current_evidence_audited_writer_report,
+    write_upbit_paper_repaired_current_evidence_audited_writer_report,
 )
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
@@ -91,6 +93,10 @@ from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
     validate_paper_portfolio_snapshot,
+)
+from trader1.runtime.portfolio.paper_current_truth_refresh import (
+    build_paper_current_truth_refresh_report,
+    validate_paper_current_truth_refresh_report,
 )
 from trader1.runtime.readiness.readiness_surface import build_readiness_surface
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
@@ -594,6 +600,10 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         / "paper_runtime"
         / "current_evidence"
         / "audited_current_evidence_snapshot.json",
+        "paper_current_truth_refresh_report": base
+        / "paper_runtime"
+        / "current_evidence"
+        / "paper_current_truth_refresh_report.json",
         "audited_paper_portfolio_snapshot": base
         / "paper_runtime"
         / "portfolio"
@@ -1159,6 +1169,44 @@ def load_scoped_audited_paper_portfolio_snapshot(
     ):
         return portfolio
     return portfolio
+
+
+def refresh_scoped_upbit_paper_audited_current_evidence_if_safe(
+    report: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    implementation_prep = _load_dashboard_json_artifact(
+        paths["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"]
+    )
+    ledger_rollup = _load_dashboard_json_artifact(paths["paper_ledger_rollup_report"])
+    idempotency_evidence = _load_dashboard_json_artifact(paths["upbit_paper_ledger_idempotency_runtime_evidence_report"])
+    reconciliation = _load_dashboard_json_artifact(paths["reconciliation_report"])
+    if not isinstance(implementation_prep, dict) or not isinstance(ledger_rollup, dict):
+        return None
+    idempotency_result = (
+        validate_upbit_paper_ledger_idempotency_runtime_evidence_report(idempotency_evidence)
+        if isinstance(idempotency_evidence, dict)
+        else None
+    )
+    reconciliation_result = validate_reconciliation_report(reconciliation) if isinstance(reconciliation, dict) else None
+    if idempotency_result is None or idempotency_result.status != "PASS":
+        return None
+    if reconciliation_result is None or reconciliation_result.status != "PASS":
+        return None
+    writer_report = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+        root=root,
+        source_implementation_prep_report=implementation_prep,
+        source_ledger_rollup_report=ledger_rollup,
+        audited_writer_id="upbit-paper-continuous-dashboard-current-evidence-writer",
+    )
+    writer_result = validate_upbit_paper_repaired_current_evidence_audited_writer_report(writer_report)
+    if writer_result.status != "PASS":
+        return writer_report
+    write_upbit_paper_repaired_current_evidence_audited_writer_report(root=root, report=writer_report)
+    return writer_report
 
 
 def load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(
@@ -1745,6 +1793,10 @@ def build_launcher_dashboard_artifacts(
             paths["audited_current_evidence_snapshot"],
             root,
         ),
+        "paper_current_truth_refresh_report": _runtime_display_path(
+            paths["paper_current_truth_refresh_report"],
+            root,
+        ),
         "audited_paper_portfolio_snapshot": _runtime_display_path(
             paths["audited_paper_portfolio_snapshot"],
             root,
@@ -1828,8 +1880,10 @@ def build_launcher_dashboard_artifacts(
     upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report = (
         load_scoped_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(report, root)
     )
+    refreshed_audited_writer_report = refresh_scoped_upbit_paper_audited_current_evidence_if_safe(report, root)
     upbit_paper_repaired_current_evidence_audited_writer_report = (
-        load_scoped_upbit_paper_repaired_current_evidence_audited_writer_report(report, root)
+        refreshed_audited_writer_report
+        or load_scoped_upbit_paper_repaired_current_evidence_audited_writer_report(report, root)
     )
     audited_current_evidence_snapshot = load_scoped_audited_current_evidence_snapshot(
         report,
@@ -1842,6 +1896,18 @@ def build_launcher_dashboard_artifacts(
         audited_current_evidence_snapshot,
         root,
     )
+    paper_current_truth_refresh_report = build_paper_current_truth_refresh_report(
+        exchange=report["exchange"],
+        market_type=report["market_type"],
+        mode=report["mode"],
+        session_id=report["session_id"],
+        paper_portfolio_snapshot=paper_portfolio,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+    )
+    current_truth_result = validate_paper_current_truth_refresh_report(paper_current_truth_refresh_report)
+    if current_truth_result.status == "FAIL":
+        raise RuntimeError(f"paper current-truth refresh failed closed validation: {current_truth_result.message}")
     upbit_paper_ledger_idempotency_runtime_evidence_report = (
         load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(report, root)
     )
@@ -1886,6 +1952,7 @@ def build_launcher_dashboard_artifacts(
         upbit_paper_repaired_current_evidence_audited_writer_report=upbit_paper_repaired_current_evidence_audited_writer_report,
         audited_current_evidence_snapshot=audited_current_evidence_snapshot,
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
+        paper_current_truth_refresh_report=paper_current_truth_refresh_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
@@ -1903,6 +1970,7 @@ def build_launcher_dashboard_artifacts(
         "paper_portfolio_snapshot": paper_portfolio,
         "audited_current_evidence_snapshot": audited_current_evidence_snapshot,
         "audited_paper_portfolio_snapshot": audited_paper_portfolio_snapshot,
+        "paper_current_truth_refresh_report": paper_current_truth_refresh_report,
         "summary": summary,
         "dashboard_shell": dashboard,
         "dashboard_html": render_dashboard_html(dashboard),
@@ -1936,6 +2004,8 @@ def _write_launcher_dashboard_unlocked(report: dict[str, Any], root: Path = ROOT
     write_json(paths["heartbeat"], artifacts["heartbeat"])
     if artifacts["paper_portfolio_snapshot"] is not None:
         write_json(paths["paper_portfolio_snapshot"], artifacts["paper_portfolio_snapshot"])
+    if artifacts["paper_current_truth_refresh_report"] is not None:
+        write_json(paths["paper_current_truth_refresh_report"], artifacts["paper_current_truth_refresh_report"])
     write_json(paths["stability_history"], stability_history)
     write_json(paths["summary"], artifacts["summary"])
     write_json(paths["dashboard_shell"], artifacts["dashboard_shell"])

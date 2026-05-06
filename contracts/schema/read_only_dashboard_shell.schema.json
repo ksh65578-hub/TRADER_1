@@ -105,6 +105,7 @@
             "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_IMPLEMENTATION_PREP",
             "UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER",
             "AUDITED_CURRENT_EVIDENCE_SNAPSHOT",
+            "PAPER_CURRENT_TRUTH_REFRESH",
             "AUDITED_PAPER_PORTFOLIO_SNAPSHOT",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
@@ -155,6 +156,7 @@
             "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
             "upbit_paper_repaired_current_evidence_audited_writer_report.json",
             "audited_current_evidence_snapshot.json",
+            "paper_current_truth_refresh_report.json",
             "paper_portfolio_snapshot.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
@@ -10877,7 +10879,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 38,
+      "maxItems": 39,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
