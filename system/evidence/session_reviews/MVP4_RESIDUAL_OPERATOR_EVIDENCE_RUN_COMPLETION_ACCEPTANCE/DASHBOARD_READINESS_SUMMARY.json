@@ -1,0 +1,12 @@
+{
+  "patch_id": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE_20260506_001",
+  "generated_at_utc": "2026-05-06T01:47:27Z",
+  "status": "PASS_OPERATOR_COMPLETION_ACCEPTANCE_READY_LIVE_BLOCKED",
+  "operator_completion_acceptance_status": "PENDING_OPERATOR_RUNTIME_EVIDENCE",
+  "operator_completion_acceptance_count": 12,
+  "open_gap_count": 13,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
