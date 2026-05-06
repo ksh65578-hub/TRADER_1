@@ -91,14 +91,23 @@ class ActualLongRunRuntimeEvidenceCollectionDepthRecheckTest(unittest.TestCase):
         profile["color_token"] = "red"
         runtime_boundary = dashboard["runtime_evidence_boundary"]
         runtime_boundary["runtime_continuity_ladder_status"] = "BLOCKED"
-        runtime_boundary["runtime_continuity_ladder_highest_passed_step_id"] = "PAPER_VALUE_SNAPSHOT"
-        runtime_boundary["runtime_continuity_ladder_blocking_count"] = 4
         ladder_steps = {
             step["step_id"]: step
             for step in runtime_boundary["runtime_continuity_ladder_steps"]
         }
         ladder_steps["BOUNDED_RUNTIME_PROFILE"]["status"] = "BLOCKED"
         ladder_steps["BOUNDED_RUNTIME_PROFILE"]["blocks_live_review_until_pass"] = True
+        passed_steps = [
+            step
+            for step in runtime_boundary["runtime_continuity_ladder_steps"]
+            if step["status"] == "PASS"
+        ]
+        runtime_boundary["runtime_continuity_ladder_highest_passed_step_id"] = passed_steps[-1]["step_id"]
+        runtime_boundary["runtime_continuity_ladder_blocking_count"] = sum(
+            1
+            for step in runtime_boundary["runtime_continuity_ladder_steps"]
+            if step["blocks_live_review_until_pass"] is True
+        )
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         self.assertEqual(validate_read_only_dashboard_shell(dashboard).status, "PASS")
         profile["collection_depth_missing_runtime_modes"] = []

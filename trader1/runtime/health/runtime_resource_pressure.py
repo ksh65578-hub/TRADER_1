@@ -54,11 +54,29 @@ def _safe_file_size(path: Path) -> int | None:
         return None
 
 
+def _audit_history_cycle_count(runtime_dir: Path) -> int:
+    cycle_roots = (
+        runtime_dir / "paper_runtime" / "cycles",
+        runtime_dir / "market_data" / "public" / "collection",
+        runtime_dir / "ledger" / "cycles",
+    )
+    counts: list[int] = []
+    for cycle_root in cycle_roots:
+        if not cycle_root.exists():
+            continue
+        try:
+            counts.append(sum(1 for path in cycle_root.iterdir() if path.is_file()))
+        except OSError:
+            continue
+    return max(counts, default=0)
+
+
 def inspect_runtime_resource_pressure(
     runtime_dir: Path,
     *,
     warn_file_count: int = 200,
     fail_file_count: int = 1000,
+    hard_file_count: int = 20_000,
     warn_bytes: int = 50_000_000,
     fail_bytes: int = 250_000_000,
     stale_lock_seconds: float = 30.0,
@@ -90,6 +108,14 @@ def inspect_runtime_resource_pressure(
         byte_count += size
     artifact_count = len(files)
     temp_file_count = sum(1 for path in files if _is_temp_write_file(path))
+    audit_cycle_count = _audit_history_cycle_count(runtime_dir)
+    audit_history_file_budget = 0
+    if audit_cycle_count:
+        # PAPER audit history writes roughly 4 files per cycle today. Budget 6 plus a fixed session allowance
+        # so normal append-only evidence collection does not look like operational backlog.
+        audit_history_file_budget = 500 + audit_cycle_count * 6
+        warn_file_count = max(warn_file_count, audit_history_file_budget)
+        fail_file_count = max(fail_file_count, audit_history_file_budget * 2)
     lock_path = runtime_dir / ".runtime_write.lock"
     lock_present = lock_path.exists()
     lock_age_seconds = None
@@ -102,13 +128,22 @@ def inspect_runtime_resource_pressure(
     status = "PASS"
     blocker_code = None
     reasons: list[str] = []
-    if artifact_count >= fail_file_count or byte_count >= fail_bytes:
+    if artifact_count >= hard_file_count or byte_count >= fail_bytes:
         status = "FAIL"
         blocker_code = "RESOURCE_LIMIT_BLOCK"
-        reasons.append("runtime artifact growth crossed fail threshold")
+        if artifact_count >= hard_file_count:
+            reasons.append("runtime artifact file count crossed hard safety threshold")
+        if byte_count >= fail_bytes:
+            reasons.append("runtime artifact bytes crossed fail threshold")
+    elif artifact_count >= fail_file_count:
+        status = "WARN"
+        reasons.append("runtime artifact file count crossed review threshold")
     elif artifact_count >= warn_file_count or byte_count >= warn_bytes:
         status = "WARN"
-        reasons.append("runtime artifact growth crossed warning threshold")
+        if artifact_count >= warn_file_count:
+            reasons.append("runtime artifact file count crossed warning threshold")
+        if byte_count >= warn_bytes:
+            reasons.append("runtime artifact bytes crossed warning threshold")
 
     if temp_file_count:
         if status == "PASS":
@@ -121,7 +156,13 @@ def inspect_runtime_resource_pressure(
         reasons.append("runtime write lock is stale")
 
     if not reasons:
-        reasons.append("runtime artifact count, disk usage, and writer lock are within safe thresholds")
+        if audit_cycle_count:
+            reasons.append(
+                "runtime artifact count, disk usage, and writer lock are within safe thresholds "
+                f"for {audit_cycle_count} audit cycle(s) with file budget {audit_history_file_budget}"
+            )
+        else:
+            reasons.append("runtime artifact count, disk usage, and writer lock are within safe thresholds")
     message = (
         f"Runtime artifact pressure {status}: files={artifact_count}, bytes={byte_count}, "
         f"temp_files={temp_file_count}, lock_present={str(lock_present).lower()}; " + "; ".join(reasons)

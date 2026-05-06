@@ -22,6 +22,7 @@
     "runtime_linkage_evidence",
     "promotion_threshold_evidence",
     "robustness_source_type_evidence",
+    "runtime_collection_profile_evidence",
     "required_component_count",
     "component_count",
     "components",
@@ -256,7 +257,6 @@
         },
         "missing_source_types": {
           "type": "array",
-          "minItems": 1,
           "items": {
             "enum": [
               "OOS",
@@ -294,8 +294,78 @@
           "minItems": 1,
           "items": {"type": "string", "minLength": 1}
         },
-        "primary_blocker_code": {"const": "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED"},
-        "explicit_source_type_blocker": {"const": true},
+        "primary_blocker_code": {
+          "type": ["string", "null"],
+          "enum": ["ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED", null]
+        },
+        "explicit_source_type_blocker": {"type": "boolean"},
+        "live_order_ready": {"const": false},
+        "live_order_allowed": {"const": false},
+        "can_live_trade": {"const": false},
+        "scale_up_allowed": {"const": false}
+      }
+    },
+    "runtime_collection_profile_evidence": {
+      "type": "object",
+      "required": [
+        "status",
+        "source_artifact_path",
+        "profile_status",
+        "profile_hash",
+        "paper_observed_span_seconds",
+        "paper_minimum_span_seconds",
+        "paper_remaining_span_seconds",
+        "paper_observed_cycle_count",
+        "paper_minimum_cycle_count",
+        "paper_remaining_cycle_count",
+        "shadow_observed_span_seconds",
+        "shadow_minimum_span_seconds",
+        "shadow_remaining_span_seconds",
+        "shadow_observed_cycle_count",
+        "shadow_minimum_cycle_count",
+        "shadow_remaining_cycle_count",
+        "recommended_next_paper_batch_cycle_count",
+        "max_safe_paper_batch_cycle_count",
+        "minimum_cycle_wall_clock_spacing_seconds",
+        "estimated_wall_clock_seconds_remaining",
+        "shadow_collection_required",
+        "counts_as_actual_long_run_evidence",
+        "long_run_evidence_eligible",
+        "primary_blocker_code",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "status": {"enum": ["PASS", "BLOCKED", "MISSING"]},
+        "source_artifact_path": {"type": "string", "minLength": 1},
+        "profile_status": {"enum": ["PASS", "BLOCKED", "MISSING"]},
+        "profile_hash": {
+          "type": "string",
+          "pattern": "^$|^[A-Fa-f0-9]{64}$"
+        },
+        "paper_observed_span_seconds": {"type": "integer", "minimum": 0},
+        "paper_minimum_span_seconds": {"type": "integer", "minimum": 0},
+        "paper_remaining_span_seconds": {"type": "integer", "minimum": 0},
+        "paper_observed_cycle_count": {"type": "integer", "minimum": 0},
+        "paper_minimum_cycle_count": {"type": "integer", "minimum": 0},
+        "paper_remaining_cycle_count": {"type": "integer", "minimum": 0},
+        "shadow_observed_span_seconds": {"type": "integer", "minimum": 0},
+        "shadow_minimum_span_seconds": {"type": "integer", "minimum": 0},
+        "shadow_remaining_span_seconds": {"type": "integer", "minimum": 0},
+        "shadow_observed_cycle_count": {"type": "integer", "minimum": 0},
+        "shadow_minimum_cycle_count": {"type": "integer", "minimum": 0},
+        "shadow_remaining_cycle_count": {"type": "integer", "minimum": 0},
+        "recommended_next_paper_batch_cycle_count": {"type": "integer", "minimum": 0},
+        "max_safe_paper_batch_cycle_count": {"type": "integer", "minimum": 0},
+        "minimum_cycle_wall_clock_spacing_seconds": {"type": "integer", "minimum": 0},
+        "estimated_wall_clock_seconds_remaining": {"type": "integer", "minimum": 0},
+        "shadow_collection_required": {"const": true},
+        "counts_as_actual_long_run_evidence": {"const": false},
+        "long_run_evidence_eligible": {"const": false},
+        "primary_blocker_code": {"const": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"},
         "live_order_ready": {"const": false},
         "live_order_allowed": {"const": false},
         "can_live_trade": {"const": false},
@@ -367,7 +437,101 @@
           "long_run_evidence_eligible": {"type": "boolean"},
           "long_run_blocker_code": {"type": ["string", "null"], "minLength": 1},
           "live_review_eligible": {"const": false},
-          "scale_up_allowed": {"const": false}
+          "live_order_ready": {"const": false},
+          "live_order_allowed": {"const": false},
+          "can_live_trade": {"const": false},
+          "scale_up_allowed": {"const": false},
+          "paper_sample_count": {"type": "integer", "minimum": 0},
+          "shadow_sample_count": {"type": "integer", "minimum": 0},
+          "paper_sample_deficit": {"type": "integer", "minimum": 0},
+          "shadow_sample_deficit": {"type": "integer", "minimum": 0},
+          "evidence_window_count": {"type": "integer", "minimum": 0},
+          "min_required_evidence_window_count": {"type": "integer", "minimum": 0},
+          "evidence_window_deficit": {"type": "integer", "minimum": 0},
+          "supporting_source_window_count": {"type": "integer", "minimum": 0},
+          "supporting_window_deficit": {"type": "integer", "minimum": 0},
+          "evidence_span_hours": {"type": "integer", "minimum": 0},
+          "min_required_evidence_span_hours": {"type": "integer", "minimum": 0},
+          "evidence_span_hours_deficit": {"type": "integer", "minimum": 0},
+          "paper_runtime_span_seconds": {"type": "integer", "minimum": 0},
+          "shadow_runtime_span_seconds": {"type": "integer", "minimum": 0},
+          "paired_runtime_span_seconds": {"type": "integer", "minimum": 0},
+          "entry_reason_count": {"type": "integer", "minimum": 0},
+          "no_trade_reason_count": {"type": "integer", "minimum": 0},
+          "cost_evidence_count": {"type": "integer", "minimum": 0},
+          "reason_coverage_deficit_count": {"type": "integer", "minimum": 0},
+          "stale_artifact_count": {"type": "integer", "minimum": 0},
+          "actual_runtime_source_deficit": {"type": "integer", "minimum": 0},
+          "evidence_actionability_status": {
+            "enum": [
+              "BLOCKED_SCOPE_OR_SAFETY",
+              "BLOCKED_DATA_FRESHNESS",
+              "COLLECT_PAPER_SAMPLES",
+              "COLLECT_SHADOW_SAMPLES",
+              "COLLECT_REASON_AND_COST_EVIDENCE",
+              "SCORECARD_READY_COLLECT_PAIRED_WINDOWS",
+              "SCORECARD_READY_EXTEND_RUNTIME_SPAN",
+              "LONG_RUN_REVIEW_READY"
+            ]
+          },
+          "primary_collection_deficit_code": {
+            "enum": [
+              "SCOPE_OR_LIVE_SAFETY_BLOCKED",
+              "DATA_FRESHNESS_DEFICIT",
+              "PAPER_SAMPLE_DEFICIT",
+              "SHADOW_SAMPLE_DEFICIT",
+              "REASON_OR_COST_EVIDENCE_DEFICIT",
+              "PAIRED_WINDOW_DEFICIT",
+              "EVIDENCE_SPAN_DEFICIT",
+              "ACTUAL_RUNTIME_SOURCE_DEFICIT",
+              "NONE"
+            ]
+          },
+          "primary_collection_deficit_message": {"type": "string", "minLength": 1},
+          "next_collection_action": {
+            "enum": [
+              "STOP_AND_INSPECT_SCOPE_OR_SAFETY",
+              "REFRESH_STALE_PAPER_SHADOW_ARTIFACTS",
+              "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+              "RUN_MORE_SHADOW_SAMPLE_WINDOWS",
+              "RECORD_ENTRY_NO_TRADE_AND_COST_REASONS",
+              "RUN_PAIRED_PAPER_SHADOW_WINDOWS",
+              "EXTEND_NON_LIVE_RUNTIME_SPAN",
+              "ATTACH_VALIDATED_NON_LIVE_RUNTIME_SOURCE",
+              "USE_FOR_PAPER_SCORECARD_ONLY",
+              "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE"
+            ]
+          },
+          "scorecard_input_truth_status": {
+            "enum": [
+              "BLOCKED_NOT_SCORECARD_INPUT",
+              "PAPER_SCORECARD_INPUT_READY_ONLY",
+              "LONG_RUN_REVIEW_READY_NON_LIVE"
+            ]
+          },
+          "actual_runtime_source_status": {
+            "enum": [
+              "MISSING",
+              "STUB_ONLY",
+              "PARTIAL_NON_LIVE_RUNTIME",
+              "VALIDATED_NON_LIVE_RUNTIME"
+            ]
+          },
+          "actual_runtime_source_evidence_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          },
+          "actual_runtime_requirement_statuses": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "runtime_span": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+              "cycle_count": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+              "heartbeat_freshness": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+              "recovery_clean": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+              "partial_write_clean": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]}
+            }
+          }
         }
       }
     },

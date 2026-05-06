@@ -1,0 +1,22 @@
+{
+  "artifact_paths": [
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runtime-evidence-profile-20260506T202236Z-cycle-16.runtime_cycle.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+  ],
+  "blocker_message": "PAPER runtime cycle artifacts written atomically; latest pointer remains PAPER-only",
+  "can_live_trade": false,
+  "cycle_hash": "2860A780336082C530BC449FA69DDEA41BE383713D1446DF12E9DA4ABDD7CF0C",
+  "cycle_id": "upbit-paper-runtime-evidence-profile-20260506T202236Z-cycle-16",
+  "exchange": "UPBIT",
+  "generated_at_utc": "2026-05-06T20:22:38Z",
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "primary_blocker_code": null,
+  "project_id": "TRADER_1",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.upbit_paper_runtime_cycle_writer_report.v1",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "writer_status": "PASS"
+}

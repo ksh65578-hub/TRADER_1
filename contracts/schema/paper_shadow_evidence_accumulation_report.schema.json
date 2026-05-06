@@ -30,6 +30,9 @@
     "min_required_evidence_window_count",
     "evidence_span_hours",
     "min_required_evidence_span_hours",
+    "paper_runtime_span_seconds",
+    "shadow_runtime_span_seconds",
+    "paired_runtime_span_seconds",
     "evidence_span_source",
     "evidence_span_source_status",
     "long_run_evidence_eligible",
@@ -135,6 +138,9 @@
     "min_required_evidence_window_count": {"type": "integer", "minimum": 1},
     "evidence_span_hours": {"type": "integer", "minimum": 0},
     "min_required_evidence_span_hours": {"type": "integer", "minimum": 1},
+    "paper_runtime_span_seconds": {"type": "integer", "minimum": 0},
+    "shadow_runtime_span_seconds": {"type": "integer", "minimum": 0},
+    "paired_runtime_span_seconds": {"type": "integer", "minimum": 0},
     "evidence_span_source": {
       "enum": ["EXPLICIT_OPERATOR_SUPPLIED", "DERIVED_FROM_SUPPORTING_WINDOWS", "NOT_PROVIDED"]
     },
@@ -160,7 +166,7 @@
       "items": {"type": "string", "minLength": 1}
     },
     "actual_runtime_source_status": {
-      "enum": ["MISSING", "STUB_ONLY", "VALIDATED_NON_LIVE_RUNTIME"]
+      "enum": ["MISSING", "STUB_ONLY", "PARTIAL_NON_LIVE_RUNTIME", "VALIDATED_NON_LIVE_RUNTIME"]
     },
     "actual_runtime_requirement_statuses": {
       "type": "object",

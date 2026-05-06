@@ -49,7 +49,18 @@ class ActualLongRunRuntimeEvidenceBoundaryImplementationDepthRecheckTest(unittes
         self.assertFalse(paper_depth["counts_as_actual_long_run_evidence"])
         self.assertFalse(shadow_depth["counts_as_actual_long_run_evidence"])
         self.assertEqual(paper_depth["observed_cycle_count"], report["accepted_cycle_sample_count"])
-        self.assertEqual(shadow_depth["observed_cycle_count"], 0)
+        self.assertGreaterEqual(shadow_depth["observed_cycle_count"], 0)
+        self.assertLess(shadow_depth["observed_cycle_count"], shadow_depth["minimum_cycle_count"])
+        self.assertEqual(
+            shadow_depth["missing_cycle_count"],
+            shadow_depth["minimum_cycle_count"] - shadow_depth["observed_cycle_count"],
+        )
+        self.assertGreaterEqual(shadow_depth["observed_span_seconds"], 0)
+        self.assertLess(shadow_depth["observed_span_seconds"], shadow_depth["minimum_span_seconds"])
+        self.assertEqual(
+            shadow_depth["missing_span_seconds"],
+            shadow_depth["minimum_span_seconds"] - shadow_depth["observed_span_seconds"],
+        )
         for artifact in (mode_depth, paper_depth, shadow_depth):
             for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
                 self.assertFalse(artifact[field])

@@ -1370,6 +1370,59 @@ def latest_public_market_data_collection_from_continuity_history(
     return None
 
 
+def _single_open_position_symbol_from_portfolio(portfolio: dict[str, Any] | None) -> str | None:
+    if not isinstance(portfolio, dict):
+        return None
+    positions = portfolio.get("positions")
+    if not isinstance(positions, list):
+        return None
+    symbols: set[str] = set()
+    for position in positions:
+        if not isinstance(position, dict):
+            continue
+        symbol = position.get("symbol")
+        if not isinstance(symbol, str) or not symbol.startswith("KRW-"):
+            continue
+        raw_quantity = position.get("quantity")
+        if raw_quantity is not None:
+            try:
+                quantity = float(str(raw_quantity))
+            except (TypeError, ValueError):
+                quantity = None
+            if quantity is not None and quantity <= 0:
+                continue
+        symbols.add(symbol)
+    if len(symbols) == 1:
+        return next(iter(symbols))
+    return None
+
+
+def _single_open_position_symbol_from_artifact(artifact: dict[str, Any] | None) -> str | None:
+    if not isinstance(artifact, dict):
+        return None
+    for portfolio_key in ("portfolio_snapshot", "paper_portfolio_snapshot"):
+        symbol = _single_open_position_symbol_from_portfolio(artifact.get(portfolio_key))
+        if symbol is not None:
+            return symbol
+    return _single_open_position_symbol_from_portfolio(artifact)
+
+
+def current_scoped_upbit_public_mark_symbol(report: dict[str, Any], root: Path = ROOT) -> str:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return "KRW-BTC"
+    paths = launcher_dashboard_paths(report, root)
+    for artifact_key in (
+        "audited_paper_portfolio_snapshot",
+        "paper_portfolio_snapshot",
+        "paper_ledger_rollup_report",
+        "upbit_paper_runtime_cycle_report",
+    ):
+        symbol = _single_open_position_symbol_from_artifact(_load_dashboard_json_artifact(paths[artifact_key]))
+        if symbol is not None:
+            return symbol
+    return "KRW-BTC"
+
+
 def load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(
     report: dict[str, Any],
     root: Path = ROOT,
@@ -1428,7 +1481,7 @@ def refresh_scoped_upbit_public_rest_continuity_history_if_safe(
     continuity = build_upbit_public_rest_continuity_report(
         continuity_id="launcher-public-rest-continuity-auto-refresh",
         session_id=str(report["session_id"]),
-        symbol="KRW-BTC",
+        symbol=current_scoped_upbit_public_mark_symbol(report, root),
         sample_count=1,
         min_required_pass_samples=1,
         interval_seconds=0.0,
@@ -2777,12 +2830,23 @@ def source_identity_mismatch_heartbeat(report: dict[str, Any], current_source_tr
     return heartbeat
 
 
-def refresh_launcher_monitor_artifacts(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any]:
+def refresh_launcher_monitor_artifacts(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh_upbit_public_rest_continuity: bool = False,
+    refresh_paper_shadow_runtime: bool = False,
+) -> dict[str, Any]:
     expected_source_hash = report.get("source_tree_hash")
     current_source_hash = source_tree_hash()
     if expected_source_hash and expected_source_hash != current_source_hash:
         return source_identity_mismatch_heartbeat(report, current_source_hash)
-    paths = write_launcher_dashboard(report, root)
+    paths = write_launcher_dashboard(
+        report,
+        root,
+        refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+        refresh_paper_shadow_runtime=refresh_paper_shadow_runtime,
+    )
     return load_json(paths["heartbeat"])
 
 
@@ -2893,6 +2957,13 @@ def launcher_main(
         heartbeat,
         ticks=heartbeat_ticks,
         interval_seconds=heartbeat_interval_seconds,
-        refresh_heartbeat=lambda: refresh_launcher_monitor_artifacts(report, root) if operator_pause else heartbeat,
+        refresh_heartbeat=lambda: refresh_launcher_monitor_artifacts(
+            report,
+            root,
+            refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+            refresh_paper_shadow_runtime=refresh_paper_shadow_runtime,
+        )
+        if operator_pause
+        else heartbeat,
     )
     return 0 if result.status == "PASS" else 1

@@ -11,6 +11,12 @@ from trader1.runtime.ledger.paper_ledger_rollup import (
     paper_ledger_rollup_hash,
     validate_paper_ledger_rollup_report,
 )
+from trader1.runtime.ledger.paper_ledger_input_manifest import (
+    build_paper_ledger_input_manifest,
+    paper_ledger_input_manifest_hash,
+    validate_paper_ledger_input_manifest,
+    write_paper_ledger_input_manifest,
+)
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
 from trader1.runtime.portfolio.paper_portfolio import paper_portfolio_hash
 from trader1.validation.mvp0_validators import run_validators
@@ -107,6 +113,108 @@ class PaperLedgerRollupTest(unittest.TestCase):
             self.assertFalse(rollup["live_order_allowed"])
             self.assertFalse(rollup["can_live_trade"])
             self.assertFalse(rollup["scale_up_allowed"])
+
+    def test_persistent_loop_cash_guard_prevents_negative_rollup_during_repeated_runs(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            latest_loop = None
+            for index in range(4):
+                latest_loop = run_upbit_paper_persistent_loop(
+                    root=root,
+                    loop_id=f"test-paper-ledger-cash-guard-{index + 1}",
+                    requested_cycle_count=20,
+                )
+
+            self.assertIsNotNone(latest_loop)
+            self.assertEqual(latest_loop["loop_status"], "PASS")
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-cash-guard-rollup",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "PASS")
+            self.assertLess(rollup["filled_order_count"], 80)
+            self.assertGreaterEqual(float(rollup["portfolio_snapshot"]["cash_available"]), 0.0)
+            self.assertFalse(rollup["live_order_allowed"])
+
+    def test_input_manifest_filters_cash_overrun_ledgers_from_default_rollup(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            latest_path = None
+            latest_events = None
+            latest_cycle_id = None
+            for index in range(12):
+                cycle_id = f"cash-overrun-cycle-{index + 1:02d}"
+                latest_path, latest_events = self._write_cycle_ledger(
+                    root,
+                    cycle_id,
+                    f"client-cash-overrun-{index + 1:02d}",
+                    "100000000",
+                )
+                latest_cycle_id = cycle_id
+            self.assertIsNotNone(latest_path)
+            self.assertIsNotNone(latest_events)
+            self.assertIsNotNone(latest_cycle_id)
+            self._write_latest_head(root, str(latest_cycle_id), latest_path, latest_events)
+
+            blocked_rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-overrun-blocked",
+            )
+            blocked_result = validate_paper_ledger_rollup_report(blocked_rollup)
+            self.assertEqual(blocked_result.status, "BLOCKED")
+            self.assertEqual(blocked_result.blocker_code, "RISK_VETO")
+
+            manifest = build_paper_ledger_input_manifest(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                manifest_id="test-paper-ledger-input-manifest",
+            )
+            manifest_result = validate_paper_ledger_input_manifest(manifest)
+            self.assertEqual(manifest_result.status, "PASS")
+            self.assertEqual(manifest["accepted_ledger_path_count_at_manifest"], 3)
+            self.assertEqual(manifest["excluded_ledger_path_count"], 9)
+            self.assertTrue(
+                {
+                    item["exclude_reason_code"]
+                    for item in manifest["excluded_ledger_paths"]
+                }.issubset({"EXPOSURE_CAP_EXCEEDED", "CASH_BELOW_ZERO"})
+            )
+            manifest_path = write_paper_ledger_input_manifest(root=root, manifest=manifest)
+            self.assertTrue(manifest_path.exists())
+
+            repaired_rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-overrun-repaired",
+            )
+            repaired_result = validate_paper_ledger_rollup_report(repaired_rollup)
+            self.assertEqual(repaired_result.status, "PASS")
+            self.assertEqual(repaired_rollup["ledger_input_scope"], "SESSION_REPAIR_MANIFEST")
+            self.assertEqual(repaired_rollup["ledger_jsonl_count"], 3)
+            self.assertEqual(repaired_rollup["filled_order_count"], 3)
+            self.assertEqual(repaired_rollup["ledger_head_match_status"], "NOT_APPLICABLE")
+            self.assertIn(
+                "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/paper_ledger_input_manifest.json",
+                repaired_rollup["artifact_paths"],
+            )
+            self.assertFalse(repaired_rollup["live_order_allowed"])
+
+    def test_input_manifest_blocks_live_permission_mutation(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_cycle_ledger(root, "manifest-live-mutation-cycle", "manifest-live-client", "1000000")
+            manifest = build_paper_ledger_input_manifest(root=root, session_id="mvp1_upbit_paper_launcher")
+            manifest["live_order_allowed"] = True
+            manifest["manifest_hash"] = paper_ledger_input_manifest_hash(manifest)
+
+            result = validate_paper_ledger_input_manifest(manifest)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
     def test_session_glob_binds_portfolio_to_latest_head_when_filename_sort_differs(self):
         with TemporaryDirectory() as tmp:

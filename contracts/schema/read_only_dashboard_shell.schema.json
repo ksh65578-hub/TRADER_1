@@ -113,6 +113,7 @@
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
             "CANDIDATE_SCORECARD",
+            "OVERFIT_DIAGNOSTIC",
             "RESIDUAL_OPERATOR_HANDOFF_PACKET",
             "RESIDUAL_OPERATOR_EXECUTION_GUIDE",
             "RESIDUAL_OPERATOR_EVIDENCE_PROGRESS",
@@ -167,6 +168,7 @@
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
             "candidate_scorecard.json",
+            "overfit_diagnostic_report.json",
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
             "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
@@ -632,6 +634,7 @@
           "enum": [
             "NOT_LOADED",
             "PASS",
+            "MISMATCH",
             "FAIL",
             "INVALID"
           ]
@@ -2542,6 +2545,7 @@
           "enum": [
             "NOT_LOADED",
             "STUB_ONLY",
+            "SHORT_WINDOW_EXECUTED",
             "BLOCKED",
             "STALE"
           ]
@@ -2944,6 +2948,7 @@
           "enum": [
             "NOT_LOADED",
             "STUB_ONLY",
+            "SHORT_WINDOW_EXECUTED",
             "BLOCKED",
             "STALE"
           ]
@@ -6581,6 +6586,11 @@
         "shadow_sample_count",
         "min_required_samples",
         "sample_summary",
+        "paper_runtime_span_seconds",
+        "shadow_runtime_span_seconds",
+        "paired_runtime_span_seconds",
+        "evidence_span_hours",
+        "runtime_span_summary",
         "actual_runtime_source_status",
         "actual_runtime_source_count",
         "actual_runtime_source_summary",
@@ -6997,6 +7007,62 @@
           "type": "string",
           "minLength": 1
         },
+        "overfit_diagnostic_source": {
+          "enum": [
+            "NOT_LOADED",
+            "overfit_diagnostic_report.json"
+          ]
+        },
+        "overfit_diagnostic_status": {
+          "enum": [
+            "NOT_LOADED",
+            "ROBUST_FOR_PAPER_REVIEW",
+            "BLOCKED_FOR_ROBUSTNESS",
+            "BLOCKED",
+            "FAIL",
+            "UNTESTED",
+            "STALE"
+          ]
+        },
+        "overfit_diagnostic_oos_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_diagnostic_walk_forward_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_diagnostic_bootstrap_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_diagnostic_overfit_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_diagnostic_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "overfit_diagnostic_min_required_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "overfit_diagnostic_robustness_eligible": {
+          "type": "boolean"
+        },
+        "overfit_diagnostic_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_diagnostic_blocker_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_diagnostic_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
         "paper_sample_count": {
           "type": "integer",
           "minimum": 0
@@ -7010,6 +7076,26 @@
           "minimum": 0
         },
         "sample_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_runtime_span_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shadow_runtime_span_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paired_runtime_span_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_span_hours": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runtime_span_summary": {
           "type": "string",
           "minLength": 1
         },
@@ -8787,7 +8873,9 @@
         "paper_value_truth_status": {
           "enum": [
             "PAPER_LEDGER_CURRENT_VALUES_VERIFIED",
+            "PAPER_LEDGER_PUBLIC_MARK_VALUES_VERIFIED",
             "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE",
+            "PAPER_LEDGER_PUBLIC_MARK_VALUES_STALE",
             "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY"
           ]
         },
@@ -10077,6 +10165,7 @@
           "enum": [
             "NOT_LOADED",
             "STUB_ONLY",
+            "SHORT_WINDOW_EXECUTED",
             "BLOCKED",
             "STALE"
           ]
@@ -10112,11 +10201,15 @@
         "runtime_duration_evidence_source": {
           "enum": [
             "NOT_LOADED",
-            "STUB_ESTIMATE_ONLY"
+            "STUB_ESTIMATE_ONLY",
+            "PAPER_LOOP_TIMESTAMP_SPAN"
           ]
         },
         "duration_evidence_role": {
-          "const": "NOT_LONG_RUN_EVIDENCE"
+          "enum": [
+            "NOT_LONG_RUN_EVIDENCE",
+            "SHORT_WINDOW_RUNTIME_EVIDENCE_NOT_LONG_RUN"
+          ]
         },
         "requested_cycle_count": {
           "type": "integer",
@@ -10143,7 +10236,7 @@
           "minimum": 0
         },
         "actual_persistent_runtime_executed": {
-          "const": false
+          "type": "boolean"
         },
         "long_run_evidence_eligible": {
           "const": false
@@ -10151,7 +10244,8 @@
         "optimizer_input_role": {
           "enum": [
             "NOT_LOADED",
-            "SHADOW_PERSISTENT_RUNTIME_STUB_ONLY"
+            "SHADOW_PERSISTENT_RUNTIME_STUB_ONLY",
+            "SHADOW_PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
           ]
         },
         "primary_blocker_code": {
@@ -10184,7 +10278,70 @@
         "scale_up_allowed": {
           "const": false
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "SHORT_WINDOW_EXECUTED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "actual_persistent_runtime_executed": {
+                "const": true
+              },
+              "runtime_duration_evidence_source": {
+                "const": "PAPER_LOOP_TIMESTAMP_SPAN"
+              },
+              "duration_evidence_role": {
+                "const": "SHORT_WINDOW_RUNTIME_EVIDENCE_NOT_LONG_RUN"
+              },
+              "optimizer_input_role": {
+                "const": "SHADOW_PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
+              },
+              "long_run_evidence_eligible": {
+                "const": false
+              },
+              "live_order_ready": {
+                "const": false
+              },
+              "live_order_allowed": {
+                "const": false
+              },
+              "can_live_trade": {
+                "const": false
+              },
+              "scale_up_allowed": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "NOT_LOADED",
+                  "STUB_ONLY",
+                  "BLOCKED",
+                  "STALE"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "actual_persistent_runtime_executed": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
     },
     "paper_persistent_loop_status": {
       "type": "object",
@@ -10570,6 +10727,15 @@
         "duplicate_semantic_event_count",
         "duplicate_filled_order_key_count",
         "runtime_evidence_role",
+        "collection_plan_status",
+        "collection_plan_required_next_runtime_modes",
+        "collection_plan_recommended_next_paper_batch_cycle_count",
+        "collection_plan_max_safe_paper_batch_cycle_count",
+        "collection_plan_minimum_cycle_wall_clock_spacing_seconds",
+        "collection_plan_estimated_wall_clock_seconds_remaining",
+        "collection_plan_shadow_collection_required",
+        "collection_plan_counts_as_actual_long_run_evidence",
+        "collection_plan_next_operator_action",
         "actual_long_run_evidence_created",
         "long_run_evidence_eligible",
         "long_run_blocker_code",
@@ -10789,6 +10955,53 @@
         },
         "dashboard_display_counts_as_long_run_evidence": {
           "const": false
+        },
+        "collection_plan_status": {
+          "enum": [
+            "READY_TO_CONTINUE_NON_LIVE_COLLECTION",
+            "BLOCKED_FOR_RECONCILIATION"
+          ]
+        },
+        "collection_plan_required_next_runtime_modes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "PAPER",
+              "SHADOW"
+            ]
+          },
+          "contains": {
+            "const": "SHADOW"
+          },
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true
+        },
+        "collection_plan_recommended_next_paper_batch_cycle_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "collection_plan_max_safe_paper_batch_cycle_count": {
+          "const": 20
+        },
+        "collection_plan_minimum_cycle_wall_clock_spacing_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collection_plan_estimated_wall_clock_seconds_remaining": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "collection_plan_shadow_collection_required": {
+          "const": true
+        },
+        "collection_plan_counts_as_actual_long_run_evidence": {
+          "const": false
+        },
+        "collection_plan_next_operator_action": {
+          "type": "string",
+          "minLength": 1
         },
         "span_floor_met": {
           "type": "boolean"

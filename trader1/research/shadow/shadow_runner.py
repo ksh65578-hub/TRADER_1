@@ -13,6 +13,10 @@ TRADER1_SHA256 = "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD005
 AGENTS_SHA256 = "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 ACTUAL_RUNTIME_SOURCE_ID_PREFIX = "actual-runtime-source"
 ACTUAL_RUNTIME_SOURCE_MODES = {"paper", "shadow"}
+ACTUAL_RUNTIME_SOURCE_BOUND_STATUSES = {
+    "PARTIAL_NON_LIVE_RUNTIME",
+    "VALIDATED_NON_LIVE_RUNTIME",
+}
 DISPLAY_ONLY_RUNTIME_SOURCE_MARKERS = (
     "dashboard",
     "dashboard_shell",
@@ -86,12 +90,11 @@ def _actual_runtime_source_scope_errors(
     for source_id in actual_runtime_source_ids:
         source_text = str(source_id)
         lowered = source_text.lower()
-        if any(marker in lowered for marker in DISPLAY_ONLY_RUNTIME_SOURCE_MARKERS):
-            errors.append(f"actual runtime source id is display-only, not execution evidence: {source_id}")
-            continue
-
         parts = source_text.split(":")
         if len(parts) != 6 or parts[0] != ACTUAL_RUNTIME_SOURCE_ID_PREFIX:
+            if any(marker in lowered for marker in DISPLAY_ONLY_RUNTIME_SOURCE_MARKERS):
+                errors.append(f"actual runtime source id is display-only, not execution evidence: {source_id}")
+                continue
             errors.append(
                 "actual runtime source ids must use "
                 "actual-runtime-source:<exchange>:<market_type>:<paper|shadow>:<session_id>:<source_hash>"
@@ -199,7 +202,8 @@ def paper_shadow_evidence_actionability_fields(report: dict[str, Any]) -> dict[s
     shadow_age = _as_int(report.get("shadow_artifact_age_seconds"), 0)
     paper_deficit = max(0, min_samples - paper_samples)
     shadow_deficit = max(0, min_samples - shadow_samples)
-    window_deficit = max(0, min_windows - min(windows, supporting_windows))
+    evidence_window_deficit = max(0, min_windows - windows)
+    supporting_window_deficit = max(0, min_windows - supporting_windows)
     span_deficit = max(0, min_span - span_hours)
     stale_count = int(paper_age > max_age) + int(shadow_age > max_age)
     reason_deficit = sum(
@@ -207,11 +211,18 @@ def paper_shadow_evidence_actionability_fields(report: dict[str, Any]) -> dict[s
         for field in ("entry_reason_count", "no_trade_reason_count", "cost_evidence_count")
         if _as_int(report.get(field), 0) <= 0
     )
-    actual_runtime_source_validated = (
-        report.get("actual_runtime_source_status") == "VALIDATED_NON_LIVE_RUNTIME"
-        and bool(report.get("actual_runtime_source_evidence_ids"))
+    actual_runtime_source_status = report.get("actual_runtime_source_status")
+    actual_runtime_source_ids = list(report.get("actual_runtime_source_evidence_ids") or [])
+    actual_runtime_source_bound = (
+        actual_runtime_source_status in ACTUAL_RUNTIME_SOURCE_BOUND_STATUSES
+        and bool(actual_runtime_source_ids)
         and not paper_shadow_actual_runtime_source_id_errors(report)
-        and not paper_shadow_actual_runtime_requirement_status_errors(report)
+    )
+    actual_runtime_requirement_errors = paper_shadow_actual_runtime_requirement_status_errors(report)
+    actual_runtime_source_validated = (
+        actual_runtime_source_status == "VALIDATED_NON_LIVE_RUNTIME"
+        and actual_runtime_source_bound
+        and not actual_runtime_requirement_errors
     )
     actual_runtime_source_deficit = 0 if actual_runtime_source_validated else 2
     blocker_codes = {
@@ -255,21 +266,40 @@ def paper_shadow_evidence_actionability_fields(report: dict[str, Any]) -> dict[s
         deficit_code = "REASON_OR_COST_EVIDENCE_DEFICIT"
         next_action = "RECORD_ENTRY_NO_TRADE_AND_COST_REASONS"
         message = "Record entry reason, no-trade reason, and cost evidence before scorecard input."
-    elif window_deficit > 0:
+    elif evidence_window_deficit > 0:
         status = "SCORECARD_READY_COLLECT_PAIRED_WINDOWS"
         deficit_code = "PAIRED_WINDOW_DEFICIT"
         next_action = "RUN_PAIRED_PAPER_SHADOW_WINDOWS"
-        message = f"Scorecard input can be PAPER-only, but {window_deficit} more paired PAPER/SHADOW windows are needed for long-run review."
+        message = f"Scorecard input can be PAPER-only, but {evidence_window_deficit} more paired PAPER/SHADOW windows are needed for long-run review."
+    elif supporting_window_deficit > 0:
+        status = "SCORECARD_READY_COLLECT_PAIRED_WINDOWS"
+        deficit_code = "PAIRED_WINDOW_DEFICIT"
+        next_action = "RUN_PAIRED_PAPER_SHADOW_WINDOWS"
+        message = f"Scorecard input can be PAPER-only, but {supporting_window_deficit} existing paired windows still need PAPER/SHADOW supporting source ids for long-run review."
     elif span_deficit > 0:
         status = "SCORECARD_READY_EXTEND_RUNTIME_SPAN"
         deficit_code = "EVIDENCE_SPAN_DEFICIT"
         next_action = "EXTEND_NON_LIVE_RUNTIME_SPAN"
-        message = f"Scorecard input can be PAPER-only, but {span_deficit} more non-live span hours are needed for long-run review."
+        paper_span_seconds = _as_int(report.get("paper_runtime_span_seconds"), 0)
+        shadow_span_seconds = _as_int(report.get("shadow_runtime_span_seconds"), 0)
+        paired_span_seconds = _as_int(report.get("paired_runtime_span_seconds"), 0)
+        message = (
+            "Scorecard input can be PAPER-only, but "
+            f"{span_deficit} more paired non-live span hours are needed for long-run review "
+            f"(paired={paired_span_seconds}s/{span_hours}h, PAPER={paper_span_seconds}s, SHADOW={shadow_span_seconds}s)."
+        )
     elif actual_runtime_source_deficit > 0:
         status = "SCORECARD_READY_BIND_ACTUAL_RUNTIME_SOURCE"
         deficit_code = "ACTUAL_RUNTIME_SOURCE_DEFICIT"
-        next_action = "ATTACH_VALIDATED_NON_LIVE_RUNTIME_SOURCE"
-        message = "Bind validated non-live PAPER and SHADOW runtime source evidence before long-run review."
+        if actual_runtime_source_bound and actual_runtime_requirement_errors:
+            next_action = "EXTEND_NON_LIVE_RUNTIME_SPAN"
+            message = (
+                "PAPER and SHADOW runtime source evidence is bound, but the non-live runtime requirements are not "
+                f"validated yet: {actual_runtime_requirement_errors[0]}."
+            )
+        else:
+            next_action = "ATTACH_VALIDATED_NON_LIVE_RUNTIME_SOURCE"
+            message = "Bind validated non-live PAPER and SHADOW runtime source evidence before long-run review."
     elif report.get("long_run_evidence_eligible"):
         status = "LONG_RUN_REVIEW_READY"
         deficit_code = "NONE"
@@ -290,9 +320,9 @@ def paper_shadow_evidence_actionability_fields(report: dict[str, Any]) -> dict[s
         "scorecard_input_truth_status": scorecard_truth_status,
         "paper_sample_deficit": paper_deficit,
         "shadow_sample_deficit": shadow_deficit,
-        "evidence_window_deficit": window_deficit,
+        "evidence_window_deficit": evidence_window_deficit,
         "evidence_span_hours_deficit": span_deficit,
-        "supporting_window_deficit": max(0, min_windows - supporting_windows),
+        "supporting_window_deficit": supporting_window_deficit,
         "reason_coverage_deficit_count": reason_deficit,
         "stale_artifact_count": stale_count,
         "actual_runtime_source_deficit": actual_runtime_source_deficit,
@@ -386,6 +416,8 @@ def build_paper_shadow_evidence_accumulation_report(
     actual_runtime_requirement_statuses: dict[str, str] | None = None,
     raw_join_attempted: bool = False,
     long_run_evidence_eligible: bool | None = None,
+    paper_runtime_span_seconds: int | None = None,
+    shadow_runtime_span_seconds: int | None = None,
 ) -> dict[str, Any]:
     paper_path, shadow_path = _default_artifact_paths(
         exchange=exchange,
@@ -407,7 +439,27 @@ def build_paper_shadow_evidence_accumulation_report(
     if actual_runtime_requirement_statuses:
         runtime_requirement_statuses.update(actual_runtime_requirement_statuses)
     supporting_window_count = _paired_supporting_window_count(supporting_source_ids)
-    evidence_span_source_status = "PASS" if evidence_span_source != "NOT_PROVIDED" and evidence_span_hours > 0 else "MISSING"
+    paper_runtime_span_seconds = max(
+        0,
+        _as_int(
+            paper_runtime_span_seconds,
+            evidence_span_hours * 3600 if evidence_span_source != "NOT_PROVIDED" else 0,
+        ),
+    )
+    shadow_runtime_span_seconds = max(
+        0,
+        _as_int(
+            shadow_runtime_span_seconds,
+            evidence_span_hours * 3600 if evidence_span_source != "NOT_PROVIDED" else 0,
+        ),
+    )
+    paired_runtime_span_seconds = min(paper_runtime_span_seconds, shadow_runtime_span_seconds)
+    if evidence_span_source != "NOT_PROVIDED" and evidence_span_hours > 0:
+        evidence_span_source_status = "PASS"
+    elif evidence_span_source != "NOT_PROVIDED" and paired_runtime_span_seconds > 0:
+        evidence_span_source_status = "BLOCKED"
+    else:
+        evidence_span_source_status = "MISSING"
     actual_runtime_source_errors = _actual_runtime_source_scope_errors(
         actual_runtime_source_ids=actual_runtime_source_ids,
         exchange=exchange,
@@ -494,14 +546,14 @@ def build_paper_shadow_evidence_accumulation_report(
                 "long-run paper/shadow evidence requires validated non-live persistent runtime source evidence",
             )
         )
-    if actual_runtime_source_status == "VALIDATED_NON_LIVE_RUNTIME" and not actual_runtime_source_ids:
+    if actual_runtime_source_status in ACTUAL_RUNTIME_SOURCE_BOUND_STATUSES and not actual_runtime_source_ids:
         blockers.append(
             _blocker(
                 "MEASUREMENT_MISSING",
-                "validated actual runtime source status requires source evidence ids",
+                "bound actual runtime source status requires source evidence ids",
             )
         )
-    if actual_runtime_source_status == "VALIDATED_NON_LIVE_RUNTIME" and actual_runtime_source_errors:
+    if actual_runtime_source_status in ACTUAL_RUNTIME_SOURCE_BOUND_STATUSES and actual_runtime_source_errors:
         blockers.append(
             _blocker(
                 "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
@@ -515,11 +567,18 @@ def build_paper_shadow_evidence_accumulation_report(
                 actual_runtime_requirement_errors[0],
             )
         )
-    if actual_runtime_source_status != "VALIDATED_NON_LIVE_RUNTIME" and actual_runtime_source_ids:
+    if actual_runtime_source_status == "PARTIAL_NON_LIVE_RUNTIME" and not actual_runtime_requirement_errors:
+        blockers.append(
+            _blocker(
+                "MEASUREMENT_MISSING",
+                "partial actual runtime source status cannot hide fully PASS runtime requirements",
+            )
+        )
+    if actual_runtime_source_status not in ACTUAL_RUNTIME_SOURCE_BOUND_STATUSES and actual_runtime_source_ids:
         blockers.append(
             _blocker(
                 "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
-                "actual runtime source ids cannot satisfy long-run evidence without validated non-live runtime status",
+                "actual runtime source ids require bound non-live runtime status",
             )
         )
     if evidence_window_count >= min_required_evidence_window_count and supporting_window_count < min_required_evidence_window_count:
@@ -572,6 +631,9 @@ def build_paper_shadow_evidence_accumulation_report(
         "min_required_evidence_window_count": min_required_evidence_window_count,
         "evidence_span_hours": evidence_span_hours,
         "min_required_evidence_span_hours": min_required_evidence_span_hours,
+        "paper_runtime_span_seconds": paper_runtime_span_seconds,
+        "shadow_runtime_span_seconds": shadow_runtime_span_seconds,
+        "paired_runtime_span_seconds": paired_runtime_span_seconds,
         "evidence_span_source": evidence_span_source,
         "evidence_span_source_status": evidence_span_source_status,
         "long_run_evidence_eligible": long_run_evidence_eligible,
@@ -686,6 +748,9 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
         "min_required_evidence_window_count",
         "evidence_span_hours",
         "min_required_evidence_span_hours",
+        "paper_runtime_span_seconds",
+        "shadow_runtime_span_seconds",
+        "paired_runtime_span_seconds",
         "evidence_span_source",
         "evidence_span_source_status",
         "long_run_evidence_eligible",
@@ -772,6 +837,9 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
         return PaperShadowEvidenceValidationResult("BLOCKED", "paper/shadow evidence attempted live/order behavior", "LIVE_FINAL_GUARD_FAILED")
 
     blockers = report.get("blockers", [])
+    blocker_codes = {str(blocker.get("code")) for blocker in blockers if isinstance(blocker, dict) and blocker.get("code")}
+    if "LIVE_FINAL_GUARD_FAILED" in blocker_codes:
+        return PaperShadowEvidenceValidationResult("BLOCKED", "paper/shadow source evidence carried live/order safety drift", "LIVE_FINAL_GUARD_FAILED")
     if int(report.get("paper_sample_count", 0)) < int(report.get("min_required_sample_count", 1)) or int(report.get("shadow_sample_count", 0)) < int(report.get("min_required_sample_count", 1)):
         return PaperShadowEvidenceValidationResult("BLOCKED", "paper/shadow evidence sample count is insufficient", "SAMPLE_INSUFFICIENT")
     long_run_coverage_requirements_met = (
@@ -842,13 +910,13 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
             "long-run paper/shadow evidence lacks validated non-live persistent runtime source evidence",
             "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
         )
-    if actual_runtime_source_status == "VALIDATED_NON_LIVE_RUNTIME" and not actual_runtime_source_ids:
+    if actual_runtime_source_status in ACTUAL_RUNTIME_SOURCE_BOUND_STATUSES and not actual_runtime_source_ids:
         return PaperShadowEvidenceValidationResult(
             "BLOCKED",
-            "validated actual runtime source status lacks source evidence ids",
+            "bound actual runtime source status lacks source evidence ids",
             "MEASUREMENT_MISSING",
         )
-    if actual_runtime_source_status == "VALIDATED_NON_LIVE_RUNTIME" and actual_runtime_source_errors:
+    if actual_runtime_source_status in ACTUAL_RUNTIME_SOURCE_BOUND_STATUSES and actual_runtime_source_errors:
         return PaperShadowEvidenceValidationResult(
             "BLOCKED",
             actual_runtime_source_errors[0],
@@ -860,10 +928,16 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
             actual_runtime_requirement_errors[0],
             "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
         )
-    if actual_runtime_source_status != "VALIDATED_NON_LIVE_RUNTIME" and actual_runtime_source_ids:
+    if actual_runtime_source_status == "PARTIAL_NON_LIVE_RUNTIME" and not actual_runtime_requirement_errors:
         return PaperShadowEvidenceValidationResult(
             "BLOCKED",
-            "actual runtime source ids require validated non-live runtime status",
+            "partial actual runtime source status cannot hide fully PASS runtime requirements",
+            "MEASUREMENT_MISSING",
+        )
+    if actual_runtime_source_status not in ACTUAL_RUNTIME_SOURCE_BOUND_STATUSES and actual_runtime_source_ids:
+        return PaperShadowEvidenceValidationResult(
+            "BLOCKED",
+            "actual runtime source ids require bound non-live runtime status",
             "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
         )
     if not report.get("long_run_evidence_eligible") and long_run_requirements_met:
@@ -891,6 +965,29 @@ def validate_paper_shadow_evidence_accumulation_report(report: dict[str, Any]) -
         return PaperShadowEvidenceValidationResult("BLOCKED", "paper/shadow supporting source ids must be unique", "MEASUREMENT_MISSING")
     if set(source_ids) & set(supporting_source_ids):
         return PaperShadowEvidenceValidationResult("BLOCKED", "bound source ids must not be duplicated as supporting source ids", "MEASUREMENT_MISSING")
+    paper_runtime_span_seconds = int(report.get("paper_runtime_span_seconds", -1))
+    shadow_runtime_span_seconds = int(report.get("shadow_runtime_span_seconds", -1))
+    paired_runtime_span_seconds = int(report.get("paired_runtime_span_seconds", -1))
+    if min(paper_runtime_span_seconds, shadow_runtime_span_seconds, paired_runtime_span_seconds) < 0:
+        return PaperShadowEvidenceValidationResult(
+            "FAIL",
+            "paper/shadow runtime span seconds must be non-negative",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if paired_runtime_span_seconds != min(paper_runtime_span_seconds, shadow_runtime_span_seconds):
+        return PaperShadowEvidenceValidationResult(
+            "BLOCKED",
+            "paired paper/shadow runtime span must be the minimum of PAPER and SHADOW spans",
+            "MEASUREMENT_MISSING",
+        )
+    if report.get("evidence_span_source") == "DERIVED_FROM_SUPPORTING_WINDOWS":
+        expected_span_hours = paired_runtime_span_seconds // 3600
+        if int(report.get("evidence_span_hours", -1)) != expected_span_hours:
+            return PaperShadowEvidenceValidationResult(
+                "BLOCKED",
+                "derived paper/shadow span hours must match paired runtime span seconds",
+                "MEASUREMENT_MISSING",
+            )
     bindings = report.get("source_evidence_bindings") or []
     binding_by_id = {
         binding.get("source_evidence_id"): binding

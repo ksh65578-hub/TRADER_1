@@ -1,0 +1,34 @@
+{
+  "current_evidence_snapshot_hash": "87EFE3A22703719FA00733609188011D99B564D1D79F927995BAE20491E11F79",
+  "current_evidence_write_allowed": false,
+  "exchange": "UPBIT",
+  "generated_at_utc": "2026-05-06T12:31:26Z",
+  "idempotency_key": "F086ECB5D142C6E80AECDDBDB441D5142B0F026286AFE78A4E1B53DC669DD233",
+  "live_order_allowed": false,
+  "lock_path": "paper_runtime/locks/audited_current_evidence_writer.lock",
+  "manifest_hash": "99087B7B44D800C5C43B244B05B576D8A0B3E9C1322C0EC61792864377491E01",
+  "manifest_schema_id": "trader1.upbit_paper_audited_current_evidence_idempotency_manifest.v1",
+  "manifest_status": "PASS",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "paper_only": true,
+  "planned_artifact_paths": [
+    "paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
+    "paper_runtime/current_evidence/audited_current_evidence_idempotency_manifest.json",
+    "paper_runtime/portfolio/paper_portfolio_snapshot.json"
+  ],
+  "planned_temp_paths": [
+    "paper_runtime/current_evidence/audited_current_evidence_snapshot.json.tmp",
+    "paper_runtime/current_evidence/audited_current_evidence_idempotency_manifest.json.tmp",
+    "paper_runtime/portfolio/paper_portfolio_snapshot.json.tmp"
+  ],
+  "portfolio_snapshot_hash": "00F6A5EC275C9E15E3F4C0FA3FC47B35CEEB393A332CC5ED775172C064495F09",
+  "portfolio_truth_write_allowed": false,
+  "project_id": "TRADER_1",
+  "scale_up_allowed": false,
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source_implementation_prep_hash": "06DCE6A57900E07E0029969770BC9A399C9533796E9247000C2282D8A13158B0",
+  "source_ledger_rollup_hash": "E4512C942658FF6C2D312BD203C9C24893046C9C714F22F05700FB7212EECCE7",
+  "source_locked_output_hash": "447DC716C982CA435FACB191CEE837D07582C7EAAE8EC137E95D26FB77EF35C1",
+  "source_paper_ledger_head_hash": "9E1EC53C0F1DA57507CEEF53787173E899484A95EDAE6664436E1E8352DF9CB3"
+}

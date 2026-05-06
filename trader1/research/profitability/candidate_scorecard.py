@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -227,3 +228,28 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "scale_up_allowed": False,
         "notes": "Generated from Upbit PAPER runtime cycle. It is PAPER scorecard evidence only and cannot create live permission.",
     }
+
+
+def write_upbit_paper_candidate_scorecard(*, root: Path, scorecard: dict[str, Any]) -> Path:
+    if (
+        scorecard.get("exchange") != "UPBIT"
+        or scorecard.get("market_type") != "KRW_SPOT"
+        or scorecard.get("mode") != "PAPER"
+    ):
+        raise ValueError("candidate scorecard writer is scoped to UPBIT/KRW_SPOT/PAPER")
+    forbidden_flags = ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    if any(scorecard.get(flag) is True for flag in forbidden_flags):
+        raise ValueError("candidate scorecard writer refuses live or scale-up permission")
+    path = (
+        Path(root)
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / str(scorecard["session_id"])
+        / "profitability"
+        / "candidate_scorecard.json"
+    )
+    durable_atomic_write_json(path, scorecard)
+    return path

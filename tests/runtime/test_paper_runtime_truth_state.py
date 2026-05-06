@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -12,7 +13,10 @@ from trader1.runtime.paper.paper_runtime_truth_state import (
     paper_runtime_truth_state_hash,
     validate_paper_runtime_truth_state_report,
 )
-from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
+from trader1.runtime.paper.upbit_paper_persistent_loop import (
+    run_upbit_paper_persistent_loop,
+    upbit_paper_persistent_loop_hash,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity import build_upbit_public_rest_continuity_report
 from trader1.runtime.paper.upbit_public_rest_continuity_history import build_upbit_public_rest_continuity_history_report
 from trader1.runtime.portfolio.paper_current_truth_refresh import build_paper_current_truth_refresh_report
@@ -101,6 +105,41 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])
 
+    def test_blocked_heartbeat_preserves_resource_blocker_code(self):
+        heartbeat = build_heartbeat(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="mvp1_upbit_paper_launcher",
+            config_hash="A" * 64,
+            registry_hash="B" * 64,
+            schema_bundle_hash="C" * 64,
+            source_tree_hash="D" * 64,
+            component_overrides={
+                "disk": {
+                    "status": "FAIL",
+                    "message": "Runtime artifact byte pressure exceeded fail threshold",
+                }
+            },
+        )
+
+        report = build_paper_runtime_truth_state_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="mvp1_upbit_paper_launcher",
+            heartbeat=heartbeat,
+            upbit_paper_persistent_loop_report=None,
+            upbit_public_rest_continuity_history=None,
+            paper_ledger_rollup_report=None,
+            paper_current_truth_refresh_report=None,
+        )
+
+        self.assertEqual(report["primary_blocker_code"], "RESOURCE_LIMIT")
+        self.assertFalse(report["monitor_alive"])
+        self.assertIn("RESOURCE_LIMIT", {blocker["code"] for blocker in report["blockers"]})
+        self.assertFalse(report["live_order_allowed"])
+
     def test_runtime_truth_active_requires_loop_market_ledger_and_current_refresh(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -145,6 +184,52 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])
+
+    def test_stale_valid_loop_does_not_prove_runtime_advancement(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="truth-state-stale-loop",
+                session_id="mvp1_upbit_paper_launcher",
+                requested_cycle_count=1,
+            )
+            ledger_rollup = load_json(launcher_dashboard_paths({"exchange": "UPBIT", "market_type": "KRW_SPOT", "mode": "PAPER", "session_id": "mvp1_upbit_paper_launcher"}, root)["paper_ledger_rollup_report"])
+            heartbeat = self._heartbeat()
+            current_refresh = build_paper_current_truth_refresh_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                paper_portfolio_snapshot=ledger_rollup["portfolio_snapshot"],
+                heartbeat=heartbeat,
+                startup_probe=None,
+            )
+            continuity_history = self._continuity_history()
+            now = datetime.now(timezone.utc).replace(microsecond=0)
+            stale = now - timedelta(seconds=301)
+            loop["generated_at_utc"] = stale.isoformat().replace("+00:00", "Z")
+            loop["loop_hash"] = upbit_paper_persistent_loop_hash(loop)
+            report = build_paper_runtime_truth_state_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                heartbeat=heartbeat,
+                upbit_paper_persistent_loop_report=loop,
+                upbit_public_rest_continuity_history=continuity_history,
+                paper_ledger_rollup_report=ledger_rollup,
+                paper_current_truth_refresh_report=current_refresh,
+                generated_at_utc=now.isoformat().replace("+00:00", "Z"),
+            )
+            result = validate_paper_runtime_truth_state_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(report["runtime_truth_status"], MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS)
+        self.assertEqual(report["primary_blocker_code"], "LATENCY_TTL_EXPIRED")
+        self.assertFalse(report["paper_loop_advancing"])
+        self.assertIn("stale", report["blockers"][0]["message"])
+        self.assertFalse(report["live_order_allowed"])
 
     def test_live_flag_mutation_is_blocked(self):
         report = build_paper_runtime_truth_state_report(

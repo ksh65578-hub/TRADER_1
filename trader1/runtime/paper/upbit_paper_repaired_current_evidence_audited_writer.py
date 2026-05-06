@@ -22,6 +22,7 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
 from trader1.runtime.portfolio.paper_portfolio import (
     mark_paper_portfolio_snapshot_to_public_market,
+    portfolio_needs_public_mark_basis_repair,
     validate_paper_portfolio_snapshot,
 )
 
@@ -485,6 +486,8 @@ def _outputs_match_sources(
     )
     if not base_match:
         return False
+    if portfolio_needs_public_mark_basis_repair(portfolio):
+        return False
     if source_public_market_data_hash is None:
         return True
     return (
@@ -621,6 +624,41 @@ def _outputs_bind_current_ledger_but_stale_public_mark(
             or manifest.get("source_public_market_data_hash") != source_public_market_data_hash
             or portfolio.get("source_public_market_data_hash") != source_public_market_data_hash
         )
+    )
+
+
+def _outputs_bind_current_ledger_but_need_public_mark_basis_repair(
+    *,
+    outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+    source_implementation_prep_report: dict[str, Any],
+    source_ledger_rollup_report: dict[str, Any],
+    session_id: str,
+    source_public_market_data_hash: str | None,
+) -> bool:
+    if source_public_market_data_hash is None:
+        return False
+    current_evidence, manifest, portfolio = outputs
+    latest_head_hash = source_ledger_rollup_report.get("latest_ledger_head_hash")
+    current_rollup_hash = source_ledger_rollup_report.get("rollup_hash")
+    return (
+        _outputs_are_complete_and_valid_for_scope(
+            outputs=outputs,
+            source_implementation_prep_report=source_implementation_prep_report,
+            session_id=session_id,
+        )
+        and isinstance(latest_head_hash, str)
+        and len(latest_head_hash) == 64
+        and isinstance(current_rollup_hash, str)
+        and len(current_rollup_hash) == 64
+        and current_evidence.get("source_ledger_rollup_hash") == current_rollup_hash
+        and manifest.get("source_ledger_rollup_hash") == current_rollup_hash
+        and current_evidence.get("source_paper_ledger_head_hash") == latest_head_hash
+        and manifest.get("source_paper_ledger_head_hash") == latest_head_hash
+        and portfolio.get("source_paper_ledger_head_hash") == latest_head_hash
+        and current_evidence.get("source_public_market_data_hash") == source_public_market_data_hash
+        and manifest.get("source_public_market_data_hash") == source_public_market_data_hash
+        and portfolio.get("source_public_market_data_hash") == source_public_market_data_hash
+        and portfolio_needs_public_mark_basis_repair(portfolio)
     )
 
 
@@ -813,6 +851,17 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
                 archive_id = _archive_id(generated_at_utc=now, outputs=existing_outputs)
                 stale_existing_outputs = existing_outputs
                 status = AUDITED_WRITER_REFRESHED_STATUS
+            elif _outputs_bind_current_ledger_but_need_public_mark_basis_repair(
+                outputs=existing_outputs,
+                source_implementation_prep_report=source_implementation_prep_report,
+                source_ledger_rollup_report=source_ledger_rollup_report,
+                session_id=session_id,
+                source_public_market_data_hash=source_public_market_data_hash,
+            ):
+                target_dirty_cause = TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED
+                archive_id = _archive_id(generated_at_utc=now, outputs=existing_outputs)
+                stale_existing_outputs = existing_outputs
+                status = AUDITED_WRITER_REFRESHED_STATUS
             else:
                 target_dirty_cause = TARGET_DIRTY_CAUSE_CONFLICTING_PROVENANCE
                 status = AUDITED_WRITER_BLOCKED_TARGET_STATUS
@@ -825,6 +874,22 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
             blocker_codes.add(primary_blocker)
         if primary_blocker is None and not idempotent_replay:
             portfolio_snapshot = dict(source_ledger_rollup_report["portfolio_snapshot"])
+            if (
+                stale_existing_outputs is not None
+                and target_dirty_cause == TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED
+            ):
+                existing_portfolio = stale_existing_outputs[2]
+                rollup_portfolio = source_ledger_rollup_report.get("portfolio_snapshot")
+                if (
+                    isinstance(existing_portfolio, dict)
+                    and isinstance(rollup_portfolio, dict)
+                    and existing_portfolio.get("source") == "PAPER_LEDGER_ROLLUP_PUBLIC_MARK"
+                    and existing_portfolio.get("source_paper_ledger_head_hash")
+                    == source_ledger_rollup_report.get("latest_ledger_head_hash")
+                    and existing_portfolio.get("source_runtime_cycle_id")
+                    == rollup_portfolio.get("source_runtime_cycle_id")
+                ):
+                    portfolio_snapshot = dict(existing_portfolio)
             if isinstance(public_market_data_collection_report, dict):
                 portfolio_snapshot = mark_paper_portfolio_snapshot_to_public_market(
                     paper_portfolio_snapshot=portfolio_snapshot,

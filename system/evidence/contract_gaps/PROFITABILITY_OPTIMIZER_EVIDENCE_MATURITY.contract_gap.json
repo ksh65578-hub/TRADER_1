@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.contract_gap.v1",
-  "generated_at_utc": "2026-05-05T14:31:31Z",
+  "generated_at_utc": "2026-05-06T21:20:04Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -15,19 +15,13 @@
       "source_requirement_id": "REQ-MVP4-PROFITABILITY-OPTIMIZER-EVIDENCE-GAP-AUDIT"
     },
     {
-      "code": "OOS_WALK_FORWARD_BOOTSTRAP_EVIDENCE_MISSING",
+      "code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
       "severity": "HIGH",
-      "message": "The Upbit PAPER candidate scorecard is now dashboard-visible, but OOS, walk-forward, bootstrap, concentration, and repeated-window evidence are still missing; it remains PAPER review only and cannot create live readiness.",
-      "source_requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-DASHBOARD-VISIBILITY"
-    },
-    {
-      "code": "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
-      "severity": "HIGH",
-      "message": "Candidate scorecard ranking now requires OOS, walk-forward, and bootstrap source evidence ids; generic evidence count is insufficient and remains blocked for live review.",
-      "source_requirement_id": "REQ-MVP4-UPBIT-PAPER-SCORECARD-ROBUSTNESS-FIXTURES"
+      "message": "The Upbit PAPER candidate has 300-sample scorecard robustness for PAPER ranking review, but distinct long-run PAPER/SHADOW, replay, live parity, read-only burn-in, and approval evidence remain missing.",
+      "source_requirement_id": "REQ-MVP4-PAPER-SHADOW-LONG-RUN-EVIDENCE-VISIBILITY"
     }
   ],
-  "notes": "Rechecked in MVP-4. Profitability evidence maturity uses adaptive evidence-quality review. PAPER runtime hours are observed context only with no fixed runtime-hour floor; replay trades, OOS/walk-forward coverage, paper trades, shadow opportunities, net EV after cost, profit factor, drawdown, fill quality, paper/live parity, and open HIGH contract gaps remain explicit blockers. The gap remains OPEN and live-blocking.",
+  "notes": "Rechecked after 300 accepted Upbit PAPER samples. OOS, walk-forward, bootstrap, and concentration checks are no longer marked missing for PAPER scorecard input, but the gap remains OPEN and live-blocking because long-run PAPER/SHADOW evidence, replay coverage, profit factor, drawdown, fill quality, paper/live parity, read-only burn-in, live safety proof, and operator approval are still not complete.",
   "contract_gap_id": "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
   "severity": "HIGH",
   "source_section_id": "SECTION_STRATEGY_PROFITABILITY",

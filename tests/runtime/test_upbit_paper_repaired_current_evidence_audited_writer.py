@@ -237,10 +237,44 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             self.assertFalse(refreshed["can_live_trade"])
             self.assertFalse(refreshed["scale_up_allowed"])
 
-    def test_writer_blocks_public_mark_when_price_basis_mismatches_ledger(self):
+    def test_writer_normalizes_legacy_static_price_basis_to_public_mark(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
             mismatched_public = self.public_collection(close="119000000", minute_start=30)
+            source_position = self.source_ledger_rollup()["portfolio_snapshot"]["positions"][0]
+
+            report = self.build_report(root, public_market_data_collection_report=mismatched_public)
+
+            self.assertEqual(report["writer_status"], AUDITED_WRITER_WRITTEN_STATUS)
+            self.assertTrue(report["writer_passed"])
+            self.assertEqual(validate_upbit_paper_repaired_current_evidence_audited_writer_report(report).status, "PASS")
+            runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
+            current_evidence = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[0])
+            portfolio = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
+            position = portfolio["positions"][0]
+            original_gross = Decimal(source_position["quantity"]) * Decimal(source_position["average_entry_price"])
+            expected_quantity = original_gross / Decimal("119000000")
+
+            self.assertEqual(portfolio["mark_to_market_status"], "PASS_PUBLIC_MARK_TO_MARKET")
+            self.assertEqual(portfolio["price_basis_repair_status"], "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION")
+            self.assertEqual(portfolio["price_basis_repair_count"], 1)
+            self.assertEqual(position["price_basis_repair_status"], "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION")
+            self.assertEqual(position["price_basis_original_average_entry_price"], source_position["average_entry_price"])
+            self.assertEqual(Decimal(position["quantity"]), expected_quantity)
+            self.assertEqual(position["average_entry_price"], "119000000")
+            self.assertEqual(position["mark_price"], "119000000")
+            self.assertEqual(Decimal(position["market_value"]), original_gross)
+            self.assertEqual(current_evidence["verified_equity_krw"], portfolio["equity"])
+            self.assertEqual(current_evidence["source_public_market_data_hash"], mismatched_public["collection_hash"])
+            self.assertFalse(report["live_order_ready"])
+            self.assertFalse(report["live_order_allowed"])
+            self.assertFalse(report["can_live_trade"])
+            self.assertFalse(report["scale_up_allowed"])
+
+    def test_writer_blocks_non_repairable_public_mark_price_basis_mismatch(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            mismatched_public = self.public_collection(close="7000000", minute_start=30)
 
             report = self.build_report(root, public_market_data_collection_report=mismatched_public)
 
@@ -256,6 +290,36 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             self.assertFalse(report["live_order_allowed"])
             self.assertFalse(report["can_live_trade"])
             self.assertFalse(report["scale_up_allowed"])
+
+    def test_writer_refreshes_repaired_price_basis_without_resizing_position(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_public = self.public_collection(close="119000000", minute_start=30)
+            second_public = self.public_collection(close="119500000", minute_start=40)
+            first = self.build_report(root, public_market_data_collection_report=first_public)
+            first_runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
+            first_portfolio = load_json(first_runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
+            first_position = first_portfolio["positions"][0]
+
+            refreshed = self.build_report(root, public_market_data_collection_report=second_public)
+            refreshed_portfolio = load_json(first_runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
+            refreshed_position = refreshed_portfolio["positions"][0]
+
+            self.assertEqual(first["writer_status"], AUDITED_WRITER_WRITTEN_STATUS)
+            self.assertEqual(refreshed["writer_status"], AUDITED_WRITER_REFRESHED_STATUS)
+            self.assertEqual(first_position["quantity"], refreshed_position["quantity"])
+            self.assertEqual(first_position["average_entry_price"], "119000000")
+            self.assertEqual(refreshed_position["average_entry_price"], "119000000")
+            self.assertEqual(refreshed_position["mark_price"], "119500000")
+            self.assertEqual(
+                refreshed_position["price_basis_repair_status"],
+                "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION",
+            )
+            self.assertEqual(refreshed_portfolio["price_basis_repair_count"], 1)
+            self.assertFalse(refreshed["live_order_ready"])
+            self.assertFalse(refreshed["live_order_allowed"])
+            self.assertFalse(refreshed["can_live_trade"])
+            self.assertFalse(refreshed["scale_up_allowed"])
 
     def test_writer_refreshes_stale_same_ledger_current_truth_without_live_permission(self):
         with TemporaryDirectory() as tmp:

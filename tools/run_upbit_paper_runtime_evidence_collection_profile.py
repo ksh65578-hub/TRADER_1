@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -23,6 +24,7 @@ from trader1.research.shadow.shadow_observation_actual_runtime_harness import (
 )
 from trader1.research.shadow.shadow_observation_persistent_runtime import (
     build_shadow_observation_persistent_runtime_report,
+    build_shadow_observation_persistent_runtime_report_from_paper_loop,
 )
 from trader1.research.shadow.shadow_observation_runtime_orchestration import (
     build_shadow_observation_runtime_orchestration_report,
@@ -35,6 +37,7 @@ from trader1.runtime.paper.operational_cycle import build_upbit_operational_pape
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     build_upbit_paper_ledger_idempotency_runtime_evidence_report,
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
+    write_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     LONG_RUN_EVIDENCE_BLOCKER_CODE,
@@ -45,6 +48,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
     validate_upbit_paper_runtime_sample_history,
+    write_upbit_paper_runtime_sample_history,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
 
@@ -60,6 +64,16 @@ DEFAULT_REPORT_PATH = Path(
     "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json"
 )
 DEFAULT_SESSION_ID = "mvp1_upbit_paper_launcher"
+MAX_SAFE_PROFILE_BATCH_CYCLE_COUNT = 20
+COLLECTION_PLAN_ROLE = "NON_LIVE_RUNTIME_COLLECTION_CONTINUATION_PLAN"
+COLLECTION_PLAN_READY_STATUS = "READY_TO_CONTINUE_NON_LIVE_COLLECTION"
+COLLECTION_PLAN_BLOCKED_STATUS = "BLOCKED_FOR_RECONCILIATION"
+SHADOW_RUNTIME_ORCHESTRATION_REPORT_NAME = "runtime_orchestration_report.json"
+SHADOW_ACTUAL_RUNTIME_HARNESS_REPORT_NAME = "actual_runtime_harness_report.json"
+SHADOW_PERSISTENT_RUNTIME_REPORT_NAME = "shadow_observation_persistent_runtime_report.json"
+SHADOW_RUNTIME_SAMPLE_HISTORY_NAME = "shadow_runtime_sample_history.json"
+SHADOW_RUNTIME_SAMPLE_HISTORY_SCHEMA_ID = "trader1.shadow_runtime_sample_history.v1"
+SHADOW_RUNTIME_SAMPLE_HISTORY_ROLE = "SHADOW_SHORT_WINDOW_RUNTIME_SAMPLE_HISTORY_NOT_LONG_RUN"
 
 
 @dataclass(frozen=True)
@@ -71,6 +85,10 @@ class ProfileValidationResult:
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _timestamp_compact() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _sha256_json(value: Any) -> str:
@@ -122,6 +140,8 @@ def _long_run_collection_depth(
     idempotency_evidence: dict[str, Any],
     shadow_orchestration: dict[str, Any] | None = None,
     shadow_orchestration_result: Any | None = None,
+    shadow_runtime_history: dict[str, Any] | None = None,
+    shadow_runtime_history_result: Any | None = None,
 ) -> dict[str, Any]:
     observed_span_seconds = int(sample_history.get("observed_span_seconds") or 0)
     minimum_span_seconds = int(sample_history.get("min_actual_long_run_span_seconds") or 0)
@@ -131,7 +151,7 @@ def _long_run_collection_depth(
     missing_cycle_count = max(0, minimum_cycle_count - observed_cycle_count)
     observed_modes = ["PAPER"] if observed_cycle_count > 0 else []
     required_modes = ["PAPER", "SHADOW"]
-    shadow_source_present = (
+    shadow_orchestration_present = (
         isinstance(shadow_orchestration, dict)
         and getattr(shadow_orchestration_result, "status", None) == "PASS"
         and shadow_orchestration.get("source_validation_status") == "PASS"
@@ -140,7 +160,20 @@ def _long_run_collection_depth(
         and shadow_orchestration.get("actual_long_run_runtime_present") is False
         and shadow_orchestration.get("long_run_evidence_eligible") is False
     )
-    shadow_source_blocked = isinstance(shadow_orchestration, dict) and not shadow_source_present
+    shadow_history_present = (
+        isinstance(shadow_runtime_history, dict)
+        and getattr(shadow_runtime_history_result, "status", None) == "PASS"
+        and shadow_runtime_history.get("history_status") == "COLLECTING"
+        and int(shadow_runtime_history.get("accepted_cycle_sample_count") or 0) > 0
+        and shadow_runtime_history.get("long_run_evidence_eligible") is False
+        and shadow_runtime_history.get("actual_long_run_evidence_created") is False
+        and shadow_runtime_history.get("promotion_eligible") is False
+    )
+    shadow_source_present = shadow_orchestration_present or shadow_history_present
+    shadow_source_blocked = (
+        (isinstance(shadow_orchestration, dict) and not shadow_orchestration_present)
+        or (shadow_runtime_history_result is not None and getattr(shadow_runtime_history_result, "status", None) != "PASS")
+    )
     if shadow_source_present:
         observed_modes.append("SHADOW")
     missing_modes = [mode for mode in required_modes if mode not in observed_modes]
@@ -155,8 +188,20 @@ def _long_run_collection_depth(
         if paper_depth_status == "PASS" and shadow_source_present
         else ("BLOCKED" if shadow_source_blocked else "MISSING")
     )
-    shadow_observed_span_seconds = int(shadow_orchestration.get("observed_actual_runtime_seconds") or 0) if isinstance(shadow_orchestration, dict) else 0
-    shadow_observed_cycle_count = int(shadow_orchestration.get("observed_actual_cycle_count") or 0) if isinstance(shadow_orchestration, dict) else 0
+    orchestration_shadow_span_seconds = (
+        int(shadow_orchestration.get("observed_actual_runtime_seconds") or 0)
+        if shadow_orchestration_present and isinstance(shadow_orchestration, dict)
+        else 0
+    )
+    orchestration_shadow_cycle_count = (
+        int(shadow_orchestration.get("observed_actual_cycle_count") or 0)
+        if shadow_orchestration_present and isinstance(shadow_orchestration, dict)
+        else 0
+    )
+    history_shadow_span_seconds = int(shadow_runtime_history.get("observed_span_seconds") or 0) if shadow_history_present else 0
+    history_shadow_cycle_count = int(shadow_runtime_history.get("accepted_cycle_sample_count") or 0) if shadow_history_present else 0
+    shadow_observed_span_seconds = max(orchestration_shadow_span_seconds, history_shadow_span_seconds)
+    shadow_observed_cycle_count = max(orchestration_shadow_cycle_count, history_shadow_cycle_count)
     runtime_mode_depth_evidence = _runtime_mode_depth_evidence(
         paper_observed_span_seconds=observed_span_seconds,
         paper_observed_cycle_count=observed_cycle_count,
@@ -297,6 +342,490 @@ def _runtime_mode_depth_evidence(
     }
 
 
+def _ceil_div(numerator: int, denominator: int) -> int:
+    if denominator <= 0:
+        return 0
+    return (max(0, numerator) + denominator - 1) // denominator
+
+
+def _non_live_collection_plan(*, collection_depth: dict[str, Any], profile_status: str) -> dict[str, Any]:
+    mode_depth_evidence = collection_depth.get("runtime_mode_depth_evidence")
+    if not isinstance(mode_depth_evidence, dict):
+        mode_depth_evidence = {}
+    mode_depths = mode_depth_evidence.get("mode_depths")
+    if not isinstance(mode_depths, dict):
+        mode_depths = {}
+    paper_depth = mode_depths.get("paper") if isinstance(mode_depths.get("paper"), dict) else {}
+    shadow_depth = mode_depths.get("shadow") if isinstance(mode_depths.get("shadow"), dict) else {}
+    missing_modes = mode_depth_evidence.get("missing_long_run_modes")
+    if not isinstance(missing_modes, list):
+        missing_modes = ["PAPER", "SHADOW"]
+    missing_modes = [str(mode) for mode in missing_modes if str(mode) in {"PAPER", "SHADOW"}]
+    if "SHADOW" not in missing_modes:
+        missing_modes.append("SHADOW")
+
+    paper_remaining_span_seconds = int(paper_depth.get("missing_span_seconds") or collection_depth.get("missing_span_seconds") or 0)
+    paper_remaining_cycle_count = int(paper_depth.get("missing_cycle_count") or collection_depth.get("missing_cycle_count") or 0)
+    shadow_remaining_span_seconds = int(shadow_depth.get("missing_span_seconds") or 0)
+    shadow_remaining_cycle_count = int(shadow_depth.get("missing_cycle_count") or 0)
+    minimum_span_seconds = int(collection_depth.get("minimum_span_seconds") or 0)
+    minimum_cycle_count = int(collection_depth.get("minimum_cycle_count") or 0)
+    minimum_cycle_wall_clock_spacing_seconds = _ceil_div(minimum_span_seconds, minimum_cycle_count)
+    plan_ready = profile_status == "PASS"
+    recommended_paper_batch_cycle_count = (
+        min(MAX_SAFE_PROFILE_BATCH_CYCLE_COUNT, paper_remaining_cycle_count)
+        if plan_ready and paper_remaining_cycle_count > 0
+        else 0
+    )
+    next_action = (
+        "Continue non-live PAPER collection in bounded batches and collect real SHADOW runtime evidence; do not treat this profile as long-run or live readiness."
+        if plan_ready
+        else "Resolve PAPER runtime reconciliation or idempotency blockers before continuing non-live collection."
+    )
+    return {
+        "plan_status": COLLECTION_PLAN_READY_STATUS if plan_ready else COLLECTION_PLAN_BLOCKED_STATUS,
+        "plan_role": COLLECTION_PLAN_ROLE,
+        "required_next_runtime_modes": missing_modes,
+        "recommended_next_paper_batch_cycle_count": recommended_paper_batch_cycle_count,
+        "max_safe_paper_batch_cycle_count": MAX_SAFE_PROFILE_BATCH_CYCLE_COUNT,
+        "paper_remaining_span_seconds": paper_remaining_span_seconds,
+        "paper_remaining_cycle_count": paper_remaining_cycle_count,
+        "shadow_remaining_span_seconds": shadow_remaining_span_seconds,
+        "shadow_remaining_cycle_count": shadow_remaining_cycle_count,
+        "minimum_cycle_wall_clock_spacing_seconds": minimum_cycle_wall_clock_spacing_seconds,
+        "estimated_wall_clock_seconds_remaining": max(paper_remaining_span_seconds, shadow_remaining_span_seconds),
+        "shadow_collection_required": "SHADOW" in missing_modes,
+        "counts_as_actual_long_run_evidence": False,
+        "current_evidence_write_allowed": False,
+        "promotion_eligible": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "next_operator_action": next_action,
+    }
+
+
+def _shadow_runtime_session_root(*, root: Path, session_id: str) -> Path:
+    return Path(root).resolve() / "system/runtime/upbit/krw_spot/shadow" / session_id
+
+
+def _shadow_runtime_orchestration_report_path(*, root: Path, session_id: str) -> Path:
+    return _shadow_runtime_session_root(root=root, session_id=session_id) / SHADOW_RUNTIME_ORCHESTRATION_REPORT_NAME
+
+
+def _shadow_runtime_harness_report_path(*, root: Path, session_id: str) -> Path:
+    return _shadow_runtime_session_root(root=root, session_id=session_id) / SHADOW_ACTUAL_RUNTIME_HARNESS_REPORT_NAME
+
+
+def _shadow_persistent_runtime_report_path(*, root: Path, session_id: str) -> Path:
+    return (
+        _shadow_runtime_session_root(root=root, session_id=session_id)
+        / "shadow_observation"
+        / SHADOW_PERSISTENT_RUNTIME_REPORT_NAME
+    )
+
+
+def _shadow_runtime_sample_history_path(*, root: Path, session_id: str) -> Path:
+    return _shadow_runtime_session_root(root=root, session_id=session_id) / SHADOW_RUNTIME_SAMPLE_HISTORY_NAME
+
+
+def _shadow_runtime_sample_history_hash(history: dict[str, Any]) -> str:
+    payload = dict(history)
+    payload.pop("history_hash", None)
+    return _sha256_json(payload)
+
+
+def _shadow_runtime_sample_history_template(*, session_id: str, samples: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    accepted_samples = [sample for sample in samples or [] if sample.get("accepted") is True]
+    accepted_cycle_sample_count = sum(int(sample.get("observed_actual_cycle_count") or 0) for sample in accepted_samples)
+    observed_span_seconds = sum(int(sample.get("observed_actual_runtime_seconds") or 0) for sample in accepted_samples)
+    history = {
+        "schema_id": SHADOW_RUNTIME_SAMPLE_HISTORY_SCHEMA_ID,
+        "created_at_utc": utc_now(),
+        "updated_at_utc": utc_now(),
+        "history_id": f"{session_id}:shadow-runtime-sample-history",
+        "history_role": SHADOW_RUNTIME_SAMPLE_HISTORY_ROLE,
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "source_mode": "PAPER",
+        "mode": "SHADOW",
+        "session_id": session_id,
+        "history_status": "COLLECTING" if accepted_samples else "INSUFFICIENT_HISTORY",
+        "sample_count": len(samples or []),
+        "accepted_sample_count": len(accepted_samples),
+        "accepted_cycle_sample_count": accepted_cycle_sample_count,
+        "observed_span_seconds": observed_span_seconds,
+        "min_actual_long_run_span_seconds": 86400,
+        "min_actual_long_run_cycle_count": 2880,
+        "span_floor_met": observed_span_seconds >= 86400,
+        "cycle_floor_met": accepted_cycle_sample_count >= 2880,
+        "samples": samples or [],
+        "long_run_evidence_eligible": False,
+        "actual_long_run_evidence_created": False,
+        "promotion_eligible": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "history_hash": "",
+    }
+    history["history_hash"] = _shadow_runtime_sample_history_hash(history)
+    return history
+
+
+def _load_shadow_runtime_sample_history(*, root: Path, session_id: str) -> dict[str, Any]:
+    path = _shadow_runtime_sample_history_path(root=root, session_id=session_id)
+    if not path.is_file():
+        return _shadow_runtime_sample_history_template(session_id=session_id)
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        value = None
+    if isinstance(value, dict):
+        return value
+    return _shadow_runtime_sample_history_template(
+        session_id=session_id,
+        samples=[
+            {
+                "sample_id": _sha256_json({"path": str(path), "error": "unreadable"}),
+                "accepted": False,
+                "validation_status": "FAIL",
+                "rejection_code": "SCHEMA_IDENTITY_MISMATCH",
+                "orchestration_id": "",
+                "orchestration_report_hash": "",
+                "persistent_runtime_report_hash": "",
+                "harness_report_hash": "",
+                "observed_actual_runtime_seconds": 0,
+                "observed_actual_cycle_count": 0,
+                "source_hashes_verified": False,
+                "source_runtime_hash_pairing_verified": False,
+                "source_validation_status": "FAIL",
+                "runtime_evidence_role": "UNKNOWN",
+                "long_run_evidence_eligible": False,
+                "actual_long_run_runtime_present": False,
+                "scorecard_input_eligible": False,
+                "promotion_eligible": False,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+                "order_adapter_called": False,
+            }
+        ],
+    )
+
+
+def _validate_shadow_runtime_sample_history(history: dict[str, Any]) -> ProfileValidationResult:
+    required = {
+        "schema_id",
+        "created_at_utc",
+        "updated_at_utc",
+        "history_id",
+        "history_role",
+        "exchange",
+        "market_type",
+        "source_mode",
+        "mode",
+        "session_id",
+        "history_status",
+        "sample_count",
+        "accepted_sample_count",
+        "accepted_cycle_sample_count",
+        "observed_span_seconds",
+        "min_actual_long_run_span_seconds",
+        "min_actual_long_run_cycle_count",
+        "span_floor_met",
+        "cycle_floor_met",
+        "samples",
+        "long_run_evidence_eligible",
+        "actual_long_run_evidence_created",
+        "promotion_eligible",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "history_hash",
+    }
+    missing = sorted(required - set(history))
+    if missing:
+        return ProfileValidationResult("FAIL", f"SHADOW runtime sample history missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH")
+    if history.get("schema_id") != SHADOW_RUNTIME_SAMPLE_HISTORY_SCHEMA_ID:
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history schema mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if history.get("history_hash") != _shadow_runtime_sample_history_hash(history):
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        history.get("history_role") != SHADOW_RUNTIME_SAMPLE_HISTORY_ROLE
+        or history.get("exchange") != "UPBIT"
+        or history.get("market_type") != "KRW_SPOT"
+        or history.get("source_mode") != "PAPER"
+        or history.get("mode") != "SHADOW"
+    ):
+        return ProfileValidationResult("BLOCKED", "SHADOW runtime sample history scope drifted", "SNAPSHOT_SCOPE_MISMATCH")
+    if any(
+        history.get(field)
+        for field in (
+            "long_run_evidence_eligible",
+            "actual_long_run_evidence_created",
+            "promotion_eligible",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+        )
+    ):
+        return ProfileValidationResult("BLOCKED", "SHADOW runtime sample history attempted long-run or live permission", "LIVE_FINAL_GUARD_FAILED")
+    samples = history.get("samples")
+    if not isinstance(samples, list):
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history samples must be a list", "SCHEMA_IDENTITY_MISMATCH")
+    seen_sample_ids: set[str] = set()
+    accepted_count = 0
+    accepted_cycles = 0
+    accepted_span = 0
+    for sample in samples:
+        if not isinstance(sample, dict):
+            return ProfileValidationResult("FAIL", "SHADOW runtime sample history contains a non-object sample", "SCHEMA_IDENTITY_MISMATCH")
+        sample_required = {
+            "sample_id",
+            "accepted",
+            "validation_status",
+            "rejection_code",
+            "orchestration_id",
+            "orchestration_report_hash",
+            "persistent_runtime_report_hash",
+            "harness_report_hash",
+            "observed_actual_runtime_seconds",
+            "observed_actual_cycle_count",
+            "source_hashes_verified",
+            "source_runtime_hash_pairing_verified",
+            "source_validation_status",
+            "runtime_evidence_role",
+            "long_run_evidence_eligible",
+            "actual_long_run_runtime_present",
+            "scorecard_input_eligible",
+            "promotion_eligible",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "order_adapter_called",
+        }
+        sample_missing = sorted(sample_required - set(sample))
+        if sample_missing:
+            return ProfileValidationResult("FAIL", f"SHADOW runtime sample missing fields: {sample_missing}", "SCHEMA_IDENTITY_MISMATCH")
+        sample_id = str(sample.get("sample_id") or "")
+        if not sample_id or sample_id in seen_sample_ids:
+            return ProfileValidationResult("BLOCKED", "SHADOW runtime sample history contains duplicate sample identity", "DUPLICATE_WRITER_RISK")
+        seen_sample_ids.add(sample_id)
+        for field in ("observed_actual_runtime_seconds", "observed_actual_cycle_count"):
+            if isinstance(sample.get(field), bool) or not isinstance(sample.get(field), int) or sample.get(field) < 0:
+                return ProfileValidationResult("FAIL", f"SHADOW runtime sample count is invalid: {field}", "SCHEMA_IDENTITY_MISMATCH")
+        if any(
+            sample.get(field)
+            for field in (
+                "long_run_evidence_eligible",
+                "actual_long_run_runtime_present",
+                "scorecard_input_eligible",
+                "promotion_eligible",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+                "order_adapter_called",
+            )
+        ):
+            return ProfileValidationResult("BLOCKED", "SHADOW runtime sample attempted long-run, optimizer, live, or order permission", "LIVE_FINAL_GUARD_FAILED")
+        if sample.get("accepted") is True:
+            if (
+                sample.get("validation_status") != "PASS"
+                or sample.get("source_validation_status") != "PASS"
+                or sample.get("source_hashes_verified") is not True
+                or sample.get("source_runtime_hash_pairing_verified") is not True
+                or sample.get("runtime_evidence_role") != "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN"
+                or int(sample.get("observed_actual_cycle_count") or 0) <= 0
+            ):
+                return ProfileValidationResult("BLOCKED", "accepted SHADOW runtime sample is not verified short-window evidence", "MEASUREMENT_MISSING")
+            if int(sample.get("observed_actual_runtime_seconds") or 0) >= int(history.get("min_actual_long_run_span_seconds") or 0):
+                return ProfileValidationResult("BLOCKED", "single SHADOW runtime sample cannot satisfy long-run span", LONG_RUN_EVIDENCE_BLOCKER_CODE)
+            if int(sample.get("observed_actual_cycle_count") or 0) >= int(history.get("min_actual_long_run_cycle_count") or 0):
+                return ProfileValidationResult("BLOCKED", "single SHADOW runtime sample cannot satisfy long-run cycles", LONG_RUN_EVIDENCE_BLOCKER_CODE)
+            accepted_count += 1
+            accepted_cycles += int(sample.get("observed_actual_cycle_count") or 0)
+            accepted_span += int(sample.get("observed_actual_runtime_seconds") or 0)
+    if int(history.get("sample_count") or 0) != len(samples):
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history sample count drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if int(history.get("accepted_sample_count") or 0) != accepted_count:
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history accepted sample count drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if int(history.get("accepted_cycle_sample_count") or 0) != accepted_cycles:
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history accepted cycle count drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if int(history.get("observed_span_seconds") or 0) != accepted_span:
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history observed span drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if history.get("span_floor_met") is not (accepted_span >= int(history.get("min_actual_long_run_span_seconds") or 0) > 0):
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history span floor drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if history.get("cycle_floor_met") is not (accepted_cycles >= int(history.get("min_actual_long_run_cycle_count") or 0) > 0):
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history cycle floor drifted", "SCHEMA_IDENTITY_MISMATCH")
+    expected_status = "COLLECTING" if accepted_count else "INSUFFICIENT_HISTORY"
+    if history.get("history_status") != expected_status:
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history status drifted", "SCHEMA_IDENTITY_MISMATCH")
+    return ProfileValidationResult("PASS", "SHADOW runtime sample history is source-bound, short-window only, and live-blocked", None)
+
+
+def _shadow_runtime_sample_from_orchestration(orchestration: dict[str, Any], result: Any) -> dict[str, Any]:
+    bindings = [item for item in orchestration.get("source_evidence_bindings") or [] if isinstance(item, dict)]
+    persistent_hash = next(
+        (str(item.get("source_hash") or "") for item in bindings if str(item.get("source_role") or "").startswith("PERSISTENT_RUNTIME")),
+        "",
+    )
+    harness_hash = next((str(item.get("source_hash") or "") for item in bindings if item.get("source_role") == "SHORT_WINDOW_HARNESS"), "")
+    observed_seconds = int(orchestration.get("observed_actual_runtime_seconds") or 0)
+    observed_cycles = int(orchestration.get("observed_actual_cycle_count") or 0)
+    validation_status = str(getattr(result, "status", "BLOCKED") or "BLOCKED")
+    rejection_code = getattr(result, "blocker_code", None)
+    accepted = (
+        validation_status == "PASS"
+        and orchestration.get("source_validation_status") == "PASS"
+        and orchestration.get("source_hashes_verified") is True
+        and orchestration.get("source_runtime_hash_pairing_verified") is True
+        and orchestration.get("source_scope_match") is True
+        and orchestration.get("runtime_evidence_role") == "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN"
+        and orchestration.get("actual_long_run_runtime_present") is False
+        and orchestration.get("long_run_evidence_eligible") is False
+        and orchestration.get("scorecard_input_eligible") is False
+        and orchestration.get("promotion_eligible") is False
+        and observed_cycles > 0
+        and not any(orchestration.get(field) for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed", "order_adapter_called"))
+    )
+    sample_id = _sha256_json(
+        {
+            "orchestration_report_hash": str(orchestration.get("orchestration_report_hash") or ""),
+            "persistent_runtime_report_hash": persistent_hash,
+            "harness_report_hash": harness_hash,
+            "observed_actual_runtime_seconds": observed_seconds,
+            "observed_actual_cycle_count": observed_cycles,
+        }
+    )
+    return {
+        "sample_id": sample_id,
+        "accepted": accepted,
+        "validation_status": validation_status,
+        "rejection_code": None if accepted else str(rejection_code or "MEASUREMENT_MISSING"),
+        "orchestration_id": str(orchestration.get("orchestration_id") or ""),
+        "orchestration_report_hash": str(orchestration.get("orchestration_report_hash") or ""),
+        "persistent_runtime_report_hash": persistent_hash,
+        "harness_report_hash": harness_hash,
+        "observed_actual_runtime_seconds": observed_seconds,
+        "observed_actual_cycle_count": observed_cycles,
+        "source_hashes_verified": orchestration.get("source_hashes_verified") is True,
+        "source_runtime_hash_pairing_verified": orchestration.get("source_runtime_hash_pairing_verified") is True,
+        "source_validation_status": str(orchestration.get("source_validation_status") or "UNKNOWN"),
+        "runtime_evidence_role": str(orchestration.get("runtime_evidence_role") or "UNKNOWN"),
+        "long_run_evidence_eligible": bool(orchestration.get("long_run_evidence_eligible")),
+        "actual_long_run_runtime_present": bool(orchestration.get("actual_long_run_runtime_present")),
+        "scorecard_input_eligible": bool(orchestration.get("scorecard_input_eligible")),
+        "promotion_eligible": bool(orchestration.get("promotion_eligible")),
+        "live_order_ready": bool(orchestration.get("live_order_ready")),
+        "live_order_allowed": bool(orchestration.get("live_order_allowed")),
+        "can_live_trade": bool(orchestration.get("can_live_trade")),
+        "scale_up_allowed": bool(orchestration.get("scale_up_allowed")),
+        "order_adapter_called": bool(orchestration.get("order_adapter_called")),
+    }
+
+
+def _update_shadow_runtime_sample_history(
+    *,
+    root: Path,
+    session_id: str,
+    orchestration_sources: list[tuple[dict[str, Any], Any]],
+) -> tuple[dict[str, Any], ProfileValidationResult]:
+    existing = _load_shadow_runtime_sample_history(root=root, session_id=session_id)
+    existing_result = _validate_shadow_runtime_sample_history(existing)
+    if existing_result.status != "PASS":
+        return existing, existing_result
+    samples_by_id = {
+        str(sample.get("sample_id")): dict(sample)
+        for sample in existing.get("samples") or []
+        if isinstance(sample, dict) and sample.get("sample_id")
+    }
+    for orchestration, result in orchestration_sources:
+        if not isinstance(orchestration, dict):
+            continue
+        sample = _shadow_runtime_sample_from_orchestration(orchestration, result)
+        samples_by_id.setdefault(str(sample["sample_id"]), sample)
+    samples = sorted(samples_by_id.values(), key=lambda item: str(item.get("sample_id") or ""))
+    updated = _shadow_runtime_sample_history_template(session_id=session_id, samples=samples)
+    created_at = existing.get("created_at_utc")
+    if isinstance(created_at, str) and created_at:
+        updated["created_at_utc"] = created_at
+        updated["history_hash"] = _shadow_runtime_sample_history_hash(updated)
+    result = _validate_shadow_runtime_sample_history(updated)
+    if result.status == "PASS":
+        durable_atomic_write_json(_shadow_runtime_sample_history_path(root=root, session_id=session_id), updated)
+    return updated, result
+
+
+def _load_existing_shadow_runtime_orchestration_source(
+    *,
+    root: Path,
+    session_id: str,
+) -> tuple[dict[str, Any], Any] | None:
+    path = _shadow_runtime_orchestration_report_path(root=root, session_id=session_id)
+    if not path.is_file():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+        value = {}
+    if not isinstance(value, dict):
+        value = {}
+    result = validate_shadow_observation_runtime_orchestration_report(value)
+    if result.status != "PASS":
+        return value, result
+
+    expected_artifact_path = (
+        f"system/runtime/upbit/krw_spot/shadow/{session_id}/{SHADOW_RUNTIME_ORCHESTRATION_REPORT_NAME}"
+    )
+    expected_scope = (
+        value.get("exchange") == "UPBIT"
+        and value.get("market_type") == "KRW_SPOT"
+        and value.get("source_mode") == "PAPER"
+        and value.get("mode") == "SHADOW"
+        and value.get("session_id") == session_id
+        and value.get("orchestration_artifact_path") == expected_artifact_path
+    )
+    if not expected_scope:
+        return value, ProfileValidationResult(
+            "BLOCKED",
+            "existing SHADOW runtime orchestration source scope does not match the PAPER profile session",
+            "SNAPSHOT_SCOPE_MISMATCH",
+        )
+
+    expected_not_long_run_source = (
+        value.get("source_validation_status") == "PASS"
+        and value.get("source_hashes_verified") is True
+        and value.get("source_runtime_hash_pairing_verified") is True
+        and value.get("source_scope_match") is True
+        and value.get("runtime_evidence_role") == "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN"
+        and value.get("actual_long_run_runtime_present") is False
+        and value.get("long_run_evidence_eligible") is False
+        and value.get("scorecard_input_eligible") is False
+        and value.get("promotion_eligible") is False
+        and value.get("order_adapter_called") is False
+    )
+    if not expected_not_long_run_source:
+        return value, ProfileValidationResult(
+            "BLOCKED",
+            "existing SHADOW runtime orchestration source attempted unsafe evidence promotion",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if any(value.get(field) for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+        return value, ProfileValidationResult(
+            "BLOCKED",
+            "existing SHADOW runtime orchestration source attempted live or scale-up permission",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    return value, result
+
+
 def _build_shadow_runtime_orchestration_source(*, loop_id: str, requested_cycle_count: int) -> tuple[dict[str, Any], Any]:
     seed = f"{loop_id}-shadow-depth"
     shadow_cycle_count = max(3, min(3, int(requested_cycle_count or 1)))
@@ -356,6 +885,97 @@ def _build_shadow_runtime_orchestration_source(*, loop_id: str, requested_cycle_
     return orchestration, result
 
 
+def _build_shadow_scheduler_guard_for_loop(
+    *,
+    loop_id: str,
+    session_id: str,
+    requested_cycle_count: int,
+) -> dict[str, Any]:
+    seed = f"{loop_id}-shadow-current"
+    observation_count = max(3, min(3, int(requested_cycle_count or 1)))
+    observations = []
+    for index in range(observation_count):
+        paper_gate = build_upbit_operational_paper_cycle(
+            operation_gate_id=f"{seed}-paper-gate",
+            session_id=f"{session_id}-{seed}-paper-{index}",
+            requested_entry=True,
+        )
+        observations.append(
+            build_shadow_observation_report(
+                observation_id=f"{seed}-observation-{index}",
+                paper_operation_gate_report=paper_gate,
+                shadow_session_id=f"{session_id}-{seed}-shadow-{index}",
+                shadow_sample_count=30,
+            )
+        )
+    stream = build_shadow_observation_stream_report(
+        stream_id=f"{seed}-stream",
+        observations=observations,
+        min_required_observation_count=3,
+        min_required_evidence_span_hours=24,
+        evidence_span_hours=24,
+    )
+    return build_shadow_observation_scheduler_guard_report(
+        scheduler_id=f"{seed}-scheduler",
+        stream_report=stream,
+        writer_id=f"{seed}-writer",
+        active_writer_id=f"{seed}-writer",
+    )
+
+
+def _measured_short_window_seconds(elapsed_seconds: float) -> int:
+    if elapsed_seconds <= 0:
+        return 0
+    return max(0, min(300, int(elapsed_seconds)))
+
+
+def _build_current_shadow_runtime_orchestration_source(
+    *,
+    root: Path,
+    session_id: str,
+    loop: dict[str, Any],
+    measured_runtime_seconds: int,
+) -> tuple[dict[str, Any], Any]:
+    loop_id = str(loop.get("loop_id") or "upbit-paper-runtime-evidence-profile")
+    completed = int(loop.get("completed_cycle_count") or 0)
+    scheduler = _build_shadow_scheduler_guard_for_loop(
+        loop_id=loop_id,
+        session_id=session_id,
+        requested_cycle_count=max(1, completed),
+    )
+    persistent = build_shadow_observation_persistent_runtime_report_from_paper_loop(
+        runtime_id=session_id,
+        scheduler_guard_report=scheduler,
+        source_paper_loop_report=loop,
+        runtime_artifact_path=f"system/runtime/upbit/krw_spot/shadow/{session_id}/shadow_observation/{SHADOW_PERSISTENT_RUNTIME_REPORT_NAME}",
+        observed_runtime_seconds=measured_runtime_seconds,
+        max_runtime_seconds=300,
+    )
+    harness = build_shadow_observation_actual_runtime_harness_report(
+        harness_id=session_id,
+        requested_cycle_count=completed,
+        completed_cycle_count=completed,
+        observations_per_cycle=2,
+        measured_runtime_seconds=measured_runtime_seconds,
+        runtime_measurement_source="MONOTONIC_LOCAL_TIMER_VERIFIED",
+        monotonic_timer_started=True,
+        monotonic_timer_stopped=True,
+        measured_runtime_seconds_verified=True,
+        source_runtime_report=persistent,
+    )
+    orchestration = build_shadow_observation_runtime_orchestration_report(
+        orchestration_id=session_id,
+        persistent_runtime_report=persistent,
+        actual_runtime_harness_report=harness,
+    )
+    result = validate_shadow_observation_runtime_orchestration_report(orchestration)
+    if result.status == "PASS":
+        durable_atomic_write_json(_shadow_persistent_runtime_report_path(root=root, session_id=session_id), persistent)
+        durable_atomic_write_json(_shadow_runtime_harness_report_path(root=root, session_id=session_id), harness)
+        durable_atomic_write_json(_shadow_runtime_orchestration_report_path(root=root, session_id=session_id), orchestration)
+    return orchestration, result
+
+
 def _duplicate_first_ledger_jsonl(root: Path, loop: dict[str, Any]) -> None:
     for cycle_result in loop.get("cycle_results", []):
         for artifact_path in cycle_result.get("artifact_paths", []):
@@ -384,12 +1004,14 @@ def build_upbit_paper_runtime_evidence_collection_profile_report(
     created_at_utc: str | None = None,
 ) -> dict[str, Any]:
     root = Path(root).resolve()
+    loop_started_at = time.monotonic()
     loop = run_upbit_paper_persistent_loop(
         root=root,
         loop_id=loop_id,
         session_id=session_id,
         requested_cycle_count=requested_cycle_count,
     )
+    measured_shadow_runtime_seconds = _measured_short_window_seconds(time.monotonic() - loop_started_at)
     if duplicate_ledger_events:
         _duplicate_first_ledger_jsonl(root, loop)
 
@@ -397,18 +1019,43 @@ def build_upbit_paper_runtime_evidence_collection_profile_report(
     recovery_guard = build_recovery_guard_from_loop(root=root, loop=loop)
     recovery_result = validate_upbit_paper_runtime_recovery_guard_report(recovery_guard)
     sample_history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
+    write_upbit_paper_runtime_sample_history(root=root, history=sample_history)
     sample_history_result = validate_upbit_paper_runtime_sample_history(sample_history)
     idempotency_evidence = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root, session_id=session_id)
+    write_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root, report=idempotency_evidence)
     idempotency_result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(idempotency_evidence)
-    shadow_orchestration, shadow_orchestration_result = _build_shadow_runtime_orchestration_source(
-        loop_id=loop_id,
-        requested_cycle_count=requested_cycle_count,
+    existing_shadow_source = _load_existing_shadow_runtime_orchestration_source(root=root, session_id=session_id)
+    shadow_sources: list[tuple[dict[str, Any], Any]] = []
+    if existing_shadow_source is not None:
+        shadow_sources.append(existing_shadow_source)
+    current_shadow_orchestration, current_shadow_orchestration_result = _build_current_shadow_runtime_orchestration_source(
+        root=root,
+        session_id=session_id,
+        loop=loop,
+        measured_runtime_seconds=measured_shadow_runtime_seconds,
     )
+    shadow_sources.append((current_shadow_orchestration, current_shadow_orchestration_result))
+    shadow_runtime_history, shadow_runtime_history_result = _update_shadow_runtime_sample_history(
+        root=root,
+        session_id=session_id,
+        orchestration_sources=shadow_sources,
+    )
+    if current_shadow_orchestration_result.status == "PASS":
+        shadow_orchestration, shadow_orchestration_result = current_shadow_orchestration, current_shadow_orchestration_result
+    elif existing_shadow_source is not None:
+        shadow_orchestration, shadow_orchestration_result = existing_shadow_source
+    else:
+        shadow_orchestration, shadow_orchestration_result = _build_shadow_runtime_orchestration_source(
+            loop_id=loop_id,
+            requested_cycle_count=requested_cycle_count,
+        )
     collection_depth = _long_run_collection_depth(
         sample_history=sample_history,
         idempotency_evidence=idempotency_evidence,
         shadow_orchestration=shadow_orchestration,
         shadow_orchestration_result=shadow_orchestration_result,
+        shadow_runtime_history=shadow_runtime_history,
+        shadow_runtime_history_result=shadow_runtime_history_result,
     )
 
     component_results = [
@@ -447,12 +1094,21 @@ def build_upbit_paper_runtime_evidence_collection_profile_report(
             message=shadow_orchestration_result.message,
             evidence_hash=shadow_orchestration.get("orchestration_report_hash"),
         ),
+        _component(
+            component_id="shadow_runtime_sample_history",
+            status=shadow_runtime_history_result.status,
+            blocker_code=shadow_runtime_history_result.blocker_code,
+            message=shadow_runtime_history_result.message,
+            evidence_hash=shadow_runtime_history.get("history_hash"),
+        ),
     ]
     blockers = [
         str(item["blocker_code"] or f"{item['component_id'].upper()}_NOT_PASS")
         for item in component_results
         if item.get("status") != "PASS"
     ]
+    if sample_history.get("runtime_sample_status") == "BLOCKED":
+        blockers.append(str(sample_history.get("primary_blocker_code") or "RECONCILIATION_REQUIRED"))
     if sample_history.get("long_run_evidence_eligible") or idempotency_evidence.get("long_run_evidence_eligible"):
         blockers.append("LONG_RUN_EVIDENCE_FALSE_POSITIVE")
     forbidden_flags = (
@@ -473,12 +1129,21 @@ def build_upbit_paper_runtime_evidence_collection_profile_report(
         idempotency_evidence.get("can_live_trade"),
         idempotency_evidence.get("can_submit_order"),
         idempotency_evidence.get("scale_up_allowed"),
+        shadow_orchestration.get("live_order_ready"),
+        shadow_orchestration.get("live_order_allowed"),
+        shadow_orchestration.get("can_live_trade"),
+        shadow_orchestration.get("scale_up_allowed"),
+        shadow_runtime_history.get("live_order_ready"),
+        shadow_runtime_history.get("live_order_allowed"),
+        shadow_runtime_history.get("can_live_trade"),
+        shadow_runtime_history.get("scale_up_allowed"),
     )
     if any(forbidden_flags):
         blockers.append("LIVE_FINAL_GUARD_FAILED")
 
     blocker_codes = sorted(set(blockers))
     profile_status = "PASS" if not blocker_codes else "BLOCKED"
+    collection_plan = _non_live_collection_plan(collection_depth=collection_depth, profile_status=profile_status)
     report = {
         "schema_id": REPORT_SCHEMA_ID,
         "created_at_utc": created_at_utc or utc_now(),
@@ -528,6 +1193,7 @@ def build_upbit_paper_runtime_evidence_collection_profile_report(
         "blockers": blocker_codes,
         "long_run_blocker_code": LONG_RUN_EVIDENCE_BLOCKER_CODE,
         "long_run_collection_depth": collection_depth,
+        "non_live_collection_plan": collection_plan,
         "actual_long_run_evidence_created": False,
         "long_run_evidence_eligible": False,
         "promotion_eligible": False,
@@ -619,6 +1285,7 @@ def validate_upbit_paper_runtime_evidence_collection_profile_report(
         "blockers",
         "long_run_blocker_code",
         "long_run_collection_depth",
+        "non_live_collection_plan",
         "actual_long_run_evidence_created",
         "long_run_evidence_eligible",
         "promotion_eligible",
@@ -779,6 +1446,78 @@ def validate_upbit_paper_runtime_evidence_collection_profile_report(
         or collection_depth.get("scale_up_allowed")
     ):
         return ProfileValidationResult("BLOCKED", "runtime evidence profile collection depth attempted long-run, live, promotion, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    collection_plan = report.get("non_live_collection_plan")
+    if not isinstance(collection_plan, dict):
+        return ProfileValidationResult("FAIL", "runtime evidence profile missing non-live collection plan", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_plan.get("plan_role") != COLLECTION_PLAN_ROLE:
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection plan role mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    expected_plan_status = COLLECTION_PLAN_READY_STATUS if report.get("status") == "PASS" else COLLECTION_PLAN_BLOCKED_STATUS
+    if collection_plan.get("plan_status") != expected_plan_status:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection plan status does not match safe collection state", "RUNTIME_EVIDENCE_PROFILE_COMPONENT_NOT_PASS")
+    required_next_modes = collection_plan.get("required_next_runtime_modes")
+    if not isinstance(required_next_modes, list) or "SHADOW" not in required_next_modes:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection plan cannot hide missing SHADOW runtime evidence", RUNTIME_MODE_DEPTH_BLOCKER_CODE)
+    if required_next_modes != mode_depth_evidence.get("missing_long_run_modes"):
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection plan mode gap drifted", RUNTIME_MODE_DEPTH_BLOCKER_CODE)
+    plan_count_fields = (
+        "recommended_next_paper_batch_cycle_count",
+        "max_safe_paper_batch_cycle_count",
+        "paper_remaining_span_seconds",
+        "paper_remaining_cycle_count",
+        "shadow_remaining_span_seconds",
+        "shadow_remaining_cycle_count",
+        "minimum_cycle_wall_clock_spacing_seconds",
+        "estimated_wall_clock_seconds_remaining",
+    )
+    for field in plan_count_fields:
+        if isinstance(collection_plan.get(field), bool) or not isinstance(collection_plan.get(field), int) or collection_plan.get(field) < 0:
+            return ProfileValidationResult("FAIL", f"runtime evidence profile collection plan count is invalid: {field}", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_plan.get("max_safe_paper_batch_cycle_count") != MAX_SAFE_PROFILE_BATCH_CYCLE_COUNT:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection plan batch cap drifted", "RUNTIME_BUDGET_EXCEEDED")
+    if collection_plan.get("recommended_next_paper_batch_cycle_count") > MAX_SAFE_PROFILE_BATCH_CYCLE_COUNT:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection plan exceeds bounded PAPER batch budget", "RUNTIME_BUDGET_EXCEEDED")
+    paper_mode_depth = mode_depths.get("paper")
+    shadow_mode_depth = mode_depths.get("shadow")
+    if not isinstance(paper_mode_depth, dict) or not isinstance(shadow_mode_depth, dict):
+        return ProfileValidationResult("FAIL", "runtime evidence profile per-mode depth missing before collection plan validation", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_plan.get("paper_remaining_span_seconds") != int(paper_mode_depth.get("missing_span_seconds") or 0):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection plan PAPER span drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_plan.get("paper_remaining_cycle_count") != int(paper_mode_depth.get("missing_cycle_count") or 0):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection plan PAPER cycle drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_plan.get("shadow_remaining_span_seconds") != int(shadow_mode_depth.get("missing_span_seconds") or 0):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection plan SHADOW span drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_plan.get("shadow_remaining_cycle_count") != int(shadow_mode_depth.get("missing_cycle_count") or 0):
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection plan SHADOW cycle drifted", "SCHEMA_IDENTITY_MISMATCH")
+    expected_spacing = _ceil_div(int(report.get("min_actual_long_run_span_seconds") or 0), int(report.get("min_actual_long_run_cycle_count") or 0))
+    if collection_plan.get("minimum_cycle_wall_clock_spacing_seconds") != expected_spacing:
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection plan wall-clock spacing drifted", "SCHEMA_IDENTITY_MISMATCH")
+    expected_remaining_wall_clock = max(
+        int(collection_plan.get("paper_remaining_span_seconds") or 0),
+        int(collection_plan.get("shadow_remaining_span_seconds") or 0),
+    )
+    if collection_plan.get("estimated_wall_clock_seconds_remaining") != expected_remaining_wall_clock:
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection plan remaining wall-clock estimate drifted", "SCHEMA_IDENTITY_MISMATCH")
+    expected_batch = (
+        min(MAX_SAFE_PROFILE_BATCH_CYCLE_COUNT, int(collection_plan.get("paper_remaining_cycle_count") or 0))
+        if report.get("status") == "PASS" and int(collection_plan.get("paper_remaining_cycle_count") or 0) > 0
+        else 0
+    )
+    if collection_plan.get("recommended_next_paper_batch_cycle_count") != expected_batch:
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection plan next batch count drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if collection_plan.get("shadow_collection_required") is not True:
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection plan must require SHADOW collection", RUNTIME_MODE_DEPTH_BLOCKER_CODE)
+    if (
+        collection_plan.get("counts_as_actual_long_run_evidence")
+        or collection_plan.get("current_evidence_write_allowed")
+        or collection_plan.get("promotion_eligible")
+        or collection_plan.get("live_order_ready")
+        or collection_plan.get("live_order_allowed")
+        or collection_plan.get("can_live_trade")
+        or collection_plan.get("scale_up_allowed")
+    ):
+        return ProfileValidationResult("BLOCKED", "runtime evidence profile collection plan attempted long-run, write, live, promotion, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if not isinstance(collection_plan.get("next_operator_action"), str) or not collection_plan.get("next_operator_action", "").strip():
+        return ProfileValidationResult("FAIL", "runtime evidence profile collection plan missing next operator action", "SCHEMA_IDENTITY_MISMATCH")
     component_results = report.get("component_results")
     if not isinstance(component_results, list) or report.get("component_count") != len(component_results):
         return ProfileValidationResult("FAIL", "runtime evidence profile component count mismatch", "SCHEMA_IDENTITY_MISMATCH")
@@ -825,8 +1564,8 @@ def validate_upbit_paper_runtime_evidence_collection_profile_report(
         for field, expected in pass_required.items():
             if report.get(field) != expected:
                 return ProfileValidationResult("FAIL", f"PASS profile requires {field}={expected}", "SCHEMA_IDENTITY_MISMATCH")
-        if report.get("accepted_cycle_sample_count") != report.get("completed_cycle_count"):
-            return ProfileValidationResult("FAIL", "accepted runtime sample count must match completed bounded cycles", "SCHEMA_IDENTITY_MISMATCH")
+        if int(report.get("accepted_cycle_sample_count") or 0) < int(report.get("completed_cycle_count") or 0):
+            return ProfileValidationResult("FAIL", "accepted runtime sample count must cover completed bounded cycles", "SCHEMA_IDENTITY_MISMATCH")
         if report.get("accepted_cycle_sample_count", 0) < 1 or report.get("source_ledger_jsonl_count", 0) < 1:
             return ProfileValidationResult("BLOCKED", "PASS profile requires actual bounded PAPER runtime and ledger artifacts", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
     return ProfileValidationResult(report["status"], "Upbit PAPER runtime evidence collection profile is fail-closed", report.get("primary_blocker_code"))
@@ -845,25 +1584,57 @@ def run_upbit_paper_runtime_evidence_collection_profile(
         )
 
 
+def write_upbit_paper_runtime_evidence_collection_profile_report(
+    *,
+    root: Path,
+    output: Path,
+    loop_id: str | None = None,
+    session_id: str = DEFAULT_SESSION_ID,
+    requested_cycle_count: int = 2,
+) -> tuple[dict[str, Any], ProfileValidationResult]:
+    report = build_upbit_paper_runtime_evidence_collection_profile_report(
+        root=Path(root),
+        loop_id=loop_id or f"upbit-paper-runtime-evidence-profile-{_timestamp_compact()}",
+        session_id=session_id,
+        requested_cycle_count=requested_cycle_count,
+    )
+    result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
+    durable_atomic_write_json(Path(output), report)
+    return report, result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run bounded Upbit PAPER runtime evidence collection profile.")
     parser.add_argument("--output", type=Path, default=DEFAULT_REPORT_PATH, help="JSON report path.")
     parser.add_argument("--requested-cycle-count", type=int, default=2, help="Bounded PAPER cycle count.")
+    parser.add_argument("--source-root", type=Path, default=ROOT, help="Workspace root used for durable PAPER source artifacts.")
+    parser.add_argument("--loop-id", type=str, default=None, help="Optional unique PAPER loop id for this profile run.")
+    parser.add_argument("--session-id", type=str, default=DEFAULT_SESSION_ID, help="PAPER session id.")
     parser.add_argument(
         "--duplicate-ledger-events",
         action="store_true",
-        help="Inject duplicate PAPER ledger events to prove reconciliation blocking.",
+        help="Inject duplicate PAPER ledger events in an ephemeral fixture root to prove reconciliation blocking.",
     )
     args = parser.parse_args()
 
     os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
-    report = run_upbit_paper_runtime_evidence_collection_profile(
-        requested_cycle_count=args.requested_cycle_count,
-        duplicate_ledger_events=args.duplicate_ledger_events,
-    )
-    result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
-    output = ROOT / args.output
-    durable_atomic_write_json(output, report)
+    output = args.output if args.output.is_absolute() else ROOT / args.output
+    if args.duplicate_ledger_events:
+        report = run_upbit_paper_runtime_evidence_collection_profile(
+            requested_cycle_count=args.requested_cycle_count,
+            duplicate_ledger_events=True,
+        )
+        result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
+        durable_atomic_write_json(output, report)
+    else:
+        source_root = args.source_root if args.source_root.is_absolute() else ROOT / args.source_root
+        report, result = write_upbit_paper_runtime_evidence_collection_profile_report(
+            root=source_root,
+            output=output,
+            loop_id=args.loop_id,
+            session_id=args.session_id,
+            requested_cycle_count=args.requested_cycle_count,
+        )
     print(json.dumps(report, indent=2))
     return 0 if result.status == "PASS" else 1
 

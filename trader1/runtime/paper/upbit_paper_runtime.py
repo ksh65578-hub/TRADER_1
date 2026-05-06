@@ -11,7 +11,11 @@ from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.adapters.upbit.symbol_rules import validate_upbit_krw_symbol
 from trader1.core.decision.decision_arbiter import order_blocker_codes, select_primary_blocker
 from trader1.core.ledger.paper_ledger import build_upbit_paper_fill_chain, validate_upbit_paper_ledger
-from trader1.core.sizing.position_sizing import build_position_sizing_decision, validate_position_sizing_decision
+from trader1.core.sizing.position_sizing import (
+    build_position_sizing_decision,
+    default_sizing_inputs,
+    validate_position_sizing_decision,
+)
 from trader1.core.strategy.quantitative_policy import build_quantitative_policy_report
 from trader1.dashboard.summary_writer import build_summary_shell, validate_summary_shell
 from trader1.runtime.portfolio.paper_portfolio import (
@@ -27,6 +31,9 @@ from trader1.runtime.paper.upbit_public_collector import (
 
 UPBIT_PAPER_RUNTIME_CYCLE_SCHEMA_ID = "trader1.upbit_paper_runtime_cycle_report.v1"
 SAFE_FINAL_DECISIONS = {"ENTER_LONG", "NO_TRADE", "BLOCKED", "SAFE_MODE", "RECONCILE_REQUIRED"}
+PAPER_ENTRY_FEE_RATE = Decimal("0.0005")
+PAPER_ENTRY_SLIPPAGE_BPS = Decimal("5")
+UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL = Decimal("5000")
 
 
 @dataclass(frozen=True)
@@ -63,6 +70,40 @@ def _hash_payload(payload: dict[str, Any]) -> str:
 
 def _blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
+
+
+def _paper_cash_bound_sizing_inputs(
+    *,
+    paper_cash_available: str | int | float | Decimal | None,
+    paper_equity: str | int | float | Decimal | None,
+    paper_position_market_value: str | int | float | Decimal | None,
+    paper_cash_source: str,
+) -> tuple[dict[str, Any], list[dict[str, str]], Decimal | None]:
+    inputs = default_sizing_inputs()
+    if paper_cash_available is None:
+        return inputs, [], None
+
+    cash_available = _decimal(paper_cash_available)
+    equity = _decimal(paper_equity if paper_equity is not None else paper_cash_available)
+    position_market_value = _decimal(paper_position_market_value or "0")
+    blockers: list[dict[str, str]] = []
+    if cash_available < 0 or equity < 0 or position_market_value < 0:
+        blockers.append(_blocker("RISK_VETO", "PAPER cash guard received negative ledger-backed cash, equity, or exposure"))
+    inputs.update(
+        {
+            "equity": _decimal_text(max(Decimal("0"), equity)),
+            "cash": _decimal_text(max(Decimal("0"), cash_available)),
+            "locked_cash": "0",
+            "current_exposure": _decimal_text(max(Decimal("0"), position_market_value)),
+            "paper_cash_guard_source": paper_cash_source,
+            "paper_cash_available": _decimal_text(cash_available),
+            "paper_equity": _decimal_text(equity),
+            "paper_position_market_value": _decimal_text(position_market_value),
+            "paper_min_entry_notional_krw": _decimal_text(UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL),
+            "paper_entry_fee_rate": _decimal_text(PAPER_ENTRY_FEE_RATE),
+        }
+    )
+    return inputs, blockers, cash_available
 
 
 def _ema(values: list[Decimal], period: int) -> Decimal:
@@ -316,6 +357,10 @@ def build_upbit_paper_runtime_cycle_report(
     source_collection_report: dict[str, Any] | None = None,
     edge_profile: str = "POSITIVE",
     starting_cash: str | int | float | Decimal = "1000000",
+    paper_cash_available: str | int | float | Decimal | None = None,
+    paper_equity: str | int | float | Decimal | None = None,
+    paper_position_market_value: str | int | float | Decimal | None = None,
+    paper_cash_source: str = "PAPER_LEDGER_ROLLUP",
 ) -> dict[str, Any]:
     source_collection_report_hash = None
     source_public_market_data_hash = None
@@ -382,16 +427,66 @@ def build_upbit_paper_runtime_cycle_report(
         regime=str(features.get("regime")),
     )
 
+    sizing_inputs, sizing_input_blockers, guarded_cash_available = _paper_cash_bound_sizing_inputs(
+        paper_cash_available=paper_cash_available,
+        paper_equity=paper_equity,
+        paper_position_market_value=paper_position_market_value,
+        paper_cash_source=paper_cash_source,
+    )
+    blockers.extend(sizing_input_blockers)
+
     sizing = build_position_sizing_decision(
         sizing_decision_id=f"{cycle_id}-sizing",
         strategy_unit_id=selected["candidate_id"],
         session_id=session_id,
+        inputs=sizing_inputs,
     )
     sizing_result = validate_position_sizing_decision(sizing)
-    if sizing_result.status != "PASS":
-        blockers.append(_blocker(sizing_result.blocker_code or "RISK_VETO", sizing_result.message))
+    if sizing_result.status != "PASS" or sizing.get("sizing_status") != "PASS":
+        sizing_blocker = sizing.get("primary_blocker_code") or sizing_result.blocker_code or "RISK_VETO"
+        sizing_message = sizing_result.message
+        if sizing.get("sizing_status") != "PASS":
+            sizing_blockers = sizing.get("blockers")
+            first_sizing_blocker = sizing_blockers[0] if isinstance(sizing_blockers, list) and sizing_blockers else {}
+            sizing_message = first_sizing_blocker.get("message", "position sizing blocked PAPER entry")
+        blockers.append(_blocker(str(sizing_blocker), str(sizing_message)))
         final_decision = "BLOCKED"
         no_trade_reasons = order_blocker_codes(blockers)
+        entry_reasons = []
+
+    if final_decision == "ENTER_LONG":
+        selected_notional = _decimal(sizing["selected_notional"])
+        entry_cash_required = selected_notional * (Decimal("1") + PAPER_ENTRY_FEE_RATE)
+        if selected_notional < UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL:
+            blockers.append(
+                _blocker(
+                    "RISK_VETO",
+                    (
+                        "PAPER entry notional is below the 5000 KRW minimum simulation floor "
+                        f"(selected_notional={_decimal_text(selected_notional)})"
+                    ),
+                )
+            )
+        elif guarded_cash_available is not None and guarded_cash_available - entry_cash_required < Decimal("0"):
+            blockers.append(
+                _blocker(
+                    "RISK_VETO",
+                    (
+                        "PAPER entry would exceed ledger-backed simulated cash "
+                        f"(cash_available={_decimal_text(guarded_cash_available)}, "
+                        f"cash_required={_decimal_text(entry_cash_required)})"
+                    ),
+                )
+            )
+        if blockers:
+            final_decision = "BLOCKED"
+            no_trade_reasons = order_blocker_codes(blockers)
+            entry_reasons = []
+
+    if blockers and final_decision == "ENTER_LONG":
+        final_decision = "BLOCKED"
+        no_trade_reasons = order_blocker_codes(blockers)
+        entry_reasons = []
 
     fill: dict[str, Any] | None = None
     ledger_events: list[dict[str, Any]] = []
@@ -399,8 +494,8 @@ def build_upbit_paper_runtime_cycle_report(
     if final_decision == "ENTER_LONG":
         notional = _decimal(sizing["selected_notional"])
         mark_price = _decimal(features["last_price"])
-        slippage_bps = Decimal("5")
-        fee_rate = Decimal("0.0005")
+        slippage_bps = PAPER_ENTRY_SLIPPAGE_BPS
+        fee_rate = PAPER_ENTRY_FEE_RATE
         fill_price = mark_price * (Decimal("1") + (slippage_bps / Decimal("10000")))
         quantity = notional / fill_price
         fee_amount = notional * fee_rate
@@ -530,6 +625,7 @@ def validate_upbit_paper_runtime_cycle_report(
     report: dict[str, Any],
     *,
     require_quantitative_policy_summary: bool = True,
+    require_current_sizing_caps: bool = True,
 ) -> UpbitPaperRuntimeCycleValidationResult:
     required = {
         "schema_id",
@@ -635,7 +731,10 @@ def validate_upbit_paper_runtime_cycle_report(
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "feature snapshot hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("regime") != expected_features.get("regime"):
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "runtime regime does not match computed feature regime", "REGIME_MISMATCH")
-    sizing_result = validate_position_sizing_decision(report["sizing_decision"])
+    sizing_result = validate_position_sizing_decision(
+        report["sizing_decision"],
+        require_exposure_cap=require_current_sizing_caps,
+    )
     if sizing_result.status != "PASS":
         return UpbitPaperRuntimeCycleValidationResult(sizing_result.status, sizing_result.message, sizing_result.blocker_code)
     portfolio_result = validate_paper_portfolio_snapshot(report["paper_portfolio_snapshot"])

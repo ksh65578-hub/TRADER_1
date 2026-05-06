@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "trader1.paper_ledger_input_manifest.v1",
+  "title": "paper_ledger_input_manifest",
+  "type": "object",
+  "required": [
+    "schema_id",
+    "generated_at_utc",
+    "project_id",
+    "manifest_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "manifest_reason",
+    "ledger_input_scope",
+    "ledger_source_dir",
+    "all_ledger_path_count_at_manifest",
+    "accepted_ledger_path_count_at_manifest",
+    "excluded_ledger_path_count",
+    "source_ledger_event_count_at_manifest",
+    "source_all_ledger_path_hash",
+    "starting_cash",
+    "min_cash_after_fill",
+    "max_exposure_to_equity_ratio",
+    "final_cash_available_after_accepted",
+    "final_position_market_value_after_accepted",
+    "source_ledger_files",
+    "accepted_ledger_paths",
+    "excluded_ledger_paths",
+    "manifest_status",
+    "primary_blocker_code",
+    "current_ledger_input_filter_active",
+    "source_delete_allowed",
+    "current_canonical_ledger_write_allowed",
+    "current_evidence_write_allowed",
+    "display_only",
+    "dashboard_truth_only",
+    "long_run_evidence_eligible",
+    "promotion_eligible",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "manifest_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_id": {"const": "trader1.paper_ledger_input_manifest.v1"},
+    "generated_at_utc": {"type": "string"},
+    "project_id": {"const": "TRADER_1"},
+    "manifest_id": {"type": "string", "minLength": 1},
+    "exchange": {"const": "UPBIT"},
+    "market_type": {"const": "KRW_SPOT"},
+    "mode": {"const": "PAPER"},
+    "session_id": {"type": "string", "minLength": 1},
+    "manifest_reason": {"const": "CASH_OVERRUN_AND_EXPOSURE_REPAIR"},
+    "ledger_input_scope": {"const": "SESSION_REPAIR_MANIFEST"},
+    "ledger_source_dir": {"type": "string", "minLength": 1},
+    "all_ledger_path_count_at_manifest": {"type": "integer", "minimum": 0},
+    "accepted_ledger_path_count_at_manifest": {"type": "integer", "minimum": 0},
+    "excluded_ledger_path_count": {"type": "integer", "minimum": 0},
+    "source_ledger_event_count_at_manifest": {"type": "integer", "minimum": 0},
+    "source_all_ledger_path_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+    "starting_cash": {"type": "string"},
+    "min_cash_after_fill": {"const": "0"},
+    "max_exposure_to_equity_ratio": {"const": "0.35"},
+    "final_cash_available_after_accepted": {"type": "string"},
+    "final_position_market_value_after_accepted": {"type": "string"},
+    "source_ledger_files": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/source_file"}
+    },
+    "accepted_ledger_paths": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/ledger_manifest_item"}
+    },
+    "excluded_ledger_paths": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "#/$defs/ledger_manifest_item"},
+          {
+            "type": "object",
+            "required": ["exclude_reason_code"],
+            "properties": {
+              "exclude_reason_code": {
+                "enum": ["CASH_BELOW_ZERO", "EXPOSURE_CAP_EXCEEDED", "LEDGER_LOAD_FAILED", "INVALID_LEDGER_INPUT"]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "manifest_status": {"enum": ["PASS", "NO_REPAIR_NEEDED", "BLOCKED"]},
+    "primary_blocker_code": {"type": ["string", "null"]},
+    "current_ledger_input_filter_active": {"const": true},
+    "source_delete_allowed": {"const": false},
+    "current_canonical_ledger_write_allowed": {"const": false},
+    "current_evidence_write_allowed": {"const": false},
+    "display_only": {"const": true},
+    "dashboard_truth_only": {"const": true},
+    "long_run_evidence_eligible": {"const": false},
+    "promotion_eligible": {"const": false},
+    "live_order_ready": {"const": false},
+    "live_order_allowed": {"const": false},
+    "can_live_trade": {"const": false},
+    "scale_up_allowed": {"const": false},
+    "manifest_hash": {"type": "string", "minLength": 64, "maxLength": 64}
+  },
+  "$defs": {
+    "source_file": {
+      "type": "object",
+      "required": [
+        "path",
+        "path_allowed",
+        "file_sha256",
+        "load_status",
+        "ledger_validator_status",
+        "ledger_validator_blocker_code",
+        "ledger_validator_message",
+        "event_count"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "path_allowed": {"type": "boolean"},
+        "file_sha256": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+        "load_status": {"type": "string", "minLength": 1},
+        "ledger_validator_status": {"type": "string", "minLength": 1},
+        "ledger_validator_blocker_code": {"type": ["string", "null"]},
+        "ledger_validator_message": {"type": "string"},
+        "event_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "ledger_manifest_item": {
+      "type": "object",
+      "required": [
+        "path",
+        "file_sha256",
+        "cash_available_before",
+        "cash_available_after",
+        "position_market_value_before",
+        "position_market_value_after",
+        "exposure_to_equity_after",
+        "source_event_count",
+        "source_ledger_head_hash"
+      ],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "file_sha256": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+        "cash_available_before": {"type": "string"},
+        "cash_available_after": {"type": "string"},
+        "position_market_value_before": {"type": "string"},
+        "position_market_value_after": {"type": "string"},
+        "exposure_to_equity_after": {"type": "string"},
+        "source_event_count": {"type": "integer", "minimum": 0},
+        "source_ledger_head_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64}
+      }
+    }
+  }
+}

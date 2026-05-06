@@ -131,6 +131,32 @@
           "minLength": 64,
           "maxLength": 64
         },
+        "price_basis_repair_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "price_basis_repair_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "price_basis_original_quantity": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_original_average_entry_price": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_original_gross_entry_cost": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_scale_factor": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_normalized_quantity": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_normalized_average_entry_price": {
+          "$ref": "#/$defs/decimal_string"
+        },
         "paper_only": {
           "const": true
         }
@@ -236,6 +262,22 @@
       "minimum": 0
     },
     "mark_to_market_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "price_basis_repair_status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "price_basis_repair_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "price_basis_repair_source": {
       "type": [
         "string",
         "null"

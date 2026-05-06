@@ -1,0 +1,43 @@
+{
+  "artifact_hashes": {
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json": "C4EDA3E80C59E6097AC4FAAF56208F0C580BDA739A3F51959D8526ABF3FA5D45",
+    "system/evidence/patch_results/MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION.patch_result.json": "773620170E1265002A5808EB00A98031942EB77A5A3E89205467C3BDE1C170D4",
+    "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json": "7F8C35BA7347567191E765DD4DF016B64ECCE0D388A7403757F989F7B4056B7A",
+    "system/evidence/stage_gates/MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION.stage_gate_result.json": "FCDAA04D454FC3246A46BA08A904AC5C375CB51A55264CE286F55B545DCF9380",
+    "system/evidence/validator_runs/MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION.validator_run_log.json": "43392CAF2CC9EDD4B18D4E8AD9ECA0E3DA768DA4294EA7E2092CDBA713A58E99",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html": "A84DE995174D81A1203C3C988355002E6FCEAFFDE3C027C2396B17EFC743816D",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json": "D6D33B81B944E21085F50C43BCDCE269D424821D09D7BD88EDB5161792504A86",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_shadow_evidence_accumulation_report.json": "346617A2FCD335E5909BA84496757D110ACE5E0BBF955AD432794887B92180E6",
+    "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json": "7067D4FC1A7E9FC91C2E30E1FED0190226A826E636422FFB95FFBA330BB0AEBB"
+  },
+  "artifact_paths": [
+    "system/evidence/runtime_checks/MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_shadow_evidence_accumulation_report.json",
+    "system/evidence/audit_reports/MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json",
+    "tests/validators/fixtures/profitability_evidence_maturity_rollup_pass.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+    "system/evidence/patch_results/MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION.patch_result.json",
+    "system/evidence/validator_runs/MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION.stage_gate_result.json"
+  ],
+  "can_live_trade": false,
+  "created_at_utc": "2026-05-06T21:21:16Z",
+  "known_blockers": [
+    "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "READ_ONLY_BURN_IN_MISSING",
+    "MANUAL_ORDER_TEST_MISSING",
+    "OPERATOR_APPROVAL_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "long_run_evidence_eligible": false,
+  "paper_accepted_cycle_sample_count": 1082,
+  "patch_id": "MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION_20260506_001",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.evidence_manifest.v1",
+  "shadow_observed_cycle_count": 1361,
+  "status": "PASS"
+}

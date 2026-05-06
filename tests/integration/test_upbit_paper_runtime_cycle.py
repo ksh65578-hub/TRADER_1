@@ -87,6 +87,23 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertFalse(report["live_order_allowed"])
 
+    def test_legacy_runtime_cycle_can_be_rechecked_without_current_sizing_exposure_cap(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-legacy-sizing-cap")
+        del report["sizing_decision"]["caps"]["exposure_cap"]
+        report["sizing_decision"]["sizing_decision_hash"] = sizing_decision_hash(report["sizing_decision"])
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        strict_result = validate_upbit_paper_runtime_cycle_report(report)
+        legacy_result = validate_upbit_paper_runtime_cycle_report(
+            report,
+            require_current_sizing_caps=False,
+        )
+
+        self.assertEqual(strict_result.status, "FAIL")
+        self.assertEqual(strict_result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+        self.assertEqual(legacy_result.status, "PASS")
+        self.assertFalse(report["live_order_allowed"])
+
     def test_runtime_blocks_tampered_position_detail_rollup(self):
         report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-position-tamper")
         report["paper_portfolio_snapshot"]["positions"][0]["market_value"] = "9999"
@@ -129,6 +146,24 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["paper_portfolio_snapshot"]["source_runtime_cycle_id"], report["cycle_id"])
         self.assertIsNone(report["paper_portfolio_snapshot"]["source_paper_ledger_head_hash"])
         self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 0)
+
+    def test_ledger_backed_cash_guard_blocks_entry_before_fill(self):
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-cash-guard",
+            paper_cash_available="100000",
+            paper_equity="1000000",
+            paper_position_market_value="340000",
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["final_decision"], "BLOCKED")
+        self.assertIn("RISK_VETO", report["no_trade_reasons"])
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["paper_ledger_events"], [])
+        self.assertEqual(report["sizing_decision"]["inputs"]["paper_cash_available"], "100000")
+        self.assertEqual(report["sizing_decision"]["inputs"]["paper_position_market_value"], "340000")
+        self.assertFalse(report["live_order_allowed"])
 
     def test_risk_off_regime_is_no_trade_and_writes_no_fill_ledger(self):
         data = build_upbit_public_candle_fixture(

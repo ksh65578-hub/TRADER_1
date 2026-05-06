@@ -1,0 +1,25 @@
+{
+  "artifact_paths": [
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/robustness-sample-accumulator-20260506T132530Z-loop-1-collector-17.raw_candles.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/robustness-sample-accumulator-20260506T132530Z-loop-1-collector-17.canonical_events.jsonl",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/robustness-sample-accumulator-20260506T132530Z-loop-1-collector-17.collection_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/latest_collection_report.json"
+  ],
+  "blocker_message": "public market data artifacts written atomically",
+  "can_live_trade": false,
+  "collector_id": "robustness-sample-accumulator-20260506T132530Z-loop-1-collector-17",
+  "exchange": "UPBIT",
+  "generated_at_utc": "2026-05-06T13:25:31Z",
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "primary_blocker_code": null,
+  "project_id": "TRADER_1",
+  "public_market_data_hash": "5833D88FF1C9A8187B812BF3806B1A4591B075E29CC616087AE1A672AF04136D",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.upbit_public_market_data_collection_writer_report.v1",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "symbol": "KRW-BTC",
+  "writer_status": "PASS"
+}

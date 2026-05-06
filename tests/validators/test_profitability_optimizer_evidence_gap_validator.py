@@ -3,6 +3,7 @@ import json
 import unittest
 from pathlib import Path
 
+from tools.run_profitability_maturity_rollup_refresh import paper_shadow_next_required_evidence
 from trader1.validation.mvp0_validators import (
     PROFITABILITY_EVIDENCE_REQUIRED_COMPONENTS,
     _profitability_evidence_audit_errors,
@@ -79,8 +80,9 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         self.assertFalse(gap.get("scale_up_allowed", False))
         blocker_codes = {item["code"] for item in gap["blockers"]}
         self.assertIn("CONTRACT_GAP_HIGH", blocker_codes)
-        self.assertIn("OOS_WALK_FORWARD_BOOTSTRAP_EVIDENCE_MISSING", blocker_codes)
-        self.assertIn("ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED", blocker_codes)
+        self.assertIn("LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING", blocker_codes)
+        self.assertNotIn("OOS_WALK_FORWARD_BOOTSTRAP_EVIDENCE_MISSING", blocker_codes)
+        self.assertNotIn("ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED", blocker_codes)
 
     def test_state_sync_recheck_keeps_gap_open_and_routes_to_long_run_boundary(self):
         state = load_json(STATE_PATH)
@@ -168,6 +170,61 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         self.assertTrue(any("long-run" in error for error in errors), errors)
 
+    def test_paper_shadow_next_required_evidence_distinguishes_sample_and_source_id_deficits(self):
+        message = paper_shadow_next_required_evidence(
+            {
+                "paper_sample_count": 320,
+                "shadow_sample_count": 40,
+                "min_required_sample_count": 30,
+                "evidence_window_count": 20,
+                "supporting_source_window_count": 0,
+                "min_required_evidence_window_count": 20,
+                "evidence_span_hours": 0,
+                "min_required_evidence_span_hours": 120,
+                "entry_reason_count": 0,
+                "no_trade_reason_count": 320,
+                "cost_evidence_count": 0,
+                "actual_runtime_source_deficit": 2,
+            }
+        )
+
+        self.assertIn("SHADOW observations 40/30", message)
+        self.assertIn("runtime windows 20/20", message)
+        self.assertIn("source-bound window IDs 0/20", message)
+        self.assertIn("collect 20 source-bound PAPER/SHADOW window IDs", message)
+        self.assertIn("entry reasons", message)
+        self.assertIn("cost evidence", message)
+        self.assertNotIn("more non-live SHADOW observations", message)
+
+    def test_paper_shadow_next_required_evidence_includes_runtime_collection_depth(self):
+        message = paper_shadow_next_required_evidence(
+            {
+                "paper_sample_count": 381,
+                "shadow_sample_count": 20,
+                "min_required_sample_count": 30,
+                "evidence_window_count": 20,
+                "supporting_source_window_count": 20,
+                "min_required_evidence_window_count": 20,
+                "evidence_span_hours": 0,
+                "min_required_evidence_span_hours": 120,
+                "entry_reason_count": 1,
+                "no_trade_reason_count": 381,
+                "cost_evidence_count": 1,
+                "actual_runtime_source_deficit": 0,
+            },
+            runtime_profile_evidence={
+                "paper_remaining_cycle_count": 2499,
+                "paper_remaining_span_seconds": 70767,
+                "shadow_remaining_cycle_count": 2860,
+                "shadow_remaining_span_seconds": 86398,
+                "recommended_next_paper_batch_cycle_count": 20,
+            },
+        )
+
+        self.assertIn("remaining PAPER 2499 cycles/70767s", message)
+        self.assertIn("SHADOW 2860 cycles/86398s", message)
+        self.assertIn("next safe PAPER batch is 20 cycles", message)
+
     def test_maturity_rollup_helper_requires_runtime_linkage_evidence(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         tampered = copy.deepcopy(rollup)
@@ -194,6 +251,36 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         errors = _profitability_evidence_maturity_rollup_errors(tampered)
 
         self.assertTrue(any("cycle hash" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_requires_runtime_collection_profile_evidence(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        del tampered["runtime_collection_profile_evidence"]
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("runtime_collection_profile_evidence" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_runtime_collection_profile_live_drift(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["runtime_collection_profile_evidence"]["live_order_allowed"] = True
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(
+            any("runtime_collection_profile_evidence" in error and "live_order_allowed" in error for error in errors),
+            errors,
+        )
+
+    def test_maturity_rollup_helper_rejects_runtime_collection_profile_hash_mismatch(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["runtime_collection_profile_evidence"]["profile_hash"] = "A" * 64
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("profile hash" in error for error in errors), errors)
 
     def test_maturity_rollup_helper_requires_promotion_threshold_evidence(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
@@ -258,20 +345,53 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
     def test_maturity_rollup_helper_rejects_robustness_source_type_false_pass(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         tampered = copy.deepcopy(rollup)
+        source_evidence = tampered["robustness_source_type_evidence"]
+        source_evidence["source_type_counts"] = {
+            "oos_count": 0,
+            "walk_forward_count": 0,
+            "bootstrap_count": 0,
+            "concentration_count": 0,
+        }
+        source_evidence["present_source_types"] = []
+        source_evidence["missing_source_types"] = ["OOS", "WALK_FORWARD", "BOOTSTRAP", "CONCENTRATION"]
+        source_evidence["primary_blocker_code"] = None
+        source_evidence["explicit_source_type_blocker"] = False
         tampered["robustness_source_type_evidence"]["status"] = "PASS"
 
         errors = _profitability_evidence_maturity_rollup_errors(tampered)
 
-        self.assertTrue(any("BLOCKED_FOR_SOURCE_TYPE_EVIDENCE" in error for error in errors), errors)
+        self.assertTrue(any("claims PASS" in error for error in errors), errors)
 
     def test_maturity_rollup_helper_rejects_hidden_robustness_missing_source_types(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         tampered = copy.deepcopy(rollup)
-        tampered["robustness_source_type_evidence"]["missing_source_types"] = []
+        source_evidence = tampered["robustness_source_type_evidence"]
+        source_evidence["status"] = "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE"
+        source_evidence["source_type_counts"] = {
+            "oos_count": 0,
+            "walk_forward_count": 0,
+            "bootstrap_count": 0,
+            "concentration_count": 0,
+        }
+        source_evidence["present_source_types"] = []
+        source_evidence["missing_source_types"] = []
+        source_evidence["primary_blocker_code"] = "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED"
+        source_evidence["explicit_source_type_blocker"] = True
 
         errors = _profitability_evidence_maturity_rollup_errors(tampered)
 
-        self.assertTrue(any("missing source types" in error or "missing_source_types" in error for error in errors), errors)
+        self.assertTrue(any("must list missing source types" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_accepts_robustness_source_type_pass_without_live_permission(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        source_evidence = rollup["robustness_source_type_evidence"]
+
+        self.assertEqual(source_evidence["status"], "PASS")
+        self.assertEqual(source_evidence["missing_source_types"], [])
+        self.assertIsNone(source_evidence["primary_blocker_code"])
+        self.assertFalse(source_evidence["explicit_source_type_blocker"])
+        self.assertFalse(rollup["live_order_allowed"])
+        self.assertEqual(_profitability_evidence_maturity_rollup_errors(rollup), [])
 
     def test_maturity_rollup_helper_counts_open_high_contract_gap(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)

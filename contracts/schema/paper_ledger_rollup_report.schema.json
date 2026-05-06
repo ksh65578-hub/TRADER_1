@@ -56,7 +56,7 @@
     "mode": {"const": "PAPER"},
     "session_id": {"type": "string", "minLength": 1},
     "ledger_source_dir": {"type": "string", "minLength": 1},
-    "ledger_input_scope": {"enum": ["SESSION_CYCLE_GLOB", "EXPLICIT_SCOPED_PATHS"]},
+    "ledger_input_scope": {"enum": ["SESSION_CYCLE_GLOB", "EXPLICIT_SCOPED_PATHS", "SESSION_REPAIR_MANIFEST"]},
     "ledger_jsonl_count": {"type": "integer", "minimum": 0},
     "ledger_event_count": {"type": "integer", "minimum": 0},
     "filled_order_count": {"type": "integer", "minimum": 0},

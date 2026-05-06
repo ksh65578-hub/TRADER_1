@@ -328,8 +328,18 @@ PORTFOLIO_CARD_IDS = (
 )
 PAPER_VALUE_TRUTH_STATUSES = {
     "PAPER_LEDGER_CURRENT_VALUES_VERIFIED",
+    "PAPER_LEDGER_PUBLIC_MARK_VALUES_VERIFIED",
     "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE",
+    "PAPER_LEDGER_PUBLIC_MARK_VALUES_STALE",
     "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY",
+}
+PAPER_VALUE_TRUTH_PASS_STATUSES = {
+    "PAPER_LEDGER_CURRENT_VALUES_VERIFIED",
+    "PAPER_LEDGER_PUBLIC_MARK_VALUES_VERIFIED",
+}
+PAPER_VALUE_TRUTH_STALE_STATUSES = {
+    "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE",
+    "PAPER_LEDGER_PUBLIC_MARK_VALUES_STALE",
 }
 PORTFOLIO_RUNTIME_CONTINUITY_STATUSES = {
     "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF",
@@ -6782,10 +6792,10 @@ def _runtime_evidence_boundary_status(
         if isinstance(portfolio_snapshot, dict)
         else "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY"
     )
-    if portfolio_truth_status == "PAPER_LEDGER_CURRENT_VALUES_VERIFIED":
+    if portfolio_truth_status in PAPER_VALUE_TRUTH_PASS_STATUSES:
         paper_value_step_status = "PASS"
         paper_value_detail = "Fresh audited PAPER ledger values are available for display-only portfolio review."
-    elif portfolio_truth_status == "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE":
+    elif portfolio_truth_status in PAPER_VALUE_TRUTH_STALE_STATUSES:
         paper_value_step_status = "STALE"
         paper_value_detail = "Last verified PAPER ledger values exist, but they are stale and do not prove current runtime continuity."
     else:
@@ -22519,9 +22529,9 @@ def validate_read_only_dashboard_shell(
     )
     expected_paper_value_step_status = (
         "PASS"
-        if portfolio_truth_status == "PAPER_LEDGER_CURRENT_VALUES_VERIFIED"
+        if portfolio_truth_status in PAPER_VALUE_TRUTH_PASS_STATUSES
         else "STALE"
-        if portfolio_truth_status == "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+        if portfolio_truth_status in PAPER_VALUE_TRUTH_STALE_STATUSES
         else "MISSING"
     )
     if ladder_step_by_id["PAPER_VALUE_SNAPSHOT"].get("status") != expected_paper_value_step_status:
@@ -24038,7 +24048,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("FAIL", "portfolio source freshness message is missing", "SCHEMA_IDENTITY_MISMATCH")
         if portfolio.get("status") == "VERIFIED":
             if (
-                paper_value_truth_status != "PAPER_LEDGER_CURRENT_VALUES_VERIFIED"
+                paper_value_truth_status not in PAPER_VALUE_TRUTH_PASS_STATUSES
                 or runtime_continuity_status != "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF"
             ):
                 return DashboardValidationResult(
@@ -24048,7 +24058,7 @@ def validate_read_only_dashboard_shell(
                 )
         if portfolio.get("status") == "STALE":
             if (
-                paper_value_truth_status != "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+                paper_value_truth_status not in PAPER_VALUE_TRUTH_STALE_STATUSES
                 or runtime_continuity_status != "STALE_SNAPSHOT_NOT_RUNTIME_PROOF"
             ):
                 return DashboardValidationResult(
@@ -25544,10 +25554,20 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         return safe_text(card.get("value_display", fallback))
 
     configured_capital_display = portfolio_value("configured_paper_capital", "not configured")
-    if paper_value_truth_status == "PAPER_LEDGER_CURRENT_VALUES_VERIFIED":
+    if paper_value_truth_status == "PAPER_LEDGER_PUBLIC_MARK_VALUES_VERIFIED":
+        portfolio_truth_note = (
+            f"Configured baseline: {configured_capital_display}. Current values are verified from the PAPER "
+            "ledger and refreshed with a source-bound public mark price; display-only and not long-run runtime proof."
+        )
+    elif paper_value_truth_status == "PAPER_LEDGER_CURRENT_VALUES_VERIFIED":
         portfolio_truth_note = (
             f"Configured baseline: {configured_capital_display}. Current values are verified from a fresh "
             "simulated PAPER ledger snapshot and remain display-only. This is not long-run runtime proof."
+        )
+    elif paper_value_truth_status == "PAPER_LEDGER_PUBLIC_MARK_VALUES_STALE":
+        portfolio_truth_note = (
+            f"Configured baseline: {configured_capital_display}. These are last verified PAPER ledger values "
+            "with a stale public mark refresh; not proof that the engine is still running now."
         )
     elif paper_value_truth_status == "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE":
         portfolio_truth_note = (

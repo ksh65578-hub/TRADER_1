@@ -1,0 +1,98 @@
+{
+  "schema_id": "trader1.paper_shadow_harness_binding_report.v1",
+  "generated_at_utc": "2026-05-06T22:49:50Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "binding_report_id": "mvp1_upbit_paper_launcher",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "paper_mode": "PAPER",
+  "shadow_mode": "SHADOW",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "harness_id": "mvp1_upbit_paper_launcher",
+  "harness_report_hash": "3A17940ED074CD6A20D28A0A8A3105E63D64090797BF7358D3E9013DE63171E7",
+  "harness_hash_verified": true,
+  "harness_validation_status": "PASS",
+  "evidence_report_id": null,
+  "evidence_report_hash": null,
+  "evidence_hash_verified": null,
+  "evidence_validation_status": "NOT_LOADED",
+  "binding_status": "HARNESS_ONLY_WAITING_EVIDENCE",
+  "evidence_graph_version": "paper_shadow_harness_binding_evidence_graph.v1",
+  "critical_blockers": [],
+  "warnings": [
+    {
+      "code": "SCORECARD_MISSING",
+      "severity": "MEDIUM",
+      "message": "No paper_shadow_evidence_accumulation_report is loaded; strategy evidence collection has not started for this binding."
+    },
+    {
+      "code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+      "severity": "MEDIUM",
+      "message": "This binding is non-live and does not contain validated long-run PAPER/SHADOW runtime evidence."
+    },
+    {
+      "code": "EXECUTION_FEEDBACK_MISSING",
+      "severity": "MEDIUM",
+      "message": "Cost evidence is not yet bound to this harness."
+    },
+    {
+      "code": "MEASUREMENT_MISSING",
+      "severity": "MEDIUM",
+      "message": "Entry and no-trade reason coverage is not yet complete."
+    }
+  ],
+  "informational": [
+    {
+      "code": "MEASUREMENT_MISSING",
+      "severity": "INFO",
+      "message": "Market regime tag count is currently tracked by this binding as zero until runtime evidence provides scoped regime labels."
+    }
+  ],
+  "critical_blocker_count": 0,
+  "warning_count": 4,
+  "informational_count": 1,
+  "primary_blocker_code": "SCORECARD_MISSING",
+  "top_level_blocker_codes": [
+    "SCORECARD_MISSING",
+    "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+    "EXECUTION_FEEDBACK_MISSING",
+    "MEASUREMENT_MISSING"
+  ],
+  "paper_cycle_count": 20,
+  "shadow_opportunity_count": 40,
+  "paper_sample_count": 0,
+  "shadow_sample_count": 0,
+  "entry_reason_count": 0,
+  "no_trade_reason_count": 0,
+  "cost_assumption_count": 0,
+  "market_regime_tag_count": 0,
+  "latency_freshness_status": "DELAYED",
+  "source_binding_count": 1,
+  "source_scope_status": "PASS",
+  "blocks_paper_current_truth_write": false,
+  "blocks_non_live_runtime_collection": false,
+  "blocks_live_ready": true,
+  "blocks_optimizer_or_convergence": true,
+  "optimizer_status": "WAITING_FOR_LONG_RUN_EVIDENCE",
+  "operator_action_required": "LOCAL_PAPER_SHADOW_RUNTIME_COLLECTION",
+  "codex_non_live_action": "Keep this as a non-live evidence graph; do not add optimizer wrappers until runtime/replay evidence thresholds are met.",
+  "local_paper_shadow_runtime_action": "Run the local non-live PAPER/SHADOW collection harness so PAPER cycles and SHADOW opportunities produce a source-bound evidence report.",
+  "external_live_evidence_action": "No external/live action is accepted from this binding; LIVE_READY remains blocked.",
+  "next_action": "Generate paper_shadow_evidence_accumulation_report from actual non-live PAPER/SHADOW runtime or replay evidence.",
+  "dashboard_display_truth_only": true,
+  "promotion_eligible": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "credential_access_attempted": false,
+  "exchange_account_call_attempted": false,
+  "live_order_api_attempted": false,
+  "order_adapter_called": false,
+  "live_ready_snapshot_written": false,
+  "binding_report_hash": "27B11177DD7DA793867988CD1327C3EEF73C9E80216FE5C9FFAD508FE0A882A4"
+}
