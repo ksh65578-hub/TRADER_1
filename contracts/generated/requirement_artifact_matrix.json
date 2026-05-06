@@ -2621,6 +2621,60 @@
       "status": "IMPLEMENTED_FAIL_CLOSED"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-OPERATOR-COMPLETION-ACCEPTANCE-VISIBILITY",
+      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "schema_files": [
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/read_only_dashboard.py",
+        "tools/run_dashboard_visual_layout_validators.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "fixture_files": [
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json"
+      ],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json",
+        "system/evidence/patch_results/MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY.patch_result.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY/pytest_report.txt",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY/TRADER_1_SESSION_REVIEW.md"
+      ],
+      "dashboard_artifacts": [
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard_shell.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/paper/dashboard/index.html",
+        "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard_shell.json",
+        "system/runtime/binance/spot/paper/mvp1_binance_paper_launcher/dashboard/index.html",
+        "system/runtime/upbit/krw_spot/live/mvp1_upbit_live_launcher/dashboard/index.html",
+        "system/runtime/binance/spot/live/mvp1_binance_live_launcher/dashboard/index.html"
+      ],
+      "patch_result_fields": [
+        "patch_id",
+        "tests_run",
+        "validators_run",
+        "remaining_blockers",
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_FAIL_CLOSED"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-OPERATOR-FOCUS-SIMPLIFICATION",
       "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
       "schema_files": [
@@ -17701,7 +17755,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-06T01:47:27Z",
+  "updated_at_utc": "2026-05-06T02:35:07Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

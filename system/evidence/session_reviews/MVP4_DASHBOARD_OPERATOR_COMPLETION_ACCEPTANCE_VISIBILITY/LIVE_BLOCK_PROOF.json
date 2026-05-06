@@ -1,0 +1,14 @@
+{
+  "patch_id": "MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY_20260506_001",
+  "generated_at_utc": "2026-05-06T02:35:07Z",
+  "status": "PASS_LIVE_BLOCKED",
+  "credential_values_read": false,
+  "order_endpoint_called": false,
+  "live_ready_snapshot_written": false,
+  "live_config_mutated": false,
+  "gap_closure_allowed_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

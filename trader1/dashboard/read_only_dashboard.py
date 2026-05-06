@@ -118,6 +118,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
     "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+    "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
     "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
@@ -130,6 +131,7 @@ RESIDUAL_ACTION_PLAN_SOURCE = "MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.repor
 RESIDUAL_HANDOFF_PACKET_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json"
 RESIDUAL_EXECUTION_GUIDE_SOURCE = "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json"
 RESIDUAL_EVIDENCE_PROGRESS_SOURCE = "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json"
+RESIDUAL_EVIDENCE_COMPLETION_ACCEPTANCE_SOURCE = "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json"
 RESIDUAL_RECONCILIATION_REVIEW_CARDS_SOURCE = "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json"
 RESIDUAL_RECONCILIATION_INTAKE_PREFLIGHT_SOURCE = "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json"
 RESIDUAL_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT_SOURCE = (
@@ -12950,6 +12952,239 @@ def _residual_operator_evidence_progress_summary(report: dict[str, Any] | None) 
     }
 
 
+def _residual_operator_evidence_completion_acceptance_summary(report: dict[str, Any] | None) -> dict[str, Any]:
+    fallback = {
+        "title": "PAPER/SHADOW Completion Acceptance",
+        "status": "NOT_LOADED",
+        "source": RESIDUAL_EVIDENCE_COMPLETION_ACCEPTANCE_SOURCE,
+        "source_status": "NOT_LOADED",
+        "open_gap_count": 13,
+        "command_id": "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW",
+        "preflight_status": "NOT_LOADED",
+        "acceptance_status": "NOT_LOADED",
+        "completion_gate_count": 0,
+        "completion_pending_count": 0,
+        "completion_accepted_count": 0,
+        "completion_artifact_gate_count": 0,
+        "completion_validator_gate_count": 0,
+        "completion_safety_invariant_gate_count": 0,
+        "expected_runtime_artifact_count": 0,
+        "required_validator_count": 0,
+        "first_pending_gate_id": "",
+        "first_pending_gate_kind": "",
+        "first_pending_gate_validator": "",
+        "first_pending_gate_message": "Completion acceptance report is not loaded.",
+        "mvp5_entry_blocked_until_operator_evidence": True,
+        "operator_run_started_by_this_patch": False,
+        "operator_run_completed_by_this_patch": False,
+        "operator_run_evidence_ready_for_mvp5": False,
+        "command_executed_by_this_patch": False,
+        "non_live_operator_command_preflight_passed": False,
+        "one_line_summary": "PAPER/SHADOW completion acceptance is not loaded; MVP-5 remains blocked.",
+        "primary_next_action": "Load the completion acceptance report before judging PAPER/SHADOW evidence completion.",
+        "completion_gate_breakdown_items": [],
+        "pending_gate_preview": [],
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "credential_values_read": False,
+        "credential_environment_inspection_performed": False,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_config_mutation_allowed": False,
+        "live_ready_write_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(report, dict):
+        return fallback
+
+    false_fields = (
+        "credential_values_read",
+        "credential_environment_inspection_performed",
+        "command_executed_by_this_patch",
+        "operator_run_started_by_this_patch",
+        "operator_run_completed_by_this_patch",
+        "operator_run_evidence_ready_for_mvp5",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_config_mutation_allowed",
+        "live_ready_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    )
+    if any(report.get(field) is not False for field in false_fields):
+        return {
+            **fallback,
+            "status": "INVALID",
+            "source_status": "LOADED",
+            "preflight_status": str(report.get("preflight_status") or "INVALID"),
+            "acceptance_status": str(report.get("operator_completion_acceptance_status") or "INVALID"),
+            "one_line_summary": "Completion acceptance report attempted runtime completion, current-evidence, live, LIVE_READY, or scale permission.",
+            "primary_next_action": "Reject the completion acceptance report and keep PAPER/SHADOW evidence closure blocked.",
+        }
+
+    items = report.get("operator_completion_acceptance_items", [])
+    if not isinstance(items, list):
+        items = []
+    expected_runtime_artifacts = report.get("expected_runtime_artifacts", [])
+    if not isinstance(expected_runtime_artifacts, list):
+        expected_runtime_artifacts = []
+    required_validator_ids = report.get("required_validator_ids", [])
+    if not isinstance(required_validator_ids, list):
+        required_validator_ids = []
+
+    gate_count = report.get("operator_completion_acceptance_count", len(items))
+    pending_count = report.get("operator_completion_acceptance_pending_count", len(items))
+    artifact_count = report.get("operator_completion_acceptance_artifact_count", 0)
+    validator_count = report.get("operator_completion_acceptance_validator_count", 0)
+    if not isinstance(gate_count, int):
+        gate_count = len(items)
+    if not isinstance(pending_count, int):
+        pending_count = len(items)
+    if not isinstance(artifact_count, int):
+        artifact_count = 0
+    if not isinstance(validator_count, int):
+        validator_count = 0
+
+    kind_counts: dict[str, int] = {
+        "RUNTIME_ARTIFACT": 0,
+        "VALIDATOR": 0,
+        "SAFETY_INVARIANT": 0,
+    }
+    pending_preview: list[dict[str, Any]] = []
+    first_pending: dict[str, Any] | None = None
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        if any(
+            item.get(field) is not False
+            for field in (
+                "evidence_ready_for_closure",
+                "current_evidence_write_allowed",
+                "gap_closure_allowed_by_this_patch",
+                "live_ready_write_allowed",
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+            )
+        ):
+            return {
+                **fallback,
+                "status": "INVALID",
+                "source_status": "LOADED",
+                "preflight_status": str(report.get("preflight_status") or "INVALID"),
+                "acceptance_status": str(report.get("operator_completion_acceptance_status") or "INVALID"),
+                "one_line_summary": "A completion gate attempted closure, live, LIVE_READY, current-evidence, or scale permission.",
+                "primary_next_action": "Reject the completion acceptance report and keep all gates pending.",
+            }
+        kind = str(item.get("acceptance_kind") or "SAFETY_INVARIANT")
+        if kind in kind_counts:
+            kind_counts[kind] += 1
+        if item.get("evidence_ready_for_closure") is False:
+            if first_pending is None:
+                first_pending = item
+            if len(pending_preview) < 4:
+                pending_preview.append(
+                    {
+                        "acceptance_id": str(item.get("acceptance_id") or ""),
+                        "acceptance_kind": kind,
+                        "responsible_validator_id": str(item.get("responsible_validator_id") or ""),
+                        "current_preflight_status": str(item.get("current_preflight_status") or ""),
+                        "required_after_operator_run": str(item.get("required_after_operator_run") or ""),
+                        "blocks_mvp5_entry_until_pass": item.get("blocks_mvp5_entry_until_pass") is True,
+                    }
+                )
+
+    status = str(report.get("operator_completion_acceptance_status") or "PENDING_OPERATOR_RUNTIME_EVIDENCE")
+    preflight_status = str(report.get("preflight_status") or "NON_LIVE_OPERATOR_RUN_PRECHECK_PASS")
+    valid_loaded = (
+        report.get("schema_id") == "trader1.residual_operator_evidence_run_preflight_report.v1"
+        and report.get("validation_status") == "PASS"
+        and preflight_status == "NON_LIVE_OPERATOR_RUN_PRECHECK_PASS"
+        and status == "PENDING_OPERATOR_RUNTIME_EVIDENCE"
+        and report.get("non_live_operator_command_preflight_passed") is True
+        and report.get("mvp5_entry_blocked_until_operator_evidence") is True
+        and gate_count == len(items)
+        and pending_count == gate_count
+        and artifact_count == kind_counts["RUNTIME_ARTIFACT"]
+        and validator_count == kind_counts["VALIDATOR"]
+        and kind_counts["SAFETY_INVARIANT"] == 1
+        and len(expected_runtime_artifacts) == artifact_count
+        and len(required_validator_ids) == validator_count
+    )
+    if not valid_loaded:
+        status = "INVALID"
+
+    first_pending_id = ""
+    first_pending_kind = ""
+    first_pending_validator = ""
+    first_pending_message = "No pending gate found; report is invalid unless all closure validators passed through a separate authorized review."
+    if isinstance(first_pending, dict):
+        first_pending_id = str(first_pending.get("acceptance_id") or "")
+        first_pending_kind = str(first_pending.get("acceptance_kind") or "")
+        first_pending_validator = str(first_pending.get("responsible_validator_id") or "")
+        first_pending_message = str(first_pending.get("operator_message") or first_pending_message)
+
+    return {
+        "title": "PAPER/SHADOW Completion Acceptance",
+        "status": status,
+        "source": RESIDUAL_EVIDENCE_COMPLETION_ACCEPTANCE_SOURCE,
+        "source_status": "LOADED",
+        "open_gap_count": report.get("open_gap_count", 13) if isinstance(report.get("open_gap_count", 13), int) else 13,
+        "command_id": str(report.get("command_id") or "UPBIT_PAPER_ADAPTIVE_EVIDENCE_REVIEW"),
+        "preflight_status": preflight_status,
+        "acceptance_status": str(report.get("operator_completion_acceptance_status") or "PENDING_OPERATOR_RUNTIME_EVIDENCE"),
+        "completion_gate_count": gate_count,
+        "completion_pending_count": pending_count,
+        "completion_accepted_count": max(0, gate_count - pending_count),
+        "completion_artifact_gate_count": artifact_count,
+        "completion_validator_gate_count": validator_count,
+        "completion_safety_invariant_gate_count": kind_counts["SAFETY_INVARIANT"],
+        "expected_runtime_artifact_count": len(expected_runtime_artifacts),
+        "required_validator_count": len(required_validator_ids),
+        "first_pending_gate_id": first_pending_id,
+        "first_pending_gate_kind": first_pending_kind,
+        "first_pending_gate_validator": first_pending_validator,
+        "first_pending_gate_message": first_pending_message,
+        "mvp5_entry_blocked_until_operator_evidence": True,
+        "operator_run_started_by_this_patch": False,
+        "operator_run_completed_by_this_patch": False,
+        "operator_run_evidence_ready_for_mvp5": False,
+        "command_executed_by_this_patch": False,
+        "non_live_operator_command_preflight_passed": report.get("non_live_operator_command_preflight_passed") is True,
+        "one_line_summary": str(
+            report.get(
+                "operator_completion_acceptance_summary",
+                f"PAPER/SHADOW completion acceptance is pending: {pending_count}/{gate_count} gates still require fresh runtime artifacts and validator PASS.",
+            )
+        ),
+        "primary_next_action": "Run PAPER/SHADOW, then rerun the listed validators; dashboard cannot close gaps or write current evidence.",
+        "completion_gate_breakdown_items": [
+            {"label": "Runtime artifacts", "count": artifact_count, "status": "PENDING_OPERATOR_RUNTIME_EVIDENCE"},
+            {"label": "Validators", "count": validator_count, "status": "PENDING_OPERATOR_RUNTIME_EVIDENCE"},
+            {"label": "Safety invariant", "count": kind_counts["SAFETY_INVARIANT"], "status": "PENDING_OPERATOR_RUNTIME_EVIDENCE"},
+        ],
+        "pending_gate_preview": pending_preview,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "credential_values_read": False,
+        "credential_environment_inspection_performed": False,
+        "current_evidence_write_allowed": False,
+        "gap_closure_allowed_by_this_patch": False,
+        "live_config_mutation_allowed": False,
+        "live_ready_write_allowed": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def _residual_operator_reconciliation_review_cards_summary(report: dict[str, Any] | None) -> dict[str, Any]:
     fallback = {
         "title": "Operator Reconciliation Review",
@@ -14203,6 +14438,7 @@ def build_read_only_dashboard_shell(
     residual_operator_handoff_packet_report: dict[str, Any] | None = None,
     residual_operator_execution_guide_report: dict[str, Any] | None = None,
     residual_operator_evidence_progress_report: dict[str, Any] | None = None,
+    residual_operator_evidence_completion_acceptance_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_review_cards_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_intake_preflight_report: dict[str, Any] | None = None,
     residual_operator_reconciliation_submission_manifest_preflight_report: dict[str, Any] | None = None,
@@ -14253,6 +14489,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_handoff_packet": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
         "residual_operator_execution_guide": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
         "residual_operator_evidence_progress": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+        "residual_operator_evidence_completion_acceptance": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json",
         "residual_operator_reconciliation_review_cards": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
         "residual_operator_reconciliation_intake_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
         "residual_operator_reconciliation_submission_manifest_preflight": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
@@ -14361,6 +14598,43 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 evidence_progress_freshness,
+            )
+        )
+    if isinstance(residual_operator_evidence_completion_acceptance_report, dict):
+        completion_acceptance_freshness = (
+            "PASS"
+            if residual_operator_evidence_completion_acceptance_report.get("schema_id")
+            == "trader1.residual_operator_evidence_run_preflight_report.v1"
+            and residual_operator_evidence_completion_acceptance_report.get("preflight_status")
+            == "NON_LIVE_OPERATOR_RUN_PRECHECK_PASS"
+            and residual_operator_evidence_completion_acceptance_report.get("validation_status") == "PASS"
+            and residual_operator_evidence_completion_acceptance_report.get("operator_completion_acceptance_status")
+            == "PENDING_OPERATOR_RUNTIME_EVIDENCE"
+            and residual_operator_evidence_completion_acceptance_report.get("operator_completion_acceptance_count") == 12
+            and residual_operator_evidence_completion_acceptance_report.get("operator_completion_acceptance_pending_count") == 12
+            and residual_operator_evidence_completion_acceptance_report.get("non_live_operator_command_preflight_passed") is True
+            and residual_operator_evidence_completion_acceptance_report.get("command_executed_by_this_patch") is False
+            and residual_operator_evidence_completion_acceptance_report.get("operator_run_started_by_this_patch") is False
+            and residual_operator_evidence_completion_acceptance_report.get("operator_run_completed_by_this_patch") is False
+            and residual_operator_evidence_completion_acceptance_report.get("operator_run_evidence_ready_for_mvp5") is False
+            and residual_operator_evidence_completion_acceptance_report.get("mvp5_entry_blocked_until_operator_evidence") is True
+            and residual_operator_evidence_completion_acceptance_report.get("current_evidence_write_allowed") is False
+            and residual_operator_evidence_completion_acceptance_report.get("gap_closure_allowed_by_this_patch") is False
+            and residual_operator_evidence_completion_acceptance_report.get("live_config_mutation_allowed") is False
+            and residual_operator_evidence_completion_acceptance_report.get("live_ready_write_allowed") is False
+            and residual_operator_evidence_completion_acceptance_report.get("live_order_allowed") is False
+            and residual_operator_evidence_completion_acceptance_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE",
+                paths.get(
+                    "residual_operator_evidence_completion_acceptance",
+                    "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json",
+                ),
+                True,
+                completion_acceptance_freshness,
             )
         )
     if isinstance(residual_operator_reconciliation_review_cards_report, dict):
@@ -15677,6 +15951,9 @@ def build_read_only_dashboard_shell(
     residual_operator_evidence_progress = _residual_operator_evidence_progress_summary(
         residual_operator_evidence_progress_report
     )
+    residual_operator_evidence_completion_acceptance = _residual_operator_evidence_completion_acceptance_summary(
+        residual_operator_evidence_completion_acceptance_report
+    )
     residual_operator_reconciliation_review_cards = _residual_operator_reconciliation_review_cards_summary(
         residual_operator_reconciliation_review_cards_report
     )
@@ -15764,6 +16041,7 @@ def build_read_only_dashboard_shell(
         "residual_operator_handoff_packet": residual_operator_handoff_packet,
         "residual_operator_execution_guide": residual_operator_execution_guide,
         "residual_operator_evidence_progress": residual_operator_evidence_progress,
+        "residual_operator_evidence_completion_acceptance": residual_operator_evidence_completion_acceptance,
         "residual_operator_reconciliation_review_cards": residual_operator_reconciliation_review_cards,
         "residual_operator_reconciliation_intake_preflight": residual_operator_reconciliation_intake_preflight,
         "residual_operator_reconciliation_submission_manifest_preflight": residual_operator_reconciliation_submission_manifest_preflight,
@@ -16204,6 +16482,39 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                         "action_class",
                         "label",
                         "path_status",
+                    )
+                )
+    residual_completion_acceptance = shell.get("residual_operator_evidence_completion_acceptance", {})
+    if isinstance(residual_completion_acceptance, dict):
+        values.extend(
+            str(residual_completion_acceptance.get(key, ""))
+            for key in (
+                "title",
+                "status",
+                "source_status",
+                "preflight_status",
+                "acceptance_status",
+                "completion_gate_count",
+                "completion_pending_count",
+                "first_pending_gate_id",
+                "first_pending_gate_validator",
+                "one_line_summary",
+                "primary_next_action",
+            )
+        )
+        for item in residual_completion_acceptance.get("completion_gate_breakdown_items", []):
+            if isinstance(item, dict):
+                values.extend(str(item.get(key, "")) for key in ("label", "count", "status"))
+        for item in residual_completion_acceptance.get("pending_gate_preview", []):
+            if isinstance(item, dict):
+                values.extend(
+                    str(item.get(key, ""))
+                    for key in (
+                        "acceptance_id",
+                        "acceptance_kind",
+                        "responsible_validator_id",
+                        "current_preflight_status",
+                        "required_after_operator_run",
                     )
                 )
     residual_reconciliation_review = shell.get("residual_operator_reconciliation_review_cards", {})
@@ -17148,6 +17459,79 @@ def validate_read_only_dashboard_shell(
         for item in status_items + preview_items + decision_items:
             if not isinstance(item, dict):
                 return DashboardValidationResult("FAIL", "residual evidence progress items must be objects", "SCHEMA_IDENTITY_MISMATCH")
+
+    residual_completion_acceptance = shell.get("residual_operator_evidence_completion_acceptance")
+    if not isinstance(residual_completion_acceptance, dict):
+        return DashboardValidationResult("FAIL", "dashboard residual operator evidence completion acceptance summary missing", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        residual_completion_acceptance.get("display_only") is not True
+        or residual_completion_acceptance.get("dashboard_truth_only") is not True
+    ):
+        return DashboardValidationResult("BLOCKED", "residual completion acceptance summary must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        residual_completion_acceptance.get("live_order_ready")
+        or residual_completion_acceptance.get("live_order_allowed")
+        or residual_completion_acceptance.get("can_live_trade")
+        or residual_completion_acceptance.get("scale_up_allowed")
+        or residual_completion_acceptance.get("operator_run_started_by_this_patch")
+        or residual_completion_acceptance.get("operator_run_completed_by_this_patch")
+        or residual_completion_acceptance.get("operator_run_evidence_ready_for_mvp5")
+        or residual_completion_acceptance.get("command_executed_by_this_patch")
+        or residual_completion_acceptance.get("credential_values_read")
+        or residual_completion_acceptance.get("credential_environment_inspection_performed")
+        or residual_completion_acceptance.get("current_evidence_write_allowed")
+        or residual_completion_acceptance.get("gap_closure_allowed_by_this_patch")
+        or residual_completion_acceptance.get("live_config_mutation_allowed")
+        or residual_completion_acceptance.get("live_ready_write_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "residual completion acceptance attempted runtime, credential, closure, current-evidence, live, LIVE_READY, or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if residual_completion_acceptance.get("source") != RESIDUAL_EVIDENCE_COMPLETION_ACCEPTANCE_SOURCE:
+        return DashboardValidationResult("FAIL", "residual completion acceptance source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_completion_acceptance.get("status") not in {"NOT_LOADED", "PENDING_OPERATOR_RUNTIME_EVIDENCE", "INVALID"}:
+        return DashboardValidationResult("FAIL", "residual completion acceptance status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if residual_completion_acceptance.get("source_status") == "LOADED":
+        if residual_completion_acceptance.get("status") == "INVALID":
+            return DashboardValidationResult("BLOCKED", "invalid completion acceptance must remain fail-closed", "LIVE_FINAL_GUARD_FAILED")
+        if residual_completion_acceptance.get("status") != "PENDING_OPERATOR_RUNTIME_EVIDENCE":
+            return DashboardValidationResult("BLOCKED", "loaded completion acceptance must remain pending until operator runtime validators pass", "HARD_TRUTH_MISSING")
+        if residual_completion_acceptance.get("open_gap_count") != open_gap_count:
+            return DashboardValidationResult("FAIL", "residual completion acceptance open gap count must match action plan", "CONTRACT_GAP_HIGH")
+        if residual_completion_acceptance.get("preflight_status") != "NON_LIVE_OPERATOR_RUN_PRECHECK_PASS":
+            return DashboardValidationResult("FAIL", "residual completion acceptance preflight status must remain non-live PASS", "SCHEMA_IDENTITY_MISMATCH")
+        if residual_completion_acceptance.get("acceptance_status") != "PENDING_OPERATOR_RUNTIME_EVIDENCE":
+            return DashboardValidationResult("BLOCKED", "residual completion acceptance cannot claim completion without operator runtime evidence", "HARD_TRUTH_MISSING")
+        if (
+            residual_completion_acceptance.get("completion_gate_count") != 12
+            or residual_completion_acceptance.get("completion_pending_count") != 12
+            or residual_completion_acceptance.get("completion_accepted_count") != 0
+            or residual_completion_acceptance.get("completion_artifact_gate_count") != 5
+            or residual_completion_acceptance.get("completion_validator_gate_count") != 6
+            or residual_completion_acceptance.get("completion_safety_invariant_gate_count") != 1
+            or residual_completion_acceptance.get("expected_runtime_artifact_count") != 5
+            or residual_completion_acceptance.get("required_validator_count") != 6
+        ):
+            return DashboardValidationResult("FAIL", "residual completion acceptance gate counts drifted", "CONTRACT_GAP_HIGH")
+        if residual_completion_acceptance.get("mvp5_entry_blocked_until_operator_evidence") is not True:
+            return DashboardValidationResult("BLOCKED", "residual completion acceptance must keep MVP-5 blocked", "HARD_TRUTH_MISSING")
+        if residual_completion_acceptance.get("non_live_operator_command_preflight_passed") is not True:
+            return DashboardValidationResult("FAIL", "residual completion acceptance must bind the non-live command preflight", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(residual_completion_acceptance.get("first_pending_gate_id"), str) or not residual_completion_acceptance.get("first_pending_gate_id"):
+            return DashboardValidationResult("FAIL", "residual completion acceptance must expose the first pending gate", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(residual_completion_acceptance.get("first_pending_gate_validator"), str) or not residual_completion_acceptance.get("first_pending_gate_validator"):
+            return DashboardValidationResult("FAIL", "residual completion acceptance must expose the first pending validator", "SCHEMA_IDENTITY_MISMATCH")
+        breakdown_items = residual_completion_acceptance.get("completion_gate_breakdown_items")
+        pending_preview = residual_completion_acceptance.get("pending_gate_preview")
+        if not isinstance(breakdown_items, list) or len(breakdown_items) != 3:
+            return DashboardValidationResult("FAIL", "completion acceptance must expose artifact, validator, and safety gate counts", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(pending_preview, list) or len(pending_preview) < 4:
+            return DashboardValidationResult("FAIL", "completion acceptance must expose pending gate preview", "SCHEMA_IDENTITY_MISMATCH")
+        for item in breakdown_items + pending_preview:
+            if not isinstance(item, dict):
+                return DashboardValidationResult("FAIL", "completion acceptance preview items must be objects", "SCHEMA_IDENTITY_MISMATCH")
+        source_ids = {source.get("artifact_id"): source for source in source_artifacts if isinstance(source, dict)}
+        completion_source = source_ids.get("RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE")
+        if not isinstance(completion_source, dict) or completion_source.get("freshness_status") != "PASS":
+            return DashboardValidationResult("BLOCKED", "completion acceptance source must be loaded as fresh dashboard evidence", "HARD_TRUTH_MISSING")
 
     residual_reconciliation_review = shell.get("residual_operator_reconciliation_review_cards")
     if not isinstance(residual_reconciliation_review, dict):
@@ -22925,6 +23309,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     residual_evidence_progress = shell.get("residual_operator_evidence_progress", {})
     if not isinstance(residual_evidence_progress, dict):
         residual_evidence_progress = {}
+    residual_completion_acceptance = shell.get("residual_operator_evidence_completion_acceptance", {})
+    if not isinstance(residual_completion_acceptance, dict):
+        residual_completion_acceptance = {}
     residual_priority = shell.get("residual_operator_priority", {})
     if not isinstance(residual_priority, dict):
         residual_priority = {}
@@ -23197,6 +23584,51 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             f'<div class="live-blocker-group"><strong>Local</strong><span>local-runtime={safe_text(local_runtime_count)}</span></div>'
             f'<div class="live-blocker-group"><strong>Command</strong><span>{safe_text(local_command_count)} local PAPER/SHADOW command</span></div>'
             f'<div class="live-blocker-group"><strong>Observation</strong><span>{safe_text(evidence_observation_label)}</span></div>'
+            "</section>"
+        )
+    residual_completion_acceptance_html = ""
+    if residual_completion_acceptance.get("source_status") == "LOADED":
+        completion_gate_count = residual_completion_acceptance.get("completion_gate_count", 0)
+        completion_pending_count = residual_completion_acceptance.get("completion_pending_count", 0)
+        completion_artifact_count = residual_completion_acceptance.get("completion_artifact_gate_count", 0)
+        completion_validator_count = residual_completion_acceptance.get("completion_validator_gate_count", 0)
+        completion_safety_count = residual_completion_acceptance.get("completion_safety_invariant_gate_count", 0)
+        first_pending_gate = residual_completion_acceptance.get("first_pending_gate_id", "UNKNOWN")
+        first_pending_validator = residual_completion_acceptance.get("first_pending_gate_validator", "UNKNOWN")
+        first_pending_message = residual_completion_acceptance.get(
+            "first_pending_gate_message",
+            "Fresh runtime artifact and validator PASS are still required.",
+        )
+        residual_completion_acceptance_html = (
+            '<p class="live-blocker-note"><strong>PAPER/SHADOW completion:</strong> '
+            + safe_text(
+                residual_completion_acceptance.get(
+                    "one_line_summary",
+                    "PAPER/SHADOW completion acceptance remains pending.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>Completion next:</strong> '
+            + safe_text(
+                residual_completion_acceptance.get(
+                    "primary_next_action",
+                    "Run PAPER/SHADOW, then rerun listed validators.",
+                )
+            )
+            + "</p>"
+            '<p class="live-blocker-note"><strong>First pending gate:</strong> '
+            + safe_text(first_pending_gate)
+            + "; validator="
+            + safe_text(first_pending_validator)
+            + ".</p>"
+            '<p class="live-blocker-note">'
+            + safe_text(first_pending_message)
+            + "</p>"
+            '<section class="live-blocker-groups" aria-label="operator completion acceptance counts">'
+            f'<div class="live-blocker-group"><strong>Gates</strong><span>{safe_text(completion_pending_count)}/{safe_text(completion_gate_count)} pending</span></div>'
+            f'<div class="live-blocker-group"><strong>Artifacts</strong><span>{safe_text(completion_artifact_count)} required</span></div>'
+            f'<div class="live-blocker-group"><strong>Validators</strong><span>{safe_text(completion_validator_count)} PASS required</span></div>'
+            f'<div class="live-blocker-group"><strong>Safety</strong><span>{safe_text(completion_safety_count)} invariant</span></div>'
             "</section>"
         )
     residual_reconciliation_review = shell.get("residual_operator_reconciliation_review_cards", {})
@@ -24000,6 +24432,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="live-blocker-note">""" + safe_text(handoff_primary_next_action) + """</p>
         """ + residual_execution_guide_html + """
         """ + residual_evidence_progress_html + """
+        """ + residual_completion_acceptance_html + """
         """ + residual_reconciliation_review_html + """
         """ + residual_reconciliation_intake_html + """
         """ + residual_manifest_preflight_html + """

@@ -112,6 +112,7 @@
             "RESIDUAL_OPERATOR_HANDOFF_PACKET",
             "RESIDUAL_OPERATOR_EXECUTION_GUIDE",
             "RESIDUAL_OPERATOR_EVIDENCE_PROGRESS",
+            "RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE",
             "RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS",
             "RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT",
             "RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT",
@@ -161,6 +162,7 @@
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
             "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
+            "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json",
             "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_REVIEW_CARDS.report.json",
             "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_INTAKE_PREFLIGHT.report.json",
             "MVP4_RESIDUAL_OPERATOR_RECONCILIATION_SUBMISSION_MANIFEST_PREFLIGHT.report.json",
@@ -3872,6 +3874,274 @@
         },
         "dashboard_truth_only": {
           "const": true
+        },
+        "current_evidence_write_allowed": {
+          "const": false
+        },
+        "gap_closure_allowed_by_this_patch": {
+          "const": false
+        },
+        "live_config_mutation_allowed": {
+          "const": false
+        },
+        "live_ready_write_allowed": {
+          "const": false
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "residual_operator_evidence_completion_acceptance": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "source",
+        "source_status",
+        "open_gap_count",
+        "command_id",
+        "preflight_status",
+        "acceptance_status",
+        "completion_gate_count",
+        "completion_pending_count",
+        "completion_accepted_count",
+        "completion_artifact_gate_count",
+        "completion_validator_gate_count",
+        "completion_safety_invariant_gate_count",
+        "expected_runtime_artifact_count",
+        "required_validator_count",
+        "first_pending_gate_id",
+        "first_pending_gate_kind",
+        "first_pending_gate_validator",
+        "first_pending_gate_message",
+        "mvp5_entry_blocked_until_operator_evidence",
+        "operator_run_started_by_this_patch",
+        "operator_run_completed_by_this_patch",
+        "operator_run_evidence_ready_for_mvp5",
+        "command_executed_by_this_patch",
+        "non_live_operator_command_preflight_passed",
+        "one_line_summary",
+        "primary_next_action",
+        "completion_gate_breakdown_items",
+        "pending_gate_preview",
+        "display_only",
+        "dashboard_truth_only",
+        "credential_values_read",
+        "credential_environment_inspection_performed",
+        "current_evidence_write_allowed",
+        "gap_closure_allowed_by_this_patch",
+        "live_config_mutation_allowed",
+        "live_ready_write_allowed",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "PAPER/SHADOW Completion Acceptance"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "PENDING_OPERATOR_RUNTIME_EVIDENCE",
+            "INVALID"
+          ]
+        },
+        "source": {
+          "const": "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json"
+        },
+        "source_status": {
+          "enum": [
+            "LOADED",
+            "NOT_LOADED"
+          ]
+        },
+        "open_gap_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "command_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preflight_status": {
+          "enum": [
+            "NOT_LOADED",
+            "NON_LIVE_OPERATOR_RUN_PRECHECK_PASS",
+            "INVALID"
+          ]
+        },
+        "acceptance_status": {
+          "enum": [
+            "NOT_LOADED",
+            "PENDING_OPERATOR_RUNTIME_EVIDENCE",
+            "INVALID"
+          ]
+        },
+        "completion_gate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_pending_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_accepted_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_artifact_gate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_validator_gate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_safety_invariant_gate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_runtime_artifact_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_validator_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_pending_gate_id": {
+          "type": "string"
+        },
+        "first_pending_gate_kind": {
+          "type": "string"
+        },
+        "first_pending_gate_validator": {
+          "type": "string"
+        },
+        "first_pending_gate_message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mvp5_entry_blocked_until_operator_evidence": {
+          "const": true
+        },
+        "operator_run_started_by_this_patch": {
+          "const": false
+        },
+        "operator_run_completed_by_this_patch": {
+          "const": false
+        },
+        "operator_run_evidence_ready_for_mvp5": {
+          "const": false
+        },
+        "command_executed_by_this_patch": {
+          "const": false
+        },
+        "non_live_operator_command_preflight_passed": {
+          "type": "boolean"
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primary_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "completion_gate_breakdown_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "label",
+              "count",
+              "status"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "status": {
+                "enum": [
+                  "PENDING_OPERATOR_RUNTIME_EVIDENCE"
+                ]
+              }
+            }
+          }
+        },
+        "pending_gate_preview": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "acceptance_id",
+              "acceptance_kind",
+              "responsible_validator_id",
+              "current_preflight_status",
+              "required_after_operator_run",
+              "blocks_mvp5_entry_until_pass"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "acceptance_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "acceptance_kind": {
+                "enum": [
+                  "RUNTIME_ARTIFACT",
+                  "VALIDATOR",
+                  "SAFETY_INVARIANT"
+                ]
+              },
+              "responsible_validator_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "current_preflight_status": {
+                "type": "string",
+                "minLength": 1
+              },
+              "required_after_operator_run": {
+                "type": "string",
+                "minLength": 1
+              },
+              "blocks_mvp5_entry_until_pass": {
+                "const": true
+              }
+            }
+          }
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "credential_values_read": {
+          "const": false
+        },
+        "credential_environment_inspection_performed": {
+          "const": false
         },
         "current_evidence_write_allowed": {
           "const": false
@@ -10359,7 +10629,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 37,
+      "maxItems": 38,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -10417,6 +10687,9 @@
     },
     "residual_operator_evidence_progress": {
       "$ref": "#/$defs/residual_operator_evidence_progress"
+    },
+    "residual_operator_evidence_completion_acceptance": {
+      "$ref": "#/$defs/residual_operator_evidence_completion_acceptance"
     },
     "residual_operator_reconciliation_review_cards": {
       "$ref": "#/$defs/residual_operator_reconciliation_review_cards"
