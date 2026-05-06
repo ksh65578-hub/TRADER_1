@@ -1,0 +1,47 @@
+{
+  "patch_id": "MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_20260506_001",
+  "generated_at_utc": "2026-05-06T05:06:56Z",
+  "status": "PASS",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "accepted_checks": [
+    "PAPER current-truth refresh report binds to the ledger-backed paper portfolio snapshot hash",
+    "refresh report distinguishes configured starting cash from verified cash, locked cash, position market value, equity, PnL, and return",
+    "stale display-only snapshot is not reclassified as fresh current truth without a fresh refresh report",
+    "launcher attempts audited current-evidence writing only for scoped UPBIT/KRW_SPOT/PAPER and only after ledger/idempotency/reconciliation checks pass",
+    "dashboard source artifacts include paper_current_truth_refresh_report.json with freshness and validation state",
+    "live_order_ready, live_order_allowed, can_live_trade, scale_up_allowed, LIVE_READY write, live config mutation, credential load, and order calls remain false",
+    "open contract gap count remains 13; broad external/operator reconciliation route remains active"
+  ],
+  "test_status_counts": {
+    "PASS": 5
+  },
+  "validator_status_counts": {
+    "PASS": 9
+  },
+  "blockers_precisely_narrowed": [
+    "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED is no longer the correct diagnosis for the scoped PAPER refresh implementation path",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED remains open until residual reconciliation/operator evidence is valid for the broader closure route"
+  ],
+  "open_contract_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
