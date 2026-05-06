@@ -1,0 +1,11 @@
+{
+  "patch_id": "MVP4_PAPER_CONTINUOUS_CURRENT_TRUTH_WRITER_STATUS_20260506_001",
+  "generated_at_utc": "2026-05-06T09:37:56Z",
+  "new_paper_run_started_by_this_patch": false,
+  "continuous_current_evidence_writer_status_report_implemented": true,
+  "runtime_evidence_claimed_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

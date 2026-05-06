@@ -80,6 +80,14 @@ from trader1.runtime.portfolio.paper_current_truth_refresh import (
     PAPER_CURRENT_TRUTH_REFRESH_PASS_STATUS,
     validate_paper_current_truth_refresh_report,
 )
+from trader1.runtime.portfolio.paper_continuous_current_evidence_writer import (
+    PAPER_CONTINUOUS_WRITER_IMPLEMENTED_BLOCKED_STATUS,
+    PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS,
+    PAPER_CONTINUOUS_WRITER_STALE_STATUS,
+    PAPER_CONTINUOUS_WRITER_WRITING_STATUS,
+    PAPER_CONTINUOUS_WRITER_TRUTH_ROLE,
+    validate_paper_continuous_current_evidence_writer_report,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
 from trader1.runtime.paper.paper_runtime_truth_state import (
     MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS,
@@ -126,6 +134,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_repaired_current_evidence_audited_writer_report.json",
     "audited_current_evidence_snapshot.json",
     "paper_current_truth_refresh_report.json",
+    "paper_continuous_current_evidence_writer_report.json",
     "paper_runtime_truth_state_report.json",
     "paper_portfolio_snapshot.json",
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
@@ -326,6 +335,7 @@ PORTFOLIO_RUNTIME_CONTINUITY_STATUSES = {
     "NO_CURRENT_RUNTIME_PROOF",
 }
 AUDITED_WRITER_LIFECYCLE_STATUSES = {
+    "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_ACTIVE",
     "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED",
     "AUDITED_WRITER_INPUTS_BLOCKED",
     "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
@@ -349,6 +359,8 @@ AUDITED_WRITER_READINESS_LADDER_OVERALL_STATUSES = {
     "BLOCKED_INPUTS",
     "STALE_SINGLE_RUN_SNAPSHOT",
     "BLOCKED_CONTINUOUS_WRITER",
+    "CONTINUOUS_WRITER_ACTIVE",
+    "CONTINUOUS_WRITER_STALE",
 }
 AUDITED_WRITER_ACTIVATION_PREFLIGHT_STAGE_IDS = (
     "PRECHECK_REPORT",
@@ -372,6 +384,8 @@ AUDITED_WRITER_ACTIVATION_PREFLIGHT_OVERALL_STATUSES = {
     "REVIEW_CHAIN_BLOCKED",
     "SNAPSHOT_ONLY_SOURCE_CHAIN_PARTIAL",
     "SNAPSHOT_ONLY_CONTINUOUS_WRITER_BLOCKED",
+    "CONTINUOUS_WRITER_ACTIVE",
+    "CONTINUOUS_WRITER_STALE",
     "INVALID_DRIFT",
 }
 AUDITED_WRITER_BLOCKER_DECISION_STATUSES = {
@@ -379,18 +393,23 @@ AUDITED_WRITER_BLOCKER_DECISION_STATUSES = {
     "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER",
     "BLOCKED_INPUTS",
     "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED",
+    "CONTINUOUS_WRITER_ACTIVE_PAPER_ONLY",
+    "CONTINUOUS_WRITER_STALE_DISPLAY_ONLY",
     "INVALID_DRIFT",
 }
 AUDITED_WRITER_BLOCKER_DECISION_CODES = {
     "NO_AUDITED_WRITER_EVIDENCE",
     "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
     "CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED",
+    "LIVE_READY_MISSING",
+    "STALE_CURRENT_TRUTH",
     "LIVE_FINAL_GUARD_FAILED",
 }
 AUDITED_WRITER_BLOCKER_TRUTH_CLASSES = {
     "CONFIGURED_PAPER_BASELINE_ONLY",
     "SUMMARY_LEDGER_DISPLAY_ONLY",
     "SINGLE_RUN_AUDITED_PAPER_SNAPSHOT_DISPLAY_ONLY",
+    "CONTINUOUS_PAPER_CURRENT_EVIDENCE_DISPLAY_ONLY",
     "INVALID_OR_DRIFTED_WRITER_EVIDENCE",
 }
 SOURCE_FRESHNESS_MAX_AGE_SECONDS = 300
@@ -1071,9 +1090,60 @@ def _audited_writer_readiness_ladder_step_policy(
         if status == "BLOCKED":
             return ("CRITICAL_BLOCKER", "CODEX_NON_LIVE", False, True, True, True)
         return ("WARNING", "CODEX_NON_LIVE", False, False, False, False)
+    if step_id == "CONTINUOUS_CURRENT_EVIDENCE_WRITER" and status == "STALE":
+        return ("WARNING", "CODEX_NON_LIVE", False, True, False, False)
     if step_id == "SOURCE_GUARD_CLEAN" and status == "BLOCKED":
         return ("CRITICAL_BLOCKER", "OPERATOR", True, True, True, True)
     return ("CRITICAL_BLOCKER", "CODEX_NON_LIVE", False, True, True, True)
+
+
+def _continuous_current_evidence_writer_step(
+    report: dict[str, Any] | None,
+) -> tuple[str, str, str, str]:
+    source = "paper_continuous_current_evidence_writer_report.json" if isinstance(report, dict) else "NOT_LOADED"
+    if not isinstance(report, dict):
+        return (
+            "MISSING",
+            source,
+            "Continuous current-evidence writer status report is not loaded.",
+            "Run the scoped PAPER launcher so the continuous writer status can be derived from audited PAPER sources.",
+        )
+    result = validate_paper_continuous_current_evidence_writer_report(report)
+    status = str(report.get("continuous_writer_status") or PAPER_CONTINUOUS_WRITER_IMPLEMENTED_BLOCKED_STATUS)
+    if result.status == "FAIL":
+        return (
+            "BLOCKED",
+            source,
+            "Continuous current-evidence writer report failed schema or hash validation.",
+            "Regenerate the PAPER continuous writer status report before trusting current evidence.",
+        )
+    if status == PAPER_CONTINUOUS_WRITER_WRITING_STATUS and result.status == "PASS":
+        return (
+            "PASS",
+            source,
+            "Continuous PAPER current-evidence writer is implemented and writing fresh audited PAPER truth.",
+            "Use this as PAPER dashboard truth only; live orders, LIVE_READY, and scale-up remain blocked.",
+        )
+    if status == PAPER_CONTINUOUS_WRITER_STALE_STATUS:
+        return (
+            "STALE",
+            source,
+            "Continuous PAPER current-evidence writer is implemented, but the output is stale display-only truth.",
+            str(report.get("next_action") or "Regenerate PAPER current truth before current review."),
+        )
+    if status == PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS:
+        return (
+            "MISSING",
+            source,
+            "Continuous writer status report loaded, but no source audited writer output is loaded.",
+            str(report.get("next_action") or "Run the PAPER launcher to create audited writer source output."),
+        )
+    return (
+        "BLOCKED",
+        source,
+        "Continuous PAPER current-evidence writer is implemented but blocked by source validation.",
+        str(report.get("next_action") or "Resolve the listed PAPER source blocker before current review."),
+    )
 
 
 def _audited_writer_readiness_ladder(
@@ -1081,6 +1151,7 @@ def _audited_writer_readiness_ladder(
     lifecycle_status: str,
     snapshot_stale: bool = False,
     source_snapshot_status: str | None = None,
+    continuous_current_evidence_writer_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_guard_status = "PASS" if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED" else "MISSING"
     precheck_status = source_guard_status
@@ -1100,9 +1171,16 @@ def _audited_writer_readiness_ladder(
         snapshot_step_status = "STALE" if snapshot_stale else "PASS"
     elif source_snapshot_status == "BLOCKED":
         snapshot_step_status = "BLOCKED"
-    continuous_writer_status = "BLOCKED"
-    if lifecycle_status in {"SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER", "NO_AUDITED_WRITER_EVIDENCE"}:
-        continuous_writer_status = "MISSING"
+    (
+        continuous_writer_status,
+        continuous_writer_source,
+        continuous_writer_detail,
+        continuous_writer_next_action,
+    ) = _continuous_current_evidence_writer_step(continuous_current_evidence_writer_report)
+    if not isinstance(continuous_current_evidence_writer_report, dict):
+        continuous_writer_status = "BLOCKED"
+        if lifecycle_status in {"SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER", "NO_AUDITED_WRITER_EVIDENCE"}:
+            continuous_writer_status = "MISSING"
 
     steps = [
         _audited_writer_readiness_ladder_step(
@@ -1169,9 +1247,9 @@ def _audited_writer_readiness_ladder(
             "CONTINUOUS_CURRENT_EVIDENCE_WRITER",
             "Continuous current-evidence writer",
             continuous_writer_status,
-            "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
-            "Continuous audited current-evidence writing remains blocked and cannot be activated by the dashboard.",
-            "Resolve open reconciliation/operator evidence gaps before any future non-live writer activation review.",
+            continuous_writer_source if continuous_writer_status != "MISSING" else "NOT_LOADED",
+            continuous_writer_detail,
+            continuous_writer_next_action,
         ),
     ]
 
@@ -1204,7 +1282,11 @@ def _audited_writer_readiness_ladder(
     non_live_regeneration_blocker_count = sum(
         1 for step in steps if step["blocks_non_live_regeneration_until_pass"]
     )
-    if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
+    if continuous_writer_status == "PASS":
+        ladder_status = "CONTINUOUS_WRITER_ACTIVE"
+    elif continuous_writer_status == "STALE":
+        ladder_status = "CONTINUOUS_WRITER_STALE"
+    elif lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
         ladder_status = "STALE_SINGLE_RUN_SNAPSHOT" if snapshot_stale else "BLOCKED_CONTINUOUS_WRITER"
     elif lifecycle_status == "AUDITED_WRITER_INPUTS_BLOCKED":
         ladder_status = "BLOCKED_INPUTS"
@@ -1367,10 +1449,14 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
     if not first_critical_non_pass_seen and first_non_pass_seen:
         current_step_id = first_non_pass_step_id
     step_by_id = {step["step_id"]: step for step in steps if isinstance(step, dict)}
-    if step_by_id["CONTINUOUS_CURRENT_EVIDENCE_WRITER"].get("status") == "PASS":
+    continuous_step = step_by_id["CONTINUOUS_CURRENT_EVIDENCE_WRITER"]
+    if (
+        continuous_step.get("status") == "PASS"
+        and continuous_step.get("source") != "paper_continuous_current_evidence_writer_report.json"
+    ):
         return DashboardValidationResult(
             "BLOCKED",
-            "dashboard cannot claim continuous audited current-evidence writer PASS",
+            "dashboard cannot claim continuous audited current-evidence writer PASS without the status report",
             "LIVE_FINAL_GUARD_FAILED",
         )
     for step in steps:
@@ -1446,7 +1532,11 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
             "audited writer readiness ladder current step mismatch",
             "SCHEMA_IDENTITY_MISMATCH",
         )
-    if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
+    if step_by_id["CONTINUOUS_CURRENT_EVIDENCE_WRITER"].get("status") == "PASS":
+        expected_status = "CONTINUOUS_WRITER_ACTIVE"
+    elif step_by_id["CONTINUOUS_CURRENT_EVIDENCE_WRITER"].get("status") == "STALE":
+        expected_status = "CONTINUOUS_WRITER_STALE"
+    elif lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
         expected_status = (
             "STALE_SINGLE_RUN_SNAPSHOT"
             if portfolio.get("paper_value_truth_status") == "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
@@ -1604,8 +1694,32 @@ def _audited_writer_output_stage_from_summary(summary: dict[str, Any]) -> dict[s
 
 def _audited_writer_activation_preflight_matrix(
     reconciliation_recovery_summary: dict[str, Any] | None,
+    paper_continuous_current_evidence_writer_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     summary = reconciliation_recovery_summary if isinstance(reconciliation_recovery_summary, dict) else {}
+    (
+        continuous_step_status,
+        continuous_step_source,
+        continuous_step_detail,
+        _continuous_step_next_action,
+    ) = _continuous_current_evidence_writer_step(paper_continuous_current_evidence_writer_report)
+    continuous_stage_status = "BLOCKED"
+    continuous_validation_status = "BLOCKED"
+    continuous_primary_blocker = "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
+    continuous_pass_count = 0
+    if continuous_step_status == "PASS":
+        continuous_stage_status = "PASS_REVIEW_ONLY"
+        continuous_validation_status = "PASS"
+        continuous_primary_blocker = "LIVE_READY_MISSING"
+        continuous_pass_count = 1
+    elif continuous_step_status == "STALE":
+        continuous_stage_status = "BLOCKED_REVIEW_ONLY"
+        continuous_validation_status = "BLOCKED"
+        continuous_primary_blocker = "STALE_CURRENT_TRUTH"
+    elif continuous_step_status == "BLOCKED":
+        continuous_stage_status = "BLOCKED"
+        continuous_validation_status = "BLOCKED"
+        continuous_primary_blocker = "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
     stages = [
         _audited_writer_review_stage_from_summary(
             summary,
@@ -1666,13 +1780,17 @@ def _audited_writer_activation_preflight_matrix(
         _audited_writer_activation_preflight_stage(
             stage_id="CONTINUOUS_WRITER_LOOP",
             label="Continuous writer loop",
-            status="BLOCKED",
-            source="POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
-            validation_status="BLOCKED",
-            primary_blocker_code="POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
-            pass_count=0,
+            status=continuous_stage_status,
+            source=(
+                continuous_step_source
+                if continuous_step_source != "NOT_LOADED"
+                else "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
+            ),
+            validation_status=continuous_validation_status,
+            primary_blocker_code=continuous_primary_blocker,
+            pass_count=continuous_pass_count,
             total_count=1,
-            detail="Continuous audited current-evidence writing remains blocked and cannot be activated by the dashboard.",
+            detail=continuous_step_detail,
         ),
     ]
     loaded_count = sum(1 for stage in stages if stage["loaded"])
@@ -1685,8 +1803,14 @@ def _audited_writer_activation_preflight_matrix(
         "CONTINUOUS_WRITER_LOOP",
     )
     review_chain_complete = all(stage["status"] == "PASS_REVIEW_ONLY" for stage in stages[:4])
+    continuous_loop_active = stages[-1]["status"] == "PASS_REVIEW_ONLY"
+    continuous_loop_stale = stages[-1]["primary_blocker_code"] == "STALE_CURRENT_TRUTH"
     if invalid_count:
         overall_status = "INVALID_DRIFT"
+    elif continuous_loop_active and pass_snapshot_count and review_chain_complete:
+        overall_status = "CONTINUOUS_WRITER_ACTIVE"
+    elif continuous_loop_stale and pass_snapshot_count and review_chain_complete:
+        overall_status = "CONTINUOUS_WRITER_STALE"
     elif pass_snapshot_count and review_chain_complete:
         overall_status = "SNAPSHOT_ONLY_CONTINUOUS_WRITER_BLOCKED"
     elif pass_snapshot_count:
@@ -1697,24 +1821,23 @@ def _audited_writer_activation_preflight_matrix(
         overall_status = "REVIEW_CHAIN_BLOCKED"
     else:
         overall_status = "NO_CHAIN_LOADED"
-    primary_blocker_code = (
-        "LIVE_FINAL_GUARD_FAILED"
-        if overall_status == "INVALID_DRIFT"
-        else (
-            "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
-            if pass_snapshot_count
-            else (
-                next(
-                    (
-                        str(stage["primary_blocker_code"])
-                        for stage in stages
-                        if stage["primary_blocker_code"] not in {"NOT_LOADED", ""}
-                    ),
-                    "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
-                )
-            )
+    if overall_status == "INVALID_DRIFT":
+        primary_blocker_code = "LIVE_FINAL_GUARD_FAILED"
+    elif overall_status == "CONTINUOUS_WRITER_ACTIVE":
+        primary_blocker_code = "LIVE_READY_MISSING"
+    elif overall_status == "CONTINUOUS_WRITER_STALE":
+        primary_blocker_code = "STALE_CURRENT_TRUTH"
+    elif pass_snapshot_count:
+        primary_blocker_code = "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
+    else:
+        primary_blocker_code = next(
+            (
+                str(stage["primary_blocker_code"])
+                for stage in stages
+                if stage["primary_blocker_code"] not in {"NOT_LOADED", ""}
+            ),
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
         )
-    )
     return {
         "audited_writer_activation_preflight_status": overall_status,
         "audited_writer_activation_preflight_current_stage_id": str(first_blocking_stage),
@@ -1743,8 +1866,14 @@ def _audited_writer_activation_preflight_matrix(
 def _attach_audited_writer_activation_preflight(
     portfolio: dict[str, Any],
     reconciliation_recovery_summary: dict[str, Any] | None,
+    paper_continuous_current_evidence_writer_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    portfolio.update(_audited_writer_activation_preflight_matrix(reconciliation_recovery_summary))
+    portfolio.update(
+        _audited_writer_activation_preflight_matrix(
+            reconciliation_recovery_summary,
+            paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
+        )
+    )
     portfolio.update(_audited_writer_blocker_decision(portfolio))
     return portfolio
 
@@ -1888,10 +2017,19 @@ def _validate_audited_writer_activation_preflight_matrix(
             if not first_blocking_seen:
                 first_blocking_stage = str(stage["stage_id"])
                 first_blocking_seen = True
-    if stages[-1].get("stage_id") != "CONTINUOUS_WRITER_LOOP" or stages[-1].get("status") != "BLOCKED":
+    if stages[-1].get("stage_id") != "CONTINUOUS_WRITER_LOOP":
         return DashboardValidationResult(
             "BLOCKED",
-            "dashboard cannot claim continuous writer loop is unblocked",
+            "dashboard continuous writer loop stage is missing or reordered",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    if (
+        stages[-1].get("status") == "PASS_REVIEW_ONLY"
+        and stages[-1].get("source") != "paper_continuous_current_evidence_writer_report.json"
+    ):
+        return DashboardValidationResult(
+            "BLOCKED",
+            "dashboard cannot claim continuous writer loop PASS without the status report",
             "LIVE_FINAL_GUARD_FAILED",
         )
     if (
@@ -1907,8 +2045,14 @@ def _validate_audited_writer_activation_preflight_matrix(
             "SCHEMA_IDENTITY_MISMATCH",
         )
     review_chain_complete = all(stage["status"] == "PASS_REVIEW_ONLY" for stage in stages[:4])
+    continuous_loop_active = stages[-1]["status"] == "PASS_REVIEW_ONLY"
+    continuous_loop_stale = stages[-1]["primary_blocker_code"] == "STALE_CURRENT_TRUTH"
     if invalid_count:
         expected_status = "INVALID_DRIFT"
+    elif continuous_loop_active and pass_snapshot_count and review_chain_complete:
+        expected_status = "CONTINUOUS_WRITER_ACTIVE"
+    elif continuous_loop_stale and pass_snapshot_count and review_chain_complete:
+        expected_status = "CONTINUOUS_WRITER_STALE"
     elif pass_snapshot_count and review_chain_complete:
         expected_status = "SNAPSHOT_ONLY_CONTINUOUS_WRITER_BLOCKED"
     elif pass_snapshot_count:
@@ -1923,6 +2067,29 @@ def _validate_audited_writer_activation_preflight_matrix(
         return DashboardValidationResult(
             "FAIL",
             "audited writer activation preflight status drifted from stage states",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    expected_primary = (
+        "LIVE_READY_MISSING"
+        if expected_status == "CONTINUOUS_WRITER_ACTIVE"
+        else (
+            "STALE_CURRENT_TRUTH"
+            if expected_status == "CONTINUOUS_WRITER_STALE"
+            else (
+                "LIVE_FINAL_GUARD_FAILED"
+                if expected_status == "INVALID_DRIFT"
+                else (
+                    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED"
+                    if pass_snapshot_count
+                    else portfolio.get("audited_writer_activation_preflight_primary_blocker_code")
+                )
+            )
+        )
+    )
+    if portfolio.get("audited_writer_activation_preflight_primary_blocker_code") != expected_primary:
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer activation preflight primary blocker drifted from stage states",
             "SCHEMA_IDENTITY_MISMATCH",
         )
     return None
@@ -1944,6 +2111,7 @@ def _audited_writer_blocker_decision(portfolio: dict[str, Any]) -> dict[str, Any
     truth_class = "CONFIGURED_PAPER_BASELINE_ONLY"
     priority_rank = 4
     allows_single_run_display = False
+    blocks_continuous_current_evidence_write = True
     summary = "No audited current-evidence writer chain is loaded; configured PAPER baseline is display-only."
     next_action = "Load validated PAPER writer review artifacts before trusting current portfolio evidence."
 
@@ -1954,6 +2122,28 @@ def _audited_writer_blocker_decision(portfolio: dict[str, Any]) -> dict[str, Any
         priority_rank = 0
         summary = "Audited writer evidence drifted or attempted forbidden permission; all writer conclusions are blocked."
         next_action = "Reject the drifted writer evidence and regenerate the display-only review chain."
+    elif activation_status == "CONTINUOUS_WRITER_ACTIVE":
+        status = "CONTINUOUS_WRITER_ACTIVE_PAPER_ONLY"
+        decision_code = "LIVE_READY_MISSING"
+        truth_class = "CONTINUOUS_PAPER_CURRENT_EVIDENCE_DISPLAY_ONLY"
+        priority_rank = 5
+        allows_single_run_display = portfolio.get("source_snapshot_status") == "PASS"
+        blocks_continuous_current_evidence_write = False
+        summary = (
+            "Continuous PAPER current-evidence writer is active for audited PAPER display truth; live readiness, "
+            "orders, and scale-up remain blocked."
+        )
+        next_action = "Continue PAPER/SHADOW evidence collection; do not enable live or scale-up."
+    elif activation_status == "CONTINUOUS_WRITER_STALE":
+        status = "CONTINUOUS_WRITER_STALE_DISPLAY_ONLY"
+        decision_code = "STALE_CURRENT_TRUTH"
+        truth_class = "CONTINUOUS_PAPER_CURRENT_EVIDENCE_DISPLAY_ONLY"
+        priority_rank = 3
+        allows_single_run_display = portfolio.get("source_snapshot_status") == "PASS"
+        summary = (
+            "Continuous PAPER current-evidence writer is implemented, but the displayed audited PAPER truth is stale."
+        )
+        next_action = "Regenerate PAPER current truth before using portfolio values for current review."
     elif lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
         status = "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED"
         decision_code = "CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED"
@@ -2009,7 +2199,7 @@ def _audited_writer_blocker_decision(portfolio: dict[str, Any]) -> dict[str, Any
         "audited_writer_blocker_summary": summary,
         "audited_writer_blocker_next_action": next_action,
         "audited_writer_blocker_allows_single_run_paper_display": allows_single_run_display,
-        "audited_writer_blocker_blocks_continuous_current_evidence_write": True,
+        "audited_writer_blocker_blocks_continuous_current_evidence_write": blocks_continuous_current_evidence_write,
         "audited_writer_blocker_current_evidence_write_allowed": False,
         "audited_writer_blocker_portfolio_truth_write_allowed": False,
         "audited_writer_blocker_live_review_allowed": False,
@@ -2065,22 +2255,50 @@ def _validate_audited_writer_blocker_decision(portfolio: dict[str, Any]) -> Dash
                 "audited writer blocker decision attempted write, live, scale, or gap-closure permission",
                 "LIVE_FINAL_GUARD_FAILED",
             )
+    blocks_continuous = portfolio.get("audited_writer_blocker_blocks_continuous_current_evidence_write")
     if (
-        portfolio.get("audited_writer_blocker_blocks_continuous_current_evidence_write") is not True
+        not isinstance(blocks_continuous, bool)
         or portfolio.get("audited_writer_blocker_display_only") is not True
         or portfolio.get("audited_writer_blocker_dashboard_truth_only") is not True
     ):
         return DashboardValidationResult(
             "BLOCKED",
-            "audited writer blocker decision must remain display-only and continuous-writer blocked",
+            "audited writer blocker decision must remain display-only with explicit continuous-writer status",
             "LIVE_FINAL_GUARD_FAILED",
         )
-    if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
+    if activation_status == "CONTINUOUS_WRITER_ACTIVE":
+        if (
+            status != "CONTINUOUS_WRITER_ACTIVE_PAPER_ONLY"
+            or code != "LIVE_READY_MISSING"
+            or truth_class != "CONTINUOUS_PAPER_CURRENT_EVIDENCE_DISPLAY_ONLY"
+            or allows_single_run_display is not True
+            or blocks_continuous is not False
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "active continuous PAPER writer decision must stay PAPER-only and live blocked",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+    elif activation_status == "CONTINUOUS_WRITER_STALE":
+        if (
+            status != "CONTINUOUS_WRITER_STALE_DISPLAY_ONLY"
+            or code != "STALE_CURRENT_TRUTH"
+            or truth_class != "CONTINUOUS_PAPER_CURRENT_EVIDENCE_DISPLAY_ONLY"
+            or allows_single_run_display is not True
+            or blocks_continuous is not True
+        ):
+            return DashboardValidationResult(
+                "BLOCKED",
+                "stale continuous PAPER writer decision must remain display-only and refresh-blocked",
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+    elif lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
         if (
             status != "SNAPSHOT_DISPLAY_ONLY_CONTINUOUS_WRITER_BLOCKED"
             or code != "CONTINUOUS_CURRENT_EVIDENCE_WRITER_BLOCKED"
             or truth_class != "SINGLE_RUN_AUDITED_PAPER_SNAPSHOT_DISPLAY_ONLY"
             or allows_single_run_display is not True
+            or blocks_continuous is not True
             or portfolio.get("audited_writer_blocker_priority_rank") != 3
         ):
             return DashboardValidationResult(
@@ -2629,6 +2847,7 @@ def _paper_current_truth_refresh_portfolio_snapshot(
     session_id: str,
     summary: dict[str, Any] | None,
     paper_current_truth_refresh_report: dict[str, Any] | None,
+    paper_continuous_current_evidence_writer_report: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     if not isinstance(paper_current_truth_refresh_report, dict):
         return None
@@ -2805,6 +3024,7 @@ def _paper_current_truth_refresh_portfolio_snapshot(
             lifecycle_status="SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
             snapshot_stale=source_stale,
             source_snapshot_status="PASS",
+            continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
         )
     )
     for card_id in PORTFOLIO_CARD_IDS:
@@ -2911,6 +3131,7 @@ def _audited_current_evidence_portfolio_snapshot(
     audited_writer_report: dict[str, Any] | None,
     audited_current_evidence_snapshot: dict[str, Any] | None,
     audited_paper_portfolio_snapshot: dict[str, Any] | None,
+    paper_continuous_current_evidence_writer_report: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     provided = (
         isinstance(audited_writer_report, dict)
@@ -3133,6 +3354,7 @@ def _audited_current_evidence_portfolio_snapshot(
             lifecycle_status="AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED",
             snapshot_stale=audited_source_stale,
             source_snapshot_status="PASS",
+            continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
         )
     )
     for card_id in PORTFOLIO_CARD_IDS:
@@ -3305,6 +3527,7 @@ def _portfolio_snapshot(
     audited_current_evidence_snapshot: dict[str, Any] | None = None,
     audited_paper_portfolio_snapshot: dict[str, Any] | None = None,
     paper_current_truth_refresh_report: dict[str, Any] | None = None,
+    paper_continuous_current_evidence_writer_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     audited = _audited_current_evidence_portfolio_snapshot(
         exchange=exchange,
@@ -3315,9 +3538,14 @@ def _portfolio_snapshot(
         audited_writer_report=audited_writer_report,
         audited_current_evidence_snapshot=audited_current_evidence_snapshot,
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
+        paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
     )
     if audited is not None:
-        return _attach_audited_writer_activation_preflight(audited, reconciliation_recovery_summary)
+        return _attach_audited_writer_activation_preflight(
+            audited,
+            reconciliation_recovery_summary,
+            paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
+        )
     refreshed = _paper_current_truth_refresh_portfolio_snapshot(
         exchange=exchange,
         market_type=market_type,
@@ -3325,15 +3553,21 @@ def _portfolio_snapshot(
         session_id=session_id,
         summary=summary,
         paper_current_truth_refresh_report=paper_current_truth_refresh_report,
+        paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
     )
     if refreshed is not None and (
         refreshed.get("status") in {"VERIFIED", "BLOCKED"} or summary_freshness != "PASS"
     ):
-        return _attach_audited_writer_activation_preflight(refreshed, reconciliation_recovery_summary)
+        return _attach_audited_writer_activation_preflight(
+            refreshed,
+            reconciliation_recovery_summary,
+            paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
+        )
     if summary is not None and summary_freshness != "PASS":
         return _attach_audited_writer_activation_preflight(
             _stale_portfolio_snapshot(exchange, market_type, summary),
             reconciliation_recovery_summary,
+            paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
         )
     post_rerun_current_truth_blocked = isinstance(reconciliation_recovery_summary, dict) and (
         reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_status")
@@ -3363,7 +3597,11 @@ def _portfolio_snapshot(
     if mode == "PAPER" and isinstance(summary, dict) and not post_rerun_current_truth_blocked:
         verified = _verified_paper_portfolio_snapshot(exchange, market_type, summary)
         if verified is not None:
-            return _attach_audited_writer_activation_preflight(verified, reconciliation_recovery_summary)
+            return _attach_audited_writer_activation_preflight(
+                verified,
+                reconciliation_recovery_summary,
+                paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
+            )
     repair_path_current_truth_blocked = (
         isinstance(reconciliation_recovery_summary, dict)
         and reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_status")
@@ -3397,7 +3635,11 @@ def _portfolio_snapshot(
                 "Use these PAPER ledger values for dashboard review only; keep current-evidence writes, live orders, "
                 "and risk scale-up blocked until the reconciliation panel is resolved."
             )
-            return _attach_audited_writer_activation_preflight(verified, reconciliation_recovery_summary)
+            return _attach_audited_writer_activation_preflight(
+                verified,
+                reconciliation_recovery_summary,
+                paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
+            )
     configured_card = _configured_paper_capital_card(
         exchange,
         market_type,
@@ -3966,7 +4208,11 @@ def _portfolio_snapshot(
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
-    return _attach_audited_writer_activation_preflight(snapshot, reconciliation_recovery_summary)
+    return _attach_audited_writer_activation_preflight(
+        snapshot,
+        reconciliation_recovery_summary,
+        paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
+    )
 
 
 def _context_message(items: Any, fallback: str) -> str:
@@ -15477,6 +15723,7 @@ def build_read_only_dashboard_shell(
     audited_current_evidence_snapshot: dict[str, Any] | None = None,
     audited_paper_portfolio_snapshot: dict[str, Any] | None = None,
     paper_current_truth_refresh_report: dict[str, Any] | None = None,
+    paper_continuous_current_evidence_writer_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_persistent_loop_report: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
@@ -15539,6 +15786,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_repaired_current_evidence_audited_writer": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/upbit_paper_repaired_current_evidence_audited_writer_report.json",
         "audited_current_evidence_snapshot": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
         "paper_current_truth_refresh_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/current_evidence/paper_current_truth_refresh_report.json",
+        "paper_continuous_current_evidence_writer_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/current_evidence/paper_continuous_current_evidence_writer_report.json",
         "paper_runtime_truth_state_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/paper_runtime_truth_state_report.json",
         "audited_paper_portfolio_snapshot": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/portfolio/paper_portfolio_snapshot.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
@@ -15604,6 +15852,33 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 refresh_freshness,
+            )
+        )
+    if isinstance(paper_continuous_current_evidence_writer_report, dict):
+        continuous_writer_result = validate_paper_continuous_current_evidence_writer_report(
+            paper_continuous_current_evidence_writer_report
+        )
+        continuous_writer_freshness = (
+            "PASS"
+            if _freshness_from_generated_at(paper_continuous_current_evidence_writer_report) == "PASS"
+            and continuous_writer_result.status in {"PASS", "BLOCKED"}
+            and paper_continuous_current_evidence_writer_report.get("evidence_role")
+            == PAPER_CONTINUOUS_WRITER_TRUTH_ROLE
+            and paper_continuous_current_evidence_writer_report.get("live_order_ready") is False
+            and paper_continuous_current_evidence_writer_report.get("live_order_allowed") is False
+            and paper_continuous_current_evidence_writer_report.get("can_live_trade") is False
+            and paper_continuous_current_evidence_writer_report.get("scale_up_allowed") is False
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "PAPER_CONTINUOUS_CURRENT_EVIDENCE_WRITER",
+                paths.get(
+                    "paper_continuous_current_evidence_writer_report",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/current_evidence/paper_continuous_current_evidence_writer_report.json",
+                ),
+                True,
+                continuous_writer_freshness,
             )
         )
     if isinstance(paper_runtime_truth_state_report, dict):
@@ -16954,6 +17229,7 @@ def build_read_only_dashboard_shell(
         audited_current_evidence_snapshot=audited_current_evidence_snapshot,
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
         paper_current_truth_refresh_report=paper_current_truth_refresh_report,
+        paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
     )
     decision_trace = _decision_trace(summary, primary_blocker, position_snapshot)
     operation_status = _operation_status(
