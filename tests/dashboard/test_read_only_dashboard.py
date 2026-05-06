@@ -24,6 +24,10 @@ from trader1.runtime.portfolio.paper_portfolio import (
     build_paper_portfolio_snapshot_from_fill,
     paper_portfolio_hash,
 )
+from trader1.runtime.portfolio.paper_current_truth_refresh import (
+    build_paper_current_truth_refresh_report,
+    paper_current_truth_refresh_report_hash,
+)
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     build_upbit_paper_ledger_idempotency_runtime_evidence_report,
@@ -6758,6 +6762,110 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("last verified PAPER ledger values", risk["primary_blocker_message"])
         self.assertFalse(risk["live_order_allowed"])
         self.assertFalse(risk["scale_up_allowed"])
+
+    def test_dashboard_uses_fresh_paper_current_truth_refresh_when_summary_stale(self):
+        session_id = "test_read_only_dashboard_current_truth_refresh"
+        snapshot = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id=session_id,
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price="50000000",
+            mark_price="49000000",
+            fee_amount="0",
+            starting_cash="1000000",
+        )
+        summary, heartbeat, startup_probe = build_inputs(
+            session_id=session_id,
+            paper_portfolio_snapshot=snapshot,
+        )
+        refresh = build_paper_current_truth_refresh_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            paper_portfolio_snapshot=snapshot,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+        )
+        summary["generated_at_utc"] = "2000-01-01T00:00:00Z"
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            paper_current_truth_refresh_report=refresh,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        source_by_id = {source["artifact_id"]: source for source in dashboard["source_artifacts"]}
+        self.assertEqual(source_by_id["SUMMARY"]["freshness_status"], "STALE")
+        self.assertEqual(source_by_id["PAPER_CURRENT_TRUTH_REFRESH"]["freshness_status"], "PASS")
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "VERIFIED")
+        self.assertEqual(portfolio["source"], "paper_current_truth_refresh_report.json")
+        self.assertEqual(portfolio["source_snapshot_hash"], refresh["refresh_report_hash"])
+        self.assertEqual(portfolio["paper_value_truth_status"], "PAPER_LEDGER_CURRENT_VALUES_VERIFIED")
+        self.assertEqual(portfolio["runtime_continuity_status"], "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF")
+        self.assertEqual(portfolio["cash"]["value_display"], "750,000 KRW")
+        self.assertEqual(portfolio["equity"]["value_display"], "995,000 KRW")
+        self.assertEqual(portfolio["positions"]["value_display"], "1")
+        self.assertIn("PAPER current-truth refresh", portfolio["operator_truth_summary"])
+        self.assertFalse(portfolio["live_order_ready"])
+        self.assertFalse(portfolio["live_order_allowed"])
+        self.assertFalse(portfolio["can_live_trade"])
+        self.assertFalse(portfolio["scale_up_allowed"])
+
+    def test_dashboard_blocks_paper_current_truth_refresh_permission_drift(self):
+        session_id = "test_read_only_dashboard_current_truth_refresh_drift"
+        snapshot = build_initial_paper_portfolio_snapshot(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id=session_id,
+        )
+        summary, heartbeat, startup_probe = build_inputs(
+            session_id=session_id,
+            paper_portfolio_snapshot=snapshot,
+        )
+        refresh = build_paper_current_truth_refresh_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            paper_portfolio_snapshot=snapshot,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+        )
+        refresh["live_order_allowed"] = True
+        refresh["refresh_report_hash"] = paper_current_truth_refresh_report_hash(refresh)
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            paper_current_truth_refresh_report=refresh,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "BLOCKED")
+        self.assertEqual(portfolio["source"], "paper_current_truth_refresh_report.json")
+        self.assertEqual(portfolio["blocking_reason"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertEqual(portfolio["cash"]["value_display"], "UNVERIFIED")
+        self.assertFalse(portfolio["live_order_ready"])
+        self.assertFalse(portfolio["live_order_allowed"])
+        self.assertFalse(portfolio["can_live_trade"])
+        self.assertFalse(portfolio["scale_up_allowed"])
 
     def test_dashboard_blocks_paper_exposure_quality_live_or_scale_drift(self):
         dashboard = build_dashboard_with_paper_exposure_quality(

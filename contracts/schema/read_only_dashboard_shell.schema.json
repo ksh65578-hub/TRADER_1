@@ -8715,7 +8715,8 @@
             "summary.json",
             "heartbeat.json",
             "startup_probe.json",
-            "audited_current_evidence_snapshot.json"
+            "audited_current_evidence_snapshot.json",
+            "paper_current_truth_refresh_report.json"
           ]
         },
         "source_runtime_cycle_id": {
