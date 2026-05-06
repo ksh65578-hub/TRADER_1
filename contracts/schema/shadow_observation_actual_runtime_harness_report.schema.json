@@ -86,7 +86,7 @@
     "mode": {"const": "SHADOW"},
     "session_id": {"type": "string", "minLength": 1},
     "harness_execution_mode": {"const": "NON_LIVE_LOCAL_PAPER_SHADOW_HARNESS"},
-    "data_source_role": {"const": "DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS"},
+    "data_source_role": {"enum": ["DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS", "UPBIT_PAPER_RUNTIME_LOOP_NO_CREDENTIALS"]},
     "runtime_artifact_path": {"type": "string", "pattern": "^system/runtime/upbit/krw_spot/shadow/.+actual_runtime_harness_report\\.json$"},
     "source_runtime_id": {"type": "string", "minLength": 1},
     "source_runtime_report_hash": {"type": "string", "pattern": "^[A-F0-9]{64}$"},
@@ -101,7 +101,13 @@
     "observation_count": {"type": "integer", "minimum": 1, "maximum": 400},
     "heartbeat_count": {"type": "integer", "minimum": 1, "maximum": 20},
     "measured_runtime_seconds": {"type": "integer", "minimum": 0, "maximum": 300},
-    "runtime_measurement_source": {"enum": ["MONOTONIC_LOCAL_TIMER_VERIFIED", "CALLER_SUPPLIED_UNVERIFIED"]},
+    "runtime_measurement_source": {
+      "enum": [
+        "MONOTONIC_LOCAL_TIMER_VERIFIED",
+        "PAPER_LOOP_TIMESTAMP_SPAN_VERIFIED",
+        "CALLER_SUPPLIED_UNVERIFIED"
+      ]
+    },
     "monotonic_timer_started": {"type": "boolean"},
     "monotonic_timer_stopped": {"type": "boolean"},
     "measured_runtime_seconds_verified": {"type": "boolean"},

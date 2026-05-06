@@ -1,0 +1,11 @@
+{
+  "patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_ACTUAL_LOOP_BINDING_20260506_001",
+  "paper_runtime_source": "UPBIT/KRW_SPOT/PAPER persistent loop fixture executed in isolated temp roots by tests",
+  "paper_cycles_bound_to_shadow_runtime": true,
+  "fake_samples_created": false,
+  "long_run_maturity": "BLOCKED_NOT_CLAIMED",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

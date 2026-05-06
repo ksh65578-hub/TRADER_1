@@ -1,0 +1,23 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_ACTUAL_LOOP_BINDING_20260506_001",
+  "created_at_utc": "2026-05-06T11:19:20Z",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_ACTUAL_LOOP_BINDING_20260506_001.patch_result.json",
+    "system/evidence/validator_runs/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_ACTUAL_LOOP_BINDING_20260506_001.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_ACTUAL_LOOP_BINDING_20260506_001.stage_gate_result.json",
+    "system/evidence/session_reviews/MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_ACTUAL_LOOP_BINDING_20260506_001/USER_STATUS_SUMMARY.md"
+  ],
+  "source_bound_runtime_inputs": [
+    "upbit_paper_persistent_loop_report.json via safe launcher refresh in temp-root tests",
+    "shadow_observation_persistent_runtime_report.v1",
+    "shadow_observation_actual_runtime_harness_report.v1",
+    "shadow_observation_runtime_orchestration_report.v1",
+    "paper_shadow_harness_binding_report.v1"
+  ],
+  "no_fake_samples": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -1,0 +1,119 @@
+{
+  "patch_id": "MVP4_POST_RERUN_CURRENT_TRUTH_WRITER_CLOSURE_20260506_001",
+  "generated_at_utc": "2026-05-06T10:40:17Z",
+  "status": "PASS_TARGETED_WITH_FULL_HYGIENE_TIMEOUT",
+  "tests_run": [
+    {
+      "command": "python -B -m pytest -p no:cacheprovider tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py tests/runtime/test_safe_launcher.py tests/runtime/test_paper_continuous_current_evidence_writer.py -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "64 passed"
+    },
+    {
+      "command": "python -B -m pytest -p no:cacheprovider tests/integration/test_upbit_public_rest_continuity.py tests/integration/test_upbit_public_rest_continuity_history.py -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "11 passed"
+    },
+    {
+      "command": "python -B -m pytest -p no:cacheprovider tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_uses_fresh_paper_current_truth_refresh_when_summary_stale tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_blocks_paper_current_truth_refresh_permission_drift -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "2 passed"
+    },
+    {
+      "command": "python -B -m pytest -p no:cacheprovider tests/contract/test_root_launchers.py -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "11 passed"
+    },
+    {
+      "command": "python -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "830 files checked"
+    },
+    {
+      "command": "python -B tools/run_read_only_dashboard_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_root_launcher_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_upbit_paper_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_hygiene_safe_pytest.py -- -q",
+      "status": "TIMEOUT",
+      "returncode": 124,
+      "summary": "timed out after 304 seconds; residual pytest processes stopped"
+    }
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_repaired_current_evidence_audited_writer_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "root_launcher_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "root_launcher_surface_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_dry_run_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    }
+  ],
+  "blockers_removed_by_this_patch": [
+    "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED contradiction for implemented scoped writer",
+    "generic stale target POST_RERUN_RECONCILIATION_REQUIRED for refreshable current-truth outputs",
+    "market continuity schema-mismatch reuse for invalid scoped history"
+  ],
+  "blockers_remaining": [
+    "DATA_QUALITY_INSUFFICIENT: latest short UPBIT public REST continuity window was structurally valid but non-advancing",
+    "LIVE_READY_MISSING: no LIVE_READY snapshot or external live evidence; expected live block",
+    "PAPER/SHADOW runtime evidence and long-run maturity remain insufficient"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

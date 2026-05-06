@@ -60,11 +60,20 @@ def build_shadow_observation_runtime_orchestration_report(
         and actual_runtime_harness_report.get("source_mode") == "PAPER"
         and actual_runtime_harness_report.get("mode") == "SHADOW"
     )
-    persistent_stub_confirmed = (
+    persistent_source_is_stub = (
         persistent_runtime_report.get("runtime_execution_mode") == "BOUNDED_SHADOW_STUB"
         and persistent_runtime_report.get("runtime_evidence_role") == "PERSISTENT_RUNTIME_STUB_ONLY"
         and persistent_runtime_report.get("duration_evidence_role") == "NOT_LONG_RUN_EVIDENCE"
         and persistent_runtime_report.get("actual_persistent_runtime_executed") is False
+    )
+    persistent_source_is_short_window = (
+        persistent_runtime_report.get("runtime_execution_mode") == "ACTUAL_PAPER_SHADOW_SHORT_WINDOW"
+        and persistent_runtime_report.get("runtime_evidence_role") == "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
+        and persistent_runtime_report.get("duration_evidence_role") == "SHORT_WINDOW_RUNTIME_EVIDENCE_NOT_LONG_RUN"
+        and persistent_runtime_report.get("actual_persistent_runtime_executed") is True
+    )
+    persistent_stub_confirmed = (
+        (persistent_source_is_stub or persistent_source_is_short_window)
         and persistent_runtime_report.get("long_run_evidence_eligible") is False
     )
     short_window_confirmed = (
@@ -77,8 +86,8 @@ def build_shadow_observation_runtime_orchestration_report(
     source_hashes_verified = persistent_hash_verified and harness_hash_verified
     source_runtime_hash_pairing_verified = actual_runtime_harness_report.get("source_runtime_report_hash") == persistent_hash
     source_validation_status = "PASS" if persistent_result.status == "PASS" and harness_result.status == "PASS" else "BLOCKED"
-    observed_actual_cycle_count = 0
-    observed_actual_runtime_seconds = 0
+    observed_actual_cycle_count = int(persistent_runtime_report.get("completed_cycle_count") or 0) if persistent_source_is_short_window else 0
+    observed_actual_runtime_seconds = int(persistent_runtime_report.get("observed_runtime_seconds") or 0) if persistent_source_is_short_window else 0
 
     blockers: list[dict[str, str]] = []
     if persistent_result.status != "PASS":
@@ -92,7 +101,9 @@ def build_shadow_observation_runtime_orchestration_report(
     if not source_scope_match:
         blockers.append(_blocker("SNAPSHOT_SCOPE_MISMATCH", "runtime orchestration sources must remain UPBIT/KRW_SPOT PAPER-to-SHADOW scoped"))
     if not persistent_stub_confirmed:
-        blockers.append(_blocker("ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING", "persistent runtime source did not remain stub-only not-long-run evidence"))
+        blockers.append(_blocker("ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING", "persistent runtime source did not remain stub or short-window not-long-run evidence"))
+    if observed_actual_runtime_seconds >= int(minimum_runtime_window_seconds) or observed_actual_cycle_count >= int(minimum_actual_cycle_count):
+        blockers.append(_blocker("ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING", "short-window orchestration cannot satisfy long-run thresholds"))
     if not short_window_confirmed:
         blockers.append(_blocker("ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING", "actual runtime harness source did not remain short-window not-long-run evidence"))
     blockers.append(
@@ -110,7 +121,7 @@ def build_shadow_observation_runtime_orchestration_report(
 
     source_evidence_bindings = [
         {
-            "source_role": "PERSISTENT_RUNTIME_STUB",
+            "source_role": "PERSISTENT_RUNTIME_SHORT_WINDOW" if persistent_source_is_short_window else "PERSISTENT_RUNTIME_STUB",
             "source_id": str(persistent_runtime_report.get("runtime_id") or ""),
             "source_hash": persistent_hash,
             "hash_verified": persistent_hash_verified,
@@ -173,7 +184,7 @@ def build_shadow_observation_runtime_orchestration_report(
         "primary_blocker_code": blockers[0]["code"],
         "blockers": _dedupe_blockers(blockers),
         "operator_message": (
-            "Runtime orchestration is healthy enough for display-only review, but it is not long-run evidence. "
+            "Runtime orchestration is healthy enough for display-only review, but it is short-window only and not long-run evidence. "
             "Live orders remain blocked."
         ),
         "next_operator_action": (
@@ -261,7 +272,8 @@ def validate_shadow_observation_runtime_orchestration_report(
     if report.get("source_binding_count") != len(bindings) or len(bindings) != 2:
         return ShadowObservationRuntimeOrchestrationValidationResult("BLOCKED", "runtime orchestration must bind exactly persistent runtime and short-window harness sources", "MEASUREMENT_MISSING")
     roles = {binding.get("source_role") for binding in bindings if isinstance(binding, dict)}
-    if roles != {"PERSISTENT_RUNTIME_STUB", "SHORT_WINDOW_HARNESS"}:
+    persistent_roles = roles & {"PERSISTENT_RUNTIME_STUB", "PERSISTENT_RUNTIME_SHORT_WINDOW"}
+    if roles - {"PERSISTENT_RUNTIME_STUB", "PERSISTENT_RUNTIME_SHORT_WINDOW", "SHORT_WINDOW_HARNESS"} or len(persistent_roles) != 1 or "SHORT_WINDOW_HARNESS" not in roles:
         return ShadowObservationRuntimeOrchestrationValidationResult("BLOCKED", "runtime orchestration source roles are incomplete", "MEASUREMENT_MISSING")
     for binding in bindings:
         if binding.get("hash_verified") is not True or binding.get("validation_status") != "PASS":
@@ -288,8 +300,12 @@ def validate_shadow_observation_runtime_orchestration_report(
             "runtime orchestration minimum evidence window count is below the MVP-4 long-run evidence floor",
             "MEASUREMENT_MISSING",
         )
-    if int(report.get("observed_actual_runtime_seconds", -1)) != 0 or int(report.get("observed_actual_cycle_count", -1)) != 0:
-        return ShadowObservationRuntimeOrchestrationValidationResult("BLOCKED", "runtime orchestration cannot claim observed actual long-run duration or cycles", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
+    observed_runtime_seconds = int(report.get("observed_actual_runtime_seconds", -1))
+    observed_cycle_count = int(report.get("observed_actual_cycle_count", -1))
+    if observed_runtime_seconds < 0 or observed_cycle_count < 0:
+        return ShadowObservationRuntimeOrchestrationValidationResult("BLOCKED", "runtime orchestration observed duration and cycles cannot be negative", "MEASUREMENT_MISSING")
+    if observed_runtime_seconds >= int(report.get("minimum_runtime_window_seconds", 0)) or observed_cycle_count >= int(report.get("minimum_actual_cycle_count", 0)):
+        return ShadowObservationRuntimeOrchestrationValidationResult("BLOCKED", "runtime orchestration cannot satisfy long-run duration or cycle thresholds from short-window evidence", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
     if int(report.get("observed_evidence_window_count", -1)) != 0:
         return ShadowObservationRuntimeOrchestrationValidationResult("BLOCKED", "runtime orchestration cannot claim validated long-run evidence windows", "MEASUREMENT_MISSING")
     if any(report.get(field) for field in ("actual_long_run_runtime_present", "long_run_evidence_eligible", "scorecard_input_eligible", "promotion_eligible")):

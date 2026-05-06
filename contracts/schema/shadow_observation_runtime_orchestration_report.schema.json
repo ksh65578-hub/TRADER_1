@@ -97,7 +97,7 @@
         ],
         "additionalProperties": false,
         "properties": {
-          "source_role": {"enum": ["PERSISTENT_RUNTIME_STUB", "SHORT_WINDOW_HARNESS"]},
+          "source_role": {"enum": ["PERSISTENT_RUNTIME_STUB", "PERSISTENT_RUNTIME_SHORT_WINDOW", "SHORT_WINDOW_HARNESS"]},
           "source_id": {"type": "string", "minLength": 1},
           "source_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
           "hash_verified": {"type": "boolean"},
@@ -105,6 +105,7 @@
           "evidence_role": {
             "enum": [
               "PERSISTENT_RUNTIME_STUB_ONLY",
+              "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY",
               "EXECUTION_HARNESS_PROOF_ONLY_NOT_LONG_RUN"
             ]
           }
@@ -114,9 +115,9 @@
     "persistent_stub_not_long_run_confirmed": {"type": "boolean"},
     "short_window_harness_not_long_run_confirmed": {"type": "boolean"},
     "minimum_runtime_window_seconds": {"type": "integer", "minimum": 86400},
-    "observed_actual_runtime_seconds": {"const": 0},
+    "observed_actual_runtime_seconds": {"type": "integer", "minimum": 0},
     "minimum_actual_cycle_count": {"type": "integer", "minimum": 2880},
-    "observed_actual_cycle_count": {"const": 0},
+    "observed_actual_cycle_count": {"type": "integer", "minimum": 0},
     "minimum_evidence_window_count": {"type": "integer", "minimum": 20},
     "observed_evidence_window_count": {"const": 0},
     "actual_long_run_runtime_present": {"const": false},

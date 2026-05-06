@@ -69,6 +69,7 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
 )
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
     AUDITED_WRITER_IDEMPOTENT_STATUS,
+    AUDITED_WRITER_REFRESHED_STATUS,
     AUDITED_WRITER_WRITTEN_STATUS,
     validate_upbit_paper_audited_current_evidence_snapshot,
     validate_upbit_paper_repaired_current_evidence_audited_writer_report,
@@ -140,6 +141,7 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
     "rest_continuity_history.json",
     "candidate_scorecard.json",
+    "overfit_diagnostic_report.json",
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
     "MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
     "MVP4_RESIDUAL_OPERATOR_EVIDENCE_PROGRESS_AUDIT.report.json",
@@ -438,10 +440,10 @@ LONG_RUN_SUMMARY_SOURCES = {"heartbeat.json", "stability_history.json"}
 SHADOW_RUNTIME_HARNESS_STATUSES = {"NOT_LOADED", "SHORT_WINDOW_EXECUTED", "BLOCKED", "STALE"}
 SHADOW_RUNTIME_HARNESS_SOURCES = {"NOT_LOADED", "actual_runtime_harness_report.json"}
 SHADOW_RUNTIME_HARNESS_EVIDENCE_STATUSES = {"NOT_LOADED", "BLOCKED_LONG_RUN_EVIDENCE_MISSING"}
-SHADOW_PERSISTENT_RUNTIME_STATUSES = {"NOT_LOADED", "STUB_ONLY", "BLOCKED", "STALE"}
+SHADOW_PERSISTENT_RUNTIME_STATUSES = {"NOT_LOADED", "STUB_ONLY", "SHORT_WINDOW_EXECUTED", "BLOCKED", "STALE"}
 SHADOW_PERSISTENT_RUNTIME_SOURCES = {"NOT_LOADED", "shadow_observation_persistent_runtime_report.json"}
-SHADOW_PERSISTENT_RUNTIME_DURATION_SOURCES = {"NOT_LOADED", "STUB_ESTIMATE_ONLY"}
-SHADOW_PERSISTENT_RUNTIME_DURATION_ROLES = {"NOT_LONG_RUN_EVIDENCE"}
+SHADOW_PERSISTENT_RUNTIME_DURATION_SOURCES = {"NOT_LOADED", "STUB_ESTIMATE_ONLY", "PAPER_LOOP_TIMESTAMP_SPAN"}
+SHADOW_PERSISTENT_RUNTIME_DURATION_ROLES = {"NOT_LONG_RUN_EVIDENCE", "SHORT_WINDOW_RUNTIME_EVIDENCE_NOT_LONG_RUN"}
 SHADOW_RUNTIME_ORCHESTRATION_STATUSES = {"NOT_LOADED", "BOUNDARY_VERIFIED", "BLOCKED", "STALE"}
 SHADOW_RUNTIME_ORCHESTRATION_SOURCES = {"NOT_LOADED", "runtime_orchestration_report.json"}
 PAPER_PERSISTENT_LOOP_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
@@ -470,6 +472,11 @@ MARKET_DATA_CONTINUITY_SOURCES = {"NOT_LOADED", "rest_continuity_history.json"}
 MARKET_DATA_CONTINUITY_EVIDENCE_ROLES = {"PAPER_DATA_CONTINUITY_HISTORY_ONLY_NOT_LIVE_READY"}
 PAPER_RUNTIME_TRUTH_STATE_SOURCES = {"NOT_LOADED", "paper_runtime_truth_state_report.json"}
 PAPER_RUNTIME_TRUTH_STATE_EVIDENCE_ROLES = {PAPER_RUNTIME_TRUTH_ROLE}
+AUDITED_WRITER_DISPLAY_PASS_STATUSES = {
+    AUDITED_WRITER_WRITTEN_STATUS,
+    AUDITED_WRITER_IDEMPOTENT_STATUS,
+    AUDITED_WRITER_REFRESHED_STATUS,
+}
 RUNTIME_EVIDENCE_BOUNDARY_STATUSES = {
     "ACTUAL_LONG_RUN_MISSING",
     "ACTUAL_LONG_RUN_COLLECTING",
@@ -613,6 +620,7 @@ UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_STATUSES = {
     "NOT_LOADED",
     "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN",
     "PASS_AUDITED_CURRENT_EVIDENCE_ALREADY_WRITTEN",
+    "PASS_AUDITED_CURRENT_EVIDENCE_REFRESHED",
     "BLOCKED_SOURCE_IMPLEMENTATION_PREP_INVALID",
     "BLOCKED_SOURCE_LEDGER_ROLLUP_INVALID",
     "BLOCKED_AUDITED_CURRENT_EVIDENCE_TARGET_DIRTY",
@@ -666,7 +674,12 @@ PROFITABILITY_MATURITY_EVIDENCE_SOURCES = {
     "profitability_evidence_maturity_rollup.json",
     "candidate_scorecard.json",
 }
-PROFITABILITY_ACTUAL_RUNTIME_SOURCE_STATUSES = {"MISSING", "STUB_ONLY", "VALIDATED_NON_LIVE_RUNTIME"}
+PROFITABILITY_ACTUAL_RUNTIME_SOURCE_STATUSES = {
+    "MISSING",
+    "STUB_ONLY",
+    "PARTIAL_NON_LIVE_RUNTIME",
+    "VALIDATED_NON_LIVE_RUNTIME",
+}
 PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS = (
     "runtime_span",
     "cycle_count",
@@ -852,6 +865,16 @@ PROFITABILITY_ROBUSTNESS_SOURCE_TYPES = {
 }
 CANDIDATE_SCORECARD_SOURCE_FILENAMES = {"NOT_LOADED", "candidate_scorecard.json"}
 CANDIDATE_SCORECARD_STATUSES = {"NOT_LOADED", "PAPER_RANKING_BLOCKED", "PAPER_RANKING_REVIEW_ONLY", "BLOCKED", "STALE"}
+OVERFIT_DIAGNOSTIC_SOURCE_FILENAMES = {"NOT_LOADED", "overfit_diagnostic_report.json"}
+OVERFIT_DIAGNOSTIC_STATUSES = {
+    "NOT_LOADED",
+    "ROBUST_FOR_PAPER_REVIEW",
+    "BLOCKED_FOR_ROBUSTNESS",
+    "BLOCKED",
+    "FAIL",
+    "UNTESTED",
+    "STALE",
+}
 RISK_EXPOSURE_STATUSES = {"LOW_RISK", "ATTENTION", "BLOCKED", "STALE", "UNVERIFIED"}
 RISK_EXPOSURE_SOURCES = {"summary.json"}
 RISK_EXPOSURE_NOTIONAL_DATA_STATUSES = {"COMPLETE", "PARTIAL", "UNVERIFIED"}
@@ -2158,6 +2181,16 @@ def _audited_writer_blocker_decision(portfolio: dict[str, Any]) -> dict[str, Any
             "Use the audited PAPER snapshot for review only; collect operator/runtime evidence before any future "
             "continuous writer activation review."
         )
+    elif lifecycle_status == "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER":
+        status = "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER"
+        decision_code = "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+        truth_class = "SUMMARY_LEDGER_DISPLAY_ONLY"
+        priority_rank = 2
+        summary = (
+            "Summary ledger values are display-only and are not audited current-evidence writer output or continuous "
+            "runtime proof."
+        )
+        next_action = "Keep summary values for dashboard review only; do not infer audited writer readiness."
     elif lifecycle_status == "AUDITED_WRITER_INPUTS_BLOCKED" or activation_status in {
         "SOURCE_CHAIN_BLOCKED",
         "REVIEW_CHAIN_BLOCKED",
@@ -2179,17 +2212,6 @@ def _audited_writer_blocker_decision(portfolio: dict[str, Any]) -> dict[str, Any
             "Inspect the current writer blocker, keep all current-evidence and portfolio-truth writes disabled, "
             "and resolve the review-only chain in order."
         )
-    elif lifecycle_status == "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER":
-        status = "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER"
-        decision_code = "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
-        truth_class = "SUMMARY_LEDGER_DISPLAY_ONLY"
-        priority_rank = 2
-        summary = (
-            "Summary ledger values are display-only and are not audited current-evidence writer output or continuous "
-            "runtime proof."
-        )
-        next_action = "Keep summary values for dashboard review only; do not infer audited writer readiness."
-
     return {
         "audited_writer_blocker_decision_status": status,
         "audited_writer_blocker_decision_code": decision_code,
@@ -2906,6 +2928,14 @@ def _paper_current_truth_refresh_portfolio_snapshot(
         candidate_preview += f" +{len(candidate_symbols) - 4} more"
     realized_pnl = paper_current_truth_refresh_report.get("verified_realized_pnl")
     unrealized_pnl = paper_current_truth_refresh_report.get("verified_unrealized_pnl")
+    mark_status = paper_current_truth_refresh_report.get("mark_to_market_status")
+    mark_source = paper_current_truth_refresh_report.get("mark_price_source")
+    mark_event_time = paper_current_truth_refresh_report.get("source_public_market_event_time_utc")
+    mark_truth_message = (
+        f"Ledger cash and position quantities are recalculated with public mark price source={mark_source} at {mark_event_time}."
+        if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+        else "Current refreshed PAPER ledger values verify cash, equity, PnL, and positions for dashboard display only."
+    )
     snapshot = {
         "title": "Portfolio Snapshot",
         "status": "STALE" if source_stale else "VERIFIED",
@@ -2924,15 +2954,23 @@ def _paper_current_truth_refresh_portfolio_snapshot(
             else "PAPER current-truth refresh is fresh and source-bound; it is display-only and not LIVE_READY."
         ),
         "source_balance_kind": paper_current_truth_refresh_report.get("source_balance_kind"),
+        "mark_to_market_status": mark_status,
+        "mark_price_source": mark_source,
+        "source_public_market_data_hash": paper_current_truth_refresh_report.get("source_public_market_data_hash"),
+        "source_public_market_event_time_utc": mark_event_time,
         "paper_value_truth_status": (
-            "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+            "PAPER_LEDGER_PUBLIC_MARK_VALUES_STALE"
+            if source_stale and mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
             if source_stale
+            else "PAPER_LEDGER_PUBLIC_MARK_VALUES_VERIFIED"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
             else "PAPER_LEDGER_CURRENT_VALUES_VERIFIED"
         ),
         "paper_value_truth_message": (
             "Last verified refreshed PAPER ledger values are displayed; stale means runtime continuity is not proven."
             if source_stale
-            else "Current refreshed PAPER ledger values verify cash, equity, PnL, and positions for dashboard display only."
+            else mark_truth_message
         ),
         "runtime_continuity_status": (
             "STALE_SNAPSHOT_NOT_RUNTIME_PROOF" if source_stale else "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF"
@@ -2958,7 +2996,9 @@ def _paper_current_truth_refresh_portfolio_snapshot(
             "equity",
             "Current Equity",
             _format_money(paper_current_truth_refresh_report.get("verified_equity"), currency),
-            "Refreshed Simulated PAPER ledger equity, not exchange balance",
+            "Refreshed simulated PAPER equity using ledger quantities and public mark price"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "Refreshed Simulated PAPER ledger equity, not exchange balance",
         ),
         "locked_cash": _portfolio_card(
             "locked_cash",
@@ -2976,19 +3016,25 @@ def _paper_current_truth_refresh_portfolio_snapshot(
             "unrealized_pnl",
             "Unrealized PnL",
             _format_signed_money(unrealized_pnl, currency),
-            "Refreshed unrealized PAPER PnL from current-truth report",
+            "Refreshed unrealized PAPER PnL from public mark-to-market current truth"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "Refreshed unrealized PAPER PnL from current-truth report",
         ),
         "total_pnl": _portfolio_card(
             "total_pnl",
             "Total PnL",
             _format_total_pnl(realized_pnl, unrealized_pnl, currency),
-            "Refreshed PAPER PnL after ledger-backed current-truth refresh",
+            "Refreshed PAPER PnL after ledger-backed public mark-to-market refresh"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "Refreshed PAPER PnL after ledger-backed current-truth refresh",
         ),
         "positions": _portfolio_card(
             "positions",
             "Open Positions",
             str(len(positions)),
-            "Open PAPER positions from current-truth refresh report",
+            "Open PAPER positions with public mark prices from current-truth refresh report"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "Open PAPER positions from current-truth refresh report",
         ),
         "entry_candidates": _portfolio_card(
             "entry_candidates",
@@ -3179,7 +3225,7 @@ def _audited_current_evidence_portfolio_snapshot(
 
     writer_status = audited_writer_report.get("writer_status")
     writer_pass = (
-        writer_status in {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS}
+        writer_status in AUDITED_WRITER_DISPLAY_PASS_STATUSES
         and audited_writer_report.get("writer_passed") is True
         and audited_writer_report.get("current_evidence_artifact_written") is True
         and audited_writer_report.get("idempotency_manifest_written") is True
@@ -3235,6 +3281,20 @@ def _audited_current_evidence_portfolio_snapshot(
         candidate_preview += f" +{len(candidate_symbols) - 4} more"
     realized_pnl = audited_paper_portfolio_snapshot.get("realized_pnl")
     unrealized_pnl = audited_paper_portfolio_snapshot.get("unrealized_pnl")
+    mark_status = audited_paper_portfolio_snapshot.get("mark_to_market_status") or audited_current_evidence_snapshot.get(
+        "mark_to_market_status"
+    )
+    mark_source = audited_paper_portfolio_snapshot.get("mark_price_source") or audited_current_evidence_snapshot.get(
+        "mark_price_source"
+    )
+    mark_event_time = audited_paper_portfolio_snapshot.get(
+        "source_public_market_event_time_utc"
+    ) or audited_current_evidence_snapshot.get("source_public_market_event_time_utc")
+    mark_truth_message = (
+        f"Audited ledger cash and position quantities are recalculated with public mark price source={mark_source} at {mark_event_time}."
+        if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+        else "Audited PAPER ledger values verify cash, equity, PnL, and positions for display only."
+    )
     snapshot = {
         "title": "Portfolio Snapshot",
         "status": "STALE" if audited_source_stale else "VERIFIED",
@@ -3257,15 +3317,25 @@ def _audited_current_evidence_portfolio_snapshot(
             )
         ),
         "source_balance_kind": audited_paper_portfolio_snapshot.get("display_balance_kind"),
+        "mark_to_market_status": mark_status,
+        "mark_price_source": mark_source,
+        "source_public_market_data_hash": audited_paper_portfolio_snapshot.get(
+            "source_public_market_data_hash"
+        ) or audited_current_evidence_snapshot.get("source_public_market_data_hash"),
+        "source_public_market_event_time_utc": mark_event_time,
         "paper_value_truth_status": (
-            "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+            "PAPER_LEDGER_PUBLIC_MARK_VALUES_STALE"
+            if audited_source_stale and mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
             if audited_source_stale
+            else "PAPER_LEDGER_PUBLIC_MARK_VALUES_VERIFIED"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
             else "PAPER_LEDGER_CURRENT_VALUES_VERIFIED"
         ),
         "paper_value_truth_message": (
             "Last verified audited PAPER ledger values are displayed; stale means runtime continuity is not proven."
             if audited_source_stale
-            else "Audited PAPER ledger values verify cash, equity, PnL, and positions for display only."
+            else mark_truth_message
         ),
         "runtime_continuity_status": (
             "STALE_SNAPSHOT_NOT_RUNTIME_PROOF"
@@ -3292,7 +3362,9 @@ def _audited_current_evidence_portfolio_snapshot(
             "equity",
             "Current Equity",
             _format_money(audited_paper_portfolio_snapshot.get("equity"), currency),
-            "Verified simulated PAPER ledger equity from audited current evidence",
+            "Verified simulated PAPER equity using ledger quantities and public mark price"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "Verified simulated PAPER ledger equity from audited current evidence",
         ),
         "locked_cash": _portfolio_card(
             "locked_cash",
@@ -3310,19 +3382,25 @@ def _audited_current_evidence_portfolio_snapshot(
             "unrealized_pnl",
             "Unrealized PnL",
             _format_signed_money(unrealized_pnl, currency),
-            "Verified unrealized PAPER PnL from audited current evidence",
+            "Verified unrealized PAPER PnL from audited public mark-to-market current evidence"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "Verified unrealized PAPER PnL from audited current evidence",
         ),
         "total_pnl": _portfolio_card(
             "total_pnl",
             "Total PnL",
             _format_total_pnl(realized_pnl, unrealized_pnl, currency),
-            "Verified PAPER PnL after the current audited ledger rollup",
+            "Verified PAPER PnL after audited ledger-backed public mark-to-market refresh"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "Verified PAPER PnL after the current audited ledger rollup",
         ),
         "positions": _portfolio_card(
             "positions",
             "Open Positions",
             str(len(positions)),
-            "Open PAPER positions from audited portfolio truth snapshot",
+            "Open PAPER positions with public mark prices from audited portfolio truth snapshot"
+            if mark_status == "PASS_PUBLIC_MARK_TO_MARKET"
+            else "Open PAPER positions from audited portfolio truth snapshot",
         ),
         "entry_candidates": _portfolio_card(
             "entry_candidates",
@@ -3407,24 +3485,64 @@ def _runtime_ledger_portfolio_truth_reconciled(
     )
 
 
+def _reconciliation_has_verified_audited_writer(
+    reconciliation_recovery_summary: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(reconciliation_recovery_summary, dict):
+        return False
+    if reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_verified_for_display") is True:
+        return True
+    return (
+        reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_status")
+        in AUDITED_WRITER_DISPLAY_PASS_STATUSES
+        and reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_validation_status")
+        == "PASS"
+        and reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_passed") is True
+        and reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_control_blocked_count")
+        == 0
+        and reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_current_evidence_artifact_written"
+        )
+        is True
+        and reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_idempotency_manifest_written"
+        )
+        is True
+        and reconciliation_recovery_summary.get(
+            "upbit_paper_repaired_current_evidence_audited_writer_portfolio_truth_artifact_written"
+        )
+        is True
+        and reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_lock_present_after_run")
+        is False
+        and reconciliation_recovery_summary.get("live_order_ready") is False
+        and reconciliation_recovery_summary.get("live_order_allowed") is False
+        and reconciliation_recovery_summary.get("can_live_trade") is False
+        and reconciliation_recovery_summary.get("scale_up_allowed") is False
+    )
+
+
 def _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary: dict[str, Any] | None) -> str | None:
     if not isinstance(reconciliation_recovery_summary, dict):
         return None
+    audited_writer_verified = _reconciliation_has_verified_audited_writer(reconciliation_recovery_summary)
     if (
         reconciliation_recovery_summary.get(
             "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_status"
         )
         == "BLOCKED_IMPLEMENTATION_PREP_WRITER_NOT_ENABLED"
+        and not audited_writer_verified
     ):
         return "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
     if (
         reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_precheck_status")
         == "BLOCKED_AUDITED_WRITER_DISABLED"
+        and not audited_writer_verified
     ):
         return "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
     if (
         reconciliation_recovery_summary.get("upbit_paper_repaired_current_evidence_audited_writer_dry_run_status")
         == "BLOCKED_DRY_RUN_ONLY_WRITER_NOT_ENABLED"
+        and not audited_writer_verified
     ):
         return "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
     if (
@@ -3432,11 +3550,13 @@ def _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary: dict
             "upbit_paper_repaired_current_evidence_audited_writer_locked_output_status"
         )
         == "BLOCKED_LOCKED_OUTPUT_WRITER_NOT_ENABLED"
+        and not audited_writer_verified
     ):
         return "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
     if (
         reconciliation_recovery_summary.get("stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status")
         == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+        and not audited_writer_verified
     ):
         return "ISOLATED_EVENT_ID_SCOPE_REPAIRED_CURRENT_EVIDENCE_GUARD_CURRENT_WRITES_BLOCKED"
     if reconciliation_recovery_summary.get("stale_loop_post_regeneration_reconciliation_status") == "BLOCKED":
@@ -3454,6 +3574,83 @@ def _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary: dict
     if reconciliation_recovery_summary.get("post_rerun_operator_reconciliation_queue_status") == "BLOCKED":
         return "POST_RERUN_RECONCILIATION_REQUIRED"
     return None
+
+
+def _active_paper_current_truth_dashboard_blocker(
+    *,
+    primary_blocker: str | None,
+    portfolio_snapshot: dict[str, Any] | None,
+    reconciliation_recovery_summary: dict[str, Any] | None,
+    paper_runtime_truth_state_report: dict[str, Any] | None,
+) -> str | None:
+    if primary_blocker != "HARD_TRUTH_MISSING":
+        return primary_blocker
+    if not (
+        isinstance(portfolio_snapshot, dict)
+        and isinstance(reconciliation_recovery_summary, dict)
+        and isinstance(paper_runtime_truth_state_report, dict)
+    ):
+        return primary_blocker
+    runtime_result = validate_paper_runtime_truth_state_report(paper_runtime_truth_state_report)
+    if (
+        runtime_result.status != "PASS"
+        or paper_runtime_truth_state_report.get("runtime_truth_status") != PAPER_RUNTIME_ACTIVE_STATUS
+        or paper_runtime_truth_state_report.get("dashboard_truth_status") != "FRESH_CURRENT_TRUTH"
+        or paper_runtime_truth_state_report.get("primary_blocker_code") != "LIVE_READY_MISSING"
+        or _freshness_from_generated_at(paper_runtime_truth_state_report) != "PASS"
+    ):
+        return primary_blocker
+    if any(
+        paper_runtime_truth_state_report.get(field) is not True
+        for field in (
+            "monitor_alive",
+            "paper_loop_advancing",
+            "market_data_advancing",
+            "ledger_advancing",
+            "current_evidence_refreshing",
+        )
+    ):
+        return primary_blocker
+    if any(
+        paper_runtime_truth_state_report.get(field) is not False
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    ):
+        return primary_blocker
+
+    portfolio_source = portfolio_snapshot.get("source")
+    portfolio_source_bound = bool(
+        portfolio_source == "paper_current_truth_refresh_report.json"
+        and isinstance(portfolio_snapshot.get("source_runtime_cycle_id"), str)
+        and isinstance(portfolio_snapshot.get("source_paper_ledger_head_hash"), str)
+    )
+    audited_source_bound = bool(
+        portfolio_source == "audited_current_evidence_snapshot.json"
+        and _reconciliation_has_verified_audited_writer(reconciliation_recovery_summary)
+    )
+    if (
+        portfolio_snapshot.get("status") != "VERIFIED"
+        or portfolio_snapshot.get("source_snapshot_status") != "PASS"
+        or portfolio_snapshot.get("blocking_reason") != "LIVE_READY_MISSING"
+        or not (portfolio_source_bound or audited_source_bound)
+    ):
+        return primary_blocker
+    if any(
+        portfolio_snapshot.get(field) is not False
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    ):
+        return primary_blocker
+
+    if (
+        reconciliation_recovery_summary.get("status") != "PASS"
+        or reconciliation_recovery_summary.get("primary_blocker_code") != "LIVE_READY_MISSING"
+    ):
+        return primary_blocker
+    if any(
+        reconciliation_recovery_summary.get(field) is not False
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    ):
+        return primary_blocker
+    return "LIVE_READY_MISSING"
 
 
 def _stale_portfolio_snapshot(exchange: str, market_type: str, summary: dict[str, Any] | None) -> dict[str, Any]:
@@ -3529,6 +3726,33 @@ def _portfolio_snapshot(
     paper_current_truth_refresh_report: dict[str, Any] | None = None,
     paper_continuous_current_evidence_writer_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    def audited_portfolio_matches_current_refresh() -> bool:
+        if not isinstance(audited_paper_portfolio_snapshot, dict) or not isinstance(
+            paper_current_truth_refresh_report, dict
+        ):
+            return False
+        return (
+            paper_current_truth_refresh_report.get("refresh_status") == PAPER_CURRENT_TRUTH_REFRESH_PASS_STATUS
+            and paper_current_truth_refresh_report.get("source_portfolio_snapshot_hash")
+            == audited_paper_portfolio_snapshot.get("snapshot_hash")
+            and paper_current_truth_refresh_report.get("source_paper_ledger_head_hash")
+            == audited_paper_portfolio_snapshot.get("source_paper_ledger_head_hash")
+            and paper_current_truth_refresh_report.get("source_runtime_cycle_id")
+            == audited_paper_portfolio_snapshot.get("source_runtime_cycle_id")
+            and audited_paper_portfolio_snapshot.get("live_order_allowed") is False
+            and audited_paper_portfolio_snapshot.get("can_live_trade") is False
+            and audited_paper_portfolio_snapshot.get("scale_up_allowed") is not True
+        )
+
+    refreshed = _paper_current_truth_refresh_portfolio_snapshot(
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+        summary=summary,
+        paper_current_truth_refresh_report=paper_current_truth_refresh_report,
+        paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
+    )
     audited = _audited_current_evidence_portfolio_snapshot(
         exchange=exchange,
         market_type=market_type,
@@ -3540,21 +3764,16 @@ def _portfolio_snapshot(
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
         paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
     )
-    if audited is not None:
+    if audited is not None and (
+        refreshed is None
+        or refreshed.get("status") != "VERIFIED"
+        or audited_portfolio_matches_current_refresh()
+    ):
         return _attach_audited_writer_activation_preflight(
             audited,
             reconciliation_recovery_summary,
             paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
         )
-    refreshed = _paper_current_truth_refresh_portfolio_snapshot(
-        exchange=exchange,
-        market_type=market_type,
-        mode=mode,
-        session_id=session_id,
-        summary=summary,
-        paper_current_truth_refresh_report=paper_current_truth_refresh_report,
-        paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
-    )
     if refreshed is not None and (
         refreshed.get("status") in {"VERIFIED", "BLOCKED"} or summary_freshness != "PASS"
     ):
@@ -5093,6 +5312,12 @@ def _long_run_operator_summary(
     stability_trends: dict[str, Any],
     source_artifacts: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    paper_runtime_active_with_current_truth = (
+        operation_status.get("status") == "RUNNING_SAFE_MODE"
+        and operation_status.get("severity") == "NORMAL"
+        and operation_status.get("runtime_presence") == "PAPER_RUNTIME_ACTIVE"
+        and operation_status.get("primary_blocker") == "LIVE_READY_MISSING"
+    )
     history_sample_count = int(stability_trends.get("history_sample_count", 0))
     observed_span_seconds = int(stability_trends.get("observed_span_seconds", 0))
     min_validated_span_seconds = int(stability_trends.get("min_validated_span_seconds", DEFAULT_MIN_VALIDATED_SPAN_SECONDS))
@@ -5138,8 +5363,18 @@ def _long_run_operator_summary(
         severity = "WARNING"
         color_token = "yellow"
         blocker_code = "LATENCY_TTL_EXPIRED"
-        message = "Dashboard sources are stale. The program cannot claim current normal operation until refreshed."
-        next_action = "Rerun the PAPER launcher or refresh heartbeat before using this dashboard for review."
+        if paper_runtime_active_with_current_truth:
+            message = (
+                "Some dashboard or research evidence sources are stale, but verified current PAPER runtime truth "
+                "is active. Treat stale sources as review blockers only; live orders remain blocked."
+            )
+            next_action = (
+                "Keep PAPER running and refresh stale dashboard or research evidence sources before review; "
+                "do not treat stale display evidence as LIVE_READY."
+            )
+        else:
+            message = "Dashboard sources are stale. The program cannot claim current normal operation until refreshed."
+            next_action = "Rerun the PAPER launcher or refresh heartbeat before using this dashboard for review."
         source = "heartbeat.json"
     elif history_is_validated and degraded_sample_count == 0 and stale_sample_count == 0 and all_current_pass:
         status = "DISPLAY_HISTORY_STABLE"
@@ -5153,6 +5388,35 @@ def _long_run_operator_summary(
         next_action = (
             "Continue PAPER monitoring and collect dedicated persistent PAPER/SHADOW runtime evidence; "
             "the display history alone cannot satisfy live-review evidence."
+        )
+        source = "stability_history.json"
+    elif history_is_validated and stale_sample_count > 0:
+        status = "STALE"
+        severity = "WARNING"
+        color_token = "yellow"
+        blocker_code = "LATENCY_TTL_EXPIRED"
+        message = (
+            f"Validated display stability history includes {stale_sample_count} stale sample(s) "
+            f"and {degraded_sample_count} degraded sample(s). Current checks may be fresh, but "
+            "history still blocks long-run review and live orders remain blocked."
+        )
+        next_action = (
+            "Keep PAPER running and let the validated display history roll forward with fresh clean samples; "
+            "do not treat current-only recovery as long-run or LIVE_READY evidence."
+        )
+        source = "stability_history.json"
+    elif history_is_validated and degraded_sample_count > 0:
+        status = "ATTENTION"
+        severity = "WARNING"
+        color_token = "yellow"
+        blocker_code = "HARD_TRUTH_MISSING"
+        message = (
+            f"Validated display stability history includes {degraded_sample_count} degraded sample(s). "
+            "Long-run review remains blocked until the display history rolls forward with clean samples."
+        )
+        next_action = (
+            "Keep PAPER running and review the degraded history samples before operator review; "
+            "live orders and scale-up remain blocked."
         )
         source = "stability_history.json"
     elif all_current_pass:
@@ -5279,7 +5543,8 @@ def _shadow_runtime_harness_status(report: dict[str, Any] | None) -> dict[str, A
     expected_contract = (
         report.get("schema_id") == "trader1.shadow_observation_actual_runtime_harness_report.v1"
         and report.get("harness_execution_mode") == "NON_LIVE_LOCAL_PAPER_SHADOW_HARNESS"
-        and report.get("data_source_role") == "DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS"
+        and report.get("data_source_role")
+        in {"DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS", "UPBIT_PAPER_RUNTIME_LOOP_NO_CREDENTIALS"}
         and report.get("runtime_evidence_status") == "BLOCKED_LONG_RUN_EVIDENCE_MISSING"
         and report.get("runtime_evidence_role") == "EXECUTION_HARNESS_PROOF_ONLY_NOT_LONG_RUN"
         and report.get("dashboard_display_truth_only") is True
@@ -5403,10 +5668,16 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
     if not isinstance(report, dict):
         return base
 
+    runtime_execution_mode = report.get("runtime_execution_mode")
+    runtime_evidence_role = report.get("runtime_evidence_role")
+    is_stub_runtime = runtime_execution_mode == "BOUNDED_SHADOW_STUB" and runtime_evidence_role == "PERSISTENT_RUNTIME_STUB_ONLY"
+    is_short_window_runtime = (
+        runtime_execution_mode == "ACTUAL_PAPER_SHADOW_SHORT_WINDOW"
+        and runtime_evidence_role == "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
+    )
     unsafe_live_or_scale = any(
         report.get(field) is not False
         for field in (
-            "actual_persistent_runtime_executed",
             "long_run_evidence_eligible",
             "promotion_eligible",
             "live_order_ready",
@@ -5416,6 +5687,10 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
             "order_adapter_called",
         )
     )
+    if is_stub_runtime and report.get("actual_persistent_runtime_executed") is not False:
+        unsafe_live_or_scale = True
+    if is_short_window_runtime and report.get("actual_persistent_runtime_executed") is not True:
+        unsafe_live_or_scale = True
     observed_raw = report.get("observed_runtime_seconds")
     observed_is_zero = isinstance(observed_raw, int) and observed_raw == 0
     expected_contract = (
@@ -5424,22 +5699,35 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
         and report.get("market_type") == "KRW_SPOT"
         and report.get("source_mode") == "PAPER"
         and report.get("mode") == "SHADOW"
-        and report.get("runtime_execution_mode") == "BOUNDED_SHADOW_STUB"
-        and report.get("runtime_evidence_role") == "PERSISTENT_RUNTIME_STUB_ONLY"
         and report.get("runtime_status") == "PASS"
         and report.get("source_scheduler_guard_status") == "PASS"
         and report.get("source_scheduler_validation_status") == "PASS"
         and report.get("heartbeat_status") == "PASS"
         and report.get("cycle_identity_status") == "PASS"
         and report.get("recovery_action") == "NO_RECOVERY_NEEDED"
-        and report.get("run_action") == "COLLECT_SHADOW_OBSERVATION_STUB_ONLY"
-        and report.get("runtime_duration_evidence_source") == "STUB_ESTIMATE_ONLY"
-        and report.get("duration_evidence_role") == "NOT_LONG_RUN_EVIDENCE"
-        and report.get("actual_persistent_runtime_executed") is False
         and report.get("dashboard_display_truth_only") is True
         and report.get("long_run_evidence_eligible") is False
-        and report.get("optimizer_input_role") == "SHADOW_PERSISTENT_RUNTIME_STUB_ONLY"
-        and observed_is_zero
+        and (
+            (
+                is_stub_runtime
+                and report.get("run_action") == "COLLECT_SHADOW_OBSERVATION_STUB_ONLY"
+                and report.get("runtime_duration_evidence_source") == "STUB_ESTIMATE_ONLY"
+                and report.get("duration_evidence_role") == "NOT_LONG_RUN_EVIDENCE"
+                and report.get("optimizer_input_role") == "SHADOW_PERSISTENT_RUNTIME_STUB_ONLY"
+                and report.get("actual_persistent_runtime_executed") is False
+                and observed_is_zero
+            )
+            or (
+                is_short_window_runtime
+                and report.get("run_action") == "COLLECT_SHADOW_OBSERVATION_SHORT_WINDOW_ONLY"
+                and report.get("runtime_duration_evidence_source") == "PAPER_LOOP_TIMESTAMP_SPAN"
+                and report.get("duration_evidence_role") == "SHORT_WINDOW_RUNTIME_EVIDENCE_NOT_LONG_RUN"
+                and report.get("optimizer_input_role") == "SHADOW_PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
+                and report.get("actual_persistent_runtime_executed") is True
+                and report.get("source_paper_loop_hash_verified") is True
+                and report.get("source_paper_loop_validation_status") == "PASS"
+            )
+        )
     )
     invalid_measurement = has_negative_count(
         "requested_cycle_count",
@@ -5452,13 +5740,17 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
     estimated_seconds = safe_count(report.get("estimated_runtime_seconds"))
     max_runtime_seconds = safe_count(report.get("max_runtime_seconds"))
     expected_estimated = safe_count(report.get("completed_cycle_count")) * safe_count(report.get("heartbeat_interval_seconds"))
-    inconsistent_estimate = estimated_seconds != expected_estimated
+    inconsistent_estimate = is_stub_runtime and estimated_seconds != expected_estimated
     runtime_budget_exceeded = max_runtime_seconds > 0 and expected_estimated > max_runtime_seconds
 
-    status = "STUB_ONLY"
-    severity = "WARNING"
-    color_token = "yellow"
-    summary = "Persistent SHADOW runtime is a bounded stub estimate only. Observed long-run runtime evidence is still missing."
+    status = "SHORT_WINDOW_EXECUTED" if is_short_window_runtime else "STUB_ONLY"
+    severity = "NORMAL" if is_short_window_runtime else "WARNING"
+    color_token = "blue" if is_short_window_runtime else "yellow"
+    summary = (
+        "Persistent PAPER/SHADOW runtime is source-bound to a real short-window PAPER loop. Long-run runtime evidence is still missing."
+        if is_short_window_runtime
+        else "Persistent SHADOW runtime is a bounded stub estimate only. Observed long-run runtime evidence is still missing."
+    )
     next_action = str(
         report.get("next_operator_action")
         or "Collect real PAPER/SHADOW long-run evidence separately; this stub cannot support LIVE review."
@@ -5471,7 +5763,7 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
         summary = "Persistent runtime report has invalid negative duration or cycle measurements."
         next_action = "Regenerate the persistent runtime stub report with non-negative values."
         blocker_code = "DATA_QUALITY_INSUFFICIENT"
-    elif not observed_is_zero:
+    elif is_stub_runtime and not observed_is_zero:
         status = "BLOCKED"
         severity = "ERROR"
         color_token = "red"
@@ -5508,7 +5800,7 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
             "heartbeat_interval_seconds": safe_count(report.get("heartbeat_interval_seconds")),
             "estimated_runtime_seconds": estimated_seconds,
             "observed_runtime_seconds": safe_count(report.get("observed_runtime_seconds")),
-            "actual_persistent_runtime_executed": False,
+            "actual_persistent_runtime_executed": status == "SHORT_WINDOW_EXECUTED",
             "long_run_evidence_eligible": False,
             "optimizer_input_role": str(report.get("optimizer_input_role") or "SHADOW_PERSISTENT_RUNTIME_STUB_ONLY"),
             "primary_blocker_code": blocker_code,
@@ -5874,6 +6166,15 @@ def _paper_runtime_evidence_collection_profile_status(
         "shadow_mode_counts_as_actual_long_run_evidence": False,
         "bounded_profile_counts_as_long_run_evidence": False,
         "dashboard_display_counts_as_long_run_evidence": False,
+        "collection_plan_status": "BLOCKED_FOR_RECONCILIATION",
+        "collection_plan_required_next_runtime_modes": ["PAPER", "SHADOW"],
+        "collection_plan_recommended_next_paper_batch_cycle_count": 0,
+        "collection_plan_max_safe_paper_batch_cycle_count": 20,
+        "collection_plan_minimum_cycle_wall_clock_spacing_seconds": 0,
+        "collection_plan_estimated_wall_clock_seconds_remaining": 0,
+        "collection_plan_shadow_collection_required": True,
+        "collection_plan_counts_as_actual_long_run_evidence": False,
+        "collection_plan_next_operator_action": "Run the bounded PAPER runtime evidence collection profile before using this panel for runtime review.",
         "span_floor_met": False,
         "cycle_floor_met": False,
         "ledger_runtime_evidence_status": "BLOCKED",
@@ -5946,6 +6247,10 @@ def _paper_runtime_evidence_collection_profile_status(
     runtime_mode_missing_modes = mode_depth_evidence.get("missing_long_run_modes")
     if not isinstance(runtime_mode_missing_modes, list):
         runtime_mode_missing_modes = ["PAPER", "SHADOW"]
+    collection_plan = report.get("non_live_collection_plan") if isinstance(report.get("non_live_collection_plan"), dict) else {}
+    collection_plan_modes = collection_plan.get("required_next_runtime_modes")
+    if not isinstance(collection_plan_modes, list):
+        collection_plan_modes = ["PAPER", "SHADOW"]
 
     status = "PASS"
     severity = "NORMAL"
@@ -6025,6 +6330,21 @@ def _paper_runtime_evidence_collection_profile_status(
             "shadow_mode_counts_as_actual_long_run_evidence": shadow_mode_depth.get("counts_as_actual_long_run_evidence") is True,
             "bounded_profile_counts_as_long_run_evidence": collection_depth.get("bounded_profile_counts_as_long_run_evidence") is True,
             "dashboard_display_counts_as_long_run_evidence": collection_depth.get("dashboard_display_counts_as_long_run_evidence") is True,
+            "collection_plan_status": str(collection_plan.get("plan_status") or "BLOCKED_FOR_RECONCILIATION"),
+            "collection_plan_required_next_runtime_modes": [str(item) for item in collection_plan_modes],
+            "collection_plan_recommended_next_paper_batch_cycle_count": safe_count(
+                collection_plan.get("recommended_next_paper_batch_cycle_count")
+            ),
+            "collection_plan_max_safe_paper_batch_cycle_count": safe_count(collection_plan.get("max_safe_paper_batch_cycle_count")),
+            "collection_plan_minimum_cycle_wall_clock_spacing_seconds": safe_count(
+                collection_plan.get("minimum_cycle_wall_clock_spacing_seconds")
+            ),
+            "collection_plan_estimated_wall_clock_seconds_remaining": safe_count(
+                collection_plan.get("estimated_wall_clock_seconds_remaining")
+            ),
+            "collection_plan_shadow_collection_required": collection_plan.get("shadow_collection_required") is True,
+            "collection_plan_counts_as_actual_long_run_evidence": collection_plan.get("counts_as_actual_long_run_evidence") is True,
+            "collection_plan_next_operator_action": str(collection_plan.get("next_operator_action") or next_action),
             "span_floor_met": report.get("span_floor_met") is True,
             "cycle_floor_met": report.get("cycle_floor_met") is True,
             "ledger_runtime_evidence_status": str(report.get("ledger_runtime_evidence_status") or "BLOCKED"),
@@ -6199,11 +6519,18 @@ def _runtime_evidence_boundary_status(
     *,
     portfolio_snapshot: dict[str, Any],
     long_run_operator_summary: dict[str, Any],
+    operation_status: dict[str, Any],
     shadow_runtime_harness_status: dict[str, Any],
     shadow_persistent_runtime_status: dict[str, Any],
     shadow_runtime_orchestration_status: dict[str, Any],
     paper_runtime_evidence_collection_profile_status: dict[str, Any],
 ) -> dict[str, Any]:
+    paper_runtime_active_with_current_truth = (
+        operation_status.get("status") == "RUNNING_SAFE_MODE"
+        and operation_status.get("severity") == "NORMAL"
+        and operation_status.get("runtime_presence") == "PAPER_RUNTIME_ACTIVE"
+        and operation_status.get("primary_blocker") == "LIVE_READY_MISSING"
+    )
     long_run_status = str(long_run_operator_summary.get("status", "ATTENTION"))
     harness_status = str(shadow_runtime_harness_status.get("status", "NOT_LOADED"))
     persistent_status = str(shadow_persistent_runtime_status.get("status", "NOT_LOADED"))
@@ -6262,8 +6589,18 @@ def _runtime_evidence_boundary_status(
         severity = "WARNING"
         color_token = "yellow"
         blocker_code = "LATENCY_TTL_EXPIRED"
-        summary = "Runtime evidence is stale. Refresh PAPER sources before trusting the dashboard."
-        next_action = "Rerun PAPER or refresh heartbeat before operator review."
+        if paper_runtime_active_with_current_truth:
+            summary = (
+                "Some runtime evidence sources are stale while verified current PAPER runtime truth is active. "
+                "Use the active truth for PAPER visibility only and keep live review blocked."
+            )
+            next_action = (
+                "Keep PAPER running and refresh stale runtime evidence sources before review; "
+                "do not treat current runtime truth as long-run evidence."
+            )
+        else:
+            summary = "Runtime evidence is stale. Refresh PAPER sources before trusting the dashboard."
+            next_action = "Rerun PAPER or refresh heartbeat before operator review."
     elif long_run_status == "ERROR":
         status = "BLOCKED"
         actual_status = "BLOCKED"
@@ -6283,13 +6620,18 @@ def _runtime_evidence_boundary_status(
 
     if persistent_status == "STUB_ONLY" and status == "ACTUAL_LONG_RUN_VALIDATED":
         stub_boundary_message = "Persistent runtime remains stub-only and does not contribute to the validated long-run claim."
+    elif persistent_status == "SHORT_WINDOW_EXECUTED" and status == "ACTUAL_LONG_RUN_VALIDATED":
+        stub_boundary_message = "Persistent runtime remains short-window only and does not contribute to the validated long-run claim."
     elif persistent_status == "STUB_ONLY":
         stub_boundary_message = "Persistent runtime is a stub estimate only and is not actual long-run evidence."
+    elif persistent_status == "SHORT_WINDOW_EXECUTED":
+        stub_boundary_message = "Persistent runtime is short-window only and is not actual long-run evidence."
     else:
         stub_boundary_message = "No validated persistent runtime source is loaded for long-run evidence."
 
-    def requirement_status_from_source(source_status: str, pass_status: str) -> str:
-        if source_status == pass_status:
+    def requirement_status_from_source(source_status: str, pass_status: str | set[str]) -> str:
+        pass_statuses = {pass_status} if isinstance(pass_status, str) else set(pass_status)
+        if source_status in pass_statuses:
             return "PASS"
         if source_status == "STALE":
             return "STALE"
@@ -6353,11 +6695,11 @@ def _runtime_evidence_boundary_status(
         requirement(
             "PERSISTENT_RUNTIME_SOURCE",
             "Persistent runtime source",
-            requirement_status_from_source(persistent_status, "STUB_ONLY"),
+            requirement_status_from_source(persistent_status, {"STUB_ONLY", "SHORT_WINDOW_EXECUTED"}),
             "shadow_observation_persistent_runtime_report.json"
             if persistent_status != "NOT_LOADED"
             else "NOT_LOADED",
-            "Loads the persistent runtime source as stub-only evidence; it never becomes actual long-run proof.",
+            "Loads the persistent runtime source as stub or short-window evidence; it never becomes actual long-run proof.",
             "Generate or refresh the bounded non-live persistent runtime report.",
         ),
         requirement(
@@ -6671,9 +7013,13 @@ def _shadow_runtime_orchestration_status(
             "order_adapter_called",
         )
     )
-    invalid_counts = any(
-        safe_count(report.get(field)) != 0
-        for field in ("observed_actual_runtime_seconds", "observed_actual_cycle_count", "observed_evidence_window_count")
+    observed_actual_runtime_seconds = safe_count(report.get("observed_actual_runtime_seconds"))
+    observed_actual_cycle_count = safe_count(report.get("observed_actual_cycle_count"))
+    observed_evidence_window_count = safe_count(report.get("observed_evidence_window_count"))
+    invalid_counts = (
+        observed_actual_runtime_seconds >= safe_count(report.get("minimum_runtime_window_seconds"))
+        or observed_actual_cycle_count >= safe_count(report.get("minimum_actual_cycle_count"))
+        or observed_evidence_window_count != 0
     )
     expected_contract = (
         report.get("schema_id") == "trader1.shadow_observation_runtime_orchestration_report.v1"
@@ -6740,9 +7086,9 @@ def _shadow_runtime_orchestration_status(
             "source_binding_count": safe_count(report.get("source_binding_count")),
             "persistent_runtime_status": shadow_persistent_runtime_status.get("status", "NOT_LOADED"),
             "short_window_harness_status": shadow_runtime_harness_status.get("status", "NOT_LOADED"),
-            "observed_actual_runtime_seconds": safe_count(report.get("observed_actual_runtime_seconds")),
-            "observed_actual_cycle_count": safe_count(report.get("observed_actual_cycle_count")),
-            "observed_evidence_window_count": safe_count(report.get("observed_evidence_window_count")),
+            "observed_actual_runtime_seconds": observed_actual_runtime_seconds,
+            "observed_actual_cycle_count": observed_actual_cycle_count,
+            "observed_evidence_window_count": observed_evidence_window_count,
             "actual_long_run_runtime_present": False,
             "long_run_evidence_eligible": False,
             "scorecard_input_eligible": False,
@@ -6780,6 +7126,12 @@ def _operator_action_summary(
     maturity_status = profitability_maturity.get("status")
     feedback_status = execution_feedback_snapshot.get("status")
     reconciliation_status = reconciliation_recovery_summary.get("status")
+    paper_runtime_active_with_current_truth = (
+        operation_status.get("status") == "RUNNING_SAFE_MODE"
+        and operation_status.get("severity") == "NORMAL"
+        and operation_status.get("runtime_presence") == "PAPER_RUNTIME_ACTIVE"
+        and operation_status.get("primary_blocker") == "LIVE_READY_MISSING"
+    )
     repaired_current_evidence_guard_blocked = (
         reconciliation_recovery_summary.get("stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status")
         == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
@@ -6814,6 +7166,15 @@ def _operator_action_summary(
         reconciliation_recovery_summary.get("post_repair_reconciliation_status") == "BLOCKED"
         and reconciliation_recovery_summary.get("post_repair_reconciliation_validation_status") == "PASS"
         and reconciliation_recovery_summary.get("primary_blocker_code") == "POST_REPAIR_RECONCILIATION_REQUIRED"
+    )
+    active_paper_review_warning = (
+        paper_runtime_active_with_current_truth
+        and blocker == "LIVE_READY_MISSING"
+        and operation_severity == "NORMAL"
+        and reconciliation_status == "PASS"
+        and long_run_status == "ATTENTION"
+        and risk_status not in {"BLOCKED", "STALE"}
+        and feedback_status not in {"BLOCKED", "STALE"}
     )
 
     if (
@@ -6853,9 +7214,25 @@ def _operator_action_summary(
         severity = "WARNING"
         color_token = "yellow"
         primary_action = "REFRESH_DASHBOARD"
-        workflow_step = "RUN_PAPER"
-        label = "Refresh PAPER status"
-        next_operator_action = "Rerun the PAPER launcher to refresh heartbeat, dashboard sources, and portfolio values."
+        if paper_runtime_active_with_current_truth and risk_status != "STALE" and feedback_status != "STALE":
+            workflow_step = "RUN_PAPER"
+            if long_run_operator_summary.get("source") == "stability_history.json":
+                label = "Review PAPER history"
+                next_operator_action = (
+                    "PAPER runtime is active with verified current truth. Keep PAPER running; validated display "
+                    "history still contains stale or degraded samples and must roll forward before review. "
+                    "LIVE remains blocked."
+                )
+            else:
+                label = "Refresh stale evidence"
+                next_operator_action = (
+                    "PAPER runtime is active with verified current truth. Keep PAPER running and refresh stale "
+                    "dashboard or research evidence sources before review; LIVE remains blocked."
+                )
+        else:
+            workflow_step = "RUN_PAPER"
+            label = "Refresh PAPER status"
+            next_operator_action = "Rerun the PAPER launcher to refresh heartbeat, dashboard sources, and portfolio values."
     elif maturity_status == "SCORECARD_INPUT_READY" or feedback_status == "READY_FOR_PAPER_RANKING_REVIEW":
         status = "PAPER_REVIEW_READY"
         severity = "NORMAL"
@@ -6878,8 +7255,15 @@ def _operator_action_summary(
         color_token = "yellow"
         primary_action = "RESOLVE_BLOCKER"
         workflow_step = "INSPECT_DASHBOARD"
-        label = "Resolve dashboard blocker"
-        next_operator_action = "Resolve the visible blocker, then rerun PAPER and recheck this dashboard."
+        if active_paper_review_warning:
+            label = "Review PAPER warnings"
+            next_operator_action = (
+                "PAPER runtime is active with verified current truth. Keep PAPER running; review yellow "
+                "resource, risk, or evidence warnings before PAPER review. LIVE and scale-up remain blocked."
+            )
+        else:
+            label = "Resolve dashboard blocker"
+            next_operator_action = "Resolve the visible blocker, then rerun PAPER and recheck this dashboard."
 
     one_line_blocker = f"{blocker}: live orders remain blocked."
     if reconciliation_status in {"BLOCKED", "INVALID"}:
@@ -7502,6 +7886,114 @@ def _paper_shadow_actionability_safety_override(message: str) -> dict[str, Any]:
     }
 
 
+def _paper_shadow_runtime_span_projection(evidence: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(evidence, dict):
+        return {
+            "paper_runtime_span_seconds": 0,
+            "shadow_runtime_span_seconds": 0,
+            "paired_runtime_span_seconds": 0,
+            "evidence_span_hours": 0,
+            "runtime_span_summary": "PAPER 0s / SHADOW 0s; paired 0s (0h). No runtime span evidence loaded.",
+        }
+    paper_seconds = _safe_deficit_count(evidence.get("paper_runtime_span_seconds"))
+    shadow_seconds = _safe_deficit_count(evidence.get("shadow_runtime_span_seconds"))
+    paired_seconds = _safe_deficit_count(evidence.get("paired_runtime_span_seconds"))
+    span_hours = _safe_deficit_count(evidence.get("evidence_span_hours"))
+    return {
+        "paper_runtime_span_seconds": paper_seconds,
+        "shadow_runtime_span_seconds": shadow_seconds,
+        "paired_runtime_span_seconds": paired_seconds,
+        "evidence_span_hours": span_hours,
+        "runtime_span_summary": (
+            f"PAPER {paper_seconds}s / SHADOW {shadow_seconds}s; "
+            f"paired {paired_seconds}s ({span_hours}h)"
+        ),
+    }
+
+
+def _rollup_component_by_id(components: Any, component_id: str) -> dict[str, Any]:
+    if not isinstance(components, list):
+        return {}
+    for component in components:
+        if isinstance(component, dict) and component.get("component_id") == component_id:
+            return component
+    return {}
+
+
+def _rollup_paper_shadow_evidence_projection(
+    paper_shadow_component: dict[str, Any],
+    runtime_profile_evidence: Any,
+) -> dict[str, Any]:
+    min_samples = _safe_deficit_count(paper_shadow_component.get("min_required_sample_count")) or 30
+    paired_count = _safe_deficit_count(paper_shadow_component.get("sample_count"))
+    paper_samples = _safe_deficit_count(paper_shadow_component.get("paper_sample_count")) or paired_count
+    shadow_samples = _safe_deficit_count(paper_shadow_component.get("shadow_sample_count")) or paired_count
+    evidence_window_count = _safe_deficit_count(paper_shadow_component.get("evidence_window_count"))
+    min_windows = _safe_deficit_count(paper_shadow_component.get("min_required_evidence_window_count")) or 20
+    supporting_windows = _safe_deficit_count(paper_shadow_component.get("supporting_source_window_count"))
+    min_span_hours = _safe_deficit_count(paper_shadow_component.get("min_required_evidence_span_hours")) or 120
+    cost_count = _safe_deficit_count(paper_shadow_component.get("cost_evidence_count"))
+    entry_count = _safe_deficit_count(paper_shadow_component.get("entry_reason_count"))
+    no_trade_count = _safe_deficit_count(paper_shadow_component.get("no_trade_reason_count"))
+
+    if isinstance(runtime_profile_evidence, dict):
+        paper_seconds = _safe_deficit_count(
+            paper_shadow_component.get("paper_runtime_span_seconds")
+            or runtime_profile_evidence.get("paper_observed_span_seconds")
+        )
+        shadow_seconds = _safe_deficit_count(
+            paper_shadow_component.get("shadow_runtime_span_seconds")
+            or runtime_profile_evidence.get("shadow_observed_span_seconds")
+        )
+    else:
+        paper_seconds = _safe_deficit_count(paper_shadow_component.get("paper_runtime_span_seconds"))
+        shadow_seconds = _safe_deficit_count(paper_shadow_component.get("shadow_runtime_span_seconds"))
+    paired_seconds = _safe_deficit_count(paper_shadow_component.get("paired_runtime_span_seconds"))
+    if paired_seconds == 0 and (paper_seconds > 0 or shadow_seconds > 0):
+        paired_seconds = min(paper_seconds, shadow_seconds)
+    span_hours = paired_seconds // 3600
+
+    runtime_span_projection = _paper_shadow_runtime_span_projection(
+        {
+            **paper_shadow_component,
+            "paper_runtime_span_seconds": paper_seconds,
+            "shadow_runtime_span_seconds": shadow_seconds,
+            "paired_runtime_span_seconds": paired_seconds,
+            "evidence_span_hours": span_hours,
+        }
+    )
+    runtime_source_projection = _actual_runtime_source_projection(paper_shadow_component)
+    actionability_projection = _paper_shadow_actionability_projection(paper_shadow_component)
+    checklist, progress_pct, progress_status, progress_summary = _profitability_evidence_progress(
+        paper_samples=paper_samples,
+        shadow_samples=shadow_samples,
+        min_samples=min_samples,
+        cost_count=cost_count,
+        entry_count=entry_count,
+        no_trade_count=no_trade_count,
+    )
+    return {
+        "paper_sample_count": paper_samples,
+        "shadow_sample_count": shadow_samples,
+        "min_required_samples": min_samples,
+        "sample_summary": (
+            f"PAPER samples {paper_samples}/{min_samples}; SHADOW observations {shadow_samples}/{min_samples}; "
+            f"windows {evidence_window_count}/{min_windows}; source-bound windows {supporting_windows}/{min_windows}; "
+            f"span {span_hours}/{min_span_hours}h; live orders blocked."
+        ),
+        **runtime_span_projection,
+        **runtime_source_projection,
+        **actionability_projection,
+        "cost_evidence_status": "PASS" if cost_count > 0 else "UNTESTED",
+        "entry_reason_status": "PASS" if entry_count > 0 else "UNTESTED",
+        "no_trade_reason_status": "PASS" if no_trade_count > 0 else "UNTESTED",
+        "evidence_progress_status": progress_status,
+        "evidence_progress_pct": progress_pct,
+        "evidence_progress_summary": progress_summary,
+        "evidence_checklist": checklist,
+    }
+
+
 def _profitability_maturity_component(
     component_id: str,
     status: str,
@@ -7838,7 +8330,7 @@ def _robustness_source_type_projection(evidence: Any, *, missing_status: str = "
         "robustness_source_type_bootstrap_count": bootstrap_count,
         "robustness_source_type_concentration_count": concentration_count,
         "robustness_source_type_primary_blocker_code": str(
-            evidence.get("primary_blocker_code") or "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED"
+            evidence.get("primary_blocker_code") or ("NONE" if status == "PASS" else "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED")
         ),
         "robustness_source_type_explicit_blocker": evidence.get("explicit_source_type_blocker") is True,
     }
@@ -7881,11 +8373,21 @@ def _profitability_maturity_from_rollup(
     component_live_drift = any(
         isinstance(component, dict)
         and (
-            component.get("live_review_eligible") is True
+            component.get("live_order_ready") is True
+            or component.get("live_order_allowed") is True
+            or component.get("can_live_trade") is True
+            or component.get("live_review_eligible") is True
             or component.get("scale_up_allowed") is True
             or not component.get("next_required_evidence")
         )
         for component in components
+    )
+    robustness_status = robustness_projection["robustness_source_type_status"]
+    robustness_blocker_required = robustness_status != "PASS" and (
+        robustness_projection["robustness_source_type_missing_count"] <= 0
+        or robustness_projection["robustness_source_type_explicit_blocker"] is not True
+        or robustness_projection["robustness_source_type_primary_blocker_code"]
+        != "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED"
     )
     blocked = (
         rollup_report.get("schema_id") != "trader1.profitability_evidence_maturity_rollup.v1"
@@ -7899,11 +8401,8 @@ def _profitability_maturity_from_rollup(
         or threshold_projection["promotion_threshold_missing_code_count"] <= 0
         or threshold_projection["promotion_threshold_explicit_insufficient_sample_blocker"] is not True
         or threshold_projection["promotion_threshold_high_or_critical_contract_gap_count"] <= 0
-        or robustness_projection["robustness_source_type_status"] in {"INVALID", "PASS"}
-        or robustness_projection["robustness_source_type_missing_count"] <= 0
-        or robustness_projection["robustness_source_type_explicit_blocker"] is not True
-        or robustness_projection["robustness_source_type_primary_blocker_code"]
-        != "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED"
+        or robustness_status == "INVALID"
+        or robustness_blocker_required
     )
 
     if blocked:
@@ -7964,6 +8463,10 @@ def _profitability_maturity_from_rollup(
         for component in components
         if isinstance(component, dict)
     ]
+    paper_shadow_projection = _rollup_paper_shadow_evidence_projection(
+        _rollup_component_by_id(components, "paper_shadow_evidence_accumulation"),
+        rollup_report.get("runtime_collection_profile_evidence"),
+    )
     input_component_count = sum(
         1
         for component in projected_components
@@ -7990,13 +8493,7 @@ def _profitability_maturity_from_rollup(
         **threshold_projection,
         **robustness_projection,
         "evidence_status": "WARN",
-        "sample_summary": f"Rollup components {component_count}/{required_count}; PAPER/SHADOW evidence still maturing",
-        "evidence_progress_status": "IN_PROGRESS" if input_component_count else "NOT_STARTED",
-        "evidence_progress_pct": 0,
-        "evidence_progress_summary": (
-            f"Rollup loaded: {input_component_count}/{len(projected_components)} components have PAPER scorecard input only; "
-            "runtime checklist counts still require PAPER/SHADOW evidence collection."
-        ),
+        **paper_shadow_projection,
         "maturity_gap_status": "OPEN_HIGH",
         "maturity_gap_count": gap_count,
         "maturity_component_count": len(projected_components),
@@ -8166,6 +8663,107 @@ def _candidate_scorecard_projection(
     }
 
 
+def _overfit_diagnostic_projection(
+    *,
+    exchange: str,
+    market_type: str,
+    mode: str,
+    session_id: str,
+    overfit_diagnostic_report: dict[str, Any] | None,
+    summary_freshness: str,
+) -> dict[str, Any]:
+    base = {
+        "overfit_diagnostic_source": "NOT_LOADED",
+        "overfit_diagnostic_status": "NOT_LOADED",
+        "overfit_diagnostic_sample_count": 0,
+        "overfit_diagnostic_min_required_sample_count": 300,
+        "overfit_diagnostic_robustness_eligible": False,
+        "overfit_diagnostic_oos_status": "UNTESTED",
+        "overfit_diagnostic_walk_forward_status": "UNTESTED",
+        "overfit_diagnostic_bootstrap_status": "UNTESTED",
+        "overfit_diagnostic_overfit_status": "UNTESTED",
+        "overfit_diagnostic_primary_blocker_code": "SAMPLE_INSUFFICIENT",
+        "overfit_diagnostic_blocker_summary": "No PAPER overfit diagnostic is loaded for this dashboard.",
+        "overfit_diagnostic_next_action": "Run the Upbit PAPER overfit diagnostic after collecting more PAPER runtime samples.",
+    }
+    if summary_freshness != "PASS":
+        return {
+            **base,
+            "overfit_diagnostic_status": "STALE",
+            "overfit_diagnostic_primary_blocker_code": "LATENCY_TTL_EXPIRED",
+            "overfit_diagnostic_blocker_summary": "Dashboard summary is stale; overfit diagnostic display is not trusted.",
+            "overfit_diagnostic_next_action": "Rerun PAPER and refresh the dashboard before reviewing overfit evidence.",
+        }
+    if not isinstance(overfit_diagnostic_report, dict):
+        return base
+
+    blockers = overfit_diagnostic_report.get("blockers", [])
+    if not isinstance(blockers, list):
+        blockers = []
+    blocker_codes = [
+        str(blocker.get("code"))
+        for blocker in blockers
+        if isinstance(blocker, dict) and blocker.get("code")
+    ]
+    first_blocker = blocker_codes[0] if blocker_codes else "LIVE_READY_MISSING"
+    status = str(overfit_diagnostic_report.get("diagnostic_status") or "UNTESTED")
+    projection = {
+        **base,
+        "overfit_diagnostic_source": "overfit_diagnostic_report.json",
+        "overfit_diagnostic_status": status if status in OVERFIT_DIAGNOSTIC_STATUSES else "BLOCKED",
+        "overfit_diagnostic_sample_count": int(overfit_diagnostic_report.get("sample_count") or 0),
+        "overfit_diagnostic_min_required_sample_count": int(overfit_diagnostic_report.get("min_required_sample_count") or 300),
+        "overfit_diagnostic_robustness_eligible": overfit_diagnostic_report.get("robustness_eligible") is True,
+        "overfit_diagnostic_oos_status": str(overfit_diagnostic_report.get("oos_status") or "UNTESTED"),
+        "overfit_diagnostic_walk_forward_status": str(overfit_diagnostic_report.get("walk_forward_status") or "UNTESTED"),
+        "overfit_diagnostic_bootstrap_status": str(overfit_diagnostic_report.get("bootstrap_status") or "UNTESTED"),
+        "overfit_diagnostic_overfit_status": str(overfit_diagnostic_report.get("overfit_status") or "UNTESTED"),
+        "overfit_diagnostic_primary_blocker_code": first_blocker,
+        "overfit_diagnostic_blocker_summary": ", ".join(blocker_codes[:4]) if blocker_codes else "PAPER robustness review only; live remains blocked.",
+        "overfit_diagnostic_next_action": (
+            "Collect PAPER samples until OOS, walk-forward, bootstrap, and stability checks pass; do not treat this as LIVE_READY."
+        ),
+    }
+    live_flag_drift = any(
+        overfit_diagnostic_report.get(flag) is True
+        for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed", "promotion_eligible")
+    )
+    scope_matches = (
+        overfit_diagnostic_report.get("exchange") == exchange
+        and overfit_diagnostic_report.get("market_type") == market_type
+        and overfit_diagnostic_report.get("mode") == mode
+        and overfit_diagnostic_report.get("session_id") == session_id
+    )
+    if live_flag_drift or overfit_diagnostic_report.get("dashboard_display_truth_only") is not True:
+        return {
+            **projection,
+            "overfit_diagnostic_status": "BLOCKED",
+            "overfit_diagnostic_robustness_eligible": False,
+            "overfit_diagnostic_primary_blocker_code": "LIVE_FINAL_GUARD_FAILED",
+            "overfit_diagnostic_blocker_summary": "Overfit diagnostic attempted live, promotion, or non-display truth.",
+            "overfit_diagnostic_next_action": "Reject this diagnostic, inspect the writer, and keep live orders disabled.",
+        }
+    if not scope_matches:
+        return {
+            **projection,
+            "overfit_diagnostic_status": "BLOCKED",
+            "overfit_diagnostic_robustness_eligible": False,
+            "overfit_diagnostic_primary_blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+            "overfit_diagnostic_blocker_summary": "Overfit diagnostic scope does not match this dashboard session.",
+            "overfit_diagnostic_next_action": "Regenerate the diagnostic for the exact exchange, market, mode, and session shown here.",
+        }
+    if _freshness_from_generated_at(overfit_diagnostic_report) != "PASS":
+        return {
+            **projection,
+            "overfit_diagnostic_status": "STALE",
+            "overfit_diagnostic_robustness_eligible": False,
+            "overfit_diagnostic_primary_blocker_code": "LATENCY_TTL_EXPIRED",
+            "overfit_diagnostic_blocker_summary": "Overfit diagnostic is stale and cannot be trusted for review.",
+            "overfit_diagnostic_next_action": "Rerun the overfit diagnostic from fresh PAPER runtime samples.",
+        }
+    return projection
+
+
 def _profitability_maturity(
     *,
     exchange: str,
@@ -8175,6 +8773,7 @@ def _profitability_maturity(
     paper_operation_gate_report: dict[str, Any] | None,
     profitability_maturity_rollup_report: dict[str, Any] | None,
     candidate_scorecard: dict[str, Any] | None,
+    overfit_diagnostic_report: dict[str, Any] | None,
     summary_freshness: str,
 ) -> dict[str, Any]:
     scorecard_projection = _candidate_scorecard_projection(
@@ -8183,6 +8782,14 @@ def _profitability_maturity(
         mode=mode,
         session_id=session_id,
         candidate_scorecard=candidate_scorecard,
+        summary_freshness=summary_freshness,
+    )
+    overfit_projection = _overfit_diagnostic_projection(
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+        overfit_diagnostic_report=overfit_diagnostic_report,
         summary_freshness=summary_freshness,
     )
     base_checklist, base_progress_pct, base_progress_status, base_progress_summary = _profitability_evidence_progress(
@@ -8225,6 +8832,7 @@ def _profitability_maturity(
         "shadow_sample_count": 0,
         "min_required_samples": 0,
         "sample_summary": "No paper/shadow evidence loaded",
+        **_paper_shadow_runtime_span_projection(None),
         **_actual_runtime_source_projection(None),
         **_paper_shadow_actionability_projection(None),
         "cost_evidence_status": "UNTESTED",
@@ -8244,6 +8852,7 @@ def _profitability_maturity(
         "live_readiness_status": "NOT_LIVE_READY",
         "operator_warning": "PAPER evidence is not LIVE_READY and cannot place or allow live orders.",
         **scorecard_projection,
+        **overfit_projection,
         "scorecard_input_eligible": False,
         "optimizer_ranking_action": "BLOCK_RANKING",
         "primary_blocker_code": "HARD_TRUTH_MISSING",
@@ -8405,6 +9014,7 @@ def _profitability_maturity(
     optimizer_ranking_action = evidence.get("optimizer_ranking_action", "BLOCK_RANKING")
     runtime_source_projection = _actual_runtime_source_projection(evidence)
     actionability_projection = _paper_shadow_actionability_projection(evidence)
+    runtime_span_projection = _paper_shadow_runtime_span_projection(evidence)
     blockers = evidence.get("blockers", [])
     first_blocker = blockers[0] if blockers and isinstance(blockers[0], dict) else {}
     checklist, progress_pct, progress_status, progress_summary = _profitability_evidence_progress(
@@ -8451,6 +9061,7 @@ def _profitability_maturity(
             "shadow_sample_count": shadow_samples,
             "min_required_samples": min_samples,
             "sample_summary": f"PAPER {paper_samples} / SHADOW {shadow_samples}; min {min_samples}",
+            **runtime_span_projection,
             **runtime_source_projection,
             **_paper_shadow_actionability_safety_override(
                 "PAPER/SHADOW actionability suppressed because live/order/scale drift was detected."
@@ -8507,6 +9118,7 @@ def _profitability_maturity(
             "shadow_sample_count": shadow_samples,
             "min_required_samples": min_samples,
             "sample_summary": f"PAPER {paper_samples} / SHADOW {shadow_samples}; min {min_samples}",
+            **runtime_span_projection,
             **runtime_source_projection,
             **_paper_shadow_actionability_safety_override(
                 "PAPER/SHADOW actionability suppressed because the evidence scope does not match this dashboard."
@@ -8551,6 +9163,7 @@ def _profitability_maturity(
         "shadow_sample_count": shadow_samples,
         "min_required_samples": min_samples,
         "sample_summary": f"PAPER {paper_samples} / SHADOW {shadow_samples}; min {min_samples}",
+        **runtime_span_projection,
         **runtime_source_projection,
         **actionability_projection,
         "cost_evidence_status": "PASS" if cost_count > 0 else "UNTESTED",
@@ -9696,7 +10309,9 @@ def _operation_status(
                 "portfolio_status": portfolio_status,
                 "portfolio_blocking_reason": portfolio_blocker,
                 "portfolio_next_action": portfolio_next_action_text,
-                "primary_blocker": primary_blocker or "LIVE_READY_MISSING",
+                "primary_blocker": paper_runtime_truth_state_report.get("primary_blocker_code")
+                or primary_blocker
+                or "LIVE_READY_MISSING",
                 "live_orders_blocked": live_orders_blocked,
             }
         if (
@@ -12131,8 +12746,7 @@ def _reconciliation_recovery_summary(
             primary_blocker = "SNAPSHOT_SCOPE_MISMATCH"
             issue_messages.append("Audited current-evidence writer scope does not match this dashboard.")
         elif upbit_paper_repaired_current_evidence_audited_writer_status in {
-            AUDITED_WRITER_WRITTEN_STATUS,
-            AUDITED_WRITER_IDEMPOTENT_STATUS,
+            *AUDITED_WRITER_DISPLAY_PASS_STATUSES,
         }:
             upbit_paper_repaired_current_evidence_audited_writer_verified_for_display = (
                 upbit_paper_repaired_current_evidence_audited_writer_passed
@@ -12415,9 +13029,32 @@ def _reconciliation_recovery_summary(
             f"candidate-ready={upbit_paper_repaired_current_evidence_audited_writer_precheck_candidate_ready_count}, "
             "writer-enabled=false, current-evidence writes=false, portfolio truth writes=false."
         )
+    elif upbit_paper_repaired_current_evidence_audited_writer_verified_for_display:
+        status = "PASS"
+        severity = "NORMAL"
+        color_token = "green"
+        source = "upbit_paper_repaired_current_evidence_audited_writer_report.json"
+        ledger_state = "PAPER_LEDGER_MATCHED"
+        single_writer_state = "RECOVERED"
+        idempotency_state = "RECOVERED"
+        primary_blocker = "LIVE_READY_MISSING"
+        one_line_blocker = (
+            "LIVE_READY_MISSING: audited PAPER current-evidence writer is verified for display only; "
+            "live orders and scale-up remain blocked."
+        )
+        next_action = (
+            upbit_paper_repaired_current_evidence_audited_writer_next_action
+            if upbit_paper_repaired_current_evidence_audited_writer_next_action != "NOT_LOADED"
+            else "Continue PAPER/SHADOW evidence collection; keep live orders and scale-up blocked."
+        )
+        message = (
+            "Audited PAPER current evidence, idempotency manifest, and portfolio truth are hash-bound for "
+            "display-only review. Earlier repair and implementation-prep reports remain historical review evidence."
+        )
     elif (
         stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status
         == "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED"
+        and not upbit_paper_repaired_current_evidence_audited_writer_verified_for_display
     ):
         status = "BLOCKED"
         severity = "ERROR"
@@ -12700,6 +13337,28 @@ def _reconciliation_recovery_summary(
         message = (
             f"Post-rerun reconciliation remains blocked: {post_rerun_unique_blocker_count} unresolved blocker code(s), "
             f"{post_rerun_current_evidence_write_allowed_count} current-evidence writes allowed."
+        )
+    elif upbit_paper_repaired_current_evidence_audited_writer_verified_for_display:
+        status = "PASS"
+        severity = "NORMAL"
+        color_token = "green"
+        source = "upbit_paper_repaired_current_evidence_audited_writer_report.json"
+        ledger_state = "PAPER_LEDGER_MATCHED"
+        single_writer_state = "RECOVERED"
+        idempotency_state = "RECOVERED"
+        primary_blocker = "LIVE_READY_MISSING"
+        one_line_blocker = (
+            "LIVE_READY_MISSING: audited PAPER current-evidence writer is verified for display only; "
+            "live orders and scale-up remain blocked."
+        )
+        next_action = (
+            upbit_paper_repaired_current_evidence_audited_writer_next_action
+            if upbit_paper_repaired_current_evidence_audited_writer_next_action != "NOT_LOADED"
+            else "Continue PAPER/SHADOW evidence collection; keep live orders and scale-up blocked."
+        )
+        message = (
+            "Audited PAPER current evidence, idempotency manifest, and portfolio truth are hash-bound for "
+            "display-only review. Earlier repair and implementation-prep reports remain historical review evidence."
         )
     elif (
         reconciliation_status == "PASS"
@@ -15757,6 +16416,7 @@ def build_read_only_dashboard_shell(
     parameter_narrowing_report: dict[str, Any] | None = None,
     profitability_maturity_rollup_report: dict[str, Any] | None = None,
     candidate_scorecard: dict[str, Any] | None = None,
+    overfit_diagnostic_report: dict[str, Any] | None = None,
     residual_open_gap_operator_action_plan_report: dict[str, Any] | None = None,
     residual_operator_handoff_packet_report: dict[str, Any] | None = None,
     residual_operator_execution_guide_report: dict[str, Any] | None = None,
@@ -15813,6 +16473,7 @@ def build_read_only_dashboard_shell(
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
+        "overfit_diagnostic_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/overfit_diagnostic_report.json",
         "residual_open_gap_operator_action_plan": "system/evidence/audit_reports/MVP4_RESIDUAL_OPEN_GAP_OPERATOR_ACTION_PLAN.report.json",
         "residual_operator_handoff_packet": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
         "residual_operator_execution_guide": "system/evidence/audit_reports/MVP4_RESIDUAL_OPERATOR_HANDOFF_EXECUTION_GUIDE.report.json",
@@ -15936,6 +16597,18 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 _freshness_from_generated_at(candidate_scorecard),
+            )
+        )
+    if isinstance(overfit_diagnostic_report, dict):
+        source_artifacts.append(
+            _source_artifact(
+                "OVERFIT_DIAGNOSTIC",
+                paths.get(
+                    "overfit_diagnostic_report",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/overfit_diagnostic_report.json",
+                ),
+                True,
+                _freshness_from_generated_at(overfit_diagnostic_report),
             )
         )
     if isinstance(residual_operator_handoff_packet_report, dict):
@@ -16296,7 +16969,7 @@ def build_read_only_dashboard_shell(
         )
     shadow_persistent_runtime_status = _shadow_persistent_runtime_status(shadow_persistent_runtime_report)
     if isinstance(shadow_persistent_runtime_report, dict):
-        persistent_freshness = "PASS" if shadow_persistent_runtime_status["status"] == "STUB_ONLY" else "STALE"
+        persistent_freshness = "PASS" if shadow_persistent_runtime_status["status"] in {"STUB_ONLY", "SHORT_WINDOW_EXECUTED"} else "STALE"
         source_artifacts.append(
             _source_artifact(
                 "SHADOW_PERSISTENT_RUNTIME",
@@ -17080,7 +17753,7 @@ def build_read_only_dashboard_shell(
             and _freshness_from_generated_at(upbit_paper_repaired_current_evidence_audited_writer_report)
             == "PASS"
             and upbit_paper_repaired_current_evidence_audited_writer_report.get("writer_status")
-            in {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS}
+            in AUDITED_WRITER_DISPLAY_PASS_STATUSES
             and upbit_paper_repaired_current_evidence_audited_writer_report.get("writer_passed") is True
             and upbit_paper_repaired_current_evidence_audited_writer_report.get("current_evidence_artifact_written")
             is True
@@ -17138,7 +17811,8 @@ def build_read_only_dashboard_shell(
             "PASS"
             if audited_portfolio_result.status == "PASS"
             and audited_paper_portfolio_snapshot.get("snapshot_status") == "PASS"
-            and audited_paper_portfolio_snapshot.get("source") == "PAPER_LEDGER_ROLLUP"
+            and audited_paper_portfolio_snapshot.get("source")
+            in {"PAPER_LEDGER_ROLLUP", "PAPER_LEDGER_ROLLUP_PUBLIC_MARK"}
             and audited_paper_portfolio_snapshot.get("live_order_ready") is False
             and audited_paper_portfolio_snapshot.get("live_order_allowed") is False
             and audited_paper_portfolio_snapshot.get("can_live_trade") is False
@@ -17252,6 +17926,12 @@ def build_read_only_dashboard_shell(
         paper_current_truth_refresh_report=paper_current_truth_refresh_report,
         paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
     )
+    primary_blocker = _active_paper_current_truth_dashboard_blocker(
+        primary_blocker=primary_blocker,
+        portfolio_snapshot=portfolio_snapshot,
+        reconciliation_recovery_summary=reconciliation_recovery_summary,
+        paper_runtime_truth_state_report=paper_runtime_truth_state_report,
+    )
     decision_trace = _decision_trace(summary, primary_blocker, position_snapshot)
     operation_status = _operation_status(
         heartbeat=heartbeat,
@@ -17281,6 +17961,7 @@ def build_read_only_dashboard_shell(
     runtime_evidence_boundary = _runtime_evidence_boundary_status(
         portfolio_snapshot=portfolio_snapshot,
         long_run_operator_summary=long_run_operator_summary,
+        operation_status=operation_status,
         shadow_runtime_harness_status=shadow_runtime_harness_status,
         shadow_persistent_runtime_status=shadow_persistent_runtime_status,
         shadow_runtime_orchestration_status=shadow_runtime_orchestration_status,
@@ -17294,6 +17975,7 @@ def build_read_only_dashboard_shell(
         paper_operation_gate_report=paper_operation_gate_report,
         profitability_maturity_rollup_report=profitability_maturity_rollup_report,
         candidate_scorecard=candidate_scorecard,
+        overfit_diagnostic_report=overfit_diagnostic_report,
         summary_freshness=summary_freshness,
     )
     convergence_assessment_status = _convergence_assessment_status(
@@ -17754,10 +18436,11 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "retry_trend_status",
                 "dashboard_refresh_delay_status",
                 "resource_pressure_status",
-                "primary_blocker_code",
-                "primary_blocker_message",
-                "next_action",
-            )
+            "primary_blocker_code",
+            "primary_blocker_message",
+            "runtime_span_summary",
+            "next_action",
+        )
         )
     market_data = shell.get("market_data_continuity_status", {})
     if isinstance(market_data, dict):
@@ -19926,7 +20609,7 @@ def validate_read_only_dashboard_shell(
         and shell.get("blocking_reason") == "POST_REPAIR_RECONCILIATION_REQUIRED"
     )
     audited_writer_verified_for_display = (
-        audited_writer_status in {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS}
+        audited_writer_status in AUDITED_WRITER_DISPLAY_PASS_STATUSES
         and audited_writer_validation_status == "PASS"
         and reconciliation.get("upbit_paper_repaired_current_evidence_audited_writer_passed") is True
         and reconciliation.get("upbit_paper_repaired_current_evidence_audited_writer_control_blocked_count", 0) == 0
@@ -19937,6 +20620,9 @@ def validate_read_only_dashboard_shell(
         and reconciliation.get("upbit_paper_repaired_current_evidence_audited_writer_portfolio_truth_artifact_written")
         is True
         and reconciliation.get("upbit_paper_repaired_current_evidence_audited_writer_lock_present_after_run") is False
+    )
+    current_guard_blocks_current_evidence = (
+        current_guard_blocks_current_evidence and not audited_writer_verified_for_display
     )
     audited_writer_precheck_blocks_current_evidence = (
         audited_writer_precheck_status == "BLOCKED_AUDITED_WRITER_DISABLED"
@@ -19984,6 +20670,7 @@ def validate_read_only_dashboard_shell(
             )
     if (
         post_rerun_rollup_status == "BLOCKED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20028,6 +20715,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "post-rerun blocker rollup cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
     if (
         post_rerun_guidance_status == "BLOCKED_RECONCILIATION_REVIEW_REQUIRED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20070,6 +20758,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "post-rerun review guidance cannot expose current evidence writes", "LIVE_FINAL_GUARD_FAILED")
     if (
         post_rerun_operator_queue_status == "BLOCKED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20108,6 +20797,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "post-rerun operator queue must render as a red review-only reconciliation blocker", "LIVE_FINAL_GUARD_FAILED")
     if (
         post_rerun_resolution_status == "UNRESOLVED_RECONCILIATION_REVIEW_ONLY"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20154,6 +20844,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "post-rerun resolution audit must keep source guidance and decision bindings verified", "LIVE_FINAL_GUARD_FAILED")
     if (
         post_rerun_resolution_closure_status == "CURRENT_EVIDENCE_CLOSED_RESOLUTION_UNRESOLVED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20204,6 +20895,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "post-rerun resolution current-evidence closure must keep source audit binding verified", "LIVE_FINAL_GUARD_FAILED")
     if (
         post_rerun_closure_recheck_status == "BLOCKED_POST_RERUN_CLOSURE_CONFIRMED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20248,6 +20940,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "post-rerun closure recheck cannot hide ledger or current-evidence write drift", "LIVE_FINAL_GUARD_FAILED")
     if (
         post_rerun_repair_path_status == "BLOCKED_REPAIR_PATH_DECLARED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20329,6 +21022,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "post-rerun repair path must show clean recheck runtime-depth binding", "LIVE_FINAL_GUARD_FAILED")
     if (
         post_repair_status == "BLOCKED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20360,6 +21054,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "post-repair reconciliation must render as a red blocked repair-candidate path", "LIVE_FINAL_GUARD_FAILED")
     if (
         repair_operator_queue_status == "BLOCKED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20389,6 +21084,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "repair operator queue must render as a red repair-review blocker", "LIVE_FINAL_GUARD_FAILED")
     if (
         stale_loop_post_regeneration_status == "BLOCKED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20431,6 +21127,7 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "stale-loop post-regeneration reconciliation must render as a red blocked regenerated-source path", "LIVE_FINAL_GUARD_FAILED")
     if (
         stale_loop_operator_queue_closure_status == "BLOCKED"
+        and not audited_writer_verified_for_display
         and not current_guard_blocks_current_evidence
         and not audited_writer_locked_output_blocks_current_evidence
         and not audited_writer_implementation_prep_blocks_current_evidence
@@ -20486,6 +21183,7 @@ def validate_read_only_dashboard_shell(
             not in {
                 "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
                 "POST_RERUN_RECONCILIATION_REQUIRED",
+                "PUBLIC_MARK_PRICE_BASIS_MISMATCH",
             }
             or reconciliation.get(
                 "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_validation_status"
@@ -20896,12 +21594,26 @@ def validate_read_only_dashboard_shell(
     if not isinstance(reconciliation.get("mismatch_count"), int) or reconciliation.get("mismatch_count") < 0:
         return DashboardValidationResult("FAIL", "reconciliation mismatch count is invalid", "SCHEMA_IDENTITY_MISMATCH")
     if reconciliation.get("status") == "PASS":
-        if (
+        clean_reconciliation_pass = (
             reconciliation.get("reconciliation_status") != "PASS"
             or reconciliation.get("restart_recovery_status") != "PASS"
             or reconciliation.get("primary_blocker_code") != "LIVE_READY_MISSING"
             or reconciliation.get("mismatch_count") != 0
-        ):
+        ) is False
+        audited_writer_display_pass = (
+            audited_writer_verified_for_display
+            and reconciliation.get("source") == "upbit_paper_repaired_current_evidence_audited_writer_report.json"
+            and reconciliation.get("primary_blocker_code") == "LIVE_READY_MISSING"
+            and reconciliation.get("ledger_state") == "PAPER_LEDGER_MATCHED"
+            and reconciliation.get("single_writer_state") == "RECOVERED"
+            and reconciliation.get("idempotency_state") == "RECOVERED"
+            and reconciliation.get("mismatch_count") == 0
+            and reconciliation.get("live_order_ready") is False
+            and reconciliation.get("live_order_allowed") is False
+            and reconciliation.get("can_live_trade") is False
+            and reconciliation.get("scale_up_allowed") is False
+        )
+        if not (clean_reconciliation_pass or audited_writer_display_pass):
             return DashboardValidationResult("BLOCKED", "PASS reconciliation display requires clean PAPER checks and live still blocked", "LIVE_FINAL_GUARD_FAILED")
     if reconciliation.get("status") in {"BLOCKED", "INVALID"} and reconciliation.get("severity") != "ERROR":
         return DashboardValidationResult("FAIL", "blocked or invalid reconciliation recovery must render as error", "SCHEMA_IDENTITY_MISMATCH")
@@ -21130,11 +21842,11 @@ def validate_read_only_dashboard_shell(
     if market_data.get("status") == "PASS":
         if (
             market_data.get("source") != "rest_continuity_history.json"
-            or market_data.get("pass_attempt_count", 0) < 2
+            or market_data.get("pass_attempt_count", 0) < 1
             or market_data.get("latest_attempt_status") != "PASS"
             or market_data.get("primary_blocker_code") != "LIVE_READY_MISSING"
         ):
-            return DashboardValidationResult("BLOCKED", "PASS market-data continuity requires repeated PAPER PASS attempts and live still blocked", "LIVE_FINAL_GUARD_FAILED")
+            return DashboardValidationResult("BLOCKED", "PASS market-data continuity requires a validated PAPER PASS attempt and live still blocked", "LIVE_FINAL_GUARD_FAILED")
     if market_data.get("status") == "NOT_LOADED" and market_data.get("source") != "NOT_LOADED":
         return DashboardValidationResult("FAIL", "not-loaded market-data continuity must not cite a report source", "SCHEMA_IDENTITY_MISMATCH")
     if market_data.get("status") in {"WARN", "BLOCKED", "STALE"} and market_data.get("severity") != "WARNING":
@@ -21218,7 +21930,10 @@ def validate_read_only_dashboard_shell(
         or shadow_persistent.get("can_live_trade")
         or shadow_persistent.get("scale_up_allowed")
         or shadow_persistent.get("long_run_evidence_eligible")
-        or shadow_persistent.get("actual_persistent_runtime_executed")
+        or (
+            shadow_persistent.get("actual_persistent_runtime_executed")
+            and shadow_persistent.get("status") != "SHORT_WINDOW_EXECUTED"
+        )
     ):
         return DashboardValidationResult("BLOCKED", "persistent runtime attempted to create live, scale, or long-run permission", "LIVE_FINAL_GUARD_FAILED")
     if shadow_persistent.get("status") not in SHADOW_PERSISTENT_RUNTIME_STATUSES:
@@ -21516,6 +22231,7 @@ def validate_read_only_dashboard_shell(
         "primary_blocker_code",
         "one_line_summary",
         "next_operator_action",
+        "collection_plan_next_operator_action",
     ):
         if not isinstance(paper_runtime_profile.get(text_field), str) or not paper_runtime_profile.get(text_field, "").strip():
             return DashboardValidationResult("FAIL", f"paper runtime evidence profile missing {text_field}", "SCHEMA_IDENTITY_MISMATCH")
@@ -21525,6 +22241,52 @@ def validate_read_only_dashboard_shell(
         for count_field in ("collection_depth_missing_span_seconds", "collection_depth_missing_cycle_count"):
             if not isinstance(paper_runtime_profile.get(count_field), int) or paper_runtime_profile.get(count_field) < 0:
                 return DashboardValidationResult("FAIL", f"paper runtime evidence profile count is invalid: {count_field}", "SCHEMA_IDENTITY_MISMATCH")
+        plan_status = paper_runtime_profile.get("collection_plan_status")
+        if plan_status not in {"READY_TO_CONTINUE_NON_LIVE_COLLECTION", "BLOCKED_FOR_RECONCILIATION"}:
+            return DashboardValidationResult("FAIL", "paper runtime evidence profile collection plan status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+        collection_plan_source_clear = (
+            paper_runtime_profile.get("component_count", 0) > 0
+            and paper_runtime_profile.get("component_pass_count") == paper_runtime_profile.get("component_count")
+            and paper_runtime_profile.get("component_blocked_count") == 0
+            and paper_runtime_profile.get("ledger_runtime_evidence_status") == "PASS"
+            and paper_runtime_profile.get("idempotency_status") == "PASS"
+            and paper_runtime_profile.get("reconciliation_status") == "PASS"
+            and paper_runtime_profile.get("mismatch_count", 0) == 0
+            and paper_runtime_profile.get("duplicate_event_id_count", 0) == 0
+            and paper_runtime_profile.get("duplicate_dedup_key_count", 0) == 0
+            and paper_runtime_profile.get("duplicate_semantic_event_count", 0) == 0
+            and paper_runtime_profile.get("duplicate_filled_order_key_count", 0) == 0
+        )
+        expected_plan_status = (
+            "READY_TO_CONTINUE_NON_LIVE_COLLECTION"
+            if collection_plan_source_clear
+            else "BLOCKED_FOR_RECONCILIATION"
+        )
+        if plan_status != expected_plan_status:
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile collection plan status drifted from safe profile state", "RUNTIME_EVIDENCE_PROFILE_COMPONENT_NOT_PASS")
+        collection_plan_modes = paper_runtime_profile.get("collection_plan_required_next_runtime_modes")
+        if not isinstance(collection_plan_modes, list) or "SHADOW" not in collection_plan_modes:
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile collection plan cannot hide missing SHADOW runtime evidence", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+        for count_field in (
+            "collection_plan_recommended_next_paper_batch_cycle_count",
+            "collection_plan_max_safe_paper_batch_cycle_count",
+            "collection_plan_minimum_cycle_wall_clock_spacing_seconds",
+            "collection_plan_estimated_wall_clock_seconds_remaining",
+        ):
+            if not isinstance(paper_runtime_profile.get(count_field), int) or paper_runtime_profile.get(count_field) < 0:
+                return DashboardValidationResult("FAIL", f"paper runtime evidence profile collection plan count is invalid: {count_field}", "SCHEMA_IDENTITY_MISMATCH")
+        if paper_runtime_profile.get("collection_plan_max_safe_paper_batch_cycle_count") != 20:
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile collection plan batch cap drifted", "RUNTIME_BUDGET_EXCEEDED")
+        if (
+            paper_runtime_profile.get("collection_plan_recommended_next_paper_batch_cycle_count", 0)
+            > paper_runtime_profile.get("collection_plan_max_safe_paper_batch_cycle_count", 20)
+        ):
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile collection plan exceeds bounded PAPER batch budget", "RUNTIME_BUDGET_EXCEEDED")
+        if (
+            paper_runtime_profile.get("collection_plan_shadow_collection_required") is not True
+            or paper_runtime_profile.get("collection_plan_counts_as_actual_long_run_evidence")
+        ):
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile collection plan attempted to hide SHADOW or count as long-run proof", "LIVE_FINAL_GUARD_FAILED")
         for text_field in (
             "collection_depth_status",
             "collection_depth_blocker_code",
@@ -21546,6 +22308,8 @@ def validate_read_only_dashboard_shell(
             or paper_runtime_profile.get("runtime_mode_depth_missing_mode_count") != 2
         ):
             return DashboardValidationResult("BLOCKED", "paper runtime evidence profile must expose both PAPER and SHADOW as missing actual long-run mode depth", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+        if collection_plan_modes != mode_depth_missing_modes:
+            return DashboardValidationResult("BLOCKED", "paper runtime evidence profile collection plan mode gap drifted", "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
         if (
             paper_runtime_profile.get("runtime_mode_depth_status") != "BLOCKED_FOR_PER_MODE_LONG_RUN_DEPTH"
             or paper_runtime_profile.get("runtime_mode_depth_blocker_code") != "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
@@ -21602,7 +22366,8 @@ def validate_read_only_dashboard_shell(
             or paper_runtime_profile.get("component_blocked_count") != 0
             or paper_runtime_profile.get("completed_cycle_count", 0) <= 0
             or paper_runtime_profile.get("accepted_cycle_sample_count", 0) <= 0
-            or paper_runtime_profile.get("accepted_cycle_sample_count") != paper_runtime_profile.get("completed_cycle_count")
+            or paper_runtime_profile.get("accepted_cycle_sample_count", 0)
+            < paper_runtime_profile.get("completed_cycle_count", 0)
             or paper_runtime_profile.get("ledger_runtime_evidence_status") != "PASS"
             or paper_runtime_profile.get("idempotency_status") != "PASS"
             or paper_runtime_profile.get("reconciliation_status") != "PASS"
@@ -21859,10 +22624,14 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "runtime boundary cannot claim validated actual long-run evidence before duration and stable-sample floors are met", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
     elif runtime_boundary.get("status") == "ACTUAL_LONG_RUN_VALIDATED":
         return DashboardValidationResult("BLOCKED", "runtime boundary validated status conflicts with actual evidence status", "HARD_TRUTH_MISSING")
-    if shadow_persistent.get("status") == "STUB_ONLY" and runtime_boundary.get("actual_long_run_evidence_status") != "VALIDATED_STABLE":
+    if shadow_persistent.get("status") in {"STUB_ONLY", "SHORT_WINDOW_EXECUTED"} and runtime_boundary.get("actual_long_run_evidence_status") != "VALIDATED_STABLE":
         boundary_message = str(runtime_boundary.get("stub_boundary_message", "")).lower()
-        if "stub" not in boundary_message or "not actual long-run evidence" not in boundary_message:
-            return DashboardValidationResult("BLOCKED", "runtime boundary must explain stub runtime is not actual long-run evidence", "HARD_TRUTH_MISSING")
+        if "not actual long-run evidence" not in boundary_message or (
+            shadow_persistent.get("status") == "STUB_ONLY" and "stub" not in boundary_message
+        ) or (
+            shadow_persistent.get("status") == "SHORT_WINDOW_EXECUTED" and "short-window" not in boundary_message
+        ):
+            return DashboardValidationResult("BLOCKED", "runtime boundary must explain persistent runtime is not actual long-run evidence", "HARD_TRUTH_MISSING")
     if shadow_harness.get("status") == "SHORT_WINDOW_EXECUTED" and runtime_boundary.get("actual_long_run_evidence_status") == "VALIDATED_STABLE":
         if long_run.get("source") != "stability_history.json":
             return DashboardValidationResult("BLOCKED", "short-window harness cannot create validated long-run evidence", "LIVE_FINAL_GUARD_FAILED")
@@ -21895,7 +22664,7 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "runtime boundary orchestration status drifted from orchestration guard", "SCHEMA_IDENTITY_MISMATCH")
     if (
         (runtime_requirement_by_id["PERSISTENT_RUNTIME_SOURCE"].get("status") == "PASS")
-        != (shadow_persistent.get("status") == "STUB_ONLY")
+        != (shadow_persistent.get("status") in {"STUB_ONLY", "SHORT_WINDOW_EXECUTED"})
     ):
         return DashboardValidationResult("FAIL", "runtime evidence persistent source requirement drifted from source status", "SCHEMA_IDENTITY_MISMATCH")
     if (
@@ -21940,11 +22709,18 @@ def validate_read_only_dashboard_shell(
             or runtime_orchestration.get("primary_blocker_code") != "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING"
         ):
             return DashboardValidationResult("BLOCKED", "runtime orchestration boundary did not preserve long-run and optimizer blockers", "LIVE_FINAL_GUARD_FAILED")
-        if (
-            runtime_orchestration.get("observed_actual_runtime_seconds") != 0
-            or runtime_orchestration.get("observed_actual_cycle_count") != 0
-            or runtime_orchestration.get("observed_evidence_window_count") != 0
-        ):
+        short_window_pair_loaded = (
+            shadow_persistent.get("status") == "SHORT_WINDOW_EXECUTED"
+            and shadow_harness.get("status") == "SHORT_WINDOW_EXECUTED"
+        )
+        observed_long_run_claim = runtime_orchestration.get("observed_evidence_window_count") != 0
+        if not short_window_pair_loaded:
+            observed_long_run_claim = (
+                observed_long_run_claim
+                or runtime_orchestration.get("observed_actual_runtime_seconds") != 0
+                or runtime_orchestration.get("observed_actual_cycle_count") != 0
+            )
+        if observed_long_run_claim:
             return DashboardValidationResult("BLOCKED", "runtime orchestration cannot claim observed long-run runtime from stub or harness reports", "LIVE_FINAL_GUARD_FAILED")
     if runtime_orchestration.get("status") == "NOT_LOADED" and runtime_orchestration.get("source") != "NOT_LOADED":
         return DashboardValidationResult("FAIL", "not-loaded runtime orchestration must not cite a report source", "SCHEMA_IDENTITY_MISMATCH")
@@ -22375,6 +23151,36 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "blocked candidate scorecard must render as blocked display only", "SCHEMA_IDENTITY_MISMATCH")
     if scorecard_status == "STALE" and maturity.get("candidate_scorecard_scope") != "STALE_DISPLAY_ONLY":
         return DashboardValidationResult("FAIL", "stale candidate scorecard must render as stale display only", "SCHEMA_IDENTITY_MISMATCH")
+    overfit_source = maturity.get("overfit_diagnostic_source")
+    overfit_status = maturity.get("overfit_diagnostic_status")
+    if overfit_source not in OVERFIT_DIAGNOSTIC_SOURCE_FILENAMES:
+        return DashboardValidationResult("FAIL", "overfit diagnostic source is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if overfit_status not in OVERFIT_DIAGNOSTIC_STATUSES:
+        return DashboardValidationResult("FAIL", "overfit diagnostic display status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    overfit_source_loaded = overfit_source == "overfit_diagnostic_report.json"
+    overfit_source_listed = "overfit_diagnostic_report.json" in source_filenames
+    if overfit_source_loaded and not overfit_source_listed:
+        return DashboardValidationResult("BLOCKED", "overfit diagnostic display must be backed by a listed source artifact", "HARD_TRUTH_MISSING")
+    if not overfit_source_loaded and overfit_source_listed:
+        return DashboardValidationResult("BLOCKED", "overfit diagnostic source artifact is listed while display is not loaded", "SCHEMA_IDENTITY_MISMATCH")
+    for numeric_field in ("overfit_diagnostic_sample_count", "overfit_diagnostic_min_required_sample_count"):
+        if not isinstance(maturity.get(numeric_field), int):
+            return DashboardValidationResult("FAIL", f"overfit diagnostic {numeric_field} must be integer", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(maturity.get("overfit_diagnostic_robustness_eligible"), bool):
+        return DashboardValidationResult("FAIL", "overfit diagnostic robustness flag must be boolean", "SCHEMA_IDENTITY_MISMATCH")
+    for text_field in (
+        "overfit_diagnostic_oos_status",
+        "overfit_diagnostic_walk_forward_status",
+        "overfit_diagnostic_bootstrap_status",
+        "overfit_diagnostic_overfit_status",
+        "overfit_diagnostic_primary_blocker_code",
+        "overfit_diagnostic_blocker_summary",
+        "overfit_diagnostic_next_action",
+    ):
+        if not isinstance(maturity.get(text_field), str) or not maturity.get(text_field, "").strip():
+            return DashboardValidationResult("FAIL", f"overfit diagnostic missing {text_field}", "SCHEMA_IDENTITY_MISMATCH")
+    if overfit_status in {"BLOCKED_FOR_ROBUSTNESS", "BLOCKED", "FAIL", "UNTESTED", "STALE"} and maturity.get("overfit_diagnostic_robustness_eligible") is True:
+        return DashboardValidationResult("BLOCKED", "blocked or stale overfit diagnostic cannot show robustness eligibility", "HARD_TRUTH_MISSING")
     if maturity.get("rollup_source") not in {"NOT_LOADED", "profitability_evidence_maturity_rollup.json"}:
         return DashboardValidationResult("FAIL", "profitability maturity rollup source is unknown", "SCHEMA_IDENTITY_MISMATCH")
     if maturity.get("rollup_source_status") not in {"NOT_LOADED", "LOADED", "BLOCKED"}:
@@ -22467,14 +23273,22 @@ def validate_read_only_dashboard_shell(
         if isinstance(value, bool) or not isinstance(value, int) or value < 0:
             return DashboardValidationResult("FAIL", f"{field} must be non-negative integer evidence", "SCHEMA_IDENTITY_MISMATCH")
     if maturity.get("rollup_source_status") == "LOADED":
-        if robustness_status != "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE":
-            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must show blocked robustness source type evidence", "HARD_TRUTH_MISSING")
-        if not robustness_missing_types:
-            return DashboardValidationResult("BLOCKED", "loaded profitability rollup cannot hide missing robustness source types", "HARD_TRUTH_MISSING")
-        if maturity.get("robustness_source_type_explicit_blocker") is not True:
-            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must expose robustness source type blocker", "HARD_TRUTH_MISSING")
-        if maturity.get("robustness_source_type_primary_blocker_code") != "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED":
-            return DashboardValidationResult("BLOCKED", "loaded profitability rollup must preserve robustness source type blocker code", "HARD_TRUTH_MISSING")
+        if robustness_status == "PASS":
+            if robustness_missing_types:
+                return DashboardValidationResult("BLOCKED", "passed profitability robustness source type evidence cannot list missing source types", "HARD_TRUTH_MISSING")
+            if maturity.get("robustness_source_type_explicit_blocker") is True:
+                return DashboardValidationResult("BLOCKED", "passed profitability robustness source type evidence cannot keep explicit blocker", "HARD_TRUTH_MISSING")
+            if maturity.get("robustness_source_type_primary_blocker_code") != "NONE":
+                return DashboardValidationResult("BLOCKED", "passed profitability robustness source type evidence must clear its blocker code", "HARD_TRUTH_MISSING")
+        else:
+            if robustness_status != "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE":
+                return DashboardValidationResult("BLOCKED", "loaded profitability rollup must show blocked or passed robustness source type evidence", "HARD_TRUTH_MISSING")
+            if not robustness_missing_types:
+                return DashboardValidationResult("BLOCKED", "loaded profitability rollup cannot hide missing robustness source types", "HARD_TRUTH_MISSING")
+            if maturity.get("robustness_source_type_explicit_blocker") is not True:
+                return DashboardValidationResult("BLOCKED", "loaded profitability rollup must expose robustness source type blocker", "HARD_TRUTH_MISSING")
+            if maturity.get("robustness_source_type_primary_blocker_code") != "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED":
+                return DashboardValidationResult("BLOCKED", "loaded profitability rollup must preserve robustness source type blocker code", "HARD_TRUTH_MISSING")
     if maturity.get("display_only") is not True or maturity.get("dashboard_truth_only") is not True:
         return DashboardValidationResult("BLOCKED", "profitability maturity must remain display-only", "LIVE_FINAL_GUARD_FAILED")
     if (
@@ -22594,6 +23408,50 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("FAIL", f"{field} must be a non-negative integer", "SCHEMA_IDENTITY_MISMATCH")
     if maturity.get("evidence_source") == "paper_operation_gate_report" and actionability_status == "NOT_LOADED":
         return DashboardValidationResult("BLOCKED", "paper operation gate maturity must expose PAPER/SHADOW collection actionability", "HARD_TRUTH_MISSING")
+    rollup_loaded = (
+        maturity.get("evidence_source") == "profitability_evidence_maturity_rollup.json"
+        and maturity.get("rollup_source_status") == "LOADED"
+    )
+    if rollup_loaded:
+        paper_shadow_component = next(
+            (
+                component
+                for component in maturity.get("maturity_components", [])
+                if isinstance(component, dict) and component.get("component_id") == "paper_shadow_evidence_accumulation"
+            ),
+            None,
+        )
+        if (
+            isinstance(paper_shadow_component, dict)
+            and paper_shadow_component.get("status") == "BLOCKED_LONG_RUN_EVIDENCE"
+            and paper_shadow_component.get("paper_scorecard_input_eligible") is True
+        ):
+            if actionability_status == "NOT_LOADED":
+                return DashboardValidationResult("BLOCKED", "loaded profitability rollup cannot hide PAPER/SHADOW collection actionability", "HARD_TRUTH_MISSING")
+            paper_sample_count = maturity.get("paper_sample_count")
+            shadow_sample_count = maturity.get("shadow_sample_count")
+            min_required_samples = maturity.get("min_required_samples")
+            if (
+                not isinstance(paper_sample_count, int)
+                or not isinstance(shadow_sample_count, int)
+                or not isinstance(min_required_samples, int)
+                or paper_sample_count <= 0
+                or shadow_sample_count <= 0
+                or min_required_samples <= 0
+            ):
+                return DashboardValidationResult("BLOCKED", "loaded profitability rollup must expose non-zero PAPER/SHADOW sample truth", "HARD_TRUTH_MISSING")
+            if paper_sample_count < min_required_samples or shadow_sample_count < min_required_samples:
+                return DashboardValidationResult("BLOCKED", "loaded profitability rollup sample truth is below its minimum", "HARD_TRUTH_MISSING")
+            if actual_runtime_source_status == "MISSING" or runtime_binding_status == "NOT_LOADED":
+                return DashboardValidationResult("BLOCKED", "loaded profitability rollup must expose actual runtime source binding truth", "HARD_TRUTH_MISSING")
+            if scorecard_truth_status == "PAPER_SCORECARD_INPUT_READY_ONLY" and (
+                maturity_long_run_eligible or collection_deficit_code == "NONE"
+            ):
+                return DashboardValidationResult("BLOCKED", "PAPER scorecard input truth cannot imply long-run review readiness", "LIVE_FINAL_GUARD_FAILED")
+            rollup_summary = str(maturity.get("sample_summary") or "")
+            rollup_summary_lower = rollup_summary.lower()
+            if "PAPER" not in rollup_summary or "SHADOW" not in rollup_summary or "live orders blocked" not in rollup_summary_lower:
+                return DashboardValidationResult("BLOCKED", "loaded profitability rollup sample summary must expose PAPER/SHADOW truth and live block", "HARD_TRUTH_MISSING")
     if actionability_status in {"BLOCKED_SCOPE_OR_SAFETY", "BLOCKED_DATA_FRESHNESS"} and maturity.get("scorecard_input_eligible") is True:
         return DashboardValidationResult("BLOCKED", "blocked PAPER/SHADOW actionability cannot be scorecard input eligible", "HARD_TRUTH_MISSING")
     if collection_deficit_code == "NONE" and actionability_status != "LONG_RUN_REVIEW_READY":
@@ -22613,6 +23471,25 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "long-run review actionability must remain non-live and fully bound", "HARD_TRUTH_MISSING")
     if maturity.get("live_readiness_status") not in PROFITABILITY_LIVE_READINESS_STATUSES:
         return DashboardValidationResult("BLOCKED", "profitability maturity attempted to look live-ready", "LIVE_FINAL_GUARD_FAILED")
+    paper_runtime_span_seconds = maturity.get("paper_runtime_span_seconds")
+    shadow_runtime_span_seconds = maturity.get("shadow_runtime_span_seconds")
+    paired_runtime_span_seconds = maturity.get("paired_runtime_span_seconds")
+    evidence_span_hours = maturity.get("evidence_span_hours")
+    for field_name, field_value in (
+        ("paper_runtime_span_seconds", paper_runtime_span_seconds),
+        ("shadow_runtime_span_seconds", shadow_runtime_span_seconds),
+        ("paired_runtime_span_seconds", paired_runtime_span_seconds),
+        ("evidence_span_hours", evidence_span_hours),
+    ):
+        if not isinstance(field_value, int) or field_value < 0:
+            return DashboardValidationResult("FAIL", f"profitability maturity {field_name} must be a non-negative integer", "SCHEMA_IDENTITY_MISMATCH")
+    if paired_runtime_span_seconds != min(paper_runtime_span_seconds, shadow_runtime_span_seconds):
+        return DashboardValidationResult("BLOCKED", "profitability maturity paired runtime span must match min(PAPER, SHADOW)", "HARD_TRUTH_MISSING")
+    if evidence_span_hours != paired_runtime_span_seconds // 3600:
+        return DashboardValidationResult("BLOCKED", "profitability maturity span hours must derive from paired PAPER/SHADOW runtime seconds", "HARD_TRUTH_MISSING")
+    runtime_span_summary = maturity.get("runtime_span_summary")
+    if not isinstance(runtime_span_summary, str) or "PAPER" not in runtime_span_summary or "SHADOW" not in runtime_span_summary or "paired" not in runtime_span_summary:
+        return DashboardValidationResult("FAIL", "profitability maturity runtime span summary is missing", "SCHEMA_IDENTITY_MISMATCH")
     warning_text = str(maturity.get("operator_warning", ""))
     warning_lower = warning_text.lower()
     if "not live_ready" not in warning_lower or "live orders" not in warning_lower:
@@ -23393,6 +24270,10 @@ def validate_read_only_dashboard_shell(
     return DashboardValidationResult("PASS", "read-only dashboard shell is display-only and fail-closed", None)
 
 
+def _strip_dashboard_html_trailing_whitespace(dashboard_html: str) -> str:
+    return "\n".join(line.rstrip() for line in dashboard_html.splitlines()) + "\n"
+
+
 def render_dashboard_html(shell: dict[str, Any]) -> str:
     def safe_text(value: Any) -> str:
         return html.escape(str(value if value is not None else ""))
@@ -24064,6 +24945,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p>{safe_text(str(paper_runtime_profile.get('collection_depth_status', 'BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH')).replace('_', ' ').title())}<br>missing modes={safe_text(', '.join(paper_runtime_profile.get('collection_depth_missing_runtime_modes', ['SHADOW'])) if isinstance(paper_runtime_profile.get('collection_depth_missing_runtime_modes'), list) else 'SHADOW')}<br>remaining span={safe_text(paper_runtime_profile.get('collection_depth_missing_span_seconds', 0))}s<br>remaining cycles={safe_text(paper_runtime_profile.get('collection_depth_missing_cycle_count', 0))}</p></div>"
         "<div><strong>Per-Mode Long Run</strong>"
         f"<p>{safe_text(str(paper_runtime_profile.get('runtime_mode_depth_status', 'NOT_LOADED')).replace('_', ' ').title())}<br>missing modes={safe_text(', '.join(paper_runtime_profile.get('runtime_mode_depth_missing_modes', ['PAPER', 'SHADOW'])) if isinstance(paper_runtime_profile.get('runtime_mode_depth_missing_modes'), list) else 'PAPER, SHADOW')}<br>PAPER span/cycles={safe_text(paper_runtime_profile.get('paper_mode_missing_span_seconds', 0))}s/{safe_text(paper_runtime_profile.get('paper_mode_missing_cycle_count', 0))}<br>SHADOW span/cycles={safe_text(paper_runtime_profile.get('shadow_mode_missing_span_seconds', 0))}s/{safe_text(paper_runtime_profile.get('shadow_mode_missing_cycle_count', 0))}</p></div>"
+        "<div><strong>Next Collection</strong>"
+        f"<p>{safe_text(str(paper_runtime_profile.get('collection_plan_status', 'BLOCKED_FOR_RECONCILIATION')).replace('_', ' ').title())}<br>PAPER batch={safe_text(paper_runtime_profile.get('collection_plan_recommended_next_paper_batch_cycle_count', 0))}/{safe_text(paper_runtime_profile.get('collection_plan_max_safe_paper_batch_cycle_count', 20))}<br>spacing={safe_text(paper_runtime_profile.get('collection_plan_minimum_cycle_wall_clock_spacing_seconds', 0))}s<br>wall-clock remaining={safe_text(paper_runtime_profile.get('collection_plan_estimated_wall_clock_seconds_remaining', 0))}s</p></div>"
         "<div><strong>Evidence Boundary</strong>"
         f"<p>{safe_text(paper_runtime_profile.get('runtime_evidence_role', PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE_ROLE))}<br><span class=\"pill safe-lock\">not LIVE_READY</span><br><span class=\"pill safe-lock\">current writes={safe_text(paper_runtime_profile.get('current_evidence_write_allowed', False))}</span><br><span class=\"pill safe-lock\">long-run eligible={safe_text(paper_runtime_profile.get('long_run_evidence_eligible', False))}</span><br><span class=\"pill safe-lock\">bounded profile is long-run={safe_text(paper_runtime_profile.get('bounded_profile_counts_as_long_run_evidence', False))}</span><br>blocker={safe_text(paper_runtime_profile.get('long_run_blocker_code', 'LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT'))}</p></div>"
         "</section>"
@@ -24346,11 +25229,17 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p>paper={safe_text(maturity.get('paper_sample_deficit', 0))}, shadow={safe_text(maturity.get('shadow_sample_deficit', 0))}, windows={safe_text(maturity.get('evidence_window_deficit', 0))}, span={safe_text(maturity.get('evidence_span_hours_deficit', 0))}h<br>"
         f"reason={safe_text(maturity.get('reason_coverage_deficit_count', 0))}, stale={safe_text(maturity.get('stale_artifact_count', 0))}, runtime={safe_text(maturity.get('actual_runtime_source_deficit', 0))}</p>"
         f"<small>{safe_text(maturity.get('scorecard_input_truth_status', 'NOT_LOADED'))}</small></div>"
+        "<div><strong>Runtime Span</strong>"
+        f"<p>{safe_text(maturity.get('runtime_span_summary', 'No PAPER/SHADOW runtime span evidence loaded.'))}</p>"
+        f"<small>paired seconds={safe_text(maturity.get('paired_runtime_span_seconds', 0))}; evidence span={safe_text(maturity.get('evidence_span_hours', 0))}h</small></div>"
         "<div><strong>PAPER Scorecard</strong>"
         f"<p>{safe_text(maturity.get('candidate_scorecard_candidate_id') or 'none')} | {safe_text(maturity.get('candidate_scorecard_symbol') or 'UNKNOWN')}<br>"
         f"net EV={safe_text(maturity.get('candidate_scorecard_net_ev_after_cost_display', 'UNVERIFIED'))}<br>"
         f"<span class=\"pill {status_class(maturity.get('candidate_scorecard_status'))}\">{safe_text(maturity.get('candidate_scorecard_status', 'NOT_LOADED'))}</span></p>"
-        f"<small>{safe_text(maturity.get('candidate_scorecard_blocker_summary', 'No PAPER candidate scorecard is loaded.'))}</small></div>"
+        f"<small>{safe_text(maturity.get('candidate_scorecard_blocker_summary', 'No PAPER candidate scorecard is loaded.'))}<br>"
+        f"Overfit: {safe_text(maturity.get('overfit_diagnostic_status', 'NOT_LOADED'))} "
+        f"({safe_text(maturity.get('overfit_diagnostic_sample_count', 0))}/{safe_text(maturity.get('overfit_diagnostic_min_required_sample_count', 300))} samples), "
+        f"blocker={safe_text(maturity.get('overfit_diagnostic_primary_blocker_code', 'SAMPLE_INSUFFICIENT'))}</small></div>"
         "<div><strong>Evidence Quality</strong>"
         f"<p>cost={safe_text(maturity.get('cost_evidence_status', 'UNTESTED'))}, entry={safe_text(maturity.get('entry_reason_status', 'UNTESTED'))}, no-trade={safe_text(maturity.get('no_trade_reason_status', 'UNTESTED'))}</p></div>"
         "<div><strong>Long-Run Evidence</strong>"
@@ -25510,7 +26399,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if str(portfolio_status).startswith(("STALE", "UNVERIFIED"))
         else status_class(portfolio_status)
     )
-    return """<!doctype html>
+    return _strip_dashboard_html_trailing_whitespace("""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -26112,7 +27001,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
   </main>
 </body>
 </html>
-"""
+""")
 
 
 def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationResult:

@@ -25,8 +25,12 @@ from trader1.runtime.boot.startup_probe import build_startup_probe
 from trader1.runtime.health.heartbeat import build_heartbeat, heartbeat_hash
 from trader1.runtime.health.runtime_resource_pressure import inspect_runtime_resource_pressure
 from trader1.runtime.health.stability_history import append_stability_history, validate_stability_history
-from trader1.runtime.ledger.paper_ledger_rollup import validate_paper_ledger_rollup_report
-from trader1.runtime.paper.operational_cycle import validate_paper_operation_gate_report
+from trader1.runtime.ledger.paper_ledger_rollup import (
+    build_paper_ledger_rollup_report,
+    validate_paper_ledger_rollup_report,
+    write_paper_ledger_rollup_report,
+)
+from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle, validate_paper_operation_gate_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     validate_upbit_paper_persistent_loop_report,
     validate_upbit_paper_runtime_recovery_guard_report,
@@ -86,16 +90,28 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
     write_upbit_paper_repaired_current_evidence_audited_writer_report,
 )
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
+    build_upbit_paper_ledger_idempotency_runtime_evidence_report,
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
+    write_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
-from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
+from trader1.runtime.paper.upbit_public_rest_continuity import (
+    build_upbit_public_rest_continuity_report,
+    validate_upbit_public_rest_continuity_report,
+    write_upbit_public_rest_continuity_report,
+)
+from trader1.runtime.paper.upbit_public_rest_continuity_history import (
+    append_upbit_public_rest_continuity_history,
+    validate_upbit_public_rest_continuity_history_report,
+)
+from trader1.runtime.paper.upbit_public_collector import write_upbit_public_market_data_collection_artifacts
 from trader1.runtime.paper.paper_runtime_truth_state import (
     build_paper_runtime_truth_state_report,
     validate_paper_runtime_truth_state_report,
 )
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
+    mark_paper_portfolio_snapshot_to_public_market,
     validate_paper_portfolio_snapshot,
 )
 from trader1.runtime.portfolio.paper_current_truth_refresh import (
@@ -109,14 +125,24 @@ from trader1.runtime.portfolio.paper_continuous_current_evidence_writer import (
 from trader1.runtime.readiness.readiness_surface import build_readiness_surface
 from trader1.runtime.reconciliation.reconciliation import validate_reconciliation_report
 from trader1.research.shadow.shadow_observation_actual_runtime_harness import (
+    build_shadow_observation_actual_runtime_harness_report,
     validate_shadow_observation_actual_runtime_harness_report,
 )
 from trader1.research.shadow.shadow_observation_persistent_runtime import (
+    build_shadow_observation_persistent_runtime_report_from_paper_loop,
     validate_shadow_observation_persistent_runtime_report,
 )
 from trader1.research.shadow.shadow_observation_runtime_orchestration import (
+    build_shadow_observation_runtime_orchestration_report,
     validate_shadow_observation_runtime_orchestration_report,
 )
+from trader1.research.shadow.paper_shadow_harness_binding import (
+    build_paper_shadow_harness_binding_report,
+    validate_paper_shadow_harness_binding_report,
+)
+from trader1.research.shadow.shadow_observation import build_shadow_observation_report
+from trader1.research.shadow.shadow_observation_scheduler import build_shadow_observation_scheduler_guard_report
+from trader1.research.shadow.shadow_observation_stream import build_shadow_observation_stream_report
 from tools.run_upbit_paper_runtime_evidence_collection_profile import (
     validate_upbit_paper_runtime_evidence_collection_profile_report,
 )
@@ -137,6 +163,8 @@ DEFAULT_INTERACTIVE_HEARTBEAT_TICKS: int | None = None
 DEFAULT_INTERACTIVE_HEARTBEAT_INTERVAL_SECONDS = 10.0
 ROOT_OPERATOR_HEARTBEAT_TICKS_ENV = "TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS"
 ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV = "TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS"
+ROOT_OPERATOR_PUBLIC_REST_CONTINUITY_REFRESH_ENV = "TRADER1_UPBIT_PUBLIC_REST_CONTINUITY_REFRESH"
+ROOT_OPERATOR_PAPER_SHADOW_RUNTIME_REFRESH_ENV = "TRADER1_PAPER_SHADOW_RUNTIME_REFRESH"
 RUNTIME_WRITE_LOCK_FILENAME = ".runtime_write.lock"
 RUNTIME_WRITE_LOCK_TIMEOUT_SECONDS = 5.0
 RUNTIME_WRITE_LOCK_STALE_SECONDS = 30.0
@@ -632,6 +660,7 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         / "public"
         / "rest_continuity_history.json",
         "candidate_scorecard": base / "profitability" / "candidate_scorecard.json",
+        "overfit_diagnostic_report": base / "profitability" / "overfit_diagnostic_report.json",
         "residual_operator_handoff_packet": root
         / "system"
         / "evidence"
@@ -661,6 +690,14 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         / "shadow"
         / str(report["session_id"])
         / "actual_runtime_harness_report.json",
+        "paper_shadow_harness_binding_report": root
+        / "system"
+        / "runtime"
+        / str(report["exchange"]).lower()
+        / str(report["market_type"]).lower()
+        / "shadow"
+        / str(report["session_id"])
+        / "paper_shadow_harness_binding_report.json",
         "shadow_persistent_runtime_report": root
         / "system"
         / "runtime"
@@ -751,6 +788,22 @@ def load_scoped_paper_ledger_rollup_report(report: dict[str, Any], root: Path = 
     validation_result = validate_paper_ledger_rollup_report(rollup)
     if validation_result.status in {"PASS", "BLOCKED"}:
         return rollup
+    return rollup
+
+
+def refresh_scoped_paper_ledger_rollup_if_safe(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    rollup_id = f"dashboard-current-truth-rollup-{datetime.now(timezone.utc).replace(microsecond=0).strftime('%Y%m%dT%H%M%SZ')}"
+    rollup = build_paper_ledger_rollup_report(
+        root=root,
+        session_id=str(report["session_id"]),
+        rollup_id=rollup_id,
+    )
+    result = validate_paper_ledger_rollup_report(rollup)
+    if result.status not in {"PASS", "BLOCKED"}:
+        return rollup
+    write_paper_ledger_rollup_report(root=root, report=rollup)
     return rollup
 
 
@@ -1186,9 +1239,71 @@ def load_scoped_audited_paper_portfolio_snapshot(
     return portfolio
 
 
+def _idempotency_evidence_binds_current_sources(
+    evidence: dict[str, Any],
+    *,
+    ledger_rollup: dict[str, Any] | None,
+    persistent_loop: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(ledger_rollup, dict) or not isinstance(persistent_loop, dict):
+        return False
+    return (
+        evidence.get("source_rollup_hash") == ledger_rollup.get("rollup_hash")
+        and evidence.get("source_persistent_loop_hash") == persistent_loop.get("loop_hash")
+    )
+
+
+def _audited_portfolio_binds_current_rollup(
+    portfolio: dict[str, Any] | None,
+    ledger_rollup: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(portfolio, dict) or not isinstance(ledger_rollup, dict):
+        return False
+    rollup_portfolio = ledger_rollup.get("portfolio_snapshot")
+    if not isinstance(rollup_portfolio, dict):
+        return False
+    exact_rollup_match = (
+        portfolio.get("snapshot_hash") == rollup_portfolio.get("snapshot_hash")
+        and portfolio.get("source_paper_ledger_head_hash") == ledger_rollup.get("latest_ledger_head_hash")
+        and portfolio.get("source_runtime_cycle_id") == rollup_portfolio.get("source_runtime_cycle_id")
+        and portfolio.get("live_order_allowed") is False
+        and portfolio.get("can_live_trade") is False
+    )
+    public_mark_match = (
+        portfolio.get("source") == "PAPER_LEDGER_ROLLUP_PUBLIC_MARK"
+        and portfolio.get("source_paper_ledger_head_hash") == ledger_rollup.get("latest_ledger_head_hash")
+        and portfolio.get("source_runtime_cycle_id") == rollup_portfolio.get("source_runtime_cycle_id")
+        and portfolio.get("mark_to_market_status") == "PASS_PUBLIC_MARK_TO_MARKET"
+        and isinstance(portfolio.get("source_public_market_data_hash"), str)
+        and len(portfolio.get("source_public_market_data_hash")) == 64
+        and portfolio.get("live_order_allowed") is False
+        and portfolio.get("can_live_trade") is False
+    )
+    return exact_rollup_match or public_mark_match
+
+
+def refresh_scoped_upbit_paper_ledger_idempotency_runtime_evidence_if_safe(
+    report: dict[str, Any],
+    root: Path = ROOT,
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    evidence = build_upbit_paper_ledger_idempotency_runtime_evidence_report(
+        root=root,
+        session_id=str(report["session_id"]),
+    )
+    result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(evidence)
+    if result.status not in {"PASS", "BLOCKED"}:
+        return evidence
+    write_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root, report=evidence)
+    return evidence
+
+
 def refresh_scoped_upbit_paper_audited_current_evidence_if_safe(
     report: dict[str, Any],
     root: Path = ROOT,
+    *,
+    public_market_data_collection_report: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
         return None
@@ -1209,12 +1324,20 @@ def refresh_scoped_upbit_paper_audited_current_evidence_if_safe(
     reconciliation_result = validate_reconciliation_report(reconciliation) if isinstance(reconciliation, dict) else None
     if idempotency_result is None or idempotency_result.status != "PASS":
         return None
+    persistent_loop = _load_dashboard_json_artifact(paths["upbit_paper_persistent_loop_report"])
+    if not _idempotency_evidence_binds_current_sources(
+        idempotency_evidence,
+        ledger_rollup=ledger_rollup,
+        persistent_loop=persistent_loop if isinstance(persistent_loop, dict) else None,
+    ):
+        return None
     if reconciliation_result is None or reconciliation_result.status != "PASS":
         return None
     writer_report = build_upbit_paper_repaired_current_evidence_audited_writer_report(
         root=root,
         source_implementation_prep_report=implementation_prep,
         source_ledger_rollup_report=ledger_rollup,
+        public_market_data_collection_report=public_market_data_collection_report,
         audited_writer_id="upbit-paper-continuous-dashboard-current-evidence-writer",
     )
     writer_result = validate_upbit_paper_repaired_current_evidence_audited_writer_report(writer_report)
@@ -1222,6 +1345,29 @@ def refresh_scoped_upbit_paper_audited_current_evidence_if_safe(
         return writer_report
     write_upbit_paper_repaired_current_evidence_audited_writer_report(root=root, report=writer_report)
     return writer_report
+
+
+def latest_public_market_data_collection_from_continuity_history(
+    history: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(history, dict):
+        return None
+    attempts = history.get("continuity_attempts")
+    if not isinstance(attempts, list):
+        return None
+    for attempt in reversed(attempts):
+        if not isinstance(attempt, dict):
+            continue
+        samples = attempt.get("sample_reports")
+        if not isinstance(samples, list):
+            continue
+        for sample in reversed(samples):
+            if not isinstance(sample, dict) or sample.get("sample_status") != "PASS":
+                continue
+            collection = sample.get("public_collection_report")
+            if isinstance(collection, dict) and collection.get("collection_status") == "PASS":
+                return collection
+    return None
 
 
 def load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(
@@ -1235,6 +1381,14 @@ def load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(
     if evidence is None:
         return None
     result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(evidence)
+    ledger_rollup = _load_dashboard_json_artifact(paths["paper_ledger_rollup_report"])
+    persistent_loop = _load_dashboard_json_artifact(paths["upbit_paper_persistent_loop_report"])
+    if isinstance(evidence, dict) and not _idempotency_evidence_binds_current_sources(
+        evidence,
+        ledger_rollup=ledger_rollup if isinstance(ledger_rollup, dict) else None,
+        persistent_loop=persistent_loop if isinstance(persistent_loop, dict) else None,
+    ):
+        return None
     if result.status in {"PASS", "BLOCKED"}:
         return evidence
     return evidence
@@ -1253,11 +1407,58 @@ def load_scoped_upbit_public_rest_continuity_history(report: dict[str, Any], roo
         or history.get("mode") != report.get("mode")
         or history.get("session_id") != report.get("session_id")
     ):
-        return history
+        return None
     validation_result = validate_upbit_public_rest_continuity_history_report(history)
-    if validation_result.status in {"PASS", "BLOCKED"}:
+    if validation_result.status in {"PASS", "WARN", "BLOCKED"}:
         return history
-    return history
+    return None
+
+
+def refresh_scoped_upbit_public_rest_continuity_history_if_safe(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh: bool = False,
+) -> dict[str, Any] | None:
+    history = load_scoped_upbit_public_rest_continuity_history(report, root)
+    if not refresh:
+        return history
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    continuity = build_upbit_public_rest_continuity_report(
+        continuity_id="launcher-public-rest-continuity-auto-refresh",
+        session_id=str(report["session_id"]),
+        symbol="KRW-BTC",
+        sample_count=1,
+        min_required_pass_samples=1,
+        interval_seconds=0.0,
+        attempt_network=True,
+        timeout_seconds=2.5,
+    )
+    continuity_result = validate_upbit_public_rest_continuity_report(continuity)
+    if continuity_result.status == "FAIL":
+        return None
+    latest_collection = latest_public_market_data_collection_from_continuity_history(
+        {
+            "continuity_attempts": [continuity],
+        }
+    )
+    if isinstance(latest_collection, dict):
+        writer = write_upbit_public_market_data_collection_artifacts(root=root, report=latest_collection)
+        if writer.get("writer_status") != "PASS":
+            return None
+    write_upbit_public_rest_continuity_report(root=root, report=continuity)
+    _, refreshed_history = append_upbit_public_rest_continuity_history(
+        root=root,
+        continuity_report=continuity,
+        history_id="launcher-public-rest-continuity-history",
+        max_attempts=20,
+        min_required_pass_attempts=1,
+    )
+    history_result = validate_upbit_public_rest_continuity_history_report(refreshed_history)
+    if history_result.status in {"PASS", "WARN", "BLOCKED"}:
+        return refreshed_history
+    return None
 
 
 def load_scoped_paper_operation_gate_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
@@ -1343,6 +1544,37 @@ def load_scoped_candidate_scorecard(report: dict[str, Any], root: Path = ROOT) -
     if any(scorecard.get(field) is True for field in forbidden_fields):
         return scorecard
     return scorecard
+
+
+def load_scoped_overfit_diagnostic_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    path = launcher_dashboard_paths(report, root)["overfit_diagnostic_report"]
+    if not path.exists():
+        return None
+    diagnostic = _load_dashboard_json_artifact(path)
+    if not isinstance(diagnostic, dict):
+        return None
+    if (
+        diagnostic.get("exchange") != report.get("exchange")
+        or diagnostic.get("market_type") != report.get("market_type")
+        or diagnostic.get("mode") != report.get("mode")
+        or diagnostic.get("session_id") != report.get("session_id")
+    ):
+        return diagnostic
+    forbidden_fields = (
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "promotion_eligible",
+        "can_submit_order",
+        "live_config_mutation_allowed",
+        "writes_live_ready_snapshot",
+    )
+    if any(diagnostic.get(field) is True for field in forbidden_fields):
+        return diagnostic
+    return diagnostic
 
 
 def _load_dashboard_json_artifact(path: Path) -> dict[str, Any] | None:
@@ -1596,6 +1828,19 @@ def load_shadow_runtime_harness_report(report: dict[str, Any], root: Path = ROOT
     return harness_report
 
 
+def load_paper_shadow_harness_binding_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    binding_report = _load_dashboard_json_artifact(launcher_dashboard_paths(report, root)["paper_shadow_harness_binding_report"])
+    if not isinstance(binding_report, dict):
+        return None
+    try:
+        validate_paper_shadow_harness_binding_report(binding_report)
+    except Exception:
+        return binding_report
+    return binding_report
+
+
 def load_shadow_persistent_runtime_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
     if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
         return None
@@ -1626,9 +1871,157 @@ def load_shadow_runtime_orchestration_report(report: dict[str, Any], root: Path 
     return orchestration_report
 
 
+def refresh_scoped_paper_shadow_runtime_harness_if_safe(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh: bool = False,
+) -> dict[str, dict[str, Any]] | None:
+    if not refresh:
+        return None
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    paths = launcher_dashboard_paths(report, root)
+    source_loop = load_scoped_upbit_paper_persistent_loop_report(report, root)
+    if not isinstance(source_loop, dict):
+        return None
+    loop_result = validate_upbit_paper_persistent_loop_report(source_loop)
+    if loop_result.status != "PASS":
+        return None
+
+    scheduler_guard = _build_shadow_scheduler_guard_from_paper_loop(report, source_loop)
+    observed_runtime_seconds = _source_paper_loop_observed_runtime_seconds(source_loop, root)
+    persistent_report = build_shadow_observation_persistent_runtime_report_from_paper_loop(
+        runtime_id=str(report["session_id"]),
+        scheduler_guard_report=scheduler_guard,
+        source_paper_loop_report=source_loop,
+        runtime_artifact_path=_runtime_display_path(paths["shadow_persistent_runtime_report"], root),
+        observed_runtime_seconds=observed_runtime_seconds,
+    )
+    persistent_result = validate_shadow_observation_persistent_runtime_report(persistent_report)
+    if persistent_result.status != "PASS":
+        return None
+
+    completed_cycles = int(persistent_report.get("completed_cycle_count") or 0)
+    harness_report = build_shadow_observation_actual_runtime_harness_report(
+        harness_id=str(report["session_id"]),
+        requested_cycle_count=max(1, completed_cycles),
+        completed_cycle_count=max(1, completed_cycles),
+        observations_per_cycle=2,
+        measured_runtime_seconds=observed_runtime_seconds,
+        runtime_measurement_source="PAPER_LOOP_TIMESTAMP_SPAN_VERIFIED",
+        measured_runtime_seconds_verified=True,
+        source_runtime_report=persistent_report,
+    )
+    harness_result = validate_shadow_observation_actual_runtime_harness_report(harness_report)
+    if harness_result.status != "PASS":
+        return None
+
+    orchestration_report = build_shadow_observation_runtime_orchestration_report(
+        orchestration_id=str(report["session_id"]),
+        persistent_runtime_report=persistent_report,
+        actual_runtime_harness_report=harness_report,
+    )
+    orchestration_result = validate_shadow_observation_runtime_orchestration_report(orchestration_report)
+    if orchestration_result.status != "PASS":
+        return None
+
+    binding_report = build_paper_shadow_harness_binding_report(
+        binding_report_id=str(report["session_id"]),
+        shadow_runtime_harness_report=harness_report,
+    )
+    binding_result = validate_paper_shadow_harness_binding_report(binding_report)
+    if binding_result.status != "PASS":
+        return None
+
+    write_json(paths["shadow_persistent_runtime_report"], persistent_report)
+    write_json(paths["shadow_runtime_harness_report"], harness_report)
+    write_json(paths["shadow_runtime_orchestration_report"], orchestration_report)
+    write_json(paths["paper_shadow_harness_binding_report"], binding_report)
+    return {
+        "shadow_persistent_runtime_report": persistent_report,
+        "shadow_runtime_harness_report": harness_report,
+        "shadow_runtime_orchestration_report": orchestration_report,
+        "paper_shadow_harness_binding_report": binding_report,
+    }
+
+
+def _build_shadow_scheduler_guard_from_paper_loop(report: dict[str, Any], source_loop: dict[str, Any]) -> dict[str, Any]:
+    cycle_results = [item for item in source_loop.get("cycle_results") or [] if isinstance(item, dict)]
+    completed = max(1, min(20, int(source_loop.get("completed_cycle_count") or len(cycle_results) or 1)))
+    observations: list[dict[str, Any]] = []
+    stable_gate_id = f"{report['session_id']}-paper-shadow-source-gate"
+    for index, cycle_result in enumerate(cycle_results[:completed], start=1):
+        final_decision = str(cycle_result.get("final_decision") or "NO_TRADE")
+        paper_gate = build_upbit_operational_paper_cycle(
+            operation_gate_id=stable_gate_id,
+            session_id=f"{report['session_id']}-paper-shadow-source-{index}",
+            requested_entry=final_decision in ORDER_AFFECTING_FINAL_ACTIONS,
+        )
+        observations.append(
+            build_shadow_observation_report(
+                observation_id=f"{report['session_id']}-shadow-source-observation-{index}",
+                paper_operation_gate_report=paper_gate,
+                shadow_session_id=f"{report['session_id']}-shadow-source-{index}",
+                shadow_sample_count=30,
+            )
+        )
+    if not observations:
+        paper_gate = build_upbit_operational_paper_cycle(
+            operation_gate_id=f"{report['session_id']}-paper-shadow-source-gate-1",
+            session_id=f"{report['session_id']}-paper-shadow-source-1",
+            requested_entry=False,
+        )
+        observations.append(
+            build_shadow_observation_report(
+                observation_id=f"{report['session_id']}-shadow-source-observation-1",
+                paper_operation_gate_report=paper_gate,
+                shadow_session_id=f"{report['session_id']}-shadow-source-1",
+                shadow_sample_count=30,
+            )
+        )
+    stream = build_shadow_observation_stream_report(
+        stream_id=f"{report['session_id']}-paper-shadow-source-stream",
+        observations=observations,
+        min_required_observation_count=1,
+        min_required_evidence_span_hours=24,
+        evidence_span_hours=24,
+    )
+    return build_shadow_observation_scheduler_guard_report(
+        scheduler_id=f"{report['session_id']}-paper-shadow-source-scheduler",
+        stream_report=stream,
+        writer_id=f"{report['session_id']}-paper-shadow-source-writer",
+        active_writer_id=f"{report['session_id']}-paper-shadow-source-writer",
+    )
+
+
+def _source_paper_loop_observed_runtime_seconds(source_loop: dict[str, Any], root: Path) -> int:
+    timestamps: list[datetime] = []
+    for cycle_result in source_loop.get("cycle_results") or []:
+        if not isinstance(cycle_result, dict):
+            continue
+        for artifact_path in cycle_result.get("artifact_paths") or []:
+            if not isinstance(artifact_path, str) or not artifact_path.endswith(".json"):
+                continue
+            payload = _load_dashboard_json_artifact(root / artifact_path)
+            if not isinstance(payload, dict):
+                continue
+            parsed = _parse_utc(payload.get("generated_at_utc"))
+            if parsed is not None:
+                timestamps.append(parsed)
+    parsed_loop_time = _parse_utc(source_loop.get("generated_at_utc"))
+    if parsed_loop_time is not None:
+        timestamps.append(parsed_loop_time)
+    if len(timestamps) < 2:
+        return 0
+    return max(0, min(300, int((max(timestamps) - min(timestamps)).total_seconds())))
+
+
 def build_launcher_dashboard_artifacts(
     report: dict[str, Any],
     stability_history: dict[str, Any] | None = None,
+    refresh_upbit_public_rest_continuity: bool = False,
+    refresh_paper_shadow_runtime: bool = False,
     root: Path = ROOT,
 ) -> dict[str, Any]:
     registry_hash = sha256_file(ROOT / "contracts" / "registry.yaml")
@@ -1677,6 +2070,10 @@ def build_launcher_dashboard_artifacts(
     )
     paper_runtime_cycle_report = load_scoped_upbit_paper_runtime_cycle_report(report, root)
     paper_ledger_rollup_report = load_scoped_paper_ledger_rollup_report(report, root)
+    if not isinstance(paper_ledger_rollup_report, dict) or not _dashboard_artifact_is_fresh(paper_ledger_rollup_report):
+        refreshed_rollup = refresh_scoped_paper_ledger_rollup_if_safe(report, root)
+        if isinstance(refreshed_rollup, dict):
+            paper_ledger_rollup_report = refreshed_rollup
     paper_ledger_rollup_loaded = isinstance(paper_ledger_rollup_report, dict)
     paper_ledger_rollup_usable = (
         paper_ledger_rollup_loaded
@@ -1707,7 +2104,16 @@ def build_launcher_dashboard_artifacts(
             "liquidity_status": feature_snapshot.get("liquidity_status"),
             "volatility_status": feature_snapshot.get("volatility_status"),
         }
-    if paper_portfolio is None and report["mode"] == "PAPER" and not paper_ledger_rollup_loaded:
+    paper_ledger_rollup_empty_startup = (
+        paper_ledger_rollup_loaded
+        and not paper_ledger_rollup_usable
+        and paper_ledger_rollup_report.get("primary_blocker_code") == "LEDGER_UNAVAILABLE"
+        and int(paper_ledger_rollup_report.get("ledger_jsonl_count") or 0) == 0
+        and int(paper_ledger_rollup_report.get("filled_order_count") or 0) == 0
+    )
+    if paper_portfolio is None and report["mode"] == "PAPER" and (
+        not paper_ledger_rollup_loaded or paper_ledger_rollup_empty_startup
+    ):
         paper_portfolio = build_initial_paper_portfolio_snapshot(
             exchange=report["exchange"],
             market_type=report["market_type"],
@@ -1829,16 +2235,19 @@ def build_launcher_dashboard_artifacts(
         ),
         "upbit_public_rest_continuity_history": _runtime_display_path(paths["upbit_public_rest_continuity_history"], root),
         "candidate_scorecard": _runtime_display_path(paths["candidate_scorecard"], root),
+        "overfit_diagnostic_report": _runtime_display_path(paths["overfit_diagnostic_report"], root),
         "residual_operator_handoff_packet": _runtime_display_path(paths["residual_operator_handoff_packet"], root),
         "residual_operator_execution_guide": _runtime_display_path(paths["residual_operator_execution_guide"], root),
         "residual_operator_evidence_progress": _runtime_display_path(paths["residual_operator_evidence_progress"], root),
         "shadow_runtime_harness": _runtime_display_path(paths["shadow_runtime_harness_report"], root),
+        "paper_shadow_harness_binding": _runtime_display_path(paths["paper_shadow_harness_binding_report"], root),
         "shadow_persistent_runtime": _runtime_display_path(paths["shadow_persistent_runtime_report"], root),
         "shadow_runtime_orchestration": _runtime_display_path(paths["shadow_runtime_orchestration_report"], root),
     }
     paper_operation_gate_report = load_scoped_paper_operation_gate_report(report, root)
     paper_exposure_quality_report = load_scoped_paper_exposure_quality_report(report, root)
     candidate_scorecard = load_scoped_candidate_scorecard(report, root)
+    overfit_diagnostic_report = load_scoped_overfit_diagnostic_report(report, root)
     profitability_maturity_rollup_report = load_profitability_maturity_rollup_report(report, root)
     residual_open_gap_operator_action_plan_report = load_residual_open_gap_operator_action_plan_report(root)
     residual_operator_handoff_packet_report = load_residual_operator_handoff_packet_report(root)
@@ -1903,7 +2312,20 @@ def build_launcher_dashboard_artifacts(
     upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report = (
         load_scoped_upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report(report, root)
     )
-    refreshed_audited_writer_report = refresh_scoped_upbit_paper_audited_current_evidence_if_safe(report, root)
+    upbit_public_rest_continuity_history = refresh_scoped_upbit_public_rest_continuity_history_if_safe(
+        report,
+        root,
+        refresh=refresh_upbit_public_rest_continuity,
+    )
+    latest_public_market_data_collection = latest_public_market_data_collection_from_continuity_history(
+        upbit_public_rest_continuity_history
+    )
+    refresh_scoped_upbit_paper_ledger_idempotency_runtime_evidence_if_safe(report, root)
+    refreshed_audited_writer_report = refresh_scoped_upbit_paper_audited_current_evidence_if_safe(
+        report,
+        root,
+        public_market_data_collection_report=latest_public_market_data_collection,
+    )
     upbit_paper_repaired_current_evidence_audited_writer_report = (
         refreshed_audited_writer_report
         or load_scoped_upbit_paper_repaired_current_evidence_audited_writer_report(report, root)
@@ -1919,22 +2341,65 @@ def build_launcher_dashboard_artifacts(
         audited_current_evidence_snapshot,
         root,
     )
+    current_truth_portfolio_snapshot = (
+        audited_paper_portfolio_snapshot
+        if _audited_portfolio_binds_current_rollup(audited_paper_portfolio_snapshot, paper_ledger_rollup_report)
+        else paper_portfolio
+    )
+    if (
+        isinstance(current_truth_portfolio_snapshot, dict)
+        and isinstance(latest_public_market_data_collection, dict)
+        and (
+            current_truth_portfolio_snapshot.get("mark_to_market_status") != "PASS_PUBLIC_MARK_TO_MARKET"
+            or current_truth_portfolio_snapshot.get("source_public_market_data_hash")
+            != latest_public_market_data_collection.get("collection_hash")
+        )
+    ):
+        marked_current_truth_portfolio_snapshot = mark_paper_portfolio_snapshot_to_public_market(
+            paper_portfolio_snapshot=current_truth_portfolio_snapshot,
+            public_market_data_collection_report=latest_public_market_data_collection,
+            require_public_mark=True,
+        )
+        if validate_paper_portfolio_snapshot(marked_current_truth_portfolio_snapshot).status == "PASS":
+            current_truth_portfolio_snapshot = marked_current_truth_portfolio_snapshot
     paper_current_truth_refresh_report = build_paper_current_truth_refresh_report(
         exchange=report["exchange"],
         market_type=report["market_type"],
         mode=report["mode"],
         session_id=report["session_id"],
-        paper_portfolio_snapshot=paper_portfolio,
+        paper_portfolio_snapshot=current_truth_portfolio_snapshot,
         heartbeat=heartbeat,
         startup_probe=startup_probe,
     )
     current_truth_result = validate_paper_current_truth_refresh_report(paper_current_truth_refresh_report)
     if current_truth_result.status == "FAIL":
         raise RuntimeError(f"paper current-truth refresh failed closed validation: {current_truth_result.message}")
+    if isinstance(current_truth_portfolio_snapshot, dict) and validate_paper_portfolio_snapshot(
+        current_truth_portfolio_snapshot
+    ).status == "PASS":
+        summary = build_summary_shell(
+            exchange=report["exchange"],
+            market_type=report["market_type"],
+            mode=report["mode"],
+            session_id=report["session_id"],
+            startup_probe=startup_probe,
+            heartbeat=heartbeat,
+            readiness_surface=readiness,
+            paper_portfolio_snapshot=current_truth_portfolio_snapshot,
+            entry_candidates=entry_candidates,
+            recent_entry_context=recent_entry_context,
+            recent_no_trade_context=recent_no_trade_context,
+            market_context=market_context,
+        )
+        if surface_blocker:
+            blocker_code, blocker_message = surface_blocker
+            summary["blocking_reason"] = blocker_code
+            summary["next_action"] = blocker_message
+            summary["live_ready"]["primary_blocker_code"] = blocker_code
+            summary["live_ready"]["primary_blocker_message"] = blocker_message
     upbit_paper_ledger_idempotency_runtime_evidence_report = (
         load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(report, root)
     )
-    upbit_public_rest_continuity_history = load_scoped_upbit_public_rest_continuity_history(report, root)
     paper_runtime_truth_state_report = None
     if report["exchange"] == "UPBIT" and report["market_type"] == "KRW_SPOT" and report["mode"] == "PAPER":
         paper_runtime_truth_state_report = build_paper_runtime_truth_state_report(
@@ -1972,9 +2437,31 @@ def build_launcher_dashboard_artifacts(
                 "paper continuous current-evidence writer failed closed validation: "
                 f"{continuous_writer_result.message}"
             )
-    shadow_runtime_harness_report = load_shadow_runtime_harness_report(report, root)
-    shadow_persistent_runtime_report = load_shadow_persistent_runtime_report(report, root)
-    shadow_runtime_orchestration_report = load_shadow_runtime_orchestration_report(report, root)
+    refreshed_paper_shadow_runtime = refresh_scoped_paper_shadow_runtime_harness_if_safe(
+        report,
+        root,
+        refresh=refresh_paper_shadow_runtime,
+    )
+    shadow_runtime_harness_report = (
+        refreshed_paper_shadow_runtime.get("shadow_runtime_harness_report")
+        if isinstance(refreshed_paper_shadow_runtime, dict)
+        else load_shadow_runtime_harness_report(report, root)
+    )
+    paper_shadow_harness_binding_report = (
+        refreshed_paper_shadow_runtime.get("paper_shadow_harness_binding_report")
+        if isinstance(refreshed_paper_shadow_runtime, dict)
+        else load_paper_shadow_harness_binding_report(report, root)
+    )
+    shadow_persistent_runtime_report = (
+        refreshed_paper_shadow_runtime.get("shadow_persistent_runtime_report")
+        if isinstance(refreshed_paper_shadow_runtime, dict)
+        else load_shadow_persistent_runtime_report(report, root)
+    )
+    shadow_runtime_orchestration_report = (
+        refreshed_paper_shadow_runtime.get("shadow_runtime_orchestration_report")
+        if isinstance(refreshed_paper_shadow_runtime, dict)
+        else load_shadow_runtime_orchestration_report(report, root)
+    )
     dashboard = build_read_only_dashboard_shell(
         exchange=report["exchange"],
         market_type=report["market_type"],
@@ -1987,6 +2474,7 @@ def build_launcher_dashboard_artifacts(
         paper_exposure_quality_report=paper_exposure_quality_report,
         profitability_maturity_rollup_report=profitability_maturity_rollup_report,
         candidate_scorecard=candidate_scorecard,
+        overfit_diagnostic_report=overfit_diagnostic_report,
         residual_open_gap_operator_action_plan_report=residual_open_gap_operator_action_plan_report,
         residual_operator_handoff_packet_report=residual_operator_handoff_packet_report,
         residual_operator_execution_guide_report=residual_operator_execution_guide_report,
@@ -2022,6 +2510,7 @@ def build_launcher_dashboard_artifacts(
         paper_runtime_truth_state_report=paper_runtime_truth_state_report,
         stability_history=stability_history,
         shadow_runtime_harness_report=shadow_runtime_harness_report,
+        paper_shadow_harness_binding_report=paper_shadow_harness_binding_report,
         shadow_persistent_runtime_report=shadow_persistent_runtime_report,
         shadow_runtime_orchestration_report=shadow_runtime_orchestration_report,
         source_paths=source_paths,
@@ -2041,7 +2530,13 @@ def build_launcher_dashboard_artifacts(
     }
 
 
-def _write_launcher_dashboard_unlocked(report: dict[str, Any], root: Path = ROOT) -> dict[str, Path]:
+def _write_launcher_dashboard_unlocked(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh_upbit_public_rest_continuity: bool = False,
+    refresh_paper_shadow_runtime: bool = False,
+) -> dict[str, Path]:
     paths = launcher_dashboard_paths(report, root)
     artifacts = build_launcher_dashboard_artifacts(report, root=root)
     previous_history = None
@@ -2060,7 +2555,13 @@ def _write_launcher_dashboard_unlocked(report: dict[str, Any], root: Path = ROOT
     )
     if history_result.status != "PASS":
         raise RuntimeError(f"stability history failed closed validation: {history_result.message}")
-    artifacts = build_launcher_dashboard_artifacts(report, stability_history=stability_history, root=root)
+    artifacts = build_launcher_dashboard_artifacts(
+        report,
+        stability_history=stability_history,
+        refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+        refresh_paper_shadow_runtime=refresh_paper_shadow_runtime,
+        root=root,
+    )
     dashboard_result = validate_read_only_dashboard_shell(artifacts["dashboard_shell"])
     if dashboard_result.status != "PASS":
         raise RuntimeError(f"read-only dashboard failed closed validation: {dashboard_result.message}")
@@ -2084,15 +2585,37 @@ def _write_launcher_dashboard_unlocked(report: dict[str, Any], root: Path = ROOT
     return paths
 
 
-def write_launcher_dashboard(report: dict[str, Any], root: Path = ROOT) -> dict[str, Path]:
+def write_launcher_dashboard(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh_upbit_public_rest_continuity: bool = False,
+    refresh_paper_shadow_runtime: bool = False,
+) -> dict[str, Path]:
     with runtime_write_lock(launcher_runtime_dir(report, root)):
-        return _write_launcher_dashboard_unlocked(report, root)
+        return _write_launcher_dashboard_unlocked(
+            report,
+            root,
+            refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+            refresh_paper_shadow_runtime=refresh_paper_shadow_runtime,
+        )
 
 
-def write_launcher_runtime_bundle(report: dict[str, Any], root: Path = ROOT) -> tuple[Path, dict[str, Path]]:
+def write_launcher_runtime_bundle(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh_upbit_public_rest_continuity: bool = False,
+    refresh_paper_shadow_runtime: bool = False,
+) -> tuple[Path, dict[str, Path]]:
     with runtime_write_lock(launcher_runtime_dir(report, root)):
         report_path = _write_launcher_report_unlocked(report, root)
-        dashboard_paths = _write_launcher_dashboard_unlocked(report, root)
+        dashboard_paths = _write_launcher_dashboard_unlocked(
+            report,
+            root,
+            refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+            refresh_paper_shadow_runtime=refresh_paper_shadow_runtime,
+        )
     return report_path, dashboard_paths
 
 
@@ -2295,12 +2818,32 @@ def _optional_nonnegative_float_env(name: str) -> float | None:
     return value
 
 
+def _optional_bool_env(name: str, *, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    raise ValueError(f"{name} must be a boolean value")
+
+
 def root_operator_launcher_main(launcher_name: str, *, root: Path = ROOT) -> int:
     return launcher_main(
         launcher_name,
         pause=True,
         console_heartbeat_ticks=_optional_nonnegative_int_env(ROOT_OPERATOR_HEARTBEAT_TICKS_ENV),
         console_heartbeat_interval_seconds=_optional_nonnegative_float_env(ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV),
+        refresh_upbit_public_rest_continuity=_optional_bool_env(
+            ROOT_OPERATOR_PUBLIC_REST_CONTINUITY_REFRESH_ENV,
+            default=True,
+        ),
+        refresh_paper_shadow_runtime=_optional_bool_env(
+            ROOT_OPERATOR_PAPER_SHADOW_RUNTIME_REFRESH_ENV,
+            default=True,
+        ),
         root=root,
     )
 
@@ -2312,11 +2855,18 @@ def launcher_main(
     open_dashboard: bool | None = None,
     console_heartbeat_ticks: int | None = None,
     console_heartbeat_interval_seconds: float | None = None,
+    refresh_upbit_public_rest_continuity: bool = False,
+    refresh_paper_shadow_runtime: bool = False,
     root: Path = ROOT,
 ) -> int:
     report = build_launcher_report(launcher_name)
     result = validate_launcher_report(report)
-    report_path, dashboard_paths = write_launcher_runtime_bundle(report, root)
+    report_path, dashboard_paths = write_launcher_runtime_bundle(
+        report,
+        root,
+        refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+        refresh_paper_shadow_runtime=refresh_paper_shadow_runtime,
+    )
     dashboard_opened = open_dashboard_for_operator(dashboard_paths["dashboard_html"], open_dashboard)
     heartbeat = load_json(dashboard_paths["heartbeat"])
     operator_pause = should_pause_for_operator(pause)

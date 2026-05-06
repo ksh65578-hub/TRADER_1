@@ -7,6 +7,7 @@ from trader1.research.shadow.shadow_observation_actual_runtime_harness import (
 )
 from trader1.research.shadow.shadow_observation_persistent_runtime import (
     build_shadow_observation_persistent_runtime_report,
+    build_shadow_observation_persistent_runtime_report_from_paper_loop,
 )
 from trader1.research.shadow.shadow_observation_runtime_orchestration import (
     build_shadow_observation_runtime_orchestration_report,
@@ -16,6 +17,9 @@ from trader1.research.shadow.shadow_observation_runtime_orchestration import (
 from trader1.research.shadow.shadow_observation_scheduler import build_shadow_observation_scheduler_guard_report
 from trader1.research.shadow.shadow_observation_stream import build_shadow_observation_stream_report
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
+from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
+from tempfile import TemporaryDirectory
+from pathlib import Path
 
 
 def _scheduler_guard_report(seed: str = "runtime-orchestration") -> dict:
@@ -98,6 +102,46 @@ class ShadowObservationRuntimeOrchestrationTest(unittest.TestCase):
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])
+
+    def test_orchestration_accepts_actual_paper_loop_short_window_but_keeps_long_run_blocked(self):
+        with TemporaryDirectory() as tmp:
+            source_loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="runtime-orchestration-actual-paper-loop",
+                session_id="mvp1_upbit_paper_launcher",
+                requested_cycle_count=2,
+            )
+        persistent = build_shadow_observation_persistent_runtime_report_from_paper_loop(
+            runtime_id="runtime-orchestration-actual-persistent-runtime",
+            scheduler_guard_report=_scheduler_guard_report("runtime-orchestration-actual"),
+            source_paper_loop_report=source_loop,
+            observed_runtime_seconds=0,
+        )
+        harness = build_shadow_observation_actual_runtime_harness_report(
+            harness_id="runtime-orchestration-actual-harness",
+            requested_cycle_count=2,
+            completed_cycle_count=2,
+            observations_per_cycle=2,
+            measured_runtime_seconds=0,
+            runtime_measurement_source="PAPER_LOOP_TIMESTAMP_SPAN_VERIFIED",
+            measured_runtime_seconds_verified=True,
+            source_runtime_report=persistent,
+        )
+        report = build_shadow_observation_runtime_orchestration_report(
+            orchestration_id="runtime-orchestration-actual-short-window",
+            persistent_runtime_report=persistent,
+            actual_runtime_harness_report=harness,
+        )
+        result = validate_shadow_observation_runtime_orchestration_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["source_validation_status"], "PASS")
+        self.assertEqual(report["observed_actual_cycle_count"], 2)
+        self.assertEqual(report["observed_actual_runtime_seconds"], 0)
+        self.assertFalse(report["actual_long_run_runtime_present"])
+        self.assertFalse(report["long_run_evidence_eligible"])
+        self.assertFalse(report["scorecard_input_eligible"])
+        self.assertFalse(report["live_order_allowed"])
 
     def test_orchestration_blocks_source_runtime_pairing_mismatch(self):
         persistent, harness = _source_reports("runtime-orchestration-a")

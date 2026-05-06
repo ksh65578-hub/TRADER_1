@@ -96,6 +96,11 @@ def build_shadow_observation_actual_runtime_harness_report(
         )
     else:
         runtime_report = dict(source_runtime_report)
+    data_source_role = (
+        "UPBIT_PAPER_RUNTIME_LOOP_NO_CREDENTIALS"
+        if runtime_report.get("runtime_execution_mode") == "ACTUAL_PAPER_SHADOW_SHORT_WINDOW"
+        else "DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS"
+    )
     blocker_report = build_shadow_observation_actual_runtime_blocker_report(
         blocker_report_id=f"{harness_id}_actual_runtime_blocker",
         runtime_report=runtime_report,
@@ -110,10 +115,14 @@ def build_shadow_observation_actual_runtime_harness_report(
     runtime_hash_verified = runtime_hash == shadow_observation_persistent_runtime_hash(runtime_report)
     blocker_hash_verified = blocker_hash == shadow_observation_actual_runtime_blocker_hash(blocker_report)
     measurement_verified = (
-        runtime_measurement_source == "MONOTONIC_LOCAL_TIMER_VERIFIED"
-        and bool(monotonic_timer_started)
-        and bool(monotonic_timer_stopped)
-        and bool(measured_runtime_seconds_verified)
+        (
+            runtime_measurement_source == "MONOTONIC_LOCAL_TIMER_VERIFIED"
+            and bool(monotonic_timer_started)
+            and bool(monotonic_timer_stopped)
+        )
+        or runtime_measurement_source == "PAPER_LOOP_TIMESTAMP_SPAN_VERIFIED"
+    ) and (
+        bool(measured_runtime_seconds_verified)
         and int(measured_runtime_seconds) >= 0
         and int(measured_runtime_seconds) <= ACTUAL_RUNTIME_HARNESS_MAX_SHORT_WINDOW_SECONDS
     )
@@ -192,7 +201,7 @@ def build_shadow_observation_actual_runtime_harness_report(
         "mode": "SHADOW",
         "session_id": harness_id,
         "harness_execution_mode": "NON_LIVE_LOCAL_PAPER_SHADOW_HARNESS",
-        "data_source_role": "DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS",
+        "data_source_role": data_source_role,
         "runtime_artifact_path": f"system/runtime/upbit/krw_spot/shadow/{harness_id}/actual_runtime_harness_report.json",
         "source_runtime_id": str(runtime_report.get("runtime_id") or ""),
         "source_runtime_report_hash": runtime_hash,
@@ -332,7 +341,10 @@ def validate_shadow_observation_actual_runtime_harness_report(
         return ShadowObservationActualRuntimeHarnessValidationResult("BLOCKED", "actual runtime harness path lacks shadow namespace", "SNAPSHOT_SCOPE_MISMATCH")
     if report.get("harness_execution_mode") != "NON_LIVE_LOCAL_PAPER_SHADOW_HARNESS":
         return ShadowObservationActualRuntimeHarnessValidationResult("BLOCKED", "actual runtime harness execution mode is unsafe or unknown", "LIVE_FINAL_GUARD_FAILED")
-    if report.get("data_source_role") != "DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS":
+    if report.get("data_source_role") not in {
+        "DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS",
+        "UPBIT_PAPER_RUNTIME_LOOP_NO_CREDENTIALS",
+    }:
         return ShadowObservationActualRuntimeHarnessValidationResult("BLOCKED", "actual runtime harness cannot use credentialed or live account data", "API_UNVERIFIED")
     if report.get("source_runtime_hash_verified") is not True or report.get("source_actual_blocker_hash_verified") is not True:
         return ShadowObservationActualRuntimeHarnessValidationResult("BLOCKED", "actual runtime harness source hashes are not verified", "SCHEMA_IDENTITY_MISMATCH")
@@ -363,9 +375,14 @@ def validate_shadow_observation_actual_runtime_harness_report(
         return ShadowObservationActualRuntimeHarnessValidationResult("BLOCKED", "actual runtime harness measured runtime exceeds short-window capacity", "RESOURCE_LIMIT_BLOCK")
     expected_measurement_status = (
         "VERIFIED_SHORT_WINDOW"
-        if report.get("runtime_measurement_source") == "MONOTONIC_LOCAL_TIMER_VERIFIED"
-        and report.get("monotonic_timer_started") is True
-        and report.get("monotonic_timer_stopped") is True
+        if (
+            (
+                report.get("runtime_measurement_source") == "MONOTONIC_LOCAL_TIMER_VERIFIED"
+                and report.get("monotonic_timer_started") is True
+                and report.get("monotonic_timer_stopped") is True
+            )
+            or report.get("runtime_measurement_source") == "PAPER_LOOP_TIMESTAMP_SPAN_VERIFIED"
+        )
         and report.get("measured_runtime_seconds_verified") is True
         else "BLOCKED_UNVERIFIED_MEASUREMENT"
     )
