@@ -283,6 +283,18 @@ def residual_operator_evidence_progress_fixture():
     )
 
 
+def residual_operator_evidence_completion_acceptance_fixture():
+    return json.loads(
+        (
+            ROOT
+            / "system"
+            / "evidence"
+            / "audit_reports"
+            / "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json"
+        ).read_text(encoding="utf-8")
+    )
+
+
 def residual_operator_reconciliation_review_cards_fixture():
     return json.loads(
         (
@@ -433,6 +445,7 @@ def build_dashboard(
     residual_operator_handoff_packet_report=None,
     residual_operator_execution_guide_report=None,
     residual_operator_evidence_progress_report=None,
+    residual_operator_evidence_completion_acceptance_report=None,
     residual_operator_reconciliation_review_cards_report=None,
     residual_operator_reconciliation_intake_preflight_report=None,
     residual_operator_reconciliation_submission_manifest_preflight_report=None,
@@ -478,6 +491,7 @@ def build_dashboard(
         residual_operator_handoff_packet_report=residual_operator_handoff_packet_report,
         residual_operator_execution_guide_report=residual_operator_execution_guide_report,
         residual_operator_evidence_progress_report=residual_operator_evidence_progress_report,
+        residual_operator_evidence_completion_acceptance_report=residual_operator_evidence_completion_acceptance_report,
         residual_operator_reconciliation_review_cards_report=residual_operator_reconciliation_review_cards_report,
         residual_operator_reconciliation_intake_preflight_report=residual_operator_reconciliation_intake_preflight_report,
         residual_operator_reconciliation_submission_manifest_preflight_report=residual_operator_reconciliation_submission_manifest_preflight_report,
@@ -7530,6 +7544,79 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertNotIn("<button", answer_html.lower())
         self.assertNotIn("<form", answer_html.lower())
 
+    def test_dashboard_live_card_exposes_paper_shadow_completion_acceptance(self):
+        dashboard = build_dashboard(
+            residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
+            residual_operator_handoff_packet_report=residual_operator_handoff_packet_fixture(),
+            residual_operator_execution_guide_report=residual_operator_execution_guide_fixture(),
+            residual_operator_evidence_progress_report=residual_operator_evidence_progress_fixture(),
+            residual_operator_evidence_completion_acceptance_report=residual_operator_evidence_completion_acceptance_fixture(),
+            upbit_paper_post_rerun_operator_resolution_audit_report=post_rerun_resolution_audit_fixture(),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        completion = dashboard["residual_operator_evidence_completion_acceptance"]
+        self.assertEqual(completion["source_status"], "LOADED")
+        self.assertEqual(completion["status"], "PENDING_OPERATOR_RUNTIME_EVIDENCE")
+        self.assertEqual(completion["preflight_status"], "NON_LIVE_OPERATOR_RUN_PRECHECK_PASS")
+        self.assertEqual(completion["acceptance_status"], "PENDING_OPERATOR_RUNTIME_EVIDENCE")
+        self.assertEqual(completion["completion_gate_count"], 12)
+        self.assertEqual(completion["completion_pending_count"], 12)
+        self.assertEqual(completion["completion_accepted_count"], 0)
+        self.assertEqual(completion["completion_artifact_gate_count"], 5)
+        self.assertEqual(completion["completion_validator_gate_count"], 6)
+        self.assertEqual(completion["completion_safety_invariant_gate_count"], 1)
+        self.assertEqual(completion["expected_runtime_artifact_count"], 5)
+        self.assertEqual(completion["required_validator_count"], 6)
+        self.assertEqual(completion["first_pending_gate_id"], "RUNTIME_ARTIFACT_01")
+        self.assertEqual(completion["first_pending_gate_validator"], "runtime_schema_instance_validator")
+        self.assertTrue(completion["mvp5_entry_blocked_until_operator_evidence"])
+        self.assertFalse(completion["operator_run_started_by_this_patch"])
+        self.assertFalse(completion["operator_run_completed_by_this_patch"])
+        self.assertFalse(completion["operator_run_evidence_ready_for_mvp5"])
+        self.assertFalse(completion["command_executed_by_this_patch"])
+        self.assertTrue(completion["non_live_operator_command_preflight_passed"])
+        self.assertFalse(completion["credential_values_read"])
+        self.assertFalse(completion["credential_environment_inspection_performed"])
+        self.assertFalse(completion["current_evidence_write_allowed"])
+        self.assertFalse(completion["gap_closure_allowed_by_this_patch"])
+        self.assertFalse(completion["live_config_mutation_allowed"])
+        self.assertFalse(completion["live_ready_write_allowed"])
+        self.assertFalse(completion["live_order_ready"])
+        self.assertFalse(completion["live_order_allowed"])
+        self.assertFalse(completion["can_live_trade"])
+        self.assertFalse(completion["scale_up_allowed"])
+        self.assertEqual(
+            [item["count"] for item in completion["completion_gate_breakdown_items"]],
+            [5, 6, 1],
+        )
+        self.assertGreaterEqual(len(completion["pending_gate_preview"]), 4)
+
+        source = next(
+            item
+            for item in dashboard["source_artifacts"]
+            if item["artifact_id"] == "RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE"
+        )
+        self.assertEqual(
+            source["filename"],
+            "MVP4_RESIDUAL_OPERATOR_EVIDENCE_RUN_COMPLETION_ACCEPTANCE.report.json",
+        )
+        self.assertEqual(source["freshness_status"], "PASS")
+
+        html = render_dashboard_html(dashboard)
+        answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
+        portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
+        answer_html = html[answer_start:portfolio_start]
+        self.assertIn("PAPER/SHADOW completion:", answer_html)
+        self.assertIn("12/12 pending", answer_html)
+        self.assertIn("5 required", answer_html)
+        self.assertIn("6 PASS required", answer_html)
+        self.assertIn("RUNTIME_ARTIFACT_01", answer_html)
+        self.assertIn("runtime_schema_instance_validator", answer_html)
+        self.assertIn("dashboard cannot close gaps", answer_html)
+        self.assertNotIn("<button", answer_html.lower())
+        self.assertNotIn("<form", answer_html.lower())
+
     def test_dashboard_live_card_exposes_operator_reconciliation_review_cards(self):
         dashboard = build_dashboard(
             residual_open_gap_operator_action_plan_report=residual_open_gap_action_plan_fixture(),
@@ -8129,6 +8216,20 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(progress["live_ready_write_allowed"])
         self.assertFalse(progress["live_order_allowed"])
         self.assertFalse(progress["scale_up_allowed"])
+
+    def test_dashboard_rejects_completion_acceptance_permission_drift(self):
+        report = residual_operator_evidence_completion_acceptance_fixture()
+        report["operator_completion_acceptance_items"][0]["live_order_allowed"] = True
+        dashboard = build_dashboard(residual_operator_evidence_completion_acceptance_report=report)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+        completion = dashboard["residual_operator_evidence_completion_acceptance"]
+        self.assertEqual(completion["source_status"], "LOADED")
+        self.assertEqual(completion["status"], "INVALID")
+        self.assertFalse(completion["live_order_allowed"])
+        self.assertFalse(completion["live_ready_write_allowed"])
+        self.assertFalse(completion["scale_up_allowed"])
 
     def test_dashboard_rejects_residual_operator_decision_card_permission_drift(self):
         report = residual_operator_evidence_progress_fixture()

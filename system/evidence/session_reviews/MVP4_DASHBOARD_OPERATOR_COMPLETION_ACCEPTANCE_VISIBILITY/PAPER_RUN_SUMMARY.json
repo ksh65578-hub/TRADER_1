@@ -1,0 +1,15 @@
+{
+  "patch_id": "MVP4_DASHBOARD_OPERATOR_COMPLETION_ACCEPTANCE_VISIBILITY_20260506_001",
+  "generated_at_utc": "2026-05-06T02:35:07Z",
+  "new_paper_run_started_by_this_patch": false,
+  "command_executed_by_this_patch": false,
+  "operator_run_completed_by_this_patch": false,
+  "operator_completion_acceptance_status": "PENDING_OPERATOR_RUNTIME_EVIDENCE",
+  "operator_completion_acceptance_pending_count": 12,
+  "required_runtime_artifact_count": 5,
+  "required_validator_count": 6,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
