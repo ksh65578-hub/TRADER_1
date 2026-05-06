@@ -1,0 +1,49 @@
+{
+  "schema_id": "trader1.dashboard_runtime_source_binding_visibility_report.v1",
+  "patch_id": "MVP4_DASHBOARD_RUNTIME_SOURCE_BINDING_VISIBILITY_20260506_001",
+  "generated_at_utc": "2026-05-06T04:35:47Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "finding": "Dashboard profitability maturity exposed whether long-run runtime source evidence was missing, but it did not show the exact PAPER/SHADOW runtime source binding state, required non-live modes, or the five runtime requirements that must pass before long-run review: runtime span, cycle count, heartbeat freshness, recovery cleanliness, and partial-write cleanliness.",
+  "runtime_source_binding_version": "runtime_source_binding_visibility.v1",
+  "dashboard_visibility_status": "RUNTIME_BINDING_DISPLAYED_AND_VALIDATED_NON_LIVE",
+  "runtime_binding_priority_order": [
+    "MALFORMED_OR_WRONG_SCOPE_SOURCE_ID",
+    "MISSING_PAPER_AND_SHADOW_SOURCE_IDS",
+    "MISSING_SHADOW_SOURCE_ID",
+    "MISSING_PAPER_SOURCE_ID",
+    "RUNTIME_REQUIREMENT_NOT_PASS",
+    "VALIDATED_NON_LIVE_REVIEW_ONLY"
+  ],
+  "acceptance_conditions": [
+    "profitability_maturity carries runtime source binding status, mode coverage, next action, requirement statuses, missing ids, and pass counts",
+    "read_only_dashboard_shell schema defines runtime source binding fields while the dashboard validator requires them for operation-gate evidence",
+    "read_only_dashboard_validator blocks hidden requirement statuses and false READY_NON_LIVE runtime binding claims",
+    "dashboard HTML exposes Runtime Binding without moving live/scale state",
+    "runtime source binding readiness remains non-live and cannot write LIVE_READY",
+    "open contract gap count remains 13 and all live/scale flags remain false"
+  ],
+  "open_contract_gap_count": 13,
+  "open_contract_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

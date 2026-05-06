@@ -1,0 +1,14 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-06T04:35:47Z",
+  "patch_id": "MVP4_DASHBOARD_RUNTIME_SOURCE_BINDING_VISIBILITY_20260506_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_DASHBOARD_RUNTIME_SOURCE_BINDING_VISIBILITY_LIVE_BLOCKED",
+  "runtime_source_binding_version": "runtime_source_binding_visibility.v1",
+  "dashboard_visibility_status": "RUNTIME_BINDING_DISPLAYED_AND_VALIDATED_NON_LIVE",
+  "gap_closure_allowed_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

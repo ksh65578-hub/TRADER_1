@@ -7103,6 +7103,79 @@
           "type": "string",
           "minLength": 1
         },
+        "actual_runtime_source_binding_status": {
+          "enum": [
+            "NOT_LOADED",
+            "MISSING_SOURCE_IDS",
+            "PARTIAL_SOURCE_IDS",
+            "INVALID_SOURCE_IDS",
+            "REQUIREMENTS_INCOMPLETE",
+            "READY_NON_LIVE"
+          ]
+        },
+        "actual_runtime_source_binding_next_action": {
+          "enum": [
+            "NOT_LOADED",
+            "ATTACH_PAPER_AND_SHADOW_RUNTIME_SOURCE_IDS",
+            "ATTACH_SHADOW_RUNTIME_SOURCE_ID",
+            "ATTACH_PAPER_RUNTIME_SOURCE_ID",
+            "FIX_RUNTIME_SOURCE_ID_SCOPE",
+            "RUN_NON_LIVE_RUNTIME_UNTIL_REQUIREMENTS_PASS",
+            "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE"
+          ]
+        },
+        "actual_runtime_source_mode_coverage": {
+          "enum": [
+            "NOT_LOADED",
+            "MISSING_BOTH",
+            "PAPER_ONLY",
+            "SHADOW_ONLY",
+            "PAPER_AND_SHADOW"
+          ]
+        },
+        "actual_runtime_requirement_statuses": {
+          "type": "object",
+          "required": [
+            "runtime_span",
+            "cycle_count",
+            "heartbeat_freshness",
+            "recovery_clean",
+            "partial_write_clean"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "runtime_span": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+            "cycle_count": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+            "heartbeat_freshness": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+            "recovery_clean": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]},
+            "partial_write_clean": {"enum": ["PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"]}
+          }
+        },
+        "actual_runtime_requirement_missing_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "runtime_span",
+              "cycle_count",
+              "heartbeat_freshness",
+              "recovery_clean",
+              "partial_write_clean"
+            ]
+          }
+        },
+        "actual_runtime_requirement_pass_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "actual_runtime_requirement_total_count": {
+          "const": 5
+        },
+        "actual_runtime_source_binding_message": {
+          "type": "string",
+          "minLength": 1
+        },
         "long_run_evidence_eligible": {
           "type": "boolean"
         },

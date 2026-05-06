@@ -628,6 +628,38 @@ PROFITABILITY_MATURITY_EVIDENCE_SOURCES = {
     "candidate_scorecard.json",
 }
 PROFITABILITY_ACTUAL_RUNTIME_SOURCE_STATUSES = {"MISSING", "STUB_ONLY", "VALIDATED_NON_LIVE_RUNTIME"}
+PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS = (
+    "runtime_span",
+    "cycle_count",
+    "heartbeat_freshness",
+    "recovery_clean",
+    "partial_write_clean",
+)
+PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_STATUSES = {"PASS", "MISSING", "BLOCKED", "STALE", "TIMEOUT"}
+PROFITABILITY_ACTUAL_RUNTIME_BINDING_STATUSES = {
+    "NOT_LOADED",
+    "MISSING_SOURCE_IDS",
+    "PARTIAL_SOURCE_IDS",
+    "INVALID_SOURCE_IDS",
+    "REQUIREMENTS_INCOMPLETE",
+    "READY_NON_LIVE",
+}
+PROFITABILITY_ACTUAL_RUNTIME_MODE_COVERAGE = {
+    "NOT_LOADED",
+    "MISSING_BOTH",
+    "PAPER_ONLY",
+    "SHADOW_ONLY",
+    "PAPER_AND_SHADOW",
+}
+PROFITABILITY_ACTUAL_RUNTIME_BINDING_ACTIONS = {
+    "NOT_LOADED",
+    "ATTACH_PAPER_AND_SHADOW_RUNTIME_SOURCE_IDS",
+    "ATTACH_SHADOW_RUNTIME_SOURCE_ID",
+    "ATTACH_PAPER_RUNTIME_SOURCE_ID",
+    "FIX_RUNTIME_SOURCE_ID_SCOPE",
+    "RUN_NON_LIVE_RUNTIME_UNTIL_REQUIREMENTS_PASS",
+    "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE",
+}
 PROFITABILITY_RANKING_ACTIONS = {"ALLOW_RANKING", "BLOCK_RANKING"}
 PROFITABILITY_PROGRESS_STATUSES = {"NOT_STARTED", "IN_PROGRESS", "READY", "BLOCKED", "STALE"}
 PROFITABILITY_ACTIONABILITY_STATUSES = {
@@ -6578,6 +6610,17 @@ def _actual_runtime_source_projection(evidence: dict[str, Any] | None) -> dict[s
             "actual_runtime_source_status": "MISSING",
             "actual_runtime_source_count": 0,
             "actual_runtime_source_summary": "No validated non-live persistent runtime source is loaded.",
+            "actual_runtime_source_binding_status": "NOT_LOADED",
+            "actual_runtime_source_binding_next_action": "NOT_LOADED",
+            "actual_runtime_source_mode_coverage": "NOT_LOADED",
+            "actual_runtime_requirement_statuses": {
+                requirement_id: "MISSING"
+                for requirement_id in PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS
+            },
+            "actual_runtime_requirement_missing_ids": list(PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS),
+            "actual_runtime_requirement_pass_count": 0,
+            "actual_runtime_requirement_total_count": len(PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS),
+            "actual_runtime_source_binding_message": "No PAPER/SHADOW runtime source binding evidence is loaded.",
             "long_run_evidence_eligible": False,
             "long_run_blocker_code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
         }
@@ -6585,6 +6628,70 @@ def _actual_runtime_source_projection(evidence: dict[str, Any] | None) -> dict[s
     source_status = raw_status if raw_status in PROFITABILITY_ACTUAL_RUNTIME_SOURCE_STATUSES else "MISSING"
     source_ids = evidence.get("actual_runtime_source_evidence_ids") or []
     source_count = len(source_ids) if isinstance(source_ids, list) else 0
+    modes_seen: set[str] = set()
+    malformed_source_id = False
+    if isinstance(source_ids, list):
+        for source_id in source_ids:
+            parts = str(source_id).split(":")
+            if len(parts) != 6 or parts[0] != "actual-runtime-source":
+                malformed_source_id = True
+                continue
+            mode = parts[3].lower()
+            if mode in {"paper", "shadow"}:
+                modes_seen.add(mode)
+            else:
+                malformed_source_id = True
+    if modes_seen == {"paper", "shadow"}:
+        mode_coverage = "PAPER_AND_SHADOW"
+    elif modes_seen == {"paper"}:
+        mode_coverage = "PAPER_ONLY"
+    elif modes_seen == {"shadow"}:
+        mode_coverage = "SHADOW_ONLY"
+    else:
+        mode_coverage = "MISSING_BOTH"
+    raw_requirement_statuses = evidence.get("actual_runtime_requirement_statuses")
+    if not isinstance(raw_requirement_statuses, dict):
+        raw_requirement_statuses = {}
+    requirement_statuses: dict[str, str] = {}
+    for requirement_id in PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS:
+        raw_requirement_status = str(raw_requirement_statuses.get(requirement_id) or "MISSING").upper()
+        requirement_statuses[requirement_id] = (
+            raw_requirement_status
+            if raw_requirement_status in PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_STATUSES
+            else "MISSING"
+        )
+    missing_requirement_ids = [
+        requirement_id
+        for requirement_id, status in requirement_statuses.items()
+        if status != "PASS"
+    ]
+    requirement_pass_count = len(PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS) - len(missing_requirement_ids)
+    source_modes_complete = mode_coverage == "PAPER_AND_SHADOW"
+    requirements_complete = not missing_requirement_ids
+    if malformed_source_id or (source_status == "VALIDATED_NON_LIVE_RUNTIME" and source_count > 0 and not source_modes_complete):
+        binding_status = "INVALID_SOURCE_IDS"
+        binding_next_action = "FIX_RUNTIME_SOURCE_ID_SCOPE"
+        binding_message = "Runtime source IDs are present but do not prove both scoped PAPER and SHADOW non-live sources."
+    elif source_count <= 0:
+        binding_status = "MISSING_SOURCE_IDS"
+        binding_next_action = "ATTACH_PAPER_AND_SHADOW_RUNTIME_SOURCE_IDS"
+        binding_message = "Attach scoped PAPER and SHADOW persistent runtime source IDs before long-run review."
+    elif not source_modes_complete:
+        binding_status = "PARTIAL_SOURCE_IDS"
+        binding_next_action = "ATTACH_SHADOW_RUNTIME_SOURCE_ID" if mode_coverage == "PAPER_ONLY" else "ATTACH_PAPER_RUNTIME_SOURCE_ID"
+        binding_message = "Runtime source binding is partial; both PAPER and SHADOW source IDs are required."
+    elif not requirements_complete:
+        binding_status = "REQUIREMENTS_INCOMPLETE"
+        binding_next_action = "RUN_NON_LIVE_RUNTIME_UNTIL_REQUIREMENTS_PASS"
+        binding_message = "Runtime source IDs are scoped, but runtime-span, cycle, freshness, recovery, and partial-write checks must all PASS."
+    elif source_status == "VALIDATED_NON_LIVE_RUNTIME":
+        binding_status = "READY_NON_LIVE"
+        binding_next_action = "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE"
+        binding_message = "PAPER and SHADOW runtime source IDs and runtime requirements are validated for non-live review only."
+    else:
+        binding_status = "REQUIREMENTS_INCOMPLETE"
+        binding_next_action = "RUN_NON_LIVE_RUNTIME_UNTIL_REQUIREMENTS_PASS"
+        binding_message = "Runtime requirements are complete, but the source status is not validated as non-live runtime evidence."
     long_run_eligible = evidence.get("long_run_evidence_eligible") is True
     blocker_code = evidence.get("long_run_blocker_code")
     if long_run_eligible:
@@ -6599,6 +6706,14 @@ def _actual_runtime_source_projection(evidence: dict[str, Any] | None) -> dict[s
         "actual_runtime_source_status": source_status,
         "actual_runtime_source_count": source_count,
         "actual_runtime_source_summary": summary,
+        "actual_runtime_source_binding_status": binding_status,
+        "actual_runtime_source_binding_next_action": binding_next_action,
+        "actual_runtime_source_mode_coverage": mode_coverage,
+        "actual_runtime_requirement_statuses": requirement_statuses,
+        "actual_runtime_requirement_missing_ids": missing_requirement_ids,
+        "actual_runtime_requirement_pass_count": requirement_pass_count,
+        "actual_runtime_requirement_total_count": len(PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS),
+        "actual_runtime_source_binding_message": binding_message,
         "long_run_evidence_eligible": long_run_eligible,
         "long_run_blocker_code": blocker_code or "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
     }
@@ -21430,6 +21545,66 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "profitability actual runtime source count must be non-negative", "SCHEMA_IDENTITY_MISMATCH")
     if not isinstance(actual_runtime_source_summary, str) or not actual_runtime_source_summary.strip():
         return DashboardValidationResult("FAIL", "profitability actual runtime source summary is missing", "SCHEMA_IDENTITY_MISMATCH")
+    runtime_binding_status = maturity.get("actual_runtime_source_binding_status")
+    if runtime_binding_status not in PROFITABILITY_ACTUAL_RUNTIME_BINDING_STATUSES:
+        return DashboardValidationResult("FAIL", "profitability actual runtime binding status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    runtime_binding_next_action = maturity.get("actual_runtime_source_binding_next_action")
+    if runtime_binding_next_action not in PROFITABILITY_ACTUAL_RUNTIME_BINDING_ACTIONS:
+        return DashboardValidationResult("FAIL", "profitability actual runtime binding next action is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    runtime_mode_coverage = maturity.get("actual_runtime_source_mode_coverage")
+    if runtime_mode_coverage not in PROFITABILITY_ACTUAL_RUNTIME_MODE_COVERAGE:
+        return DashboardValidationResult("FAIL", "profitability actual runtime source mode coverage is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    runtime_requirement_statuses = maturity.get("actual_runtime_requirement_statuses")
+    if not isinstance(runtime_requirement_statuses, dict):
+        if maturity.get("evidence_source") == "paper_operation_gate_report":
+            return DashboardValidationResult("BLOCKED", "operation-gate maturity must expose actual runtime requirement statuses", "HARD_TRUTH_MISSING")
+        runtime_requirement_statuses = {}
+    if maturity.get("evidence_source") == "paper_operation_gate_report":
+        if set(runtime_requirement_statuses) != set(PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS):
+            return DashboardValidationResult("BLOCKED", "operation-gate maturity must expose all actual runtime requirement statuses", "HARD_TRUTH_MISSING")
+        invalid_status = [
+            status
+            for status in runtime_requirement_statuses.values()
+            if status not in PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_STATUSES
+        ]
+        if invalid_status:
+            return DashboardValidationResult("FAIL", "actual runtime requirement status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    runtime_missing_ids = maturity.get("actual_runtime_requirement_missing_ids")
+    if not isinstance(runtime_missing_ids, list):
+        return DashboardValidationResult("FAIL", "actual runtime requirement missing ids must be a list", "SCHEMA_IDENTITY_MISMATCH")
+    if any(str(item) not in PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS for item in runtime_missing_ids):
+        return DashboardValidationResult("FAIL", "actual runtime requirement missing id is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    expected_runtime_missing_ids = [
+        requirement_id
+        for requirement_id in PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS
+        if runtime_requirement_statuses.get(requirement_id) != "PASS"
+    ]
+    if maturity.get("evidence_source") == "paper_operation_gate_report" and runtime_missing_ids != expected_runtime_missing_ids:
+        return DashboardValidationResult("FAIL", "actual runtime requirement missing ids do not match statuses", "SCHEMA_IDENTITY_MISMATCH")
+    runtime_pass_count = maturity.get("actual_runtime_requirement_pass_count")
+    runtime_total_count = maturity.get("actual_runtime_requirement_total_count")
+    if not isinstance(runtime_pass_count, int) or runtime_pass_count < 0:
+        return DashboardValidationResult("FAIL", "actual runtime requirement pass count must be non-negative", "SCHEMA_IDENTITY_MISMATCH")
+    if runtime_total_count != len(PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS):
+        return DashboardValidationResult("FAIL", "actual runtime requirement total count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("evidence_source") == "paper_operation_gate_report" and runtime_pass_count != (
+        len(PROFITABILITY_ACTUAL_RUNTIME_REQUIREMENT_IDS) - len(expected_runtime_missing_ids)
+    ):
+        return DashboardValidationResult("FAIL", "actual runtime requirement pass count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    runtime_binding_message = maturity.get("actual_runtime_source_binding_message")
+    if not isinstance(runtime_binding_message, str) or not runtime_binding_message.strip():
+        return DashboardValidationResult("FAIL", "actual runtime source binding message is missing", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("evidence_source") == "paper_operation_gate_report" and runtime_binding_status == "NOT_LOADED":
+        return DashboardValidationResult("BLOCKED", "operation-gate maturity cannot hide actual runtime source binding status", "HARD_TRUTH_MISSING")
+    if runtime_binding_status == "READY_NON_LIVE" and (
+        actual_runtime_source_status != "VALIDATED_NON_LIVE_RUNTIME"
+        or actual_runtime_source_count < 2
+        or runtime_mode_coverage != "PAPER_AND_SHADOW"
+        or runtime_missing_ids
+    ):
+        return DashboardValidationResult("BLOCKED", "actual runtime source binding cannot be ready without PAPER and SHADOW validated non-live evidence", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
+    if actual_runtime_source_status == "VALIDATED_NON_LIVE_RUNTIME" and runtime_binding_status not in {"READY_NON_LIVE", "REQUIREMENTS_INCOMPLETE"}:
+        return DashboardValidationResult("BLOCKED", "validated runtime source status must expose ready or incomplete runtime binding", "HARD_TRUTH_MISSING")
     maturity_long_run_eligible = maturity.get("long_run_evidence_eligible") is True
     maturity_long_run_blocker = maturity.get("long_run_blocker_code")
     if maturity_long_run_eligible and (
@@ -23224,6 +23399,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p><span class=\"pill {status_class(maturity.get('actual_runtime_source_status'))}\">{safe_text(maturity.get('actual_runtime_source_status', 'MISSING'))}</span><br>"
         f"{safe_text(maturity.get('actual_runtime_source_count', 0))} runtime sources</p>"
         f"<small>{safe_text(maturity.get('actual_runtime_source_summary', 'Validated non-live persistent runtime source evidence is required.'))}</small></div>"
+        "<div><strong>Runtime Binding</strong>"
+        f"<p><span class=\"pill {status_class(maturity.get('actual_runtime_source_binding_status'))}\">{safe_text(maturity.get('actual_runtime_source_binding_status', 'NOT_LOADED'))}</span><br>"
+        f"{safe_text(maturity.get('actual_runtime_requirement_pass_count', 0))}/{safe_text(maturity.get('actual_runtime_requirement_total_count', 5))} requirements | {safe_text(maturity.get('actual_runtime_source_mode_coverage', 'NOT_LOADED'))}</p>"
+        f"<small>{safe_text(maturity.get('actual_runtime_source_binding_next_action', 'NOT_LOADED'))}: {safe_text(maturity.get('actual_runtime_source_binding_message', 'PAPER/SHADOW runtime source binding is not loaded.'))}</small></div>"
         "<div><strong>Readiness Scope</strong>"
         f"<p><span class=\"pill safe-lock\">{safe_text(maturity.get('scorecard_scope', 'PAPER_EVIDENCE_COLLECTION_ONLY'))}</span><br>"
         f"<span class=\"pill safe-lock\">{safe_text(maturity.get('live_readiness_status', 'NOT_LIVE_READY'))}</span></p></div>"
