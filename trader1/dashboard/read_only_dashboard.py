@@ -3743,6 +3743,9 @@ def _position_snapshot(
 
 
 def _position_notional(position: dict[str, Any]) -> Decimal | None:
+    market_value = _decimal(position.get("market_value"))
+    if market_value is not None and market_value >= 0:
+        return market_value
     quantity = _decimal(position.get("quantity") or position.get("qty") or position.get("size"))
     price = _decimal(
         position.get("mark_price")
@@ -3754,6 +3757,17 @@ def _position_notional(position: dict[str, Any]) -> Decimal | None:
     if quantity is None or price is None or quantity < 0 or price < 0:
         return None
     return abs(quantity * price)
+
+
+def _drawdown_pct_from_portfolio(portfolio: dict[str, Any], equity: Decimal) -> Decimal | None:
+    configured_start = _decimal(portfolio.get("configured_paper_starting_cash"))
+    reported_mdd = _decimal(portfolio.get("mdd"))
+    if configured_start is not None and configured_start > 0 and equity > 0:
+        equity_high = max(configured_start, equity)
+        return max(Decimal("0"), (equity_high - equity) / equity_high * Decimal("100"))
+    if reported_mdd is not None and reported_mdd >= 0:
+        return reported_mdd
+    return None
 
 
 def _risk_exposure_snapshot(
@@ -3801,7 +3815,13 @@ def _risk_exposure_snapshot(
         "can_live_trade": False,
         "scale_up_allowed": False,
     }
-    if summary is not None and summary_freshness != "PASS":
+    portfolio_status = portfolio_snapshot.get("status")
+    has_verified_or_stale_portfolio = (
+        mode == "PAPER"
+        and portfolio_status in {"VERIFIED", "STALE"}
+        and isinstance(summary, dict)
+    )
+    if summary is not None and summary_freshness != "PASS" and not has_verified_or_stale_portfolio:
         return {
             **base,
             "status": "STALE",
@@ -3811,7 +3831,7 @@ def _risk_exposure_snapshot(
             "primary_blocker_message": "Risk exposure display is stale because summary.json is stale.",
             "next_action": "Rerun PAPER before trusting exposure or drawdown values.",
         }
-    if mode != "PAPER" or portfolio_snapshot.get("status") != "VERIFIED" or not isinstance(summary, dict):
+    if not has_verified_or_stale_portfolio:
         return {
             **base,
             "status": "UNVERIFIED",
@@ -3847,7 +3867,7 @@ def _risk_exposure_snapshot(
         else:
             exposure += notional
     exposure_pct = (exposure / equity) * Decimal("100")
-    drawdown_pct = _decimal(portfolio.get("mdd"))
+    drawdown_pct = _drawdown_pct_from_portfolio(portfolio, equity)
     drawdown_missing = drawdown_pct is None or drawdown_pct < 0
     drawdown_for_threshold = drawdown_pct if drawdown_pct is not None and drawdown_pct >= 0 else Decimal("0")
 
@@ -3891,6 +3911,12 @@ def _risk_exposure_snapshot(
         color_token = "yellow"
         message = quality["paper_exposure_quality_message"]
         next_action = "Generate a scoped paper exposure quality report before treating risk as low."
+    if portfolio_status == "STALE" and status != "BLOCKED":
+        status = "STALE"
+        severity = "WARNING"
+        color_token = "yellow"
+        message = "Risk exposure uses the last verified PAPER ledger values; the portfolio source is stale display-only truth."
+        next_action = "Refresh PAPER current truth before using exposure or drawdown for review."
 
     return {
         **base,

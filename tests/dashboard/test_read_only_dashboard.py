@@ -22,6 +22,7 @@ from trader1.runtime.health.stability_history import append_stability_history
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
     build_paper_portfolio_snapshot_from_fill,
+    paper_portfolio_hash,
 )
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
@@ -6066,9 +6067,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(risk["status"], "ATTENTION")
         self.assertEqual(risk["severity"], "WARNING")
         self.assertEqual(risk["color_token"], "yellow")
-        self.assertEqual(risk["drawdown_pct_display"], "UNVERIFIED")
-        self.assertEqual(risk["drawdown_data_status"], "UNVERIFIED")
-        self.assertIn("drawdown hard truth is missing", risk["primary_blocker_message"])
+        self.assertEqual(risk["drawdown_pct_display"], "0.00%")
+        self.assertEqual(risk["drawdown_data_status"], "VERIFIED")
+        self.assertIn("No paper exposure quality report", risk["primary_blocker_message"])
 
     def test_dashboard_blocks_false_low_risk_with_unverified_drawdown(self):
         dashboard = build_dashboard()
@@ -6678,6 +6679,86 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("paper_exposure_quality_report.json", html)
         self.assertIn("scale-up blocked", html)
 
+    def test_dashboard_risk_drawdown_uses_paper_equity_high_formula(self):
+        snapshot = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test_read_only_dashboard_drawdown",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price="50000000",
+            mark_price="49000000",
+            fee_amount="0",
+            starting_cash="1000000",
+        )
+        summary, heartbeat, startup_probe = build_inputs(
+            session_id="test_read_only_dashboard_drawdown",
+            paper_portfolio_snapshot=snapshot,
+        )
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="test_read_only_dashboard_drawdown",
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        risk = dashboard["risk_exposure_snapshot"]
+        self.assertEqual(risk["equity_display"], "995,000 KRW")
+        self.assertEqual(risk["exposure_notional_display"], "245,000 KRW")
+        self.assertEqual(risk["drawdown_pct_display"], "0.50%")
+        self.assertEqual(risk["drawdown_data_status"], "VERIFIED")
+        self.assertFalse(risk["scale_up_allowed"])
+
+    def test_dashboard_stale_paper_portfolio_risk_keeps_last_verified_values(self):
+        snapshot = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test_read_only_dashboard_stale_risk",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price="50000000",
+            mark_price="49000000",
+            fee_amount="0",
+            starting_cash="1000000",
+        )
+        snapshot["generated_at_utc"] = "2000-01-01T00:00:00Z"
+        snapshot["snapshot_hash"] = paper_portfolio_hash(snapshot)
+        summary, heartbeat, startup_probe = build_inputs(
+            session_id="test_read_only_dashboard_stale_risk",
+            paper_portfolio_snapshot=snapshot,
+        )
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="test_read_only_dashboard_stale_risk",
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        risk = dashboard["risk_exposure_snapshot"]
+        self.assertEqual(risk["status"], "STALE")
+        self.assertEqual(risk["severity"], "WARNING")
+        self.assertEqual(risk["freshness_status"], "PASS")
+        self.assertEqual(risk["equity_display"], "995,000 KRW")
+        self.assertEqual(risk["exposure_notional_display"], "245,000 KRW")
+        self.assertEqual(risk["drawdown_pct_display"], "0.50%")
+        self.assertEqual(risk["exposure_data_status"], "COMPLETE")
+        self.assertEqual(risk["drawdown_data_status"], "VERIFIED")
+        self.assertIn("last verified PAPER ledger values", risk["primary_blocker_message"])
+        self.assertFalse(risk["live_order_allowed"])
+        self.assertFalse(risk["scale_up_allowed"])
+
     def test_dashboard_blocks_paper_exposure_quality_live_or_scale_drift(self):
         dashboard = build_dashboard_with_paper_exposure_quality(
             paper_exposure_quality_fixture("paper_exposure_quality_scale_up_fail.json")
@@ -6734,7 +6815,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(dashboard["operation_status"]["portfolio_next_action"], dashboard["portfolio_snapshot"]["next_action"])
         self.assertEqual(dashboard["risk_exposure_snapshot"]["status"], "STALE")
         self.assertEqual(dashboard["risk_exposure_snapshot"]["color_token"], "yellow")
-        self.assertEqual(dashboard["risk_exposure_snapshot"]["exposure_pct_display"], "UNVERIFIED")
+        self.assertEqual(dashboard["risk_exposure_snapshot"]["exposure_pct_display"], "0.00%")
+        self.assertEqual(dashboard["risk_exposure_snapshot"]["drawdown_pct_display"], "0.00%")
+        self.assertEqual(dashboard["risk_exposure_snapshot"]["exposure_data_status"], "COMPLETE")
+        self.assertEqual(dashboard["risk_exposure_snapshot"]["drawdown_data_status"], "VERIFIED")
+        self.assertIn(
+            "last verified PAPER ledger values",
+            dashboard["risk_exposure_snapshot"]["primary_blocker_message"],
+        )
         self.assertEqual(dashboard["execution_feedback_snapshot"]["status"], "STALE")
         self.assertEqual(dashboard["execution_feedback_snapshot"]["color_token"], "yellow")
         self.assertEqual(dashboard["execution_feedback_snapshot"]["optimizer_ranking_action"], "BLOCK_RANKING")
