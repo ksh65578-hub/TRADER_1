@@ -6,6 +6,7 @@ from typing import Any, Iterable
 
 from trader1.research.shadow.shadow_runner import (
     build_paper_shadow_evidence_accumulation_report,
+    paper_shadow_evidence_actionability_fields,
     paper_shadow_evidence_hash,
 )
 
@@ -180,6 +181,7 @@ def _force_blocked(report: dict[str, Any], blockers: Iterable[dict[str, str]]) -
     report["can_live_trade"] = False
     report["scale_up_allowed"] = False
     report["order_adapter_called"] = False
+    report.update(paper_shadow_evidence_actionability_fields(report))
     report["evidence_hash"] = paper_shadow_evidence_hash(report)
 
 

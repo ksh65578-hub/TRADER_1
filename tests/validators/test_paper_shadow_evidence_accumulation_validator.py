@@ -3,6 +3,7 @@ from pathlib import Path
 
 from trader1.research.shadow.shadow_runner import (
     build_paper_shadow_evidence_accumulation_report,
+    paper_shadow_evidence_actionability_fields,
     paper_shadow_evidence_hash,
     validate_paper_shadow_evidence_accumulation_report,
 )
@@ -38,6 +39,16 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
         self.assertEqual(report["evidence_span_source"], "EXPLICIT_OPERATOR_SUPPLIED")
         self.assertEqual(report["evidence_span_source_status"], "PASS")
         self.assertEqual(report["supporting_source_window_count"], 0)
+        self.assertEqual(report["paper_shadow_actionability_version"], "paper_shadow_actionability.v1")
+        self.assertEqual(report["scorecard_input_truth_status"], "PAPER_SCORECARD_INPUT_READY_ONLY")
+        self.assertEqual(report["evidence_actionability_status"], "SCORECARD_READY_COLLECT_PAIRED_WINDOWS")
+        self.assertEqual(report["primary_collection_deficit_code"], "PAIRED_WINDOW_DEFICIT")
+        self.assertEqual(report["next_collection_action"], "RUN_PAIRED_PAPER_SHADOW_WINDOWS")
+        self.assertEqual(report["paper_sample_deficit"], 0)
+        self.assertEqual(report["shadow_sample_deficit"], 0)
+        self.assertEqual(report["evidence_window_deficit"], 20)
+        self.assertEqual(report["evidence_span_hours_deficit"], 116)
+        self.assertEqual(report["actual_runtime_source_deficit"], 2)
 
     def test_insufficient_samples_block_scorecard_input(self):
         report = build_paper_shadow_evidence_accumulation_report(
@@ -50,6 +61,28 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
         self.assertEqual(result.blocker_code, "SAMPLE_INSUFFICIENT")
         self.assertFalse(report["scorecard_input_eligible"])
         self.assertEqual(report["optimizer_ranking_action"], "BLOCK_RANKING")
+        self.assertEqual(report["scorecard_input_truth_status"], "BLOCKED_NOT_SCORECARD_INPUT")
+        self.assertEqual(report["evidence_actionability_status"], "COLLECT_PAPER_SAMPLES")
+        self.assertEqual(report["primary_collection_deficit_code"], "PAPER_SAMPLE_DEFICIT")
+        self.assertEqual(report["next_collection_action"], "RUN_MORE_PAPER_SAMPLE_WINDOWS")
+        self.assertEqual(report["paper_sample_deficit"], 28)
+        self.assertEqual(report["shadow_sample_deficit"], 28)
+
+    def test_shadow_sample_deficit_is_actionable_when_paper_is_ready(self):
+        report = build_paper_shadow_evidence_accumulation_report(
+            evidence_report_id="paper-shadow-low-shadow-sample",
+            paper_sample_count=30,
+            shadow_sample_count=4,
+        )
+        result = validate_paper_shadow_evidence_accumulation_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "SAMPLE_INSUFFICIENT")
+        self.assertEqual(report["evidence_actionability_status"], "COLLECT_SHADOW_SAMPLES")
+        self.assertEqual(report["primary_collection_deficit_code"], "SHADOW_SAMPLE_DEFICIT")
+        self.assertEqual(report["next_collection_action"], "RUN_MORE_SHADOW_SAMPLE_WINDOWS")
+        self.assertEqual(report["paper_sample_deficit"], 0)
+        self.assertEqual(report["shadow_sample_deficit"], 26)
 
     def test_binance_scope_blocks_mvp4_scorecard_input(self):
         report = build_paper_shadow_evidence_accumulation_report(
@@ -87,6 +120,7 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
         report["evidence_chain_complete"] = False
         report["scorecard_input_eligible"] = False
         report["optimizer_ranking_action"] = "BLOCK_RANKING"
+        report.update(paper_shadow_evidence_actionability_fields(report))
         report["evidence_hash"] = paper_shadow_evidence_hash(report)
 
         result = validate_paper_shadow_evidence_accumulation_report(report)
@@ -116,6 +150,10 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
         result = validate_paper_shadow_evidence_accumulation_report(report)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "MEASUREMENT_MISSING")
+        self.assertEqual(report["evidence_actionability_status"], "COLLECT_REASON_AND_COST_EVIDENCE")
+        self.assertEqual(report["primary_collection_deficit_code"], "REASON_OR_COST_EVIDENCE_DEFICIT")
+        self.assertEqual(report["next_collection_action"], "RECORD_ENTRY_NO_TRADE_AND_COST_REASONS")
+        self.assertEqual(report["reason_coverage_deficit_count"], 2)
 
     def test_short_window_cannot_claim_long_run_evidence(self):
         report = build_paper_shadow_evidence_accumulation_report(
@@ -166,6 +204,7 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
         tampered["evidence_chain_complete"] = True
         tampered["scorecard_input_eligible"] = True
         tampered["optimizer_ranking_action"] = "ALLOW_RANKING"
+        tampered.update(paper_shadow_evidence_actionability_fields(tampered))
         tampered["evidence_hash"] = paper_shadow_evidence_hash(tampered)
         tampered_result = validate_paper_shadow_evidence_accumulation_report(tampered)
         self.assertEqual(tampered_result.status, "BLOCKED")
@@ -189,6 +228,9 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
         self.assertEqual(result.blocker_code, "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
         self.assertFalse(report["scorecard_input_eligible"])
         self.assertEqual(report["optimizer_ranking_action"], "BLOCK_RANKING")
+        self.assertEqual(report["evidence_actionability_status"], "SCORECARD_READY_BIND_ACTUAL_RUNTIME_SOURCE")
+        self.assertEqual(report["primary_collection_deficit_code"], "ACTUAL_RUNTIME_SOURCE_DEFICIT")
+        self.assertEqual(report["next_collection_action"], "ATTACH_VALIDATED_NON_LIVE_RUNTIME_SOURCE")
         self.assertTrue(
             any("validated non-live persistent runtime source evidence" in error for error in errors),
             errors,
@@ -209,6 +251,7 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
         tampered["evidence_chain_complete"] = True
         tampered["scorecard_input_eligible"] = True
         tampered["optimizer_ranking_action"] = "ALLOW_RANKING"
+        tampered.update(paper_shadow_evidence_actionability_fields(tampered))
         tampered["evidence_hash"] = paper_shadow_evidence_hash(tampered)
         tampered_result = validate_paper_shadow_evidence_accumulation_report(tampered)
         self.assertEqual(tampered_result.status, "BLOCKED")
@@ -256,6 +299,35 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
             any("display-only, not execution evidence" in error for error in errors),
             errors,
         )
+
+    def test_validated_long_run_non_live_runtime_source_sets_review_ready_actionability(self):
+        report = build_paper_shadow_evidence_accumulation_report(
+            evidence_report_id="paper-shadow-long-run-actionable",
+            evidence_window_count=20,
+            min_required_evidence_window_count=20,
+            evidence_span_hours=120,
+            min_required_evidence_span_hours=120,
+            source_evidence_ids=_supporting_window_ids(20),
+            actual_runtime_source_status="VALIDATED_NON_LIVE_RUNTIME",
+            actual_runtime_requirement_statuses=_runtime_requirement_pass_statuses(),
+            actual_runtime_source_evidence_ids=[
+                "actual-runtime-source:upbit:krw_spot:paper:mvp4_paper_evidence:" + "D" * 64,
+                "actual-runtime-source:upbit:krw_spot:shadow:mvp4_shadow_evidence:" + "E" * 64,
+            ],
+        )
+        result = validate_paper_shadow_evidence_accumulation_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertTrue(report["long_run_evidence_eligible"])
+        self.assertEqual(report["scorecard_input_truth_status"], "LONG_RUN_REVIEW_READY_NON_LIVE")
+        self.assertEqual(report["evidence_actionability_status"], "LONG_RUN_REVIEW_READY")
+        self.assertEqual(report["primary_collection_deficit_code"], "NONE")
+        self.assertEqual(report["next_collection_action"], "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE")
+        self.assertEqual(report["actual_runtime_source_deficit"], 0)
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
 
     def test_actual_runtime_source_ids_require_paper_and_shadow_non_live_scope(self):
         report = build_paper_shadow_evidence_accumulation_report(
@@ -459,6 +531,21 @@ class PaperShadowEvidenceAccumulationValidatorTest(unittest.TestCase):
         result = validate_paper_shadow_evidence_accumulation_report(report)
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+    def test_actionability_drift_blocks_even_when_hash_is_recomputed(self):
+        report = build_paper_shadow_evidence_accumulation_report(evidence_report_id="paper-shadow-actionability-drift")
+        report["primary_collection_deficit_code"] = "NONE"
+        report["evidence_hash"] = paper_shadow_evidence_hash(report)
+
+        result = validate_paper_shadow_evidence_accumulation_report(report)
+        errors = _paper_shadow_evidence_accumulation_errors(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "MEASUREMENT_MISSING")
+        self.assertTrue(
+            any("paper/shadow evidence actionability field drifted" in error for error in errors),
+            errors,
+        )
 
     def test_validator_fixtures_pass(self):
         result = paper_shadow_evidence_accumulation_validator()

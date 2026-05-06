@@ -62,6 +62,20 @@
     "order_adapter_called",
     "primary_blocker_code",
     "blockers",
+    "paper_shadow_actionability_version",
+    "evidence_actionability_status",
+    "primary_collection_deficit_code",
+    "primary_collection_deficit_message",
+    "next_collection_action",
+    "scorecard_input_truth_status",
+    "paper_sample_deficit",
+    "shadow_sample_deficit",
+    "evidence_window_deficit",
+    "evidence_span_hours_deficit",
+    "supporting_window_deficit",
+    "reason_coverage_deficit_count",
+    "stale_artifact_count",
+    "actual_runtime_source_deficit",
     "evidence_hash"
   ],
   "additionalProperties": false,
@@ -228,6 +242,63 @@
     "order_adapter_called": {"const": false},
     "primary_blocker_code": {"type": ["string", "null"]},
     "blockers": {"type": "array", "items": {"$ref": "common.defs.schema.json#/$defs/blocker_object"}},
+    "paper_shadow_actionability_version": {"const": "paper_shadow_actionability.v1"},
+    "evidence_actionability_status": {
+      "enum": [
+        "BLOCKED_SCOPE_OR_SAFETY",
+        "BLOCKED_DATA_FRESHNESS",
+        "COLLECT_PAPER_SAMPLES",
+        "COLLECT_SHADOW_SAMPLES",
+        "COLLECT_REASON_AND_COST_EVIDENCE",
+        "SCORECARD_READY_COLLECT_PAIRED_WINDOWS",
+        "SCORECARD_READY_EXTEND_RUNTIME_SPAN",
+        "SCORECARD_READY_BIND_ACTUAL_RUNTIME_SOURCE",
+        "LONG_RUN_REVIEW_READY"
+      ]
+    },
+    "primary_collection_deficit_code": {
+      "enum": [
+        "SCOPE_OR_LIVE_SAFETY_BLOCKED",
+        "DATA_FRESHNESS_DEFICIT",
+        "PAPER_SAMPLE_DEFICIT",
+        "SHADOW_SAMPLE_DEFICIT",
+        "REASON_OR_COST_EVIDENCE_DEFICIT",
+        "PAIRED_WINDOW_DEFICIT",
+        "EVIDENCE_SPAN_DEFICIT",
+        "ACTUAL_RUNTIME_SOURCE_DEFICIT",
+        "NONE"
+      ]
+    },
+    "primary_collection_deficit_message": {"type": "string", "minLength": 1},
+    "next_collection_action": {
+      "enum": [
+        "STOP_AND_INSPECT_SCOPE_OR_SAFETY",
+        "REFRESH_STALE_PAPER_SHADOW_ARTIFACTS",
+        "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+        "RUN_MORE_SHADOW_SAMPLE_WINDOWS",
+        "RECORD_ENTRY_NO_TRADE_AND_COST_REASONS",
+        "RUN_PAIRED_PAPER_SHADOW_WINDOWS",
+        "EXTEND_NON_LIVE_RUNTIME_SPAN",
+        "ATTACH_VALIDATED_NON_LIVE_RUNTIME_SOURCE",
+        "USE_FOR_PAPER_SCORECARD_ONLY",
+        "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE"
+      ]
+    },
+    "scorecard_input_truth_status": {
+      "enum": [
+        "BLOCKED_NOT_SCORECARD_INPUT",
+        "PAPER_SCORECARD_INPUT_READY_ONLY",
+        "LONG_RUN_REVIEW_READY_NON_LIVE"
+      ]
+    },
+    "paper_sample_deficit": {"type": "integer", "minimum": 0},
+    "shadow_sample_deficit": {"type": "integer", "minimum": 0},
+    "evidence_window_deficit": {"type": "integer", "minimum": 0},
+    "evidence_span_hours_deficit": {"type": "integer", "minimum": 0},
+    "supporting_window_deficit": {"type": "integer", "minimum": 0},
+    "reason_coverage_deficit_count": {"type": "integer", "minimum": 0},
+    "stale_artifact_count": {"type": "integer", "minimum": 0},
+    "actual_runtime_source_deficit": {"type": "integer", "minimum": 0},
     "evidence_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
     "notes": {"type": ["string", "null"]}
   }
