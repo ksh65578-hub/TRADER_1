@@ -1,0 +1,13 @@
+{
+  "patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_ACTUAL_LOOP_BINDING_20260506_001",
+  "live_orders_enabled": false,
+  "credential_or_api_key_used": false,
+  "live_ready_snapshot_written": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "validators": [
+    "live_final_guard_validator:PASS"
+  ]
+}

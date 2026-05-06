@@ -3,6 +3,7 @@ import unittest
 from trader1.research.shadow.shadow_observation import build_shadow_observation_report
 from trader1.research.shadow.shadow_observation_persistent_runtime import (
     build_shadow_observation_persistent_runtime_report,
+    build_shadow_observation_persistent_runtime_report_from_paper_loop,
     shadow_observation_persistent_runtime_hash,
     validate_shadow_observation_persistent_runtime_report,
 )
@@ -11,6 +12,9 @@ from trader1.research.shadow.shadow_observation_scheduler import (
 )
 from trader1.research.shadow.shadow_observation_stream import build_shadow_observation_stream_report
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
+from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
+from tempfile import TemporaryDirectory
+from pathlib import Path
 
 
 def _scheduler_guard_report() -> dict:
@@ -74,6 +78,38 @@ class ShadowObservationPersistentRuntimeTest(unittest.TestCase):
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])
         self.assertFalse(report["order_adapter_called"])
+
+    def test_persistent_runtime_binds_actual_paper_loop_short_window_without_live_or_long_run(self):
+        with TemporaryDirectory() as tmp:
+            source_loop = run_upbit_paper_persistent_loop(
+                root=Path(tmp),
+                loop_id="shadow-runtime-actual-paper-loop",
+                session_id="mvp1_upbit_paper_launcher",
+                requested_cycle_count=2,
+            )
+        report = build_shadow_observation_persistent_runtime_report_from_paper_loop(
+            runtime_id="shadow-runtime-actual-paper-loop",
+            scheduler_guard_report=_scheduler_guard_report(),
+            source_paper_loop_report=source_loop,
+            observed_runtime_seconds=0,
+        )
+        result = validate_shadow_observation_persistent_runtime_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["runtime_execution_mode"], "ACTUAL_PAPER_SHADOW_SHORT_WINDOW")
+        self.assertEqual(report["runtime_evidence_role"], "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY")
+        self.assertEqual(report["runtime_duration_evidence_source"], "PAPER_LOOP_TIMESTAMP_SPAN")
+        self.assertEqual(report["duration_evidence_role"], "SHORT_WINDOW_RUNTIME_EVIDENCE_NOT_LONG_RUN")
+        self.assertTrue(report["actual_persistent_runtime_executed"])
+        self.assertTrue(report["source_paper_loop_hash_verified"])
+        self.assertEqual(report["source_paper_loop_validation_status"], "PASS")
+        self.assertEqual(report["completed_cycle_count"], 2)
+        self.assertFalse(report["long_run_evidence_eligible"])
+        self.assertFalse(report["promotion_eligible"])
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
 
     def test_persistent_runtime_blocks_scheduler_guard_failure(self):
         guard = _scheduler_guard_report()

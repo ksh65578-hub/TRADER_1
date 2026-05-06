@@ -1,0 +1,61 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_ACTUAL_LOOP_BINDING_20260506_001",
+  "created_at_utc": "2026-05-06T11:19:20Z",
+  "status": "PASS_TARGETED_VALIDATORS_FULL_HYGIENE_FAIL_RECORDED",
+  "commands": [
+    {
+      "command": "python -B -m pytest -p no:cacheprovider tests/runtime/test_safe_launcher.py::SafeLauncherTest::test_launcher_dashboard_refreshes_paper_shadow_runtime_from_actual_paper_loop -q",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B -m pytest -p no:cacheprovider tests/research/test_shadow_observation_persistent_runtime.py tests/research/test_shadow_observation_actual_runtime_harness.py tests/research/test_shadow_observation_runtime_orchestration.py tests/research/test_paper_shadow_harness_binding.py tests/runtime/test_safe_launcher.py -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "85 passed"
+    },
+    {
+      "command": "python -B tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_read_only_dashboard_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS_PRE_PATCH_RESULT_GENERATION",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_live_final_guard_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_hygiene_safe_pytest.py -- -q",
+      "status": "FAIL_EXISTING_GLOBAL_CONTRACT_STATE_AND_DIRTY_ARTIFACTS",
+      "returncode": 1,
+      "summary": "1497 passed, 45 failed, 1 skipped; failures concentrated in broad route-state/dirty-artifact checks and one existing dashboard fixture expectation. No live flag was enabled."
+    },
+    {
+      "command": "python -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "post-patch-result generation validation passed after schema_validator run status and hash reconciliation"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "updated_at_utc": "2026-05-06T11:25:17Z"
+}

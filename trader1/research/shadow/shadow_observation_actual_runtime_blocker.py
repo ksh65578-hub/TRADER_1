@@ -41,6 +41,11 @@ def build_shadow_observation_actual_runtime_blocker_report(
     source_hash = str(runtime_report.get("runtime_report_hash") or "")
     source_hash_verified = source_hash == shadow_observation_persistent_runtime_hash(runtime_report)
     stub_cycle_count = int(runtime_report.get("completed_cycle_count") or 0)
+    short_window_source = (
+        runtime_report.get("runtime_execution_mode") == "ACTUAL_PAPER_SHADOW_SHORT_WINDOW"
+        and runtime_report.get("runtime_evidence_role") == "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
+    )
+    actual_runtime_window_seconds = int(runtime_report.get("observed_runtime_seconds") or 0) if short_window_source else 0
 
     blockers: list[dict[str, str]] = []
     if source_result.status != "PASS":
@@ -50,7 +55,7 @@ def build_shadow_observation_actual_runtime_blocker_report(
     blockers.append(
         _blocker(
             "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
-            "Only bounded SHADOW runtime stub output exists; actual long-run PAPER/SHADOW runtime evidence is missing.",
+            "Only short-window PAPER/SHADOW runtime output exists; actual long-run PAPER/SHADOW runtime evidence is missing.",
         )
     )
     blockers.append(
@@ -80,9 +85,9 @@ def build_shadow_observation_actual_runtime_blocker_report(
         "runtime_execution_mode": str(runtime_report.get("runtime_execution_mode") or ""),
         "runtime_evidence_role": str(runtime_report.get("runtime_evidence_role") or ""),
         "runtime_evidence_status": "BLOCKED",
-        "actual_runtime_evidence_present": False,
+        "actual_runtime_evidence_present": short_window_source,
         "long_run_evidence_present": False,
-        "actual_runtime_window_seconds": 0,
+        "actual_runtime_window_seconds": actual_runtime_window_seconds,
         "minimum_runtime_window_seconds": int(minimum_runtime_window_seconds),
         "stub_cycle_count": stub_cycle_count,
         "minimum_actual_cycle_count": int(minimum_actual_cycle_count),
@@ -101,7 +106,7 @@ def build_shadow_observation_actual_runtime_blocker_report(
         "primary_blocker_code": blockers[0]["code"],
         "blockers": _dedupe_blockers(blockers),
         "operator_message": (
-            "SHADOW stub output is visible for operator review only. It is not actual long-run evidence and cannot support "
+            "PAPER/SHADOW short-window output is visible for operator review only. It is not actual long-run evidence and cannot support "
             "LIVE_READY, optimizer promotion, or scale-up."
         ),
         "next_operator_action": (
@@ -171,8 +176,13 @@ def validate_shadow_observation_actual_runtime_blocker_report(
         return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "actual runtime blocker must remain UPBIT/KRW_SPOT for MVP-4", "SNAPSHOT_SCOPE_MISMATCH")
     if report.get("source_mode") != "PAPER" or report.get("mode") != "SHADOW":
         return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "actual runtime blocker must bind PAPER source to SHADOW output", "SNAPSHOT_SCOPE_MISMATCH")
-    if report.get("runtime_execution_mode") != "BOUNDED_SHADOW_STUB" or report.get("runtime_evidence_role") != "PERSISTENT_RUNTIME_STUB_ONLY":
-        return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "actual runtime blocker can only describe stub-only source runtime", "LIVE_FINAL_GUARD_FAILED")
+    source_is_stub = report.get("runtime_execution_mode") == "BOUNDED_SHADOW_STUB" and report.get("runtime_evidence_role") == "PERSISTENT_RUNTIME_STUB_ONLY"
+    source_is_short_window = (
+        report.get("runtime_execution_mode") == "ACTUAL_PAPER_SHADOW_SHORT_WINDOW"
+        and report.get("runtime_evidence_role") == "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
+    )
+    if not (source_is_stub or source_is_short_window):
+        return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "actual runtime blocker can only describe stub-only or short-window non-live source runtime", "LIVE_FINAL_GUARD_FAILED")
 
     if runtime_report is not None:
         source_result = validate_shadow_observation_persistent_runtime_report(runtime_report)
@@ -203,10 +213,19 @@ def validate_shadow_observation_actual_runtime_blocker_report(
             "actual runtime blocker minimum cycle count is below the MVP-4 long-run evidence floor",
             "MEASUREMENT_MISSING",
         )
-    if report.get("actual_runtime_evidence_present") is not False or report.get("long_run_evidence_present") is not False:
-        return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "blocker report cannot claim actual or long-run evidence", "LIVE_FINAL_GUARD_FAILED")
-    if report.get("actual_runtime_window_seconds") != 0:
-        return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "stub-only source cannot report actual runtime window seconds", "MEASUREMENT_MISSING")
+    if report.get("long_run_evidence_present") is not False:
+        return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "blocker report cannot claim long-run evidence", "LIVE_FINAL_GUARD_FAILED")
+    actual_window_seconds = int(report.get("actual_runtime_window_seconds") or 0)
+    if source_is_stub:
+        if report.get("actual_runtime_evidence_present") is not False:
+            return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "stub-only source cannot claim actual runtime evidence", "LIVE_FINAL_GUARD_FAILED")
+        if actual_window_seconds != 0:
+            return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "stub-only source cannot report actual runtime window seconds", "MEASUREMENT_MISSING")
+    if source_is_short_window:
+        if report.get("actual_runtime_evidence_present") is not True:
+            return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "short-window source must disclose non-live actual runtime evidence presence", "MEASUREMENT_MISSING")
+        if actual_window_seconds < 0 or actual_window_seconds >= int(report.get("minimum_runtime_window_seconds", 0)):
+            return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "short-window runtime window cannot satisfy long-run threshold", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
     if report.get("stub_cycles_do_not_count_as_long_run") is not True:
         return ShadowObservationActualRuntimeBlockerValidationResult("BLOCKED", "stub cycles must not count as long-run evidence", "MEASUREMENT_MISSING")
     if report.get("minimum_evidence_window_met") is not False or report.get("minimum_cycle_count_met") is not False:

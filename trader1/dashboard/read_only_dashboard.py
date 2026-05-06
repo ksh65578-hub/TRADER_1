@@ -438,10 +438,10 @@ LONG_RUN_SUMMARY_SOURCES = {"heartbeat.json", "stability_history.json"}
 SHADOW_RUNTIME_HARNESS_STATUSES = {"NOT_LOADED", "SHORT_WINDOW_EXECUTED", "BLOCKED", "STALE"}
 SHADOW_RUNTIME_HARNESS_SOURCES = {"NOT_LOADED", "actual_runtime_harness_report.json"}
 SHADOW_RUNTIME_HARNESS_EVIDENCE_STATUSES = {"NOT_LOADED", "BLOCKED_LONG_RUN_EVIDENCE_MISSING"}
-SHADOW_PERSISTENT_RUNTIME_STATUSES = {"NOT_LOADED", "STUB_ONLY", "BLOCKED", "STALE"}
+SHADOW_PERSISTENT_RUNTIME_STATUSES = {"NOT_LOADED", "STUB_ONLY", "SHORT_WINDOW_EXECUTED", "BLOCKED", "STALE"}
 SHADOW_PERSISTENT_RUNTIME_SOURCES = {"NOT_LOADED", "shadow_observation_persistent_runtime_report.json"}
-SHADOW_PERSISTENT_RUNTIME_DURATION_SOURCES = {"NOT_LOADED", "STUB_ESTIMATE_ONLY"}
-SHADOW_PERSISTENT_RUNTIME_DURATION_ROLES = {"NOT_LONG_RUN_EVIDENCE"}
+SHADOW_PERSISTENT_RUNTIME_DURATION_SOURCES = {"NOT_LOADED", "STUB_ESTIMATE_ONLY", "PAPER_LOOP_TIMESTAMP_SPAN"}
+SHADOW_PERSISTENT_RUNTIME_DURATION_ROLES = {"NOT_LONG_RUN_EVIDENCE", "SHORT_WINDOW_RUNTIME_EVIDENCE_NOT_LONG_RUN"}
 SHADOW_RUNTIME_ORCHESTRATION_STATUSES = {"NOT_LOADED", "BOUNDARY_VERIFIED", "BLOCKED", "STALE"}
 SHADOW_RUNTIME_ORCHESTRATION_SOURCES = {"NOT_LOADED", "runtime_orchestration_report.json"}
 PAPER_PERSISTENT_LOOP_STATUSES = {"NOT_LOADED", "PASS", "BLOCKED", "STALE", "INVALID"}
@@ -5279,7 +5279,8 @@ def _shadow_runtime_harness_status(report: dict[str, Any] | None) -> dict[str, A
     expected_contract = (
         report.get("schema_id") == "trader1.shadow_observation_actual_runtime_harness_report.v1"
         and report.get("harness_execution_mode") == "NON_LIVE_LOCAL_PAPER_SHADOW_HARNESS"
-        and report.get("data_source_role") == "DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS"
+        and report.get("data_source_role")
+        in {"DETERMINISTIC_PAPER_FIXTURE_NO_CREDENTIALS", "UPBIT_PAPER_RUNTIME_LOOP_NO_CREDENTIALS"}
         and report.get("runtime_evidence_status") == "BLOCKED_LONG_RUN_EVIDENCE_MISSING"
         and report.get("runtime_evidence_role") == "EXECUTION_HARNESS_PROOF_ONLY_NOT_LONG_RUN"
         and report.get("dashboard_display_truth_only") is True
@@ -5403,10 +5404,16 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
     if not isinstance(report, dict):
         return base
 
+    runtime_execution_mode = report.get("runtime_execution_mode")
+    runtime_evidence_role = report.get("runtime_evidence_role")
+    is_stub_runtime = runtime_execution_mode == "BOUNDED_SHADOW_STUB" and runtime_evidence_role == "PERSISTENT_RUNTIME_STUB_ONLY"
+    is_short_window_runtime = (
+        runtime_execution_mode == "ACTUAL_PAPER_SHADOW_SHORT_WINDOW"
+        and runtime_evidence_role == "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
+    )
     unsafe_live_or_scale = any(
         report.get(field) is not False
         for field in (
-            "actual_persistent_runtime_executed",
             "long_run_evidence_eligible",
             "promotion_eligible",
             "live_order_ready",
@@ -5416,6 +5423,10 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
             "order_adapter_called",
         )
     )
+    if is_stub_runtime and report.get("actual_persistent_runtime_executed") is not False:
+        unsafe_live_or_scale = True
+    if is_short_window_runtime and report.get("actual_persistent_runtime_executed") is not True:
+        unsafe_live_or_scale = True
     observed_raw = report.get("observed_runtime_seconds")
     observed_is_zero = isinstance(observed_raw, int) and observed_raw == 0
     expected_contract = (
@@ -5424,22 +5435,35 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
         and report.get("market_type") == "KRW_SPOT"
         and report.get("source_mode") == "PAPER"
         and report.get("mode") == "SHADOW"
-        and report.get("runtime_execution_mode") == "BOUNDED_SHADOW_STUB"
-        and report.get("runtime_evidence_role") == "PERSISTENT_RUNTIME_STUB_ONLY"
         and report.get("runtime_status") == "PASS"
         and report.get("source_scheduler_guard_status") == "PASS"
         and report.get("source_scheduler_validation_status") == "PASS"
         and report.get("heartbeat_status") == "PASS"
         and report.get("cycle_identity_status") == "PASS"
         and report.get("recovery_action") == "NO_RECOVERY_NEEDED"
-        and report.get("run_action") == "COLLECT_SHADOW_OBSERVATION_STUB_ONLY"
-        and report.get("runtime_duration_evidence_source") == "STUB_ESTIMATE_ONLY"
-        and report.get("duration_evidence_role") == "NOT_LONG_RUN_EVIDENCE"
-        and report.get("actual_persistent_runtime_executed") is False
         and report.get("dashboard_display_truth_only") is True
         and report.get("long_run_evidence_eligible") is False
-        and report.get("optimizer_input_role") == "SHADOW_PERSISTENT_RUNTIME_STUB_ONLY"
-        and observed_is_zero
+        and (
+            (
+                is_stub_runtime
+                and report.get("run_action") == "COLLECT_SHADOW_OBSERVATION_STUB_ONLY"
+                and report.get("runtime_duration_evidence_source") == "STUB_ESTIMATE_ONLY"
+                and report.get("duration_evidence_role") == "NOT_LONG_RUN_EVIDENCE"
+                and report.get("optimizer_input_role") == "SHADOW_PERSISTENT_RUNTIME_STUB_ONLY"
+                and report.get("actual_persistent_runtime_executed") is False
+                and observed_is_zero
+            )
+            or (
+                is_short_window_runtime
+                and report.get("run_action") == "COLLECT_SHADOW_OBSERVATION_SHORT_WINDOW_ONLY"
+                and report.get("runtime_duration_evidence_source") == "PAPER_LOOP_TIMESTAMP_SPAN"
+                and report.get("duration_evidence_role") == "SHORT_WINDOW_RUNTIME_EVIDENCE_NOT_LONG_RUN"
+                and report.get("optimizer_input_role") == "SHADOW_PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
+                and report.get("actual_persistent_runtime_executed") is True
+                and report.get("source_paper_loop_hash_verified") is True
+                and report.get("source_paper_loop_validation_status") == "PASS"
+            )
+        )
     )
     invalid_measurement = has_negative_count(
         "requested_cycle_count",
@@ -5452,13 +5476,17 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
     estimated_seconds = safe_count(report.get("estimated_runtime_seconds"))
     max_runtime_seconds = safe_count(report.get("max_runtime_seconds"))
     expected_estimated = safe_count(report.get("completed_cycle_count")) * safe_count(report.get("heartbeat_interval_seconds"))
-    inconsistent_estimate = estimated_seconds != expected_estimated
+    inconsistent_estimate = is_stub_runtime and estimated_seconds != expected_estimated
     runtime_budget_exceeded = max_runtime_seconds > 0 and expected_estimated > max_runtime_seconds
 
-    status = "STUB_ONLY"
-    severity = "WARNING"
-    color_token = "yellow"
-    summary = "Persistent SHADOW runtime is a bounded stub estimate only. Observed long-run runtime evidence is still missing."
+    status = "SHORT_WINDOW_EXECUTED" if is_short_window_runtime else "STUB_ONLY"
+    severity = "NORMAL" if is_short_window_runtime else "WARNING"
+    color_token = "blue" if is_short_window_runtime else "yellow"
+    summary = (
+        "Persistent PAPER/SHADOW runtime is source-bound to a real short-window PAPER loop. Long-run runtime evidence is still missing."
+        if is_short_window_runtime
+        else "Persistent SHADOW runtime is a bounded stub estimate only. Observed long-run runtime evidence is still missing."
+    )
     next_action = str(
         report.get("next_operator_action")
         or "Collect real PAPER/SHADOW long-run evidence separately; this stub cannot support LIVE review."
@@ -5471,7 +5499,7 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
         summary = "Persistent runtime report has invalid negative duration or cycle measurements."
         next_action = "Regenerate the persistent runtime stub report with non-negative values."
         blocker_code = "DATA_QUALITY_INSUFFICIENT"
-    elif not observed_is_zero:
+    elif is_stub_runtime and not observed_is_zero:
         status = "BLOCKED"
         severity = "ERROR"
         color_token = "red"
@@ -5508,7 +5536,7 @@ def _shadow_persistent_runtime_status(report: dict[str, Any] | None) -> dict[str
             "heartbeat_interval_seconds": safe_count(report.get("heartbeat_interval_seconds")),
             "estimated_runtime_seconds": estimated_seconds,
             "observed_runtime_seconds": safe_count(report.get("observed_runtime_seconds")),
-            "actual_persistent_runtime_executed": False,
+            "actual_persistent_runtime_executed": status == "SHORT_WINDOW_EXECUTED",
             "long_run_evidence_eligible": False,
             "optimizer_input_role": str(report.get("optimizer_input_role") or "SHADOW_PERSISTENT_RUNTIME_STUB_ONLY"),
             "primary_blocker_code": blocker_code,
@@ -6283,13 +6311,18 @@ def _runtime_evidence_boundary_status(
 
     if persistent_status == "STUB_ONLY" and status == "ACTUAL_LONG_RUN_VALIDATED":
         stub_boundary_message = "Persistent runtime remains stub-only and does not contribute to the validated long-run claim."
+    elif persistent_status == "SHORT_WINDOW_EXECUTED" and status == "ACTUAL_LONG_RUN_VALIDATED":
+        stub_boundary_message = "Persistent runtime remains short-window only and does not contribute to the validated long-run claim."
     elif persistent_status == "STUB_ONLY":
         stub_boundary_message = "Persistent runtime is a stub estimate only and is not actual long-run evidence."
+    elif persistent_status == "SHORT_WINDOW_EXECUTED":
+        stub_boundary_message = "Persistent runtime is short-window only and is not actual long-run evidence."
     else:
         stub_boundary_message = "No validated persistent runtime source is loaded for long-run evidence."
 
-    def requirement_status_from_source(source_status: str, pass_status: str) -> str:
-        if source_status == pass_status:
+    def requirement_status_from_source(source_status: str, pass_status: str | set[str]) -> str:
+        pass_statuses = {pass_status} if isinstance(pass_status, str) else set(pass_status)
+        if source_status in pass_statuses:
             return "PASS"
         if source_status == "STALE":
             return "STALE"
@@ -6353,11 +6386,11 @@ def _runtime_evidence_boundary_status(
         requirement(
             "PERSISTENT_RUNTIME_SOURCE",
             "Persistent runtime source",
-            requirement_status_from_source(persistent_status, "STUB_ONLY"),
+            requirement_status_from_source(persistent_status, {"STUB_ONLY", "SHORT_WINDOW_EXECUTED"}),
             "shadow_observation_persistent_runtime_report.json"
             if persistent_status != "NOT_LOADED"
             else "NOT_LOADED",
-            "Loads the persistent runtime source as stub-only evidence; it never becomes actual long-run proof.",
+            "Loads the persistent runtime source as stub or short-window evidence; it never becomes actual long-run proof.",
             "Generate or refresh the bounded non-live persistent runtime report.",
         ),
         requirement(
@@ -6671,9 +6704,13 @@ def _shadow_runtime_orchestration_status(
             "order_adapter_called",
         )
     )
-    invalid_counts = any(
-        safe_count(report.get(field)) != 0
-        for field in ("observed_actual_runtime_seconds", "observed_actual_cycle_count", "observed_evidence_window_count")
+    observed_actual_runtime_seconds = safe_count(report.get("observed_actual_runtime_seconds"))
+    observed_actual_cycle_count = safe_count(report.get("observed_actual_cycle_count"))
+    observed_evidence_window_count = safe_count(report.get("observed_evidence_window_count"))
+    invalid_counts = (
+        observed_actual_runtime_seconds >= safe_count(report.get("minimum_runtime_window_seconds"))
+        or observed_actual_cycle_count >= safe_count(report.get("minimum_actual_cycle_count"))
+        or observed_evidence_window_count != 0
     )
     expected_contract = (
         report.get("schema_id") == "trader1.shadow_observation_runtime_orchestration_report.v1"
@@ -6740,9 +6777,9 @@ def _shadow_runtime_orchestration_status(
             "source_binding_count": safe_count(report.get("source_binding_count")),
             "persistent_runtime_status": shadow_persistent_runtime_status.get("status", "NOT_LOADED"),
             "short_window_harness_status": shadow_runtime_harness_status.get("status", "NOT_LOADED"),
-            "observed_actual_runtime_seconds": safe_count(report.get("observed_actual_runtime_seconds")),
-            "observed_actual_cycle_count": safe_count(report.get("observed_actual_cycle_count")),
-            "observed_evidence_window_count": safe_count(report.get("observed_evidence_window_count")),
+            "observed_actual_runtime_seconds": observed_actual_runtime_seconds,
+            "observed_actual_cycle_count": observed_actual_cycle_count,
+            "observed_evidence_window_count": observed_evidence_window_count,
             "actual_long_run_runtime_present": False,
             "long_run_evidence_eligible": False,
             "scorecard_input_eligible": False,
@@ -16296,7 +16333,7 @@ def build_read_only_dashboard_shell(
         )
     shadow_persistent_runtime_status = _shadow_persistent_runtime_status(shadow_persistent_runtime_report)
     if isinstance(shadow_persistent_runtime_report, dict):
-        persistent_freshness = "PASS" if shadow_persistent_runtime_status["status"] == "STUB_ONLY" else "STALE"
+        persistent_freshness = "PASS" if shadow_persistent_runtime_status["status"] in {"STUB_ONLY", "SHORT_WINDOW_EXECUTED"} else "STALE"
         source_artifacts.append(
             _source_artifact(
                 "SHADOW_PERSISTENT_RUNTIME",
@@ -21218,7 +21255,10 @@ def validate_read_only_dashboard_shell(
         or shadow_persistent.get("can_live_trade")
         or shadow_persistent.get("scale_up_allowed")
         or shadow_persistent.get("long_run_evidence_eligible")
-        or shadow_persistent.get("actual_persistent_runtime_executed")
+        or (
+            shadow_persistent.get("actual_persistent_runtime_executed")
+            and shadow_persistent.get("status") != "SHORT_WINDOW_EXECUTED"
+        )
     ):
         return DashboardValidationResult("BLOCKED", "persistent runtime attempted to create live, scale, or long-run permission", "LIVE_FINAL_GUARD_FAILED")
     if shadow_persistent.get("status") not in SHADOW_PERSISTENT_RUNTIME_STATUSES:
@@ -21859,10 +21899,14 @@ def validate_read_only_dashboard_shell(
             return DashboardValidationResult("BLOCKED", "runtime boundary cannot claim validated actual long-run evidence before duration and stable-sample floors are met", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
     elif runtime_boundary.get("status") == "ACTUAL_LONG_RUN_VALIDATED":
         return DashboardValidationResult("BLOCKED", "runtime boundary validated status conflicts with actual evidence status", "HARD_TRUTH_MISSING")
-    if shadow_persistent.get("status") == "STUB_ONLY" and runtime_boundary.get("actual_long_run_evidence_status") != "VALIDATED_STABLE":
+    if shadow_persistent.get("status") in {"STUB_ONLY", "SHORT_WINDOW_EXECUTED"} and runtime_boundary.get("actual_long_run_evidence_status") != "VALIDATED_STABLE":
         boundary_message = str(runtime_boundary.get("stub_boundary_message", "")).lower()
-        if "stub" not in boundary_message or "not actual long-run evidence" not in boundary_message:
-            return DashboardValidationResult("BLOCKED", "runtime boundary must explain stub runtime is not actual long-run evidence", "HARD_TRUTH_MISSING")
+        if "not actual long-run evidence" not in boundary_message or (
+            shadow_persistent.get("status") == "STUB_ONLY" and "stub" not in boundary_message
+        ) or (
+            shadow_persistent.get("status") == "SHORT_WINDOW_EXECUTED" and "short-window" not in boundary_message
+        ):
+            return DashboardValidationResult("BLOCKED", "runtime boundary must explain persistent runtime is not actual long-run evidence", "HARD_TRUTH_MISSING")
     if shadow_harness.get("status") == "SHORT_WINDOW_EXECUTED" and runtime_boundary.get("actual_long_run_evidence_status") == "VALIDATED_STABLE":
         if long_run.get("source") != "stability_history.json":
             return DashboardValidationResult("BLOCKED", "short-window harness cannot create validated long-run evidence", "LIVE_FINAL_GUARD_FAILED")
@@ -21895,7 +21939,7 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "runtime boundary orchestration status drifted from orchestration guard", "SCHEMA_IDENTITY_MISMATCH")
     if (
         (runtime_requirement_by_id["PERSISTENT_RUNTIME_SOURCE"].get("status") == "PASS")
-        != (shadow_persistent.get("status") == "STUB_ONLY")
+        != (shadow_persistent.get("status") in {"STUB_ONLY", "SHORT_WINDOW_EXECUTED"})
     ):
         return DashboardValidationResult("FAIL", "runtime evidence persistent source requirement drifted from source status", "SCHEMA_IDENTITY_MISMATCH")
     if (
@@ -21940,11 +21984,18 @@ def validate_read_only_dashboard_shell(
             or runtime_orchestration.get("primary_blocker_code") != "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING"
         ):
             return DashboardValidationResult("BLOCKED", "runtime orchestration boundary did not preserve long-run and optimizer blockers", "LIVE_FINAL_GUARD_FAILED")
-        if (
-            runtime_orchestration.get("observed_actual_runtime_seconds") != 0
-            or runtime_orchestration.get("observed_actual_cycle_count") != 0
-            or runtime_orchestration.get("observed_evidence_window_count") != 0
-        ):
+        short_window_pair_loaded = (
+            shadow_persistent.get("status") == "SHORT_WINDOW_EXECUTED"
+            and shadow_harness.get("status") == "SHORT_WINDOW_EXECUTED"
+        )
+        observed_long_run_claim = runtime_orchestration.get("observed_evidence_window_count") != 0
+        if not short_window_pair_loaded:
+            observed_long_run_claim = (
+                observed_long_run_claim
+                or runtime_orchestration.get("observed_actual_runtime_seconds") != 0
+                or runtime_orchestration.get("observed_actual_cycle_count") != 0
+            )
+        if observed_long_run_claim:
             return DashboardValidationResult("BLOCKED", "runtime orchestration cannot claim observed long-run runtime from stub or harness reports", "LIVE_FINAL_GUARD_FAILED")
     if runtime_orchestration.get("status") == "NOT_LOADED" and runtime_orchestration.get("source") != "NOT_LOADED":
         return DashboardValidationResult("FAIL", "not-loaded runtime orchestration must not cite a report source", "SCHEMA_IDENTITY_MISMATCH")

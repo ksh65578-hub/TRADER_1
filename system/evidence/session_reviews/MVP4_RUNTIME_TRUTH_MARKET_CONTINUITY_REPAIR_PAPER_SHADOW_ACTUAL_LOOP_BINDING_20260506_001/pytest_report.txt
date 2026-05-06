@@ -1,0 +1,15 @@
+Targeted pytest: PASS
+- test_launcher_dashboard_refreshes_paper_shadow_runtime_from_actual_paper_loop: 1 passed
+- PAPER/SHADOW/runtime/safe_launcher targeted suite: 85 passed
+
+Validators: PASS
+- run_runtime_schema_instance_validators.py
+- run_read_only_dashboard_validators.py
+- run_patch_result_runtime_schema_validators.py (pre new patch_result generation)
+- run_live_final_guard_validators.py
+- run_bytecode_free_syntax_check.py
+
+Full hygiene pytest: FAIL recorded
+- python -B tools/run_hygiene_safe_pytest.py -- -q
+- 1497 passed, 45 failed, 1 skipped
+- Failures were broad current-state route/dirty-artifact checks plus one existing dashboard fixture expectation; live flags remained false.

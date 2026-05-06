@@ -15,6 +15,7 @@ from trader1.runtime.boot.safe_launcher import (
     DEFAULT_INTERACTIVE_HEARTBEAT_TICKS,
     ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV,
     ROOT_OPERATOR_HEARTBEAT_TICKS_ENV,
+    ROOT_OPERATOR_PAPER_SHADOW_RUNTIME_REFRESH_ENV,
     ROOT_OPERATOR_PUBLIC_REST_CONTINUITY_REFRESH_ENV,
     build_launcher_report,
     console_heartbeat_line,
@@ -704,6 +705,39 @@ class SafeLauncherTest(unittest.TestCase):
             html = dashboard_paths["dashboard_html"].read_text(encoding="utf-8")
             self.assertIn("Runtime Orchestration Guard", html)
             self.assertIn("BLOCK_RANKING", html)
+
+    def test_launcher_dashboard_refreshes_paper_shadow_runtime_from_actual_paper_loop(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-launcher-paper-shadow-runtime-bridge",
+                session_id=report["session_id"],
+                requested_cycle_count=2,
+            )
+
+            dashboard_paths = write_launcher_dashboard(report, root, refresh_paper_shadow_runtime=True)
+            paths = launcher_dashboard_paths(report, root)
+            dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+            source_files = {source["filename"] for source in dashboard_shell["source_artifacts"]}
+
+            self.assertTrue(paths["shadow_persistent_runtime_report"].exists())
+            self.assertTrue(paths["shadow_runtime_harness_report"].exists())
+            self.assertTrue(paths["shadow_runtime_orchestration_report"].exists())
+            self.assertTrue(paths["paper_shadow_harness_binding_report"].exists())
+            self.assertIn("paper_shadow_harness_binding_report.json", source_files)
+            self.assertEqual(dashboard_shell["shadow_persistent_runtime_status"]["status"], "SHORT_WINDOW_EXECUTED")
+            self.assertEqual(dashboard_shell["shadow_runtime_harness_status"]["status"], "SHORT_WINDOW_EXECUTED")
+            self.assertEqual(dashboard_shell["shadow_runtime_orchestration_status"]["status"], "BOUNDARY_VERIFIED")
+            self.assertEqual(dashboard_shell["shadow_runtime_orchestration_status"]["observed_actual_cycle_count"], 2)
+            self.assertEqual(
+                dashboard_shell["shadow_persistent_runtime_status"]["runtime_duration_evidence_source"],
+                "PAPER_LOOP_TIMESTAMP_SPAN",
+            )
+            self.assertFalse(dashboard_shell["shadow_runtime_orchestration_status"]["long_run_evidence_eligible"])
+            self.assertFalse(dashboard_shell["shadow_runtime_orchestration_status"]["live_order_allowed"])
+            self.assertFalse(dashboard_shell["live_order_allowed"])
 
     def test_launcher_dashboard_blocks_unsafe_shadow_runtime_harness_display(self):
         report = build_launcher_report("UPBIT_PAPER")
@@ -1618,6 +1652,7 @@ class SafeLauncherTest(unittest.TestCase):
         self.assertIsNone(calls[0][1]["console_heartbeat_ticks"])
         self.assertIsNone(calls[0][1]["console_heartbeat_interval_seconds"])
         self.assertTrue(calls[0][1]["refresh_upbit_public_rest_continuity"])
+        self.assertTrue(calls[0][1]["refresh_paper_shadow_runtime"])
 
     def test_root_operator_launcher_main_can_be_bounded_for_automation(self):
         calls = []
@@ -1632,6 +1667,7 @@ class SafeLauncherTest(unittest.TestCase):
                 ROOT_OPERATOR_HEARTBEAT_TICKS_ENV: "2",
                 ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV: "0",
                 ROOT_OPERATOR_PUBLIC_REST_CONTINUITY_REFRESH_ENV: "0",
+                ROOT_OPERATOR_PAPER_SHADOW_RUNTIME_REFRESH_ENV: "0",
             },
             clear=True,
         ), patch.object(safe_launcher, "launcher_main", side_effect=fake_launcher_main):
@@ -1643,6 +1679,7 @@ class SafeLauncherTest(unittest.TestCase):
         self.assertEqual(calls[0][1]["console_heartbeat_ticks"], 2)
         self.assertEqual(calls[0][1]["console_heartbeat_interval_seconds"], 0.0)
         self.assertFalse(calls[0][1]["refresh_upbit_public_rest_continuity"])
+        self.assertFalse(calls[0][1]["refresh_paper_shadow_runtime"])
 
     def test_source_identity_includes_root_launchers_and_contracts(self):
         relative_paths = {path.relative_to(Path(__file__).resolve().parents[2]).as_posix() for path in source_identity_files()}
