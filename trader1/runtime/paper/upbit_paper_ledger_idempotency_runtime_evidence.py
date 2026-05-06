@@ -170,7 +170,7 @@ def _runtime_depth_blocker(cycle: dict[str, Any] | None, cycle_id: Any) -> str |
         return "RECONCILIATION_REQUIRED"
     if cycle.get("runtime_status") != "PASS" or cycle.get("runtime_writer_status") != "PASS":
         return "RECONCILIATION_REQUIRED"
-    if cycle.get("runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION":
+    if cycle.get("runtime_input_role") not in {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"}:
         return "MEASUREMENT_MISSING"
     for hash_field in (
         "runtime_cycle_hash",
@@ -1066,7 +1066,7 @@ def validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
         "source_persistent_loop_hash_self_check": {"PASS", "FAIL"},
         "source_persistent_loop_validation_status": {"PASS", "FAIL", "BLOCKED"},
         "ledger_head_binding_status": {"PASS", "MISMATCH"},
-        "source_runtime_input_role": {"PUBLIC_MARKET_DATA_COLLECTION", "STATIC_FIXTURE", None},
+        "source_runtime_input_role": {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION", "STATIC_FIXTURE", None},
         "source_runtime_depth_status": {"PASS", "BLOCKED"},
         "source_count_match_status": {"PASS", "MISMATCH"},
         "idempotency_status": {"PASS", "BLOCKED"},
@@ -1146,7 +1146,7 @@ def validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
                 return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", f"PASS idempotency evidence missing runtime-depth hash: {hash_field}", "SCHEMA_IDENTITY_MISMATCH")
         if report.get("source_public_market_data_hash") != report.get("source_runtime_public_market_data_hash"):
             return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "source/runtime public market data hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
-        if report.get("source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION" or report.get("source_canonical_event_count", 0) < 5:
+        if report.get("source_runtime_input_role") not in {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"} or report.get("source_canonical_event_count", 0) < 5:
             return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("BLOCKED", "PASS idempotency evidence requires public runtime-depth collection evidence", "MEASUREMENT_MISSING")
         if report.get("source_runtime_depth_blocker_code") is not None:
             return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "PASS idempotency evidence cannot carry runtime-depth blocker", "SCHEMA_IDENTITY_MISMATCH")

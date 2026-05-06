@@ -5,7 +5,14 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+
+from trader1.adapters.upbit.market_data import (
+    DEFAULT_DISCOVERY_EVALUATION_LIMIT,
+    fetch_upbit_krw_market_symbols_read_only,
+    fetch_upbit_public_ticker_snapshot_read_only,
+    rank_upbit_krw_symbols_by_public_ticker,
+)
 
 from trader1.core.ledger.paper_ledger import validate_upbit_paper_ledger
 from trader1.runtime.ledger.paper_ledger_rollup import (
@@ -33,6 +40,29 @@ from trader1.runtime.portfolio.paper_portfolio import PAPER_STARTING_CASH_BY_SCO
 UPBIT_PAPER_PERSISTENT_LOOP_SCHEMA_ID = "trader1.upbit_paper_persistent_loop_report.v1"
 UPBIT_PAPER_RUNTIME_RECOVERY_GUARD_SCHEMA_ID = "trader1.upbit_paper_runtime_recovery_guard_report.v1"
 DEFAULT_MAX_CYCLE_COUNT = 20
+DEFAULT_UPBIT_PAPER_SYMBOL_UNIVERSE = (
+    "KRW-BTC",
+    "KRW-ETH",
+    "KRW-XRP",
+    "KRW-SOL",
+    "KRW-DOGE",
+    "KRW-ADA",
+    "KRW-TRX",
+    "KRW-LINK",
+    "KRW-DOT",
+    "KRW-AVAX",
+    "KRW-SHIB",
+    "KRW-BCH",
+    "KRW-NEAR",
+    "KRW-APT",
+    "KRW-SUI",
+    "KRW-ETC",
+    "KRW-XLM",
+    "KRW-HBAR",
+    "KRW-STX",
+    "KRW-ATOM",
+)
+DEFAULT_PUBLIC_DISCOVERY_EVALUATION_LIMIT = DEFAULT_DISCOVERY_EVALUATION_LIMIT
 BOUNDED_LOOP_RUNTIME_EVIDENCE_ROLE = "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"
 RECOVERY_GUARD_RUNTIME_EVIDENCE_ROLE = "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE"
 LONG_RUN_EVIDENCE_BLOCKER_CODE = "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
@@ -447,15 +477,170 @@ def _write_runtime_cycle_artifacts(*, root: Path, cycle: dict[str, Any]) -> dict
     return writer
 
 
+def _normalized_krw_symbols(symbols: list[str] | tuple[str, ...] | None) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for symbol in symbols or ():
+        value = str(symbol).strip().upper()
+        if not value.startswith("KRW-") or value in seen:
+            continue
+        quote, _, base = value.partition("-")
+        if quote != "KRW" or not base or not base.replace("-", "").isalnum():
+            continue
+        normalized.append(value)
+        seen.add(value)
+    return normalized
+
+
+def _resolve_default_symbol_universe(
+    *,
+    session_id: str,
+    symbol_universe: list[str] | None,
+    attempt_public_symbol_discovery: bool,
+    require_public_symbol_discovery: bool,
+    max_symbol_evaluation_count: int,
+    public_discovery_timeout_seconds: float,
+    market_symbols_fetcher: Callable[..., dict[str, Any]] | None,
+    public_ticker_fetcher: Callable[..., dict[str, Any]] | None,
+) -> tuple[list[str], dict[str, Any], list[dict[str, str]]]:
+    explicit_universe = _normalized_krw_symbols(symbol_universe)
+    if explicit_universe:
+        return (
+            explicit_universe,
+            {
+                "symbol_universe_source": "EXPLICIT_SYMBOL_UNIVERSE",
+                "public_symbol_discovery_attempted": False,
+                "symbol_universe_discovery_status": "SKIPPED",
+                "symbol_universe_discovery_blocker_code": None,
+                "symbol_universe_total_count": len(explicit_universe),
+                "symbol_universe_evaluated_count": len(explicit_universe),
+                "max_symbol_evaluation_count": len(explicit_universe),
+                "public_symbol_discovery_market_count": 0,
+                "public_ticker_ranked_symbol_count": 0,
+                "public_ticker_eligible_symbol_count": 0,
+                "public_symbol_discovery_report": None,
+                "public_ticker_snapshot_report": None,
+                "public_symbol_ranking_report": None,
+            },
+            [],
+        )
+
+    fallback_universe = _normalized_krw_symbols(list(DEFAULT_UPBIT_PAPER_SYMBOL_UNIVERSE))
+    discovery_context: dict[str, Any] = {
+        "symbol_universe_source": "STATIC_FALLBACK_CONFIGURED_KRW_UNIVERSE",
+        "public_symbol_discovery_attempted": False,
+        "symbol_universe_discovery_status": "SKIPPED",
+        "symbol_universe_discovery_blocker_code": None,
+        "symbol_universe_total_count": len(fallback_universe),
+        "symbol_universe_evaluated_count": len(fallback_universe),
+        "max_symbol_evaluation_count": max_symbol_evaluation_count,
+        "public_symbol_discovery_market_count": 0,
+        "public_ticker_ranked_symbol_count": 0,
+        "public_ticker_eligible_symbol_count": 0,
+        "public_symbol_discovery_report": None,
+        "public_ticker_snapshot_report": None,
+        "public_symbol_ranking_report": None,
+    }
+    if not attempt_public_symbol_discovery:
+        return fallback_universe, discovery_context, []
+
+    discovery_context["public_symbol_discovery_attempted"] = True
+    discovery_fetcher = market_symbols_fetcher or fetch_upbit_krw_market_symbols_read_only
+    ticker_fetcher = public_ticker_fetcher or fetch_upbit_public_ticker_snapshot_read_only
+    discovery_report = discovery_fetcher(session_id=session_id, timeout_seconds=public_discovery_timeout_seconds)
+    discovered_symbols = _normalized_krw_symbols(discovery_report.get("symbols") if isinstance(discovery_report, dict) else [])
+    discovery_context["public_symbol_discovery_report"] = discovery_report
+    discovery_context["public_symbol_discovery_market_count"] = len(discovered_symbols)
+    discovery_context["symbol_universe_total_count"] = len(discovered_symbols) if discovered_symbols else len(fallback_universe)
+
+    if not discovered_symbols or discovery_report.get("discovery_status") != "PASS":
+        discovery_context["symbol_universe_source"] = "STATIC_FALLBACK_PUBLIC_DISCOVERY_UNAVAILABLE"
+        discovery_context["symbol_universe_discovery_status"] = "BLOCKED_FALLBACK"
+        discovery_context["symbol_universe_discovery_blocker_code"] = discovery_report.get("primary_blocker_code") or "DATA_UNAVAILABLE"
+        blockers = []
+        if require_public_symbol_discovery:
+            blockers.append(
+                {
+                    "code": discovery_context["symbol_universe_discovery_blocker_code"],
+                    "severity": "HIGH",
+                    "message": "public Upbit KRW symbol discovery is required but unavailable",
+                }
+            )
+        return fallback_universe, discovery_context, blockers
+
+    ticker_report = ticker_fetcher(
+        symbols=discovered_symbols,
+        session_id=session_id,
+        timeout_seconds=public_discovery_timeout_seconds,
+    )
+    discovery_context["public_ticker_snapshot_report"] = ticker_report
+    ticker_by_symbol = ticker_report.get("ticker_by_symbol") if isinstance(ticker_report, dict) else {}
+    if not isinstance(ticker_by_symbol, dict) or ticker_report.get("ticker_status") != "PASS":
+        discovery_context["symbol_universe_source"] = "STATIC_FALLBACK_PUBLIC_TICKER_UNAVAILABLE"
+        discovery_context["symbol_universe_discovery_status"] = "BLOCKED_FALLBACK"
+        discovery_context["symbol_universe_discovery_blocker_code"] = ticker_report.get("primary_blocker_code") or "DATA_UNAVAILABLE"
+        blockers = []
+        if require_public_symbol_discovery:
+            blockers.append(
+                {
+                    "code": discovery_context["symbol_universe_discovery_blocker_code"],
+                    "severity": "HIGH",
+                    "message": "public Upbit ticker ranking is required but unavailable",
+                }
+            )
+        return fallback_universe, discovery_context, blockers
+
+    ranking_report = rank_upbit_krw_symbols_by_public_ticker(
+        symbols=discovered_symbols,
+        ticker_by_symbol=ticker_by_symbol,
+        session_id=session_id,
+        limit=max_symbol_evaluation_count,
+    )
+    selected_symbols = _normalized_krw_symbols(ranking_report.get("selected_symbols_for_candle_evaluation", []))
+    discovery_context["public_symbol_ranking_report"] = ranking_report
+    discovery_context["public_ticker_ranked_symbol_count"] = int(ranking_report.get("ranked_symbol_count") or 0)
+    discovery_context["public_ticker_eligible_symbol_count"] = int(ranking_report.get("eligible_symbol_count") or 0)
+    if not selected_symbols or ranking_report.get("ranking_status") != "PASS":
+        discovery_context["symbol_universe_source"] = "STATIC_FALLBACK_PUBLIC_RANKING_UNAVAILABLE"
+        discovery_context["symbol_universe_discovery_status"] = "BLOCKED_FALLBACK"
+        discovery_context["symbol_universe_discovery_blocker_code"] = ranking_report.get("primary_blocker_code") or "DATA_UNAVAILABLE"
+        blockers = []
+        if require_public_symbol_discovery:
+            blockers.append(
+                {
+                    "code": discovery_context["symbol_universe_discovery_blocker_code"],
+                    "severity": "HIGH",
+                    "message": "public Upbit symbol ranking is required but unavailable",
+                }
+            )
+        return fallback_universe, discovery_context, blockers
+
+    discovery_context["symbol_universe_source"] = "PUBLIC_KRW_MARKET_DISCOVERY_TICKER_RANKED"
+    discovery_context["symbol_universe_discovery_status"] = "PASS"
+    discovery_context["symbol_universe_discovery_blocker_code"] = None
+    discovery_context["symbol_universe_evaluated_count"] = len(selected_symbols)
+    return selected_symbols, discovery_context, []
+
+
 def run_upbit_paper_persistent_loop(
     *,
     root: Path,
     loop_id: str,
     session_id: str = "mvp1_upbit_paper_launcher",
     symbol: str = "KRW-BTC",
+    symbol_universe: list[str] | None = None,
     requested_cycle_count: int = 2,
     max_cycle_count: int = DEFAULT_MAX_CYCLE_COUNT,
     market_data_sequence: list[dict[str, Any]] | None = None,
+    market_data_universe_sequence: list[list[dict[str, Any]] | dict[str, dict[str, Any]]] | None = None,
+    attempt_public_symbol_discovery: bool = False,
+    require_public_symbol_discovery: bool = False,
+    attempt_network_market_data: bool = False,
+    max_symbol_evaluation_count: int = DEFAULT_PUBLIC_DISCOVERY_EVALUATION_LIMIT,
+    public_discovery_timeout_seconds: float = 3.0,
+    market_symbols_fetcher: Callable[..., dict[str, Any]] | None = None,
+    public_ticker_fetcher: Callable[..., dict[str, Any]] | None = None,
+    public_candle_fetcher: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     root = Path(root).resolve()
     blockers: list[dict[str, str]] = []
@@ -481,24 +666,76 @@ def run_upbit_paper_persistent_loop(
                 }
             )
 
+    default_symbol_universe, symbol_discovery_context, symbol_discovery_blockers = _resolve_default_symbol_universe(
+        session_id=session_id,
+        symbol_universe=symbol_universe,
+        attempt_public_symbol_discovery=attempt_public_symbol_discovery,
+        require_public_symbol_discovery=require_public_symbol_discovery,
+        max_symbol_evaluation_count=max_symbol_evaluation_count,
+        public_discovery_timeout_seconds=public_discovery_timeout_seconds,
+        market_symbols_fetcher=market_symbols_fetcher,
+        public_ticker_fetcher=public_ticker_fetcher,
+    )
+    blockers.extend(symbol_discovery_blockers)
+    if symbol_discovery_blockers:
+        current_evidence_write_allowed = False
+
     if current_evidence_write_allowed:
         for index in range(requested_cycle_count):
             collector_id = f"{loop_id}-collector-{index + 1}"
             cycle_id = f"{loop_id}-cycle-{index + 1}"
             supplied_market_data = market_data_sequence[index] if market_data_sequence and index < len(market_data_sequence) else None
-            collection = build_upbit_public_market_data_collection_report(
-                collector_id=collector_id,
-                session_id=session_id,
-                symbol=symbol,
-                market_data=supplied_market_data,
+            supplied_market_data_universe = (
+                market_data_universe_sequence[index]
+                if market_data_universe_sequence and index < len(market_data_universe_sequence)
+                else None
             )
-            collection_result = validate_upbit_public_market_data_collection_report(collection)
-            collection_writer = write_upbit_public_market_data_collection_artifacts(root=root, report=collection)
+            if isinstance(supplied_market_data_universe, dict):
+                cycle_market_data_by_symbol = dict(supplied_market_data_universe)
+                cycle_symbol_universe = sorted(cycle_market_data_by_symbol)
+                cycle_symbol_universe_source = "SUPPLIED_MARKET_DATA_UNIVERSE"
+            elif isinstance(supplied_market_data_universe, list):
+                cycle_market_data_by_symbol = {
+                    str(item.get("symbol") or f"UNKNOWN-{item_index}"): item
+                    for item_index, item in enumerate(supplied_market_data_universe, start=1)
+                    if isinstance(item, dict)
+                }
+                cycle_symbol_universe = list(cycle_market_data_by_symbol)
+                cycle_symbol_universe_source = "SUPPLIED_MARKET_DATA_UNIVERSE"
+            elif supplied_market_data is not None:
+                cycle_market_data_by_symbol = {symbol: supplied_market_data}
+                cycle_symbol_universe = [symbol]
+                cycle_symbol_universe_source = "SUPPLIED_SINGLE_MARKET_DATA"
+            else:
+                cycle_market_data_by_symbol = {}
+                cycle_symbol_universe = list(default_symbol_universe)
+                cycle_symbol_universe_source = str(symbol_discovery_context["symbol_universe_source"])
+            collections: list[dict[str, Any]] = []
+            collection_results: list[Any] = []
+            collection_writers: list[dict[str, Any]] = []
+            for symbol_index, universe_symbol in enumerate(cycle_symbol_universe, start=1):
+                collection = build_upbit_public_market_data_collection_report(
+                    collector_id=f"{collector_id}-{symbol_index}-{universe_symbol}",
+                    session_id=session_id,
+                    symbol=universe_symbol,
+                    market_data=cycle_market_data_by_symbol.get(universe_symbol),
+                    attempt_network=attempt_network_market_data and universe_symbol not in cycle_market_data_by_symbol,
+                    fetcher=public_candle_fetcher,
+                    timeout_seconds=public_discovery_timeout_seconds,
+                )
+                collection_result = validate_upbit_public_market_data_collection_report(collection)
+                collection_writer = write_upbit_public_market_data_collection_artifacts(root=root, report=collection)
+                collections.append(collection)
+                collection_results.append(collection_result)
+                collection_writers.append(collection_writer)
+            collection_pass = all(result.status == "PASS" for result in collection_results) and all(
+                writer.get("writer_status") == "PASS" for writer in collection_writers
+            )
             cycle: dict[str, Any] | None = None
             cycle_writer: dict[str, Any] | None = None
             cycle_result_status = "BLOCKED"
-            cycle_result_blocker = collection_result.blocker_code
-            if collection_result.status == "PASS" and collection_writer.get("writer_status") == "PASS":
+            cycle_result_blocker = next((result.blocker_code for result in collection_results if result.blocker_code), None)
+            if collection_pass:
                 cash_guard = _paper_cash_guard_context(
                     root=root,
                     session_id=session_id,
@@ -516,7 +753,7 @@ def run_upbit_paper_persistent_loop(
                     cycle_id=cycle_id,
                     session_id=session_id,
                     symbol=symbol,
-                    source_collection_report=collection,
+                    source_collection_reports=collections,
                     paper_cash_available=cash_guard["cash_available"],
                     paper_equity=cash_guard["equity"],
                     paper_position_market_value=cash_guard["position_market_value"],
@@ -527,7 +764,14 @@ def run_upbit_paper_persistent_loop(
                 cycle_result_blocker = runtime_result.blocker_code
                 cycle_writer = _write_runtime_cycle_artifacts(root=root, cycle=cycle)
             else:
-                blockers.append({"code": collection_result.blocker_code or "DATA_UNAVAILABLE", "severity": "HIGH", "message": collection_result.message})
+                first_failed = next((result for result in collection_results if result.status != "PASS"), None)
+                blockers.append(
+                    {
+                        "code": (first_failed.blocker_code if first_failed else None) or "DATA_UNAVAILABLE",
+                        "severity": "HIGH",
+                        "message": (first_failed.message if first_failed else "PAPER multi-symbol collection did not pass"),
+                    }
+                )
             if cycle_result_status != "PASS":
                 blockers.append({"code": cycle_result_blocker or "UNKNOWN_BLOCKED", "severity": "HIGH", "message": "PAPER runtime cycle did not pass"})
             selected_candidate = cycle.get("selected_candidate") if isinstance(cycle, dict) else None
@@ -538,9 +782,10 @@ def run_upbit_paper_persistent_loop(
                     "cycle_index": index + 1,
                     "collector_id": collector_id,
                     "cycle_id": cycle_id,
-                    "collection_status": collection_result.status,
-                    "collection_hash": collection.get("collection_hash"),
-                    "collection_writer_status": collection_writer.get("writer_status"),
+                    "collection_status": "PASS" if collection_pass else "BLOCKED",
+                    "collection_hash": collections[0].get("collection_hash") if collections else None,
+                    "collection_hashes_by_symbol": {item.get("symbol"): item.get("collection_hash") for item in collections},
+                    "collection_writer_status": "PASS" if collection_pass else "BLOCKED",
                     "runtime_status": cycle_result_status,
                     "runtime_cycle_hash": cycle.get("cycle_hash") if isinstance(cycle, dict) else None,
                     "runtime_writer_status": cycle_writer.get("writer_status") if isinstance(cycle_writer, dict) else "NOT_WRITTEN",
@@ -552,10 +797,18 @@ def run_upbit_paper_persistent_loop(
                     "runtime_public_market_data_hash": cycle.get("runtime_public_market_data_hash") if isinstance(cycle, dict) else None,
                     "feature_snapshot_hash": cycle.get("feature_snapshot_hash") if isinstance(cycle, dict) else None,
                     "regime": cycle.get("regime") if isinstance(cycle, dict) else None,
+                    "symbol_universe": cycle.get("symbol_universe") if isinstance(cycle, dict) else cycle_symbol_universe,
+                    "symbol_universe_source": cycle_symbol_universe_source,
+                    "symbol_universe_total_count": int(symbol_discovery_context["symbol_universe_total_count"]),
+                    "symbol_universe_evaluated_count": len(cycle_symbol_universe),
+                    "selected_symbol": cycle.get("selected_symbol") if isinstance(cycle, dict) else None,
                     "selected_candidate_id": selected_candidate.get("candidate_id"),
                     "selected_candidate_net_ev_after_cost_bps": selected_candidate.get("net_ev_after_cost_bps"),
                     "strategy_regime_cost_linkage": cycle.get("strategy_regime_cost_linkage") if isinstance(cycle, dict) else None,
-                    "artifact_paths": [*(collection_writer.get("artifact_paths") or []), *(cycle_writer.get("artifact_paths") if isinstance(cycle_writer, dict) else [])],
+                    "artifact_paths": [
+                        *(path for writer in collection_writers for path in (writer.get("artifact_paths") or [])),
+                        *(cycle_writer.get("artifact_paths") if isinstance(cycle_writer, dict) else []),
+                    ],
                     "live_order_ready": False,
                     "live_order_allowed": False,
                     "can_live_trade": False,
@@ -598,6 +851,20 @@ def run_upbit_paper_persistent_loop(
         "mode": "PAPER",
         "session_id": session_id,
         "symbol": symbol,
+        "symbol_universe": list(default_symbol_universe),
+        "symbol_universe_source": symbol_discovery_context["symbol_universe_source"],
+        "public_symbol_discovery_attempted": symbol_discovery_context["public_symbol_discovery_attempted"],
+        "symbol_universe_discovery_status": symbol_discovery_context["symbol_universe_discovery_status"],
+        "symbol_universe_discovery_blocker_code": symbol_discovery_context["symbol_universe_discovery_blocker_code"],
+        "symbol_universe_total_count": symbol_discovery_context["symbol_universe_total_count"],
+        "symbol_universe_evaluated_count": symbol_discovery_context["symbol_universe_evaluated_count"],
+        "max_symbol_evaluation_count": symbol_discovery_context["max_symbol_evaluation_count"],
+        "public_symbol_discovery_market_count": symbol_discovery_context["public_symbol_discovery_market_count"],
+        "public_ticker_ranked_symbol_count": symbol_discovery_context["public_ticker_ranked_symbol_count"],
+        "public_ticker_eligible_symbol_count": symbol_discovery_context["public_ticker_eligible_symbol_count"],
+        "public_symbol_discovery_report": symbol_discovery_context["public_symbol_discovery_report"],
+        "public_ticker_snapshot_report": symbol_discovery_context["public_ticker_snapshot_report"],
+        "public_symbol_ranking_report": symbol_discovery_context["public_symbol_ranking_report"],
         "loop_mode": "BOUNDED_PUBLIC_DATA_PAPER_LOOP",
         "requested_cycle_count": requested_cycle_count,
         "completed_cycle_count": completed_count,
@@ -660,6 +927,20 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
         "mode",
         "session_id",
         "symbol",
+        "symbol_universe",
+        "symbol_universe_source",
+        "public_symbol_discovery_attempted",
+        "symbol_universe_discovery_status",
+        "symbol_universe_discovery_blocker_code",
+        "symbol_universe_total_count",
+        "symbol_universe_evaluated_count",
+        "max_symbol_evaluation_count",
+        "public_symbol_discovery_market_count",
+        "public_ticker_ranked_symbol_count",
+        "public_ticker_eligible_symbol_count",
+        "public_symbol_discovery_report",
+        "public_ticker_snapshot_report",
+        "public_symbol_ranking_report",
         "loop_mode",
         "requested_cycle_count",
         "completed_cycle_count",
@@ -714,6 +995,69 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
         return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop scope must remain UPBIT/KRW_SPOT/PAPER", "SNAPSHOT_SCOPE_MISMATCH")
     if report.get("requested_cycle_count") < 1 or report.get("requested_cycle_count") > report.get("max_cycle_count") or report.get("max_cycle_count") > DEFAULT_MAX_CYCLE_COUNT:
         return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop exceeds bounded cycle budget", "RUNTIME_BUDGET_EXCEEDED")
+    if report.get("symbol_universe_source") not in {
+        "EXPLICIT_SYMBOL_UNIVERSE",
+        "STATIC_FALLBACK_CONFIGURED_KRW_UNIVERSE",
+        "STATIC_FALLBACK_PUBLIC_DISCOVERY_UNAVAILABLE",
+        "STATIC_FALLBACK_PUBLIC_TICKER_UNAVAILABLE",
+        "STATIC_FALLBACK_PUBLIC_RANKING_UNAVAILABLE",
+        "PUBLIC_KRW_MARKET_DISCOVERY_TICKER_RANKED",
+    }:
+        return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop symbol universe source is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("symbol_universe_discovery_status") not in {"SKIPPED", "PASS", "BLOCKED_FALLBACK"}:
+        return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop discovery status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(report.get("symbol_universe"), list) or not report["symbol_universe"]:
+        return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop requires a non-empty symbol universe", "DATA_UNAVAILABLE")
+    for count_field in (
+        "symbol_universe_total_count",
+        "symbol_universe_evaluated_count",
+        "max_symbol_evaluation_count",
+        "public_symbol_discovery_market_count",
+        "public_ticker_ranked_symbol_count",
+        "public_ticker_eligible_symbol_count",
+    ):
+        if not isinstance(report.get(count_field), int) or report[count_field] < 0:
+            return UpbitPaperPersistentLoopValidationResult("FAIL", f"persistent loop symbol discovery count is invalid: {count_field}", "SCHEMA_IDENTITY_MISMATCH")
+    if report["symbol_universe_evaluated_count"] != len(report["symbol_universe"]):
+        return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop evaluated symbol count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if report["symbol_universe_total_count"] < report["symbol_universe_evaluated_count"]:
+        return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop total symbol count is below evaluated count", "SCHEMA_IDENTITY_MISMATCH")
+    if report["symbol_universe_evaluated_count"] > report["max_symbol_evaluation_count"]:
+        return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop exceeded symbol evaluation budget", "RUNTIME_BUDGET_EXCEEDED")
+    if report.get("symbol_universe_discovery_status") == "PASS":
+        if report.get("symbol_universe_source") != "PUBLIC_KRW_MARKET_DISCOVERY_TICKER_RANKED":
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "PASS discovery must use public ticker-ranked source", "SCHEMA_IDENTITY_MISMATCH")
+        if report.get("symbol_universe_discovery_blocker_code") is not None:
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "PASS discovery cannot carry a blocker", "SCHEMA_IDENTITY_MISMATCH")
+        if report.get("public_symbol_discovery_attempted") is not True:
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "PASS discovery must mark discovery attempted", "SCHEMA_IDENTITY_MISMATCH")
+        if report.get("public_symbol_discovery_market_count", 0) < report.get("symbol_universe_total_count", 0):
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "public discovery market count must cover total universe", "SCHEMA_IDENTITY_MISMATCH")
+    elif str(report.get("symbol_universe_source", "")).startswith("STATIC_FALLBACK_PUBLIC"):
+        if report.get("symbol_universe_discovery_status") != "BLOCKED_FALLBACK" or not report.get("symbol_universe_discovery_blocker_code"):
+            return UpbitPaperPersistentLoopValidationResult("BLOCKED", "public discovery fallback must expose blocker", "DATA_UNAVAILABLE")
+    elif report.get("symbol_universe_discovery_status") != "SKIPPED":
+        return UpbitPaperPersistentLoopValidationResult("FAIL", "static or explicit universe must skip public discovery", "SCHEMA_IDENTITY_MISMATCH")
+    for discovery_report_field in (
+        "public_symbol_discovery_report",
+        "public_ticker_snapshot_report",
+        "public_symbol_ranking_report",
+    ):
+        discovery_report = report.get(discovery_report_field)
+        if discovery_report is None:
+            continue
+        if not isinstance(discovery_report, dict):
+            return UpbitPaperPersistentLoopValidationResult("FAIL", f"persistent loop discovery artifact must be object: {discovery_report_field}", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            discovery_report.get("live_order_ready")
+            or discovery_report.get("live_order_allowed")
+            or discovery_report.get("can_live_trade")
+            or discovery_report.get("scale_up_allowed")
+            or discovery_report.get("credential_load_attempted")
+            or discovery_report.get("private_endpoint_called")
+            or discovery_report.get("order_endpoint_called")
+        ):
+            return UpbitPaperPersistentLoopValidationResult("BLOCKED", "public discovery artifact attempted live, private, or order behavior", "LIVE_FINAL_GUARD_FAILED")
     forbidden_fields = (
         "long_run_evidence_eligible",
         "promotion_eligible",
@@ -851,12 +1195,29 @@ def validate_upbit_paper_persistent_loop_report(report: dict[str, Any]) -> Upbit
             return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop runtime cycle did not pass", "RECONCILIATION_REQUIRED")
         if item.get("live_order_ready") or item.get("live_order_allowed") or item.get("can_live_trade") or item.get("scale_up_allowed"):
             return UpbitPaperPersistentLoopValidationResult("BLOCKED", "persistent loop cycle result attempted live or scale-up permission", "LIVE_FINAL_GUARD_FAILED")
-        if item.get("runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION":
+        if item.get("runtime_input_role") not in {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"}:
             return UpbitPaperPersistentLoopValidationResult(
                 "BLOCKED",
                 "persistent loop cycle result is not bound to public market data collection input",
                 "MEASUREMENT_MISSING",
             )
+        if item.get("symbol_universe_source") not in {
+            "EXPLICIT_SYMBOL_UNIVERSE",
+            "SUPPLIED_MARKET_DATA_UNIVERSE",
+            "SUPPLIED_SINGLE_MARKET_DATA",
+            "STATIC_FALLBACK_CONFIGURED_KRW_UNIVERSE",
+            "STATIC_FALLBACK_PUBLIC_DISCOVERY_UNAVAILABLE",
+            "STATIC_FALLBACK_PUBLIC_TICKER_UNAVAILABLE",
+            "STATIC_FALLBACK_PUBLIC_RANKING_UNAVAILABLE",
+            "PUBLIC_KRW_MARKET_DISCOVERY_TICKER_RANKED",
+        }:
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle result symbol source is unknown", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(item.get("symbol_universe"), list) or item.get("selected_symbol") not in item["symbol_universe"]:
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle selected symbol missing from universe", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(item.get("symbol_universe_total_count"), int) or item["symbol_universe_total_count"] < len(item["symbol_universe"]):
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle total symbol count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if item.get("symbol_universe_evaluated_count") != len(item["symbol_universe"]):
+            return UpbitPaperPersistentLoopValidationResult("FAIL", "persistent loop cycle evaluated symbol count mismatch", "SCHEMA_IDENTITY_MISMATCH")
         for hash_field in (
             "source_collection_report_hash",
             "source_public_market_data_hash",

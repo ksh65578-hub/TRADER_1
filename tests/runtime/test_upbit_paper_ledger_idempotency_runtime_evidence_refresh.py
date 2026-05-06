@@ -40,7 +40,7 @@ class UpbitPaperLedgerIdempotencyRuntimeEvidenceRefreshTest(unittest.TestCase):
             self.assertEqual(loaded["reconciliation_status"], "PASS")
             self.assertEqual(loaded["source_runtime_depth_status"], "PASS")
             self.assertTrue(loaded["ledger_head_cycle_in_persistent_loop"])
-            self.assertEqual(loaded["source_runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
+            self.assertEqual(loaded["source_runtime_input_role"], "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION")
             self.assertEqual(loaded["source_public_market_data_hash"], loaded["source_runtime_public_market_data_hash"])
             self.assertGreaterEqual(loaded["source_ledger_jsonl_count"], 1)
             self.assertFalse(loaded["current_evidence_write_allowed"])

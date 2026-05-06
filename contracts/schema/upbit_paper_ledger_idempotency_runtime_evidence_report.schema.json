@@ -178,7 +178,9 @@
     },
     "ledger_head_cycle_in_persistent_loop": {"type": "boolean"},
     "ledger_head_runtime_cycle_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
-    "source_runtime_input_role": {"enum": ["PUBLIC_MARKET_DATA_COLLECTION", "STATIC_FIXTURE", null]},
+    "source_runtime_input_role": {
+      "enum": ["PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION", "STATIC_FIXTURE", null]
+    },
     "source_collection_report_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
     "source_public_market_data_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
     "source_runtime_public_market_data_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},

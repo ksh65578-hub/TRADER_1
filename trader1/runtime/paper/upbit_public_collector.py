@@ -7,9 +7,15 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
-from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture, validate_upbit_public_candle_data
+from trader1.adapters.upbit.market_data import (
+    UPBIT_PUBLIC_CANDLE_HOST,
+    UPBIT_PUBLIC_CANDLE_PATH,
+    build_upbit_public_candle_fixture,
+    fetch_upbit_public_candle_data_read_only,
+    validate_upbit_public_candle_data,
+)
 
 
 UPBIT_PUBLIC_MARKET_DATA_COLLECTION_SCHEMA_ID = "trader1.upbit_public_market_data_collection_report.v1"
@@ -169,7 +175,37 @@ def build_upbit_public_market_data_collection_report(
     session_id: str = "mvp1_upbit_paper_launcher",
     symbol: str = "KRW-BTC",
     market_data: dict[str, Any] | None = None,
+    attempt_network: bool = False,
+    fetcher: Callable[..., dict[str, Any]] | None = None,
+    timeout_seconds: float = 3.0,
 ) -> dict[str, Any]:
+    if market_data is None and attempt_network:
+        read_only_fetcher = fetcher or fetch_upbit_public_candle_data_read_only
+        try:
+            market_data = read_only_fetcher(symbol=symbol, session_id=session_id, timeout_seconds=timeout_seconds)
+        except Exception as exc:
+            market_data = {
+                "source": "PUBLIC_REST_READ_ONLY",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "session_id": session_id,
+                "symbol": symbol,
+                "interval": "1m",
+                "profile": "PUBLIC_REST_READ_ONLY_UNAVAILABLE",
+                "candles": [],
+                "loaded_at_utc": utc_now(),
+                "is_public": True,
+                "private_account_fields_present": False,
+                "raw_payload_private_fields_present": False,
+                "public_endpoint_host": UPBIT_PUBLIC_CANDLE_HOST,
+                "public_endpoint_path": UPBIT_PUBLIC_CANDLE_PATH,
+                "credential_load_attempted": False,
+                "authorization_header_present": False,
+                "private_endpoint_called": False,
+                "order_endpoint_called": False,
+                "network_error": str(exc),
+            }
     market_data = market_data or build_upbit_public_candle_fixture(symbol=symbol, session_id=session_id)
     status, blocker_code, message = validate_upbit_public_candle_data(market_data, symbol=symbol, session_id=session_id)
     blockers = [] if status == "PASS" else [_blocker(blocker_code or "DATA_UNAVAILABLE", message)]

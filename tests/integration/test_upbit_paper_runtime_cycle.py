@@ -25,6 +25,14 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["paper_portfolio_snapshot"]["source_runtime_cycle_id"], report["cycle_id"])
         self.assertEqual(report["paper_portfolio_snapshot"]["source_paper_ledger_head_hash"], report["paper_ledger_head_hash"])
         self.assertEqual(report["paper_portfolio_snapshot"]["positions"][0]["symbol"], "KRW-BTC")
+        self.assertEqual(report["risk_state"]["risk_state"], "normal")
+        self.assertTrue(report["risk_state"]["new_entry_allowed"])
+        self.assertEqual(report["position_management_decision"]["decision"], "ENTER_LONG_WITH_ATTACHED_EXIT_PLAN")
+        self.assertEqual(report["position_management_decision"]["exit_plan_status"], "ARMED_PAPER_ONLY_AFTER_FILL")
+        self.assertLess(float(report["exit_plan"]["hard_stop"]), float(report["exit_plan"]["entry_price"]))
+        self.assertGreater(float(report["exit_plan"]["tp1"]), float(report["exit_plan"]["entry_price"]))
+        self.assertGreater(float(report["exit_plan"]["tp2"]), float(report["exit_plan"]["tp1"]))
+        self.assertEqual(report["sizing_decision"]["inputs"]["sizing_formula"], "min(equity_cap,cash_cap,risk_cap,liquidity_cap,exposure_cap)*min(signal,strategy,regime)")
         self.assertEqual(report["summary"]["portfolio"]["source"], "LEDGER")
         self.assertEqual(report["summary"]["portfolio"]["freshness_status"], "PASS")
         self.assertTrue(report["summary"]["entry_candidates"])
@@ -62,6 +70,65 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["source_public_market_data_hash"], collection["public_market_data_hash"])
         self.assertEqual(report["runtime_public_market_data_hash"], collection["public_market_data_hash"])
         self.assertEqual(report["canonical_event_count"], collection["canonical_event_count"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_multi_symbol_universe_scores_and_selects_best_symbol_for_paper_entry(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-multi-symbol-selection",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth],
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["runtime_input_role"], "MULTI_SYMBOL_MARKET_DATA_UNIVERSE")
+        self.assertEqual(report["selected_symbol"], "KRW-ETH")
+        self.assertEqual(report["symbol"], "KRW-ETH")
+        self.assertEqual(report["paper_fill"]["symbol"], "KRW-ETH")
+        self.assertEqual(report["paper_portfolio_snapshot"]["positions"][0]["symbol"], "KRW-ETH")
+        self.assertEqual(report["exit_plan"]["source_symbol"], "KRW-ETH")
+        self.assertEqual(report["position_management_decision"]["selected_symbol"], "KRW-ETH")
+        self.assertIn("KRW-BTC", report["symbol_universe"])
+        self.assertIn("KRW-ETH", report["symbol_universe"])
+        self.assertGreater(
+            float(report["selected_candidate"]["symbol_selection_score"]),
+            float(next(item for item in report["symbol_selection_universe"] if item["symbol"] == "KRW-BTC")["symbol_selection_score"]),
+        )
+        self.assertEqual(
+            float(report["selected_candidate"]["candidate_selection_score"]),
+            max(float(candidate["candidate_selection_score"]) for candidate in report["strategy_candidates"]),
+        )
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_drawdown_risk_state_blocks_new_paper_entry_before_fill(self):
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-drawdown-risk-block",
+            paper_cash_available="940000",
+            paper_equity="940000",
+            paper_position_market_value="0",
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["risk_state"]["risk_state"], "no_trade")
+        self.assertFalse(report["risk_state"]["new_entry_allowed"])
+        self.assertEqual(report["final_decision"], "BLOCKED")
+        self.assertIn("DRAWDOWN_FREEZE_ACTIVE", report["no_trade_reasons"])
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["position_management_decision"]["decision"], "ENTRY_BLOCKED_NO_POSITION")
         self.assertFalse(report["live_order_allowed"])
 
     def test_new_runtime_cycle_requires_quantitative_policy_binding(self):
