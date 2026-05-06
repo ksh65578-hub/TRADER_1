@@ -399,6 +399,7 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
     AUDITED_WRITER_BLOCKED_SOURCE_STATUS,
     AUDITED_WRITER_BLOCKED_TARGET_STATUS,
     AUDITED_WRITER_IDEMPOTENT_STATUS,
+    AUDITED_WRITER_REFRESHED_STATUS,
     AUDITED_WRITER_WRITTEN_STATUS,
     build_upbit_paper_repaired_current_evidence_audited_writer_report,
     upbit_paper_repaired_current_evidence_audited_writer_report_hash,
@@ -11078,6 +11079,13 @@ def upbit_paper_repaired_current_evidence_audited_writer_validator() -> Validato
         "artifact_written_count",
         "artifact_reused_count",
         "idempotent_replay",
+        "target_dirty_cause",
+        "stale_output_superseded",
+        "archive_id",
+        "archived_artifact_count",
+        "archived_artifacts",
+        "post_rerun_reconciliation_closure_status",
+        "post_rerun_reconciliation_unresolved_cause",
         "lock_acquire_attempted",
         "lock_acquired",
         "lock_released",
@@ -11212,6 +11220,45 @@ def upbit_paper_repaired_current_evidence_audited_writer_validator() -> Validato
                 paths,
                 "RECONCILIATION_REQUIRED",
             )
+        stale_ledger = json.loads(json.dumps(source_ledger))
+        stale_head_hash = "A" * 64
+        stale_ledger["latest_ledger_head_hash"] = stale_head_hash
+        stale_ledger["portfolio_snapshot"]["source_paper_ledger_head_hash"] = stale_head_hash
+        stale_ledger["portfolio_snapshot"]["snapshot_hash"] = paper_portfolio_hash(
+            stale_ledger["portfolio_snapshot"]
+        )
+        stale_ledger["rollup_hash"] = paper_ledger_rollup_hash(stale_ledger)
+        with TemporaryDirectory() as stale_tmp:
+            stale_root = Path(stale_tmp)
+            stale_seed = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+                root=stale_root,
+                source_implementation_prep_report=source_prep,
+                source_ledger_rollup_report=stale_ledger,
+            )
+            stale_supersede = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+                root=stale_root,
+                source_implementation_prep_report=source_prep,
+                source_ledger_rollup_report=source_ledger,
+            )
+            if (
+                stale_seed.get("writer_status") != AUDITED_WRITER_WRITTEN_STATUS
+                or stale_supersede.get("writer_status") != AUDITED_WRITER_WRITTEN_STATUS
+                or stale_supersede.get("artifact_written_count") != 3
+                or stale_supersede.get("target_dirty_cause") != "STALE_LEDGER_SUPERSEDED"
+                or stale_supersede.get("stale_output_superseded") is not True
+                or stale_supersede.get("archived_artifact_count") != 3
+                or stale_supersede.get("post_rerun_reconciliation_closure_status")
+                != "PASS_STALE_CURRENT_TRUTH_SUPERSEDED"
+                or stale_supersede.get("post_rerun_reconciliation_unresolved_cause") is not None
+                or validate_upbit_paper_repaired_current_evidence_audited_writer_report(stale_supersede).status
+                != "PASS"
+            ):
+                return fail_result(
+                    validator_id,
+                    "audited writer did not archive stale current truth before writing current ledger truth",
+                    paths,
+                    "POST_RERUN_RECONCILIATION_REQUIRED",
+                )
         written_path = write_upbit_paper_repaired_current_evidence_audited_writer_report(
             root=root,
             report=report,

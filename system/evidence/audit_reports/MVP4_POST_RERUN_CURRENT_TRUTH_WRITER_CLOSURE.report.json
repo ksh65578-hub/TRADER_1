@@ -1,0 +1,16 @@
+{
+  "schema_id": "trader1.post_rerun_current_truth_writer_closure_audit_report.v1",
+  "patch_id": "MVP4_POST_RERUN_CURRENT_TRUTH_WRITER_CLOSURE_20260506_001",
+  "generated_at_utc": "2026-05-06T10:40:17Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "finding": "PAPER writer/report existed but stale same-ledger current truth could remain display-only and market continuity could stay invalid from old scoped schema mismatch artifacts.",
+  "patch": "Added stale same-ledger current-truth refresh with archive preservation, exact writer state model, scoped public REST continuity auto-refresh/invalid history quarantine, and launcher/dashboard binding to fresh audited PAPER portfolio truth.",
+  "blocker_status": "POST_RERUN_RECONCILIATION_REQUIRED is not globally closed; routine stale current-truth refresh now closes with source-bound archive/write evidence, while hash/provenance conflicts remain blocked with exact cause.",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -39,10 +39,19 @@ UPBIT_PAPER_REPAIRED_CURRENT_EVIDENCE_AUDITED_WRITER_ROLE = (
 )
 AUDITED_WRITER_WRITTEN_STATUS = "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN"
 AUDITED_WRITER_IDEMPOTENT_STATUS = "PASS_AUDITED_CURRENT_EVIDENCE_ALREADY_WRITTEN"
+AUDITED_WRITER_REFRESHED_STATUS = "PASS_AUDITED_CURRENT_EVIDENCE_REFRESHED"
 AUDITED_WRITER_BLOCKED_SOURCE_STATUS = "BLOCKED_SOURCE_IMPLEMENTATION_PREP_INVALID"
 AUDITED_WRITER_BLOCKED_LEDGER_STATUS = "BLOCKED_SOURCE_LEDGER_ROLLUP_INVALID"
 AUDITED_WRITER_BLOCKED_TARGET_STATUS = "BLOCKED_AUDITED_CURRENT_EVIDENCE_TARGET_DIRTY"
 AUDITED_WRITER_BLOCKED_LOCK_STATUS = "BLOCKED_AUDITED_CURRENT_EVIDENCE_WRITER_LOCKED"
+TARGET_DIRTY_CAUSE_NONE = "NONE"
+TARGET_DIRTY_CAUSE_PARTIAL_TARGET_SET = "PARTIAL_TARGET_SET"
+TARGET_DIRTY_CAUSE_TEMP_PATH_DIRTY = "TEMP_PATH_DIRTY"
+TARGET_DIRTY_CAUSE_STALE_LEDGER_SUPERSEDED = "STALE_LEDGER_SUPERSEDED"
+TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED = "STALE_CURRENT_TRUTH_REFRESHED"
+TARGET_DIRTY_CAUSE_CONFLICTING_PROVENANCE = "CONFLICTING_PROVENANCE"
+TARGET_DIRTY_CAUSE_LOCK_BUSY = "LOCK_BUSY"
+AUDITED_CURRENT_TRUTH_REFRESH_AFTER_SECONDS = 300
 
 EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS = [
     "paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
@@ -75,6 +84,26 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult:
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _parse_utc(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _age_seconds(*, generated_at_utc: Any, now_utc: str) -> int | None:
+    generated = _parse_utc(generated_at_utc)
+    now = _parse_utc(now_utc)
+    if generated is None or now is None:
+        return None
+    return max(0, int((now - generated).total_seconds()))
 
 
 def _sha256_json(value: Any) -> str:
@@ -415,6 +444,146 @@ def _outputs_match_sources(
     )
 
 
+def _outputs_are_complete_and_valid_for_scope(
+    *,
+    outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+    source_implementation_prep_report: dict[str, Any],
+    session_id: str,
+) -> bool:
+    current_evidence, manifest, portfolio = outputs
+    source_prep_hash = source_implementation_prep_report.get("audited_writer_implementation_prep_hash")
+    if (
+        validate_upbit_paper_audited_current_evidence_snapshot(current_evidence).status != "PASS"
+        or validate_upbit_paper_audited_current_evidence_idempotency_manifest(manifest).status != "PASS"
+        or validate_paper_portfolio_snapshot(portfolio).status != "PASS"
+    ):
+        return False
+    if (
+        current_evidence.get("exchange") != "UPBIT"
+        or current_evidence.get("market_type") != "KRW_SPOT"
+        or current_evidence.get("mode") != "PAPER"
+        or current_evidence.get("session_id") != session_id
+        or manifest.get("exchange") != "UPBIT"
+        or manifest.get("market_type") != "KRW_SPOT"
+        or manifest.get("mode") != "PAPER"
+        or manifest.get("session_id") != session_id
+        or portfolio.get("exchange") != "UPBIT"
+        or portfolio.get("market_type") != "KRW_SPOT"
+        or portfolio.get("mode") != "PAPER"
+        or portfolio.get("session_id") != session_id
+    ):
+        return False
+    return (
+        current_evidence.get("source_implementation_prep_hash") == source_prep_hash
+        and manifest.get("source_implementation_prep_hash") == source_prep_hash
+        and current_evidence.get("source_ledger_rollup_hash") == manifest.get("source_ledger_rollup_hash")
+        and current_evidence.get("source_paper_ledger_head_hash") == manifest.get("source_paper_ledger_head_hash")
+        and portfolio.get("source_paper_ledger_head_hash") == manifest.get("source_paper_ledger_head_hash")
+        and current_evidence.get("source_portfolio_snapshot_hash") == portfolio.get("snapshot_hash")
+        and manifest.get("current_evidence_snapshot_hash") == current_evidence.get("snapshot_hash")
+        and manifest.get("portfolio_snapshot_hash") == portfolio.get("snapshot_hash")
+    )
+
+
+def _outputs_are_stale_for_current_ledger(
+    *,
+    outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+    source_implementation_prep_report: dict[str, Any],
+    source_ledger_rollup_report: dict[str, Any],
+    session_id: str,
+) -> bool:
+    current_evidence, manifest, portfolio = outputs
+    return (
+        _outputs_are_complete_and_valid_for_scope(
+            outputs=outputs,
+            source_implementation_prep_report=source_implementation_prep_report,
+            session_id=session_id,
+        )
+        and current_evidence.get("source_ledger_rollup_hash") != source_ledger_rollup_report.get("rollup_hash")
+        and manifest.get("source_ledger_rollup_hash") != source_ledger_rollup_report.get("rollup_hash")
+        and current_evidence.get("source_paper_ledger_head_hash")
+        != source_ledger_rollup_report.get("latest_ledger_head_hash")
+        and manifest.get("source_paper_ledger_head_hash")
+        != source_ledger_rollup_report.get("latest_ledger_head_hash")
+        and portfolio.get("source_paper_ledger_head_hash")
+        != source_ledger_rollup_report.get("latest_ledger_head_hash")
+    )
+
+
+def _outputs_exceed_refresh_ttl(
+    *,
+    outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+    now_utc: str,
+    refresh_after_seconds: int = AUDITED_CURRENT_TRUTH_REFRESH_AFTER_SECONDS,
+) -> bool:
+    ages = [
+        age
+        for age in (
+            _age_seconds(generated_at_utc=outputs[0].get("generated_at_utc"), now_utc=now_utc),
+            _age_seconds(generated_at_utc=outputs[1].get("generated_at_utc"), now_utc=now_utc),
+        )
+        if age is not None
+    ]
+    return bool(ages and max(ages) > refresh_after_seconds)
+
+
+def _archive_id(*, generated_at_utc: str, outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]]) -> str:
+    current_evidence, manifest, portfolio = outputs
+    stamp = generated_at_utc.replace("-", "").replace(":", "").replace("+", "").replace("Z", "Z")
+    old_head = str(
+        current_evidence.get("source_paper_ledger_head_hash")
+        or manifest.get("source_paper_ledger_head_hash")
+        or portfolio.get("source_paper_ledger_head_hash")
+        or "UNKNOWN"
+    )
+    output_hash = _sha256_json(
+        {
+            "current_evidence_hash": current_evidence.get("snapshot_hash"),
+            "manifest_hash": manifest.get("manifest_hash"),
+            "portfolio_hash": portfolio.get("snapshot_hash"),
+        }
+    )
+    return f"{stamp}_old_head_{old_head[:12]}_{output_hash[:12]}"
+
+
+def _archive_existing_outputs(
+    *,
+    runtime_base: Path,
+    archive_id: str,
+) -> list[dict[str, Any]]:
+    archive_records: list[dict[str, Any]] = []
+    for relative_path in EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS:
+        source_path = _target_path(runtime_base, relative_path)
+        archive_relative_path = (
+            Path("paper_runtime")
+            / "current_evidence"
+            / "archive"
+            / archive_id
+            / Path(relative_path.replace("/", "__"))
+        ).as_posix()
+        archive_path = _target_path(runtime_base, archive_relative_path)
+        if not _is_safe_relative_path(archive_relative_path) or not _is_under(runtime_base, archive_path):
+            raise ValueError(f"unsafe archive path: {archive_relative_path}")
+        if archive_path.exists():
+            raise FileExistsError(str(archive_path))
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        file_hash = _sha256_file(source_path)
+        os.replace(source_path, archive_path)
+        archive_records.append(
+            {
+                "relative_original_path": relative_path,
+                "relative_archive_path": archive_relative_path,
+                "archived_file_hash": file_hash,
+                "archive_write_method": "ATOMIC_RENAME",
+                "audit_preserved": True,
+                "source_delete_allowed": False,
+                "live_order_allowed": False,
+                "scale_up_allowed": False,
+            }
+        )
+    return archive_records
+
+
 def build_upbit_paper_repaired_current_evidence_audited_writer_report(
     *,
     root: Path,
@@ -470,6 +639,12 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
     lock_acquired = False
     lock_file_written = False
     lock_released = False
+    target_dirty_cause = TARGET_DIRTY_CAUSE_NONE
+    stale_output_superseded = False
+    archive_id: str | None = None
+    archived_artifacts: list[dict[str, Any]] = []
+    archived_artifact_count = 0
+    stale_existing_outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]] | None = None
 
     if primary_blocker is None:
         if existing_outputs is not None:
@@ -478,18 +653,35 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
                 source_implementation_prep_report=source_implementation_prep_report,
                 source_ledger_rollup_report=source_ledger_rollup_report,
             ):
-                artifact_payloads = existing_outputs
-                status = AUDITED_WRITER_IDEMPOTENT_STATUS
-                idempotent_replay = True
+                if _outputs_exceed_refresh_ttl(outputs=existing_outputs, now_utc=now):
+                    target_dirty_cause = TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED
+                    archive_id = _archive_id(generated_at_utc=now, outputs=existing_outputs)
+                    stale_existing_outputs = existing_outputs
+                    status = AUDITED_WRITER_REFRESHED_STATUS
+                else:
+                    artifact_payloads = existing_outputs
+                    status = AUDITED_WRITER_IDEMPOTENT_STATUS
+                    idempotent_replay = True
+            elif _outputs_are_stale_for_current_ledger(
+                outputs=existing_outputs,
+                source_implementation_prep_report=source_implementation_prep_report,
+                source_ledger_rollup_report=source_ledger_rollup_report,
+                session_id=session_id,
+            ):
+                target_dirty_cause = TARGET_DIRTY_CAUSE_STALE_LEDGER_SUPERSEDED
+                archive_id = _archive_id(generated_at_utc=now, outputs=existing_outputs)
+                stale_existing_outputs = existing_outputs
             else:
+                target_dirty_cause = TARGET_DIRTY_CAUSE_CONFLICTING_PROVENANCE
                 status = AUDITED_WRITER_BLOCKED_TARGET_STATUS
                 primary_blocker = "POST_RERUN_RECONCILIATION_REQUIRED"
                 blocker_codes.add(primary_blocker)
         elif any(_target_path(runtime_base, path).exists() for path in EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS):
+            target_dirty_cause = TARGET_DIRTY_CAUSE_PARTIAL_TARGET_SET
             status = AUDITED_WRITER_BLOCKED_TARGET_STATUS
             primary_blocker = "POST_RERUN_RECONCILIATION_REQUIRED"
             blocker_codes.add(primary_blocker)
-        else:
+        if primary_blocker is None and not idempotent_replay:
             portfolio_snapshot = dict(source_ledger_rollup_report["portfolio_snapshot"])
             current_evidence_snapshot = _build_current_evidence_snapshot(
                 source_implementation_prep_report=source_implementation_prep_report,
@@ -529,9 +721,14 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
                 status = AUDITED_WRITER_BLOCKED_LOCK_STATUS
                 primary_blocker = "POST_RERUN_RECONCILIATION_REQUIRED"
                 blocker_codes.add(primary_blocker)
+                target_dirty_cause = TARGET_DIRTY_CAUSE_LOCK_BUSY
                 artifact_payloads = None
             else:
                 try:
+                    if stale_existing_outputs is not None and archive_id is not None:
+                        archived_artifacts = _archive_existing_outputs(runtime_base=runtime_base, archive_id=archive_id)
+                        archived_artifact_count = len(archived_artifacts)
+                        stale_output_superseded = archived_artifact_count == len(EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS)
                     for relative_final, relative_temp, payload in zip(
                         EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS,
                         EXPECTED_AUDITED_WRITER_TEMP_PATHS,
@@ -548,6 +745,10 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
                     _release_lock(lock_path)
                     lock_released = True
                 artifact_payloads = _load_existing_outputs(runtime_base)
+    if status == AUDITED_WRITER_BLOCKED_TARGET_STATUS and target_dirty_cause == TARGET_DIRTY_CAUSE_NONE:
+        target_dirty_cause = (
+            TARGET_DIRTY_CAUSE_TEMP_PATH_DIRTY if not temp_paths_clear else TARGET_DIRTY_CAUSE_CONFLICTING_PROVENANCE
+        )
 
     artifacts: list[dict[str, Any]] = []
     if artifact_payloads is not None:
@@ -691,6 +892,27 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
         "artifact_written_count": artifact_written_count,
         "artifact_reused_count": len(artifacts) if idempotent_replay else 0,
         "idempotent_replay": idempotent_replay,
+        "target_dirty_cause": target_dirty_cause,
+        "stale_output_superseded": stale_output_superseded,
+        "archive_id": archive_id,
+        "archived_artifact_count": archived_artifact_count,
+        "archived_artifacts": archived_artifacts,
+        "post_rerun_reconciliation_closure_status": (
+            "PASS_STALE_CURRENT_TRUTH_SUPERSEDED"
+            if stale_output_superseded
+            and writer_passed
+            and target_dirty_cause == TARGET_DIRTY_CAUSE_STALE_LEDGER_SUPERSEDED
+            else "PASS_STALE_CURRENT_TRUTH_REFRESHED"
+            if stale_output_superseded
+            and writer_passed
+            and target_dirty_cause == TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED
+            else "PASS_NOT_REQUIRED"
+            if writer_passed
+            else "BLOCKED_PRECISE_UNRESOLVED_CAUSE"
+        ),
+        "post_rerun_reconciliation_unresolved_cause": None
+        if writer_passed
+        else (target_dirty_cause if target_dirty_cause != TARGET_DIRTY_CAUSE_NONE else primary_blocker),
         "lock_acquire_attempted": lock_acquire_attempted,
         "lock_acquired": lock_acquired,
         "lock_file_written": lock_file_written,
@@ -949,6 +1171,13 @@ def validate_upbit_paper_repaired_current_evidence_audited_writer_report(
         "artifact_written_count",
         "artifact_reused_count",
         "idempotent_replay",
+        "target_dirty_cause",
+        "stale_output_superseded",
+        "archive_id",
+        "archived_artifact_count",
+        "archived_artifacts",
+        "post_rerun_reconciliation_closure_status",
+        "post_rerun_reconciliation_unresolved_cause",
         "lock_acquire_attempted",
         "lock_acquired",
         "lock_file_written",
@@ -1039,6 +1268,42 @@ def validate_upbit_paper_repaired_current_evidence_audited_writer_report(
         return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
             "FAIL", "audited writer lock path mismatch", "SCHEMA_IDENTITY_MISMATCH"
         )
+    if report.get("target_dirty_cause") not in {
+        TARGET_DIRTY_CAUSE_NONE,
+        TARGET_DIRTY_CAUSE_PARTIAL_TARGET_SET,
+        TARGET_DIRTY_CAUSE_TEMP_PATH_DIRTY,
+        TARGET_DIRTY_CAUSE_STALE_LEDGER_SUPERSEDED,
+        TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED,
+        TARGET_DIRTY_CAUSE_CONFLICTING_PROVENANCE,
+        TARGET_DIRTY_CAUSE_LOCK_BUSY,
+    }:
+        return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+            "FAIL", "audited writer target dirty cause unknown", "SCHEMA_IDENTITY_MISMATCH"
+        )
+    archived_artifacts = report.get("archived_artifacts")
+    if not isinstance(archived_artifacts, list) or report.get("archived_artifact_count") != len(archived_artifacts):
+        return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+            "FAIL", "audited writer archive count mismatch", "SCHEMA_IDENTITY_MISMATCH"
+        )
+    for archived in archived_artifacts:
+        if not isinstance(archived, dict):
+            return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+                "FAIL", "audited writer archive record must be object", "SCHEMA_IDENTITY_MISMATCH"
+            )
+        if (
+            archived.get("relative_original_path") not in EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS
+            or not isinstance(archived.get("relative_archive_path"), str)
+            or not archived["relative_archive_path"].startswith("paper_runtime/current_evidence/archive/")
+            or archived.get("audit_preserved") is not True
+            or archived.get("source_delete_allowed") is not False
+            or archived.get("live_order_allowed") is not False
+            or archived.get("scale_up_allowed") is not False
+            or not isinstance(archived.get("archived_file_hash"), str)
+            or len(archived["archived_file_hash"]) != 64
+        ):
+            return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+                "BLOCKED", "audited writer archive record lost scope or live safety", "LIVE_FINAL_GUARD_FAILED"
+            )
     controls = report.get("writer_controls")
     if not isinstance(controls, list) or report.get("writer_control_count") != len(controls):
         return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
@@ -1074,7 +1339,11 @@ def validate_upbit_paper_repaired_current_evidence_audited_writer_report(
         return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
             "FAIL", "audited writer aggregate count mismatch", "SCHEMA_IDENTITY_MISMATCH"
         )
-    pass_statuses = {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS}
+    pass_statuses = {
+        AUDITED_WRITER_WRITTEN_STATUS,
+        AUDITED_WRITER_IDEMPOTENT_STATUS,
+        AUDITED_WRITER_REFRESHED_STATUS,
+    }
     if report.get("writer_status") in pass_statuses:
         if (
             report.get("writer_passed") is not True
@@ -1085,6 +1354,7 @@ def validate_upbit_paper_repaired_current_evidence_audited_writer_report(
             or report.get("idempotency_manifest_written") is not True
             or report.get("portfolio_truth_artifact_written") is not True
             or report.get("lock_present_after_run") is not False
+            or report.get("post_rerun_reconciliation_unresolved_cause") is not None
         ):
             return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
                 "FAIL", "audited writer PASS status did not preserve post-write invariants", "SCHEMA_IDENTITY_MISMATCH"
@@ -1094,9 +1364,30 @@ def validate_upbit_paper_repaired_current_evidence_audited_writer_report(
             return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
                 "FAIL", "audited writer artifacts mismatch", "SCHEMA_IDENTITY_MISMATCH"
             )
-        if report.get("writer_status") == AUDITED_WRITER_WRITTEN_STATUS and report.get("artifact_written_count") != 3:
+        if report.get("writer_status") in {
+            AUDITED_WRITER_WRITTEN_STATUS,
+            AUDITED_WRITER_REFRESHED_STATUS,
+        } and report.get("artifact_written_count") != 3:
             return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
                 "FAIL", "audited writer written status did not write three artifacts", "SCHEMA_IDENTITY_MISMATCH"
+            )
+        if report.get("stale_output_superseded") is True and (
+            report.get("target_dirty_cause")
+            not in {
+                TARGET_DIRTY_CAUSE_STALE_LEDGER_SUPERSEDED,
+                TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED,
+            }
+            or report.get("archived_artifact_count") != 3
+            or not isinstance(report.get("archive_id"), str)
+            or report.get("post_rerun_reconciliation_closure_status")
+            != (
+                "PASS_STALE_CURRENT_TRUTH_REFRESHED"
+                if report.get("target_dirty_cause") == TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED
+                else "PASS_STALE_CURRENT_TRUTH_SUPERSEDED"
+            )
+        ):
+            return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+                "FAIL", "audited writer stale supersede status lost archive invariants", "SCHEMA_IDENTITY_MISMATCH"
             )
         if report.get("writer_status") == AUDITED_WRITER_IDEMPOTENT_STATUS and (
             report.get("artifact_reused_count") != 3 or report.get("idempotent_replay") is not True
@@ -1110,7 +1401,12 @@ def validate_upbit_paper_repaired_current_evidence_audited_writer_report(
         AUDITED_WRITER_BLOCKED_TARGET_STATUS,
         AUDITED_WRITER_BLOCKED_LOCK_STATUS,
     }:
-        if report.get("writer_passed") is not False or report.get("primary_blocker_code") is None:
+        if (
+            report.get("writer_passed") is not False
+            or report.get("primary_blocker_code") is None
+            or report.get("post_rerun_reconciliation_closure_status") != "BLOCKED_PRECISE_UNRESOLVED_CAUSE"
+            or not report.get("post_rerun_reconciliation_unresolved_cause")
+        ):
             return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
                 "BLOCKED", "audited writer blocked status missing blocker", "LIVE_FINAL_GUARD_FAILED"
             )

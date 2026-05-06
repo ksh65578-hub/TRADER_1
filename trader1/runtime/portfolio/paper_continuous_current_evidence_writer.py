@@ -28,13 +28,26 @@ PAPER_CONTINUOUS_CURRENT_EVIDENCE_WRITER_SCHEMA_ID = (
 )
 PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS = "NOT_IMPLEMENTED"
 PAPER_CONTINUOUS_WRITER_IMPLEMENTED_BLOCKED_STATUS = "IMPLEMENTED_BLOCKED"
+PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS = "IMPLEMENTED_REVIEW_ONLY"
 PAPER_CONTINUOUS_WRITER_WRITING_STATUS = "IMPLEMENTED_WRITING_PAPER_CURRENT_TRUTH"
+PAPER_CONTINUOUS_WRITER_STATE_WRITING_PAPER_TRUTH = "IMPLEMENTED_WRITING_PAPER_TRUTH"
 PAPER_CONTINUOUS_WRITER_STALE_STATUS = "IMPLEMENTED_STALE"
+PAPER_CONTINUOUS_WRITER_INVALID_STATUS = "INVALID"
 PAPER_CONTINUOUS_WRITER_STATUSES = {
     PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS,
     PAPER_CONTINUOUS_WRITER_IMPLEMENTED_BLOCKED_STATUS,
+    PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS,
     PAPER_CONTINUOUS_WRITER_WRITING_STATUS,
     PAPER_CONTINUOUS_WRITER_STALE_STATUS,
+    PAPER_CONTINUOUS_WRITER_INVALID_STATUS,
+}
+PAPER_CONTINUOUS_WRITER_STATE_MODEL_STATUSES = {
+    PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS,
+    PAPER_CONTINUOUS_WRITER_IMPLEMENTED_BLOCKED_STATUS,
+    PAPER_CONTINUOUS_WRITER_REVIEW_ONLY_STATUS,
+    PAPER_CONTINUOUS_WRITER_STATE_WRITING_PAPER_TRUTH,
+    PAPER_CONTINUOUS_WRITER_STALE_STATUS,
+    PAPER_CONTINUOUS_WRITER_INVALID_STATUS,
 }
 PAPER_CONTINUOUS_WRITER_TRUTH_ROLE = "PAPER_CONTINUOUS_CURRENT_EVIDENCE_WRITER_STATUS_NOT_LIVE_READY"
 PAPER_CONTINUOUS_WRITER_FRESHNESS_STATUSES = {
@@ -234,7 +247,12 @@ def build_paper_continuous_current_evidence_writer_report(
     elif paper_scope and not writer_source_valid:
         blockers.append(
             _blocker(
-                writer_result.blocker_code if writer_result is not None else "SCHEMA_IDENTITY_MISMATCH",
+                audited_writer_report.get("primary_blocker_code")
+                if isinstance(audited_writer_report, dict)
+                and isinstance(audited_writer_report.get("primary_blocker_code"), str)
+                else writer_result.blocker_code
+                if writer_result is not None
+                else "SCHEMA_IDENTITY_MISMATCH",
                 "audited writer source is blocked or invalid",
             )
         )
@@ -281,6 +299,7 @@ def build_paper_continuous_current_evidence_writer_report(
     )
     if sources_clean and truth_freshness_status in {"FRESH", "DELAYED"}:
         continuous_writer_status = PAPER_CONTINUOUS_WRITER_WRITING_STATUS
+        writer_state_model_status = PAPER_CONTINUOUS_WRITER_STATE_WRITING_PAPER_TRUTH
         primary_blocker_code = "LIVE_READY_MISSING"
         writer_active = True
         blockers = []
@@ -288,6 +307,7 @@ def build_paper_continuous_current_evidence_writer_report(
         next_action = "Keep collecting PAPER/SHADOW evidence; live orders and scale-up remain blocked."
     elif sources_clean and truth_freshness_status == "STALE_DISPLAY_ONLY":
         continuous_writer_status = PAPER_CONTINUOUS_WRITER_STALE_STATUS
+        writer_state_model_status = PAPER_CONTINUOUS_WRITER_STALE_STATUS
         primary_blocker_code = "STALE_CURRENT_TRUTH"
         writer_active = False
         blockers = [_blocker("STALE_CURRENT_TRUTH", "audited PAPER current-evidence writer output is stale", "MEDIUM")]
@@ -295,12 +315,16 @@ def build_paper_continuous_current_evidence_writer_report(
         next_action = "Regenerate PAPER current truth before treating the displayed portfolio as current."
     elif paper_scope and not writer_source_present:
         continuous_writer_status = PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS
+        writer_state_model_status = PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS
         primary_blocker_code = "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
         writer_active = False
         summary = "Continuous PAPER current-evidence writer report is present, but no source writer output is loaded."
         next_action = "Run the scoped PAPER launcher so it can build the audited writer output from ledger-backed sources."
     else:
         continuous_writer_status = PAPER_CONTINUOUS_WRITER_IMPLEMENTED_BLOCKED_STATUS
+        writer_state_model_status = (
+            PAPER_CONTINUOUS_WRITER_INVALID_STATUS if not paper_scope else PAPER_CONTINUOUS_WRITER_IMPLEMENTED_BLOCKED_STATUS
+        )
         primary_blocker_code = blockers[0]["code"] if blockers else "HARD_TRUTH_MISSING"
         writer_active = False
         summary = "Continuous PAPER current-evidence writer is implemented but blocked by source validation."
@@ -330,10 +354,11 @@ def build_paper_continuous_current_evidence_writer_report(
         "mode": mode,
         "session_id": session_id,
         "continuous_writer_status": continuous_writer_status,
+        "writer_state_model_status": writer_state_model_status,
         "truth_freshness_status": truth_freshness_status,
         "writer_summary": summary,
         "next_action": next_action,
-        "writer_implemented": True,
+        "writer_implemented": writer_source_present,
         "writer_active_for_paper_current_truth": writer_active,
         "writer_stale": continuous_writer_status == PAPER_CONTINUOUS_WRITER_STALE_STATUS,
         "writer_source_present": writer_source_present,
@@ -420,6 +445,7 @@ def validate_paper_continuous_current_evidence_writer_report(
         "mode",
         "session_id",
         "continuous_writer_status",
+        "writer_state_model_status",
         "truth_freshness_status",
         "writer_summary",
         "next_action",
@@ -505,6 +531,10 @@ def validate_paper_continuous_current_evidence_writer_report(
         return PaperContinuousCurrentEvidenceWriterValidationResult(
             "FAIL", "continuous writer status unknown", "SCHEMA_IDENTITY_MISMATCH"
         )
+    if report.get("writer_state_model_status") not in PAPER_CONTINUOUS_WRITER_STATE_MODEL_STATUSES:
+        return PaperContinuousCurrentEvidenceWriterValidationResult(
+            "FAIL", "continuous writer state model status unknown", "SCHEMA_IDENTITY_MISMATCH"
+        )
     if report.get("truth_freshness_status") not in PAPER_CONTINUOUS_WRITER_FRESHNESS_STATUSES:
         return PaperContinuousCurrentEvidenceWriterValidationResult(
             "FAIL", "continuous writer freshness status unknown", "SCHEMA_IDENTITY_MISMATCH"
@@ -568,6 +598,7 @@ def validate_paper_continuous_current_evidence_writer_report(
             report.get("writer_active_for_paper_current_truth") is not True
             or report.get("writer_stale") is not False
             or report.get("truth_freshness_status") not in {"FRESH", "DELAYED"}
+            or report.get("writer_state_model_status") != PAPER_CONTINUOUS_WRITER_STATE_WRITING_PAPER_TRUTH
             or report.get("writer_source_valid") is not True
             or report.get("current_snapshot_valid") is not True
             or report.get("portfolio_snapshot_valid") is not True
@@ -589,6 +620,7 @@ def validate_paper_continuous_current_evidence_writer_report(
             report.get("writer_active_for_paper_current_truth") is not False
             or report.get("writer_stale") is not True
             or report.get("truth_freshness_status") != "STALE_DISPLAY_ONLY"
+            or report.get("writer_state_model_status") != PAPER_CONTINUOUS_WRITER_STALE_STATUS
             or report.get("primary_blocker_code") != "STALE_CURRENT_TRUTH"
             or not blockers
             or report.get("current_refreshed_paper_equity_krw") is not None
@@ -601,7 +633,12 @@ def validate_paper_continuous_current_evidence_writer_report(
             "BLOCKED", "continuous PAPER current-evidence writer is stale display-only", "STALE_CURRENT_TRUTH"
         )
     if report.get("continuous_writer_status") == PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS:
-        if report.get("writer_source_present") is not False or report.get("primary_blocker_code") != "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED":
+        if (
+            report.get("writer_source_present") is not False
+            or report.get("writer_implemented") is not False
+            or report.get("writer_state_model_status") != PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS
+            or report.get("primary_blocker_code") != "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED"
+        ):
             return PaperContinuousCurrentEvidenceWriterValidationResult(
                 "FAIL", "continuous writer not-implemented status invariant mismatch", "SCHEMA_IDENTITY_MISMATCH"
             )

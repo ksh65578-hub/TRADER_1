@@ -1,0 +1,13 @@
+{
+  "patch_id": "MVP4_POST_RERUN_CURRENT_TRUTH_WRITER_CLOSURE_20260506_001",
+  "generated_at_utc": "2026-05-06T10:40:17Z",
+  "writer_state_model": "IMPLEMENTED_WRITING_PAPER_TRUTH",
+  "portfolio_truth": "FRESH_SOURCE_BOUND_PAPER_TRUTH",
+  "runtime_truth": "PAPER_RUNTIME_BLOCKED_BY_DATA_QUALITY_INSUFFICIENT",
+  "market_continuity": "WARN_NOT_SCHEMA_MISMATCH",
+  "dashboard_display_truth_only": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

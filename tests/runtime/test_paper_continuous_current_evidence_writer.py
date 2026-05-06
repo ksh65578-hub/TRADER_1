@@ -80,6 +80,7 @@ class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
 
         self.assertEqual(result.status, "PASS", result.message)
         self.assertEqual(report["continuous_writer_status"], PAPER_CONTINUOUS_WRITER_WRITING_STATUS)
+        self.assertEqual(report["writer_state_model_status"], "IMPLEMENTED_WRITING_PAPER_TRUTH")
         self.assertEqual(report["truth_freshness_status"], "FRESH")
         self.assertTrue(report["writer_implemented"])
         self.assertTrue(report["writer_active_for_paper_current_truth"])
@@ -111,6 +112,7 @@ class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "STALE_CURRENT_TRUTH")
         self.assertEqual(report["continuous_writer_status"], PAPER_CONTINUOUS_WRITER_STALE_STATUS)
+        self.assertEqual(report["writer_state_model_status"], "IMPLEMENTED_STALE")
         self.assertEqual(report["truth_freshness_status"], "STALE_DISPLAY_ONLY")
         self.assertFalse(report["writer_active_for_paper_current_truth"])
         self.assertIsNone(report["current_refreshed_paper_equity_krw"])
@@ -132,7 +134,9 @@ class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
 
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(report["continuous_writer_status"], PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS)
+        self.assertEqual(report["writer_state_model_status"], "NOT_IMPLEMENTED")
         self.assertEqual(report["primary_blocker_code"], "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED")
+        self.assertFalse(report["writer_implemented"])
         self.assertFalse(report["live_order_allowed"])
 
     def test_live_flag_mutation_is_blocked(self):

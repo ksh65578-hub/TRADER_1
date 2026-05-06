@@ -1,0 +1,13 @@
+{
+  "patch_id": "MVP4_POST_RERUN_CURRENT_TRUTH_WRITER_CLOSURE_20260506_001",
+  "generated_at_utc": "2026-05-06T10:40:17Z",
+  "bounded_liveness_check": "PASS: default UPBIT_PAPER operator process stayed alive beyond 5s and emitted continuous heartbeat",
+  "writer_state": "IMPLEMENTED_WRITING_PAPER_TRUTH",
+  "portfolio_truth_state": "FRESH_LEDGER_BACKED_PAPER_CURRENT_TRUTH",
+  "market_continuity_state": "WARN_DATA_QUALITY_INSUFFICIENT_SHORT_WINDOW_NON_ADVANCING",
+  "runtime_truth_state": "PAPER_RUNTIME_BLOCKED_BY_MARKET_DATA_CONTINUITY",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

@@ -38,6 +38,13 @@
     "artifact_written_count",
     "artifact_reused_count",
     "idempotent_replay",
+    "target_dirty_cause",
+    "stale_output_superseded",
+    "archive_id",
+    "archived_artifact_count",
+    "archived_artifacts",
+    "post_rerun_reconciliation_closure_status",
+    "post_rerun_reconciliation_unresolved_cause",
     "lock_acquire_attempted",
     "lock_acquired",
     "lock_file_written",
@@ -250,6 +257,53 @@
           "const": false
         }
       }
+    },
+    "archived_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relative_original_path",
+        "relative_archive_path",
+        "archived_file_hash",
+        "archive_write_method",
+        "audit_preserved",
+        "source_delete_allowed",
+        "live_order_allowed",
+        "scale_up_allowed"
+      ],
+      "properties": {
+        "relative_original_path": {
+          "enum": [
+            "paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
+            "paper_runtime/current_evidence/audited_current_evidence_idempotency_manifest.json",
+            "paper_runtime/portfolio/paper_portfolio_snapshot.json"
+          ]
+        },
+        "relative_archive_path": {
+          "type": "string",
+          "pattern": "^paper_runtime/current_evidence/archive/"
+        },
+        "archived_file_hash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "archive_write_method": {
+          "const": "ATOMIC_RENAME"
+        },
+        "audit_preserved": {
+          "const": true
+        },
+        "source_delete_allowed": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
     }
   },
   "properties": {
@@ -333,6 +387,7 @@
       "enum": [
         "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN",
         "PASS_AUDITED_CURRENT_EVIDENCE_ALREADY_WRITTEN",
+        "PASS_AUDITED_CURRENT_EVIDENCE_REFRESHED",
         "BLOCKED_SOURCE_IMPLEMENTATION_PREP_INVALID",
         "BLOCKED_SOURCE_LEDGER_ROLLUP_INVALID",
         "BLOCKED_AUDITED_CURRENT_EVIDENCE_TARGET_DIRTY",
@@ -392,6 +447,51 @@
     },
     "idempotent_replay": {
       "type": "boolean"
+    },
+    "target_dirty_cause": {
+      "enum": [
+        "NONE",
+        "PARTIAL_TARGET_SET",
+        "TEMP_PATH_DIRTY",
+        "STALE_LEDGER_SUPERSEDED",
+        "STALE_CURRENT_TRUTH_REFRESHED",
+        "CONFLICTING_PROVENANCE",
+        "LOCK_BUSY"
+      ]
+    },
+    "stale_output_superseded": {
+      "type": "boolean"
+    },
+    "archive_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "archived_artifact_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "archived_artifacts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/archived_artifact"
+      }
+    },
+    "post_rerun_reconciliation_closure_status": {
+      "enum": [
+        "PASS_STALE_CURRENT_TRUTH_SUPERSEDED",
+        "PASS_STALE_CURRENT_TRUTH_REFRESHED",
+        "PASS_NOT_REQUIRED",
+        "BLOCKED_PRECISE_UNRESOLVED_CAUSE"
+      ]
+    },
+    "post_rerun_reconciliation_unresolved_cause": {
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "lock_acquire_attempted": {
       "type": "boolean"

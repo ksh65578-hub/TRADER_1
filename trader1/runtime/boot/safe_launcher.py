@@ -89,7 +89,15 @@ from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence impor
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
-from trader1.runtime.paper.upbit_public_rest_continuity_history import validate_upbit_public_rest_continuity_history_report
+from trader1.runtime.paper.upbit_public_rest_continuity import (
+    build_upbit_public_rest_continuity_report,
+    validate_upbit_public_rest_continuity_report,
+    write_upbit_public_rest_continuity_report,
+)
+from trader1.runtime.paper.upbit_public_rest_continuity_history import (
+    append_upbit_public_rest_continuity_history,
+    validate_upbit_public_rest_continuity_history_report,
+)
 from trader1.runtime.paper.paper_runtime_truth_state import (
     build_paper_runtime_truth_state_report,
     validate_paper_runtime_truth_state_report,
@@ -137,6 +145,7 @@ DEFAULT_INTERACTIVE_HEARTBEAT_TICKS: int | None = None
 DEFAULT_INTERACTIVE_HEARTBEAT_INTERVAL_SECONDS = 10.0
 ROOT_OPERATOR_HEARTBEAT_TICKS_ENV = "TRADER1_ROOT_OPERATOR_HEARTBEAT_TICKS"
 ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV = "TRADER1_ROOT_OPERATOR_HEARTBEAT_INTERVAL_SECONDS"
+ROOT_OPERATOR_PUBLIC_REST_CONTINUITY_REFRESH_ENV = "TRADER1_UPBIT_PUBLIC_REST_CONTINUITY_REFRESH"
 RUNTIME_WRITE_LOCK_FILENAME = ".runtime_write.lock"
 RUNTIME_WRITE_LOCK_TIMEOUT_SECONDS = 5.0
 RUNTIME_WRITE_LOCK_STALE_SECONDS = 30.0
@@ -1253,11 +1262,49 @@ def load_scoped_upbit_public_rest_continuity_history(report: dict[str, Any], roo
         or history.get("mode") != report.get("mode")
         or history.get("session_id") != report.get("session_id")
     ):
-        return history
+        return None
     validation_result = validate_upbit_public_rest_continuity_history_report(history)
-    if validation_result.status in {"PASS", "BLOCKED"}:
+    if validation_result.status in {"PASS", "WARN", "BLOCKED"}:
         return history
-    return history
+    return None
+
+
+def refresh_scoped_upbit_public_rest_continuity_history_if_safe(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh: bool = False,
+) -> dict[str, Any] | None:
+    history = load_scoped_upbit_public_rest_continuity_history(report, root)
+    if history is not None or not refresh:
+        return history
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    continuity = build_upbit_public_rest_continuity_report(
+        continuity_id="launcher-public-rest-continuity-auto-refresh",
+        session_id=str(report["session_id"]),
+        symbol="KRW-BTC",
+        sample_count=2,
+        min_required_pass_samples=2,
+        interval_seconds=0.0,
+        attempt_network=True,
+        timeout_seconds=2.5,
+    )
+    continuity_result = validate_upbit_public_rest_continuity_report(continuity)
+    if continuity_result.status == "FAIL":
+        return None
+    write_upbit_public_rest_continuity_report(root=root, report=continuity)
+    _, refreshed_history = append_upbit_public_rest_continuity_history(
+        root=root,
+        continuity_report=continuity,
+        history_id="launcher-public-rest-continuity-history",
+        max_attempts=20,
+        min_required_pass_attempts=1,
+    )
+    history_result = validate_upbit_public_rest_continuity_history_report(refreshed_history)
+    if history_result.status in {"PASS", "WARN", "BLOCKED"}:
+        return refreshed_history
+    return None
 
 
 def load_scoped_paper_operation_gate_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
@@ -1629,6 +1676,7 @@ def load_shadow_runtime_orchestration_report(report: dict[str, Any], root: Path 
 def build_launcher_dashboard_artifacts(
     report: dict[str, Any],
     stability_history: dict[str, Any] | None = None,
+    refresh_upbit_public_rest_continuity: bool = False,
     root: Path = ROOT,
 ) -> dict[str, Any]:
     registry_hash = sha256_file(ROOT / "contracts" / "registry.yaml")
@@ -1924,7 +1972,7 @@ def build_launcher_dashboard_artifacts(
         market_type=report["market_type"],
         mode=report["mode"],
         session_id=report["session_id"],
-        paper_portfolio_snapshot=paper_portfolio,
+        paper_portfolio_snapshot=audited_paper_portfolio_snapshot or paper_portfolio,
         heartbeat=heartbeat,
         startup_probe=startup_probe,
     )
@@ -1934,7 +1982,11 @@ def build_launcher_dashboard_artifacts(
     upbit_paper_ledger_idempotency_runtime_evidence_report = (
         load_scoped_upbit_paper_ledger_idempotency_runtime_evidence_report(report, root)
     )
-    upbit_public_rest_continuity_history = load_scoped_upbit_public_rest_continuity_history(report, root)
+    upbit_public_rest_continuity_history = refresh_scoped_upbit_public_rest_continuity_history_if_safe(
+        report,
+        root,
+        refresh=refresh_upbit_public_rest_continuity,
+    )
     paper_runtime_truth_state_report = None
     if report["exchange"] == "UPBIT" and report["market_type"] == "KRW_SPOT" and report["mode"] == "PAPER":
         paper_runtime_truth_state_report = build_paper_runtime_truth_state_report(
@@ -2041,7 +2093,12 @@ def build_launcher_dashboard_artifacts(
     }
 
 
-def _write_launcher_dashboard_unlocked(report: dict[str, Any], root: Path = ROOT) -> dict[str, Path]:
+def _write_launcher_dashboard_unlocked(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh_upbit_public_rest_continuity: bool = False,
+) -> dict[str, Path]:
     paths = launcher_dashboard_paths(report, root)
     artifacts = build_launcher_dashboard_artifacts(report, root=root)
     previous_history = None
@@ -2060,7 +2117,12 @@ def _write_launcher_dashboard_unlocked(report: dict[str, Any], root: Path = ROOT
     )
     if history_result.status != "PASS":
         raise RuntimeError(f"stability history failed closed validation: {history_result.message}")
-    artifacts = build_launcher_dashboard_artifacts(report, stability_history=stability_history, root=root)
+    artifacts = build_launcher_dashboard_artifacts(
+        report,
+        stability_history=stability_history,
+        refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+        root=root,
+    )
     dashboard_result = validate_read_only_dashboard_shell(artifacts["dashboard_shell"])
     if dashboard_result.status != "PASS":
         raise RuntimeError(f"read-only dashboard failed closed validation: {dashboard_result.message}")
@@ -2084,15 +2146,33 @@ def _write_launcher_dashboard_unlocked(report: dict[str, Any], root: Path = ROOT
     return paths
 
 
-def write_launcher_dashboard(report: dict[str, Any], root: Path = ROOT) -> dict[str, Path]:
+def write_launcher_dashboard(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh_upbit_public_rest_continuity: bool = False,
+) -> dict[str, Path]:
     with runtime_write_lock(launcher_runtime_dir(report, root)):
-        return _write_launcher_dashboard_unlocked(report, root)
+        return _write_launcher_dashboard_unlocked(
+            report,
+            root,
+            refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+        )
 
 
-def write_launcher_runtime_bundle(report: dict[str, Any], root: Path = ROOT) -> tuple[Path, dict[str, Path]]:
+def write_launcher_runtime_bundle(
+    report: dict[str, Any],
+    root: Path = ROOT,
+    *,
+    refresh_upbit_public_rest_continuity: bool = False,
+) -> tuple[Path, dict[str, Path]]:
     with runtime_write_lock(launcher_runtime_dir(report, root)):
         report_path = _write_launcher_report_unlocked(report, root)
-        dashboard_paths = _write_launcher_dashboard_unlocked(report, root)
+        dashboard_paths = _write_launcher_dashboard_unlocked(
+            report,
+            root,
+            refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+        )
     return report_path, dashboard_paths
 
 
@@ -2295,12 +2375,28 @@ def _optional_nonnegative_float_env(name: str) -> float | None:
     return value
 
 
+def _optional_bool_env(name: str, *, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    raise ValueError(f"{name} must be a boolean value")
+
+
 def root_operator_launcher_main(launcher_name: str, *, root: Path = ROOT) -> int:
     return launcher_main(
         launcher_name,
         pause=True,
         console_heartbeat_ticks=_optional_nonnegative_int_env(ROOT_OPERATOR_HEARTBEAT_TICKS_ENV),
         console_heartbeat_interval_seconds=_optional_nonnegative_float_env(ROOT_OPERATOR_HEARTBEAT_INTERVAL_ENV),
+        refresh_upbit_public_rest_continuity=_optional_bool_env(
+            ROOT_OPERATOR_PUBLIC_REST_CONTINUITY_REFRESH_ENV,
+            default=True,
+        ),
         root=root,
     )
 
@@ -2312,11 +2408,16 @@ def launcher_main(
     open_dashboard: bool | None = None,
     console_heartbeat_ticks: int | None = None,
     console_heartbeat_interval_seconds: float | None = None,
+    refresh_upbit_public_rest_continuity: bool = False,
     root: Path = ROOT,
 ) -> int:
     report = build_launcher_report(launcher_name)
     result = validate_launcher_report(report)
-    report_path, dashboard_paths = write_launcher_runtime_bundle(report, root)
+    report_path, dashboard_paths = write_launcher_runtime_bundle(
+        report,
+        root,
+        refresh_upbit_public_rest_continuity=refresh_upbit_public_rest_continuity,
+    )
     dashboard_opened = open_dashboard_for_operator(dashboard_paths["dashboard_html"], open_dashboard)
     heartbeat = load_json(dashboard_paths["heartbeat"])
     operator_pause = should_pause_for_operator(pause)

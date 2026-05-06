@@ -78,6 +78,7 @@ def build_upbit_public_rest_continuity_history_report(
     attempt_hashes = [str(attempt.get("continuity_hash", "")) for attempt in attempts]
     total_count = len(attempts)
     pass_count = sum(1 for attempt in attempts if attempt.get("continuity_status") == "PASS")
+    warn_count = sum(1 for attempt in attempts if attempt.get("continuity_status") == "WARN")
     blocked_count = sum(1 for attempt in attempts if attempt.get("continuity_status") == "BLOCKED")
     duplicate_count = _count_with_flag(attempts, "duplicate_latest_event_time_detected")
     non_advancing_count = _count_with_flag(attempts, "non_advancing_sample_detected")
@@ -95,7 +96,7 @@ def build_upbit_public_rest_continuity_history_report(
     elif pass_count < min_required_pass_attempts:
         blockers.append(_blocker("DATA_QUALITY_INSUFFICIENT", "public REST continuity history has insufficient PASS attempts"))
 
-    status = "PASS" if not blockers else "WARN" if latest_status == "WARN" and pass_count >= 1 else "BLOCKED"
+    status = "PASS" if not blockers else "WARN" if latest_status == "WARN" and (pass_count + warn_count) >= 1 else "BLOCKED"
     report = {
         "schema_id": UPBIT_PUBLIC_REST_CONTINUITY_HISTORY_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -265,8 +266,13 @@ def validate_upbit_public_rest_continuity_history_report(report: dict[str, Any])
             return UpbitPublicRestContinuityHistoryValidationResult("FAIL", "WARN continuity history must expose blocker", "SCHEMA_IDENTITY_MISMATCH")
         if expected_latest_status != "WARN":
             return UpbitPublicRestContinuityHistoryValidationResult("FAIL", "WARN continuity history requires latest WARN attempt", "DATA_QUALITY_INSUFFICIENT")
-        if pass_count < 1:
-            return UpbitPublicRestContinuityHistoryValidationResult("BLOCKED", "WARN continuity history requires at least one PASS attempt in the short window", "DATA_QUALITY_INSUFFICIENT")
+        latest_result = (
+            validate_upbit_public_rest_continuity_report(latest_attempt)
+            if isinstance(latest_attempt, dict)
+            else None
+        )
+        if pass_count < 1 and (latest_result is None or latest_result.status != "WARN"):
+            return UpbitPublicRestContinuityHistoryValidationResult("BLOCKED", "WARN continuity history requires structurally valid short-window evidence", "DATA_QUALITY_INSUFFICIENT")
         return UpbitPublicRestContinuityHistoryValidationResult("WARN", "Upbit public REST continuity history is structurally valid but waiting for advancing samples", report.get("primary_blocker_code"))
     if not blockers or report.get("primary_blocker_code") is None:
         return UpbitPublicRestContinuityHistoryValidationResult("BLOCKED", "blocked continuity history must expose blocker", "DATA_QUALITY_INSUFFICIENT")
@@ -285,6 +291,7 @@ def append_upbit_public_rest_continuity_history(
     continuity_report: dict[str, Any],
     history_id: str = "upbit-public-rest-continuity-history",
     max_attempts: int = 50,
+    min_required_pass_attempts: int = 2,
 ) -> tuple[Path, dict[str, Any]]:
     session_id = str(continuity_report["session_id"])
     history_path = _history_path(Path(root), session_id)
@@ -308,6 +315,7 @@ def append_upbit_public_rest_continuity_history(
         symbol=str(continuity_report["symbol"]),
         continuity_attempts=[*previous_attempts, continuity_report],
         max_attempts=max_attempts,
+        min_required_pass_attempts=min_required_pass_attempts,
     )
     path = write_upbit_public_rest_continuity_history_report(root=root, report=history)
     return path, history

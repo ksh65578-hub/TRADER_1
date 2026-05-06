@@ -1,0 +1,13 @@
+patch_id: MVP4_POST_RERUN_CURRENT_TRUTH_WRITER_CLOSURE_20260506_001
+status: TARGETED_PASS_FULL_HYGIENE_TIMEOUT
+
+- PASS: python -B -m pytest -p no:cacheprovider tests/runtime/test_upbit_paper_repaired_current_evidence_audited_writer.py tests/runtime/test_safe_launcher.py tests/runtime/test_paper_continuous_current_evidence_writer.py -q
+- PASS: python -B -m pytest -p no:cacheprovider tests/integration/test_upbit_public_rest_continuity.py tests/integration/test_upbit_public_rest_continuity_history.py -q
+- PASS: python -B -m pytest -p no:cacheprovider tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_uses_fresh_paper_current_truth_refresh_when_summary_stale tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_blocks_paper_current_truth_refresh_permission_drift -q
+- PASS: python -B -m pytest -p no:cacheprovider tests/contract/test_root_launchers.py -q
+- PASS: python -B tools/run_bytecode_free_syntax_check.py
+- PASS: python -B tools/run_read_only_dashboard_validators.py
+- PASS: python -B tools/run_runtime_schema_instance_validators.py
+- PASS: python -B tools/run_root_launcher_validators.py
+- PASS: python -B tools/run_upbit_paper_validators.py
+- TIMEOUT: python -B tools/run_hygiene_safe_pytest.py -- -q

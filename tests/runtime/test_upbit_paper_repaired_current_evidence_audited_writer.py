@@ -2,6 +2,7 @@ import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from trader1.runtime.ledger.paper_ledger_rollup import paper_ledger_rollup_hash
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
@@ -9,6 +10,7 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
     AUDITED_WRITER_BLOCKED_SOURCE_STATUS,
     AUDITED_WRITER_BLOCKED_TARGET_STATUS,
     AUDITED_WRITER_IDEMPOTENT_STATUS,
+    AUDITED_WRITER_REFRESHED_STATUS,
     AUDITED_WRITER_WRITTEN_STATUS,
     EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS,
     build_upbit_paper_repaired_current_evidence_audited_writer_report,
@@ -22,6 +24,7 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer_
     upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_hash,
 )
 from trader1.runtime.portfolio.paper_portfolio import validate_paper_portfolio_snapshot
+from trader1.runtime.portfolio.paper_portfolio import paper_portfolio_hash
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -118,6 +121,111 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             self.assertTrue(second["idempotent_replay"])
             self.assertEqual(validate_upbit_paper_repaired_current_evidence_audited_writer_report(second).status, "PASS")
 
+    def test_writer_refreshes_stale_same_ledger_current_truth_without_live_permission(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with patch(
+                "trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer.utc_now",
+                return_value="2026-05-06T00:00:00Z",
+            ):
+                first = self.build_report(root)
+            with patch(
+                "trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer.utc_now",
+                return_value="2026-05-06T00:06:01Z",
+            ):
+                refreshed = self.build_report(root)
+
+            self.assertEqual(first["writer_status"], AUDITED_WRITER_WRITTEN_STATUS)
+            self.assertEqual(refreshed["writer_status"], AUDITED_WRITER_REFRESHED_STATUS)
+            self.assertEqual(refreshed["target_dirty_cause"], "STALE_CURRENT_TRUTH_REFRESHED")
+            self.assertTrue(refreshed["stale_output_superseded"])
+            self.assertEqual(refreshed["artifact_written_count"], 3)
+            self.assertEqual(refreshed["archived_artifact_count"], 3)
+            self.assertEqual(
+                refreshed["post_rerun_reconciliation_closure_status"],
+                "PASS_STALE_CURRENT_TRUTH_REFRESHED",
+            )
+            self.assertIsNone(refreshed["post_rerun_reconciliation_unresolved_cause"])
+            self.assertFalse(refreshed["live_order_allowed"])
+            self.assertFalse(refreshed["can_live_trade"])
+            self.assertFalse(refreshed["scale_up_allowed"])
+            self.assertEqual(
+                validate_upbit_paper_repaired_current_evidence_audited_writer_report(refreshed).status,
+                "PASS",
+            )
+
+            runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
+            current_evidence = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[0])
+            self.assertEqual(current_evidence["generated_at_utc"], "2026-05-06T00:06:01Z")
+            self.assertEqual(
+                current_evidence["source_paper_ledger_head_hash"],
+                self.source_ledger_rollup()["latest_ledger_head_hash"],
+            )
+
+            with patch(
+                "trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer.utc_now",
+                return_value="2026-05-06T00:06:02Z",
+            ):
+                replay = self.build_report(root)
+            self.assertEqual(replay["writer_status"], AUDITED_WRITER_IDEMPOTENT_STATUS)
+            self.assertEqual(replay["artifact_reused_count"], 3)
+
+    def test_writer_archives_stale_current_truth_and_writes_current_ledger_truth(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            stale_ledger = json.loads(json.dumps(self.source_ledger_rollup()))
+            stale_head_hash = "A" * 64
+            stale_ledger["latest_ledger_head_hash"] = stale_head_hash
+            stale_ledger["portfolio_snapshot"]["source_paper_ledger_head_hash"] = stale_head_hash
+            stale_ledger["portfolio_snapshot"]["snapshot_hash"] = paper_portfolio_hash(
+                stale_ledger["portfolio_snapshot"]
+            )
+            stale_ledger["rollup_hash"] = paper_ledger_rollup_hash(stale_ledger)
+
+            stale_report = self.build_report(root, ledger=stale_ledger)
+            current_report = self.build_report(root)
+
+            self.assertEqual(stale_report["writer_status"], AUDITED_WRITER_WRITTEN_STATUS)
+            self.assertEqual(current_report["writer_status"], AUDITED_WRITER_WRITTEN_STATUS)
+            self.assertTrue(current_report["writer_passed"])
+            self.assertEqual(current_report["artifact_written_count"], 3)
+            self.assertEqual(current_report["target_dirty_cause"], "STALE_LEDGER_SUPERSEDED")
+            self.assertTrue(current_report["stale_output_superseded"])
+            self.assertEqual(current_report["archived_artifact_count"], 3)
+            self.assertEqual(
+                current_report["post_rerun_reconciliation_closure_status"],
+                "PASS_STALE_CURRENT_TRUTH_SUPERSEDED",
+            )
+            self.assertIsNone(current_report["post_rerun_reconciliation_unresolved_cause"])
+            self.assertTrue(current_report["lock_acquired"])
+            self.assertTrue(current_report["lock_released"])
+            self.assertFalse(current_report["lock_present_after_run"])
+            self.assertEqual(
+                validate_upbit_paper_repaired_current_evidence_audited_writer_report(current_report).status,
+                "PASS",
+            )
+
+            runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
+            current_evidence = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[0])
+            portfolio = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
+            self.assertEqual(
+                current_evidence["source_paper_ledger_head_hash"],
+                self.source_ledger_rollup()["latest_ledger_head_hash"],
+            )
+            self.assertEqual(
+                portfolio["source_paper_ledger_head_hash"],
+                self.source_ledger_rollup()["latest_ledger_head_hash"],
+            )
+            for archived in current_report["archived_artifacts"]:
+                self.assertTrue((runtime_base / archived["relative_archive_path"]).exists())
+                self.assertFalse(archived["live_order_allowed"])
+                self.assertFalse(archived["scale_up_allowed"])
+
+            replay = self.build_report(root)
+            self.assertEqual(replay["writer_status"], AUDITED_WRITER_IDEMPOTENT_STATUS)
+            self.assertEqual(replay["artifact_written_count"], 0)
+            self.assertEqual(replay["artifact_reused_count"], 3)
+
     def test_invalid_source_implementation_prep_blocks_writer(self):
         with TemporaryDirectory() as tmp:
             prep = self.source_implementation_prep()
@@ -175,6 +283,12 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             self.assertEqual(report["writer_status"], AUDITED_WRITER_BLOCKED_TARGET_STATUS)
             self.assertFalse(report["writer_passed"])
             self.assertEqual(report["primary_blocker_code"], "POST_RERUN_RECONCILIATION_REQUIRED")
+            self.assertEqual(report["target_dirty_cause"], "PARTIAL_TARGET_SET")
+            self.assertEqual(
+                report["post_rerun_reconciliation_closure_status"],
+                "BLOCKED_PRECISE_UNRESOLVED_CAUSE",
+            )
+            self.assertEqual(report["post_rerun_reconciliation_unresolved_cause"], "PARTIAL_TARGET_SET")
             self.assertEqual(report["artifact_written_count"], 0)
 
     def test_report_validation_blocks_live_mutation(self):
