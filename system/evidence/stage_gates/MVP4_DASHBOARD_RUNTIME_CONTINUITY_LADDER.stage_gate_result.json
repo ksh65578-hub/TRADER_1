@@ -1,0 +1,23 @@
+{
+  "stage_gate_schema_id": "trader1.stage_gate_result.v1",
+  "created_at_utc": "2026-05-06T00:28:26Z",
+  "patch_id": "MVP4_DASHBOARD_RUNTIME_CONTINUITY_LADDER_20260506_001",
+  "target_mvp_level": "MVP-4",
+  "stage_gate_status": "PASS_RUNTIME_CONTINUITY_LADDER_LIVE_BLOCKED",
+  "runtime_ladder_steps": [
+    "PAPER_VALUE_SNAPSHOT",
+    "CURRENT_HEARTBEAT",
+    "SHORT_WINDOW_PAPER_SHADOW_CHECK",
+    "BOUNDED_RUNTIME_PROFILE",
+    "ACTUAL_LONG_RUN_VALIDATED"
+  ],
+  "long_run_floor_seconds": 86400,
+  "long_run_stable_sample_floor": 2880,
+  "floor_policy_changed": false,
+  "gap_closure_allowed_by_this_patch": false,
+  "live_ready_write_allowed": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

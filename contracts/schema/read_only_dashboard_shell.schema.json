@@ -2674,6 +2674,141 @@
             }
           }
         },
+        "runtime_continuity_ladder_status": {
+          "enum": [
+            "MISSING",
+            "STALE",
+            "BLOCKED",
+            "VALUE_SNAPSHOT_ONLY",
+            "CURRENT_HEARTBEAT_ONLY",
+            "SHORT_WINDOW_CHECKED",
+            "BOUNDED_PROFILE_READY",
+            "ACTUAL_LONG_RUN_COLLECTING",
+            "ACTUAL_LONG_RUN_VALIDATED"
+          ]
+        },
+        "runtime_continuity_ladder_current_step_id": {
+          "enum": [
+            "PAPER_VALUE_SNAPSHOT",
+            "CURRENT_HEARTBEAT",
+            "SHORT_WINDOW_PAPER_SHADOW_CHECK",
+            "BOUNDED_RUNTIME_PROFILE",
+            "ACTUAL_LONG_RUN_VALIDATED"
+          ]
+        },
+        "runtime_continuity_ladder_highest_passed_step_id": {
+          "enum": [
+            "NONE",
+            "PAPER_VALUE_SNAPSHOT",
+            "CURRENT_HEARTBEAT",
+            "SHORT_WINDOW_PAPER_SHADOW_CHECK",
+            "BOUNDED_RUNTIME_PROFILE",
+            "ACTUAL_LONG_RUN_VALIDATED"
+          ]
+        },
+        "runtime_continuity_ladder_blocking_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runtime_continuity_ladder_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_continuity_ladder_steps": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": [
+              "step_id",
+              "label",
+              "status",
+              "source",
+              "detail",
+              "next_operator_action",
+              "blocks_live_review_until_pass",
+              "counts_as_live_ready_evidence",
+              "counts_as_gap_closure_evidence",
+              "display_only",
+              "dashboard_truth_only",
+              "live_order_ready",
+              "live_order_allowed",
+              "can_live_trade",
+              "scale_up_allowed"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "step_id": {
+                "enum": [
+                  "PAPER_VALUE_SNAPSHOT",
+                  "CURRENT_HEARTBEAT",
+                  "SHORT_WINDOW_PAPER_SHADOW_CHECK",
+                  "BOUNDED_RUNTIME_PROFILE",
+                  "ACTUAL_LONG_RUN_VALIDATED"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "MISSING",
+                  "COLLECTING",
+                  "PASS",
+                  "BLOCKED",
+                  "STALE"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "detail": {
+                "type": "string",
+                "minLength": 1
+              },
+              "next_operator_action": {
+                "type": "string",
+                "minLength": 1
+              },
+              "blocks_live_review_until_pass": {
+                "type": "boolean"
+              },
+              "counts_as_live_ready_evidence": {
+                "const": false
+              },
+              "counts_as_gap_closure_evidence": {
+                "const": false
+              },
+              "display_only": {
+                "const": true
+              },
+              "dashboard_truth_only": {
+                "const": true
+              },
+              "live_order_ready": {
+                "const": false
+              },
+              "live_order_allowed": {
+                "const": false
+              },
+              "can_live_trade": {
+                "const": false
+              },
+              "scale_up_allowed": {
+                "const": false
+              }
+            }
+          }
+        },
+        "runtime_continuity_ladder_live_review_allowed": {
+          "const": false
+        },
+        "runtime_continuity_ladder_gap_closure_allowed": {
+          "const": false
+        },
         "primary_blocker_code": {
           "type": "string",
           "minLength": 1
