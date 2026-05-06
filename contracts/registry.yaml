@@ -1336,6 +1336,10 @@
       "schema_id": "trader1.upbit_public_rest_continuity_history.v1",
       "path": "contracts/schema/upbit_public_rest_continuity_history.schema.json"
     },
+    "paper_runtime_truth_state_report": {
+      "schema_id": "trader1.paper_runtime_truth_state_report.v1",
+      "path": "contracts/schema/paper_runtime_truth_state_report.schema.json"
+    },
     "upbit_public_market_data_collection_report": {
       "schema_id": "trader1.upbit_public_market_data_collection_report.v1",
       "path": "contracts/schema/upbit_public_market_data_collection_report.schema.json"
@@ -1429,6 +1433,7 @@
       "upbit_public_rest_sample_validator",
       "upbit_public_rest_continuity_validator",
       "upbit_public_rest_continuity_history_validator",
+      "paper_runtime_truth_state_validator",
       "upbit_paper_persistent_loop_validator",
       "upbit_paper_runtime_sample_history_validator",
       "upbit_paper_stale_loop_reconciliation_validator",

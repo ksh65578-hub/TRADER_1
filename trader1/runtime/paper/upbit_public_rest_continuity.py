@@ -135,10 +135,23 @@ def build_upbit_public_rest_continuity_report(
                 break
     if pass_count < min_required_pass_samples:
         blockers.append(_blocker("DATA_QUALITY_INSUFFICIENT", "public REST continuity did not collect enough PASS samples"))
+    short_window_warnings: list[dict[str, str]] = []
     if duplicate_latest:
-        blockers.append(_blocker("DATA_QUALITY_INSUFFICIENT", "public REST continuity latest candle timestamp repeated across samples"))
+        short_window_warnings.append(
+            _blocker(
+                "DATA_QUALITY_INSUFFICIENT",
+                "public REST continuity latest candle timestamp repeated across a short sample window",
+                "MEDIUM",
+            )
+        )
     if non_advancing and len(latest_times) >= min_required_pass_samples:
-        blockers.append(_blocker("DATA_QUALITY_INSUFFICIENT", "public REST continuity samples did not advance in time"))
+        short_window_warnings.append(
+            _blocker(
+                "DATA_QUALITY_INSUFFICIENT",
+                "public REST continuity samples did not advance in time across a short sample window",
+                "MEDIUM",
+            )
+        )
 
     first_time = latest_times[0] if latest_times else None
     last_time = latest_times[-1] if latest_times else None
@@ -148,7 +161,13 @@ def build_upbit_public_rest_continuity_report(
     if first_parsed is not None and last_parsed is not None:
         observed_span_seconds = max(0.0, (last_parsed - first_parsed).total_seconds())
 
-    status = "PASS" if not blockers else "BLOCKED"
+    if blockers:
+        status = "BLOCKED"
+    elif short_window_warnings:
+        status = "WARN"
+        blockers.extend(short_window_warnings)
+    else:
+        status = "PASS"
     report = {
         "schema_id": UPBIT_PUBLIC_REST_CONTINUITY_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -309,6 +328,14 @@ def validate_upbit_public_rest_continuity_report(report: dict[str, Any]) -> Upbi
         if duplicate_latest or non_advancing:
             return UpbitPublicRestContinuityValidationResult("FAIL", "PASS continuity requires advancing sample timestamps", "DATA_QUALITY_INSUFFICIENT")
         return UpbitPublicRestContinuityValidationResult("PASS", "Upbit public REST continuity advanced across PAPER-only samples", None)
+    if report.get("continuity_status") == "WARN":
+        if not blockers or report.get("primary_blocker_code") != "DATA_QUALITY_INSUFFICIENT":
+            return UpbitPublicRestContinuityValidationResult("FAIL", "WARN continuity must expose the short-window non-advancing reason", "SCHEMA_IDENTITY_MISMATCH")
+        if pass_count < report.get("min_required_pass_samples"):
+            return UpbitPublicRestContinuityValidationResult("BLOCKED", "WARN continuity still requires enough structurally valid PAPER samples", "DATA_QUALITY_INSUFFICIENT")
+        if not (duplicate_latest or non_advancing):
+            return UpbitPublicRestContinuityValidationResult("FAIL", "WARN continuity requires duplicate or non-advancing short-window evidence", "SCHEMA_IDENTITY_MISMATCH")
+        return UpbitPublicRestContinuityValidationResult("WARN", "Upbit public REST continuity is structurally valid but short-window samples did not advance", "DATA_QUALITY_INSUFFICIENT")
     if not blockers:
         return UpbitPublicRestContinuityValidationResult("BLOCKED", "blocked continuity must expose blocker", report.get("primary_blocker_code") or "DATA_QUALITY_INSUFFICIENT")
     if report.get("primary_blocker_code") is None:

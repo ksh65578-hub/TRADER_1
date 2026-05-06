@@ -146,6 +146,7 @@ from trader1.runtime.portfolio.paper_portfolio import (
     paper_portfolio_hash,
     validate_paper_portfolio_snapshot,
 )
+from trader1.runtime.portfolio.paper_current_truth_refresh import build_paper_current_truth_refresh_report
 from trader1.runtime.paper.operational_cycle import (
     build_upbit_operational_paper_cycle,
     operation_gate_hash,
@@ -178,6 +179,13 @@ from trader1.runtime.paper.upbit_public_rest_continuity_history import (
     build_upbit_public_rest_continuity_history_report,
     upbit_public_rest_continuity_history_hash,
     validate_upbit_public_rest_continuity_history_report,
+)
+from trader1.runtime.paper.paper_runtime_truth_state import (
+    MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS,
+    PAPER_RUNTIME_ACTIVE_STATUS,
+    build_paper_runtime_truth_state_report,
+    paper_runtime_truth_state_hash,
+    validate_paper_runtime_truth_state_report,
 )
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     build_upbit_paper_runtime_recovery_guard_report,
@@ -665,6 +673,7 @@ MVP0_CORE_VALIDATORS = [
     "upbit_public_rest_sample_validator",
     "upbit_public_rest_continuity_validator",
     "upbit_public_rest_continuity_history_validator",
+    "paper_runtime_truth_state_validator",
     "upbit_paper_persistent_loop_validator",
     "upbit_paper_runtime_sample_history_validator",
     "upbit_paper_stale_loop_reconciliation_validator",
@@ -5079,8 +5088,8 @@ def upbit_public_rest_continuity_validator() -> ValidatorResult:
         fetcher=sequence_fetcher([0, 0]),
     )
     duplicate_result = validate_upbit_public_rest_continuity_report(duplicate)
-    if duplicate_result.status != "BLOCKED" or duplicate_result.blocker_code != "DATA_QUALITY_INSUFFICIENT":
-        return fail_result("upbit_public_rest_continuity_validator", "duplicate latest timestamp did not block continuity", paths, duplicate_result.blocker_code or "DATA_QUALITY_INSUFFICIENT")
+    if duplicate_result.status != "WARN" or duplicate_result.blocker_code != "DATA_QUALITY_INSUFFICIENT":
+        return fail_result("upbit_public_rest_continuity_validator", "duplicate latest timestamp did not warn as short-window continuity evidence", paths, duplicate_result.blocker_code or "DATA_QUALITY_INSUFFICIENT")
 
     no_network = build_upbit_public_rest_continuity_report(
         continuity_id="validator-upbit-public-rest-continuity-no-network",
@@ -5187,25 +5196,25 @@ def upbit_public_rest_continuity_history_validator() -> ValidatorResult:
     if pass_history.get("long_run_evidence_eligible") or pass_history.get("promotion_eligible"):
         return fail_result("upbit_public_rest_continuity_history_validator", "short continuity history became long-run or promotion evidence", paths, "LIVE_FINAL_GUARD_FAILED")
 
-    blocked_history = build_upbit_public_rest_continuity_history_report(
-        history_id="validator-upbit-public-rest-continuity-history-blocked",
+    warn_history = build_upbit_public_rest_continuity_history_report(
+        history_id="validator-upbit-public-rest-continuity-history-warn",
         session_id="mvp1_upbit_paper_launcher",
         continuity_attempts=[
             build_upbit_public_rest_continuity_report(
-                continuity_id="validator-upbit-public-rest-continuity-history-blocked-pass",
+                continuity_id="validator-upbit-public-rest-continuity-history-warn-pass",
                 session_id="mvp1_upbit_paper_launcher",
                 fetcher=sequence_fetcher([0, 1]),
             ),
             build_upbit_public_rest_continuity_report(
-                continuity_id="validator-upbit-public-rest-continuity-history-blocked-duplicate",
+                continuity_id="validator-upbit-public-rest-continuity-history-warn-duplicate",
                 session_id="mvp1_upbit_paper_launcher",
                 fetcher=sequence_fetcher([1, 1]),
             ),
         ],
     )
-    blocked_result = validate_upbit_public_rest_continuity_history_report(blocked_history)
-    if blocked_result.status != "BLOCKED" or blocked_result.blocker_code != "DATA_QUALITY_INSUFFICIENT":
-        return fail_result("upbit_public_rest_continuity_history_validator", "duplicate latest timestamp did not block continuity history", paths, blocked_result.blocker_code or "DATA_QUALITY_INSUFFICIENT")
+    warn_result = validate_upbit_public_rest_continuity_history_report(warn_history)
+    if warn_result.status != "WARN" or warn_result.blocker_code != "DATA_QUALITY_INSUFFICIENT":
+        return fail_result("upbit_public_rest_continuity_history_validator", "duplicate latest timestamp did not warn in continuity history", paths, warn_result.blocker_code or "DATA_QUALITY_INSUFFICIENT")
 
     empty_history = build_upbit_public_rest_continuity_history_report(
         history_id="validator-upbit-public-rest-continuity-history-empty",
@@ -5239,6 +5248,186 @@ def upbit_public_rest_continuity_history_validator() -> ValidatorResult:
         return fail_result("upbit_public_rest_continuity_history_validator", "public REST continuity history live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
 
     return pass_result("upbit_public_rest_continuity_history_validator", "Upbit public REST continuity history accumulates PAPER-only attempts, blocks stale data, and remains live-blocked", paths)
+
+
+def paper_runtime_truth_state_validator() -> ValidatorResult:
+    schema_path = ROOT / "contracts" / "schema" / "paper_runtime_truth_state_report.schema.json"
+    runtime_truth_path = ROOT / "trader1" / "runtime" / "paper" / "paper_runtime_truth_state.py"
+    launcher_path = ROOT / "trader1" / "runtime" / "boot" / "safe_launcher.py"
+    dashboard_path = ROOT / "trader1" / "dashboard" / "read_only_dashboard.py"
+    test_path = ROOT / "tests" / "runtime" / "test_paper_runtime_truth_state.py"
+    paths = [schema_path, runtime_truth_path, launcher_path, dashboard_path, test_path]
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.paper_runtime_truth_state_report.v1":
+        return fail_result("paper_runtime_truth_state_validator", "PAPER runtime truth state schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
+    if schema.get("additionalProperties") is not False:
+        return fail_result("paper_runtime_truth_state_validator", "PAPER runtime truth state schema must be strict", paths, "SCHEMA_IDENTITY_MISMATCH")
+    required = set(schema.get("required", []))
+    for field in (
+        "runtime_truth_status",
+        "dashboard_truth_status",
+        "monitor_alive",
+        "paper_loop_advancing",
+        "market_data_advancing",
+        "ledger_advancing",
+        "current_evidence_refreshing",
+        "source_heartbeat_hash",
+        "source_persistent_loop_hash",
+        "source_market_continuity_history_hash",
+        "source_paper_ledger_rollup_hash",
+        "source_current_truth_refresh_hash",
+        "evidence_role",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "truth_state_hash",
+    ):
+        if field not in required:
+            return fail_result("paper_runtime_truth_state_validator", f"runtime truth state schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
+
+    heartbeat = build_heartbeat(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id="mvp1_upbit_paper_launcher",
+        config_hash="A" * 64,
+        registry_hash="B" * 64,
+        schema_bundle_hash="C" * 64,
+        source_tree_hash="D" * 64,
+    )
+    monitor_only = build_paper_runtime_truth_state_report(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id="mvp1_upbit_paper_launcher",
+        heartbeat=heartbeat,
+        upbit_paper_persistent_loop_report=None,
+        upbit_public_rest_continuity_history=None,
+        paper_ledger_rollup_report=None,
+        paper_current_truth_refresh_report=None,
+    )
+    monitor_result = validate_paper_runtime_truth_state_report(monitor_only)
+    if (
+        monitor_result.status != "BLOCKED"
+        or monitor_only.get("runtime_truth_status") != MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS
+        or monitor_only.get("monitor_alive") is not True
+        or monitor_only.get("paper_loop_advancing") is not False
+    ):
+        return fail_result("paper_runtime_truth_state_validator", "monitor alive did not remain separate from PAPER engine proof", paths, monitor_result.blocker_code or "ACTUAL_PAPER_RUNTIME_EXECUTION_MISSING")
+
+    def payload(start_minute: int) -> list[dict[str, Any]]:
+        return [
+            {
+                "market": "KRW-BTC",
+                "candle_date_time_utc": f"2026-04-30T09:{start_minute + index:02d}:00",
+                "opening_price": 1000000 + (start_minute + index) * 1000,
+                "high_price": 1002500 + (start_minute + index) * 1000,
+                "low_price": 998000 + (start_minute + index) * 1000,
+                "trade_price": 1000500 + (start_minute + index) * 1000,
+                "candle_acc_trade_volume": 2 + index,
+            }
+            for index in range(5, -1, -1)
+        ]
+
+    def sequence_fetcher(starts: list[int]) -> Callable[..., dict[str, Any]]:
+        calls = {"count": 0}
+
+        def fetcher(*, symbol: str, session_id: str, timeout_seconds: float) -> dict[str, Any]:
+            index = min(calls["count"], len(starts) - 1)
+            calls["count"] += 1
+            return build_upbit_public_candle_data_from_rest_payload(
+                payload=payload(starts[index]),
+                symbol=symbol,
+                session_id=session_id,
+            )
+
+        return fetcher
+
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        loop = run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="validator-paper-runtime-truth-state-loop",
+            session_id="mvp1_upbit_paper_launcher",
+            requested_cycle_count=1,
+        )
+        ledger_rollup = load_json(
+            launcher_dashboard_paths(
+                {
+                    "exchange": "UPBIT",
+                    "market_type": "KRW_SPOT",
+                    "mode": "PAPER",
+                    "session_id": "mvp1_upbit_paper_launcher",
+                },
+                root,
+            )["paper_ledger_rollup_report"]
+        )
+        continuity_history = build_upbit_public_rest_continuity_history_report(
+            history_id="validator-paper-runtime-truth-state-continuity",
+            session_id="mvp1_upbit_paper_launcher",
+            continuity_attempts=[
+                build_upbit_public_rest_continuity_report(
+                    continuity_id="validator-paper-runtime-truth-state-continuity-1",
+                    session_id="mvp1_upbit_paper_launcher",
+                    fetcher=sequence_fetcher([0, 1]),
+                ),
+                build_upbit_public_rest_continuity_report(
+                    continuity_id="validator-paper-runtime-truth-state-continuity-2",
+                    session_id="mvp1_upbit_paper_launcher",
+                    fetcher=sequence_fetcher([1, 2]),
+                ),
+            ],
+        )
+        current_refresh = build_paper_current_truth_refresh_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="mvp1_upbit_paper_launcher",
+            paper_portfolio_snapshot=ledger_rollup["portfolio_snapshot"],
+            heartbeat=heartbeat,
+            startup_probe=None,
+        )
+        active = build_paper_runtime_truth_state_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="mvp1_upbit_paper_launcher",
+            heartbeat=heartbeat,
+            upbit_paper_persistent_loop_report=loop,
+            upbit_public_rest_continuity_history=continuity_history,
+            paper_ledger_rollup_report=ledger_rollup,
+            paper_current_truth_refresh_report=current_refresh,
+        )
+    active_result = validate_paper_runtime_truth_state_report(active)
+    if (
+        active_result.status != "PASS"
+        or active.get("runtime_truth_status") != PAPER_RUNTIME_ACTIVE_STATUS
+        or active.get("dashboard_truth_status") != "FRESH_CURRENT_TRUTH"
+        or active.get("market_data_advancing") is not True
+        or active.get("ledger_advancing") is not True
+        or active.get("current_evidence_refreshing") is not True
+    ):
+        return fail_result("paper_runtime_truth_state_validator", f"active PAPER runtime truth did not validate: {active_result.message}", paths, active_result.blocker_code or "HARD_TRUTH_MISSING")
+    if active.get("evidence_role") != "PAPER_RUNTIME_TRUTH_STATE_ONLY_NOT_LIVE_READY":
+        return fail_result("paper_runtime_truth_state_validator", "runtime truth state role could be mistaken for live readiness", paths, "LIVE_FINAL_GUARD_FAILED")
+    if active.get("long_run_evidence_eligible") or active.get("promotion_eligible"):
+        return fail_result("paper_runtime_truth_state_validator", "runtime truth state became long-run or promotion evidence", paths, "LIVE_FINAL_GUARD_FAILED")
+
+    live_mutation = dict(monitor_only)
+    live_mutation["live_order_allowed"] = True
+    live_mutation["truth_state_hash"] = paper_runtime_truth_state_hash(live_mutation)
+    live_result = validate_paper_runtime_truth_state_report(live_mutation)
+    if live_result.status != "BLOCKED" or live_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result("paper_runtime_truth_state_validator", "runtime truth state live mutation was not blocked", paths, live_result.blocker_code or "LIVE_FINAL_GUARD_FAILED")
+
+    scope_mutation = dict(monitor_only)
+    scope_mutation["exchange"] = "BINANCE"
+    scope_mutation["truth_state_hash"] = paper_runtime_truth_state_hash(scope_mutation)
+    scope_result = validate_paper_runtime_truth_state_report(scope_mutation)
+    if scope_result.status != "BLOCKED" or scope_result.blocker_code != "SNAPSHOT_SCOPE_MISMATCH":
+        return fail_result("paper_runtime_truth_state_validator", "runtime truth state non-UPBIT PAPER scope was not blocked", paths, scope_result.blocker_code or "SNAPSHOT_SCOPE_MISMATCH")
+
+    return pass_result("paper_runtime_truth_state_validator", "PAPER runtime truth state joins monitor, loop, market, ledger, and refresh evidence while remaining live-blocked", paths)
 
 
 def upbit_paper_persistent_loop_validator() -> ValidatorResult:
@@ -22927,6 +23116,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "upbit_public_rest_sample_validator": upbit_public_rest_sample_validator,
     "upbit_public_rest_continuity_validator": upbit_public_rest_continuity_validator,
     "upbit_public_rest_continuity_history_validator": upbit_public_rest_continuity_history_validator,
+    "paper_runtime_truth_state_validator": paper_runtime_truth_state_validator,
     "upbit_paper_persistent_loop_validator": upbit_paper_persistent_loop_validator,
     "upbit_paper_runtime_sample_history_validator": upbit_paper_runtime_sample_history_validator,
     "upbit_paper_stale_loop_reconciliation_validator": upbit_paper_stale_loop_reconciliation_validator,

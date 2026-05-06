@@ -70,9 +70,9 @@ class UpbitPublicRestContinuityHistoryTest(unittest.TestCase):
         self.assertFalse(history["can_live_trade"])
         self.assertFalse(history["scale_up_allowed"])
 
-    def test_latest_duplicate_attempt_keeps_history_blocked(self):
+    def test_latest_duplicate_attempt_warns_without_live_ready(self):
         history = build_upbit_public_rest_continuity_history_report(
-            history_id="mock-history-blocked",
+            history_id="mock-history-warn",
             session_id="mvp1_upbit_paper_launcher",
             continuity_attempts=[
                 self._continuity("mock-history-pass-1", [0, 1]),
@@ -81,11 +81,12 @@ class UpbitPublicRestContinuityHistoryTest(unittest.TestCase):
         )
         result = validate_upbit_public_rest_continuity_history_report(history)
 
-        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.status, "WARN")
         self.assertEqual(result.blocker_code, "DATA_QUALITY_INSUFFICIENT")
         self.assertEqual(history["duplicate_latest_event_block_count"], 1)
         self.assertEqual(history["non_advancing_block_count"], 1)
-        self.assertEqual(history["latest_attempt_status"], "BLOCKED")
+        self.assertEqual(history["latest_attempt_status"], "WARN")
+        self.assertEqual(history["continuity_health_status"], "WARN")
         self.assertFalse(history["live_order_ready"])
 
     def test_empty_history_is_blocked_not_ready(self):

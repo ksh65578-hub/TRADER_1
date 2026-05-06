@@ -58,7 +58,7 @@ class UpbitPublicRestContinuityTest(unittest.TestCase):
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])
 
-    def test_duplicate_latest_timestamp_blocks_continuity(self):
+    def test_duplicate_latest_timestamp_warns_without_live_ready(self):
         report = build_upbit_public_rest_continuity_report(
             continuity_id="mock-continuity-duplicate",
             session_id="mvp1_upbit_paper_launcher",
@@ -66,8 +66,9 @@ class UpbitPublicRestContinuityTest(unittest.TestCase):
         )
         result = validate_upbit_public_rest_continuity_report(report)
 
-        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.status, "WARN")
         self.assertEqual(result.blocker_code, "DATA_QUALITY_INSUFFICIENT")
+        self.assertEqual(report["continuity_status"], "WARN")
         self.assertTrue(report["duplicate_latest_event_time_detected"])
         self.assertTrue(report["non_advancing_sample_detected"])
         self.assertFalse(report["live_order_allowed"])

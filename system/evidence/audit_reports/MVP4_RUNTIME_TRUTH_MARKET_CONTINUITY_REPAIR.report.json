@@ -1,0 +1,46 @@
+{
+  "schema_id": "trader1.runtime_truth_market_continuity_repair_audit_report.v1",
+  "patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_20260506_001",
+  "generated_at_utc": "2026-05-06T06:02:39Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "stage_scope": "STAGE_2_RUNTIME_TRUTH_AND_MARKET_CONTINUITY_REPAIR",
+  "finding": "Heartbeat, PAPER loop, market continuity, ledger rollup, and current-evidence refresh were displayed through separate panels, so the dashboard could say heartbeat PASS while the PAPER engine was not proven. Short public REST windows also treated repeated candle timestamps as hard invalid/blocking continuity.",
+  "patch": "Added a PAPER-only runtime truth state report that joins monitor, loop, market, ledger, and current refresh sources; wired it through the safe launcher and dashboard operation status; and split short public REST non-advancing samples into WARN instead of invalid/schema mismatch when the data is structurally valid.",
+  "acceptance_conditions": [
+    "PAPER runtime truth state distinguishes monitor alive, engine not proven, blocked runtime, and active PAPER runtime",
+    "Dashboard operation status says monitor alive but PAPER engine not proven when heartbeat is fresh and loop proof is missing",
+    "Dashboard operation status can say PAPER runtime active only when loop, market data, ledger, and current evidence all validate",
+    "Short UPBIT/KRW_SPOT/PAPER public REST duplicate/non-advancing windows become WARN with action guidance rather than schema invalid",
+    "Runtime truth state and market continuity remain PAPER data-quality evidence only and cannot create LIVE_READY or long-run evidence",
+    "Open contract gap count remains 13; live and scale flags remain false"
+  ],
+  "blockers_precisely_narrowed": [
+    "RUNTIME_ORCHESTRATION_NOT_LOADED is narrowed for dashboard view by paper_runtime_truth_state_report.json",
+    "MARKET_CONTINUITY_INVALID_SCHEMA_MISMATCH is narrowed when scoped data is structurally valid but short-window non-advancing",
+    "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED is not reopened by this stage; current refresh remains display/audit-only unless writer validators pass"
+  ],
+  "open_contract_gap_count": 13,
+  "open_contract_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

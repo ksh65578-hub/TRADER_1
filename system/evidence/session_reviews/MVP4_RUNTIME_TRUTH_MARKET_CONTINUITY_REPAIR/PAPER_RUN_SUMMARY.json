@@ -1,0 +1,12 @@
+{
+  "patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_20260506_001",
+  "generated_at_utc": "2026-05-06T06:02:39Z",
+  "new_paper_run_started_by_this_patch": false,
+  "paper_runtime_truth_state_report_implemented": true,
+  "runtime_evidence_claimed_by_this_patch": false,
+  "market_continuity_warn_semantics_implemented": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
