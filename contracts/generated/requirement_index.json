@@ -3029,6 +3029,79 @@
       "test_status": "PASS"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-AUDITED-WRITER-READINESS-LADDER-STALE-SEVERITY",
+      "source_section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "source_file": "TRADER_1.md",
+      "source_heading": "Audited writer stale severity",
+      "full_text_marker": "REQ-MVP4-DASHBOARD-AUDITED-WRITER-READINESS-LADDER-STALE-SEVERITY: stale display-only PAPER snapshots are warnings; only critical blockers block PAPER current-truth writing",
+      "authority_level": "ACTIVE_AUTHORITY",
+      "requirement_title": "Audited writer ladder stale severity",
+      "requirement_kind": "DASHBOARD_UX_EVIDENCE_GRAPH_REDUCTION_PATCH",
+      "schema_ids": [
+        "trader1.read_only_dashboard_shell.v1"
+      ],
+      "validator_ids": [
+        "schema_validator",
+        "registry_validator",
+        "read_only_dashboard_validator",
+        "runtime_schema_instance_validator",
+        "patch_result_schema_validator",
+        "patch_result_runtime_schema_instance_validator",
+        "generated_artifact_dirty_validator",
+        "coverage_index_validator",
+        "live_final_guard_validator"
+      ],
+      "artifact_ids": [
+        "contracts/authority_manifest.json",
+        "contracts/generated/ACTIVE_WORKING_VIEW.md",
+        "contracts/generated/context_pack/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.md",
+        "contracts/generated/current_implementation_state.json",
+        "contracts/generated/read_cache_manifest.json",
+        "contracts/generated/requirement_artifact_matrix.json",
+        "contracts/generated/requirement_index.json",
+        "contracts/schema/read_only_dashboard_shell.schema.json",
+        "system/evidence/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.report.json",
+        "system/evidence/audit_reports/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY_20260506.md",
+        "system/evidence/implementation_patch_ledger.json",
+        "system/evidence/patch_results/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.patch_result.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/TRADER_1_SESSION_REVIEW.md",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/pytest_report.txt",
+        "system/evidence/stage_gates/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.validator_run_log.json",
+        "tests/dashboard/test_read_only_dashboard.py",
+        "tools/emit_audited_writer_ladder_stale_severity_patch_evidence.py",
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "test_ids": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "mvp_stage": "MVP-4",
+      "implementation_depth_min": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "blocking_level": "LIVE_BLOCKING",
+      "live_affecting": true,
+      "read_when": [
+        "SECTION_DASHBOARD_OPERATOR_UX",
+        "SECTION_CURRENT_EVIDENCE_WRITER",
+        "SECTION_LIVE_FINAL_GUARD"
+      ],
+      "depends_on": [
+        "REQ-MVP4-DASHBOARD-AUDITED-WRITER-READINESS-LADDER",
+        "REQ-MVP4-DASHBOARD-PAPER-TRUTH-FRESHNESS-SEPARATION",
+        "REQ-MVP4-LIVE-FINAL-GUARD"
+      ],
+      "source_text_sha256": "EDF07F5AF35A0CBEE2801F74547F9A780007C34D3D669FAA917EE3DDC721151F",
+      "source_authority_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+      "implementation_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "test_status": "PASS"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-CONVERGENCE-ASSESSMENT-VISIBILITY",
       "source_section_id": "SECTION_DASHBOARD_CONVERGENCE_ASSESSMENT",
       "source_file": "TRADER_1.md",
@@ -26196,5 +26269,5 @@
       "test_status": "PASS"
     }
   ],
-  "updated_at_utc": "2026-05-06T08:14:34Z"
+  "updated_at_utc": "2026-05-06T08:46:41Z"
 }

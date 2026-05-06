@@ -341,6 +341,8 @@ AUDITED_WRITER_READINESS_LADDER_STEP_IDS = (
     "CONTINUOUS_CURRENT_EVIDENCE_WRITER",
 )
 AUDITED_WRITER_READINESS_LADDER_STEP_STATUSES = {"MISSING", "PASS", "BLOCKED", "STALE"}
+AUDITED_WRITER_READINESS_LADDER_BLOCKER_LEVELS = {"CRITICAL_BLOCKER", "WARNING", "INFORMATIONAL"}
+AUDITED_WRITER_READINESS_LADDER_ACTION_OWNERS = set(RESIDUAL_OPERATOR_ACTION_MAP_OWNER_ORDER)
 AUDITED_WRITER_READINESS_LADDER_OVERALL_STATUSES = {
     "MISSING",
     "SUMMARY_LEDGER_ONLY",
@@ -1023,6 +1025,14 @@ def _audited_writer_readiness_ladder_step(
     detail: str,
     next_operator_action: str,
 ) -> dict[str, Any]:
+    (
+        evidence_blocker_level,
+        action_owner,
+        operator_review_required,
+        blocks_current_evidence,
+        blocks_portfolio_truth,
+        blocks_non_live_regeneration,
+    ) = _audited_writer_readiness_ladder_step_policy(step_id, status)
     return {
         "step_id": step_id,
         "label": label,
@@ -1030,9 +1040,13 @@ def _audited_writer_readiness_ladder_step(
         "source": source,
         "detail": detail,
         "next_operator_action": next_operator_action,
-        "blocks_current_evidence_write_until_pass": status != "PASS",
-        "blocks_portfolio_truth_write_until_pass": status != "PASS",
+        "evidence_blocker_level": evidence_blocker_level,
+        "action_owner": action_owner,
+        "operator_review_required": operator_review_required,
+        "blocks_current_evidence_write_until_pass": blocks_current_evidence,
+        "blocks_portfolio_truth_write_until_pass": blocks_portfolio_truth,
         "blocks_live_review_until_pass": status != "PASS",
+        "blocks_non_live_regeneration_until_pass": blocks_non_live_regeneration,
         "current_evidence_write_allowed": False,
         "portfolio_truth_write_allowed": False,
         "counts_as_live_ready_evidence": False,
@@ -1045,6 +1059,21 @@ def _audited_writer_readiness_ladder_step(
         "scale_up_allowed": False,
         "gap_closure_allowed": False,
     }
+
+
+def _audited_writer_readiness_ladder_step_policy(
+    step_id: str,
+    status: str,
+) -> tuple[str, str, bool, bool, bool, bool]:
+    if status == "PASS":
+        return ("INFORMATIONAL", "CODEX_AUDIT_ONLY", False, False, False, False)
+    if step_id == "SINGLE_RUN_AUDITED_SNAPSHOT":
+        if status == "BLOCKED":
+            return ("CRITICAL_BLOCKER", "CODEX_NON_LIVE", False, True, True, True)
+        return ("WARNING", "CODEX_NON_LIVE", False, False, False, False)
+    if step_id == "SOURCE_GUARD_CLEAN" and status == "BLOCKED":
+        return ("CRITICAL_BLOCKER", "OPERATOR", True, True, True, True)
+    return ("CRITICAL_BLOCKER", "CODEX_NON_LIVE", False, True, True, True)
 
 
 def _audited_writer_readiness_ladder(
@@ -1148,14 +1177,33 @@ def _audited_writer_readiness_ladder(
 
     highest_passed_step_id = "NONE"
     current_step_id = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+    first_non_pass_step_id = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
     first_non_pass_seen = False
+    first_critical_non_pass_seen = False
     for step in steps:
         if step["status"] == "PASS":
             highest_passed_step_id = str(step["step_id"])
         elif not first_non_pass_seen:
-            current_step_id = str(step["step_id"])
+            first_non_pass_step_id = str(step["step_id"])
             first_non_pass_seen = True
+        if (
+            step["status"] != "PASS"
+            and step["evidence_blocker_level"] == "CRITICAL_BLOCKER"
+            and not first_critical_non_pass_seen
+        ):
+            current_step_id = str(step["step_id"])
+            first_critical_non_pass_seen = True
+    if not first_critical_non_pass_seen and first_non_pass_seen:
+        current_step_id = first_non_pass_step_id
     blocking_count = sum(1 for step in steps if step["status"] != "PASS")
+    critical_blocker_count = sum(
+        1 for step in steps if step["status"] != "PASS" and step["evidence_blocker_level"] == "CRITICAL_BLOCKER"
+    )
+    warning_count = sum(1 for step in steps if step["status"] != "PASS" and step["evidence_blocker_level"] == "WARNING")
+    informational_count = sum(1 for step in steps if step["evidence_blocker_level"] == "INFORMATIONAL")
+    non_live_regeneration_blocker_count = sum(
+        1 for step in steps if step["blocks_non_live_regeneration_until_pass"]
+    )
     if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
         ladder_status = "STALE_SINGLE_RUN_SNAPSHOT" if snapshot_stale else "BLOCKED_CONTINUOUS_WRITER"
     elif lifecycle_status == "AUDITED_WRITER_INPUTS_BLOCKED":
@@ -1169,9 +1217,14 @@ def _audited_writer_readiness_ladder(
         "audited_writer_readiness_ladder_current_step_id": current_step_id,
         "audited_writer_readiness_ladder_highest_passed_step_id": highest_passed_step_id,
         "audited_writer_readiness_ladder_blocking_count": blocking_count,
+        "audited_writer_readiness_ladder_critical_blocker_count": critical_blocker_count,
+        "audited_writer_readiness_ladder_warning_count": warning_count,
+        "audited_writer_readiness_ladder_informational_count": informational_count,
+        "audited_writer_readiness_ladder_non_live_regeneration_blocker_count": non_live_regeneration_blocker_count,
         "audited_writer_readiness_ladder_summary": (
             f"Audited writer readiness: {ladder_status}; highest passed step: {highest_passed_step_id}; "
-            f"current required step: {current_step_id}. Snapshot display is separate from continuous writer proof."
+            f"current required step: {current_step_id}; critical blockers={critical_blocker_count}; "
+            f"warnings={warning_count}. Snapshot display freshness is separate from continuous writer proof."
         ),
         "audited_writer_readiness_ladder_steps": steps,
         "audited_writer_readiness_ladder_current_evidence_write_allowed": False,
@@ -1194,6 +1247,10 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
         or portfolio.get("audited_writer_readiness_ladder_highest_passed_step_id")
         not in {*AUDITED_WRITER_READINESS_LADDER_STEP_IDS, "NONE"}
         or not isinstance(portfolio.get("audited_writer_readiness_ladder_blocking_count"), int)
+        or not isinstance(portfolio.get("audited_writer_readiness_ladder_critical_blocker_count"), int)
+        or not isinstance(portfolio.get("audited_writer_readiness_ladder_warning_count"), int)
+        or not isinstance(portfolio.get("audited_writer_readiness_ladder_informational_count"), int)
+        or not isinstance(portfolio.get("audited_writer_readiness_ladder_non_live_regeneration_blocker_count"), int)
         or not isinstance(portfolio.get("audited_writer_readiness_ladder_summary"), str)
         or not isinstance(steps, list)
         or len(steps) != len(AUDITED_WRITER_READINESS_LADDER_STEP_IDS)
@@ -1226,8 +1283,14 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
         )
     highest_passed_step_id = "NONE"
     current_step_id = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+    first_non_pass_step_id = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
     first_non_pass_seen = False
+    first_critical_non_pass_seen = False
     blocking_count = 0
+    critical_blocker_count = 0
+    warning_count = 0
+    informational_count = 0
+    non_live_regeneration_blocker_count = 0
     for step in steps:
         if not isinstance(step, dict):
             return DashboardValidationResult(
@@ -1249,17 +1312,71 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
                 "audited writer readiness ladder step status is unknown",
                 "SCHEMA_IDENTITY_MISMATCH",
             )
+        evidence_blocker_level = step.get("evidence_blocker_level")
+        action_owner = step.get("action_owner")
+        if evidence_blocker_level not in AUDITED_WRITER_READINESS_LADDER_BLOCKER_LEVELS:
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer readiness ladder step blocker level is unknown",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if action_owner not in AUDITED_WRITER_READINESS_LADDER_ACTION_OWNERS:
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer readiness ladder step action owner is unknown",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if not isinstance(step.get("operator_review_required"), bool):
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer readiness ladder step operator review flag is malformed",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
         if status == "PASS":
             highest_passed_step_id = str(step["step_id"])
         else:
             blocking_count += 1
             if not first_non_pass_seen:
-                current_step_id = str(step["step_id"])
+                first_non_pass_step_id = str(step["step_id"])
                 first_non_pass_seen = True
+            if evidence_blocker_level == "CRITICAL_BLOCKER":
+                critical_blocker_count += 1
+                if not first_critical_non_pass_seen:
+                    current_step_id = str(step["step_id"])
+                    first_critical_non_pass_seen = True
+            elif evidence_blocker_level == "WARNING":
+                warning_count += 1
+        if evidence_blocker_level == "INFORMATIONAL":
+            informational_count += 1
+        expected_policy = _audited_writer_readiness_ladder_step_policy(str(step.get("step_id")), str(status))
         if (
-            step.get("blocks_current_evidence_write_until_pass") != (status != "PASS")
-            or step.get("blocks_portfolio_truth_write_until_pass") != (status != "PASS")
-            or step.get("blocks_live_review_until_pass") != (status != "PASS")
+            evidence_blocker_level,
+            action_owner,
+            step.get("operator_review_required"),
+            step.get("blocks_current_evidence_write_until_pass"),
+            step.get("blocks_portfolio_truth_write_until_pass"),
+            step.get("blocks_non_live_regeneration_until_pass"),
+        ) != expected_policy:
+            return DashboardValidationResult(
+                "FAIL",
+                "audited writer readiness ladder blocker policy drifted from step status",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if step.get("blocks_non_live_regeneration_until_pass"):
+            non_live_regeneration_blocker_count += 1
+    if not first_critical_non_pass_seen and first_non_pass_seen:
+        current_step_id = first_non_pass_step_id
+    step_by_id = {step["step_id"]: step for step in steps if isinstance(step, dict)}
+    if step_by_id["CONTINUOUS_CURRENT_EVIDENCE_WRITER"].get("status") == "PASS":
+        return DashboardValidationResult(
+            "BLOCKED",
+            "dashboard cannot claim continuous audited current-evidence writer PASS",
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+    for step in steps:
+        status = step.get("status")
+        if (
+            step.get("blocks_live_review_until_pass") != (status != "PASS")
         ):
             return DashboardValidationResult(
                 "FAIL",
@@ -1290,6 +1407,33 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
             "audited writer readiness ladder blocking count mismatch",
             "SCHEMA_IDENTITY_MISMATCH",
         )
+    if portfolio.get("audited_writer_readiness_ladder_critical_blocker_count") != critical_blocker_count:
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder critical blocker count mismatch",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if portfolio.get("audited_writer_readiness_ladder_warning_count") != warning_count:
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder warning count mismatch",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if portfolio.get("audited_writer_readiness_ladder_informational_count") != informational_count:
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder informational count mismatch",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if (
+        portfolio.get("audited_writer_readiness_ladder_non_live_regeneration_blocker_count")
+        != non_live_regeneration_blocker_count
+    ):
+        return DashboardValidationResult(
+            "FAIL",
+            "audited writer readiness ladder non-live regeneration blocker count mismatch",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
     if portfolio.get("audited_writer_readiness_ladder_highest_passed_step_id") != highest_passed_step_id:
         return DashboardValidationResult(
             "FAIL",
@@ -1302,7 +1446,6 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
             "audited writer readiness ladder current step mismatch",
             "SCHEMA_IDENTITY_MISMATCH",
         )
-    step_by_id = {step["step_id"]: step for step in steps if isinstance(step, dict)}
     if lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
         expected_status = (
             "STALE_SINGLE_RUN_SNAPSHOT"
@@ -1327,12 +1470,6 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
             "FAIL",
             "audited writer readiness ladder status drifted from portfolio writer lifecycle",
             "SCHEMA_IDENTITY_MISMATCH",
-        )
-    if step_by_id["CONTINUOUS_CURRENT_EVIDENCE_WRITER"].get("status") == "PASS":
-        return DashboardValidationResult(
-            "BLOCKED",
-            "dashboard cannot claim continuous audited current-evidence writer PASS",
-            "LIVE_FINAL_GUARD_FAILED",
         )
     return None
 
@@ -24252,6 +24389,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "<li>"
             f"<span class=\"pill {status_class(step.get('status'))}\">{safe_text(step.get('status', 'MISSING'))}</span>"
             f"<strong>{safe_text(step.get('label', 'Audited writer step'))}</strong>"
+            f"<small>{safe_text(step.get('evidence_blocker_level', 'INFORMATIONAL'))} | "
+            f"{safe_text(step.get('action_owner', 'CODEX_AUDIT_ONLY'))}</small>"
             f"<small>{safe_text(step.get('detail', 'Display-only writer readiness evidence.'))}</small>"
             "</li>"
         )
