@@ -1,0 +1,14 @@
+{
+  "patch_id": "MVP4_DASHBOARD_AUDITED_WRITER_ACTIVATION_PREFLIGHT_20260506_001",
+  "generated_at_utc": "2026-05-06T01:24:22Z",
+  "new_paper_run_started_by_this_patch": false,
+  "paper_only": true,
+  "audited_writer_activation_preflight_added": true,
+  "continuous_current_evidence_writer_enabled_by_this_patch": false,
+  "long_run_floor_seconds": 86400,
+  "long_run_stable_sample_floor": 2880,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

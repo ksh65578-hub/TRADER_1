@@ -8537,6 +8537,204 @@
         "audited_writer_readiness_ladder_scale_up_allowed": {
           "const": false
         },
+        "audited_writer_activation_preflight_status": {
+          "enum": [
+            "NO_CHAIN_LOADED",
+            "SOURCE_CHAIN_BLOCKED",
+            "REVIEW_CHAIN_BLOCKED",
+            "SNAPSHOT_ONLY_SOURCE_CHAIN_PARTIAL",
+            "SNAPSHOT_ONLY_CONTINUOUS_WRITER_BLOCKED",
+            "INVALID_DRIFT"
+          ]
+        },
+        "audited_writer_activation_preflight_current_stage_id": {
+          "enum": [
+            "PRECHECK_REPORT",
+            "DRY_RUN_REPORT",
+            "LOCKED_OUTPUT_REPORT",
+            "IMPLEMENTATION_PREP_REPORT",
+            "SINGLE_RUN_AUDITED_WRITER_OUTPUT",
+            "CONTINUOUS_WRITER_LOOP"
+          ]
+        },
+        "audited_writer_activation_preflight_loaded_stage_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audited_writer_activation_preflight_pass_review_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audited_writer_activation_preflight_pass_snapshot_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audited_writer_activation_preflight_blocking_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audited_writer_activation_preflight_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "audited_writer_activation_preflight_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "audited_writer_activation_preflight_stages": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "object",
+            "required": [
+              "stage_id",
+              "label",
+              "status",
+              "source",
+              "validation_status",
+              "primary_blocker_code",
+              "pass_count",
+              "total_count",
+              "detail",
+              "loaded",
+              "review_only",
+              "blocks_writer_activation_until_pass",
+              "current_evidence_write_allowed",
+              "portfolio_truth_write_allowed",
+              "writer_enablement_allowed",
+              "counts_as_live_ready_evidence",
+              "counts_as_gap_closure_evidence",
+              "display_only",
+              "dashboard_truth_only",
+              "live_order_ready",
+              "live_order_allowed",
+              "can_live_trade",
+              "scale_up_allowed",
+              "gap_closure_allowed"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "stage_id": {
+                "enum": [
+                  "PRECHECK_REPORT",
+                  "DRY_RUN_REPORT",
+                  "LOCKED_OUTPUT_REPORT",
+                  "IMPLEMENTATION_PREP_REPORT",
+                  "SINGLE_RUN_AUDITED_WRITER_OUTPUT",
+                  "CONTINUOUS_WRITER_LOOP"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "NOT_LOADED",
+                  "PASS_REVIEW_ONLY",
+                  "PASS_SNAPSHOT_ONLY",
+                  "BLOCKED_REVIEW_ONLY",
+                  "BLOCKED",
+                  "INVALID"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "validation_status": {
+                "type": "string",
+                "minLength": 1
+              },
+              "primary_blocker_code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "pass_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "detail": {
+                "type": "string",
+                "minLength": 1
+              },
+              "loaded": {
+                "type": "boolean"
+              },
+              "review_only": {
+                "type": "boolean"
+              },
+              "blocks_writer_activation_until_pass": {
+                "type": "boolean"
+              },
+              "current_evidence_write_allowed": {
+                "const": false
+              },
+              "portfolio_truth_write_allowed": {
+                "const": false
+              },
+              "writer_enablement_allowed": {
+                "const": false
+              },
+              "counts_as_live_ready_evidence": {
+                "const": false
+              },
+              "counts_as_gap_closure_evidence": {
+                "const": false
+              },
+              "display_only": {
+                "const": true
+              },
+              "dashboard_truth_only": {
+                "const": true
+              },
+              "live_order_ready": {
+                "const": false
+              },
+              "live_order_allowed": {
+                "const": false
+              },
+              "can_live_trade": {
+                "const": false
+              },
+              "scale_up_allowed": {
+                "const": false
+              },
+              "gap_closure_allowed": {
+                "const": false
+              }
+            }
+          }
+        },
+        "audited_writer_activation_preflight_writer_enablement_allowed": {
+          "const": false
+        },
+        "audited_writer_activation_preflight_current_evidence_write_allowed": {
+          "const": false
+        },
+        "audited_writer_activation_preflight_portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "audited_writer_activation_preflight_live_review_allowed": {
+          "const": false
+        },
+        "audited_writer_activation_preflight_gap_closure_allowed": {
+          "const": false
+        },
+        "audited_writer_activation_preflight_live_order_allowed": {
+          "const": false
+        },
+        "audited_writer_activation_preflight_can_live_trade": {
+          "const": false
+        },
+        "audited_writer_activation_preflight_scale_up_allowed": {
+          "const": false
+        },
         "configured_paper_capital": {
           "$ref": "#/$defs/portfolio_card"
         },
