@@ -630,6 +630,59 @@ PROFITABILITY_MATURITY_EVIDENCE_SOURCES = {
 PROFITABILITY_ACTUAL_RUNTIME_SOURCE_STATUSES = {"MISSING", "STUB_ONLY", "VALIDATED_NON_LIVE_RUNTIME"}
 PROFITABILITY_RANKING_ACTIONS = {"ALLOW_RANKING", "BLOCK_RANKING"}
 PROFITABILITY_PROGRESS_STATUSES = {"NOT_STARTED", "IN_PROGRESS", "READY", "BLOCKED", "STALE"}
+PROFITABILITY_ACTIONABILITY_STATUSES = {
+    "NOT_LOADED",
+    "BLOCKED_SCOPE_OR_SAFETY",
+    "BLOCKED_DATA_FRESHNESS",
+    "COLLECT_PAPER_SAMPLES",
+    "COLLECT_SHADOW_SAMPLES",
+    "COLLECT_REASON_AND_COST_EVIDENCE",
+    "SCORECARD_READY_COLLECT_PAIRED_WINDOWS",
+    "SCORECARD_READY_EXTEND_RUNTIME_SPAN",
+    "SCORECARD_READY_BIND_ACTUAL_RUNTIME_SOURCE",
+    "LONG_RUN_REVIEW_READY",
+}
+PROFITABILITY_COLLECTION_DEFICIT_CODES = {
+    "NOT_LOADED",
+    "SCOPE_OR_LIVE_SAFETY_BLOCKED",
+    "DATA_FRESHNESS_DEFICIT",
+    "PAPER_SAMPLE_DEFICIT",
+    "SHADOW_SAMPLE_DEFICIT",
+    "REASON_OR_COST_EVIDENCE_DEFICIT",
+    "PAIRED_WINDOW_DEFICIT",
+    "EVIDENCE_SPAN_DEFICIT",
+    "ACTUAL_RUNTIME_SOURCE_DEFICIT",
+    "NONE",
+}
+PROFITABILITY_NEXT_COLLECTION_ACTIONS = {
+    "NOT_LOADED",
+    "STOP_AND_INSPECT_SCOPE_OR_SAFETY",
+    "REFRESH_STALE_PAPER_SHADOW_ARTIFACTS",
+    "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+    "RUN_MORE_SHADOW_SAMPLE_WINDOWS",
+    "RECORD_ENTRY_NO_TRADE_AND_COST_REASONS",
+    "RUN_PAIRED_PAPER_SHADOW_WINDOWS",
+    "EXTEND_NON_LIVE_RUNTIME_SPAN",
+    "ATTACH_VALIDATED_NON_LIVE_RUNTIME_SOURCE",
+    "USE_FOR_PAPER_SCORECARD_ONLY",
+    "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE",
+}
+PROFITABILITY_SCORECARD_TRUTH_STATUSES = {
+    "NOT_LOADED",
+    "BLOCKED_NOT_SCORECARD_INPUT",
+    "PAPER_SCORECARD_INPUT_READY_ONLY",
+    "LONG_RUN_REVIEW_READY_NON_LIVE",
+}
+PROFITABILITY_ACTIONABILITY_DEFICIT_FIELDS = (
+    "paper_sample_deficit",
+    "shadow_sample_deficit",
+    "evidence_window_deficit",
+    "evidence_span_hours_deficit",
+    "supporting_window_deficit",
+    "reason_coverage_deficit_count",
+    "stale_artifact_count",
+    "actual_runtime_source_deficit",
+)
 PROFITABILITY_SCORECARD_SCOPES = {
     "PAPER_EVIDENCE_COLLECTION_ONLY",
     "PAPER_SCORECARD_INPUT_ONLY",
@@ -6551,6 +6604,64 @@ def _actual_runtime_source_projection(evidence: dict[str, Any] | None) -> dict[s
     }
 
 
+def _safe_deficit_count(value: Any) -> int:
+    try:
+        return max(int(value), 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _paper_shadow_actionability_projection(evidence: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(evidence, dict):
+        return {
+            "evidence_actionability_status": "NOT_LOADED",
+            "primary_collection_deficit_code": "NOT_LOADED",
+            "primary_collection_deficit_message": "No PAPER/SHADOW actionability report is loaded.",
+            "next_collection_action": "NOT_LOADED",
+            "scorecard_input_truth_status": "NOT_LOADED",
+            **{field: 0 for field in PROFITABILITY_ACTIONABILITY_DEFICIT_FIELDS},
+        }
+
+    actionability_status = str(evidence.get("evidence_actionability_status") or "BLOCKED_SCOPE_OR_SAFETY")
+    if actionability_status not in PROFITABILITY_ACTIONABILITY_STATUSES - {"NOT_LOADED"}:
+        actionability_status = "BLOCKED_SCOPE_OR_SAFETY"
+    deficit_code = str(evidence.get("primary_collection_deficit_code") or "SCOPE_OR_LIVE_SAFETY_BLOCKED")
+    if deficit_code not in PROFITABILITY_COLLECTION_DEFICIT_CODES - {"NOT_LOADED"}:
+        deficit_code = "SCOPE_OR_LIVE_SAFETY_BLOCKED"
+    next_action = str(evidence.get("next_collection_action") or "STOP_AND_INSPECT_SCOPE_OR_SAFETY")
+    if next_action not in PROFITABILITY_NEXT_COLLECTION_ACTIONS - {"NOT_LOADED"}:
+        next_action = "STOP_AND_INSPECT_SCOPE_OR_SAFETY"
+    truth_status = str(evidence.get("scorecard_input_truth_status") or "BLOCKED_NOT_SCORECARD_INPUT")
+    if truth_status not in PROFITABILITY_SCORECARD_TRUTH_STATUSES - {"NOT_LOADED"}:
+        truth_status = "BLOCKED_NOT_SCORECARD_INPUT"
+    message = str(
+        evidence.get("primary_collection_deficit_message")
+        or "PAPER/SHADOW actionability fields are missing or invalid; regenerate the evidence report."
+    )
+    return {
+        "evidence_actionability_status": actionability_status,
+        "primary_collection_deficit_code": deficit_code,
+        "primary_collection_deficit_message": message,
+        "next_collection_action": next_action,
+        "scorecard_input_truth_status": truth_status,
+        **{
+            field: _safe_deficit_count(evidence.get(field))
+            for field in PROFITABILITY_ACTIONABILITY_DEFICIT_FIELDS
+        },
+    }
+
+
+def _paper_shadow_actionability_safety_override(message: str) -> dict[str, Any]:
+    return {
+        "evidence_actionability_status": "BLOCKED_SCOPE_OR_SAFETY",
+        "primary_collection_deficit_code": "SCOPE_OR_LIVE_SAFETY_BLOCKED",
+        "primary_collection_deficit_message": message,
+        "next_collection_action": "STOP_AND_INSPECT_SCOPE_OR_SAFETY",
+        "scorecard_input_truth_status": "BLOCKED_NOT_SCORECARD_INPUT",
+        **{field: 0 for field in PROFITABILITY_ACTIONABILITY_DEFICIT_FIELDS},
+    }
+
+
 def _profitability_maturity_component(
     component_id: str,
     status: str,
@@ -7275,6 +7386,7 @@ def _profitability_maturity(
         "min_required_samples": 0,
         "sample_summary": "No paper/shadow evidence loaded",
         **_actual_runtime_source_projection(None),
+        **_paper_shadow_actionability_projection(None),
         "cost_evidence_status": "UNTESTED",
         "entry_reason_status": "UNTESTED",
         "no_trade_reason_status": "UNTESTED",
@@ -7401,6 +7513,9 @@ def _profitability_maturity(
             "color_token": "red",
             "evidence_source": "paper_operation_gate_report",
             "evidence_status": "FAIL",
+            **_paper_shadow_actionability_safety_override(
+                "PAPER operation gate did not include a PAPER/SHADOW actionability report."
+            ),
             "evidence_progress_status": "BLOCKED",
             "evidence_progress_pct": 0,
             "evidence_progress_summary": "Evidence source is blocked; fix scope or live-flag drift first.",
@@ -7449,6 +7564,7 @@ def _profitability_maturity(
     eligible = evidence.get("scorecard_input_eligible") is True
     optimizer_ranking_action = evidence.get("optimizer_ranking_action", "BLOCK_RANKING")
     runtime_source_projection = _actual_runtime_source_projection(evidence)
+    actionability_projection = _paper_shadow_actionability_projection(evidence)
     blockers = evidence.get("blockers", [])
     first_blocker = blockers[0] if blockers and isinstance(blockers[0], dict) else {}
     checklist, progress_pct, progress_status, progress_summary = _profitability_evidence_progress(
@@ -7496,6 +7612,9 @@ def _profitability_maturity(
             "min_required_samples": min_samples,
             "sample_summary": f"PAPER {paper_samples} / SHADOW {shadow_samples}; min {min_samples}",
             **runtime_source_projection,
+            **_paper_shadow_actionability_safety_override(
+                "PAPER/SHADOW actionability suppressed because live/order/scale drift was detected."
+            ),
             "evidence_progress_status": blocked_progress_status,
             "evidence_progress_pct": 0,
             "evidence_progress_summary": blocked_progress_summary,
@@ -7549,6 +7668,9 @@ def _profitability_maturity(
             "min_required_samples": min_samples,
             "sample_summary": f"PAPER {paper_samples} / SHADOW {shadow_samples}; min {min_samples}",
             **runtime_source_projection,
+            **_paper_shadow_actionability_safety_override(
+                "PAPER/SHADOW actionability suppressed because the evidence scope does not match this dashboard."
+            ),
             "evidence_progress_status": blocked_progress_status,
             "evidence_progress_pct": 0,
             "evidence_progress_summary": blocked_progress_summary,
@@ -7590,6 +7712,7 @@ def _profitability_maturity(
         "min_required_samples": min_samples,
         "sample_summary": f"PAPER {paper_samples} / SHADOW {shadow_samples}; min {min_samples}",
         **runtime_source_projection,
+        **actionability_projection,
         "cost_evidence_status": "PASS" if cost_count > 0 else "UNTESTED",
         "entry_reason_status": "PASS" if entry_count > 0 else "UNTESTED",
         "no_trade_reason_status": "PASS" if no_trade_count > 0 else "UNTESTED",
@@ -21317,6 +21440,44 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("BLOCKED", "validated actual runtime source status lacks source ids", "HARD_TRUTH_MISSING")
     if not maturity_long_run_eligible and not maturity_long_run_blocker:
         return DashboardValidationResult("BLOCKED", "profitability maturity must expose long-run evidence blocker", "HARD_TRUTH_MISSING")
+    actionability_status = maturity.get("evidence_actionability_status")
+    if actionability_status not in PROFITABILITY_ACTIONABILITY_STATUSES:
+        return DashboardValidationResult("FAIL", "profitability evidence actionability status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    collection_deficit_code = maturity.get("primary_collection_deficit_code")
+    if collection_deficit_code not in PROFITABILITY_COLLECTION_DEFICIT_CODES:
+        return DashboardValidationResult("FAIL", "profitability collection deficit code is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    next_collection_action = maturity.get("next_collection_action")
+    if next_collection_action not in PROFITABILITY_NEXT_COLLECTION_ACTIONS:
+        return DashboardValidationResult("FAIL", "profitability next collection action is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    scorecard_truth_status = maturity.get("scorecard_input_truth_status")
+    if scorecard_truth_status not in PROFITABILITY_SCORECARD_TRUTH_STATUSES:
+        return DashboardValidationResult("FAIL", "profitability scorecard truth status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    deficit_message = maturity.get("primary_collection_deficit_message")
+    if not isinstance(deficit_message, str) or not deficit_message.strip():
+        return DashboardValidationResult("FAIL", "profitability collection deficit message is missing", "SCHEMA_IDENTITY_MISMATCH")
+    for field in PROFITABILITY_ACTIONABILITY_DEFICIT_FIELDS:
+        value = maturity.get(field)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            return DashboardValidationResult("FAIL", f"{field} must be a non-negative integer", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("evidence_source") == "paper_operation_gate_report" and actionability_status == "NOT_LOADED":
+        return DashboardValidationResult("BLOCKED", "paper operation gate maturity must expose PAPER/SHADOW collection actionability", "HARD_TRUTH_MISSING")
+    if actionability_status in {"BLOCKED_SCOPE_OR_SAFETY", "BLOCKED_DATA_FRESHNESS"} and maturity.get("scorecard_input_eligible") is True:
+        return DashboardValidationResult("BLOCKED", "blocked PAPER/SHADOW actionability cannot be scorecard input eligible", "HARD_TRUTH_MISSING")
+    if collection_deficit_code == "NONE" and actionability_status != "LONG_RUN_REVIEW_READY":
+        return DashboardValidationResult("BLOCKED", "profitability actionability cannot claim no collection deficit before long-run review", "HARD_TRUTH_MISSING")
+    if actionability_status == "LONG_RUN_REVIEW_READY":
+        if (
+            not maturity_long_run_eligible
+            or actual_runtime_source_status != "VALIDATED_NON_LIVE_RUNTIME"
+            or actual_runtime_source_count <= 0
+        ):
+            return DashboardValidationResult("BLOCKED", "long-run PAPER/SHADOW actionability lacks validated non-live runtime source", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
+        if (
+            collection_deficit_code != "NONE"
+            or next_collection_action != "REVIEW_LONG_RUN_EVIDENCE_NON_LIVE"
+            or scorecard_truth_status != "LONG_RUN_REVIEW_READY_NON_LIVE"
+        ):
+            return DashboardValidationResult("BLOCKED", "long-run review actionability must remain non-live and fully bound", "HARD_TRUTH_MISSING")
     if maturity.get("live_readiness_status") not in PROFITABILITY_LIVE_READINESS_STATUSES:
         return DashboardValidationResult("BLOCKED", "profitability maturity attempted to look live-ready", "LIVE_FINAL_GUARD_FAILED")
     warning_text = str(maturity.get("operator_warning", ""))
@@ -23044,6 +23205,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<p>{safe_text(maturity.get('sample_summary', 'No paper/shadow evidence loaded'))}</p></div>"
         "<div><strong>Optimizer Input</strong>"
         f"<p><span class=\"pill {status_class(maturity.get('severity'))}\">{safe_text(maturity.get('optimizer_ranking_action', 'BLOCK_RANKING'))}</span></p></div>"
+        "<div><strong>Next Evidence</strong>"
+        f"<p><span class=\"pill {status_class(maturity.get('evidence_actionability_status'))}\">{safe_text(maturity.get('evidence_actionability_status', 'NOT_LOADED'))}</span><br>"
+        f"{safe_text(maturity.get('next_collection_action', 'NOT_LOADED'))}</p>"
+        f"<small>{safe_text(maturity.get('primary_collection_deficit_code', 'NOT_LOADED'))}: {safe_text(maturity.get('primary_collection_deficit_message', 'No PAPER/SHADOW actionability report is loaded.'))}</small></div>"
+        "<div><strong>Deficit Counts</strong>"
+        f"<p>paper={safe_text(maturity.get('paper_sample_deficit', 0))}, shadow={safe_text(maturity.get('shadow_sample_deficit', 0))}, windows={safe_text(maturity.get('evidence_window_deficit', 0))}, span={safe_text(maturity.get('evidence_span_hours_deficit', 0))}h<br>"
+        f"reason={safe_text(maturity.get('reason_coverage_deficit_count', 0))}, stale={safe_text(maturity.get('stale_artifact_count', 0))}, runtime={safe_text(maturity.get('actual_runtime_source_deficit', 0))}</p>"
+        f"<small>{safe_text(maturity.get('scorecard_input_truth_status', 'NOT_LOADED'))}</small></div>"
         "<div><strong>PAPER Scorecard</strong>"
         f"<p>{safe_text(maturity.get('candidate_scorecard_candidate_id') or 'none')} | {safe_text(maturity.get('candidate_scorecard_symbol') or 'UNKNOWN')}<br>"
         f"net EV={safe_text(maturity.get('candidate_scorecard_net_ev_after_cost_display', 'UNVERIFIED'))}<br>"
