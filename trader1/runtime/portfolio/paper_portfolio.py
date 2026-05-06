@@ -25,6 +25,16 @@ MARK_TO_MARKET_BLOCKED_STATUS = "BLOCKED_PUBLIC_MARK_UNAVAILABLE"
 PUBLIC_MARK_PRICE_BASIS_MISMATCH = "PUBLIC_MARK_PRICE_BASIS_MISMATCH"
 PUBLIC_MARK_PRICE_BASIS_MIN_RATIO = Decimal("0.2")
 PUBLIC_MARK_PRICE_BASIS_MAX_RATIO = Decimal("5")
+PRICE_BASIS_REPAIR_STATUS_APPLIED = "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION"
+PRICE_BASIS_REPAIR_STATUS_NOT_REQUIRED = "NOT_REQUIRED"
+PRICE_BASIS_REPAIR_STATUS_BLOCKED = "BLOCKED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION"
+PRICE_BASIS_REPAIR_SOURCE = "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_BTC_PUBLIC_MARK"
+LEGACY_STATIC_KRW_BTC_MIN_PRICE = Decimal("900000")
+LEGACY_STATIC_KRW_BTC_MAX_PRICE = Decimal("1200000")
+UPBIT_KRW_BTC_PUBLIC_MARK_MIN_PRICE = Decimal("10000000")
+UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE = Decimal("300000000")
+PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO = Decimal("5")
+PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO = Decimal("500")
 PAPER_STARTING_CASH_BY_SCOPE = {
     ("UPBIT", "KRW_SPOT"): ("KRW", Decimal("1000000")),
     ("BINANCE", "SPOT"): ("USDT", Decimal("10000")),
@@ -92,9 +102,10 @@ def _public_mark_price_basis_blockers(
     *,
     positions: list[dict[str, Any]],
     latest_by_symbol: dict[str, dict[str, str]],
-) -> list[dict[str, str]]:
+) -> tuple[list[dict[str, str]], dict[int, dict[str, str]]]:
     blockers: list[dict[str, str]] = []
-    for position in positions:
+    repairs: dict[int, dict[str, str]] = {}
+    for index, position in enumerate(positions):
         symbol = str(position.get("symbol"))
         public_mark = latest_by_symbol.get(symbol)
         if not public_mark:
@@ -116,6 +127,15 @@ def _public_mark_price_basis_blockers(
             continue
         ratio = mark / valid_reference
         if ratio < PUBLIC_MARK_PRICE_BASIS_MIN_RATIO or ratio > PUBLIC_MARK_PRICE_BASIS_MAX_RATIO:
+            repair = _legacy_static_krw_btc_price_basis_repair(
+                position=position,
+                public_mark_price=mark,
+                valid_reference=valid_reference,
+                ratio=ratio,
+            )
+            if repair is not None:
+                repairs[index] = repair
+                continue
             blockers.append(
                 {
                     "code": PUBLIC_MARK_PRICE_BASIS_MISMATCH,
@@ -126,7 +146,80 @@ def _public_mark_price_basis_blockers(
                     ),
                 }
             )
-    return blockers
+    return blockers, repairs
+
+
+def _legacy_static_krw_btc_price_basis_repair(
+    *,
+    position: dict[str, Any],
+    public_mark_price: Decimal,
+    valid_reference: Decimal,
+    ratio: Decimal,
+) -> dict[str, str] | None:
+    """Normalize old PAPER fixture-priced KRW-BTC quantity to the public-mark price basis.
+
+    The repair is intentionally narrow: it only applies to KRW-BTC long PAPER positions whose
+    ledger entry price is in the legacy 1,000,000 KRW fixture band while the public mark is in
+    the real Upbit KRW-BTC band. It preserves ledger gross cost and fee, changes no cash, and
+    keeps all live/scale flags false.
+    """
+    if str(position.get("symbol")) != "KRW-BTC" or str(position.get("side")) != "LONG":
+        return None
+    quantity = _decimal(position.get("quantity"))
+    cost_basis = _decimal(position.get("cost_basis"))
+    if quantity <= 0 or cost_basis <= 0 or public_mark_price <= 0 or valid_reference <= 0:
+        return None
+    if not (LEGACY_STATIC_KRW_BTC_MIN_PRICE <= valid_reference <= LEGACY_STATIC_KRW_BTC_MAX_PRICE):
+        return None
+    if not (UPBIT_KRW_BTC_PUBLIC_MARK_MIN_PRICE <= public_mark_price <= UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE):
+        return None
+    if not (PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO < ratio <= PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO):
+        return None
+    gross_entry_cost = quantity * valid_reference
+    if gross_entry_cost <= 0 or cost_basis < gross_entry_cost:
+        return None
+    normalized_quantity = gross_entry_cost / public_mark_price
+    if normalized_quantity <= 0:
+        return None
+    return {
+        "price_basis_repair_status": PRICE_BASIS_REPAIR_STATUS_APPLIED,
+        "price_basis_repair_source": PRICE_BASIS_REPAIR_SOURCE,
+        "price_basis_original_quantity": _decimal_text(quantity),
+        "price_basis_original_average_entry_price": _decimal_text(valid_reference),
+        "price_basis_original_gross_entry_cost": _decimal_text(gross_entry_cost),
+        "price_basis_scale_factor": _decimal_text(ratio),
+        "price_basis_normalized_quantity": _decimal_text(normalized_quantity),
+        "price_basis_normalized_average_entry_price": _decimal_text(public_mark_price),
+    }
+
+
+def portfolio_needs_public_mark_basis_repair(snapshot: dict[str, Any]) -> bool:
+    if not isinstance(snapshot, dict) or snapshot.get("source") != "PAPER_LEDGER_ROLLUP_PUBLIC_MARK":
+        return False
+    positions = snapshot.get("positions")
+    if not isinstance(positions, list):
+        return False
+    for position in positions:
+        if not isinstance(position, dict):
+            continue
+        mark = _decimal(position.get("mark_price"))
+        reference = _decimal(position.get("average_entry_price"))
+        if mark <= 0 or reference <= 0:
+            continue
+        ratio = mark / reference
+        if PUBLIC_MARK_PRICE_BASIS_MIN_RATIO <= ratio <= PUBLIC_MARK_PRICE_BASIS_MAX_RATIO:
+            continue
+        if position.get("price_basis_repair_status") == PRICE_BASIS_REPAIR_STATUS_APPLIED:
+            continue
+        repair = _legacy_static_krw_btc_price_basis_repair(
+            position=position,
+            public_mark_price=mark,
+            valid_reference=reference,
+            ratio=ratio,
+        )
+        if repair is not None:
+            return True
+    return False
 
 
 def mark_paper_portfolio_snapshot_to_public_market(
@@ -251,7 +344,10 @@ def mark_paper_portfolio_snapshot_to_public_market(
         blocked["snapshot_hash"] = paper_portfolio_hash(blocked)
         return blocked
 
-    basis_blockers = _public_mark_price_basis_blockers(positions=base_positions, latest_by_symbol=latest_by_symbol)
+    basis_blockers, basis_repairs = _public_mark_price_basis_blockers(
+        positions=base_positions,
+        latest_by_symbol=latest_by_symbol,
+    )
     if basis_blockers:
         blocked = dict(base)
         blockers = list(blocked.get("blockers", [])) + basis_blockers
@@ -266,6 +362,9 @@ def mark_paper_portfolio_snapshot_to_public_market(
             if isinstance(public_market_data_collection_report, dict)
             else None
         )
+        blocked["price_basis_repair_status"] = PRICE_BASIS_REPAIR_STATUS_BLOCKED
+        blocked["price_basis_repair_count"] = 0
+        blocked["price_basis_repair_source"] = None
         blocked["live_order_ready"] = False
         blocked["live_order_allowed"] = False
         blocked["can_live_trade"] = False
@@ -279,15 +378,26 @@ def mark_paper_portfolio_snapshot_to_public_market(
     unrealized_pnl = Decimal("0")
     latest_event_time: str | None = None
     latest_event_hash: str | None = None
-    for position in base_positions:
+    applied_repair_count = 0
+    for index, position in enumerate(base_positions):
         symbol = str(position["symbol"])
         public_mark = latest_by_symbol[symbol]
-        qty = _decimal(position["quantity"])
+        repair = basis_repairs.get(index)
+        qty = _decimal(repair["price_basis_normalized_quantity"]) if repair else _decimal(position["quantity"])
         mark = _decimal(public_mark["mark_price"])
         cost_basis = _decimal(position["cost_basis"])
         market_value = qty * mark
         position_unrealized = market_value - cost_basis
         updated = dict(position)
+        if repair:
+            applied_repair_count += 1
+            updated.update(repair)
+            updated["quantity"] = repair["price_basis_normalized_quantity"]
+            updated["average_entry_price"] = repair["price_basis_normalized_average_entry_price"]
+        elif updated.get("price_basis_repair_status") == PRICE_BASIS_REPAIR_STATUS_APPLIED:
+            applied_repair_count += 1
+        else:
+            updated["price_basis_repair_status"] = PRICE_BASIS_REPAIR_STATUS_NOT_REQUIRED
         updated["mark_price"] = _decimal_text(mark)
         updated["market_value"] = _decimal_text(market_value)
         updated["unrealized_pnl"] = _decimal_text(position_unrealized)
@@ -333,6 +443,11 @@ def mark_paper_portfolio_snapshot_to_public_market(
             "source_public_market_symbol_count": len(latest_by_symbol),
             "marked_to_market_position_count": len(marked_positions),
             "mark_to_market_blocker_code": None,
+            "price_basis_repair_status": (
+                PRICE_BASIS_REPAIR_STATUS_APPLIED if applied_repair_count else PRICE_BASIS_REPAIR_STATUS_NOT_REQUIRED
+            ),
+            "price_basis_repair_count": applied_repair_count,
+            "price_basis_repair_source": PRICE_BASIS_REPAIR_SOURCE if applied_repair_count else None,
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,

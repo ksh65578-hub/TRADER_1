@@ -42,7 +42,10 @@ from trader1.adapters.upbit.market_data import build_upbit_public_candle_data_fr
 from trader1.core.ledger.restart_recovery import build_restart_recovery_report
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
 from trader1.runtime.ledger.paper_ledger_rollup import paper_ledger_rollup_hash
-from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
+from trader1.runtime.paper.upbit_paper_persistent_loop import (
+    run_upbit_paper_persistent_loop,
+    validate_upbit_paper_persistent_loop_report,
+)
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_public_rest_continuity import build_upbit_public_rest_continuity_report
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
@@ -51,6 +54,7 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
 )
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     build_upbit_paper_ledger_idempotency_runtime_evidence_report,
+    write_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
 from trader1.runtime.reconciliation.reconciliation import build_reconciliation_report
 from trader1.research.shadow.shadow_observation_actual_runtime_harness import (
@@ -65,6 +69,7 @@ from trader1.research.shadow.shadow_observation_runtime_orchestration import (
 )
 from trader1.research.shadow.shadow_observation_scheduler import build_shadow_observation_scheduler_guard_report
 from trader1.research.shadow.shadow_observation_stream import build_shadow_observation_stream_report
+from tools.run_upbit_paper_overfit_diagnostic import build_current_upbit_paper_overfit_diagnostic
 
 
 def krw_display(value):
@@ -72,10 +77,10 @@ def krw_display(value):
 
 
 class SafeLauncherTest(unittest.TestCase):
-    def _upbit_public_payload(self, start_minute: int) -> list[dict[str, object]]:
+    def _upbit_public_payload(self, start_minute: int, market: str = "KRW-BTC") -> list[dict[str, object]]:
         return [
             {
-                "market": "KRW-BTC",
+                "market": market,
                 "candle_date_time_utc": f"2026-04-30T09:{start_minute + index:02d}:00",
                 "opening_price": 1000000 + (start_minute + index) * 1000,
                 "high_price": 1002500 + (start_minute + index) * 1000,
@@ -93,7 +98,7 @@ class SafeLauncherTest(unittest.TestCase):
             index = min(calls["count"], len(starts) - 1)
             calls["count"] += 1
             return build_upbit_public_candle_data_from_rest_payload(
-                payload=self._upbit_public_payload(starts[index]),
+                payload=self._upbit_public_payload(starts[index], market=symbol),
                 symbol=symbol,
                 session_id=session_id,
             )
@@ -196,6 +201,77 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertIn("paper_current_truth_refresh_report.json", source_files)
             self.assertIn("paper_runtime_truth_state_report.json", source_files)
 
+    def test_launcher_refreshes_stale_ledger_idempotency_before_dashboard_current_evidence(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="launcher-idempotency-stale-a",
+                requested_cycle_count=1,
+            )
+            first_evidence = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root)
+            write_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root, report=first_evidence)
+            second_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="launcher-idempotency-stale-b",
+                requested_cycle_count=1,
+            )
+
+            dashboard_paths = write_launcher_dashboard(report, root)
+            refreshed_evidence = load_json(dashboard_paths["upbit_paper_ledger_idempotency_runtime_evidence_report"])
+
+        self.assertEqual(first_evidence["idempotency_status"], "PASS")
+        self.assertNotEqual(first_evidence["source_persistent_loop_hash"], second_loop["loop_hash"])
+        self.assertEqual(refreshed_evidence["source_persistent_loop_hash"], second_loop["loop_hash"])
+        self.assertEqual(refreshed_evidence["source_rollup_hash"], second_loop["paper_ledger_rollup_hash"])
+        self.assertFalse(refreshed_evidence["live_order_allowed"])
+        self.assertFalse(refreshed_evidence["scale_up_allowed"])
+        self.assertEqual(validate_upbit_paper_persistent_loop_report(first_loop).status, "PASS")
+        self.assertEqual(validate_upbit_paper_persistent_loop_report(second_loop).status, "PASS")
+
+    def test_current_truth_uses_current_rollup_when_audited_portfolio_is_stale(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="launcher-stale-audited-portfolio-a",
+                requested_cycle_count=1,
+            )
+            paths = launcher_dashboard_paths(report, root)
+            first_rollup = load_json(paths["paper_ledger_rollup_report"])
+            stale_portfolio = dict(first_rollup["portfolio_snapshot"])
+            paths["audited_paper_portfolio_snapshot"].parent.mkdir(parents=True, exist_ok=True)
+            paths["audited_paper_portfolio_snapshot"].write_text(
+                json.dumps(stale_portfolio, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+
+            second_loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="launcher-stale-audited-portfolio-b",
+                requested_cycle_count=1,
+            )
+            dashboard_paths = write_launcher_dashboard(report, root)
+            current_truth = load_json(dashboard_paths["paper_current_truth_refresh_report"])
+            current_rollup = load_json(dashboard_paths["paper_ledger_rollup_report"])
+
+        self.assertEqual(validate_upbit_paper_persistent_loop_report(first_loop).status, "PASS")
+        self.assertEqual(validate_upbit_paper_persistent_loop_report(second_loop).status, "PASS")
+        self.assertNotEqual(
+            stale_portfolio["snapshot_hash"],
+            current_rollup["portfolio_snapshot"]["snapshot_hash"],
+        )
+        self.assertEqual(
+            current_truth["source_portfolio_snapshot_hash"],
+            current_rollup["portfolio_snapshot"]["snapshot_hash"],
+        )
+        self.assertEqual(current_truth["source_paper_ledger_head_hash"], current_rollup["latest_ledger_head_hash"])
+        self.assertFalse(current_truth["current_evidence_write_allowed"])
+        self.assertFalse(current_truth["live_order_allowed"])
+        self.assertFalse(current_truth["scale_up_allowed"])
+
     def test_launcher_ignores_invalid_rest_continuity_history_instead_of_schema_mismatch(self):
         report = build_launcher_report("UPBIT_PAPER")
         with TemporaryDirectory() as tmp:
@@ -226,6 +302,36 @@ class SafeLauncherTest(unittest.TestCase):
         self.assertFalse(runtime_truth["live_order_allowed"])
         self.assertFalse(runtime_truth["scale_up_allowed"])
 
+    def test_launcher_dashboard_loads_overfit_diagnostic_display_only(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="launcher-overfit-diagnostic",
+                requested_cycle_count=2,
+            )
+            diagnostic_result = build_current_upbit_paper_overfit_diagnostic(
+                root=root,
+                session_id=report["session_id"],
+            )
+            dashboard_paths = write_launcher_dashboard(report, root)
+            dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+
+        self.assertEqual(diagnostic_result["status"], "PASS")
+        maturity = dashboard_shell["profitability_maturity"]
+        self.assertEqual(maturity["overfit_diagnostic_source"], "overfit_diagnostic_report.json")
+        self.assertEqual(maturity["overfit_diagnostic_status"], "BLOCKED_FOR_ROBUSTNESS")
+        self.assertEqual(maturity["overfit_diagnostic_primary_blocker_code"], "SAMPLE_INSUFFICIENT")
+        self.assertFalse(maturity["overfit_diagnostic_robustness_eligible"])
+        source_status = {
+            source["artifact_id"]: source["freshness_status"]
+            for source in dashboard_shell["source_artifacts"]
+            if source["artifact_id"] == "OVERFIT_DIAGNOSTIC"
+        }
+        self.assertEqual(source_status, {"OVERFIT_DIAGNOSTIC": "PASS"})
+        self.assertFalse(dashboard_shell["live_order_allowed"])
+
     def test_operator_rest_continuity_refresh_writes_scoped_history_without_live_permission(self):
         report = build_launcher_report("UPBIT_PAPER")
         continuity = build_upbit_public_rest_continuity_report(
@@ -237,7 +343,7 @@ class SafeLauncherTest(unittest.TestCase):
             safe_launcher,
             "build_upbit_public_rest_continuity_report",
             return_value=continuity,
-        ):
+        ) as build_continuity:
             root = Path(tmp)
             history = refresh_scoped_upbit_public_rest_continuity_history_if_safe(
                 report,
@@ -248,9 +354,107 @@ class SafeLauncherTest(unittest.TestCase):
             history_path_exists = paths["upbit_public_rest_continuity_history"].exists()
 
         self.assertIsNotNone(history)
+        build_continuity.assert_called_once()
+        call_kwargs = build_continuity.call_args.kwargs
+        self.assertEqual(call_kwargs["sample_count"], 1)
+        self.assertEqual(call_kwargs["min_required_pass_samples"], 1)
         self.assertEqual(history["continuity_health_status"], "PASS")
         self.assertEqual(history["min_required_pass_attempts"], 1)
         self.assertTrue(history_path_exists)
+        self.assertFalse(history["live_order_allowed"])
+        self.assertFalse(history["can_live_trade"])
+        self.assertFalse(history["scale_up_allowed"])
+
+    def test_operator_rest_continuity_refresh_uses_current_open_position_symbol(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        captured_symbols = []
+
+        def fake_build_public_continuity(**kwargs):
+            captured_symbols.append(kwargs["symbol"])
+            return build_upbit_public_rest_continuity_report(
+                continuity_id="test-launcher-rest-continuity-current-position-symbol",
+                session_id=report["session_id"],
+                symbol=kwargs["symbol"],
+                sample_count=kwargs["sample_count"],
+                min_required_pass_samples=kwargs["min_required_pass_samples"],
+                fetcher=self._upbit_public_sequence_fetcher([0]),
+            )
+
+        with TemporaryDirectory() as tmp, patch.object(
+            safe_launcher,
+            "build_upbit_public_rest_continuity_report",
+            side_effect=fake_build_public_continuity,
+        ):
+            root = Path(tmp)
+            paths = launcher_dashboard_paths(report, root)
+            paths["paper_ledger_rollup_report"].parent.mkdir(parents=True, exist_ok=True)
+            paths["paper_ledger_rollup_report"].write_text(
+                json.dumps(
+                    {
+                        "portfolio_snapshot": {
+                            "positions": [
+                                {
+                                    "symbol": "KRW-ETH",
+                                    "quantity": "1.25",
+                                }
+                            ]
+                        }
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            history = refresh_scoped_upbit_public_rest_continuity_history_if_safe(
+                report,
+                root,
+                refresh=True,
+            )
+
+        self.assertEqual(captured_symbols, ["KRW-ETH"])
+        self.assertIsNotNone(history)
+        latest_collection = safe_launcher.latest_public_market_data_collection_from_continuity_history(history)
+        self.assertEqual(latest_collection["symbol"], "KRW-ETH")
+        self.assertFalse(history["live_order_allowed"])
+        self.assertFalse(history["can_live_trade"])
+        self.assertFalse(history["scale_up_allowed"])
+
+    def test_operator_rest_continuity_refresh_appends_over_existing_warn_history(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        warn_continuity = build_upbit_public_rest_continuity_report(
+            continuity_id="test-launcher-rest-continuity-existing-warn",
+            session_id=report["session_id"],
+            fetcher=self._upbit_public_sequence_fetcher([0, 0]),
+        )
+        pass_continuity = build_upbit_public_rest_continuity_report(
+            continuity_id="test-launcher-rest-continuity-new-pass",
+            session_id=report["session_id"],
+            fetcher=self._upbit_public_sequence_fetcher([0, 1]),
+        )
+        with TemporaryDirectory() as tmp, patch.object(
+            safe_launcher,
+            "build_upbit_public_rest_continuity_report",
+            return_value=pass_continuity,
+        ):
+            root = Path(tmp)
+            safe_launcher.append_upbit_public_rest_continuity_history(
+                root=root,
+                continuity_report=warn_continuity,
+                history_id="launcher-public-rest-continuity-history",
+                min_required_pass_attempts=1,
+            )
+            history = refresh_scoped_upbit_public_rest_continuity_history_if_safe(
+                report,
+                root,
+                refresh=True,
+            )
+
+        self.assertIsNotNone(history)
+        self.assertEqual(history["total_attempt_count"], 2)
+        self.assertEqual(history["latest_attempt_status"], "PASS")
+        self.assertEqual(history["continuity_health_status"], "PASS")
+        self.assertEqual(history["pass_attempt_count"], 1)
+        self.assertEqual(history["duplicate_latest_event_block_count"], 1)
         self.assertFalse(history["live_order_allowed"])
         self.assertFalse(history["can_live_trade"])
         self.assertFalse(history["scale_up_allowed"])
@@ -261,10 +465,16 @@ class SafeLauncherTest(unittest.TestCase):
             root = Path(tmp)
             source_paths = launcher_dashboard_paths(report)
             target_paths = launcher_dashboard_paths(report, root)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-safe-launcher-audited-current-evidence-source",
+                session_id=report["session_id"],
+                requested_cycle_count=2,
+            )
             implementation_prep = load_json(
                 source_paths["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"]
             )
-            ledger_rollup = load_json(source_paths["paper_ledger_rollup_report"])
+            ledger_rollup = load_json(target_paths["paper_ledger_rollup_report"])
             target_paths[
                 "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"
             ].parent.mkdir(parents=True, exist_ok=True)
@@ -318,6 +528,56 @@ class SafeLauncherTest(unittest.TestCase):
                 "AUDITED_PAPER_PORTFOLIO_SNAPSHOT": "PASS",
             },
         )
+
+    def test_audited_writer_refreshes_same_head_rollup_rebinding(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source_paths = launcher_dashboard_paths(report)
+            target_paths = launcher_dashboard_paths(report, root)
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-safe-launcher-same-head-rollup-refresh",
+                session_id=report["session_id"],
+                requested_cycle_count=2,
+            )
+            implementation_prep = load_json(
+                source_paths["upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"]
+            )
+            target_paths[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"
+            ].parent.mkdir(parents=True, exist_ok=True)
+            target_paths[
+                "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report"
+            ].write_text(json.dumps(implementation_prep, sort_keys=True), encoding="utf-8")
+            ledger_rollup = load_json(target_paths["paper_ledger_rollup_report"])
+            first_report = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+                root=root,
+                source_implementation_prep_report=implementation_prep,
+                source_ledger_rollup_report=ledger_rollup,
+                audited_writer_id="test-safe-launcher-same-head-rollup-refresh-writer",
+            )
+            self.assertEqual(first_report["writer_status"], "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN")
+
+            rebound_rollup = dict(ledger_rollup)
+            rebound_rollup["rollup_id"] = "test-safe-launcher-same-head-rollup-refresh-rebound"
+            rebound_rollup["rollup_hash"] = paper_ledger_rollup_hash(rebound_rollup)
+            refreshed_report = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+                root=root,
+                source_implementation_prep_report=implementation_prep,
+                source_ledger_rollup_report=rebound_rollup,
+                audited_writer_id="test-safe-launcher-same-head-rollup-refresh-writer",
+            )
+
+        self.assertEqual(refreshed_report["writer_status"], "PASS_AUDITED_CURRENT_EVIDENCE_REFRESHED")
+        self.assertEqual(refreshed_report["target_dirty_cause"], "STALE_CURRENT_TRUTH_REFRESHED")
+        self.assertTrue(refreshed_report["stale_output_superseded"])
+        self.assertEqual(refreshed_report["archived_artifact_count"], 3)
+        self.assertEqual(refreshed_report["source_paper_ledger_head_hash"], ledger_rollup["latest_ledger_head_hash"])
+        self.assertEqual(refreshed_report["source_ledger_rollup_hash"], rebound_rollup["rollup_hash"])
+        self.assertFalse(refreshed_report["live_order_allowed"])
+        self.assertFalse(refreshed_report["can_live_trade"])
+        self.assertFalse(refreshed_report["scale_up_allowed"])
 
     def test_launcher_autowrites_paper_current_evidence_when_runtime_checks_pass(self):
         report = build_launcher_report("UPBIT_PAPER")
@@ -556,7 +816,7 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertIn("upbit_paper_persistent_loop_report.json", source_files)
             self.assertFalse(dashboard_shell["live_order_allowed"])
 
-    def test_launcher_dashboard_does_not_prefer_stale_paper_ledger_rollup_as_verified_portfolio(self):
+    def test_launcher_dashboard_refreshes_stale_paper_ledger_rollup_before_portfolio_truth(self):
         report = build_launcher_report("UPBIT_PAPER")
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -576,17 +836,19 @@ class SafeLauncherTest(unittest.TestCase):
             summary = load_json(dashboard_paths["summary"])
             dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
             portfolio_snapshot = load_json(dashboard_paths["paper_portfolio_snapshot"])
+            refreshed_rollup = load_json(rollup_path)
 
             self.assertEqual(summary["portfolio"]["source"], "LEDGER")
-            self.assertEqual(portfolio_snapshot["source"], "PAPER_LEDGER_SCAFFOLD")
-            self.assertNotEqual(portfolio_snapshot["source"], "PAPER_LEDGER_ROLLUP")
+            self.assertEqual(portfolio_snapshot["source"], "PAPER_LEDGER_ROLLUP")
+            self.assertEqual(refreshed_rollup["rollup_status"], "PASS")
+            self.assertNotEqual(refreshed_rollup["generated_at_utc"], "2000-01-01T00:00:00Z")
             self.assertTrue(summary["positions"])
-            self.assertNotEqual(summary["positions"][0]["source"], "PAPER_LEDGER_ROLLUP")
+            self.assertEqual(summary["positions"][0]["source"], "PAPER_LEDGER_ROLLUP")
             self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "VERIFIED")
             self.assertFalse(summary["live_ready"]["live_order_allowed"])
             self.assertFalse(dashboard_shell["live_order_allowed"])
 
-    def test_launcher_dashboard_does_not_fallback_to_initial_portfolio_when_stale_rollup_exists(self):
+    def test_launcher_dashboard_uses_refreshed_rollup_portfolio_when_latest_runtime_cycle_missing(self):
         report = build_launcher_report("UPBIT_PAPER")
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -607,11 +869,15 @@ class SafeLauncherTest(unittest.TestCase):
             dashboard_paths = write_launcher_dashboard(report, root)
             summary = load_json(dashboard_paths["summary"])
             dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+            portfolio_snapshot = load_json(dashboard_paths["paper_portfolio_snapshot"])
+            refreshed_rollup = load_json(rollup_path)
 
-            self.assertEqual(summary["portfolio"]["source"], "SUMMARY_BUILDER")
-            self.assertEqual(summary["portfolio"]["freshness_status"], "UNTESTED")
-            self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "UNVERIFIED")
-            self.assertFalse(dashboard_paths["paper_portfolio_snapshot"].exists())
+            self.assertEqual(summary["portfolio"]["source"], "LEDGER")
+            self.assertEqual(summary["portfolio"]["freshness_status"], "PASS")
+            self.assertEqual(portfolio_snapshot["source"], "PAPER_LEDGER_ROLLUP")
+            self.assertEqual(refreshed_rollup["rollup_status"], "PASS")
+            self.assertNotEqual(refreshed_rollup["generated_at_utc"], "2000-01-01T00:00:00Z")
+            self.assertEqual(dashboard_shell["portfolio_snapshot"]["status"], "VERIFIED")
             self.assertFalse(summary["live_ready"]["live_order_allowed"])
             self.assertFalse(dashboard_shell["live_order_allowed"])
 
@@ -1543,6 +1809,46 @@ class SafeLauncherTest(unittest.TestCase):
             self.assertTrue(paths["heartbeat"].exists())
             self.assertTrue(paths["dashboard_html"].exists())
 
+    def test_refresh_launcher_monitor_artifacts_preserves_current_truth_refresh_flags(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = launcher_dashboard_paths(report, root)
+            paths["heartbeat"].parent.mkdir(parents=True, exist_ok=True)
+            paths["heartbeat"].write_text(
+                json.dumps(
+                    {
+                        "heartbeat_status": "PASS",
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            with patch.object(safe_launcher, "source_tree_hash", return_value=report["source_tree_hash"]), patch.object(
+                safe_launcher,
+                "write_launcher_dashboard",
+                return_value=paths,
+            ) as write_dashboard:
+                heartbeat = refresh_launcher_monitor_artifacts(
+                    report,
+                    root,
+                    refresh_upbit_public_rest_continuity=True,
+                    refresh_paper_shadow_runtime=True,
+                )
+
+        write_dashboard.assert_called_once_with(
+            report,
+            root,
+            refresh_upbit_public_rest_continuity=True,
+            refresh_paper_shadow_runtime=True,
+        )
+        self.assertEqual(heartbeat["heartbeat_status"], "PASS")
+        self.assertFalse(heartbeat["live_order_allowed"])
+        self.assertFalse(heartbeat["can_live_trade"])
+
     def test_refresh_launcher_monitor_artifacts_blocks_stale_source_writer(self):
         report = build_launcher_report("UPBIT_PAPER")
         stale_report = dict(report)
@@ -1593,8 +1899,10 @@ class SafeLauncherTest(unittest.TestCase):
     def test_launcher_main_operator_pause_defaults_to_continuous_safe_monitor(self):
         buffer = StringIO()
         calls = []
+        refresh_calls = []
 
         def fake_emit_console_heartbeats(report, heartbeat, *, ticks, interval_seconds, refresh_heartbeat):
+            refresh_heartbeat()
             calls.append(
                 {
                     "ticks": ticks,
@@ -1606,22 +1914,73 @@ class SafeLauncherTest(unittest.TestCase):
             )
             return []
 
+        def fake_refresh_launcher_monitor_artifacts(report, root, **kwargs):
+            refresh_calls.append(kwargs)
+            return {
+                "heartbeat_status": "PASS",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+            }
+
+        def fake_write_launcher_runtime_bundle(report, root, **kwargs):
+            paths = launcher_dashboard_paths(report, root)
+            paths["heartbeat"].parent.mkdir(parents=True, exist_ok=True)
+            paths["heartbeat"].write_text(
+                json.dumps(
+                    {
+                        "heartbeat_status": "PASS",
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            paths["dashboard_html"].parent.mkdir(parents=True, exist_ok=True)
+            paths["dashboard_html"].write_text("<html></html>", encoding="utf-8")
+            report_path = safe_launcher.launcher_report_path(report, root)
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            report_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+            return report_path, paths
+
         self.assertIsNone(DEFAULT_INTERACTIVE_HEARTBEAT_TICKS)
         with TemporaryDirectory() as tmp, redirect_stdout(buffer), patch.object(
             safe_launcher,
             "emit_console_heartbeats",
             side_effect=fake_emit_console_heartbeats,
+        ), patch.object(
+            safe_launcher,
+            "refresh_launcher_monitor_artifacts",
+            side_effect=fake_refresh_launcher_monitor_artifacts,
+        ), patch.object(
+            safe_launcher,
+            "write_launcher_runtime_bundle",
+            side_effect=fake_write_launcher_runtime_bundle,
         ):
             result = safe_launcher.launcher_main(
                 "UPBIT_PAPER",
                 pause=True,
                 open_dashboard=False,
                 console_heartbeat_interval_seconds=0.0,
+                refresh_upbit_public_rest_continuity=True,
+                refresh_paper_shadow_runtime=True,
                 root=Path(tmp),
             )
         output = buffer.getvalue()
         self.assertEqual(result, 0)
         self.assertEqual(len(calls), 1)
+        self.assertEqual(
+            refresh_calls,
+            [
+                {
+                    "refresh_upbit_public_rest_continuity": True,
+                    "refresh_paper_shadow_runtime": True,
+                }
+            ],
+        )
         self.assertIsNone(calls[0]["ticks"])
         self.assertEqual(calls[0]["interval_seconds"], 0.0)
         self.assertFalse(calls[0]["live_order_ready"])

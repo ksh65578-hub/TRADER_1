@@ -110,7 +110,7 @@
       "message": "paper and shadow samples must both meet the minimum count"
     }
   ],
-  "evidence_hash": "599F74CB208A8D9AB7F0CA78D65FDF739028672083926EF5DB7D47668BF85743",
+  "evidence_hash": "23D3DB1B418E698C73A8915C196E7D851A4DEE425941BF591DF6A65937525887",
   "paper_shadow_actionability_version": "paper_shadow_actionability.v1",
   "evidence_actionability_status": "COLLECT_PAPER_SAMPLES",
   "primary_collection_deficit_code": "PAPER_SAMPLE_DEFICIT",
@@ -119,10 +119,13 @@
   "scorecard_input_truth_status": "BLOCKED_NOT_SCORECARD_INPUT",
   "paper_sample_deficit": 28,
   "shadow_sample_deficit": 28,
-  "evidence_window_deficit": 20,
+  "evidence_window_deficit": 18,
   "evidence_span_hours_deficit": 116,
   "supporting_window_deficit": 20,
   "reason_coverage_deficit_count": 0,
   "stale_artifact_count": 0,
-  "actual_runtime_source_deficit": 2
+  "actual_runtime_source_deficit": 2,
+  "paper_runtime_span_seconds": 14400,
+  "shadow_runtime_span_seconds": 14400,
+  "paired_runtime_span_seconds": 14400
 }

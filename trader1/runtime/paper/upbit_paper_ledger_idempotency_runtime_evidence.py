@@ -12,9 +12,20 @@ from trader1.runtime.ledger.paper_ledger_rollup import (
     paper_ledger_rollup_hash,
     validate_paper_ledger_rollup_report,
 )
+from trader1.runtime.ledger.paper_ledger_input_manifest import (
+    PAPER_LEDGER_INPUT_MANIFEST_SCOPE,
+    load_paper_ledger_input_manifest,
+    paper_ledger_input_manifest_hash,
+    paper_ledger_input_manifest_path,
+    validate_paper_ledger_input_manifest,
+)
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     upbit_paper_persistent_loop_hash,
     validate_upbit_paper_persistent_loop_report,
+)
+from trader1.runtime.paper.upbit_paper_runtime import (
+    upbit_paper_runtime_cycle_hash,
+    validate_upbit_paper_runtime_cycle_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
 
@@ -84,6 +95,16 @@ def _paper_runtime_path_allowed(path: str, session_id: str) -> bool:
     return (
         normalized.startswith(f"system/runtime/upbit/krw_spot/paper/{session_id}/paper_runtime/")
         and normalized.endswith(".json")
+        and ".." not in parts
+        and "/live/" not in normalized
+    )
+
+
+def _manifest_path_allowed(path: str, session_id: str) -> bool:
+    normalized = path.replace("\\", "/")
+    parts = normalized.split("/")
+    return (
+        normalized == f"system/runtime/upbit/krw_spot/paper/{session_id}/ledger/paper_ledger_input_manifest.json"
         and ".." not in parts
         and "/live/" not in normalized
     )
@@ -184,6 +205,91 @@ def _runtime_depth_blocker(cycle: dict[str, Any] | None, cycle_id: Any) -> str |
     return None
 
 
+def _runtime_cycle_summary_from_artifact(
+    *,
+    root: Path,
+    session_id: str,
+    cycle_id: str,
+    blockers: list[dict[str, str]],
+) -> tuple[dict[str, Any] | None, str | None]:
+    cycle_path = _runtime_base(root, session_id) / "paper_runtime" / "cycles" / f"{cycle_id}.runtime_cycle.json"
+    cycle_path_text = _relative_posix(cycle_path, root)
+    if not _paper_runtime_path_allowed(cycle_path_text, session_id):
+        blockers.append(_blocker("SNAPSHOT_SCOPE_MISMATCH", "PAPER runtime cycle artifact path escaped PAPER namespace"))
+        return None, cycle_path_text
+    cycle, cycle_error = _safe_load_json(cycle_path)
+    if cycle_error:
+        blockers.append(_blocker("MEASUREMENT_MISSING", f"PAPER runtime cycle artifact could not be loaded: {cycle_error}"))
+        return None, cycle_path_text
+    if cycle.get("cycle_id") != cycle_id:
+        blockers.append(_blocker("RECONCILIATION_REQUIRED", "PAPER runtime cycle artifact identity does not match rollup head cycle"))
+        return None, cycle_path_text
+    if cycle.get("cycle_hash") != upbit_paper_runtime_cycle_hash(cycle):
+        blockers.append(_blocker("SCHEMA_IDENTITY_MISMATCH", "PAPER runtime cycle artifact hash self-check failed"))
+        return None, cycle_path_text
+    runtime_cycle_contract_mode = "CURRENT"
+    cycle_result = validate_upbit_paper_runtime_cycle_report(cycle)
+    if cycle_result.status != "PASS":
+        legacy_cycle_result = validate_upbit_paper_runtime_cycle_report(cycle, require_current_sizing_caps=False)
+        if (
+            legacy_cycle_result.status == "PASS"
+            and cycle_result.blocker_code == "SCHEMA_IDENTITY_MISMATCH"
+            and "exposure_cap" in cycle_result.message
+        ):
+            runtime_cycle_contract_mode = "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP"
+            cycle_result = legacy_cycle_result
+    if cycle_result.status != "PASS":
+        blockers.append(
+            _blocker(
+                cycle_result.blocker_code or "RECONCILIATION_REQUIRED",
+                f"PAPER runtime cycle artifact did not validate PASS: {cycle_result.message}",
+            )
+        )
+        return None, cycle_path_text
+
+    writer_path = _runtime_base(root, session_id) / "paper_runtime" / "cycles" / f"{cycle_id}.writer_report.json"
+    writer_path_text = _relative_posix(writer_path, root)
+    if not _paper_runtime_path_allowed(writer_path_text, session_id):
+        blockers.append(_blocker("SNAPSHOT_SCOPE_MISMATCH", "PAPER runtime cycle writer path escaped PAPER namespace"))
+        return None, cycle_path_text
+    writer, writer_error = _safe_load_json(writer_path)
+    if writer_error:
+        blockers.append(_blocker("MEASUREMENT_MISSING", f"PAPER runtime cycle writer report could not be loaded: {writer_error}"))
+        return None, cycle_path_text
+    if (
+        writer.get("writer_status") != "PASS"
+        or writer.get("cycle_id") != cycle_id
+        or writer.get("live_order_ready")
+        or writer.get("live_order_allowed")
+        or writer.get("can_live_trade")
+        or writer.get("scale_up_allowed")
+    ):
+        blockers.append(_blocker("RECONCILIATION_REQUIRED", "PAPER runtime cycle writer report is not a PASS live-blocked writer"))
+        return None, cycle_path_text
+
+    selected = cycle.get("selected_candidate") if isinstance(cycle.get("selected_candidate"), dict) else {}
+    return (
+        {
+            "cycle_id": cycle.get("cycle_id"),
+            "runtime_status": "PASS",
+            "runtime_writer_status": "PASS",
+            "runtime_input_role": cycle.get("runtime_input_role"),
+            "runtime_cycle_hash": cycle.get("cycle_hash"),
+            "runtime_cycle_contract_mode": runtime_cycle_contract_mode,
+            "source_collection_report_hash": cycle.get("source_collection_report_hash"),
+            "source_public_market_data_hash": cycle.get("source_public_market_data_hash"),
+            "runtime_public_market_data_hash": cycle.get("runtime_public_market_data_hash"),
+            "feature_snapshot_hash": cycle.get("feature_snapshot_hash"),
+            "canonical_event_count": cycle.get("canonical_event_count"),
+            "strategy_regime_cost_linkage": cycle.get("strategy_regime_cost_linkage"),
+            "regime": cycle.get("regime"),
+            "selected_candidate_id": selected.get("candidate_id"),
+            "selected_candidate_net_ev_after_cost_bps": selected.get("net_ev_after_cost_bps"),
+        },
+        cycle_path_text,
+    )
+
+
 def build_upbit_paper_ledger_idempotency_runtime_evidence_report(
     *,
     root: Path,
@@ -241,6 +347,68 @@ def build_upbit_paper_ledger_idempotency_runtime_evidence_report(
     if source_persistent_loop_hash_self_check != "PASS":
         blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "PAPER persistent loop source hash self-check failed"))
 
+    source_rollup_ledger_input_scope = rollup.get("ledger_input_scope") if isinstance(rollup, dict) else None
+    source_rollup_ledger_head_match_status = rollup.get("ledger_head_match_status") if isinstance(rollup, dict) else None
+    try:
+        source_rollup_ledger_head_mismatch_count = int(rollup.get("ledger_head_mismatch_count") or 0)
+    except (TypeError, ValueError):
+        source_rollup_ledger_head_mismatch_count = 1
+
+    source_manifest_path = None
+    source_manifest_hash = None
+    source_manifest_validation_status = "NOT_APPLICABLE"
+    source_manifest_blocker_code = None
+    source_manifest_binding_status = "NOT_APPLICABLE"
+    source_manifest_accepted_ledger_path_count = 0
+    source_manifest_excluded_ledger_path_count = 0
+    manifest_excluded_paths: set[str] = set()
+    if source_rollup_ledger_input_scope == PAPER_LEDGER_INPUT_MANIFEST_SCOPE:
+        manifest_path = paper_ledger_input_manifest_path(root, session_id)
+        source_manifest_path = _relative_posix(manifest_path, root)
+        manifest, manifest_load_error = load_paper_ledger_input_manifest(root=root, session_id=session_id)
+        if manifest_load_error:
+            source_manifest_validation_status = "BLOCKED"
+            source_manifest_binding_status = "MISMATCH"
+            source_manifest_blocker_code = "RECONCILIATION_REQUIRED"
+            blockers.append(
+                _blocker(
+                    "RECONCILIATION_REQUIRED",
+                    f"PAPER ledger input manifest could not be loaded for idempotency binding: {manifest_load_error}",
+                )
+            )
+        else:
+            source_manifest_hash = manifest.get("manifest_hash") if isinstance(manifest, dict) else None
+            manifest_result = validate_paper_ledger_input_manifest(manifest if isinstance(manifest, dict) else {})
+            source_manifest_validation_status = manifest_result.status
+            source_manifest_blocker_code = manifest_result.blocker_code
+            accepted = manifest.get("accepted_ledger_paths") if isinstance(manifest.get("accepted_ledger_paths"), list) else []
+            excluded = manifest.get("excluded_ledger_paths") if isinstance(manifest.get("excluded_ledger_paths"), list) else []
+            source_manifest_accepted_ledger_path_count = len(accepted)
+            source_manifest_excluded_ledger_path_count = len(excluded)
+            manifest_excluded_paths = {
+                str(item.get("path"))
+                for item in excluded
+                if isinstance(item, dict) and isinstance(item.get("path"), str)
+            }
+            if manifest_result.status != "PASS":
+                source_manifest_binding_status = "MISMATCH"
+                blockers.append(
+                    _blocker(
+                        manifest_result.blocker_code or "RECONCILIATION_REQUIRED",
+                        f"PAPER ledger input manifest did not validate PASS: {manifest_result.message}",
+                    )
+                )
+            elif source_manifest_hash != paper_ledger_input_manifest_hash(manifest):
+                source_manifest_validation_status = "FAIL"
+                source_manifest_binding_status = "MISMATCH"
+                source_manifest_blocker_code = "SCHEMA_IDENTITY_MISMATCH"
+                blockers.append(_blocker("SCHEMA_IDENTITY_MISMATCH", "PAPER ledger input manifest hash self-check failed"))
+            elif source_manifest_path not in rollup.get("artifact_paths", []):
+                source_manifest_binding_status = "MISMATCH"
+                blockers.append(_blocker("SCHEMA_IDENTITY_MISMATCH", "manifest-scoped rollup is missing the input manifest artifact path"))
+            else:
+                source_manifest_binding_status = "PASS"
+
     cycle_results = persistent_loop.get("cycle_results") if isinstance(persistent_loop.get("cycle_results"), list) else []
     source_runtime_cycle_ids = sorted(
         str(item.get("cycle_id")) for item in cycle_results if isinstance(item, dict) and isinstance(item.get("cycle_id"), str)
@@ -248,12 +416,44 @@ def build_upbit_paper_ledger_idempotency_runtime_evidence_report(
     source_runtime_cycle_hashes = sorted(
         str(item.get("runtime_cycle_hash")) for item in cycle_results if isinstance(item, dict) and _is_sha256(item.get("runtime_cycle_hash"))
     )
+    portfolio = rollup.get("portfolio_snapshot") if isinstance(rollup.get("portfolio_snapshot"), dict) else {}
     source_ledger_head_cycle_id = rollup.get("ledger_head_cycle_id")
+    if (
+        not source_ledger_head_cycle_id
+        and source_rollup_ledger_input_scope == PAPER_LEDGER_INPUT_MANIFEST_SCOPE
+        and source_rollup_ledger_head_match_status == "NOT_APPLICABLE"
+    ):
+        source_ledger_head_cycle_id = portfolio.get("source_runtime_cycle_id")
     ledger_head_cycle = next(
         (item for item in cycle_results if isinstance(item, dict) and item.get("cycle_id") == source_ledger_head_cycle_id),
         None,
     )
-    ledger_head_cycle_in_persistent_loop = ledger_head_cycle is not None
+    source_runtime_cycle_binding_source = "PERSISTENT_LOOP_REPORT" if ledger_head_cycle is not None else "NOT_FOUND"
+    source_runtime_cycle_path = None
+    source_runtime_cycle_contract_mode = "PERSISTENT_LOOP_SUMMARY" if ledger_head_cycle is not None else "NOT_BOUND"
+    if (
+        ledger_head_cycle is None
+        and isinstance(source_ledger_head_cycle_id, str)
+        and source_ledger_head_cycle_id
+        and source_persistent_loop_validation.status == "PASS"
+        and source_persistent_loop_hash_self_check == "PASS"
+    ):
+        artifact_cycle, artifact_path = _runtime_cycle_summary_from_artifact(
+            root=root,
+            session_id=session_id,
+            cycle_id=source_ledger_head_cycle_id,
+            blockers=blockers,
+        )
+        if artifact_cycle is not None:
+            ledger_head_cycle = artifact_cycle
+            source_runtime_cycle_binding_source = "SCOPED_RUNTIME_CYCLE_ARTIFACT"
+            source_runtime_cycle_path = artifact_path
+            source_runtime_cycle_contract_mode = str(
+                artifact_cycle.get("runtime_cycle_contract_mode") or "CURRENT"
+            )
+    ledger_head_cycle_in_persistent_loop = (
+        ledger_head_cycle is not None and source_runtime_cycle_binding_source == "PERSISTENT_LOOP_REPORT"
+    )
     runtime_depth_blocker = _runtime_depth_blocker(ledger_head_cycle, source_ledger_head_cycle_id)
     source_runtime_depth_status = "PASS" if runtime_depth_blocker is None else "BLOCKED"
     source_runtime_depth_mismatch_count = 0 if source_runtime_depth_status == "PASS" else 1
@@ -340,23 +540,45 @@ def build_upbit_paper_ledger_idempotency_runtime_evidence_report(
             source_count_mismatch_count += 1
             blockers.append(_blocker("RECONCILIATION_REQUIRED", f"PAPER ledger rollup count mismatch: {field}"))
 
-    portfolio = rollup.get("portfolio_snapshot") if isinstance(rollup.get("portfolio_snapshot"), dict) else {}
     portfolio_provenance_match = (
         portfolio.get("snapshot_status") == "PASS"
         and portfolio.get("source") == "PAPER_LEDGER_ROLLUP"
         and portfolio.get("source_paper_ledger_head_hash") == rollup.get("latest_ledger_head_hash")
         and portfolio.get("source_runtime_cycle_id") == rollup.get("ledger_head_cycle_id")
     )
+    if (
+        source_rollup_ledger_input_scope == PAPER_LEDGER_INPUT_MANIFEST_SCOPE
+        and source_rollup_ledger_head_match_status == "NOT_APPLICABLE"
+    ):
+        portfolio_provenance_match = (
+            portfolio.get("snapshot_status") == "PASS"
+            and portfolio.get("source") == "PAPER_LEDGER_ROLLUP"
+            and portfolio.get("source_paper_ledger_head_hash") == rollup.get("latest_ledger_head_hash")
+            and portfolio.get("source_runtime_cycle_id") == source_ledger_head_cycle_id
+        )
     if not portfolio_provenance_match:
         blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "PAPER portfolio snapshot provenance does not match the rollup ledger head"))
 
-    ledger_head_binding_status = (
-        "PASS"
-        if rollup.get("ledger_head_match_status") == "PASS" and rollup.get("ledger_head_mismatch_count") == 0
-        else "MISMATCH"
+    manifest_scoped_head_binding = (
+        source_rollup_ledger_input_scope == PAPER_LEDGER_INPUT_MANIFEST_SCOPE
+        and source_rollup_ledger_head_match_status == "NOT_APPLICABLE"
+        and source_rollup_ledger_head_mismatch_count == 0
+        and source_manifest_validation_status == "PASS"
+        and source_manifest_binding_status == "PASS"
+        and isinstance(source_ledger_head_cycle_id, str)
+        and _is_sha256(rollup.get("latest_ledger_head_hash"))
+        and portfolio_provenance_match
     )
+    direct_head_binding = rollup.get("ledger_head_match_status") == "PASS" and rollup.get("ledger_head_mismatch_count") == 0
+    ledger_head_binding_status = "PASS" if direct_head_binding or manifest_scoped_head_binding else "MISMATCH"
     if ledger_head_binding_status != "PASS":
         blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "PAPER ledger head binding is not PASS"))
+    if source_manifest_binding_status == "PASS" and manifest_excluded_paths:
+        included_excluded_paths = sorted(set(relative_path for relative_path, _ in source_ledger_paths) & manifest_excluded_paths)
+        if included_excluded_paths:
+            source_manifest_binding_status = "MISMATCH"
+            ledger_head_binding_status = "MISMATCH"
+            blockers.append(_blocker("RECONCILIATION_REQUIRED", "manifest-scoped rollup included excluded PAPER ledger paths"))
 
     forbidden_rollup_flags = (
         "long_run_evidence_eligible",
@@ -410,6 +632,16 @@ def build_upbit_paper_ledger_idempotency_runtime_evidence_report(
         "source_rollup_status": rollup.get("rollup_status"),
         "source_rollup_validation_status": source_validation.status,
         "source_rollup_blocker_code": source_validation.blocker_code,
+        "source_rollup_ledger_input_scope": source_rollup_ledger_input_scope,
+        "source_rollup_ledger_head_match_status": source_rollup_ledger_head_match_status,
+        "source_rollup_ledger_head_mismatch_count": source_rollup_ledger_head_mismatch_count,
+        "source_manifest_path": source_manifest_path,
+        "source_manifest_hash": source_manifest_hash,
+        "source_manifest_validation_status": source_manifest_validation_status,
+        "source_manifest_blocker_code": source_manifest_blocker_code,
+        "source_manifest_binding_status": source_manifest_binding_status,
+        "source_manifest_accepted_ledger_path_count": source_manifest_accepted_ledger_path_count,
+        "source_manifest_excluded_ledger_path_count": source_manifest_excluded_ledger_path_count,
         "source_ledger_head_hash": rollup.get("latest_ledger_head_hash"),
         "source_ledger_head_cycle_id": source_ledger_head_cycle_id,
         "ledger_head_binding_status": ledger_head_binding_status,
@@ -422,6 +654,9 @@ def build_upbit_paper_ledger_idempotency_runtime_evidence_report(
         "source_persistent_loop_cycle_count": len(cycle_results),
         "source_runtime_cycle_ids": source_runtime_cycle_ids,
         "source_runtime_cycle_hashes": source_runtime_cycle_hashes,
+        "source_runtime_cycle_binding_source": source_runtime_cycle_binding_source,
+        "source_runtime_cycle_path": source_runtime_cycle_path,
+        "source_runtime_cycle_contract_mode": source_runtime_cycle_contract_mode,
         "ledger_head_cycle_in_persistent_loop": ledger_head_cycle_in_persistent_loop,
         "ledger_head_runtime_cycle_hash": ledger_head_cycle.get("runtime_cycle_hash") if isinstance(ledger_head_cycle, dict) else None,
         "source_runtime_input_role": ledger_head_cycle.get("runtime_input_role") if isinstance(ledger_head_cycle, dict) else None,
@@ -538,6 +773,16 @@ def validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
         "source_rollup_status",
         "source_rollup_validation_status",
         "source_rollup_blocker_code",
+        "source_rollup_ledger_input_scope",
+        "source_rollup_ledger_head_match_status",
+        "source_rollup_ledger_head_mismatch_count",
+        "source_manifest_path",
+        "source_manifest_hash",
+        "source_manifest_validation_status",
+        "source_manifest_blocker_code",
+        "source_manifest_binding_status",
+        "source_manifest_accepted_ledger_path_count",
+        "source_manifest_excluded_ledger_path_count",
         "source_ledger_head_hash",
         "source_ledger_head_cycle_id",
         "ledger_head_binding_status",
@@ -550,6 +795,9 @@ def validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
         "source_persistent_loop_cycle_count",
         "source_runtime_cycle_ids",
         "source_runtime_cycle_hashes",
+        "source_runtime_cycle_binding_source",
+        "source_runtime_cycle_path",
+        "source_runtime_cycle_contract_mode",
         "ledger_head_cycle_in_persistent_loop",
         "ledger_head_runtime_cycle_hash",
         "source_runtime_input_role",
@@ -686,6 +934,9 @@ def validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
         "source_persistent_loop_cycle_count",
         "source_canonical_event_count",
         "source_runtime_depth_mismatch_count",
+        "source_rollup_ledger_head_mismatch_count",
+        "source_manifest_accepted_ledger_path_count",
+        "source_manifest_excluded_ledger_path_count",
         "mismatch_count",
     )
     for field in count_fields:
@@ -753,6 +1004,60 @@ def validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
         return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "source runtime cycle ids must be a string array", "SCHEMA_IDENTITY_MISMATCH")
     if not isinstance(source_runtime_cycle_hashes, list) or not all(_is_sha256(item) for item in source_runtime_cycle_hashes):
         return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "source runtime cycle hashes must be sha256 array", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("source_runtime_cycle_binding_source") not in {
+        "PERSISTENT_LOOP_REPORT",
+        "SCOPED_RUNTIME_CYCLE_ARTIFACT",
+        "NOT_FOUND",
+    }:
+        return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "runtime cycle binding source is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("source_runtime_cycle_contract_mode") not in {
+        "PERSISTENT_LOOP_SUMMARY",
+        "CURRENT",
+        "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP",
+        "NOT_BOUND",
+    }:
+        return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "runtime cycle contract mode is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    source_runtime_cycle_path = report.get("source_runtime_cycle_path")
+    if source_runtime_cycle_path is not None:
+        if not isinstance(source_runtime_cycle_path, str) or not _paper_runtime_path_allowed(source_runtime_cycle_path, session_id):
+            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("BLOCKED", "runtime cycle artifact path escaped PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
+    if report.get("source_runtime_cycle_binding_source") == "SCOPED_RUNTIME_CYCLE_ARTIFACT" and not source_runtime_cycle_path:
+        return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "runtime cycle artifact binding requires a source path", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("source_runtime_cycle_binding_source") == "PERSISTENT_LOOP_REPORT":
+        if report.get("source_runtime_cycle_contract_mode") != "PERSISTENT_LOOP_SUMMARY":
+            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "persistent-loop binding must use persistent-loop summary contract mode", "SCHEMA_IDENTITY_MISMATCH")
+    elif report.get("source_runtime_cycle_binding_source") == "SCOPED_RUNTIME_CYCLE_ARTIFACT":
+        if report.get("source_runtime_cycle_contract_mode") not in {
+            "CURRENT",
+            "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP",
+        }:
+            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "artifact binding must expose current or legacy runtime cycle contract mode", "SCHEMA_IDENTITY_MISMATCH")
+    elif report.get("source_runtime_cycle_contract_mode") != "NOT_BOUND":
+        return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "unbound runtime cycle must mark contract mode NOT_BOUND", "SCHEMA_IDENTITY_MISMATCH")
+
+    rollup_input_scope = report.get("source_rollup_ledger_input_scope")
+    if rollup_input_scope not in {"SESSION_CYCLE_GLOB", "EXPLICIT_SCOPED_PATHS", PAPER_LEDGER_INPUT_MANIFEST_SCOPE, None}:
+        return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "source rollup input scope is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("source_rollup_ledger_head_match_status") not in {"PASS", "MISSING", "MISMATCH", "NOT_APPLICABLE", None}:
+        return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "source rollup head match status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("source_manifest_validation_status") not in {"PASS", "FAIL", "BLOCKED", "NOT_APPLICABLE"}:
+        return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "manifest validation status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("source_manifest_binding_status") not in {"PASS", "MISMATCH", "NOT_APPLICABLE"}:
+        return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "manifest binding status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    source_manifest_path = report.get("source_manifest_path")
+    if rollup_input_scope == PAPER_LEDGER_INPUT_MANIFEST_SCOPE:
+        if not isinstance(source_manifest_path, str) or not _manifest_path_allowed(source_manifest_path, session_id):
+            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("BLOCKED", "manifest path escaped PAPER ledger namespace", "SNAPSHOT_SCOPE_MISMATCH")
+        if not _is_sha256(report.get("source_manifest_hash")):
+            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "manifest-scoped evidence requires manifest hash", "SCHEMA_IDENTITY_MISMATCH")
+        if report.get("source_manifest_validation_status") != "PASS" or report.get("source_manifest_binding_status") != "PASS":
+            if report.get("runtime_evidence_status") == "PASS":
+                return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "PASS manifest-scoped evidence requires manifest binding PASS", "LEDGER_INTEGRITY_FAIL")
+    else:
+        if source_manifest_path is not None or report.get("source_manifest_hash") is not None:
+            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "non-manifest evidence cannot expose manifest source fields", "SCHEMA_IDENTITY_MISMATCH")
+        if report.get("source_manifest_validation_status") != "NOT_APPLICABLE" or report.get("source_manifest_binding_status") != "NOT_APPLICABLE":
+            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "non-manifest evidence must mark manifest binding not applicable", "SCHEMA_IDENTITY_MISMATCH")
 
     status_fields = {
         "source_rollup_hash_self_check": {"PASS", "FAIL"},
@@ -805,12 +1110,29 @@ def validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
             return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "PASS idempotency evidence cannot carry mismatches", "RECONCILIATION_REQUIRED")
         if report.get("recomputed_ledger_jsonl_count") < 1 or report.get("recomputed_ledger_event_count") < 1:
             return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("BLOCKED", "PASS idempotency evidence requires source PAPER ledger events", "LEDGER_UNAVAILABLE")
-        if report.get("ledger_head_cycle_in_persistent_loop") is not True:
-            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "PASS idempotency evidence requires ledger head cycle in persistent loop", "RECONCILIATION_REQUIRED")
-        if report.get("source_ledger_head_cycle_id") not in source_runtime_cycle_ids:
-            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "ledger head cycle id missing from persistent loop cycle ids", "RECONCILIATION_REQUIRED")
-        if not _is_sha256(report.get("ledger_head_runtime_cycle_hash")) or report.get("ledger_head_runtime_cycle_hash") not in source_runtime_cycle_hashes:
-            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "ledger head runtime cycle hash missing from persistent loop hashes", "RECONCILIATION_REQUIRED")
+        binding_source = report.get("source_runtime_cycle_binding_source")
+        if binding_source == "PERSISTENT_LOOP_REPORT":
+            if report.get("ledger_head_cycle_in_persistent_loop") is not True:
+                return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "PASS idempotency evidence requires ledger head cycle in persistent loop", "RECONCILIATION_REQUIRED")
+            if report.get("source_ledger_head_cycle_id") not in source_runtime_cycle_ids:
+                return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "ledger head cycle id missing from persistent loop cycle ids", "RECONCILIATION_REQUIRED")
+            if not _is_sha256(report.get("ledger_head_runtime_cycle_hash")) or report.get("ledger_head_runtime_cycle_hash") not in source_runtime_cycle_hashes:
+                return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "ledger head runtime cycle hash missing from persistent loop hashes", "RECONCILIATION_REQUIRED")
+        elif binding_source == "SCOPED_RUNTIME_CYCLE_ARTIFACT":
+            if not _is_sha256(report.get("ledger_head_runtime_cycle_hash")):
+                return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "runtime cycle artifact binding requires a runtime cycle hash", "SCHEMA_IDENTITY_MISMATCH")
+            if report.get("ledger_head_cycle_in_persistent_loop") is not False:
+                return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "artifact-bound cycle cannot also claim persistent-loop membership", "SCHEMA_IDENTITY_MISMATCH")
+        else:
+            return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("BLOCKED", "PASS idempotency evidence requires a runtime cycle binding", "MEASUREMENT_MISSING")
+        if rollup_input_scope == PAPER_LEDGER_INPUT_MANIFEST_SCOPE:
+            if (
+                report.get("source_rollup_ledger_head_match_status") != "NOT_APPLICABLE"
+                and report.get("source_rollup_ledger_head_match_status") != "PASS"
+            ):
+                return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "manifest-scoped evidence cannot pass with mismatched rollup head status", "LEDGER_INTEGRITY_FAIL")
+            if report.get("source_manifest_validation_status") != "PASS" or report.get("source_manifest_binding_status") != "PASS":
+                return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "manifest-scoped PASS evidence requires manifest validation and binding PASS", "LEDGER_INTEGRITY_FAIL")
         for hash_field in (
             "source_persistent_loop_hash",
             "source_persistent_loop_recomputed_hash",

@@ -1,0 +1,25 @@
+{
+  "artifact_paths": [
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/upbit-paper-runtime-evidence-profile-20260506T204026Z-collector-1.raw_candles.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/upbit-paper-runtime-evidence-profile-20260506T204026Z-collector-1.canonical_events.jsonl",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/upbit-paper-runtime-evidence-profile-20260506T204026Z-collector-1.collection_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/latest_collection_report.json"
+  ],
+  "blocker_message": "public market data artifacts written atomically",
+  "can_live_trade": false,
+  "collector_id": "upbit-paper-runtime-evidence-profile-20260506T204026Z-collector-1",
+  "exchange": "UPBIT",
+  "generated_at_utc": "2026-05-06T20:40:27Z",
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "primary_blocker_code": null,
+  "project_id": "TRADER_1",
+  "public_market_data_hash": "6FF929E166B4596582C3200E0F0B44C0EAD37FFA7A38344CBCA8EADFD5B6E48A",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.upbit_public_market_data_collection_writer_report.v1",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "symbol": "KRW-BTC",
+  "writer_status": "PASS"
+}

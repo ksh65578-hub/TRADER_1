@@ -1,0 +1,21 @@
+{
+  "blocker_code": "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING",
+  "can_live_trade": false,
+  "created_at_utc": "2026-05-06T21:21:16Z",
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "paper_missing_cycle_count": 1798,
+  "paper_missing_span_seconds": 60800,
+  "paper_observed_cycle_count": 1082,
+  "paper_observed_span_seconds": 25600,
+  "patch_id": "MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION_20260506_001",
+  "recommended_next_paper_batch_cycle_count": 20,
+  "scale_up_allowed": false,
+  "schema_id": "trader1.stage_gate_result.v1",
+  "shadow_missing_cycle_count": 1519,
+  "shadow_missing_span_seconds": 86264,
+  "shadow_observed_cycle_count": 1361,
+  "shadow_observed_span_seconds": 136,
+  "stage": "MVP-4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION",
+  "status": "BLOCKED_FOR_LONG_RUN_EVIDENCE"
+}

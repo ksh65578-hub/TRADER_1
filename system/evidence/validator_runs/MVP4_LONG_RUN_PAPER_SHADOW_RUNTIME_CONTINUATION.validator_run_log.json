@@ -1,0 +1,44 @@
+{
+  "can_live_trade": false,
+  "created_at_utc": "2026-05-06T21:21:16Z",
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "patch_id": "MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION_20260506_001",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.validator_run_log.v1",
+  "status": "PASS",
+  "validators_run": [
+    {
+      "status": "PASS",
+      "validator_id": "schema_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "upbit_paper_runtime_evidence_collection_profile_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "profitability_evidence_maturity_rollup_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "profitability_optimizer_evidence_gap_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "read_only_dashboard_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "patch_result_schema_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "patch_result_runtime_schema_instance_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "live_final_guard_validator"
+    }
+  ]
+}

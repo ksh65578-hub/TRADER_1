@@ -60,6 +60,23 @@ class UpbitOperationalPaperCycleTest(unittest.TestCase):
         self.assertLessEqual(selected, float(decision["caps"]["cash_cap"]))
         self.assertLessEqual(selected, float(decision["caps"]["risk_cap"]))
         self.assertLessEqual(selected, float(decision["caps"]["liquidity_cap"]))
+        self.assertLessEqual(selected, float(decision["caps"]["exposure_cap"]))
+
+    def test_sizing_blocks_when_current_exposure_exceeds_paper_cap(self):
+        inputs = default_sizing_inputs()
+        inputs["current_exposure"] = "400000"
+        decision = build_position_sizing_decision(
+            sizing_decision_id="sizing-exposure-cap",
+            strategy_unit_id="strategy-1",
+            inputs=inputs,
+        )
+        result = validate_position_sizing_decision(decision)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(decision["sizing_status"], "BLOCKED")
+        self.assertEqual(decision["primary_blocker_code"], "RISK_VETO")
+        self.assertEqual(decision["selected_notional"], "0")
+        self.assertFalse(decision["live_order_allowed"])
 
     def test_sizing_live_mutation_blocks(self):
         decision = build_position_sizing_decision(sizing_decision_id="sizing-live", strategy_unit_id="strategy-1")

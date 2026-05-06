@@ -12,6 +12,13 @@ from trader1.core.ledger.paper_ledger import (
     count_incomplete_upbit_paper_order_lifecycles,
     validate_upbit_paper_ledger,
 )
+from trader1.runtime.ledger.paper_ledger_input_manifest import (
+    PAPER_LEDGER_INPUT_MANIFEST_SCOPE,
+    load_paper_ledger_input_manifest,
+    manifest_excluded_ledger_paths,
+    paper_ledger_input_manifest_path,
+    validate_paper_ledger_input_manifest,
+)
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json, recover_jsonl_records
 from trader1.runtime.portfolio.paper_portfolio import (
     PAPER_PORTFOLIO_SCHEMA_ID,
@@ -116,6 +123,50 @@ def _order_session_cycle_ledger_paths(*, root: Path, ledger_dir: Path, cycle_dir
     if not head_matches:
         return ordered_paths
     return [path for path in ordered_paths if path.resolve() != latest_head_path] + head_matches
+
+
+def _ledger_paths_from_active_manifest(
+    *,
+    root: Path,
+    ledger_dir: Path,
+    cycle_dir: Path,
+    session_id: str,
+    blockers: list[dict[str, str]],
+) -> tuple[list[Path] | None, list[str], bool]:
+    manifest_path = paper_ledger_input_manifest_path(root, session_id)
+    manifest, load_error = load_paper_ledger_input_manifest(root=root, session_id=session_id)
+    if load_error == "MISSING":
+        return None, [], False
+    manifest_artifacts = [_relative_posix(manifest_path, root)]
+    if manifest is None:
+        blockers.append(_blocker("RECONCILIATION_REQUIRED", f"PAPER ledger input manifest could not be loaded: {load_error}"))
+        return [], manifest_artifacts, False
+    manifest_result = validate_paper_ledger_input_manifest(manifest)
+    if manifest_result.status != "PASS":
+        blockers.append(
+            _blocker(
+                manifest_result.blocker_code or "RECONCILIATION_REQUIRED",
+                f"PAPER ledger input manifest did not validate PASS: {manifest_result.message}",
+            )
+        )
+        return [], manifest_artifacts, False
+    excluded = manifest_excluded_ledger_paths(manifest)
+    all_paths = sorted(cycle_dir.glob("*.paper_ledger_events.jsonl")) if cycle_dir.exists() else []
+    all_relative_paths = {_relative_posix(path, root): path for path in all_paths}
+    missing_excluded = sorted(path for path in excluded if path not in all_relative_paths)
+    if missing_excluded:
+        blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "PAPER ledger input manifest excluded paths are missing from source scope"))
+    included_paths = [path for relative_path, path in all_relative_paths.items() if relative_path not in excluded]
+    ordered = _order_session_cycle_ledger_paths(
+        root=root,
+        ledger_dir=ledger_dir,
+        cycle_dir=cycle_dir,
+        session_id=session_id,
+        ledger_paths=included_paths,
+    )
+    latest_head_path = _latest_head_ledger_path(root=root, ledger_dir=ledger_dir, cycle_dir=cycle_dir, session_id=session_id)
+    require_head = latest_head_path is not None and _relative_posix(latest_head_path, root) not in excluded
+    return ordered, manifest_artifacts, require_head
 
 
 def _build_ledger_head_binding(
@@ -288,6 +339,9 @@ def _portfolio_snapshot_from_fills(
     equity = cash_available + locked_balance + position_market_value
     if cash_available < 0:
         blockers.append(_blocker("RISK_VETO", "PAPER ledger rollup would make simulated cash negative"))
+    max_exposure = max(Decimal("0"), equity * Decimal("0.35"))
+    if position_market_value > max_exposure:
+        blockers.append(_blocker("RISK_VETO", "PAPER ledger rollup position exposure exceeds 35% of simulated equity"))
     return_pct = Decimal("0") if starting <= 0 else ((equity - starting) / starting * Decimal("100"))
     snapshot = {
         "schema_id": PAPER_PORTFOLIO_SCHEMA_ID,
@@ -340,19 +394,35 @@ def build_paper_ledger_rollup_report(
     ledger_dir = base / "ledger"
     cycle_dir = ledger_dir / "cycles"
     blockers: list[dict[str, str]] = []
+    ledger_input_artifact_paths: list[str] = []
+    require_latest_head_report = False
     if ledger_paths is None:
         ledger_input_scope = "SESSION_CYCLE_GLOB"
-        ledger_paths = (
-            _order_session_cycle_ledger_paths(
-                root=root,
-                ledger_dir=ledger_dir,
-                cycle_dir=cycle_dir,
-                session_id=session_id,
-                ledger_paths=list(cycle_dir.glob("*.paper_ledger_events.jsonl")),
-            )
-            if cycle_dir.exists()
-            else []
+        manifest_paths, manifest_artifacts, manifest_requires_head = _ledger_paths_from_active_manifest(
+            root=root,
+            ledger_dir=ledger_dir,
+            cycle_dir=cycle_dir,
+            session_id=session_id,
+            blockers=blockers,
         )
+        if manifest_paths is not None:
+            ledger_input_scope = PAPER_LEDGER_INPUT_MANIFEST_SCOPE
+            ledger_paths = manifest_paths
+            ledger_input_artifact_paths.extend(manifest_artifacts)
+            require_latest_head_report = manifest_requires_head
+        else:
+            ledger_paths = (
+                _order_session_cycle_ledger_paths(
+                    root=root,
+                    ledger_dir=ledger_dir,
+                    cycle_dir=cycle_dir,
+                    session_id=session_id,
+                    ledger_paths=list(cycle_dir.glob("*.paper_ledger_events.jsonl")),
+                )
+                if cycle_dir.exists()
+                else []
+            )
+            require_latest_head_report = True
         duplicate_ledger_path_count = 0
     else:
         ledger_input_scope = "EXPLICIT_SCOPED_PATHS"
@@ -375,6 +445,7 @@ def build_paper_ledger_rollup_report(
         if duplicate_ledger_path_count:
             blockers.append(_blocker("RECONCILIATION_REQUIRED", "duplicate PAPER ledger JSONL path requires reconciliation"))
     artifact_paths: list[str] = []
+    artifact_paths.extend(ledger_input_artifact_paths)
     all_events: list[dict[str, Any]] = []
     fill_events: list[dict[str, Any]] = []
     duplicate_event_count = 0
@@ -447,7 +518,7 @@ def build_paper_ledger_rollup_report(
         ledger_dir=ledger_dir,
         session_id=session_id,
         ledger_paths=ledger_paths,
-        require_latest_head_report=ledger_input_scope == "SESSION_CYCLE_GLOB",
+        require_latest_head_report=require_latest_head_report,
         latest_source_runtime_cycle_id=latest_source_runtime_cycle_id,
         latest_source_ledger_path=latest_source_ledger_path,
         latest_source_ledger_event_count=latest_source_ledger_event_count,
@@ -620,14 +691,21 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
         return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup event counts are inconsistent", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("ledger_head_match_status") not in {"PASS", "MISSING", "MISMATCH", "NOT_APPLICABLE"}:
         return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup head match status invalid", "SCHEMA_IDENTITY_MISMATCH")
-    if report.get("ledger_input_scope") not in {"SESSION_CYCLE_GLOB", "EXPLICIT_SCOPED_PATHS"}:
+    valid_input_scopes = {"SESSION_CYCLE_GLOB", "EXPLICIT_SCOPED_PATHS", PAPER_LEDGER_INPUT_MANIFEST_SCOPE}
+    if report.get("ledger_input_scope") not in valid_input_scopes:
         return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup input scope invalid", "SCHEMA_IDENTITY_MISMATCH")
     if (
         report.get("ledger_jsonl_count") > 0
         and report.get("ledger_head_match_status") == "NOT_APPLICABLE"
-        and report.get("ledger_input_scope") != "EXPLICIT_SCOPED_PATHS"
+        and report.get("ledger_input_scope") not in {"EXPLICIT_SCOPED_PATHS", PAPER_LEDGER_INPUT_MANIFEST_SCOPE}
     ):
         return PaperLedgerRollupValidationResult("FAIL", "PAPER ledger inputs require latest ledger head binding", "LEDGER_INTEGRITY_FAIL")
+    if report.get("ledger_input_scope") == PAPER_LEDGER_INPUT_MANIFEST_SCOPE:
+        expected_manifest_path = (
+            f"system/runtime/upbit/krw_spot/paper/{report.get('session_id')}/ledger/paper_ledger_input_manifest.json"
+        )
+        if expected_manifest_path not in report.get("artifact_paths", []):
+            return PaperLedgerRollupValidationResult("FAIL", "manifest-scoped rollup missing source input manifest", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("duplicate_ledger_path_count"):
         if report.get("rollup_status") != "BLOCKED":
             return PaperLedgerRollupValidationResult("BLOCKED", "duplicate PAPER ledger paths must block review", "RECONCILIATION_REQUIRED")
@@ -638,7 +716,7 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
     if report.get("rollup_status") == "PASS" and report.get("ledger_event_count") > 0:
         if not isinstance(report.get("latest_ledger_head_hash"), str) or len(report["latest_ledger_head_hash"]) != 64:
             return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup requires latest ledger head hash", "LEDGER_INTEGRITY_FAIL")
-        if report.get("ledger_input_scope") == "SESSION_CYCLE_GLOB":
+        if report.get("ledger_input_scope") in {"SESSION_CYCLE_GLOB", PAPER_LEDGER_INPUT_MANIFEST_SCOPE} and report.get("ledger_head_match_status") == "PASS":
             if report.get("ledger_head_match_status") != "PASS" or report.get("ledger_head_mismatch_count") != 0:
                 return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup requires matching ledger head report", "LEDGER_INTEGRITY_FAIL")
             if not isinstance(report.get("ledger_head_report_path"), str) or not report.get("ledger_head_report_path"):
@@ -647,6 +725,8 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
                 return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup requires ledger head report hash", "LEDGER_INTEGRITY_FAIL")
             if report.get("ledger_head_cycle_id") != report.get("portfolio_snapshot", {}).get("source_runtime_cycle_id"):
                 return PaperLedgerRollupValidationResult("FAIL", "paper ledger head cycle does not match portfolio source cycle", "LEDGER_INTEGRITY_FAIL")
+        elif report.get("ledger_input_scope") == PAPER_LEDGER_INPUT_MANIFEST_SCOPE and report.get("ledger_head_match_status") == "NOT_APPLICABLE":
+            pass
         elif report.get("ledger_head_match_status") != "NOT_APPLICABLE":
             return PaperLedgerRollupValidationResult("FAIL", "explicit PAPER ledger rollup must not claim latest head binding", "LEDGER_INTEGRITY_FAIL")
     if report.get("duplicate_event_count") or report.get("duplicate_order_count"):

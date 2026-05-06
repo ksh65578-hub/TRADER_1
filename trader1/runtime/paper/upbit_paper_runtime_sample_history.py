@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -90,6 +91,16 @@ def _span_seconds(samples: list[dict[str, Any]]) -> int:
     return int((valid[-1] - valid[0]).total_seconds())
 
 
+def _natural_text_key(value: Any) -> tuple[tuple[int, int | str], ...]:
+    parts = re.split(r"(\d+)", str(value))
+    key: list[tuple[int, int | str]] = []
+    for part in parts:
+        if not part:
+            continue
+        key.append((0, int(part)) if part.isdigit() else (1, part))
+    return tuple(key)
+
+
 def _artifact_path_allowed(path: str, session_id: str) -> bool:
     prefix = f"system/runtime/upbit/krw_spot/paper/{session_id}/"
     parts = path.replace("\\", "/").split("/")
@@ -101,6 +112,14 @@ def _runtime_cycle_path(cycle_result: dict[str, Any], root: Path) -> Path | None
         if isinstance(artifact_path, str) and artifact_path.endswith(".runtime_cycle.json"):
             return root / artifact_path
     return None
+
+
+def _entry_reason_evidence_count(runtime_cycle: dict[str, Any]) -> int:
+    explicit_entry_reasons = len(runtime_cycle.get("entry_reasons") or [])
+    selected = runtime_cycle.get("selected_candidate")
+    if isinstance(selected, dict) and selected.get("decision") == "PAPER_ENTRY_REVIEW":
+        return max(explicit_entry_reasons, 1)
+    return explicit_entry_reasons
 
 
 def _build_sample(
@@ -132,7 +151,7 @@ def _build_sample(
         "paper_ledger_head_hash": runtime_cycle.get("paper_ledger_head_hash"),
         "paper_portfolio_snapshot_hash": runtime_cycle.get("paper_portfolio_snapshot", {}).get("snapshot_hash"),
         "candidate_count": len(runtime_cycle.get("strategy_candidates") or []),
-        "entry_reason_count": len(runtime_cycle.get("entry_reasons") or []),
+        "entry_reason_count": _entry_reason_evidence_count(runtime_cycle),
         "no_trade_reason_count": len(runtime_cycle.get("no_trade_reasons") or []),
         "previous_sample_hash": previous_sample_hash,
         "live_order_ready": False,
@@ -221,17 +240,28 @@ def build_upbit_paper_runtime_sample_history(
         if len(samples) >= max_samples:
             break
 
-    samples.sort(key=lambda item: (item["generated_at_utc"], item["cycle_id"]))
+    samples.sort(
+        key=lambda item: (
+            item["generated_at_utc"],
+            _natural_text_key(item.get("loop_id")),
+            _natural_text_key(item.get("cycle_id")),
+            _natural_text_key(item.get("source_runtime_cycle_path")),
+        )
+    )
     previous_hash: str | None = None
     for sample in samples:
         sample["previous_sample_hash"] = previous_hash
         sample["sample_hash"] = upbit_paper_runtime_sample_hash(sample)
         previous_hash = sample["sample_hash"]
+    source_runtime_cycle_hashes = [sample["source_runtime_cycle_hash"] for sample in samples]
 
     observed_span_seconds = _span_seconds(samples)
     span_floor_met = observed_span_seconds >= min_actual_long_run_span_seconds
     cycle_floor_met = len(samples) >= min_actual_long_run_cycle_count
-    if invalid_source_count > 0 or duplicate_cycle_hash_count > 0:
+    if duplicate_cycle_hash_count > 0:
+        status = "BLOCKED"
+        primary_blocker_code = "RECONCILIATION_REQUIRED"
+    elif not samples and invalid_source_count > 0:
         status = "BLOCKED"
         primary_blocker_code = "RECONCILIATION_REQUIRED"
     elif not samples:
@@ -382,6 +412,21 @@ def validate_upbit_paper_runtime_sample_history(history: dict[str, Any]) -> Upbi
     if history.get("long_run_blocker_code") != LONG_RUN_EVIDENCE_BLOCKER_CODE or not history.get("long_run_next_action"):
         return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "runtime sample history must expose the long-run evidence blocker", LONG_RUN_EVIDENCE_BLOCKER_CODE)
 
+    invalid_sources = history.get("invalid_sources")
+    invalid_source_count = int(history.get("invalid_source_count", -1))
+    if not isinstance(invalid_sources, list) or invalid_source_count != len(invalid_sources):
+        return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample invalid source count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    session_id = str(history.get("session_id"))
+    for invalid_source in invalid_sources:
+        if not isinstance(invalid_source, dict):
+            return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample invalid source must be an object", "SCHEMA_IDENTITY_MISMATCH")
+        invalid_path = invalid_source.get("path")
+        invalid_reason = invalid_source.get("reason")
+        if not isinstance(invalid_path, str) or not _artifact_path_allowed(invalid_path, session_id):
+            return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "runtime sample invalid source path escaped UPBIT PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
+        if not isinstance(invalid_reason, str) or not invalid_reason:
+            return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample invalid source reason missing", "SCHEMA_IDENTITY_MISMATCH")
+
     samples = history.get("samples")
     if not isinstance(samples, list):
         return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample history samples must be a list", "SCHEMA_IDENTITY_MISMATCH")
@@ -390,7 +435,6 @@ def validate_upbit_paper_runtime_sample_history(history: dict[str, Any]) -> Upbi
     runtime_hashes: list[str] = []
     previous_hash: str | None = None
     previous_timestamp: datetime | None = None
-    session_id = str(history.get("session_id"))
     for sample in samples:
         if not isinstance(sample, dict):
             return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample must be an object", "SCHEMA_IDENTITY_MISMATCH")
@@ -419,9 +463,10 @@ def validate_upbit_paper_runtime_sample_history(history: dict[str, Any]) -> Upbi
 
     unique_count = len(set(runtime_hashes))
     duplicate_count = len(runtime_hashes) - unique_count
-    if history.get("unique_runtime_cycle_hash_count") != unique_count or history.get("duplicate_cycle_hash_count") != duplicate_count:
+    reported_duplicate_count = int(history.get("duplicate_cycle_hash_count", -1))
+    if history.get("unique_runtime_cycle_hash_count") != unique_count or reported_duplicate_count < duplicate_count:
         return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample duplicate count mismatch", "SCHEMA_IDENTITY_MISMATCH")
-    if duplicate_count:
+    if reported_duplicate_count:
         return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "duplicate runtime cycle samples require reconciliation", "RECONCILIATION_REQUIRED")
     if history.get("source_runtime_cycle_hashes") != runtime_hashes:
         return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime cycle hash list is not bound to samples", "SCHEMA_IDENTITY_MISMATCH")
@@ -437,8 +482,10 @@ def validate_upbit_paper_runtime_sample_history(history: dict[str, Any]) -> Upbi
             return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample first/latest timestamp mismatch", "SCHEMA_IDENTITY_MISMATCH")
     elif history.get("first_sample_at_utc") is not None or history.get("latest_sample_at_utc") is not None:
         return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "empty runtime sample history cannot carry first/latest timestamps", "SCHEMA_IDENTITY_MISMATCH")
-    if int(history.get("invalid_source_count", -1)) > 0 and history.get("runtime_sample_status") != "BLOCKED":
-        return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "invalid runtime source must block sample history", "RECONCILIATION_REQUIRED")
+    if invalid_source_count > 0 and not samples and history.get("runtime_sample_status") != "BLOCKED":
+        return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "invalid runtime source with no accepted samples must block sample history", "RECONCILIATION_REQUIRED")
+    if invalid_source_count > 0 and samples and history.get("runtime_sample_status") not in {"COLLECTING", "BLOCKED"}:
+        return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample invalid source status is inconsistent", "SCHEMA_IDENTITY_MISMATCH")
     if not samples and history.get("runtime_sample_status") != "INSUFFICIENT_HISTORY":
         return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "empty runtime sample history must be insufficient", "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
     if samples and history.get("runtime_sample_status") not in {"COLLECTING", "BLOCKED"}:

@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.upbit_paper_runtime_cycle_report.v1",
-  "generated_at_utc": "2026-05-01T12:29:13Z",
+  "generated_at_utc": "2026-05-06T16:34:33Z",
   "project_id": "TRADER_1",
   "cycle_id": "fixture-profitability-runtime-linkage-pass",
   "exchange": "UPBIT",
@@ -12,7 +12,7 @@
   "source_collection_report_hash": null,
   "source_public_market_data_hash": null,
   "canonical_event_count": 0,
-  "runtime_public_market_data_hash": "50A870CFC4F5F063FE3E0EAFCC2C0D771163467897FFFC4E72959F938D85ECFE",
+  "runtime_public_market_data_hash": "658068F986A45F6016DD3FE369B50A11B9B35D32F958DA288B9656219B4F59AF",
   "market_data_source": "STATIC_FIXTURE",
   "public_market_data": {
     "source": "STATIC_FIXTURE",
@@ -73,7 +73,7 @@
         "volume": "7"
       }
     ],
-    "loaded_at_utc": "2026-05-01T12:29:13Z",
+    "loaded_at_utc": "2026-05-06T16:34:33Z",
     "is_public": true,
     "private_account_fields_present": false
   },
@@ -198,7 +198,7 @@
   "strategy_regime_cost_linkage": {
     "source_runtime_cycle_id": "fixture-profitability-runtime-linkage-pass",
     "runtime_input_role": "STATIC_FIXTURE",
-    "runtime_public_market_data_hash": "50A870CFC4F5F063FE3E0EAFCC2C0D771163467897FFFC4E72959F938D85ECFE",
+    "runtime_public_market_data_hash": "658068F986A45F6016DD3FE369B50A11B9B35D32F958DA288B9656219B4F59AF",
     "feature_snapshot_hash": "B457209029201C9DF5B28BDC631838A6F06AC8854E75D1A7742CBFBBE5A5BE2E",
     "report_regime": "UPTREND",
     "selected_candidate_id": "KRW-BTC-pullback-trend-long",
@@ -215,7 +215,7 @@
   },
   "sizing_decision": {
     "schema_id": "trader1.position_sizing_decision.v1",
-    "generated_at_utc": "2026-05-01T12:29:13Z",
+    "generated_at_utc": "2026-05-06T16:34:33Z",
     "project_id": "TRADER_1",
     "sizing_decision_id": "fixture-profitability-runtime-linkage-pass-sizing",
     "exchange": "UPBIT",
@@ -252,9 +252,10 @@
       "cash_cap": "45000.00",
       "risk_cap": "20000.00",
       "liquidity_cap": "50000.00",
+      "exposure_cap": "350000.00",
       "confidence_cap": "0.55"
     },
-    "selected_notional": "5500.0000",
+    "selected_notional": "5500",
     "sizing_status": "PASS",
     "live_order_ready": false,
     "live_order_allowed": false,
@@ -263,7 +264,7 @@
     "order_adapter_called": false,
     "primary_blocker_code": null,
     "blockers": [],
-    "sizing_decision_hash": "59A253455C4F3F0D4E218BAD5F48AA9212E7CA675CF89F6DC80721FB3F166B7F"
+    "sizing_decision_hash": "A39EA0B7EA19D188C7DE5D394F3CEF9F81E8448521EE1B8F21B95AD45BB7A79B"
   },
   "paper_fill": {
     "fill_source": "PAPER_BROKER_SIMULATION",
@@ -283,7 +284,7 @@
     {
       "schema_id": "trader1.ledger_event.v1",
       "event_id": "mvp4_upbit_paper_runtime-fixture-profitability-runtime-linkage-pass-intent-intent",
-      "event_time_utc": "2026-05-01T12:29:13Z",
+      "event_time_utc": "2026-05-06T16:34:33Z",
       "exchange_time": null,
       "mode": "PAPER",
       "exchange": "UPBIT",
@@ -307,12 +308,12 @@
       "source": "LOCAL",
       "dedup_key": "intent:fixture-profitability-runtime-linkage-pass-intent",
       "previous_hash": null,
-      "event_hash": "7A17CA924F115F03266CE2265CC5AD2C80295027542183BDE4CDB0D7807B68B0"
+      "event_hash": "122F817B6B5016B2698BF8F48EA345F26B24D93B5905E5FBA33EBD822A5C11BE"
     },
     {
       "schema_id": "trader1.ledger_event.v1",
       "event_id": "mvp4_upbit_paper_runtime-fixture-profitability-runtime-linkage-pass-intent-reserve",
-      "event_time_utc": "2026-05-01T12:29:13Z",
+      "event_time_utc": "2026-05-06T16:34:33Z",
       "exchange_time": null,
       "mode": "PAPER",
       "exchange": "UPBIT",
@@ -335,13 +336,13 @@
       "position_delta": null,
       "source": "LOCAL",
       "dedup_key": "reserve:fixture-profitability-runtime-linkage-pass-intent",
-      "previous_hash": "7A17CA924F115F03266CE2265CC5AD2C80295027542183BDE4CDB0D7807B68B0",
-      "event_hash": "D9DB7332DD60C91434E735B155D6649C4F37092C066AD310D3C42A13FFC3A6A4"
+      "previous_hash": "122F817B6B5016B2698BF8F48EA345F26B24D93B5905E5FBA33EBD822A5C11BE",
+      "event_hash": "66794B94A467A4D64AF8F045AEF63BBC8FCAFDB02CDC3EDF4843D0691A65B441"
     },
     {
       "schema_id": "trader1.ledger_event.v1",
       "event_id": "mvp4_upbit_paper_runtime-65AE70E39B8DE34093469244-submit-started",
-      "event_time_utc": "2026-05-01T12:29:13Z",
+      "event_time_utc": "2026-05-06T16:34:33Z",
       "exchange_time": null,
       "mode": "PAPER",
       "exchange": "UPBIT",
@@ -364,13 +365,13 @@
       "position_delta": null,
       "source": "LOCAL",
       "dedup_key": "paper-submit-started:65AE70E39B8DE34093469244",
-      "previous_hash": "D9DB7332DD60C91434E735B155D6649C4F37092C066AD310D3C42A13FFC3A6A4",
-      "event_hash": "518A170496CBCBBBFE498E83A1AFAFE7CCB0A4E6B0178ACF09965D05EE8EEB59"
+      "previous_hash": "66794B94A467A4D64AF8F045AEF63BBC8FCAFDB02CDC3EDF4843D0691A65B441",
+      "event_hash": "C682070A1F732D8F3956E452337601411E308E3F5ED6373BF15E6A0A35DF9B1A"
     },
     {
       "schema_id": "trader1.ledger_event.v1",
       "event_id": "mvp4_upbit_paper_runtime-65AE70E39B8DE34093469244-submitted",
-      "event_time_utc": "2026-05-01T12:29:13Z",
+      "event_time_utc": "2026-05-06T16:34:33Z",
       "exchange_time": null,
       "mode": "PAPER",
       "exchange": "UPBIT",
@@ -393,13 +394,13 @@
       "position_delta": null,
       "source": "LOCAL",
       "dedup_key": "paper-submitted:65AE70E39B8DE34093469244",
-      "previous_hash": "518A170496CBCBBBFE498E83A1AFAFE7CCB0A4E6B0178ACF09965D05EE8EEB59",
-      "event_hash": "7FCC4AFCE837C22EC8FA7D3B165E852BA8C934F5A0EAAB5F2FB871F8799317B3"
+      "previous_hash": "C682070A1F732D8F3956E452337601411E308E3F5ED6373BF15E6A0A35DF9B1A",
+      "event_hash": "86E7242379C54CA7C35CBAD86C7E6556B36E4F201A0F3A4A6BF5B5D1D7197B72"
     },
     {
       "schema_id": "trader1.ledger_event.v1",
       "event_id": "mvp4_upbit_paper_runtime-65AE70E39B8DE34093469244-ack",
-      "event_time_utc": "2026-05-01T12:29:13Z",
+      "event_time_utc": "2026-05-06T16:34:33Z",
       "exchange_time": null,
       "mode": "PAPER",
       "exchange": "UPBIT",
@@ -422,13 +423,13 @@
       "position_delta": null,
       "source": "LOCAL",
       "dedup_key": "paper-ack:65AE70E39B8DE34093469244",
-      "previous_hash": "7FCC4AFCE837C22EC8FA7D3B165E852BA8C934F5A0EAAB5F2FB871F8799317B3",
-      "event_hash": "2D7BE7BEB3FD7C08F4C49D6EFD40068B3554D02899087577F5C74FD4C136B4AB"
+      "previous_hash": "86E7242379C54CA7C35CBAD86C7E6556B36E4F201A0F3A4A6BF5B5D1D7197B72",
+      "event_hash": "4420E5B4FAD714CFA83A091890F5068C28505CB123EE7F959882E0619F52FAB9"
     },
     {
       "schema_id": "trader1.ledger_event.v1",
       "event_id": "mvp4_upbit_paper_runtime-65AE70E39B8DE34093469244-filled",
-      "event_time_utc": "2026-05-01T12:29:13Z",
+      "event_time_utc": "2026-05-06T16:34:33Z",
       "exchange_time": null,
       "mode": "PAPER",
       "exchange": "UPBIT",
@@ -457,21 +458,21 @@
       },
       "source": "LOCAL",
       "dedup_key": "paper-filled:65AE70E39B8DE34093469244",
-      "previous_hash": "2D7BE7BEB3FD7C08F4C49D6EFD40068B3554D02899087577F5C74FD4C136B4AB",
-      "event_hash": "1D3A6615D57D739EEED1766E3EBBC8852A770B05F620E079A93084CA86266D5B"
+      "previous_hash": "4420E5B4FAD714CFA83A091890F5068C28505CB123EE7F959882E0619F52FAB9",
+      "event_hash": "2AA4B512ACD6D6AD1F04543ED6A8D00B6E9F2EC87E4A40796A4376876A436F4E"
     }
   ],
-  "paper_ledger_head_hash": "1D3A6615D57D739EEED1766E3EBBC8852A770B05F620E079A93084CA86266D5B",
+  "paper_ledger_head_hash": "2AA4B512ACD6D6AD1F04543ED6A8D00B6E9F2EC87E4A40796A4376876A436F4E",
   "paper_portfolio_snapshot": {
     "schema_id": "trader1.paper_portfolio_snapshot.v1",
-    "generated_at_utc": "2026-05-01T12:29:13Z",
+    "generated_at_utc": "2026-05-06T16:34:33Z",
     "project_id": "TRADER_1",
     "exchange": "UPBIT",
     "market_type": "KRW_SPOT",
     "mode": "PAPER",
     "session_id": "mvp4_upbit_paper_runtime",
     "source_runtime_cycle_id": "fixture-profitability-runtime-linkage-pass",
-    "source_paper_ledger_head_hash": "1D3A6615D57D739EEED1766E3EBBC8852A770B05F620E079A93084CA86266D5B",
+    "source_paper_ledger_head_hash": "2AA4B512ACD6D6AD1F04543ED6A8D00B6E9F2EC87E4A40796A4376876A436F4E",
     "snapshot_status": "PASS",
     "source": "PAPER_LEDGER_SCAFFOLD",
     "starting_cash_source": "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT",
@@ -508,12 +509,12 @@
     "can_submit_order": false,
     "primary_blocker_code": null,
     "blockers": [],
-    "snapshot_hash": "4A0DB91D1A70F4D05252A185C68FD692FE5095BD9C56A374439DD5FB44E38FD3"
+    "snapshot_hash": "068DB3A6FBEA0CD73B4A11E1CDCD427D696A26A820E894302E43658A45079A76"
   },
   "summary": {
     "schema_id": "trader1.summary.v1",
     "project": "TRADER_1",
-    "generated_at_utc": "2026-05-01T12:29:13Z",
+    "generated_at_utc": "2026-05-06T16:34:33Z",
     "exchange": "UPBIT",
     "market_type": "KRW_SPOT",
     "mode": "PAPER",
@@ -559,11 +560,11 @@
     "portfolio": {
       "source": "LEDGER",
       "freshness_status": "PASS",
-      "source_snapshot_hash": "4A0DB91D1A70F4D05252A185C68FD692FE5095BD9C56A374439DD5FB44E38FD3",
+      "source_snapshot_hash": "068DB3A6FBEA0CD73B4A11E1CDCD427D696A26A820E894302E43658A45079A76",
       "source_runtime_cycle_id": "fixture-profitability-runtime-linkage-pass",
-      "source_paper_ledger_head_hash": "1D3A6615D57D739EEED1766E3EBBC8852A770B05F620E079A93084CA86266D5B",
+      "source_paper_ledger_head_hash": "2AA4B512ACD6D6AD1F04543ED6A8D00B6E9F2EC87E4A40796A4376876A436F4E",
       "source_snapshot_status": "PASS",
-      "source_snapshot_generated_at_utc": "2026-05-01T12:29:13Z",
+      "source_snapshot_generated_at_utc": "2026-05-06T16:34:33Z",
       "source_snapshot_age_seconds": 0,
       "source_snapshot_stale_after_seconds": 300,
       "source_snapshot_freshness_message": "PAPER portfolio snapshot is fresh and display-only",
@@ -577,7 +578,12 @@
       "unrealized_pnl": -5.498625687156422,
       "total_pnl": -5.498625687156422,
       "mdd": 0.0,
-      "next_action": "Continue PAPER monitoring; portfolio values are display truth only"
+      "next_action": "Continue PAPER monitoring; portfolio values are display truth only",
+      "configured_paper_starting_cash": 1000000.0,
+      "configured_paper_starting_cash_currency": "KRW",
+      "configured_paper_starting_cash_source": "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT",
+      "configured_paper_starting_cash_status": "VERIFIED_SOURCE_PRESENT",
+      "configured_paper_starting_cash_message": "PAPER starting capital from the verified simulated ledger snapshot."
     },
     "orders": {
       "source": "SUMMARY_BUILDER",
@@ -704,6 +710,28 @@
       }
     ],
     "fee_snapshot": null,
+    "quantitative_policy_summary": {
+      "source": "QUANTITATIVE_POLICY_REPORT",
+      "freshness_status": "PASS",
+      "policy_status": "IMPLEMENTED_LIVE_BLOCKED",
+      "decision_surface": "DASHBOARD_ONLY",
+      "source_policy_report_id": "fixture-profitability-runtime-linkage-pass_quantitative_policy",
+      "source_policy_report_hash": "D6944FE71D0EFE544E6442D4F2EF74159BB46834E9B882595F9A05D8BCD2CC1A",
+      "dashboard_reason_code": "LIVE_READY_MISSING",
+      "dashboard_operator_message": "LIVE blocked: LIVE_READY snapshot and external live evidence are missing.",
+      "minimum_trade_count": 100,
+      "high_return_candidate_trade_count": 300,
+      "signal_grade": "strong",
+      "signal_score": 0.805933,
+      "net_expected_edge": 0.0052,
+      "total_cost": 0.0022,
+      "primary_blocker_code": "LIVE_READY_MISSING",
+      "next_action": "Use the policy summary for PAPER/SHADOW review only; LIVE_READY and scale-up remain blocked.",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "scale_up_allowed": false
+    },
     "live_ready": {
       "source": "READINESS_SURFACE",
       "live_order_ready": false,
@@ -749,5 +777,5 @@
   "scale_up_allowed": false,
   "primary_blocker_code": null,
   "blockers": [],
-  "cycle_hash": "6F1D6A8F1BFCC3A7D7D326830F28062BB94F94F0F7B2C7EAD0214FCEF42151DD"
+  "cycle_hash": "8269C92A73B8235181FF59C592C48B26BFD523DF350DC4AD055B790065083A80"
 }

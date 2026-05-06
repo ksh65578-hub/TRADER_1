@@ -38,6 +38,7 @@ STALE_DISPLAY_TRUTH_STATUS = "STALE_DISPLAY_TRUTH"
 MONITOR_ONLY_TRUTH_STATUS = "MONITOR_ONLY"
 INVALID_TRUTH_STATUS = "INVALID"
 PAPER_RUNTIME_TRUTH_ROLE = "PAPER_RUNTIME_TRUTH_STATE_ONLY_NOT_LIVE_READY"
+PAPER_RUNTIME_SOURCE_FRESH_SECONDS = 300.0
 
 
 @dataclass(frozen=True)
@@ -78,6 +79,35 @@ def _int_at_least(value: Any, minimum: int = 0) -> int:
     return parsed if parsed >= minimum else minimum
 
 
+def _parse_utc_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _source_age_seconds(report: dict[str, Any] | None, now: datetime) -> float | None:
+    if not isinstance(report, dict):
+        return None
+    generated_at = _parse_utc_timestamp(report.get("generated_at_utc"))
+    if generated_at is None:
+        return None
+    return max(0.0, (now - generated_at).total_seconds())
+
+
+def _source_fresh(report: dict[str, Any] | None, now: datetime) -> bool:
+    age_seconds = _source_age_seconds(report, now)
+    return age_seconds is not None and age_seconds <= PAPER_RUNTIME_SOURCE_FRESH_SECONDS
+
+
 def _blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
 
@@ -106,20 +136,39 @@ def build_paper_runtime_truth_state_report(
     generated_at_utc: str | None = None,
 ) -> dict[str, Any]:
     now = generated_at_utc or utc_now()
+    now_dt = _parse_utc_timestamp(now) or datetime.now(timezone.utc)
     blockers: list[dict[str, str]] = []
 
     paper_scope = exchange == "UPBIT" and market_type == "KRW_SPOT" and mode == "PAPER"
     heartbeat_scoped = _scoped(heartbeat, exchange=exchange, market_type=market_type, mode=mode, session_id=session_id)
     heartbeat_result = validate_heartbeat(heartbeat) if isinstance(heartbeat, dict) else None
+    heartbeat_status = heartbeat.get("heartbeat_status") if isinstance(heartbeat, dict) else None
+    heartbeat_primary_blocker = heartbeat.get("primary_blocker_code") if isinstance(heartbeat, dict) else None
+    heartbeat_blocker_code = (
+        heartbeat_primary_blocker
+        if isinstance(heartbeat_primary_blocker, str) and heartbeat_primary_blocker
+        else heartbeat_result.blocker_code
+        if heartbeat_result is not None
+        else None
+    )
     monitor_alive = bool(
         paper_scope
         and heartbeat_scoped
         and heartbeat_result is not None
         and heartbeat_result.status == "PASS"
-        and heartbeat.get("heartbeat_status") == "PASS"
+        and heartbeat_status == "PASS"
     )
     if paper_scope and not monitor_alive:
-        blockers.append(_blocker("LATENCY_TTL_EXPIRED", "PAPER monitor heartbeat is missing, stale, invalid, or scoped elsewhere"))
+        blockers.append(
+            _blocker(
+                heartbeat_blocker_code or "LATENCY_TTL_EXPIRED",
+                (
+                    "PAPER monitor heartbeat is not executable for current truth: "
+                    f"heartbeat_status={heartbeat_status or 'MISSING'}; "
+                    f"blocker={heartbeat_blocker_code or 'LATENCY_TTL_EXPIRED'}"
+                ),
+            )
+        )
 
     loop_scoped = _scoped(
         upbit_paper_persistent_loop_report,
@@ -138,6 +187,7 @@ def build_paper_runtime_truth_state_report(
         if isinstance(upbit_paper_persistent_loop_report, dict)
         else 0
     )
+    loop_fresh = _source_fresh(upbit_paper_persistent_loop_report, now_dt)
     paper_loop_advancing = bool(
         paper_scope
         and loop_scoped
@@ -146,12 +196,29 @@ def build_paper_runtime_truth_state_report(
         and upbit_paper_persistent_loop_report.get("loop_status") == "PASS"
         and completed_cycle_count > 0
         and upbit_paper_persistent_loop_report.get("actual_paper_runtime_executed") is True
+        and loop_fresh
     )
     if paper_scope and not paper_loop_advancing:
+        loop_was_valid_but_stale = bool(
+            loop_scoped
+            and loop_result is not None
+            and loop_result.status == "PASS"
+            and isinstance(upbit_paper_persistent_loop_report, dict)
+            and upbit_paper_persistent_loop_report.get("loop_status") == "PASS"
+            and completed_cycle_count > 0
+            and upbit_paper_persistent_loop_report.get("actual_paper_runtime_executed") is True
+            and not loop_fresh
+        )
         blockers.append(
             _blocker(
-                "ACTUAL_PAPER_RUNTIME_EXECUTION_MISSING",
-                "PAPER heartbeat exists but a validated advancing PAPER loop is not loaded",
+                "LATENCY_TTL_EXPIRED"
+                if loop_was_valid_but_stale
+                else loop_result.blocker_code
+                if loop_result is not None and loop_result.blocker_code
+                else "ACTUAL_PAPER_RUNTIME_EXECUTION_MISSING",
+                "Validated PAPER loop report is stale and no longer proves an advancing PAPER loop"
+                if loop_was_valid_but_stale
+                else "PAPER heartbeat exists but a validated advancing PAPER loop is not loaded",
             )
         )
 
@@ -167,18 +234,34 @@ def build_paper_runtime_truth_state_report(
         if isinstance(upbit_public_rest_continuity_history, dict)
         else None
     )
+    continuity_fresh = _source_fresh(upbit_public_rest_continuity_history, now_dt)
     market_data_advancing = bool(
         paper_scope
         and continuity_scoped
         and continuity_result is not None
         and continuity_result.status == "PASS"
         and upbit_public_rest_continuity_history.get("continuity_health_status") == "PASS"
+        and continuity_fresh
     )
     if paper_scope and not market_data_advancing:
+        continuity_was_valid_but_stale = bool(
+            continuity_scoped
+            and continuity_result is not None
+            and continuity_result.status == "PASS"
+            and isinstance(upbit_public_rest_continuity_history, dict)
+            and upbit_public_rest_continuity_history.get("continuity_health_status") == "PASS"
+            and not continuity_fresh
+        )
         blockers.append(
             _blocker(
-                continuity_result.blocker_code if continuity_result is not None else "DATA_UNAVAILABLE",
-                "PAPER public market-data continuity is not PASS for this scoped session",
+                "LATENCY_TTL_EXPIRED"
+                if continuity_was_valid_but_stale
+                else continuity_result.blocker_code
+                if continuity_result is not None and continuity_result.blocker_code
+                else "DATA_UNAVAILABLE",
+                "PAPER public market-data continuity report is stale and no longer proves advancing data"
+                if continuity_was_valid_but_stale
+                else "PAPER public market-data continuity is not PASS for this scoped session",
             )
         )
 
@@ -197,6 +280,7 @@ def build_paper_runtime_truth_state_report(
     ledger_event_count = _int_at_least(
         paper_ledger_rollup_report.get("ledger_event_count") if isinstance(paper_ledger_rollup_report, dict) else 0
     )
+    ledger_fresh = _source_fresh(paper_ledger_rollup_report, now_dt)
     ledger_advancing = bool(
         paper_scope
         and ledger_scoped
@@ -205,12 +289,29 @@ def build_paper_runtime_truth_state_report(
         and paper_ledger_rollup_report.get("rollup_status") == "PASS"
         and ledger_event_count > 0
         and isinstance(paper_ledger_rollup_report.get("latest_ledger_head_hash"), str)
+        and ledger_fresh
     )
     if paper_scope and not ledger_advancing:
+        ledger_was_valid_but_stale = bool(
+            ledger_scoped
+            and ledger_result is not None
+            and ledger_result.status == "PASS"
+            and isinstance(paper_ledger_rollup_report, dict)
+            and paper_ledger_rollup_report.get("rollup_status") == "PASS"
+            and ledger_event_count > 0
+            and isinstance(paper_ledger_rollup_report.get("latest_ledger_head_hash"), str)
+            and not ledger_fresh
+        )
         blockers.append(
             _blocker(
-                ledger_result.blocker_code if ledger_result is not None else "LEDGER_UNAVAILABLE",
-                "PAPER ledger rollup is missing, stale, invalid, or has no advancing ledger head",
+                "LATENCY_TTL_EXPIRED"
+                if ledger_was_valid_but_stale
+                else ledger_result.blocker_code
+                if ledger_result is not None and ledger_result.blocker_code
+                else "LEDGER_UNAVAILABLE",
+                "PAPER ledger rollup is stale and no longer proves current ledger advancement"
+                if ledger_was_valid_but_stale
+                else "PAPER ledger rollup is missing, stale, invalid, or has no advancing ledger head",
             )
         )
 
@@ -226,6 +327,7 @@ def build_paper_runtime_truth_state_report(
         if isinstance(paper_current_truth_refresh_report, dict)
         else None
     )
+    refresh_fresh = _source_fresh(paper_current_truth_refresh_report, now_dt)
     current_evidence_refreshing = bool(
         paper_scope
         and refresh_scoped
@@ -233,12 +335,28 @@ def build_paper_runtime_truth_state_report(
         and refresh_result.status == "PASS"
         and paper_current_truth_refresh_report.get("refresh_status") == PAPER_CURRENT_TRUTH_REFRESH_PASS_STATUS
         and paper_current_truth_refresh_report.get("refresh_passed") is True
+        and refresh_fresh
     )
     if paper_scope and not current_evidence_refreshing:
+        refresh_was_valid_but_stale = bool(
+            refresh_scoped
+            and refresh_result is not None
+            and refresh_result.status == "PASS"
+            and isinstance(paper_current_truth_refresh_report, dict)
+            and paper_current_truth_refresh_report.get("refresh_status") == PAPER_CURRENT_TRUTH_REFRESH_PASS_STATUS
+            and paper_current_truth_refresh_report.get("refresh_passed") is True
+            and not refresh_fresh
+        )
         blockers.append(
             _blocker(
-                refresh_result.blocker_code if refresh_result is not None else "HARD_TRUTH_MISSING",
-                "PAPER current-evidence refresh is not passing for this scoped session",
+                "LATENCY_TTL_EXPIRED"
+                if refresh_was_valid_but_stale
+                else refresh_result.blocker_code
+                if refresh_result is not None and refresh_result.blocker_code
+                else "HARD_TRUTH_MISSING",
+                "PAPER current-evidence refresh report is stale and no longer proves current truth"
+                if refresh_was_valid_but_stale
+                else "PAPER current-evidence refresh is not passing for this scoped session",
             )
         )
 

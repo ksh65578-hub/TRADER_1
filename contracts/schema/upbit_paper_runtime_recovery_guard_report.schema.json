@@ -17,6 +17,9 @@
     "latest_cycle_status",
     "latest_cycle_hash",
     "latest_cycle_recoverable",
+    "latest_cycle_contract_mode",
+    "latest_cycle_schema_upgrade_required",
+    "latest_cycle_schema_upgrade_reason",
     "canonical_jsonl_checked_count",
     "corrupted_jsonl_quarantined_count",
     "ledger_jsonl_checked_count",
@@ -56,6 +59,16 @@
     "latest_cycle_status": {"enum": ["PASS", "BLOCKED", "FAIL", "MISSING"]},
     "latest_cycle_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
     "latest_cycle_recoverable": {"type": "boolean"},
+    "latest_cycle_contract_mode": {
+      "enum": [
+        "CURRENT",
+        "LEGACY_RECHECK_WITHOUT_QUANTITATIVE_POLICY_SUMMARY",
+        "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP",
+        "LEGACY_RECHECK_WITHOUT_QUANTITATIVE_POLICY_SUMMARY_AND_CURRENT_SIZING_EXPOSURE_CAP"
+      ]
+    },
+    "latest_cycle_schema_upgrade_required": {"type": "boolean"},
+    "latest_cycle_schema_upgrade_reason": {"type": ["string", "null"]},
     "canonical_jsonl_checked_count": {"type": "integer", "minimum": 0},
     "corrupted_jsonl_quarantined_count": {"type": "integer", "minimum": 0},
     "ledger_jsonl_checked_count": {"type": "integer", "minimum": 0},

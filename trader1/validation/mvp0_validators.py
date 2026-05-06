@@ -2817,17 +2817,31 @@ def read_only_dashboard_validator() -> ValidatorResult:
         if latest_runtime_path.exists():
             latest_runtime_path.unlink()
         dashboard_paths = write_launcher_dashboard(stale_report, stale_root)
+        refreshed_rollup = load_json(dashboard_paths["paper_ledger_rollup_report"])
+        current_truth_refresh = load_json(dashboard_paths["paper_current_truth_refresh_report"])
         stale_summary = load_json(dashboard_paths["summary"])
         stale_dashboard = load_json(dashboard_paths["dashboard_shell"])
         stale_portfolio = stale_summary.get("portfolio", {})
-        if stale_portfolio.get("source") == "LEDGER" or stale_portfolio.get("freshness") == "PASS":
+        regenerated_rollup_bound = (
+            refreshed_rollup.get("rollup_status") == "PASS"
+            and refreshed_rollup.get("generated_at_utc") != "2000-01-01T00:00:00Z"
+            and isinstance(refreshed_rollup.get("portfolio_snapshot"), dict)
+            and current_truth_refresh.get("refresh_status") == "PASS_PAPER_CURRENT_TRUTH_REFRESHED"
+            and current_truth_refresh.get("source_portfolio_snapshot_hash")
+            == refreshed_rollup["portfolio_snapshot"].get("snapshot_hash")
+            and current_truth_refresh.get("source_paper_ledger_head_hash")
+            == refreshed_rollup.get("latest_ledger_head_hash")
+        )
+        if (
+            stale_portfolio.get("source") == "LEDGER" or stale_portfolio.get("freshness") == "PASS"
+        ) and not regenerated_rollup_bound:
             return fail_result(
                 "read_only_dashboard_validator",
                 "stale paper ledger rollup was accepted as verified dashboard portfolio truth",
                 paths,
                 "LATENCY_TTL_EXPIRED",
             )
-        if stale_dashboard.get("portfolio_snapshot", {}).get("status") == "VERIFIED":
+        if stale_dashboard.get("portfolio_snapshot", {}).get("status") == "VERIFIED" and not regenerated_rollup_bound:
             return fail_result(
                 "read_only_dashboard_validator",
                 "dashboard rendered stale paper ledger rollup as a verified portfolio snapshot",
@@ -15252,7 +15266,7 @@ def upbit_operational_paper_gate_validator() -> ValidatorResult:
     if sizing_result.status != "PASS":
         return fail_result("upbit_operational_paper_gate_validator", f"sizing failed: {sizing_result.message}", paths, sizing_result.blocker_code or "UNKNOWN_BLOCKED")
     selected = float(sizing["selected_notional"])
-    for cap_name in ("equity_cap", "cash_cap", "risk_cap", "liquidity_cap"):
+    for cap_name in ("equity_cap", "cash_cap", "risk_cap", "liquidity_cap", "exposure_cap"):
         if selected > float(sizing["caps"][cap_name]):
             return fail_result("upbit_operational_paper_gate_validator", f"sizing exceeded {cap_name}", paths, "RISK_VETO")
 
@@ -19788,12 +19802,9 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             if _live_flag_is_true(robustness_sources.get(field)):
                 errors.append(f"rollup robustness source type evidence has forbidden true field: {field}")
-        if robustness_sources.get("status") != "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE":
-            errors.append("rollup robustness source type evidence must remain BLOCKED_FOR_SOURCE_TYPE_EVIDENCE")
-        if robustness_sources.get("primary_blocker_code") != "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED":
-            errors.append("rollup robustness source type evidence must preserve ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED")
-        if robustness_sources.get("explicit_source_type_blocker") is not True:
-            errors.append("rollup robustness source type evidence requires explicit source type blocker")
+        robustness_status = robustness_sources.get("status")
+        if robustness_status not in {"BLOCKED_FOR_SOURCE_TYPE_EVIDENCE", "PASS"}:
+            errors.append("rollup robustness source type evidence has unsupported status")
 
         required_source_types = set(robustness_sources.get("required_source_types", []))
         present_source_types = set(robustness_sources.get("present_source_types", []))
@@ -19804,7 +19815,7 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
             errors.append("rollup robustness source type evidence contains unknown present source types")
         if missing_source_types != required_source_types - present_source_types:
             errors.append("rollup robustness source type missing_source_types does not match required minus present")
-        if not missing_source_types:
+        if robustness_status == "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE" and not missing_source_types:
             errors.append("rollup robustness source type evidence must keep missing source types visible")
 
         try:
@@ -19826,8 +19837,22 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 errors.append(f"rollup robustness source type evidence missing blocker for {source_type}")
             if source_count >= min_required_per_source_type and source_type in missing_source_types:
                 errors.append(f"rollup robustness source type evidence marks {source_type} missing despite sufficient count")
-        if robustness_sources.get("status") == "PASS" and missing_source_types:
-            errors.append("rollup robustness source type evidence claims PASS while source types are missing")
+        if robustness_status == "PASS":
+            if missing_source_types:
+                errors.append("rollup robustness source type evidence claims PASS while source types are missing")
+            if present_source_types != required_source_types:
+                errors.append("rollup robustness source type evidence claims PASS without all required source types present")
+            if robustness_sources.get("primary_blocker_code") is not None:
+                errors.append("rollup robustness source type evidence PASS must not carry a blocker code")
+            if robustness_sources.get("explicit_source_type_blocker") is not False:
+                errors.append("rollup robustness source type evidence PASS must clear explicit source type blocker")
+        else:
+            if robustness_sources.get("primary_blocker_code") != "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED":
+                errors.append("rollup robustness source type evidence must preserve ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED when blocked")
+            if robustness_sources.get("explicit_source_type_blocker") is not True:
+                errors.append("rollup robustness source type evidence requires explicit source type blocker when blocked")
+            if not missing_source_types:
+                errors.append("rollup blocked robustness source type evidence must list missing source types")
 
         root = ROOT.resolve()
         for path_index, source_artifact_path in enumerate(robustness_sources.get("source_artifact_paths", [])):
@@ -19843,6 +19868,108 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 errors.append("rollup robustness source artifact path escapes repository root")
             elif not resolved_source_path.is_file():
                 errors.append("rollup robustness source artifact path is missing")
+
+    runtime_profile = rollup.get("runtime_collection_profile_evidence", {})
+    if not isinstance(runtime_profile, dict):
+        errors.append("rollup runtime_collection_profile_evidence must be an object")
+    else:
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            if _live_flag_is_true(runtime_profile.get(field)):
+                errors.append(f"rollup runtime collection profile has forbidden true field: {field}")
+        if runtime_profile.get("counts_as_actual_long_run_evidence") is not False:
+            errors.append("rollup runtime collection profile cannot count as actual long-run evidence")
+        if runtime_profile.get("long_run_evidence_eligible") is not False:
+            errors.append("rollup runtime collection profile cannot claim long-run eligibility")
+        if runtime_profile.get("primary_blocker_code") != "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING":
+            errors.append("rollup runtime collection profile must preserve PAPER/SHADOW long-run blocker")
+        if runtime_profile.get("shadow_collection_required") is not True:
+            errors.append("rollup runtime collection profile must keep SHADOW collection required")
+        if runtime_profile.get("recommended_next_paper_batch_cycle_count", 0) > runtime_profile.get("max_safe_paper_batch_cycle_count", 0):
+            errors.append("rollup runtime collection profile next PAPER batch exceeds max safe batch")
+
+        for prefix in ("paper", "shadow"):
+            observed_span = int(runtime_profile.get(f"{prefix}_observed_span_seconds", 0))
+            minimum_span = int(runtime_profile.get(f"{prefix}_minimum_span_seconds", 0))
+            remaining_span = int(runtime_profile.get(f"{prefix}_remaining_span_seconds", 0))
+            observed_cycles = int(runtime_profile.get(f"{prefix}_observed_cycle_count", 0))
+            minimum_cycles = int(runtime_profile.get(f"{prefix}_minimum_cycle_count", 0))
+            remaining_cycles = int(runtime_profile.get(f"{prefix}_remaining_cycle_count", 0))
+            if remaining_span != max(0, minimum_span - observed_span):
+                errors.append(f"rollup runtime collection profile {prefix} remaining span mismatch")
+            if remaining_cycles != max(0, minimum_cycles - observed_cycles):
+                errors.append(f"rollup runtime collection profile {prefix} remaining cycle mismatch")
+        if int(runtime_profile.get("estimated_wall_clock_seconds_remaining", 0)) != max(
+            int(runtime_profile.get("paper_remaining_span_seconds", 0)),
+            int(runtime_profile.get("shadow_remaining_span_seconds", 0)),
+        ):
+            errors.append("rollup runtime collection profile wall-clock remaining estimate mismatch")
+        if (
+            int(runtime_profile.get("paper_remaining_span_seconds", 0)) == 0
+            and int(runtime_profile.get("paper_remaining_cycle_count", 0)) == 0
+            and int(runtime_profile.get("shadow_remaining_span_seconds", 0)) == 0
+            and int(runtime_profile.get("shadow_remaining_cycle_count", 0)) == 0
+        ):
+            errors.append("rollup runtime collection profile hides remaining long-run collection depth")
+
+        profile_path_text = runtime_profile.get("source_artifact_path")
+        if not isinstance(profile_path_text, str) or not profile_path_text:
+            errors.append("rollup runtime collection profile source_artifact_path is missing")
+        else:
+            profile_path = Path(profile_path_text)
+            root = ROOT.resolve()
+            if profile_path.is_absolute():
+                errors.append("rollup runtime collection profile source path must be repo-relative")
+            else:
+                resolved_profile_path = (ROOT / profile_path).resolve()
+                if resolved_profile_path != root and root not in resolved_profile_path.parents:
+                    errors.append("rollup runtime collection profile source path escapes repository root")
+                elif not resolved_profile_path.is_file():
+                    errors.append("rollup runtime collection profile source path is missing")
+                else:
+                    source_profile = load_json(resolved_profile_path)
+                    profile_hash_payload = dict(source_profile)
+                    profile_hash_payload.pop("profile_hash", None)
+                    expected_profile_hash = sha256_json(profile_hash_payload)
+                    if runtime_profile.get("profile_hash") != source_profile.get("profile_hash"):
+                        errors.append("rollup runtime collection profile hash does not match source profile")
+                    if source_profile.get("profile_hash") != expected_profile_hash:
+                        errors.append("rollup runtime collection source profile hash mismatch")
+                    if runtime_profile.get("profile_status") != source_profile.get("status"):
+                        errors.append("rollup runtime collection profile status does not match source profile")
+                    if runtime_profile.get("status") == "PASS" and source_profile.get("status") != "PASS":
+                        errors.append("rollup runtime collection profile cannot PASS when source profile is not PASS")
+                    source_depth = source_profile.get("long_run_collection_depth", {})
+                    source_mode_depth = source_depth.get("runtime_mode_depth_evidence", {}) if isinstance(source_depth, dict) else {}
+                    source_mode_depths = source_mode_depth.get("mode_depths", {}) if isinstance(source_mode_depth, dict) else {}
+                    source_plan = source_profile.get("non_live_collection_plan", {})
+                    if isinstance(source_mode_depths, dict):
+                        for key, prefix in (("paper", "paper"), ("shadow", "shadow")):
+                            source_item = source_mode_depths.get(key, {})
+                            if not isinstance(source_item, dict):
+                                errors.append(f"rollup runtime collection profile missing source {prefix} mode depth")
+                                continue
+                            comparisons = {
+                                f"{prefix}_observed_span_seconds": "observed_span_seconds",
+                                f"{prefix}_minimum_span_seconds": "minimum_span_seconds",
+                                f"{prefix}_remaining_span_seconds": "missing_span_seconds",
+                                f"{prefix}_observed_cycle_count": "observed_cycle_count",
+                                f"{prefix}_minimum_cycle_count": "minimum_cycle_count",
+                                f"{prefix}_remaining_cycle_count": "missing_cycle_count",
+                            }
+                            for rollup_field, source_field in comparisons.items():
+                                if runtime_profile.get(rollup_field) != source_item.get(source_field):
+                                    errors.append(f"rollup runtime collection profile field drifted: {rollup_field}")
+                    if isinstance(source_plan, dict):
+                        plan_comparisons = {
+                            "recommended_next_paper_batch_cycle_count": "recommended_next_paper_batch_cycle_count",
+                            "max_safe_paper_batch_cycle_count": "max_safe_paper_batch_cycle_count",
+                            "minimum_cycle_wall_clock_spacing_seconds": "minimum_cycle_wall_clock_spacing_seconds",
+                            "estimated_wall_clock_seconds_remaining": "estimated_wall_clock_seconds_remaining",
+                            "shadow_collection_required": "shadow_collection_required",
+                        }
+                        for rollup_field, source_field in plan_comparisons.items():
+                            if runtime_profile.get(rollup_field) != source_plan.get(source_field):
+                                errors.append(f"rollup runtime collection profile plan field drifted: {rollup_field}")
 
     if rollup.get("status") != "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY":
         errors.append("rollup status must keep profitability evidence maturity blocked")
@@ -20262,6 +20389,7 @@ def _paper_shadow_evidence_accumulation_errors(report: dict[str, Any]) -> list[s
         errors.append("long-run evidence eligibility requires PASS evidence span source status")
     actual_runtime_source_ids = report.get("actual_runtime_source_evidence_ids") or []
     actual_runtime_source_status = report.get("actual_runtime_source_status") or "MISSING"
+    actual_runtime_source_bound_statuses = {"PARTIAL_NON_LIVE_RUNTIME", "VALIDATED_NON_LIVE_RUNTIME"}
     actual_runtime_source_scope_errors = paper_shadow_actual_runtime_source_id_errors(report)
     actual_runtime_requirement_errors = paper_shadow_actual_runtime_requirement_status_errors(report)
     actual_runtime_source_validated = (
@@ -20287,11 +20415,11 @@ def _paper_shadow_evidence_accumulation_errors(report: dict[str, Any]) -> list[s
         errors.append("long-run evidence eligibility requires validated non-live persistent runtime source evidence")
         if "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING" not in blocker_codes:
             errors.append("missing actual runtime source evidence must carry ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING blocker")
-    if actual_runtime_source_status == "VALIDATED_NON_LIVE_RUNTIME" and not actual_runtime_source_ids:
-        errors.append("validated actual runtime source status requires source evidence ids")
+    if actual_runtime_source_status in actual_runtime_source_bound_statuses and not actual_runtime_source_ids:
+        errors.append("bound actual runtime source status requires source evidence ids")
         if "MEASUREMENT_MISSING" not in blocker_codes:
             errors.append("missing actual runtime source evidence ids must carry MEASUREMENT_MISSING blocker")
-    if actual_runtime_source_status == "VALIDATED_NON_LIVE_RUNTIME" and actual_runtime_source_scope_errors:
+    if actual_runtime_source_status in actual_runtime_source_bound_statuses and actual_runtime_source_scope_errors:
         errors.extend(actual_runtime_source_scope_errors)
         if "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING" not in blocker_codes:
             errors.append("invalid actual runtime source ids must carry ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING blocker")
@@ -20299,8 +20427,10 @@ def _paper_shadow_evidence_accumulation_errors(report: dict[str, Any]) -> list[s
         errors.extend(actual_runtime_requirement_errors)
         if "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING" not in blocker_codes:
             errors.append("invalid actual runtime requirement statuses must carry ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING blocker")
-    if actual_runtime_source_status != "VALIDATED_NON_LIVE_RUNTIME" and actual_runtime_source_ids:
-        errors.append("actual runtime source ids require validated non-live runtime status")
+    if actual_runtime_source_status == "PARTIAL_NON_LIVE_RUNTIME" and not actual_runtime_requirement_errors:
+        errors.append("partial actual runtime source status cannot hide fully PASS runtime requirements")
+    if actual_runtime_source_status not in actual_runtime_source_bound_statuses and actual_runtime_source_ids:
+        errors.append("actual runtime source ids require bound non-live runtime status")
         if "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING" not in blocker_codes:
             errors.append("unvalidated actual runtime source ids must carry ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING blocker")
     if not report.get("long_run_evidence_eligible") and long_run_requirements_met:
@@ -20334,6 +20464,22 @@ def _paper_shadow_evidence_accumulation_errors(report: dict[str, Any]) -> list[s
         errors.append("supporting_source_evidence_ids must be unique")
     if set(source_ids) & set(supporting_source_ids):
         errors.append("bound source_evidence_ids must not be duplicated as supporting_source_evidence_ids")
+    try:
+        paper_runtime_span_seconds = int(report.get("paper_runtime_span_seconds", -1))
+        shadow_runtime_span_seconds = int(report.get("shadow_runtime_span_seconds", -1))
+        paired_runtime_span_seconds = int(report.get("paired_runtime_span_seconds", -1))
+    except (TypeError, ValueError):
+        paper_runtime_span_seconds = -1
+        shadow_runtime_span_seconds = -1
+        paired_runtime_span_seconds = -1
+    if min(paper_runtime_span_seconds, shadow_runtime_span_seconds, paired_runtime_span_seconds) < 0:
+        errors.append("paper/shadow runtime span seconds must be non-negative")
+    elif paired_runtime_span_seconds != min(paper_runtime_span_seconds, shadow_runtime_span_seconds):
+        errors.append("paired paper/shadow runtime span must be the minimum of PAPER and SHADOW spans")
+    if report.get("evidence_span_source") == "DERIVED_FROM_SUPPORTING_WINDOWS":
+        expected_span_hours = max(0, paired_runtime_span_seconds) // 3600
+        if int(report.get("evidence_span_hours", -1)) != expected_span_hours:
+            errors.append("derived paper/shadow span hours must match paired runtime span seconds")
 
     bindings = report.get("source_evidence_bindings") or []
     binding_by_id: dict[str, dict[str, Any]] = {}

@@ -4,7 +4,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_DOWN
 from typing import Any
 
 
@@ -118,10 +118,11 @@ def build_position_sizing_decision(
     open_risk = _decimal(inputs.get("open_risk", "0"))
     liquidity = _decimal(inputs.get("liquidity", "0"))
     orderbook_depth = _decimal(inputs.get("orderbook_depth", "0"))
+    current_exposure = _decimal(inputs.get("current_exposure", "0"))
     signal_strength = max(Decimal("0"), min(Decimal("1"), _decimal(inputs.get("signal_strength", "0"))))
     strategy_confidence = max(Decimal("0"), min(Decimal("1"), _decimal(inputs.get("strategy_confidence", "0"))))
     regime_confidence = max(Decimal("0"), min(Decimal("1"), _decimal(inputs.get("regime_confidence", "0"))))
-    if equity <= 0 or cash < 0 or liquidity <= 0 or orderbook_depth <= 0:
+    if equity <= 0 or cash < 0 or current_exposure < 0 or liquidity <= 0 or orderbook_depth <= 0:
         blockers.append(_blocker("MEASUREMENT_MISSING", "sizing cannot compute with non-positive equity, liquidity, or depth"))
 
     available_cash = max(Decimal("0"), cash - locked_cash)
@@ -129,8 +130,16 @@ def build_position_sizing_decision(
     cash_cap = max(Decimal("0"), available_cash * Decimal("0.05"))
     risk_cap = max(Decimal("0"), equity * Decimal("0.02") - open_risk)
     liquidity_cap = max(Decimal("0"), min(liquidity, orderbook_depth) * Decimal("0.01"))
+    exposure_cap = max(Decimal("0"), (equity * Decimal("0.35")) - current_exposure)
     confidence_cap = min(signal_strength, strategy_confidence, regime_confidence)
-    selected = min(equity_cap, cash_cap, risk_cap, liquidity_cap) * confidence_cap
+    if current_exposure > equity * Decimal("0.35"):
+        blockers.append(_blocker("RISK_VETO", "current exposure exceeds 35% PAPER equity cap"))
+    if available_cash <= 0:
+        blockers.append(_blocker("RISK_VETO", "available PAPER cash is zero or locked"))
+    selected = (min(equity_cap, cash_cap, risk_cap, liquidity_cap, exposure_cap) * confidence_cap).quantize(
+        Decimal("1"),
+        rounding=ROUND_DOWN,
+    )
     if blockers:
         selected = Decimal("0")
     caps = {
@@ -138,6 +147,7 @@ def build_position_sizing_decision(
         "cash_cap": str(cash_cap),
         "risk_cap": str(risk_cap),
         "liquidity_cap": str(liquidity_cap),
+        "exposure_cap": str(exposure_cap),
         "confidence_cap": str(confidence_cap),
     }
     decision = {
@@ -167,7 +177,11 @@ def build_position_sizing_decision(
     return decision
 
 
-def validate_position_sizing_decision(decision: dict[str, Any]) -> PositionSizingValidationResult:
+def validate_position_sizing_decision(
+    decision: dict[str, Any],
+    *,
+    require_exposure_cap: bool = True,
+) -> PositionSizingValidationResult:
     required = {
         "schema_id",
         "generated_at_utc",
@@ -210,7 +224,10 @@ def validate_position_sizing_decision(decision: dict[str, Any]) -> PositionSizin
         return PositionSizingValidationResult("BLOCKED", f"sizing inputs missing: {missing_inputs}", "MEASUREMENT_MISSING")
     selected = _decimal(decision.get("selected_notional", "0"))
     caps = {key: _decimal(value) for key, value in decision.get("caps", {}).items()}
-    for key in ("equity_cap", "cash_cap", "risk_cap", "liquidity_cap"):
+    required_cap_keys = ["equity_cap", "cash_cap", "risk_cap", "liquidity_cap"]
+    if require_exposure_cap:
+        required_cap_keys.append("exposure_cap")
+    for key in required_cap_keys:
         if key not in caps:
             return PositionSizingValidationResult("FAIL", f"sizing cap missing: {key}", "SCHEMA_IDENTITY_MISMATCH")
         if selected > caps[key]:

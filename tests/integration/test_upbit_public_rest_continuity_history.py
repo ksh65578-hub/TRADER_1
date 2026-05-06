@@ -42,11 +42,44 @@ class UpbitPublicRestContinuityHistoryTest(unittest.TestCase):
 
         return fetcher
 
+    def _payload_sequence_fetcher(self, payloads: list[list[dict[str, object]]]):
+        calls = {"count": 0}
+
+        def fetcher(*, symbol: str, session_id: str, timeout_seconds: float) -> dict[str, object]:
+            index = min(calls["count"], len(payloads) - 1)
+            calls["count"] += 1
+            return build_upbit_public_candle_data_from_rest_payload(
+                payload=payloads[index],
+                symbol=symbol,
+                session_id=session_id,
+            )
+
+        return fetcher
+
+    def _payload_with_latest_trade_update(self, start_minute: int) -> list[dict[str, object]]:
+        payload = self._payload(start_minute)
+        payload[0] = dict(payload[0])
+        payload[0]["trade_price"] = int(payload[0]["trade_price"]) + 250
+        payload[0]["candle_acc_trade_volume"] = float(payload[0]["candle_acc_trade_volume"]) + 0.25
+        return payload
+
     def _continuity(self, continuity_id: str, starts: list[int]) -> dict[str, object]:
         return build_upbit_public_rest_continuity_report(
             continuity_id=continuity_id,
             session_id="mvp1_upbit_paper_launcher",
             fetcher=self._sequence_fetcher(starts),
+        )
+
+    def _open_candle_update_continuity(self, continuity_id: str) -> dict[str, object]:
+        return build_upbit_public_rest_continuity_report(
+            continuity_id=continuity_id,
+            session_id="mvp1_upbit_paper_launcher",
+            fetcher=self._payload_sequence_fetcher(
+                [
+                    self._payload(1),
+                    self._payload_with_latest_trade_update(1),
+                ]
+            ),
         )
 
     def test_two_pass_attempts_create_paper_only_healthy_history(self):
@@ -68,6 +101,26 @@ class UpbitPublicRestContinuityHistoryTest(unittest.TestCase):
         self.assertFalse(history["promotion_eligible"])
         self.assertFalse(history["live_order_allowed"])
         self.assertFalse(history["can_live_trade"])
+        self.assertFalse(history["scale_up_allowed"])
+
+    def test_open_candle_payload_update_counts_as_pass_not_duplicate_block(self):
+        history = build_upbit_public_rest_continuity_history_report(
+            history_id="mock-history-open-candle-update-pass",
+            session_id="mvp1_upbit_paper_launcher",
+            continuity_attempts=[
+                self._continuity("mock-history-pass-1", [0, 1]),
+                self._open_candle_update_continuity("mock-history-open-candle-update"),
+            ],
+        )
+        result = validate_upbit_public_rest_continuity_history_report(history)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(history["pass_attempt_count"], 2)
+        self.assertEqual(history["duplicate_latest_event_block_count"], 0)
+        self.assertEqual(history["non_advancing_block_count"], 0)
+        self.assertEqual(history["latest_attempt_status"], "PASS")
+        self.assertEqual(history["continuity_health_status"], "PASS")
+        self.assertFalse(history["live_order_allowed"])
         self.assertFalse(history["scale_up_allowed"])
 
     def test_latest_duplicate_attempt_warns_without_live_ready(self):

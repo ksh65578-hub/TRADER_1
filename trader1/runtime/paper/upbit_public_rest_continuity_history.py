@@ -56,7 +56,11 @@ def _quarantine_history(path: Path, reason: str) -> Path | None:
 
 
 def _count_with_flag(attempts: list[dict[str, Any]], flag_name: str) -> int:
-    return sum(1 for attempt in attempts if bool(attempt.get(flag_name)))
+    return sum(
+        1
+        for attempt in attempts
+        if attempt.get("continuity_status") != "PASS" and bool(attempt.get(flag_name))
+    )
 
 
 def _count_with_blocker(attempts: list[dict[str, Any]], blocker_code: str) -> int:

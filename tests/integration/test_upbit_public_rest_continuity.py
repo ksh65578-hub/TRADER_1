@@ -40,6 +40,27 @@ class UpbitPublicRestContinuityTest(unittest.TestCase):
 
         return fetcher
 
+    def _payload_sequence_fetcher(self, payloads: list[list[dict[str, object]]]):
+        calls = {"count": 0}
+
+        def fetcher(*, symbol: str, session_id: str, timeout_seconds: float) -> dict[str, object]:
+            index = min(calls["count"], len(payloads) - 1)
+            calls["count"] += 1
+            return build_upbit_public_candle_data_from_rest_payload(
+                payload=payloads[index],
+                symbol=symbol,
+                session_id=session_id,
+            )
+
+        return fetcher
+
+    def _payload_with_latest_trade_update(self, start_minute: int) -> list[dict[str, object]]:
+        payload = self._payload(start_minute)
+        payload[0] = dict(payload[0])
+        payload[0]["trade_price"] = int(payload[0]["trade_price"]) + 250
+        payload[0]["candle_acc_trade_volume"] = float(payload[0]["candle_acc_trade_volume"]) + 0.25
+        return payload
+
     def test_advancing_mocked_samples_pass_as_paper_only_continuity(self):
         report = build_upbit_public_rest_continuity_report(
             continuity_id="mock-continuity-pass",
@@ -54,6 +75,28 @@ class UpbitPublicRestContinuityTest(unittest.TestCase):
         self.assertGreater(report["observed_span_seconds"], 0)
         self.assertFalse(report["duplicate_latest_event_time_detected"])
         self.assertFalse(report["non_advancing_sample_detected"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+
+    def test_repeated_latest_timestamp_with_changed_open_candle_payload_passes(self):
+        report = build_upbit_public_rest_continuity_report(
+            continuity_id="mock-continuity-open-candle-update",
+            session_id="mvp1_upbit_paper_launcher",
+            fetcher=self._payload_sequence_fetcher(
+                [
+                    self._payload(0),
+                    self._payload_with_latest_trade_update(0),
+                ]
+            ),
+        )
+        result = validate_upbit_public_rest_continuity_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["continuity_status"], "PASS")
+        self.assertTrue(report["duplicate_latest_event_time_detected"])
+        self.assertFalse(report["non_advancing_sample_detected"])
+        self.assertEqual(report["observed_span_seconds"], 0)
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])

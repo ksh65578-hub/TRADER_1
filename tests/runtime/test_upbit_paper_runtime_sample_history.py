@@ -1,9 +1,11 @@
 import json
+import time
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
+from trader1.runtime.paper import upbit_paper_runtime_sample_history as sample_history_module
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
     upbit_paper_runtime_sample_hash,
@@ -39,11 +41,105 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertFalse(history["live_order_allowed"])
         self.assertFalse(history["can_live_trade"])
         self.assertFalse(history["scale_up_allowed"])
+        self.assertGreaterEqual(history["samples"][0]["candidate_count"], 1)
+        self.assertGreaterEqual(history["samples"][0]["entry_reason_count"], 1)
         self.assertEqual(history["samples"][1]["previous_sample_hash"], history["samples"][0]["sample_hash"])
 
         written_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
         written = json.loads(written_path.read_text(encoding="utf-8"))
         self.assertEqual(validate_upbit_paper_runtime_sample_history(written).status, "PASS")
+
+    def test_entry_reason_evidence_counts_blocked_candidate_entry_review(self):
+        runtime_cycle = {
+            "entry_reasons": [],
+            "selected_candidate": {"decision": "PAPER_ENTRY_REVIEW"},
+            "final_decision": "BLOCKED",
+            "no_trade_reasons": ["RISK_VETO"],
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        self.assertEqual(sample_history_module._entry_reason_evidence_count(runtime_cycle), 1)
+
+    def test_runtime_sample_history_excludes_invalid_legacy_loop_sources_while_collecting(self):
+        history, root = self._history()
+        paper_runtime_dir = (
+            root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "paper_runtime"
+        )
+        invalid_legacy = paper_runtime_dir / "legacy-schema.invalid.persistent_loop_report.json"
+        invalid_legacy.write_text("{}\n", encoding="utf-8")
+
+        history = build_upbit_paper_runtime_sample_history(root=root, session_id="mvp1_upbit_paper_launcher")
+        result = validate_upbit_paper_runtime_sample_history(history)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(history["runtime_sample_status"], "COLLECTING")
+        self.assertEqual(history["primary_blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
+        self.assertEqual(history["accepted_cycle_sample_count"], 2)
+        self.assertEqual(history["invalid_source_count"], 1)
+        self.assertEqual(len(history["invalid_sources"]), 1)
+        self.assertIn("schema", history["invalid_sources"][0]["reason"].lower())
+        self.assertFalse(history["long_run_evidence_eligible"])
+        self.assertFalse(history["live_order_allowed"])
+
+    def test_runtime_sample_history_binds_runtime_hashes_after_timestamp_sorting(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        run_upbit_paper_persistent_loop(root=root, loop_id="zz-sample-history-sort-source", requested_cycle_count=1)
+        time.sleep(1.1)
+        run_upbit_paper_persistent_loop(root=root, loop_id="aa-sample-history-sort-source", requested_cycle_count=1)
+
+        history = build_upbit_paper_runtime_sample_history(root=root, session_id="mvp1_upbit_paper_launcher")
+        result = validate_upbit_paper_runtime_sample_history(history)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(
+            history["source_runtime_cycle_hashes"],
+            [sample["source_runtime_cycle_hash"] for sample in history["samples"]],
+        )
+        self.assertEqual(history["samples"][0]["loop_id"], "zz-sample-history-sort-source")
+        self.assertEqual(history["samples"][1]["loop_id"], "aa-sample-history-sort-source")
+
+    def test_runtime_sample_history_uses_numeric_cycle_order_for_same_second_cycles(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        run_upbit_paper_persistent_loop(root=root, loop_id="sample-history-natural-cycle-sort", requested_cycle_count=12)
+
+        history = build_upbit_paper_runtime_sample_history(root=root, session_id="mvp1_upbit_paper_launcher")
+        result = validate_upbit_paper_runtime_sample_history(history)
+        cycle_ids = [sample["cycle_id"] for sample in history["samples"]]
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(history["accepted_cycle_sample_count"], 12)
+        self.assertLess(
+            cycle_ids.index("sample-history-natural-cycle-sort-cycle-9"),
+            cycle_ids.index("sample-history-natural-cycle-sort-cycle-10"),
+        )
+        self.assertEqual(cycle_ids[-1], "sample-history-natural-cycle-sort-cycle-12")
+
+    def test_runtime_sample_history_blocks_duplicate_source_cycle_hash_from_copied_loop_report(self):
+        history, root = self._history()
+        paper_runtime_dir = (
+            root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher" / "paper_runtime"
+        )
+        source = paper_runtime_dir / "sample-history-a.persistent_loop_report.json"
+        duplicate = paper_runtime_dir / "sample-history-a-copy.persistent_loop_report.json"
+        duplicate.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+        history = build_upbit_paper_runtime_sample_history(root=root, session_id="mvp1_upbit_paper_launcher")
+        result = validate_upbit_paper_runtime_sample_history(history)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "RECONCILIATION_REQUIRED")
+        self.assertEqual(history["runtime_sample_status"], "BLOCKED")
+        self.assertEqual(history["primary_blocker_code"], "RECONCILIATION_REQUIRED")
+        self.assertEqual(history["accepted_cycle_sample_count"], 2)
+        self.assertEqual(history["duplicate_cycle_hash_count"], 1)
+        self.assertFalse(history["live_order_allowed"])
 
     def test_runtime_sample_history_blocks_false_long_run_claim(self):
         history, _ = self._history()

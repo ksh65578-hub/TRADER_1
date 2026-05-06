@@ -1,0 +1,25 @@
+{
+  "artifact_paths": [
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/raw/profitability-maturity-continuation-20260507T034300KST-collector-2.raw_candles.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/canonical/profitability-maturity-continuation-20260507T034300KST-collector-2.canonical_events.jsonl",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/profitability-maturity-continuation-20260507T034300KST-collector-2.collection_report.json",
+    "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/latest_collection_report.json"
+  ],
+  "blocker_message": "public market data artifacts written atomically",
+  "can_live_trade": false,
+  "collector_id": "profitability-maturity-continuation-20260507T034300KST-collector-2",
+  "exchange": "UPBIT",
+  "generated_at_utc": "2026-05-06T18:43:40Z",
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "primary_blocker_code": null,
+  "project_id": "TRADER_1",
+  "public_market_data_hash": "0D86AF7D4155AE54264E32CB748A191A1974671E198F74BD357631D08423A066",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.upbit_public_market_data_collection_writer_report.v1",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "symbol": "KRW-BTC",
+  "writer_status": "PASS"
+}

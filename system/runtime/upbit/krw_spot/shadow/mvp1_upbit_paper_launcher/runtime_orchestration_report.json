@@ -1,0 +1,78 @@
+{
+  "schema_id": "trader1.shadow_observation_runtime_orchestration_report.v1",
+  "generated_at_utc": "2026-05-06T22:47:41Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "orchestration_id": "mvp1_upbit_paper_launcher",
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "source_mode": "PAPER",
+  "mode": "SHADOW",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "orchestration_artifact_path": "system/runtime/upbit/krw_spot/shadow/mvp1_upbit_paper_launcher/runtime_orchestration_report.json",
+  "orchestration_status": "BLOCKED",
+  "orchestration_decision": "BLOCK_LONG_RUN_EVIDENCE",
+  "source_validation_status": "PASS",
+  "source_hashes_verified": true,
+  "source_runtime_hash_pairing_verified": true,
+  "source_scope_match": true,
+  "source_binding_count": 2,
+  "source_evidence_bindings": [
+    {
+      "source_role": "PERSISTENT_RUNTIME_SHORT_WINDOW",
+      "source_id": "mvp1_upbit_paper_launcher",
+      "source_hash": "A0E0FA03B820CAF592ADE7AEF46D0496E0A657AA06CA2B4F8941792565B20C0F",
+      "hash_verified": true,
+      "validation_status": "PASS",
+      "evidence_role": "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
+    },
+    {
+      "source_role": "SHORT_WINDOW_HARNESS",
+      "source_id": "mvp1_upbit_paper_launcher",
+      "source_hash": "A4E537574468D43B68DB5AB057B31855BC7E6C41697911CE5049634682305D2B",
+      "hash_verified": true,
+      "validation_status": "PASS",
+      "evidence_role": "EXECUTION_HARNESS_PROOF_ONLY_NOT_LONG_RUN"
+    }
+  ],
+  "persistent_stub_not_long_run_confirmed": true,
+  "short_window_harness_not_long_run_confirmed": true,
+  "minimum_runtime_window_seconds": 86400,
+  "observed_actual_runtime_seconds": 300,
+  "minimum_actual_cycle_count": 2880,
+  "observed_actual_cycle_count": 20,
+  "minimum_evidence_window_count": 20,
+  "observed_evidence_window_count": 0,
+  "actual_long_run_runtime_present": false,
+  "long_run_evidence_eligible": false,
+  "scorecard_input_eligible": false,
+  "optimizer_ranking_action": "BLOCK_RANKING",
+  "runtime_evidence_role": "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN",
+  "dashboard_display_truth_only": true,
+  "dashboard_visibility_status": "VISIBLE_AS_BLOCKED_LONG_RUN_REQUIREMENTS",
+  "promotion_eligible": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "order_adapter_called": false,
+  "primary_blocker_code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+  "blockers": [
+    {
+      "code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+      "severity": "HIGH",
+      "message": "Actual long-run PAPER/SHADOW runtime evidence is missing; short-window harness and stub artifacts cannot satisfy the review gate."
+    },
+    {
+      "code": "MEASUREMENT_MISSING",
+      "severity": "HIGH",
+      "message": "No validated actual runtime window, cycle count, and per-window PAPER/SHADOW source coverage has been recorded."
+    }
+  ],
+  "operator_message": "Runtime orchestration is healthy enough for display-only review, but it is short-window only and not long-run evidence. Live orders remain blocked.",
+  "next_operator_action": "Continue PAPER/SHADOW collection until actual duration, cycle, heartbeat, recovery, and per-window source coverage pass; do not treat short-window harness output as LIVE_READY.",
+  "orchestration_report_hash": "407E45B94A3D85C65716B2B45D8AFD88131983CA43CD041DFE686A7A64A508FB"
+}

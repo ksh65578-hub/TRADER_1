@@ -110,19 +110,22 @@
       "message": "long-run paper/shadow evidence requires minimum sample count, window count, and elapsed span"
     }
   ],
-  "evidence_hash": "8DF8B3C894808491296F63785108BBE84ADAB2AC632D3344108FBD281C7B41AB",
+  "evidence_hash": "4974943FA76F2C3B3376228B2BC4F99CB5A9A9318F5E75DDACC1393DEDC0426F",
   "paper_shadow_actionability_version": "paper_shadow_actionability.v1",
   "evidence_actionability_status": "SCORECARD_READY_COLLECT_PAIRED_WINDOWS",
   "primary_collection_deficit_code": "PAIRED_WINDOW_DEFICIT",
-  "primary_collection_deficit_message": "Scorecard input can be PAPER-only, but 20 more paired PAPER/SHADOW windows are needed for long-run review.",
+  "primary_collection_deficit_message": "Scorecard input can be PAPER-only, but 18 more paired PAPER/SHADOW windows are needed for long-run review.",
   "next_collection_action": "RUN_PAIRED_PAPER_SHADOW_WINDOWS",
   "scorecard_input_truth_status": "LONG_RUN_REVIEW_READY_NON_LIVE",
   "paper_sample_deficit": 0,
   "shadow_sample_deficit": 0,
-  "evidence_window_deficit": 20,
+  "evidence_window_deficit": 18,
   "evidence_span_hours_deficit": 116,
   "supporting_window_deficit": 20,
   "reason_coverage_deficit_count": 0,
   "stale_artifact_count": 0,
-  "actual_runtime_source_deficit": 2
+  "actual_runtime_source_deficit": 2,
+  "paper_runtime_span_seconds": 14400,
+  "shadow_runtime_span_seconds": 14400,
+  "paired_runtime_span_seconds": 14400
 }

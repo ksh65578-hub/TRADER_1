@@ -21,6 +21,16 @@
     "source_rollup_status",
     "source_rollup_validation_status",
     "source_rollup_blocker_code",
+    "source_rollup_ledger_input_scope",
+    "source_rollup_ledger_head_match_status",
+    "source_rollup_ledger_head_mismatch_count",
+    "source_manifest_path",
+    "source_manifest_hash",
+    "source_manifest_validation_status",
+    "source_manifest_blocker_code",
+    "source_manifest_binding_status",
+    "source_manifest_accepted_ledger_path_count",
+    "source_manifest_excluded_ledger_path_count",
     "source_ledger_head_hash",
     "source_ledger_head_cycle_id",
     "ledger_head_binding_status",
@@ -33,6 +43,9 @@
     "source_persistent_loop_cycle_count",
     "source_runtime_cycle_ids",
     "source_runtime_cycle_hashes",
+    "source_runtime_cycle_binding_source",
+    "source_runtime_cycle_path",
+    "source_runtime_cycle_contract_mode",
     "ledger_head_cycle_in_persistent_loop",
     "ledger_head_runtime_cycle_hash",
     "source_runtime_input_role",
@@ -119,6 +132,20 @@
     "source_rollup_status": {"enum": ["PASS", "BLOCKED", null]},
     "source_rollup_validation_status": {"enum": ["PASS", "FAIL", "BLOCKED"]},
     "source_rollup_blocker_code": {"type": ["string", "null"]},
+    "source_rollup_ledger_input_scope": {
+      "enum": ["SESSION_CYCLE_GLOB", "EXPLICIT_SCOPED_PATHS", "SESSION_REPAIR_MANIFEST", null]
+    },
+    "source_rollup_ledger_head_match_status": {
+      "enum": ["PASS", "MISSING", "MISMATCH", "NOT_APPLICABLE", null]
+    },
+    "source_rollup_ledger_head_mismatch_count": {"type": "integer", "minimum": 0},
+    "source_manifest_path": {"type": ["string", "null"]},
+    "source_manifest_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+    "source_manifest_validation_status": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_APPLICABLE"]},
+    "source_manifest_blocker_code": {"type": ["string", "null"]},
+    "source_manifest_binding_status": {"enum": ["PASS", "MISMATCH", "NOT_APPLICABLE"]},
+    "source_manifest_accepted_ledger_path_count": {"type": "integer", "minimum": 0},
+    "source_manifest_excluded_ledger_path_count": {"type": "integer", "minimum": 0},
     "source_ledger_head_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
     "source_ledger_head_cycle_id": {"type": ["string", "null"], "minLength": 1},
     "ledger_head_binding_status": {"enum": ["PASS", "MISMATCH"]},
@@ -136,6 +163,18 @@
     "source_runtime_cycle_hashes": {
       "type": "array",
       "items": {"type": "string", "minLength": 64, "maxLength": 64}
+    },
+    "source_runtime_cycle_binding_source": {
+      "enum": ["PERSISTENT_LOOP_REPORT", "SCOPED_RUNTIME_CYCLE_ARTIFACT", "NOT_FOUND"]
+    },
+    "source_runtime_cycle_path": {"type": ["string", "null"]},
+    "source_runtime_cycle_contract_mode": {
+      "enum": [
+        "PERSISTENT_LOOP_SUMMARY",
+        "CURRENT",
+        "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP",
+        "NOT_BOUND"
+      ]
     },
     "ledger_head_cycle_in_persistent_loop": {"type": "boolean"},
     "ledger_head_runtime_cycle_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},

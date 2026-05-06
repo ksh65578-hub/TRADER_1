@@ -110,7 +110,7 @@
       "message": "paper/shadow evidence artifacts are stale"
     }
   ],
-  "evidence_hash": "BCAF07EE65EA979339534D3CB1F2EC65E28498949027B8784BB3C6D5E316FC1A",
+  "evidence_hash": "AB4E7AFD34F39709359DF03CF2EF0CFCC5E0493EE1819C0F1D7E4647F756482E",
   "paper_shadow_actionability_version": "paper_shadow_actionability.v1",
   "evidence_actionability_status": "BLOCKED_DATA_FRESHNESS",
   "primary_collection_deficit_code": "DATA_FRESHNESS_DEFICIT",
@@ -119,10 +119,13 @@
   "scorecard_input_truth_status": "BLOCKED_NOT_SCORECARD_INPUT",
   "paper_sample_deficit": 0,
   "shadow_sample_deficit": 0,
-  "evidence_window_deficit": 20,
+  "evidence_window_deficit": 18,
   "evidence_span_hours_deficit": 116,
   "supporting_window_deficit": 20,
   "reason_coverage_deficit_count": 0,
   "stale_artifact_count": 2,
-  "actual_runtime_source_deficit": 2
+  "actual_runtime_source_deficit": 2,
+  "paper_runtime_span_seconds": 14400,
+  "shadow_runtime_span_seconds": 14400,
+  "paired_runtime_span_seconds": 14400
 }

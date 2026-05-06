@@ -64,15 +64,64 @@ def _event_times(sample_report: dict[str, Any]) -> list[str]:
     return [value for value in times if isinstance(value, str) and value]
 
 
-def _latest_event_time(sample_report: dict[str, Any]) -> str | None:
-    parsed: list[tuple[datetime, str]] = []
-    for value in _event_times(sample_report):
-        parsed_value = _parse_utc(value)
+def _latest_event(sample_report: dict[str, Any]) -> dict[str, Any] | None:
+    collection = sample_report.get("public_collection_report")
+    if not isinstance(collection, dict):
+        return None
+    events = collection.get("canonical_events", [])
+    if not isinstance(events, list):
+        return None
+    parsed: list[tuple[datetime, dict[str, Any]]] = []
+    for event in events:
+        if not isinstance(event, dict):
+            continue
+        parsed_value = _parse_utc(event.get("event_time_utc") if isinstance(event.get("event_time_utc"), str) else None)
         if parsed_value is not None:
-            parsed.append((parsed_value, value))
+            parsed.append((parsed_value, event))
     if not parsed:
         return None
     return max(parsed, key=lambda item: item[0])[1]
+
+
+def _latest_event_time(sample_report: dict[str, Any]) -> str | None:
+    latest = _latest_event(sample_report)
+    if latest is None:
+        return None
+    value = latest.get("event_time_utc")
+    return value if isinstance(value, str) and value else None
+
+
+def _latest_event_signature(sample_report: dict[str, Any]) -> tuple[str, str, str, str, str, str] | None:
+    latest = _latest_event(sample_report)
+    if latest is None:
+        return None
+    values = []
+    for field in ("event_time_utc", "open", "high", "low", "close", "volume"):
+        value = latest.get(field)
+        if not isinstance(value, str) or not value:
+            return None
+        values.append(value)
+    return tuple(values)  # type: ignore[return-value]
+
+
+def _non_advancing_latest_sequence(
+    latest_times: list[str],
+    latest_signatures: list[tuple[str, str, str, str, str, str] | None],
+) -> bool:
+    parsed_latest = [_parse_utc(value) for value in latest_times]
+    if any(value is None for value in parsed_latest):
+        return True
+    for index, (previous, current) in enumerate(zip(parsed_latest, parsed_latest[1:]), start=1):
+        if current is None or previous is None:
+            return True
+        if current > previous:
+            continue
+        previous_signature = latest_signatures[index - 1] if index - 1 < len(latest_signatures) else None
+        current_signature = latest_signatures[index] if index < len(latest_signatures) else None
+        if current == previous and previous_signature is not None and current_signature is not None and current_signature != previous_signature:
+            continue
+        return True
+    return False
 
 
 def build_upbit_public_rest_continuity_report(
@@ -91,6 +140,7 @@ def build_upbit_public_rest_continuity_report(
     sample_reports: list[dict[str, Any]] = []
     sample_hashes: list[str] = []
     latest_times: list[str] = []
+    latest_signatures: list[tuple[str, str, str, str, str, str] | None] = []
 
     if sample_count < 1 or sample_count > 20:
         blockers.append(_blocker("RUNTIME_BUDGET_EXCEEDED", "public REST continuity sample count exceeds bounded MVP-4 budget"))
@@ -121,26 +171,19 @@ def build_upbit_public_rest_continuity_report(
             blockers.append(_blocker("MEASUREMENT_MISSING", "PASS sample did not expose a latest event timestamp"))
         else:
             latest_times.append(latest_time)
+            latest_signatures.append(_latest_event_signature(sample))
 
     pass_count = sum(1 for sample in sample_reports if sample.get("sample_status") == "PASS")
     duplicate_latest = len(set(latest_times)) != len(latest_times)
-    non_advancing = False
-    parsed_latest = [_parse_utc(value) for value in latest_times]
-    if any(value is None for value in parsed_latest):
-        non_advancing = True
-    else:
-        for previous, current in zip(parsed_latest, parsed_latest[1:]):
-            if current is None or previous is None or current <= previous:
-                non_advancing = True
-                break
+    non_advancing = _non_advancing_latest_sequence(latest_times, latest_signatures)
     if pass_count < min_required_pass_samples:
         blockers.append(_blocker("DATA_QUALITY_INSUFFICIENT", "public REST continuity did not collect enough PASS samples"))
     short_window_warnings: list[dict[str, str]] = []
-    if duplicate_latest:
+    if duplicate_latest and non_advancing:
         short_window_warnings.append(
             _blocker(
                 "DATA_QUALITY_INSUFFICIENT",
-                "public REST continuity latest candle timestamp repeated across a short sample window",
+                "public REST continuity latest candle timestamp and payload repeated across a short sample window",
                 "MEDIUM",
             )
         )
@@ -285,6 +328,7 @@ def validate_upbit_public_rest_continuity_report(report: dict[str, Any]) -> Upbi
 
     pass_count = 0
     latest_times: list[str] = []
+    latest_signatures: list[tuple[str, str, str, str, str, str] | None] = []
     for sample, expected_hash in zip(sample_reports, sample_hashes):
         if not isinstance(sample, dict):
             return UpbitPublicRestContinuityValidationResult("FAIL", "continuity sample report must be object", "SCHEMA_IDENTITY_MISMATCH")
@@ -297,6 +341,7 @@ def validate_upbit_public_rest_continuity_report(report: dict[str, Any]) -> Upbi
             if latest is None:
                 return UpbitPublicRestContinuityValidationResult("FAIL", "PASS sample missing latest event time", "MEASUREMENT_MISSING")
             latest_times.append(latest)
+            latest_signatures.append(_latest_event_signature(sample))
         elif sample_result.status == "FAIL":
             return UpbitPublicRestContinuityValidationResult("FAIL", "continuity contains invalid sample report", sample_result.blocker_code)
     if pass_count != report.get("pass_sample_count"):
@@ -305,13 +350,7 @@ def validate_upbit_public_rest_continuity_report(report: dict[str, Any]) -> Upbi
         return UpbitPublicRestContinuityValidationResult("FAIL", "continuity latest event time list mismatch", "SCHEMA_IDENTITY_MISMATCH")
 
     duplicate_latest = len(set(latest_times)) != len(latest_times)
-    parsed_latest = [_parse_utc(value) for value in latest_times]
-    non_advancing = any(value is None for value in parsed_latest)
-    if not non_advancing:
-        for previous, current in zip(parsed_latest, parsed_latest[1:]):
-            if current is None or previous is None or current <= previous:
-                non_advancing = True
-                break
+    non_advancing = _non_advancing_latest_sequence(latest_times, latest_signatures)
     if duplicate_latest != report.get("duplicate_latest_event_time_detected"):
         return UpbitPublicRestContinuityValidationResult("FAIL", "continuity duplicate latest flag mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if non_advancing != report.get("non_advancing_sample_detected"):
@@ -325,16 +364,16 @@ def validate_upbit_public_rest_continuity_report(report: dict[str, Any]) -> Upbi
             return UpbitPublicRestContinuityValidationResult("FAIL", "PASS continuity cannot carry blockers", "SCHEMA_IDENTITY_MISMATCH")
         if pass_count < report.get("min_required_pass_samples"):
             return UpbitPublicRestContinuityValidationResult("FAIL", "PASS continuity requires enough pass samples", "DATA_QUALITY_INSUFFICIENT")
-        if duplicate_latest or non_advancing:
-            return UpbitPublicRestContinuityValidationResult("FAIL", "PASS continuity requires advancing sample timestamps", "DATA_QUALITY_INSUFFICIENT")
+        if non_advancing:
+            return UpbitPublicRestContinuityValidationResult("FAIL", "PASS continuity requires advancing latest timestamp or changed open-candle payload", "DATA_QUALITY_INSUFFICIENT")
         return UpbitPublicRestContinuityValidationResult("PASS", "Upbit public REST continuity advanced across PAPER-only samples", None)
     if report.get("continuity_status") == "WARN":
         if not blockers or report.get("primary_blocker_code") != "DATA_QUALITY_INSUFFICIENT":
             return UpbitPublicRestContinuityValidationResult("FAIL", "WARN continuity must expose the short-window non-advancing reason", "SCHEMA_IDENTITY_MISMATCH")
         if pass_count < report.get("min_required_pass_samples"):
             return UpbitPublicRestContinuityValidationResult("BLOCKED", "WARN continuity still requires enough structurally valid PAPER samples", "DATA_QUALITY_INSUFFICIENT")
-        if not (duplicate_latest or non_advancing):
-            return UpbitPublicRestContinuityValidationResult("FAIL", "WARN continuity requires duplicate or non-advancing short-window evidence", "SCHEMA_IDENTITY_MISMATCH")
+        if not non_advancing:
+            return UpbitPublicRestContinuityValidationResult("FAIL", "WARN continuity requires repeated latest candle payload evidence", "SCHEMA_IDENTITY_MISMATCH")
         return UpbitPublicRestContinuityValidationResult("WARN", "Upbit public REST continuity is structurally valid but short-window samples did not advance", "DATA_QUALITY_INSUFFICIENT")
     if not blockers:
         return UpbitPublicRestContinuityValidationResult("BLOCKED", "blocked continuity must expose blocker", report.get("primary_blocker_code") or "DATA_QUALITY_INSUFFICIENT")

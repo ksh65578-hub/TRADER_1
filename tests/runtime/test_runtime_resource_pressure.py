@@ -28,6 +28,60 @@ class RuntimeResourcePressureTest(unittest.TestCase):
         self.assertIsNone(pressure.blocker_code)
         self.assertEqual(pressure.heartbeat_component_overrides()["disk"]["status"], "WARN")
 
+    def test_file_count_review_threshold_warns_without_disk_pressure(self):
+        with TemporaryDirectory() as tmp:
+            runtime_dir = Path(tmp)
+            for index in range(12):
+                (runtime_dir / f"artifact_{index}.json").write_text("{}", encoding="utf-8")
+            pressure = inspect_runtime_resource_pressure(
+                runtime_dir,
+                warn_file_count=2,
+                fail_file_count=10,
+                hard_file_count=100,
+                warn_bytes=10_000,
+                fail_bytes=20_000,
+            )
+
+        self.assertEqual(pressure.status, "WARN")
+        self.assertIsNone(pressure.blocker_code)
+        self.assertIn("review threshold", pressure.message)
+        self.assertEqual(pressure.heartbeat_component_overrides()["queue_backlog"]["status"], "WARN")
+
+    def test_append_only_paper_audit_history_uses_cycle_scaled_file_budget(self):
+        with TemporaryDirectory() as tmp:
+            runtime_dir = Path(tmp)
+            cycle_dir = runtime_dir / "paper_runtime" / "cycles"
+            cycle_dir.mkdir(parents=True)
+            for index in range(3):
+                (cycle_dir / f"cycle-{index}.runtime_cycle.json").write_text("{}", encoding="utf-8")
+            for index in range(12):
+                (runtime_dir / f"artifact_{index}.json").write_text("{}", encoding="utf-8")
+            pressure = inspect_runtime_resource_pressure(
+                runtime_dir,
+                warn_file_count=2,
+                fail_file_count=10,
+                hard_file_count=100,
+                warn_bytes=10_000,
+                fail_bytes=20_000,
+            )
+
+        self.assertEqual(pressure.status, "PASS")
+        self.assertIsNone(pressure.blocker_code)
+        self.assertIn("3 audit cycle(s)", pressure.message)
+        self.assertEqual(pressure.heartbeat_component_overrides()["queue_backlog"]["status"], "PASS")
+
+    def test_byte_pressure_hard_blocks(self):
+        with TemporaryDirectory() as tmp:
+            runtime_dir = Path(tmp)
+            (runtime_dir / "large_artifact.json").write_text("123456789", encoding="utf-8")
+            pressure = inspect_runtime_resource_pressure(runtime_dir, warn_bytes=4, fail_bytes=8)
+
+        self.assertEqual(pressure.status, "FAIL")
+        self.assertEqual(pressure.blocker_code, "RESOURCE_LIMIT_BLOCK")
+        self.assertIn("bytes crossed fail threshold", pressure.message)
+        self.assertEqual(pressure.heartbeat_component_overrides()["disk"]["status"], "FAIL")
+        self.assertEqual(pressure.heartbeat_component_overrides()["queue_backlog"]["status"], "FAIL")
+
     def test_disappearing_atomic_temp_file_is_ignored(self):
         with TemporaryDirectory() as tmp:
             runtime_dir = Path(tmp)

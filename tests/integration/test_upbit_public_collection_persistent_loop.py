@@ -8,6 +8,7 @@ from trader1.adapters.upbit.market_data import (
     build_upbit_public_candle_fixture,
     validate_upbit_public_candle_data,
 )
+from trader1.core.sizing.position_sizing import sizing_decision_hash
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     build_upbit_paper_runtime_recovery_guard_report,
     run_upbit_paper_persistent_loop,
@@ -15,6 +16,10 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     upbit_paper_runtime_recovery_guard_hash,
     validate_upbit_paper_persistent_loop_report,
     validate_upbit_paper_runtime_recovery_guard_report,
+)
+from trader1.runtime.paper.upbit_paper_runtime import (
+    build_upbit_paper_runtime_cycle_report,
+    upbit_paper_runtime_cycle_hash,
 )
 from trader1.runtime.paper.upbit_public_collector import (
     build_upbit_public_market_data_collection_report,
@@ -321,6 +326,79 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertTrue(second["current_evidence_write_allowed"])
             self.assertEqual(second["completed_cycle_count"], 1)
             self.assertFalse(second["live_order_allowed"])
+
+    def test_bounded_paper_loop_allows_paper_only_resume_from_legacy_quant_policy_cycle(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-legacy-quant-policy-cycle",
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            del legacy_cycle["summary"]["quantitative_policy_summary"]
+            legacy_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(legacy_cycle)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            )
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(legacy_cycle, indent=2), encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-legacy-quant-policy-resume",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            guard = json.loads((root / loop["preflight_runtime_recovery_guard_path"]).read_text(encoding="utf-8"))
+            guard_result = validate_upbit_paper_runtime_recovery_guard_report(guard)
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(guard_result.status, "PASS")
+            self.assertEqual(loop["preflight_recovery_guard_status"], "PASS")
+            self.assertTrue(loop["current_evidence_write_allowed"])
+            self.assertEqual(loop["completed_cycle_count"], 1)
+            self.assertEqual(guard["latest_cycle_contract_mode"], "LEGACY_RECHECK_WITHOUT_QUANTITATIVE_POLICY_SUMMARY")
+            self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
+
+    def test_bounded_paper_loop_allows_paper_only_resume_from_legacy_sizing_cap_cycle(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-legacy-sizing-cap-cycle",
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            del legacy_cycle["sizing_decision"]["caps"]["exposure_cap"]
+            legacy_cycle["sizing_decision"]["sizing_decision_hash"] = sizing_decision_hash(legacy_cycle["sizing_decision"])
+            legacy_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(legacy_cycle)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            )
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(legacy_cycle, indent=2), encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-legacy-sizing-cap-resume",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            guard = json.loads((root / loop["preflight_runtime_recovery_guard_path"]).read_text(encoding="utf-8"))
+            guard_result = validate_upbit_paper_runtime_recovery_guard_report(guard)
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(guard_result.status, "PASS")
+            self.assertEqual(loop["preflight_recovery_guard_status"], "PASS")
+            self.assertTrue(loop["current_evidence_write_allowed"])
+            self.assertEqual(loop["completed_cycle_count"], 1)
+            self.assertEqual(guard["latest_cycle_contract_mode"], "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP")
+            self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
 
     def test_bounded_paper_loop_preflight_blocks_orphan_tmp_before_cycle_write(self):
         with TemporaryDirectory() as tmp:

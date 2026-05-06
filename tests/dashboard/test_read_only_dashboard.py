@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 
 from trader1.config.config_schema import build_runtime_config
 from trader1.dashboard.read_only_dashboard import (
+    _operator_action_summary,
     build_read_only_dashboard_shell,
     dashboard_shell_hash,
     render_dashboard_html,
@@ -16,6 +17,7 @@ from trader1.dashboard.read_only_dashboard import (
 from trader1.dashboard.summary_writer import build_summary_shell
 from trader1.core.ledger.restart_recovery import build_restart_recovery_report
 from trader1.research.profitability.candidate_scorecard import candidate_scorecard_from_upbit_paper_runtime_cycle
+from trader1.research.profitability.overfit_diagnostic import overfit_diagnostic_report_hash
 from trader1.runtime.boot.startup_probe import build_startup_probe
 from trader1.runtime.health.heartbeat import build_heartbeat
 from trader1.runtime.health.stability_history import append_stability_history
@@ -93,6 +95,8 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
     upbit_paper_runtime_recovery_guard_hash,
 )
+from trader1.runtime.paper.upbit_public_collector import build_upbit_public_market_data_collection_report
+from trader1.runtime.paper.upbit_public_rest_continuity import build_upbit_public_rest_continuity_report
 from trader1.runtime.paper.paper_runtime_truth_state import (
     build_paper_runtime_truth_state_report,
     paper_runtime_truth_state_hash,
@@ -101,7 +105,12 @@ from trader1.runtime.paper.upbit_public_rest_continuity_history import (
     build_upbit_public_rest_continuity_history_report,
     upbit_public_rest_continuity_history_hash,
 )
+from trader1.adapters.upbit.market_data import (
+    build_upbit_public_candle_data_from_rest_payload,
+    build_upbit_public_candle_fixture,
+)
 from tools.run_upbit_paper_runtime_evidence_collection_profile import (
+    build_upbit_paper_runtime_evidence_collection_profile_report,
     run_upbit_paper_runtime_evidence_collection_profile,
 )
 from trader1.runtime.readiness.readiness_surface import build_readiness_surface
@@ -418,6 +427,73 @@ def candidate_scorecard_fixture(session_id="test_read_only_dashboard"):
     return candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
 
 
+def overfit_diagnostic_fixture(scorecard=None):
+    scorecard = scorecard or candidate_scorecard_fixture()
+    report = {
+        "schema_id": "trader1.overfit_diagnostic_report.v1",
+        "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "project_id": "TRADER_1",
+        "authority": {"trader1_sha256": "A" * 64, "agents_sha256": "B" * 64},
+        "diagnostic_id": f"dashboard-overfit:{scorecard['candidate_id']}",
+        "candidate_id": scorecard["candidate_id"],
+        "strategy_id": scorecard["strategy_id"],
+        "strategy_build_id": scorecard["strategy_build_id"],
+        "parameter_hash": scorecard["parameter_hash"],
+        "exchange": scorecard["exchange"],
+        "market_type": scorecard["market_type"],
+        "mode": scorecard["mode"],
+        "session_id": scorecard["session_id"],
+        "symbol": scorecard["symbol"],
+        "timeframe_scope": scorecard["timeframe_scope"],
+        "regime_scope": scorecard["regime_scope"],
+        "diagnostic_status": "BLOCKED_FOR_ROBUSTNESS",
+        "oos_status": "UNTESTED",
+        "walk_forward_status": "UNTESTED",
+        "bootstrap_status": "UNTESTED",
+        "ranking_stability_status": "UNTESTED",
+        "overfit_status": "HIGH",
+        "sample_count": 12,
+        "min_required_sample_count": 300,
+        "train_window_count": 0,
+        "oos_window_count": 0,
+        "walk_forward_window_count": 0,
+        "bootstrap_iteration_count": 0,
+        "min_required_bootstrap_iterations": 500,
+        "in_sample_net_ev_after_cost_bps": 0.0,
+        "oos_net_ev_after_cost_bps": 0.0,
+        "min_required_oos_net_ev_bps": 5.0,
+        "oos_degradation_bps": 0.0,
+        "max_allowed_oos_degradation_bps": 12.0,
+        "walk_forward_pass_rate": 0.0,
+        "min_required_walk_forward_pass_rate": 0.7,
+        "bootstrap_confidence_lower_bps": 0.0,
+        "min_required_bootstrap_confidence_lower_bps": 1.0,
+        "ranking_stability_score": 0.0,
+        "min_required_ranking_stability_score": 0.75,
+        "concentration_risk_status": "UNTESTED",
+        "survivorship_bias_check": "UNTESTED",
+        "data_snooping_check": "UNTESTED",
+        "robustness_eligible": False,
+        "dashboard_display_truth_only": True,
+        "promotion_eligible": False,
+        "source_evidence_ids": scorecard["source_evidence_ids"],
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "blockers": [
+            {"code": "SAMPLE_INSUFFICIENT", "severity": "HIGH", "message": "12 PAPER samples collected; 300 required"},
+            {"code": "OOS_MISSING", "severity": "HIGH", "message": "OOS evidence is missing"},
+            {"code": "WALK_FORWARD_MISSING", "severity": "HIGH", "message": "walk-forward evidence is missing"},
+            {"code": "BOOTSTRAP_UNSTABLE", "severity": "HIGH", "message": "bootstrap evidence is missing"},
+            {"code": "OVERFIT_RISK_HIGH", "severity": "HIGH", "message": "overfit risk is high"},
+        ],
+        "diagnostic_hash": "",
+    }
+    report["diagnostic_hash"] = overfit_diagnostic_report_hash(report)
+    return report
+
+
 def build_dashboard(
     with_paper_portfolio=True,
     heartbeat_component_overrides=None,
@@ -435,6 +511,7 @@ def build_dashboard(
     upbit_paper_post_rerun_reconciliation_blocker_rollup_report=None,
     profitability_maturity_rollup_report=None,
     candidate_scorecard=None,
+    overfit_diagnostic_report=None,
     upbit_public_rest_continuity_history=None,
     shadow_runtime_harness_report=None,
     paper_shadow_harness_binding_report=None,
@@ -526,6 +603,7 @@ def build_dashboard(
         paper_exposure_quality_report=paper_exposure_quality_report,
         profitability_maturity_rollup_report=profitability_maturity_rollup_report,
         candidate_scorecard=candidate_scorecard,
+        overfit_diagnostic_report=overfit_diagnostic_report,
         upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
         shadow_runtime_harness_report=shadow_runtime_harness_report,
         paper_shadow_harness_binding_report=paper_shadow_harness_binding_report,
@@ -557,6 +635,9 @@ def paper_runtime_recovery_guard_fixture(session_id="test_read_only_dashboard", 
         "latest_cycle_status": "PASS",
         "latest_cycle_hash": "A" * 64,
         "latest_cycle_recoverable": True,
+        "latest_cycle_contract_mode": "CURRENT",
+        "latest_cycle_schema_upgrade_required": False,
+        "latest_cycle_schema_upgrade_reason": None,
         "canonical_jsonl_checked_count": 2,
         "corrupted_jsonl_quarantined_count": 1 if blocked else 0,
         "ledger_jsonl_checked_count": 1,
@@ -993,6 +1074,85 @@ def audited_writer_output_fixture():
             source_implementation_prep_report=implementation_prep,
             source_ledger_rollup_report=ledger_rollup,
             audited_writer_id="test-dashboard-audited-current-evidence-writer",
+        )
+        runtime_base = (
+            root
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / implementation_prep["session_id"]
+        )
+        current_evidence = json.loads(
+            (
+                runtime_base
+                / "paper_runtime"
+                / "current_evidence"
+                / "audited_current_evidence_snapshot.json"
+            ).read_text(encoding="utf-8")
+        )
+        paper_portfolio = json.loads(
+            (runtime_base / "paper_runtime" / "portfolio" / "paper_portfolio_snapshot.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        return writer_report, current_evidence, paper_portfolio, implementation_prep
+
+
+def public_market_data_collection_fixture(*, close: str = "119000000", minute_start: int = 30) -> dict:
+    payload = []
+    close_value = int(Decimal(close))
+    for offset in range(6):
+        minute = minute_start + 5 - offset
+        trade_price = close_value - offset * 1000
+        payload.append(
+            {
+                "market": "KRW-BTC",
+                "candle_date_time_utc": f"2026-05-06T21:{minute:02d}:00",
+                "opening_price": str(trade_price - 500),
+                "high_price": str(trade_price + 1000),
+                "low_price": str(trade_price - 1000),
+                "trade_price": str(trade_price),
+                "candle_acc_trade_volume": str(10 + offset),
+            }
+        )
+    market_data = build_upbit_public_candle_data_from_rest_payload(
+        payload=payload,
+        symbol="KRW-BTC",
+        session_id="mvp1_upbit_paper_launcher",
+    )
+    return build_upbit_public_market_data_collection_report(
+        collector_id=f"test-dashboard-public-mark-{close}",
+        session_id="mvp1_upbit_paper_launcher",
+        symbol="KRW-BTC",
+        market_data=market_data,
+    )
+
+
+def audited_writer_public_mark_output_fixture():
+    with TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        implementation_prep = audited_writer_implementation_prep_fixture()
+        ledger_rollup = json.loads(
+            (
+                ROOT
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / "mvp1_upbit_paper_launcher"
+                / "ledger"
+                / "paper_ledger_rollup_report.json"
+            ).read_text(encoding="utf-8")
+        )
+        writer_report = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+            root=root,
+            source_implementation_prep_report=implementation_prep,
+            source_ledger_rollup_report=ledger_rollup,
+            public_market_data_collection_report=public_market_data_collection_fixture(),
+            audited_writer_id="test-dashboard-audited-current-evidence-public-mark-writer",
         )
         runtime_base = (
             root
@@ -2271,6 +2431,39 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER data only", html)
         self.assertIn("not LIVE_READY", html)
 
+    def test_dashboard_accepts_single_pass_market_data_continuity_as_display_only(self):
+        def fetcher(*, symbol: str, session_id: str, timeout_seconds: float) -> dict[str, object]:
+            return build_upbit_public_candle_fixture(symbol=symbol, session_id=session_id)
+
+        continuity = build_upbit_public_rest_continuity_report(
+            continuity_id="dashboard-continuity-single-pass",
+            session_id="test_read_only_dashboard",
+            sample_count=1,
+            min_required_pass_samples=1,
+            fetcher=fetcher,
+        )
+        history = build_upbit_public_rest_continuity_history_report(
+            history_id="dashboard-continuity-single-pass-history",
+            session_id="test_read_only_dashboard",
+            continuity_attempts=[continuity],
+            min_required_pass_attempts=1,
+        )
+        dashboard = build_dashboard(upbit_public_rest_continuity_history=history)
+        result = validate_read_only_dashboard_shell(dashboard, set(registry()["enums"]["live_blocker_code"]["values"]))
+        market_data = dashboard["market_data_continuity_status"]
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(market_data["status"], "PASS")
+        self.assertEqual(market_data["pass_attempt_count"], 1)
+        self.assertEqual(market_data["latest_attempt_status"], "PASS")
+        self.assertEqual(market_data["primary_blocker_code"], "LIVE_READY_MISSING")
+        self.assertFalse(market_data["long_run_evidence_eligible"])
+        self.assertFalse(market_data["promotion_eligible"])
+        self.assertFalse(market_data["live_order_ready"])
+        self.assertFalse(market_data["live_order_allowed"])
+        self.assertFalse(market_data["can_live_trade"])
+        self.assertFalse(market_data["scale_up_allowed"])
+
     def test_dashboard_blocks_market_data_continuity_live_permission_mutation(self):
         history = build_upbit_public_rest_continuity_history_report(
             history_id="dashboard-continuity-live-mutation",
@@ -2398,6 +2591,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(profile["shadow_mode_counts_as_actual_long_run_evidence"])
         self.assertFalse(profile["bounded_profile_counts_as_long_run_evidence"])
         self.assertFalse(profile["dashboard_display_counts_as_long_run_evidence"])
+        self.assertEqual(profile["collection_plan_status"], "READY_TO_CONTINUE_NON_LIVE_COLLECTION")
+        self.assertEqual(profile["collection_plan_required_next_runtime_modes"], ["PAPER", "SHADOW"])
+        self.assertEqual(profile["collection_plan_recommended_next_paper_batch_cycle_count"], 20)
+        self.assertEqual(profile["collection_plan_max_safe_paper_batch_cycle_count"], 20)
+        self.assertEqual(profile["collection_plan_minimum_cycle_wall_clock_spacing_seconds"], 30)
+        self.assertGreater(profile["collection_plan_estimated_wall_clock_seconds_remaining"], 0)
+        self.assertTrue(profile["collection_plan_shadow_collection_required"])
+        self.assertFalse(profile["collection_plan_counts_as_actual_long_run_evidence"])
         self.assertFalse(profile["promotion_eligible"])
         self.assertFalse(profile["live_order_ready"])
         self.assertFalse(profile["live_order_allowed"])
@@ -2417,7 +2618,32 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("missing modes=SHADOW", html)
         self.assertIn("Per-Mode Long Run", html)
         self.assertIn("missing modes=PAPER, SHADOW", html)
+        self.assertIn("Next Collection", html)
         self.assertIn("LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT", html)
+
+    def test_dashboard_accepts_paper_runtime_evidence_profile_with_cumulative_samples(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            build_upbit_paper_runtime_evidence_collection_profile_report(
+                root=root,
+                loop_id="dashboard-cumulative-runtime-profile-a",
+                requested_cycle_count=1,
+            )
+            report = build_upbit_paper_runtime_evidence_collection_profile_report(
+                root=root,
+                loop_id="dashboard-cumulative-runtime-profile-b",
+                requested_cycle_count=1,
+            )
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile(report)
+        result = validate_read_only_dashboard_shell(dashboard, set(registry()["enums"]["live_blocker_code"]["values"]))
+        profile = dashboard["paper_runtime_evidence_collection_profile_status"]
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(profile["status"], "PASS")
+        self.assertGreater(profile["accepted_cycle_sample_count"], profile["completed_cycle_count"])
+        self.assertEqual(profile["primary_blocker_code"], "LIVE_READY_MISSING")
+        self.assertFalse(profile["long_run_evidence_eligible"])
+        self.assertFalse(profile["live_order_allowed"])
 
     def test_dashboard_projects_paper_runtime_evidence_profile_duplicate_ledger_blocked(self):
         report = run_upbit_paper_runtime_evidence_collection_profile(
@@ -2434,6 +2660,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(profile["color_token"], "red")
         self.assertEqual(profile["primary_blocker_code"], "RECONCILIATION_REQUIRED")
         self.assertGreater(profile["duplicate_event_id_count"], 0)
+        self.assertEqual(profile["collection_plan_status"], "BLOCKED_FOR_RECONCILIATION")
+        self.assertEqual(profile["collection_plan_recommended_next_paper_batch_cycle_count"], 0)
         self.assertEqual(profile["ledger_runtime_evidence_status"], "BLOCKED")
         self.assertFalse(profile["current_evidence_write_allowed"])
         self.assertFalse(profile["live_order_allowed"])
@@ -2486,8 +2714,30 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
 
+    def test_dashboard_blocks_paper_runtime_evidence_profile_collection_plan_drift(self):
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
+        profile = dashboard["paper_runtime_evidence_collection_profile_status"]
+        profile["collection_plan_counts_as_actual_long_run_evidence"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LIVE_FINAL_GUARD_FAILED")
+
+        profile["collection_plan_counts_as_actual_long_run_evidence"] = False
+        profile["collection_plan_required_next_runtime_modes"] = ["PAPER"]
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING")
+
     def test_dashboard_projects_profitability_maturity_rollup_without_live_permission(self):
-        dashboard = build_dashboard(profitability_maturity_rollup_report=profitability_maturity_rollup_fixture())
+        rollup = profitability_maturity_rollup_fixture()
+        paper_shadow_component = next(
+            component
+            for component in rollup["components"]
+            if component["component_id"] == "paper_shadow_evidence_accumulation"
+        )
+        dashboard = build_dashboard(profitability_maturity_rollup_report=rollup)
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "PASS")
         maturity = dashboard["profitability_maturity"]
@@ -2500,7 +2750,31 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["optimizer_ranking_action"], "BLOCK_RANKING")
         self.assertEqual(maturity["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
         self.assertEqual(maturity["live_readiness_status"], "NOT_LIVE_READY")
-        self.assertEqual(maturity["primary_blocker_code"], "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY")
+        self.assertEqual(maturity["primary_blocker_code"], "PROFITABILITY_EVIDENCE_MATURITY")
+        self.assertGreaterEqual(maturity["paper_sample_count"], maturity["min_required_samples"])
+        self.assertGreaterEqual(maturity["shadow_sample_count"], maturity["min_required_samples"])
+        self.assertEqual(maturity["evidence_actionability_status"], "SCORECARD_READY_EXTEND_RUNTIME_SPAN")
+        self.assertEqual(maturity["primary_collection_deficit_code"], "EVIDENCE_SPAN_DEFICIT")
+        self.assertEqual(maturity["next_collection_action"], "EXTEND_NON_LIVE_RUNTIME_SPAN")
+        self.assertEqual(maturity["scorecard_input_truth_status"], "PAPER_SCORECARD_INPUT_READY_ONLY")
+        self.assertIn("PAPER samples", maturity["sample_summary"])
+        self.assertIn("SHADOW observations", maturity["sample_summary"])
+        self.assertIn("live orders blocked", maturity["sample_summary"])
+        self.assertEqual(maturity["paper_runtime_span_seconds"], paper_shadow_component["paper_runtime_span_seconds"])
+        self.assertEqual(maturity["shadow_runtime_span_seconds"], paper_shadow_component["shadow_runtime_span_seconds"])
+        self.assertEqual(maturity["paired_runtime_span_seconds"], paper_shadow_component["paired_runtime_span_seconds"])
+        self.assertEqual(maturity["evidence_span_hours"], paper_shadow_component["evidence_span_hours"])
+        self.assertEqual(maturity["actual_runtime_source_status"], "PARTIAL_NON_LIVE_RUNTIME")
+        self.assertEqual(maturity["actual_runtime_source_count"], 2)
+        self.assertEqual(maturity["actual_runtime_source_binding_status"], "REQUIREMENTS_INCOMPLETE")
+        self.assertEqual(maturity["actual_runtime_source_mode_coverage"], "PAPER_AND_SHADOW")
+        self.assertEqual(maturity["actual_runtime_requirement_pass_count"], 3)
+        self.assertEqual(maturity["actual_runtime_requirement_missing_ids"], ["runtime_span", "cycle_count"])
+        self.assertEqual(maturity["evidence_progress_status"], "READY")
+        self.assertEqual(maturity["evidence_progress_pct"], 100)
+        self.assertEqual(maturity["cost_evidence_status"], "PASS")
+        self.assertEqual(maturity["entry_reason_status"], "PASS")
+        self.assertEqual(maturity["no_trade_reason_status"], "PASS")
         self.assertEqual(maturity["promotion_threshold_status"], "BLOCKED_FOR_THRESHOLD_EVIDENCE")
         self.assertEqual(maturity["promotion_threshold_replay_closed_trades"], 1)
         self.assertEqual(maturity["promotion_threshold_min_replay_closed_trades"], 100)
@@ -2521,23 +2795,24 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         html = render_dashboard_html(dashboard)
         self.assertIn("runtime=0.1h observed", html)
         self.assertNotIn("runtime=0.1/72h", html)
-        self.assertEqual(maturity["robustness_source_type_status"], "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE")
-        self.assertEqual(maturity["robustness_source_type_missing_count"], 4)
+        self.assertEqual(maturity["robustness_source_type_status"], "PASS")
+        self.assertEqual(maturity["robustness_source_type_missing_count"], 0)
         self.assertEqual(
             maturity["robustness_source_type_missing_types"],
-            ["BOOTSTRAP", "CONCENTRATION", "OOS", "WALK_FORWARD"],
+            [],
         )
-        self.assertEqual(maturity["robustness_source_type_oos_count"], 0)
-        self.assertEqual(maturity["robustness_source_type_walk_forward_count"], 0)
-        self.assertEqual(maturity["robustness_source_type_bootstrap_count"], 0)
-        self.assertEqual(maturity["robustness_source_type_concentration_count"], 0)
+        self.assertEqual(maturity["robustness_source_type_present_types"], ["BOOTSTRAP", "CONCENTRATION", "OOS", "WALK_FORWARD"])
+        self.assertGreaterEqual(maturity["robustness_source_type_oos_count"], 1)
+        self.assertGreaterEqual(maturity["robustness_source_type_walk_forward_count"], 1)
+        self.assertGreaterEqual(maturity["robustness_source_type_bootstrap_count"], 1)
+        self.assertGreaterEqual(maturity["robustness_source_type_concentration_count"], 1)
         self.assertEqual(
             maturity["robustness_source_type_primary_blocker_code"],
-            "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
+            "NONE",
         )
-        self.assertTrue(maturity["robustness_source_type_explicit_blocker"])
-        self.assertEqual(maturity["paper_scorecard_component_pass_count"], 4)
-        self.assertEqual(maturity["maturity_gap_count"], 6)
+        self.assertFalse(maturity["robustness_source_type_explicit_blocker"])
+        self.assertEqual(maturity["paper_scorecard_component_pass_count"], 5)
+        self.assertEqual(maturity["maturity_gap_count"], 5)
         self.assertTrue(any(item["status"] == "PAPER_SCORECARD_INPUT_ONLY" for item in maturity["maturity_components"]))
         paper_shadow_component = maturity["maturity_components"][8]
         self.assertEqual(paper_shadow_component["component_id"], "paper_shadow_evidence_accumulation")
@@ -2553,6 +2828,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(maturity["live_order_allowed"])
         self.assertFalse(maturity["can_live_trade"])
         self.assertFalse(maturity["scale_up_allowed"])
+
+    def test_dashboard_blocks_loaded_rollup_hidden_paper_shadow_actionability(self):
+        dashboard = build_dashboard(profitability_maturity_rollup_report=profitability_maturity_rollup_fixture())
+        dashboard["profitability_maturity"]["evidence_actionability_status"] = "NOT_LOADED"
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
 
     def test_dashboard_blocks_profitability_rollup_hidden_promotion_threshold_gap(self):
         rollup = profitability_maturity_rollup_fixture()
@@ -2575,7 +2858,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
         maturity = dashboard["profitability_maturity"]
         self.assertEqual(maturity["rollup_source_status"], "LOADED")
-        self.assertEqual(maturity["primary_blocker_code"], "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY")
+        self.assertEqual(maturity["primary_blocker_code"], "PROFITABILITY_EVIDENCE_MATURITY")
         self.assertFalse(maturity["live_order_allowed"])
         self.assertFalse(maturity["scale_up_allowed"])
 
@@ -2611,6 +2894,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
 
     def test_dashboard_blocks_profitability_rollup_hidden_robustness_source_type_gap(self):
         rollup = profitability_maturity_rollup_fixture()
+        rollup["robustness_source_type_evidence"]["status"] = "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE"
         rollup["robustness_source_type_evidence"]["missing_source_types"] = []
         dashboard = build_dashboard(profitability_maturity_rollup_report=rollup)
         result = validate_read_only_dashboard_shell(dashboard)
@@ -2646,6 +2930,42 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn(scorecard["candidate_id"], html)
         self.assertIn("Net EV after cost", html)
         self.assertEqual(validate_dashboard_visual_layout_contract(html).status, "PASS")
+
+    def test_dashboard_projects_overfit_diagnostic_reason_codes_as_display_only(self):
+        scorecard = candidate_scorecard_fixture()
+        diagnostic = overfit_diagnostic_fixture(scorecard)
+        dashboard = build_dashboard(candidate_scorecard=scorecard, overfit_diagnostic_report=diagnostic)
+        result = validate_read_only_dashboard_shell(dashboard)
+        maturity = dashboard["profitability_maturity"]
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(maturity["overfit_diagnostic_source"], "overfit_diagnostic_report.json")
+        self.assertEqual(maturity["overfit_diagnostic_status"], "BLOCKED_FOR_ROBUSTNESS")
+        self.assertEqual(maturity["overfit_diagnostic_sample_count"], 12)
+        self.assertEqual(maturity["overfit_diagnostic_min_required_sample_count"], 300)
+        self.assertFalse(maturity["overfit_diagnostic_robustness_eligible"])
+        self.assertEqual(maturity["overfit_diagnostic_primary_blocker_code"], "SAMPLE_INSUFFICIENT")
+        sources = [source for source in dashboard["source_artifacts"] if source["artifact_id"] == "OVERFIT_DIAGNOSTIC"]
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(sources[0]["filename"], "overfit_diagnostic_report.json")
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Overfit: BLOCKED_FOR_ROBUSTNESS", html)
+        self.assertIn("12/300 samples", html)
+        self.assertFalse(maturity["live_order_allowed"])
+
+    def test_dashboard_blocks_overfit_diagnostic_live_flag_drift_in_display(self):
+        scorecard = candidate_scorecard_fixture()
+        diagnostic = overfit_diagnostic_fixture(scorecard)
+        diagnostic["live_order_allowed"] = True
+        dashboard = build_dashboard(candidate_scorecard=scorecard, overfit_diagnostic_report=diagnostic)
+        result = validate_read_only_dashboard_shell(dashboard)
+        maturity = dashboard["profitability_maturity"]
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(maturity["overfit_diagnostic_status"], "BLOCKED")
+        self.assertEqual(maturity["overfit_diagnostic_primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(maturity["overfit_diagnostic_robustness_eligible"])
+        self.assertFalse(maturity["live_order_allowed"])
 
     def test_dashboard_blocks_candidate_scorecard_live_flag_drift(self):
         scorecard = candidate_scorecard_fixture()
@@ -4581,23 +4901,53 @@ class ReadOnlyDashboardTest(unittest.TestCase):
                 encoding="utf-8"
             )
         )
-        blocked_writer = json.loads(
-            (runtime_base / "upbit_paper_repaired_current_evidence_audited_writer_report.json").read_text(
-                encoding="utf-8"
+        ledger_rollup = json.loads(
+            (
+                ROOT
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / "mvp1_upbit_paper_launcher"
+                / "ledger"
+                / "paper_ledger_rollup_report.json"
+            ).read_text(encoding="utf-8")
+        )
+        with TemporaryDirectory() as tmp:
+            blocked_writer_root = Path(tmp)
+            partial_target = (
+                blocked_writer_root
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / implementation_prep["session_id"]
+                / "paper_runtime"
+                / "current_evidence"
+                / "audited_current_evidence_snapshot.json"
             )
-        )
-        summary, heartbeat, startup_probe = build_inputs(session_id=implementation_prep["session_id"])
-        dashboard = build_read_only_dashboard_shell(
-            exchange=implementation_prep["exchange"],
-            market_type=implementation_prep["market_type"],
-            mode=implementation_prep["mode"],
-            session_id=implementation_prep["session_id"],
-            summary=summary,
-            heartbeat=heartbeat,
-            startup_probe=startup_probe,
-            upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=implementation_prep,
-            upbit_paper_repaired_current_evidence_audited_writer_report=blocked_writer,
-        )
+            partial_target.parent.mkdir(parents=True, exist_ok=True)
+            partial_target.write_text("{}\n", encoding="utf-8")
+            blocked_writer = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+                root=blocked_writer_root,
+                source_implementation_prep_report=implementation_prep,
+                source_ledger_rollup_report=ledger_rollup,
+                audited_writer_id="test-dashboard-post-rerun-blocked-writer",
+            )
+            summary, heartbeat, startup_probe = build_inputs(session_id=implementation_prep["session_id"])
+            dashboard = build_read_only_dashboard_shell(
+                exchange=implementation_prep["exchange"],
+                market_type=implementation_prep["market_type"],
+                mode=implementation_prep["mode"],
+                session_id=implementation_prep["session_id"],
+                summary=summary,
+                heartbeat=heartbeat,
+                startup_probe=startup_probe,
+                upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=implementation_prep,
+                upbit_paper_repaired_current_evidence_audited_writer_report=blocked_writer,
+            )
         reconciliation = dashboard["reconciliation_recovery_summary"]
         self.assertIn(
             "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
@@ -4825,6 +5175,38 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
 
+    def test_dashboard_projects_public_mark_audited_current_evidence_portfolio_truth(self):
+        outputs = audited_writer_public_mark_output_fixture()
+        _writer_report, current_evidence, paper_portfolio, _implementation_prep = outputs
+        dashboard = build_dashboard_with_audited_current_evidence_writer(outputs)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "VERIFIED")
+        self.assertEqual(portfolio["source"], "audited_current_evidence_snapshot.json")
+        self.assertEqual(portfolio["source_snapshot_status"], "PASS")
+        self.assertEqual(portfolio["source_balance_kind"], "SIMULATED_PAPER_LEDGER")
+        self.assertEqual(portfolio["paper_value_truth_status"], "PAPER_LEDGER_PUBLIC_MARK_VALUES_VERIFIED")
+        self.assertEqual(portfolio["runtime_continuity_status"], "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF")
+        self.assertEqual(portfolio["cash"]["value_display"], krw_display(current_evidence["verified_cash_krw"]))
+        self.assertEqual(portfolio["equity"]["value_display"], krw_display(current_evidence["verified_equity_krw"]))
+        self.assertEqual(
+            portfolio["total_pnl"]["value_display"],
+            krw_display(current_evidence["verified_total_pnl_krw"]),
+        )
+        self.assertEqual(
+            paper_portfolio["price_basis_repair_status"],
+            "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION",
+        )
+        html = render_dashboard_html(dashboard)
+        self.assertIn("PAPER_LEDGER_PUBLIC_MARK_VALUES_VERIFIED", html)
+        self.assertIn("public mark", html)
+        self.assertFalse(portfolio["live_order_ready"])
+        self.assertFalse(portfolio["live_order_allowed"])
+        self.assertFalse(portfolio["can_live_trade"])
+        self.assertFalse(portfolio["scale_up_allowed"])
+
     def test_dashboard_projects_full_audited_writer_activation_chain_as_snapshot_only_blocked(self):
         dashboard = build_dashboard_with_full_audited_writer_activation_chain()
         result = validate_read_only_dashboard_shell(dashboard)
@@ -4922,6 +5304,286 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["can_live_trade"])
         self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_continuous_writer_supersedes_review_only_repair_guard(self):
+        outputs = audited_writer_full_activation_outputs_fixture()
+        guard_report = stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_fixture()
+        continuous_report = continuous_current_evidence_writer_report_fixture(outputs, age_seconds=1)
+        summary, heartbeat, startup_probe = build_inputs(session_id=outputs[0]["session_id"], with_paper_portfolio=False)
+        dashboard = build_read_only_dashboard_shell(
+            exchange=outputs[0]["exchange"],
+            market_type=outputs[0]["market_type"],
+            mode=outputs[0]["mode"],
+            session_id=outputs[0]["session_id"],
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_report=guard_report,
+            upbit_paper_repaired_current_evidence_audited_writer_precheck_report=outputs[3],
+            upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=outputs[4],
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=outputs[5],
+            upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=outputs[6],
+            upbit_paper_repaired_current_evidence_audited_writer_report=outputs[0],
+            audited_current_evidence_snapshot=outputs[1],
+            audited_paper_portfolio_snapshot=outputs[2],
+            paper_continuous_current_evidence_writer_report=continuous_report,
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "PASS")
+        self.assertEqual(reconciliation["primary_blocker_code"], "LIVE_READY_MISSING")
+        self.assertTrue(reconciliation["upbit_paper_repaired_current_evidence_audited_writer_verified_for_display"])
+        self.assertEqual(
+            reconciliation["stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status"],
+            "BLOCKED_CURRENT_EVIDENCE_WRITE_DENIED",
+        )
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["audited_writer_activation_preflight_status"], "CONTINUOUS_WRITER_ACTIVE")
+        self.assertEqual(portfolio["audited_writer_blocker_decision_status"], "CONTINUOUS_WRITER_ACTIVE_PAPER_ONLY")
+        self.assertEqual(portfolio["audited_writer_blocker_decision_code"], "LIVE_READY_MISSING")
+        self.assertNotEqual(
+            dashboard["operator_action_summary"]["primary_blocker_code"],
+            "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+        )
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_active_runtime_truth_replaces_stale_hard_truth_blocker(self):
+        outputs = audited_writer_full_activation_outputs_fixture()
+        continuous_report = continuous_current_evidence_writer_report_fixture(outputs, age_seconds=1)
+        writer_report = outputs[0]
+        session_id = writer_report["session_id"]
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id, with_paper_portfolio=False)
+
+        def payload(start_minute: int) -> list[dict[str, object]]:
+            return [
+                {
+                    "market": "KRW-BTC",
+                    "candle_date_time_utc": f"2026-04-30T09:{start_minute + index:02d}:00",
+                    "opening_price": 1000000 + (start_minute + index) * 1000,
+                    "high_price": 1002500 + (start_minute + index) * 1000,
+                    "low_price": 998000 + (start_minute + index) * 1000,
+                    "trade_price": 1000500 + (start_minute + index) * 1000,
+                    "candle_acc_trade_volume": 2 + index,
+                }
+                for index in range(5, -1, -1)
+            ]
+
+        def sequence_fetcher(starts: list[int]):
+            calls = {"count": 0}
+
+            def fetcher(*, symbol: str, session_id: str, timeout_seconds: float) -> dict[str, object]:
+                index = min(calls["count"], len(starts) - 1)
+                calls["count"] += 1
+                return build_upbit_public_candle_data_from_rest_payload(
+                    payload=payload(starts[index]),
+                    symbol=symbol,
+                    session_id=session_id,
+                )
+
+            return fetcher
+
+        attempts = [
+            build_upbit_public_rest_continuity_report(
+                continuity_id="dashboard-active-runtime-truth-continuity-1",
+                session_id=session_id,
+                fetcher=sequence_fetcher([0, 1]),
+            ),
+            build_upbit_public_rest_continuity_report(
+                continuity_id="dashboard-active-runtime-truth-continuity-2",
+                session_id=session_id,
+                fetcher=sequence_fetcher([1, 2]),
+            ),
+        ]
+        continuity_history = build_upbit_public_rest_continuity_history_report(
+            history_id="dashboard-active-runtime-truth-continuity-history",
+            session_id=session_id,
+            continuity_attempts=attempts,
+        )
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="dashboard-active-runtime-truth-loop",
+                session_id=session_id,
+                requested_cycle_count=1,
+            )
+            ledger_rollup = json.loads(
+                (
+                    root
+                    / "system"
+                    / "runtime"
+                    / "upbit"
+                    / "krw_spot"
+                    / "paper"
+                    / session_id
+                    / "ledger"
+                    / "paper_ledger_rollup_report.json"
+                ).read_text(encoding="utf-8")
+            )
+        current_refresh = build_paper_current_truth_refresh_report(
+            exchange=writer_report["exchange"],
+            market_type=writer_report["market_type"],
+            mode=writer_report["mode"],
+            session_id=session_id,
+            paper_portfolio_snapshot=ledger_rollup["portfolio_snapshot"],
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+        )
+        runtime_truth = build_paper_runtime_truth_state_report(
+            exchange=writer_report["exchange"],
+            market_type=writer_report["market_type"],
+            mode=writer_report["mode"],
+            session_id=session_id,
+            heartbeat=heartbeat,
+            upbit_paper_persistent_loop_report=loop,
+            upbit_public_rest_continuity_history=continuity_history,
+            paper_ledger_rollup_report=ledger_rollup,
+            paper_current_truth_refresh_report=current_refresh,
+        )
+        self.assertEqual(runtime_truth["runtime_truth_status"], "PAPER_RUNTIME_ACTIVE")
+        self.assertEqual(runtime_truth["primary_blocker_code"], "LIVE_READY_MISSING")
+        stale_harness = build_shadow_observation_actual_runtime_harness_report(
+            harness_id="dashboard-active-runtime-truth-stale-harness",
+            runtime_measurement_source="MONOTONIC_LOCAL_TIMER_VERIFIED",
+            monotonic_timer_started=True,
+            monotonic_timer_stopped=True,
+            measured_runtime_seconds_verified=True,
+        )
+        stale_harness["generated_at_utc"] = (
+            datetime.now(timezone.utc) - timedelta(seconds=600)
+        ).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange=writer_report["exchange"],
+            market_type=writer_report["market_type"],
+            mode=writer_report["mode"],
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_repaired_current_evidence_audited_writer_precheck_report=outputs[3],
+            upbit_paper_repaired_current_evidence_audited_writer_dry_run_report=outputs[4],
+            upbit_paper_repaired_current_evidence_audited_writer_locked_output_report=outputs[5],
+            upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=outputs[6],
+            upbit_paper_repaired_current_evidence_audited_writer_report=outputs[0],
+            audited_current_evidence_snapshot=outputs[1],
+            audited_paper_portfolio_snapshot=outputs[2],
+            paper_current_truth_refresh_report=current_refresh,
+            paper_continuous_current_evidence_writer_report=continuous_report,
+            paper_runtime_truth_state_report=runtime_truth,
+            upbit_public_rest_continuity_history=continuity_history,
+            shadow_runtime_harness_report=stale_harness,
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        self.assertEqual(dashboard["blocking_reason"], "LIVE_READY_MISSING")
+        self.assertEqual(dashboard["operation_status"]["status"], "RUNNING_SAFE_MODE")
+        self.assertEqual(dashboard["operation_status"]["runtime_presence"], "PAPER_RUNTIME_ACTIVE")
+        self.assertEqual(dashboard["operation_status"]["primary_blocker"], "LIVE_READY_MISSING")
+        self.assertEqual(dashboard["long_run_operator_summary"]["status"], "STALE")
+        self.assertIn("verified current PAPER runtime truth is active", dashboard["long_run_operator_summary"]["summary"])
+        self.assertEqual(dashboard["runtime_evidence_boundary"]["status"], "STALE")
+        self.assertIn(
+            "verified current PAPER runtime truth is active",
+            dashboard["runtime_evidence_boundary"]["one_line_summary"],
+        )
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["primary_blocker_code"], "LIVE_READY_MISSING")
+        self.assertEqual(dashboard["portfolio_snapshot"]["status"], "VERIFIED")
+        self.assertEqual(dashboard["reconciliation_recovery_summary"]["status"], "PASS")
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_operator_refresh_required_keeps_active_paper_running(self):
+        operator_action = _operator_action_summary(
+            primary_blocker="LIVE_READY_MISSING",
+            operation_status={
+                "status": "RUNNING_SAFE_MODE",
+                "severity": "NORMAL",
+                "runtime_presence": "PAPER_RUNTIME_ACTIVE",
+                "primary_blocker": "LIVE_READY_MISSING",
+            },
+            reconciliation_recovery_summary={"status": "PASS"},
+            long_run_operator_summary={"status": "STALE"},
+            profitability_maturity={"status": "COLLECTING"},
+            risk_exposure_snapshot={"status": "ATTENTION"},
+            execution_feedback_snapshot={"status": "COLLECTING"},
+            decision_trace={"final_action": "NO_TRADE"},
+        )
+        self.assertEqual(operator_action["status"], "REFRESH_REQUIRED")
+        self.assertEqual(operator_action["workflow_step"], "RUN_PAPER")
+        self.assertEqual(operator_action["primary_action"], "REFRESH_DASHBOARD")
+        self.assertEqual(operator_action["primary_blocker_code"], "LIVE_READY_MISSING")
+        self.assertIn("Keep PAPER running", operator_action["next_operator_action"])
+        self.assertFalse(operator_action["safe_to_continue_paper"])
+        self.assertFalse(operator_action["live_order_ready"])
+        self.assertFalse(operator_action["live_order_allowed"])
+        self.assertFalse(operator_action["can_live_trade"])
+        self.assertFalse(operator_action["scale_up_allowed"])
+
+    def test_operator_history_stale_keeps_active_paper_running_without_source_refresh_copy(self):
+        operator_action = _operator_action_summary(
+            primary_blocker="LIVE_READY_MISSING",
+            operation_status={
+                "status": "RUNNING_SAFE_MODE",
+                "severity": "NORMAL",
+                "runtime_presence": "PAPER_RUNTIME_ACTIVE",
+                "primary_blocker": "LIVE_READY_MISSING",
+            },
+            reconciliation_recovery_summary={"status": "PASS"},
+            long_run_operator_summary={"status": "STALE", "source": "stability_history.json"},
+            profitability_maturity={"status": "COLLECTING"},
+            risk_exposure_snapshot={"status": "ATTENTION"},
+            execution_feedback_snapshot={"status": "COLLECTING"},
+            decision_trace={"final_action": "NO_TRADE"},
+        )
+        self.assertEqual(operator_action["status"], "REFRESH_REQUIRED")
+        self.assertEqual(operator_action["workflow_step"], "RUN_PAPER")
+        self.assertEqual(operator_action["primary_action"], "REFRESH_DASHBOARD")
+        self.assertEqual(operator_action["primary_action_label"], "Review PAPER history")
+        self.assertIn("PAPER runtime is active with verified current truth", operator_action["next_operator_action"])
+        self.assertIn("validated display history", operator_action["next_operator_action"])
+        self.assertNotIn("refresh stale dashboard or research evidence sources", operator_action["next_operator_action"])
+        self.assertFalse(operator_action["live_order_ready"])
+        self.assertFalse(operator_action["live_order_allowed"])
+        self.assertFalse(operator_action["can_live_trade"])
+        self.assertFalse(operator_action["scale_up_allowed"])
+
+    def test_operator_active_paper_attention_keeps_paper_running(self):
+        operator_action = _operator_action_summary(
+            primary_blocker="LIVE_READY_MISSING",
+            operation_status={
+                "status": "RUNNING_SAFE_MODE",
+                "severity": "NORMAL",
+                "runtime_presence": "PAPER_RUNTIME_ACTIVE",
+                "primary_blocker": "LIVE_READY_MISSING",
+            },
+            reconciliation_recovery_summary={"status": "PASS"},
+            long_run_operator_summary={"status": "ATTENTION"},
+            profitability_maturity={"status": "COLLECTING"},
+            risk_exposure_snapshot={"status": "ATTENTION"},
+            execution_feedback_snapshot={"status": "COLLECTING"},
+            decision_trace={"final_action": "NO_TRADE"},
+        )
+        self.assertEqual(operator_action["status"], "ACTION_REQUIRED")
+        self.assertEqual(operator_action["workflow_step"], "INSPECT_DASHBOARD")
+        self.assertEqual(operator_action["primary_action"], "RESOLVE_BLOCKER")
+        self.assertEqual(operator_action["primary_action_label"], "Review PAPER warnings")
+        self.assertIn("PAPER runtime is active with verified current truth", operator_action["next_operator_action"])
+        self.assertIn("Keep PAPER running", operator_action["next_operator_action"])
+        self.assertFalse(operator_action["safe_to_continue_paper"])
+        self.assertFalse(operator_action["live_order_ready"])
+        self.assertFalse(operator_action["live_order_allowed"])
+        self.assertFalse(operator_action["can_live_trade"])
+        self.assertFalse(operator_action["scale_up_allowed"])
 
     def test_dashboard_projects_continuous_current_evidence_writer_stale_as_warning(self):
         outputs = audited_writer_full_activation_outputs_fixture()
@@ -5715,6 +6377,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Next: Validate optimizer ranking against net EV after all costs", html)
         self.assertIn("PAPER_EVIDENCE_COLLECTION_ONLY", html)
         self.assertIn("NOT_LIVE_READY", html)
+        self.assertEqual(maturity["paired_runtime_span_seconds"], min(maturity["paper_runtime_span_seconds"], maturity["shadow_runtime_span_seconds"]))
+        self.assertEqual(maturity["evidence_span_hours"], maturity["paired_runtime_span_seconds"] // 3600)
+        self.assertIn("Runtime Span", html)
+        self.assertIn("paired seconds=", html)
         self.assertIn("Long-Run Evidence", html)
         self.assertIn("Runtime Binding", html)
         self.assertIn("MISSING_SOURCE_IDS", html)
@@ -6530,6 +7196,49 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(long_run["history_window"], "VALIDATED_HISTORY")
         self.assertFalse(long_run["live_order_allowed"])
 
+    def test_dashboard_keeps_validated_stale_history_out_of_running_now(self):
+        baseline = build_dashboard()
+        for metric in baseline["stability_trends"]["metrics"]:
+            metric["status"] = "STALE"
+        baseline["stability_trends"]["status"] = "ATTENTION"
+        baseline["stability_trends"]["severity"] = "WARNING"
+        baseline["stability_trends"]["color_token"] = "yellow"
+        baseline["generated_at_utc"] = "2026-04-30T00:00:00Z"
+        baseline["dashboard_hash"] = dashboard_shell_hash(baseline)
+        history = append_stability_history(None, baseline)
+
+        next_baseline = json.loads(json.dumps(baseline))
+        next_baseline["generated_at_utc"] = "2026-04-30T01:05:00Z"
+        next_baseline["dashboard_hash"] = dashboard_shell_hash(next_baseline)
+        history = append_stability_history(history, next_baseline)
+        summary, heartbeat, startup_probe = build_inputs()
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="test_read_only_dashboard",
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            stability_history=history,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS")
+        stability = dashboard["stability_trends"]
+        self.assertEqual(stability["history_window"], "VALIDATED_HISTORY")
+        self.assertEqual(stability["span_validation_status"], "SPAN_VALIDATED")
+        self.assertEqual(stability["stale_sample_count"], 2)
+        long_run = dashboard["long_run_operator_summary"]
+        self.assertEqual(long_run["status"], "STALE")
+        self.assertEqual(long_run["source"], "stability_history.json")
+        self.assertEqual(long_run["history_window"], "VALIDATED_HISTORY")
+        self.assertEqual(long_run["stale_sample_count"], 2)
+        self.assertNotEqual(long_run["status"], "RUNNING_NOW")
+        self.assertFalse(long_run["live_order_allowed"])
+        self.assertFalse(long_run["scale_up_allowed"])
+
     def test_dashboard_keeps_sparse_day_history_collecting(self):
         dashboard = build_dashboard_with_sparse_day_history()
         result = validate_read_only_dashboard_shell(dashboard)
@@ -7106,6 +7815,69 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(portfolio["live_order_allowed"])
         self.assertFalse(portfolio["can_live_trade"])
         self.assertFalse(portfolio["scale_up_allowed"])
+
+    def test_current_truth_refresh_display_survives_blocked_continuous_writer_preflight(self):
+        session_id = "test_read_only_dashboard_current_truth_refresh_writer_blocked"
+        snapshot = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id=session_id,
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price="50000000",
+            mark_price="49000000",
+            fee_amount="0",
+            starting_cash="1000000",
+        )
+        summary, heartbeat, startup_probe = build_inputs(
+            session_id=session_id,
+            paper_portfolio_snapshot=snapshot,
+        )
+        refresh = build_paper_current_truth_refresh_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            paper_portfolio_snapshot=snapshot,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+        )
+        continuous_writer = build_paper_continuous_current_evidence_writer_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            audited_writer_report=None,
+            audited_current_evidence_snapshot=None,
+            audited_paper_portfolio_snapshot=None,
+            paper_current_truth_refresh_report=refresh,
+        )
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            paper_current_truth_refresh_report=refresh,
+            paper_continuous_current_evidence_writer_report=continuous_writer,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["source"], "paper_current_truth_refresh_report.json")
+        self.assertEqual(portfolio["status"], "VERIFIED")
+        self.assertEqual(portfolio["audited_writer_lifecycle_status"], "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER")
+        self.assertEqual(
+            portfolio["audited_writer_blocker_decision_status"],
+            "SUMMARY_LEDGER_DISPLAY_ONLY_NO_AUDITED_WRITER",
+        )
+        self.assertEqual(portfolio["audited_writer_blocker_truth_class"], "SUMMARY_LEDGER_DISPLAY_ONLY")
+        self.assertFalse(portfolio["audited_writer_blocker_allows_single_run_paper_display"])
+        self.assertFalse(portfolio["live_order_allowed"])
 
     def test_dashboard_blocks_paper_current_truth_refresh_permission_drift(self):
         session_id = "test_read_only_dashboard_current_truth_refresh_drift"
