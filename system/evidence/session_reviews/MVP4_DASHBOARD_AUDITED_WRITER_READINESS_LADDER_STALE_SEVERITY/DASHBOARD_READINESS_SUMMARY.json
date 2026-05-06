@@ -1,0 +1,12 @@
+{
+  "patch_id": "MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY_20260506_001",
+  "generated_at_utc": "2026-05-06T08:46:41Z",
+  "status": "PASS_STALE_DISPLAY_WARNING_SEPARATED_LIVE_BLOCKED",
+  "stale_single_run_snapshot_level": "WARNING",
+  "continuous_writer_level": "CRITICAL_BLOCKER",
+  "dashboard_display_truth_only": true,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

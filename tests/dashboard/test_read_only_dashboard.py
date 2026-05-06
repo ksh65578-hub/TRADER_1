@@ -4569,6 +4569,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             "CONTINUOUS_CURRENT_EVIDENCE_WRITER",
         )
         self.assertEqual(portfolio["audited_writer_readiness_ladder_blocking_count"], 1)
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_critical_blocker_count"], 1)
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_warning_count"], 0)
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_non_live_regeneration_blocker_count"], 1)
         self.assertFalse(portfolio["audited_writer_readiness_ladder_current_evidence_write_allowed"])
         self.assertFalse(portfolio["audited_writer_readiness_ladder_portfolio_truth_write_allowed"])
         self.assertFalse(portfolio["audited_writer_readiness_ladder_live_order_allowed"])
@@ -4610,6 +4613,15 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             ],
         )
         self.assertEqual(portfolio["audited_writer_readiness_ladder_steps"][-1]["status"], "BLOCKED")
+        self.assertEqual(
+            portfolio["audited_writer_readiness_ladder_steps"][-1]["evidence_blocker_level"],
+            "CRITICAL_BLOCKER",
+        )
+        self.assertTrue(
+            portfolio["audited_writer_readiness_ladder_steps"][-1][
+                "blocks_non_live_regeneration_until_pass"
+            ]
+        )
         self.assertEqual(
             [stage["stage_id"] for stage in portfolio["audited_writer_activation_preflight_stages"]],
             [
@@ -4916,7 +4928,13 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         continuous_step["blocks_current_evidence_write_until_pass"] = False
         continuous_step["blocks_portfolio_truth_write_until_pass"] = False
         continuous_step["blocks_live_review_until_pass"] = False
+        continuous_step["blocks_non_live_regeneration_until_pass"] = False
+        continuous_step["evidence_blocker_level"] = "INFORMATIONAL"
+        continuous_step["action_owner"] = "CODEX_AUDIT_ONLY"
         portfolio["audited_writer_readiness_ladder_blocking_count"] = 0
+        portfolio["audited_writer_readiness_ladder_critical_blocker_count"] = 0
+        portfolio["audited_writer_readiness_ladder_non_live_regeneration_blocker_count"] = 0
+        portfolio["audited_writer_readiness_ladder_informational_count"] = 7
         portfolio["audited_writer_readiness_ladder_highest_passed_step_id"] = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
         portfolio["audited_writer_readiness_ladder_current_step_id"] = "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
@@ -4954,6 +4972,33 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["blocking_reason"], "LATENCY_TTL_EXPIRED")
         self.assertEqual(portfolio["paper_value_truth_status"], "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE")
         self.assertEqual(portfolio["runtime_continuity_status"], "STALE_SNAPSHOT_NOT_RUNTIME_PROOF")
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_status"], "STALE_SINGLE_RUN_SNAPSHOT")
+        self.assertEqual(
+            portfolio["audited_writer_readiness_ladder_current_step_id"],
+            "CONTINUOUS_CURRENT_EVIDENCE_WRITER",
+        )
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_blocking_count"], 2)
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_critical_blocker_count"], 1)
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_warning_count"], 1)
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_non_live_regeneration_blocker_count"], 1)
+        stale_snapshot_step = next(
+            step
+            for step in portfolio["audited_writer_readiness_ladder_steps"]
+            if step["step_id"] == "SINGLE_RUN_AUDITED_SNAPSHOT"
+        )
+        self.assertEqual(stale_snapshot_step["status"], "STALE")
+        self.assertEqual(stale_snapshot_step["evidence_blocker_level"], "WARNING")
+        self.assertEqual(stale_snapshot_step["action_owner"], "CODEX_NON_LIVE")
+        self.assertFalse(stale_snapshot_step["operator_review_required"])
+        self.assertFalse(stale_snapshot_step["blocks_current_evidence_write_until_pass"])
+        self.assertFalse(stale_snapshot_step["blocks_portfolio_truth_write_until_pass"])
+        self.assertFalse(stale_snapshot_step["blocks_non_live_regeneration_until_pass"])
+        self.assertTrue(stale_snapshot_step["blocks_live_review_until_pass"])
+        continuous_writer_step = portfolio["audited_writer_readiness_ladder_steps"][-1]
+        self.assertEqual(continuous_writer_step["step_id"], "CONTINUOUS_CURRENT_EVIDENCE_WRITER")
+        self.assertEqual(continuous_writer_step["evidence_blocker_level"], "CRITICAL_BLOCKER")
+        self.assertTrue(continuous_writer_step["blocks_current_evidence_write_until_pass"])
+        self.assertTrue(continuous_writer_step["blocks_non_live_regeneration_until_pass"])
         self.assertEqual(
             portfolio["audited_writer_lifecycle_status"],
             "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED",
@@ -5000,6 +5045,44 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Current values:</strong> Last verified PAPER ledger", html)
         self.assertIn("PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE", html)
         self.assertIn("STALE_SNAPSHOT_NOT_RUNTIME_PROOF", html)
+        self.assertIn("WARNING | CODEX_NON_LIVE", html)
+
+    def test_dashboard_blocks_stale_snapshot_ladder_warning_policy_drift(self):
+        writer_report, current_evidence, paper_portfolio, implementation_prep = audited_writer_output_fixture()
+        current_evidence = dict(current_evidence)
+        writer_report = dict(writer_report)
+        writer_report["artifacts"] = [
+            dict(artifact) if isinstance(artifact, dict) else artifact
+            for artifact in writer_report.get("artifacts", [])
+        ]
+        current_evidence["generated_at_utc"] = "2026-01-01T00:00:00Z"
+        current_evidence["snapshot_hash"] = upbit_paper_audited_current_evidence_snapshot_hash(current_evidence)
+        for artifact in writer_report["artifacts"]:
+            if artifact.get("artifact_id") == "AUDITED_CURRENT_EVIDENCE_SNAPSHOT":
+                artifact["payload_hash"] = current_evidence["snapshot_hash"]
+        writer_report["audited_writer_report_hash"] = upbit_paper_repaired_current_evidence_audited_writer_report_hash(
+            writer_report
+        )
+
+        dashboard = build_dashboard_with_audited_current_evidence_writer(
+            (writer_report, current_evidence, paper_portfolio, implementation_prep)
+        )
+        portfolio = dashboard["portfolio_snapshot"]
+        stale_snapshot_step = next(
+            step
+            for step in portfolio["audited_writer_readiness_ladder_steps"]
+            if step["step_id"] == "SINGLE_RUN_AUDITED_SNAPSHOT"
+        )
+        stale_snapshot_step["evidence_blocker_level"] = "CRITICAL_BLOCKER"
+        stale_snapshot_step["blocks_current_evidence_write_until_pass"] = True
+        stale_snapshot_step["blocks_non_live_regeneration_until_pass"] = True
+        portfolio["audited_writer_readiness_ladder_critical_blocker_count"] = 2
+        portfolio["audited_writer_readiness_ladder_warning_count"] = 0
+        portfolio["audited_writer_readiness_ladder_non_live_regeneration_blocker_count"] = 2
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_dashboard_displays_bound_verified_portfolio_when_stale_loop_reconciliation_blocks_writes(self):
         report = stale_loop_post_regeneration_reconciliation_fixture()

@@ -1,11 +1,11 @@
 # ACTIVE_WORKING_VIEW
 
-generated_at_utc: 2026-05-06T08:14:34Z
+generated_at_utc: 2026-05-06T08:46:41Z
 source_trader1_sha256: FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B
 source_agents_sha256: 21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D
 authority_status: READ_CACHE_NOT_AUTHORITY
 current_mvp: MVP-4
-last_patch_id: MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_OPERATION_STATUS_BINDING_20260506_001
+last_patch_id: MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY_20260506_001
 next_allowed_task_class: MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION
 live_order_ready: false
 live_order_allowed: false
@@ -14,4 +14,4 @@ scale_up_allowed: false
 
 ## Current Safe State
 
-The dashboard first screen now distinguishes PAPER_RUNTIME_ACTIVE from PAPER_RUNTIME_BLOCKED. A verified PAPER portfolio snapshot can still be displayed, but it cannot hide missing market, ledger, or current refresh proof.
+The dashboard now separates critical current-truth blockers from stale display-only warnings in the audited writer readiness ladder. The stale single-run PAPER snapshot remains unsuitable for live review, but it is not shown as the same hard blocker as the continuous current-evidence writer.

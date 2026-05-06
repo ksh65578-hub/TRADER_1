@@ -2260,6 +2260,51 @@
       "status": "IMPLEMENTED_AUDITED_WRITER_READINESS_LADDER_LIVE_BLOCKED"
     },
     {
+      "requirement_id": "REQ-MVP4-DASHBOARD-AUDITED-WRITER-READINESS-LADDER-STALE-SEVERITY",
+      "section_id": "SECTION_DASHBOARD_OPERATOR_UX",
+      "schema_files": [
+        "contracts/schema/read_only_dashboard_shell.schema.json"
+      ],
+      "validator_files": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "test_files": [
+        "tests/dashboard/test_read_only_dashboard.py"
+      ],
+      "fixture_files": [],
+      "runtime_modules": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "evidence_artifacts": [
+        "system/evidence/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.evidence_manifest.json",
+        "system/evidence/audit_reports/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.report.json",
+        "system/evidence/audit_reports/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY_20260506.md",
+        "system/evidence/patch_results/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.patch_result.json",
+        "system/evidence/stage_gates/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.stage_gate_result.json",
+        "system/evidence/validator_runs/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY.validator_run_log.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/IMPLEMENTATION_COVERAGE_MATRIX.md",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/ACCEPTANCE_REPORT.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/pytest_report.txt",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/PAPER_RUN_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/LIVE_BLOCK_PROOF.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/DASHBOARD_READINESS_SUMMARY.json",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/USER_STATUS_SUMMARY.md",
+        "system/evidence/session_reviews/MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY/TRADER_1_SESSION_REVIEW.md"
+      ],
+      "dashboard_artifacts": [
+        "trader1/dashboard/read_only_dashboard.py"
+      ],
+      "patch_result_fields": [
+        "live_order_ready_after",
+        "live_order_allowed_after",
+        "can_live_trade_after",
+        "scale_up_allowed_after"
+      ],
+      "minimum_depth": "DEPTH_6_DASHBOARD_AND_OPERATOR_VISIBILITY",
+      "live_affecting": true,
+      "status": "IMPLEMENTED_LIVE_BLOCKED"
+    },
+    {
       "requirement_id": "REQ-MVP4-DASHBOARD-CONVERGENCE-ASSESSMENT-VISIBILITY",
       "section_id": "SECTION_DASHBOARD_CONVERGENCE_ASSESSMENT",
       "schema_files": [
@@ -18418,7 +18463,7 @@
       "status": "SCAFFOLD_IMPLEMENTED"
     }
   ],
-  "updated_at_utc": "2026-05-06T08:14:34Z",
+  "updated_at_utc": "2026-05-06T08:46:41Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
 }

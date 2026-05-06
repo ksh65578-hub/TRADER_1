@@ -8931,6 +8931,22 @@
           "type": "integer",
           "minimum": 0
         },
+        "audited_writer_readiness_ladder_critical_blocker_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audited_writer_readiness_ladder_warning_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audited_writer_readiness_ladder_informational_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audited_writer_readiness_ladder_non_live_regeneration_blocker_count": {
+          "type": "integer",
+          "minimum": 0
+        },
         "audited_writer_readiness_ladder_summary": {
           "type": "string",
           "minLength": 1
@@ -9000,6 +9016,26 @@
                 "type": "string",
                 "minLength": 1
               },
+              "evidence_blocker_level": {
+                "enum": [
+                  "CRITICAL_BLOCKER",
+                  "WARNING",
+                  "INFORMATIONAL"
+                ]
+              },
+              "action_owner": {
+                "enum": [
+                  "OPERATOR",
+                  "CODEX_NON_LIVE",
+                  "PAPER_SHADOW_RUNTIME",
+                  "EXTERNAL_EVIDENCE",
+                  "CODEX_AUDIT_ONLY",
+                  "SCALE_POLICY"
+                ]
+              },
+              "operator_review_required": {
+                "type": "boolean"
+              },
               "blocks_current_evidence_write_until_pass": {
                 "type": "boolean"
               },
@@ -9007,6 +9043,9 @@
                 "type": "boolean"
               },
               "blocks_live_review_until_pass": {
+                "type": "boolean"
+              },
+              "blocks_non_live_regeneration_until_pass": {
                 "type": "boolean"
               },
               "current_evidence_write_allowed": {

@@ -1,0 +1,11 @@
+{
+  "patch_id": "MVP4_DASHBOARD_AUDITED_WRITER_READINESS_LADDER_STALE_SEVERITY_20260506_001",
+  "generated_at_utc": "2026-05-06T08:46:41Z",
+  "new_paper_run_started_by_this_patch": false,
+  "stale_snapshot_policy_changed": true,
+  "runtime_evidence_claimed_by_this_patch": false,
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}
