@@ -572,6 +572,11 @@ from trader1.research.shadow.shadow_observation_actual_runtime_harness import (
     shadow_observation_actual_runtime_harness_hash,
     validate_shadow_observation_actual_runtime_harness_report,
 )
+from trader1.research.shadow.paper_shadow_harness_binding import (
+    build_paper_shadow_harness_binding_report,
+    paper_shadow_harness_binding_hash,
+    validate_paper_shadow_harness_binding_report,
+)
 from trader1.research.shadow.shadow_observation_artifact_writer import (
     shadow_observation_artifact_writer_hash,
     validate_shadow_observation_artifact_writer_report,
@@ -751,6 +756,7 @@ CONVERGENCE_ASSESSMENT_DEPENDENCY_VALIDATORS = [
     "shadow_observation_persistent_runtime_validator",
     "shadow_observation_actual_runtime_blocker_validator",
     "shadow_observation_actual_runtime_harness_validator",
+    "paper_shadow_harness_binding_validator",
     "shadow_observation_artifact_writer_validator",
     "shadow_observation_runtime_orchestration_validator",
     "paper_shadow_evidence_accumulation_validator",
@@ -794,6 +800,7 @@ PROFITABILITY_OPTIMIZER_EVIDENCE_VALIDATORS = [
     "shadow_observation_persistent_runtime_validator",
     "shadow_observation_actual_runtime_blocker_validator",
     "shadow_observation_actual_runtime_harness_validator",
+    "paper_shadow_harness_binding_validator",
     "shadow_observation_artifact_writer_validator",
     "shadow_observation_runtime_orchestration_validator",
     "realized_slippage_validator",
@@ -806,6 +813,7 @@ PROFITABILITY_OPTIMIZER_EVIDENCE_VALIDATORS = [
     "shadow_observation_persistent_runtime_validator",
     "shadow_observation_actual_runtime_blocker_validator",
     "shadow_observation_actual_runtime_harness_validator",
+    "paper_shadow_harness_binding_validator",
     "shadow_observation_artifact_writer_validator",
     "shadow_observation_runtime_orchestration_validator",
     "paper_shadow_evidence_accumulation_validator",
@@ -17366,6 +17374,192 @@ def shadow_observation_actual_runtime_harness_validator() -> ValidatorResult:
     )
 
 
+def paper_shadow_harness_binding_validator() -> ValidatorResult:
+    schema_path = ROOT / "contracts" / "schema" / "paper_shadow_harness_binding_report.schema.json"
+    module_path = ROOT / "trader1" / "research" / "shadow" / "paper_shadow_harness_binding.py"
+    harness_module_path = ROOT / "trader1" / "research" / "shadow" / "shadow_observation_actual_runtime_harness.py"
+    evidence_module_path = ROOT / "trader1" / "research" / "shadow" / "shadow_runner.py"
+    state_path = ROOT / "contracts" / "generated" / "current_implementation_state.json"
+    research_test_path = ROOT / "tests" / "research" / "test_paper_shadow_harness_binding.py"
+    validator_test_path = ROOT / "tests" / "validators" / "test_paper_shadow_harness_binding_validator.py"
+    paths = [
+        schema_path,
+        module_path,
+        harness_module_path,
+        evidence_module_path,
+        state_path,
+        research_test_path,
+        validator_test_path,
+    ]
+
+    state = load_json(state_path)
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if _live_flag_is_true(state.get(field)):
+            return fail_result(
+                "paper_shadow_harness_binding_validator",
+                f"current implementation state has forbidden live or scale flag: {field}",
+                paths,
+                "LIVE_FINAL_GUARD_FAILED",
+            )
+
+    schema = load_json(schema_path)
+    if schema.get("$id") != "trader1.paper_shadow_harness_binding_report.v1":
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            "paper/shadow harness binding schema id mismatch",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if schema.get("additionalProperties") is not False:
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            "paper/shadow harness binding schema is not closed",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+
+    harness = build_shadow_observation_actual_runtime_harness_report(
+        harness_id="validator-paper-shadow-harness-binding",
+        requested_cycle_count=3,
+        completed_cycle_count=3,
+        observations_per_cycle=2,
+        measured_runtime_seconds=90,
+        runtime_measurement_source="MONOTONIC_LOCAL_TIMER_VERIFIED",
+        monotonic_timer_started=True,
+        monotonic_timer_stopped=True,
+        measured_runtime_seconds_verified=True,
+    )
+    harness_only = build_paper_shadow_harness_binding_report(
+        binding_report_id="validator-paper-shadow-binding-harness-only",
+        shadow_runtime_harness_report=harness,
+    )
+    schema_bundle = load_schema_bundle(ROOT / "contracts" / "schema")
+    instance_schema = schema_for_instance(harness_only, schema_bundle)
+    if instance_schema is None:
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            "paper/shadow harness binding instance did not map to schema",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    instance_result = validate_instance_against_schema(harness_only, instance_schema, schema_bundle)
+    if instance_result.status != "PASS":
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            f"paper/shadow harness binding instance schema failed: {instance_result.errors[0]}",
+            paths,
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    harness_only_result = validate_paper_shadow_harness_binding_report(harness_only)
+    if harness_only_result.status != "PASS" or harness_only.get("binding_status") != "HARNESS_ONLY_WAITING_EVIDENCE":
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            f"harness-only binding was not accepted as evidence-waiting: {harness_only_result.message}",
+            paths,
+            harness_only_result.blocker_code or "MEASUREMENT_MISSING",
+        )
+    if harness_only.get("blocks_paper_current_truth_write") or harness_only.get("blocks_non_live_runtime_collection"):
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            "harness-only warning state blocked routine PAPER current truth or non-live collection",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    evidence = build_paper_shadow_evidence_accumulation_report(
+        evidence_report_id="validator-paper-shadow-binding-scorecard",
+        paper_sample_count=30,
+        shadow_sample_count=30,
+        entry_reason_count=5,
+        no_trade_reason_count=5,
+        cost_evidence_count=5,
+    )
+    bound = build_paper_shadow_harness_binding_report(
+        binding_report_id="validator-paper-shadow-binding-scorecard",
+        shadow_runtime_harness_report=harness,
+        paper_shadow_evidence_accumulation_report=evidence,
+    )
+    bound_result = validate_paper_shadow_harness_binding_report(bound)
+    if bound_result.status != "PASS" or bound.get("binding_status") != "BOUND_TO_SCORECARD_INPUT":
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            f"scorecard binding was not accepted: {bound_result.message}",
+            paths,
+            bound_result.blocker_code or "SCORECARD_MISSING",
+        )
+    if not bound.get("blocks_live_ready") or not bound.get("blocks_optimizer_or_convergence"):
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            "scorecard binding unblocked live readiness or optimizer/convergence",
+            paths,
+            "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    stale_evidence = build_paper_shadow_evidence_accumulation_report(
+        evidence_report_id="validator-paper-shadow-binding-stale",
+        paper_artifact_age_seconds=1200,
+        shadow_artifact_age_seconds=1200,
+        max_artifact_age_seconds=900,
+    )
+    stale = build_paper_shadow_harness_binding_report(
+        binding_report_id="validator-paper-shadow-binding-stale",
+        shadow_runtime_harness_report=harness,
+        paper_shadow_evidence_accumulation_report=stale_evidence,
+    )
+    stale_result = validate_paper_shadow_harness_binding_report(stale)
+    if (
+        stale_result.status != "PASS"
+        or stale.get("binding_status") != "STALE_DISPLAY_ONLY"
+        or stale.get("blocks_paper_current_truth_write")
+        or stale.get("blocks_non_live_runtime_collection")
+    ):
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            "stale PAPER/SHADOW evidence was not downgraded to non-critical display-only warning",
+            paths,
+            stale_result.blocker_code or "DATA_QUALITY_INSUFFICIENT",
+        )
+
+    live_source = dict(harness)
+    live_source["live_order_api_attempted"] = True
+    live_source["harness_report_hash"] = shadow_observation_actual_runtime_harness_hash(live_source)
+    critical = build_paper_shadow_harness_binding_report(
+        binding_report_id="validator-paper-shadow-binding-live-source",
+        shadow_runtime_harness_report=live_source,
+    )
+    critical_result = validate_paper_shadow_harness_binding_report(critical)
+    if (
+        critical_result.status != "BLOCKED"
+        or critical_result.blocker_code != "LIVE_FINAL_GUARD_FAILED"
+        or critical.get("binding_status") != "BLOCKED_SOURCE_INVALID"
+        or critical.get("blocks_paper_current_truth_write") is not True
+    ):
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            "critical live source drift was not blocked as source-invalid",
+            paths,
+            critical_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    live_mutation = dict(harness_only)
+    live_mutation["live_order_allowed"] = True
+    live_mutation["binding_report_hash"] = paper_shadow_harness_binding_hash(live_mutation)
+    live_mutation_result = validate_paper_shadow_harness_binding_report(live_mutation)
+    if live_mutation_result.status != "BLOCKED" or live_mutation_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+        return fail_result(
+            "paper_shadow_harness_binding_validator",
+            "paper/shadow harness binding live flag mutation was not blocked",
+            paths,
+            live_mutation_result.blocker_code or "LIVE_FINAL_GUARD_FAILED",
+        )
+
+    return pass_result(
+        "paper_shadow_harness_binding_validator",
+        "PAPER/SHADOW harness binding separates critical source blockers from stale/sample warnings and keeps live, optimizer, LIVE_READY, and scale-up blocked",
+        paths,
+    )
+
+
 def shadow_observation_artifact_writer_validator() -> ValidatorResult:
     schema_path = ROOT / "contracts" / "schema" / "shadow_observation_runtime_artifact_writer_report.schema.json"
     module_path = ROOT / "trader1" / "research" / "shadow" / "shadow_observation_artifact_writer.py"
@@ -23179,6 +23373,7 @@ VALIDATOR_FUNCTIONS: dict[str, Callable[[], ValidatorResult]] = {
     "shadow_observation_persistent_runtime_validator": shadow_observation_persistent_runtime_validator,
     "shadow_observation_actual_runtime_blocker_validator": shadow_observation_actual_runtime_blocker_validator,
     "shadow_observation_actual_runtime_harness_validator": shadow_observation_actual_runtime_harness_validator,
+    "paper_shadow_harness_binding_validator": paper_shadow_harness_binding_validator,
     "shadow_observation_artifact_writer_validator": shadow_observation_artifact_writer_validator,
     "shadow_observation_runtime_orchestration_validator": shadow_observation_runtime_orchestration_validator,
     "paper_shadow_evidence_accumulation_validator": paper_shadow_evidence_accumulation_validator,

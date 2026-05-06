@@ -1,7 +1,7 @@
 {
   "state_schema_id": "trader1.current_implementation_state.v1",
   "created_at_utc": "2026-04-28T12:30:42Z",
-  "updated_at_utc": "2026-05-06T06:02:39Z",
+  "updated_at_utc": "2026-05-06T06:46:20Z",
   "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
   "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
   "current_mvp": "MVP-4",
@@ -167,6 +167,7 @@
     "REQ-MVP4-PAPER-SHADOW-EVIDENCE-ACCUMULATION-HARDENING",
     "REQ-MVP4-PAPER-SHADOW-EVIDENCE-ACCUMULATOR",
     "REQ-MVP4-PAPER-SHADOW-EVIDENCE-IDENTITY-BINDING",
+    "REQ-MVP4-PAPER-SHADOW-HARNESS-BINDING",
     "REQ-MVP4-PAPER-SHADOW-LONG-RUN-EVIDENCE-VISIBILITY",
     "REQ-MVP4-PAPER-SHADOW-LONG-RUN-SOURCE-COVERAGE-RECHECK",
     "REQ-MVP4-PAPER-SHADOW-LONG-RUN-STATE-CONSISTENCY",
@@ -471,6 +472,7 @@
     "trader1.paper_portfolio_snapshot.v1",
     "trader1.paper_runtime_truth_state_report.v1",
     "trader1.paper_shadow_evidence_accumulation_report.v1",
+    "trader1.paper_shadow_harness_binding_report.v1",
     "trader1.paper_shadow_separation_report.v1",
     "trader1.parameter_narrowing_report.v1",
     "trader1.patch_result.v1",
@@ -644,6 +646,7 @@
     "paper_portfolio_snapshot_validator",
     "paper_runtime_truth_state_validator",
     "paper_shadow_evidence_accumulation_validator",
+    "paper_shadow_harness_binding_validator",
     "parameter_bound_validator",
     "parameter_narrowing_validator",
     "patch_result_runtime_schema_instance_validator",
@@ -774,12 +777,12 @@
     "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
     "SCALE_UP_NOT_ELIGIBLE"
   ],
-  "last_patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_20260506_001",
-  "last_patch_result_hash": "BCCB5C711DF7462A6819986C72A92091CC698DDB0E0EE639BF89A8C0E40BB3B1",
+  "last_patch_id": "MVP4_RUNTIME_TRUTH_MARKET_CONTINUITY_REPAIR_PAPER_SHADOW_HARNESS_BINDING_20260506_001",
+  "last_patch_result_hash": "CFC37169EB45BBA026D55E6C8C6C5BD7D3B84A35ADEA67D3D4AEC1DA6E26DEEF",
   "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "state_hash": "077A215D0F43A7F94166BFA82397218F2960CD70C2C1B55FDFE4E7F73FC3C8DC"
+  "state_hash": "FEA325B654825CC3C81B1E14099BF01E2B468A4CA607F8A2266E984D3D42A5BF"
 }
