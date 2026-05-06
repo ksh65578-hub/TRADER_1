@@ -1,0 +1,58 @@
+{
+  "schema_id": "trader1.paper_current_truth_refresh_dashboard_binding_audit_report.v1",
+  "patch_id": "MVP4_PAPER_CURRENT_TRUTH_REFRESH_WRITER_DASHBOARD_BINDING_20260506_001",
+  "generated_at_utc": "2026-05-06T07:39:59Z",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "finding": "The dashboard listed paper_current_truth_refresh_report.json as a source artifact, but portfolio truth selection could still fall back to stale summary display before consuming the fresh PAPER refresh output.",
+  "patch": "Portfolio truth selection now prefers audited current evidence first, then a scoped PAPER current-truth refresh report, then stale summary display. Invalid refresh permission drift is converted to BLOCKED display truth with live and scale flags false.",
+  "acceptance_conditions": [
+    "Fresh scoped PAPER current-truth refresh can drive portfolio cash/equity/PnL display when summary is stale",
+    "Stale refresh remains stale display-only and does not prove runtime continuity",
+    "Refresh permission drift fails closed as BLOCKED without live/scale permission",
+    "Audited writer and LIVE_READY remain blocked",
+    "Open contract gap count remains 13 and live/scale flags remain false"
+  ],
+  "blockers_removed": [
+    "Dashboard no longer ignores fresh PAPER current-truth refresh when summary.json is stale",
+    "Refresh permission drift now maps to an explicit blocked portfolio truth state"
+  ],
+  "blockers_remaining": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "open_contract_gap_count": 13,
+  "open_contract_gap_ids": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "next_allowed_task_class": "MVP4_RESIDUAL_OPEN_CONTRACT_GAP_BLOCKERS_REQUIRE_EXTERNAL_EVIDENCE_OR_OPERATOR_RECONCILIATION",
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false
+}

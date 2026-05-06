@@ -2420,6 +2420,263 @@ def _verified_paper_portfolio_snapshot(exchange: str, market_type: str, summary:
     return snapshot
 
 
+def _paper_current_truth_refresh_blocked_portfolio_snapshot(
+    *,
+    exchange: str,
+    market_type: str,
+    summary: dict[str, Any] | None,
+    blocker_code: str,
+    message: str,
+) -> dict[str, Any]:
+    configured_card = _configured_paper_capital_card(
+        exchange,
+        market_type,
+        summary,
+        portfolio_status="UNVERIFIED",
+    )
+    snapshot = {
+        "title": "Portfolio Snapshot",
+        "status": "BLOCKED",
+        "truth_role": "dashboard_serving_truth",
+        "source": "paper_current_truth_refresh_report.json",
+        "source_runtime_cycle_id": None,
+        "source_paper_ledger_head_hash": None,
+        "source_snapshot_hash": None,
+        "source_snapshot_status": "BLOCKED",
+        "source_snapshot_generated_at_utc": None,
+        "source_snapshot_age_seconds": None,
+        "source_snapshot_stale_after_seconds": SOURCE_FRESHNESS_MAX_AGE_SECONDS,
+        "source_snapshot_freshness_message": message,
+        "source_balance_kind": None,
+        "paper_value_truth_status": "CURRENT_VALUES_UNVERIFIED_CONFIGURED_BASELINE_ONLY",
+        "paper_value_truth_message": (
+            "The PAPER current-truth refresh source is blocked; configured PAPER baseline is not current cash, "
+            "equity, PnL, or position truth."
+        ),
+        "runtime_continuity_status": "NO_CURRENT_RUNTIME_PROOF",
+        "audited_writer_lifecycle_status": "NO_AUDITED_WRITER_EVIDENCE",
+        "operator_truth_summary": "PAPER current-truth refresh is blocked and cannot be used as dashboard portfolio truth.",
+        "configured_paper_capital": configured_card,
+        "cash": _portfolio_card("cash", "Current Cash", "UNVERIFIED", message),
+        "equity": _portfolio_card("equity", "Current Equity", "UNVERIFIED", message),
+        "locked_cash": _portfolio_card("locked_cash", "Locked Cash", "UNVERIFIED", message),
+        "realized_pnl": _portfolio_card("realized_pnl", "Realized PnL", "UNVERIFIED", message),
+        "unrealized_pnl": _portfolio_card("unrealized_pnl", "Unrealized PnL", "UNVERIFIED", message),
+        "total_pnl": _portfolio_card("total_pnl", "Total PnL", "UNVERIFIED", message),
+        "positions": _portfolio_card("positions", "Open Positions", "UNVERIFIED", message),
+        "entry_candidates": _portfolio_card("entry_candidates", "Entry Candidates", "UNVERIFIED", message),
+        "return_pct": _portfolio_card("return_pct", "Current Return", "UNVERIFIED", message),
+        "blocking_reason": blocker_code,
+        "next_action": "Regenerate PAPER current-truth refresh from a validated PAPER ledger source.",
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    snapshot.update(
+        _audited_writer_readiness_ladder(
+            lifecycle_status="NO_AUDITED_WRITER_EVIDENCE",
+            source_snapshot_status="BLOCKED",
+        )
+    )
+    return snapshot
+
+
+def _paper_current_truth_refresh_portfolio_snapshot(
+    *,
+    exchange: str,
+    market_type: str,
+    mode: str,
+    session_id: str,
+    summary: dict[str, Any] | None,
+    paper_current_truth_refresh_report: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(paper_current_truth_refresh_report, dict):
+        return None
+
+    refresh_result = validate_paper_current_truth_refresh_report(paper_current_truth_refresh_report)
+    if refresh_result.status != "PASS":
+        if refresh_result.blocker_code != "LIVE_FINAL_GUARD_FAILED":
+            return None
+        return _paper_current_truth_refresh_blocked_portfolio_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            summary=summary,
+            blocker_code=refresh_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+            message=refresh_result.message,
+        )
+
+    expected_scope = {"exchange": exchange, "market_type": market_type, "mode": mode, "session_id": session_id}
+    if any(paper_current_truth_refresh_report.get(key) != value for key, value in expected_scope.items()):
+        return _paper_current_truth_refresh_blocked_portfolio_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            summary=summary,
+            blocker_code="SNAPSHOT_SCOPE_MISMATCH",
+            message="PAPER current-truth refresh scope does not match this dashboard.",
+        )
+
+    if paper_current_truth_refresh_report.get("refresh_status") != PAPER_CURRENT_TRUTH_REFRESH_PASS_STATUS:
+        blocker_code = str(paper_current_truth_refresh_report.get("primary_blocker_code") or "HARD_TRUTH_MISSING")
+        if blocker_code != "LIVE_FINAL_GUARD_FAILED":
+            return None
+        return _paper_current_truth_refresh_blocked_portfolio_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            summary=summary,
+            blocker_code=blocker_code,
+            message="PAPER current-truth refresh is blocked and cannot serve portfolio truth.",
+        )
+
+    source_age_seconds = _snapshot_age_seconds(paper_current_truth_refresh_report.get("generated_at_utc"))
+    if source_age_seconds is None:
+        return _paper_current_truth_refresh_blocked_portfolio_snapshot(
+            exchange=exchange,
+            market_type=market_type,
+            summary=summary,
+            blocker_code="LATENCY_TTL_EXPIRED",
+            message="PAPER current-truth refresh timestamp is invalid.",
+        )
+    source_stale = source_age_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS
+
+    currency = str(paper_current_truth_refresh_report.get("verified_currency") or _currency_for_scope(exchange, market_type))
+    positions = paper_current_truth_refresh_report.get("positions", [])
+    positions = positions if isinstance(positions, list) else []
+    candidate_symbols = _candidate_symbols_from_summary(summary) if isinstance(summary, dict) else []
+    candidate_preview = ", ".join(candidate_symbols[:4])
+    if len(candidate_symbols) > 4:
+        candidate_preview += f" +{len(candidate_symbols) - 4} more"
+    realized_pnl = paper_current_truth_refresh_report.get("verified_realized_pnl")
+    unrealized_pnl = paper_current_truth_refresh_report.get("verified_unrealized_pnl")
+    snapshot = {
+        "title": "Portfolio Snapshot",
+        "status": "STALE" if source_stale else "VERIFIED",
+        "truth_role": "dashboard_serving_truth",
+        "source": "paper_current_truth_refresh_report.json",
+        "source_runtime_cycle_id": paper_current_truth_refresh_report.get("source_runtime_cycle_id"),
+        "source_paper_ledger_head_hash": paper_current_truth_refresh_report.get("source_paper_ledger_head_hash"),
+        "source_snapshot_hash": paper_current_truth_refresh_report.get("refresh_report_hash"),
+        "source_snapshot_status": "PASS",
+        "source_snapshot_generated_at_utc": paper_current_truth_refresh_report.get("generated_at_utc"),
+        "source_snapshot_age_seconds": source_age_seconds,
+        "source_snapshot_stale_after_seconds": SOURCE_FRESHNESS_MAX_AGE_SECONDS,
+        "source_snapshot_freshness_message": (
+            "PAPER current-truth refresh is stale; last verified refreshed PAPER ledger values are display-only."
+            if source_stale
+            else "PAPER current-truth refresh is fresh and source-bound; it is display-only and not LIVE_READY."
+        ),
+        "source_balance_kind": paper_current_truth_refresh_report.get("source_balance_kind"),
+        "paper_value_truth_status": (
+            "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+            if source_stale
+            else "PAPER_LEDGER_CURRENT_VALUES_VERIFIED"
+        ),
+        "paper_value_truth_message": (
+            "Last verified refreshed PAPER ledger values are displayed; stale means runtime continuity is not proven."
+            if source_stale
+            else "Current refreshed PAPER ledger values verify cash, equity, PnL, and positions for dashboard display only."
+        ),
+        "runtime_continuity_status": (
+            "STALE_SNAPSHOT_NOT_RUNTIME_PROOF" if source_stale else "SNAPSHOT_ONLY_NOT_LONG_RUN_PROOF"
+        ),
+        "audited_writer_lifecycle_status": "SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
+        "operator_truth_summary": (
+            "PAPER current-truth refresh is loaded as the dashboard portfolio source; continuous audited writer, "
+            "live orders, and scale-up remain blocked."
+        ),
+        "configured_paper_capital": _configured_paper_capital_card(
+            exchange,
+            market_type,
+            summary,
+            portfolio_status="STALE" if source_stale else "VERIFIED",
+        ),
+        "cash": _portfolio_card(
+            "cash",
+            "Current Cash",
+            _format_money(paper_current_truth_refresh_report.get("verified_cash"), currency),
+            "Refreshed Simulated PAPER ledger cash, not exchange balance",
+        ),
+        "equity": _portfolio_card(
+            "equity",
+            "Current Equity",
+            _format_money(paper_current_truth_refresh_report.get("verified_equity"), currency),
+            "Refreshed Simulated PAPER ledger equity, not exchange balance",
+        ),
+        "locked_cash": _portfolio_card(
+            "locked_cash",
+            "Locked Cash",
+            _format_money(paper_current_truth_refresh_report.get("verified_locked_cash"), currency),
+            "Refreshed simulated PAPER locked balance",
+        ),
+        "realized_pnl": _portfolio_card(
+            "realized_pnl",
+            "Realized PnL",
+            _format_signed_money(realized_pnl, currency),
+            "Refreshed realized PAPER PnL from current-truth report",
+        ),
+        "unrealized_pnl": _portfolio_card(
+            "unrealized_pnl",
+            "Unrealized PnL",
+            _format_signed_money(unrealized_pnl, currency),
+            "Refreshed unrealized PAPER PnL from current-truth report",
+        ),
+        "total_pnl": _portfolio_card(
+            "total_pnl",
+            "Total PnL",
+            _format_total_pnl(realized_pnl, unrealized_pnl, currency),
+            "Refreshed PAPER PnL after ledger-backed current-truth refresh",
+        ),
+        "positions": _portfolio_card(
+            "positions",
+            "Open Positions",
+            str(len(positions)),
+            "Open PAPER positions from current-truth refresh report",
+        ),
+        "entry_candidates": _portfolio_card(
+            "entry_candidates",
+            "Entry Candidates",
+            str(len(candidate_symbols)),
+            f"Candidates: {candidate_preview}" if candidate_preview else "No entry candidates loaded from summary",
+        ),
+        "return_pct": _portfolio_card(
+            "return_pct",
+            "Current Return",
+            _format_return(
+                realized_pnl,
+                unrealized_pnl,
+                paper_current_truth_refresh_report.get("verified_equity"),
+            ),
+            "Refreshed PAPER return from current-truth report",
+        ),
+        "blocking_reason": "LATENCY_TTL_EXPIRED" if source_stale else "LIVE_READY_MISSING",
+        "next_action": (
+            "Refresh PAPER current truth before using stale cash, equity, PnL, return, or positions for review."
+            if source_stale
+            else "Use these refreshed PAPER ledger values for dashboard review only; live orders and scale-up remain blocked."
+        ),
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    snapshot.update(
+        _audited_writer_readiness_ladder(
+            lifecycle_status="SUMMARY_LEDGER_ONLY_NO_AUDITED_WRITER",
+            snapshot_stale=source_stale,
+            source_snapshot_status="PASS",
+        )
+    )
+    for card_id in PORTFOLIO_CARD_IDS:
+        snapshot[card_id]["freshness_status"] = (
+            "STALE" if source_stale and card_id != "configured_paper_capital" else "PASS"
+        )
+    return snapshot
+
+
 def _audited_current_evidence_artifact_hash(
     writer_report: dict[str, Any],
     artifact_id: str,
@@ -2910,12 +3167,8 @@ def _portfolio_snapshot(
     audited_writer_report: dict[str, Any] | None = None,
     audited_current_evidence_snapshot: dict[str, Any] | None = None,
     audited_paper_portfolio_snapshot: dict[str, Any] | None = None,
+    paper_current_truth_refresh_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if summary is not None and summary_freshness != "PASS":
-        return _attach_audited_writer_activation_preflight(
-            _stale_portfolio_snapshot(exchange, market_type, summary),
-            reconciliation_recovery_summary,
-        )
     audited = _audited_current_evidence_portfolio_snapshot(
         exchange=exchange,
         market_type=market_type,
@@ -2928,6 +3181,23 @@ def _portfolio_snapshot(
     )
     if audited is not None:
         return _attach_audited_writer_activation_preflight(audited, reconciliation_recovery_summary)
+    refreshed = _paper_current_truth_refresh_portfolio_snapshot(
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+        summary=summary,
+        paper_current_truth_refresh_report=paper_current_truth_refresh_report,
+    )
+    if refreshed is not None and (
+        refreshed.get("status") in {"VERIFIED", "BLOCKED"} or summary_freshness != "PASS"
+    ):
+        return _attach_audited_writer_activation_preflight(refreshed, reconciliation_recovery_summary)
+    if summary is not None and summary_freshness != "PASS":
+        return _attach_audited_writer_activation_preflight(
+            _stale_portfolio_snapshot(exchange, market_type, summary),
+            reconciliation_recovery_summary,
+        )
     post_rerun_current_truth_blocked = isinstance(reconciliation_recovery_summary, dict) and (
         reconciliation_recovery_summary.get("post_rerun_reconciliation_repair_path_status")
         == "BLOCKED_REPAIR_PATH_DECLARED"
@@ -16472,6 +16742,7 @@ def build_read_only_dashboard_shell(
         audited_writer_report=upbit_paper_repaired_current_evidence_audited_writer_report,
         audited_current_evidence_snapshot=audited_current_evidence_snapshot,
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
+        paper_current_truth_refresh_report=paper_current_truth_refresh_report,
     )
     decision_trace = _decision_trace(summary, primary_blocker, position_snapshot)
     operation_status = _operation_status(
