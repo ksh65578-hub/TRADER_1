@@ -8366,6 +8366,177 @@
           "type": "string",
           "minLength": 1
         },
+        "audited_writer_readiness_ladder_status": {
+          "enum": [
+            "MISSING",
+            "SUMMARY_LEDGER_ONLY",
+            "BLOCKED_INPUTS",
+            "STALE_SINGLE_RUN_SNAPSHOT",
+            "BLOCKED_CONTINUOUS_WRITER"
+          ]
+        },
+        "audited_writer_readiness_ladder_current_step_id": {
+          "enum": [
+            "SOURCE_GUARD_CLEAN",
+            "WRITER_PRECHECK_REVIEW_ONLY",
+            "WRITER_DRY_RUN_REVIEW_ONLY",
+            "LOCKED_OUTPUT_REVIEW_ONLY",
+            "IMPLEMENTATION_PREP_REVIEW_ONLY",
+            "SINGLE_RUN_AUDITED_SNAPSHOT",
+            "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+          ]
+        },
+        "audited_writer_readiness_ladder_highest_passed_step_id": {
+          "enum": [
+            "NONE",
+            "SOURCE_GUARD_CLEAN",
+            "WRITER_PRECHECK_REVIEW_ONLY",
+            "WRITER_DRY_RUN_REVIEW_ONLY",
+            "LOCKED_OUTPUT_REVIEW_ONLY",
+            "IMPLEMENTATION_PREP_REVIEW_ONLY",
+            "SINGLE_RUN_AUDITED_SNAPSHOT",
+            "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+          ]
+        },
+        "audited_writer_readiness_ladder_blocking_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "audited_writer_readiness_ladder_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "audited_writer_readiness_ladder_steps": {
+          "type": "array",
+          "minItems": 7,
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "required": [
+              "step_id",
+              "label",
+              "status",
+              "source",
+              "detail",
+              "next_operator_action",
+              "blocks_current_evidence_write_until_pass",
+              "blocks_portfolio_truth_write_until_pass",
+              "blocks_live_review_until_pass",
+              "current_evidence_write_allowed",
+              "portfolio_truth_write_allowed",
+              "counts_as_live_ready_evidence",
+              "counts_as_gap_closure_evidence",
+              "display_only",
+              "dashboard_truth_only",
+              "live_order_ready",
+              "live_order_allowed",
+              "can_live_trade",
+              "scale_up_allowed",
+              "gap_closure_allowed"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "step_id": {
+                "enum": [
+                  "SOURCE_GUARD_CLEAN",
+                  "WRITER_PRECHECK_REVIEW_ONLY",
+                  "WRITER_DRY_RUN_REVIEW_ONLY",
+                  "LOCKED_OUTPUT_REVIEW_ONLY",
+                  "IMPLEMENTATION_PREP_REVIEW_ONLY",
+                  "SINGLE_RUN_AUDITED_SNAPSHOT",
+                  "CONTINUOUS_CURRENT_EVIDENCE_WRITER"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "enum": [
+                  "MISSING",
+                  "PASS",
+                  "BLOCKED",
+                  "STALE"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "detail": {
+                "type": "string",
+                "minLength": 1
+              },
+              "next_operator_action": {
+                "type": "string",
+                "minLength": 1
+              },
+              "blocks_current_evidence_write_until_pass": {
+                "type": "boolean"
+              },
+              "blocks_portfolio_truth_write_until_pass": {
+                "type": "boolean"
+              },
+              "blocks_live_review_until_pass": {
+                "type": "boolean"
+              },
+              "current_evidence_write_allowed": {
+                "const": false
+              },
+              "portfolio_truth_write_allowed": {
+                "const": false
+              },
+              "counts_as_live_ready_evidence": {
+                "const": false
+              },
+              "counts_as_gap_closure_evidence": {
+                "const": false
+              },
+              "display_only": {
+                "const": true
+              },
+              "dashboard_truth_only": {
+                "const": true
+              },
+              "live_order_ready": {
+                "const": false
+              },
+              "live_order_allowed": {
+                "const": false
+              },
+              "can_live_trade": {
+                "const": false
+              },
+              "scale_up_allowed": {
+                "const": false
+              },
+              "gap_closure_allowed": {
+                "const": false
+              }
+            }
+          }
+        },
+        "audited_writer_readiness_ladder_current_evidence_write_allowed": {
+          "const": false
+        },
+        "audited_writer_readiness_ladder_portfolio_truth_write_allowed": {
+          "const": false
+        },
+        "audited_writer_readiness_ladder_live_review_allowed": {
+          "const": false
+        },
+        "audited_writer_readiness_ladder_gap_closure_allowed": {
+          "const": false
+        },
+        "audited_writer_readiness_ladder_live_order_allowed": {
+          "const": false
+        },
+        "audited_writer_readiness_ladder_can_live_trade": {
+          "const": false
+        },
+        "audited_writer_readiness_ladder_scale_up_allowed": {
+          "const": false
+        },
         "configured_paper_capital": {
           "$ref": "#/$defs/portfolio_card"
         },
