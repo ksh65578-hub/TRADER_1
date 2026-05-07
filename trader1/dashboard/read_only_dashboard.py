@@ -6218,6 +6218,18 @@ def _paper_runner_operations_status(
         "profitability_evidence_refresh_status": "NOT_LOADED",
         "runtime_sample_history_status": "NOT_LOADED",
         "runtime_sample_count": 0,
+        "paper_scope_progress_status": "NO_CANDIDATE_SCOPE",
+        "paper_scope_candidate_id": None,
+        "paper_scope_strategy_id": None,
+        "paper_scope_parameter_hash": None,
+        "paper_scope_symbol": None,
+        "paper_scope_sample_count": 0,
+        "paper_scope_min_required_sample_count": 30,
+        "paper_scope_sample_deficit": 30,
+        "paper_scope_next_collection_action": "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+        "paper_scope_next_operator_action": "Keep PAPER running until a source-bound candidate scope appears.",
+        "paper_scope_latest_sample_at_utc": None,
+        "paper_scope_summary_count": 0,
         "candidate_scorecard_status": "NOT_LOADED",
         "candidate_scorecard_candidate_id": None,
         "candidate_scorecard_ranking_eligible": False,
@@ -6367,6 +6379,11 @@ def _paper_runner_operations_status(
         summary = "PAPER runner status says RUNNING, but the runner process lock is not currently proven alive."
         next_action = "Start PAPER again; stale RUNNING status alone cannot prove current runtime execution."
 
+    scope_sample_deficit = safe_count(runner_status_report.get("paper_scope_sample_deficit"))
+    scope_next_action = runner_status_report.get("paper_scope_next_operator_action")
+    if status in {"RUNNING_NOW", "STOPPED"} and scope_sample_deficit > 0 and isinstance(scope_next_action, str):
+        next_action = scope_next_action.strip() or next_action
+
     base.update(
         {
             "status": status,
@@ -6432,6 +6449,29 @@ def _paper_runner_operations_status(
                 runner_status_report.get("runtime_sample_history_status") or "NOT_LOADED"
             ),
             "runtime_sample_count": safe_count(runner_status_report.get("runtime_sample_count")),
+            "paper_scope_progress_status": str(
+                runner_status_report.get("paper_scope_progress_status") or "NO_CANDIDATE_SCOPE"
+            ),
+            "paper_scope_candidate_id": safe_value(runner_status_report.get("paper_scope_candidate_id")),
+            "paper_scope_strategy_id": safe_value(runner_status_report.get("paper_scope_strategy_id")),
+            "paper_scope_parameter_hash": safe_value(runner_status_report.get("paper_scope_parameter_hash")),
+            "paper_scope_symbol": safe_value(runner_status_report.get("paper_scope_symbol")),
+            "paper_scope_sample_count": safe_count(runner_status_report.get("paper_scope_sample_count")),
+            "paper_scope_min_required_sample_count": safe_count(
+                runner_status_report.get("paper_scope_min_required_sample_count")
+            ),
+            "paper_scope_sample_deficit": safe_count(runner_status_report.get("paper_scope_sample_deficit")),
+            "paper_scope_next_collection_action": str(
+                runner_status_report.get("paper_scope_next_collection_action") or "RUN_MORE_PAPER_SAMPLE_WINDOWS"
+            ),
+            "paper_scope_next_operator_action": str(
+                runner_status_report.get("paper_scope_next_operator_action")
+                or "Keep PAPER running until a source-bound candidate scope appears."
+            ),
+            "paper_scope_latest_sample_at_utc": safe_value(
+                runner_status_report.get("paper_scope_latest_sample_at_utc")
+            ),
+            "paper_scope_summary_count": safe_count(runner_status_report.get("paper_scope_summary_count")),
             "candidate_scorecard_status": str(
                 runner_status_report.get("candidate_scorecard_status") or "NOT_LOADED"
             ),
@@ -25532,6 +25572,18 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
                 f"Keep PAPER/SHADOW running until {span_deficit} more non-live span hour(s) are collected.",
             )
 
+        runner_scope_deficit = safe_count(runner_operations.get("paper_scope_sample_deficit"))
+        runner_scope_candidate = runner_operations.get("paper_scope_candidate_id") or "current scoped candidate"
+        if runner_scope_deficit:
+            runner_scope_action = runner_operations.get("paper_scope_next_operator_action")
+            if isinstance(runner_scope_action, str) and runner_scope_action.strip():
+                return reason, runner_scope_action.strip()
+            return (
+                reason,
+                f"Collect {runner_scope_deficit} more PAPER sample(s) for {runner_scope_candidate}; "
+                "live remains blocked until scoped PAPER/SHADOW evidence validators pass.",
+            )
+
         runtime_samples = safe_count(runner_operations.get("runtime_sample_count"))
         if runtime_samples:
             return (
@@ -25695,6 +25747,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     runtime_orchestration = shell.get("shadow_runtime_orchestration_status", {}) if isinstance(shell.get("shadow_runtime_orchestration_status"), dict) else {}
     runtime_orchestration_status_display = str(runtime_orchestration.get("status", "NOT_LOADED")).replace("_", " ").title()
     operation_color = safe_text(operation.get("color_token", "yellow"))
+    paper_scope_candidate = paper_runner_operations.get("paper_scope_candidate_id") or "none"
+    paper_scope_count = paper_runner_operations.get("paper_scope_sample_count", 0)
+    paper_scope_required = paper_runner_operations.get("paper_scope_min_required_sample_count", 0)
+    paper_scope_deficit = paper_runner_operations.get("paper_scope_sample_deficit", 0)
+    paper_scope_status = paper_runner_operations.get("paper_scope_progress_status", "NO_CANDIDATE_SCOPE")
     operation_html = (
         f"<section class=\"operation operation-{operation_color}\" aria-label=\"system operation status\">"
         "<div class=\"operation-copy\">"
@@ -25718,6 +25775,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Next cycle</dt><dd>{safe_text(paper_runner_operations.get('next_cycle_eta') or 'not scheduled')}</dd></div>"
         f"<div><dt>Evidence refresh</dt><dd class=\"pill {status_class(paper_runner_operations.get('profitability_evidence_refresh_status'))}\">{safe_text(paper_runner_evidence_display)}</dd></div>"
         f"<div><dt>PAPER samples</dt><dd>{safe_text(paper_runner_operations.get('runtime_sample_count', 0))}</dd></div>"
+        f"<div><dt>Scope samples</dt><dd>{safe_text(paper_scope_candidate)}<br>"
+        f"{safe_text(paper_scope_count)} / {safe_text(paper_scope_required)}; "
+        f"deficit={safe_text(paper_scope_deficit)}<br>"
+        f"{safe_text(paper_scope_status)}</dd></div>"
         f"<div><dt>Scorecard</dt><dd>{safe_text(paper_runner_operations.get('candidate_scorecard_status', 'NOT_LOADED'))} / rank={safe_text(str(paper_runner_operations.get('candidate_scorecard_ranking_eligible') is True).lower())}</dd></div>"
         f"<div><dt>Evidence scorecard</dt><dd>{safe_text(paper_runner_operations.get('candidate_scorecard_candidate_id') or 'none')}<br>"
         f"PAPER={safe_text(paper_runner_operations.get('paper_shadow_evidence_paper_sample_count', 0))} / "

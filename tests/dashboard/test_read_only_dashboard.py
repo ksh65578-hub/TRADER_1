@@ -992,6 +992,18 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
         "runtime_sample_history_status": "PASS",
         "runtime_sample_count": 3,
         "runtime_sample_invalid_source_count": 0,
+        "paper_scope_progress_status": "COLLECT_PAPER_SCOPE_SAMPLES",
+        "paper_scope_candidate_id": "KRW-BTC-pullback-trend-long",
+        "paper_scope_strategy_id": "pullback_trend",
+        "paper_scope_parameter_hash": "C" * 64,
+        "paper_scope_symbol": "KRW-BTC",
+        "paper_scope_sample_count": 3,
+        "paper_scope_min_required_sample_count": 30,
+        "paper_scope_sample_deficit": 27,
+        "paper_scope_next_collection_action": "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+        "paper_scope_next_operator_action": "Collect 27 more PAPER samples for the same candidate/strategy/parameter scope.",
+        "paper_scope_latest_sample_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "paper_scope_summary_count": 1,
         "candidate_scorecard_path": "system/runtime/upbit/krw_spot/paper/test/profitability/candidate_scorecard.json",
         "candidate_scorecard_candidate_id": "KRW-BTC-pullback-trend-long",
         "candidate_scorecard_snapshot_path": (
@@ -2473,6 +2485,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(runner["profitability_evidence_refresh_status"], "COLLECTING")
         self.assertEqual(runner["runtime_sample_history_status"], "PASS")
         self.assertEqual(runner["runtime_sample_count"], 3)
+        self.assertEqual(runner["paper_scope_candidate_id"], "KRW-BTC-pullback-trend-long")
+        self.assertEqual(runner["paper_scope_sample_count"], 3)
+        self.assertEqual(runner["paper_scope_min_required_sample_count"], 30)
+        self.assertEqual(runner["paper_scope_sample_deficit"], 27)
         self.assertEqual(runner["candidate_scorecard_status"], "PASS")
         self.assertEqual(runner["candidate_scorecard_candidate_id"], "KRW-BTC-pullback-trend-long")
         self.assertFalse(runner["candidate_scorecard_ranking_eligible"])
@@ -2501,6 +2517,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Runner cycles", html)
         self.assertIn("Evidence refresh", html)
         self.assertIn("PAPER samples", html)
+        self.assertIn("Scope samples", html)
+        self.assertIn("3 / 30; deficit=27", html)
         self.assertIn("Early robustness", html)
         self.assertIn("Quality feedback", html)
         self.assertIn("KRW-WLFI-pullback-trend-long", html)
@@ -2509,8 +2527,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER=3 / SHADOW=2", html)
         self.assertIn("Reason: PAPER/SHADOW evidence is collecting PAPER samples", html)
         self.assertIn(
-            "Next: Keep PAPER running; current runner has 3 runtime sample(s), "
-            "but live remains blocked until PAPER/SHADOW evidence validators pass.",
+            "Next: Collect 27 more PAPER samples for the same candidate/strategy/parameter scope.",
             html,
         )
         self.assertIn("Disk pressure", html)
@@ -2636,14 +2653,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
 
         self.assertEqual(result.status, "PASS", result.message)
         self.assertEqual(dashboard["primary_status_text"], "PAPER STOPPED - READ ONLY, LIVE ORDERS BLOCKED")
-        self.assertIn("Start PAPER again", dashboard["next_action"])
+        self.assertIn("Collect 27 more PAPER samples", dashboard["next_action"])
         self.assertEqual(dashboard["blocking_reason"], "LIVE_READY_MISSING")
         operator_action = dashboard["operator_action_summary"]
         self.assertEqual(operator_action["status"], "ACTION_REQUIRED")
         self.assertEqual(operator_action["workflow_step"], "RUN_PAPER")
         self.assertEqual(operator_action["primary_action"], "CONTINUE_PAPER")
         self.assertEqual(operator_action["primary_action_label"], "Start PAPER again")
-        self.assertIn("Start PAPER again", operator_action["next_operator_action"])
+        self.assertIn("Collect 27 more PAPER samples", operator_action["next_operator_action"])
         self.assertFalse(operator_action["safe_to_continue_paper"])
         runner = dashboard["paper_runner_operations_status"]
         self.assertEqual(runner["status"], "STOPPED")
