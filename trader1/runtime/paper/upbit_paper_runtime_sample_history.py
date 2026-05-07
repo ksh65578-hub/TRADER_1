@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -30,6 +31,13 @@ class UpbitPaperRuntimeSampleHistoryValidationResult:
     status: str
     message: str
     blocker_code: str | None
+
+
+@dataclass(frozen=True)
+class _ArtifactJsonSource:
+    display_path: str
+    path: Path
+    zip_member: str | None = None
 
 
 def utc_now() -> str:
@@ -75,6 +83,45 @@ def _safe_read_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     return value, None
 
 
+def _zip_member_allowed(member: str) -> bool:
+    normalized = member.replace("\\", "/")
+    parts = normalized.split("/")
+    return bool(normalized and not normalized.startswith("/") and ".." not in parts and "live" not in parts)
+
+
+def _safe_read_artifact_json(
+    *,
+    root: Path,
+    source_path: str,
+    session_id: str,
+) -> tuple[dict[str, Any] | None, str | None]:
+    if not _artifact_path_allowed(source_path, session_id):
+        return None, "path_not_allowed"
+    if "#" not in source_path:
+        return _safe_read_json(root / source_path)
+
+    archive_path_text, member = source_path.split("#", 1)
+    if not _artifact_path_allowed(archive_path_text, session_id) or not _zip_member_allowed(member):
+        return None, "zip_member_not_allowed"
+    archive_path = root / archive_path_text
+    try:
+        with zipfile.ZipFile(archive_path) as archive:
+            raw = archive.read(member)
+    except FileNotFoundError:
+        return None, "missing"
+    except KeyError:
+        return None, "missing_zip_member"
+    except (OSError, zipfile.BadZipFile):
+        return None, "invalid_zip"
+    try:
+        value = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None, "invalid_json"
+    if not isinstance(value, dict):
+        return None, "not_object"
+    return value, None
+
+
 def _parse_utc(value: Any) -> datetime | None:
     if not isinstance(value, str) or not value:
         return None
@@ -108,10 +155,100 @@ def _artifact_path_allowed(path: str, session_id: str) -> bool:
     return path.startswith(prefix) and ".." not in parts and "live" not in parts
 
 
-def _runtime_cycle_path(cycle_result: dict[str, Any], root: Path) -> Path | None:
+def _archive_batches_root(root: Path, session_id: str) -> Path:
+    return _runtime_base(root, session_id) / "paper_runtime" / "runner" / "archive"
+
+
+def _source_path_from_archive_member(member: str, session_id: str) -> str | None:
+    safe_name = member.replace("\\", "/").split("/")[-1]
+    source_path = safe_name.replace("__", "/")
+    if _artifact_path_allowed(source_path, session_id):
+        return source_path
+    return None
+
+
+def _archived_artifact_source_map(
+    *,
+    root: Path,
+    session_id: str,
+    groups: set[str],
+) -> dict[str, _ArtifactJsonSource]:
+    archive_root = _archive_batches_root(root, session_id)
+    sources: dict[str, _ArtifactJsonSource] = {}
+    if not archive_root.exists():
+        return sources
+
+    for batch_dir in sorted(path for path in archive_root.iterdir() if path.is_dir() and path.name.startswith("runner-retention-")):
+        for group in sorted(groups):
+            group_dir = batch_dir / group
+            if not group_dir.exists():
+                continue
+            for artifact_path in sorted(path for path in group_dir.rglob("*") if path.is_file()):
+                member = artifact_path.relative_to(batch_dir).as_posix()
+                source_path = _source_path_from_archive_member(member, session_id)
+                if source_path is None:
+                    continue
+                sources.setdefault(
+                    source_path,
+                    _ArtifactJsonSource(display_path=_relative_posix(artifact_path, root), path=artifact_path),
+                )
+
+    for archive_path in sorted(archive_root.glob("runner-retention-*.zip")):
+        try:
+            with zipfile.ZipFile(archive_path) as archive:
+                members = sorted(archive.namelist())
+        except (OSError, zipfile.BadZipFile):
+            continue
+        for member in members:
+            normalized_member = member.replace("\\", "/")
+            group = normalized_member.split("/", 1)[0]
+            if group not in groups or not _zip_member_allowed(normalized_member):
+                continue
+            source_path = _source_path_from_archive_member(normalized_member, session_id)
+            if source_path is None:
+                continue
+            display_path = f"{_relative_posix(archive_path, root)}#{normalized_member}"
+            sources.setdefault(
+                source_path,
+                _ArtifactJsonSource(display_path=display_path, path=archive_path, zip_member=normalized_member),
+            )
+    return sources
+
+
+def _loop_report_sources(root: Path, session_id: str) -> list[_ArtifactJsonSource]:
+    base = _runtime_base(root, session_id)
+    sources_by_display_path: dict[str, _ArtifactJsonSource] = {}
+    if base.exists():
+        for path in sorted((base / "paper_runtime").glob("*.persistent_loop_report.json")):
+            source = _ArtifactJsonSource(display_path=_relative_posix(path, root), path=path)
+            sources_by_display_path[source.display_path] = source
+    for source_path, source in _archived_artifact_source_map(
+        root=root,
+        session_id=session_id,
+        groups={"persistent_loop_reports"},
+    ).items():
+        if source_path.endswith(".persistent_loop_report.json"):
+            sources_by_display_path.setdefault(source.display_path, source)
+    return sorted(sources_by_display_path.values(), key=lambda source: _natural_text_key(source.display_path))
+
+
+def _runtime_cycle_source(
+    cycle_result: dict[str, Any],
+    root: Path,
+    session_id: str,
+    archived_cycle_sources: dict[str, _ArtifactJsonSource],
+) -> _ArtifactJsonSource | None:
     for artifact_path in cycle_result.get("artifact_paths") or []:
         if isinstance(artifact_path, str) and artifact_path.endswith(".runtime_cycle.json"):
-            return root / artifact_path
+            normalized_path = artifact_path.replace("\\", "/")
+            active_path = root / normalized_path
+            if active_path.is_file():
+                return _ArtifactJsonSource(display_path=normalized_path, path=active_path)
+            archived_source = archived_cycle_sources.get(normalized_path)
+            if archived_source is not None:
+                return archived_source
+            if _artifact_path_allowed(normalized_path, session_id):
+                return _ArtifactJsonSource(display_path=normalized_path, path=active_path)
     return None
 
 
@@ -247,12 +384,11 @@ def _candidate_identity_fields(runtime_cycle: dict[str, Any]) -> dict[str, Any]:
 
 def _build_sample(
     *,
-    loop_report_path: Path,
+    loop_report_path: str,
     loop_report: dict[str, Any],
     cycle_result: dict[str, Any],
-    runtime_cycle_path: Path,
+    runtime_cycle_path: str,
     runtime_cycle: dict[str, Any],
-    root: Path,
     previous_sample_hash: str | None,
 ) -> dict[str, Any]:
     identity_fields = _candidate_identity_fields(runtime_cycle)
@@ -266,9 +402,9 @@ def _build_sample(
         "session_id": loop_report["session_id"],
         "loop_id": loop_report["loop_id"],
         "cycle_id": cycle_result["cycle_id"],
-        "source_loop_report_path": _relative_posix(loop_report_path, root),
+        "source_loop_report_path": loop_report_path,
         "source_loop_report_hash": loop_report["loop_hash"],
-        "source_runtime_cycle_path": _relative_posix(runtime_cycle_path, root),
+        "source_runtime_cycle_path": runtime_cycle_path,
         "source_runtime_cycle_hash": runtime_cycle["cycle_hash"],
         "runtime_input_role": runtime_cycle["runtime_input_role"],
         "final_decision": runtime_cycle["final_decision"],
@@ -300,8 +436,12 @@ def build_upbit_paper_runtime_sample_history(
     max_samples: int = 3000,
 ) -> dict[str, Any]:
     root = Path(root).resolve()
-    base = _runtime_base(root, session_id)
-    loop_report_paths = sorted((base / "paper_runtime").glob("*.persistent_loop_report.json")) if base.exists() else []
+    loop_report_sources = _loop_report_sources(root, session_id)
+    archived_cycle_sources = _archived_artifact_source_map(
+        root=root,
+        session_id=session_id,
+        groups={"paper_runtime_cycles"},
+    )
     samples: list[dict[str, Any]] = []
     accepted_loop_report_count = 0
     invalid_source_count = 0
@@ -311,16 +451,20 @@ def build_upbit_paper_runtime_sample_history(
     source_loop_hashes: list[str] = []
     source_runtime_cycle_hashes: list[str] = []
 
-    for loop_report_path in loop_report_paths:
-        loop_report, load_error = _safe_read_json(loop_report_path)
+    for loop_report_source in loop_report_sources:
+        loop_report, load_error = _safe_read_artifact_json(
+            root=root,
+            source_path=loop_report_source.display_path,
+            session_id=session_id,
+        )
         if load_error or loop_report is None:
             invalid_source_count += 1
-            invalid_sources.append({"path": _relative_posix(loop_report_path, root), "reason": load_error or "unknown"})
+            invalid_sources.append({"path": loop_report_source.display_path, "reason": load_error or "unknown"})
             continue
         loop_result = validate_upbit_paper_persistent_loop_report(loop_report)
         if loop_result.status != "PASS":
             invalid_source_count += 1
-            invalid_sources.append({"path": _relative_posix(loop_report_path, root), "reason": loop_result.blocker_code or loop_result.message})
+            invalid_sources.append({"path": loop_report_source.display_path, "reason": loop_result.blocker_code or loop_result.message})
             continue
         accepted_loop_report_count += 1
         source_loop_hashes.append(loop_report["loop_hash"])
@@ -329,34 +473,37 @@ def build_upbit_paper_runtime_sample_history(
             if runtime_hash in seen_runtime_hashes:
                 duplicate_cycle_hash_count += 1
                 continue
-            runtime_path = _runtime_cycle_path(cycle_result, root)
-            if runtime_path is None:
+            runtime_source = _runtime_cycle_source(cycle_result, root, session_id, archived_cycle_sources)
+            if runtime_source is None:
                 invalid_source_count += 1
-                invalid_sources.append({"path": _relative_posix(loop_report_path, root), "reason": "runtime_cycle_path_missing"})
+                invalid_sources.append({"path": loop_report_source.display_path, "reason": "runtime_cycle_path_missing"})
                 continue
-            runtime_cycle, runtime_error = _safe_read_json(runtime_path)
+            runtime_cycle, runtime_error = _safe_read_artifact_json(
+                root=root,
+                source_path=runtime_source.display_path,
+                session_id=session_id,
+            )
             if runtime_error or runtime_cycle is None:
                 invalid_source_count += 1
-                invalid_sources.append({"path": _relative_posix(runtime_path, root), "reason": runtime_error or "unknown"})
+                invalid_sources.append({"path": runtime_source.display_path, "reason": runtime_error or "unknown"})
                 continue
             runtime_result = validate_upbit_paper_runtime_cycle_report(runtime_cycle)
             if runtime_result.status != "PASS":
                 invalid_source_count += 1
-                invalid_sources.append({"path": _relative_posix(runtime_path, root), "reason": runtime_result.blocker_code or runtime_result.message})
+                invalid_sources.append({"path": runtime_source.display_path, "reason": runtime_result.blocker_code or runtime_result.message})
                 continue
             if runtime_cycle.get("cycle_hash") != runtime_hash:
                 invalid_source_count += 1
-                invalid_sources.append({"path": _relative_posix(runtime_path, root), "reason": "runtime_cycle_hash_mismatch"})
+                invalid_sources.append({"path": runtime_source.display_path, "reason": "runtime_cycle_hash_mismatch"})
                 continue
             seen_runtime_hashes.add(str(runtime_hash))
             previous_hash = samples[-1]["sample_hash"] if samples else None
             sample = _build_sample(
-                loop_report_path=loop_report_path,
+                loop_report_path=loop_report_source.display_path,
                 loop_report=loop_report,
                 cycle_result=cycle_result,
-                runtime_cycle_path=runtime_path,
+                runtime_cycle_path=runtime_source.display_path,
                 runtime_cycle=runtime_cycle,
-                root=root,
                 previous_sample_hash=previous_hash,
             )
             samples.append(sample)
@@ -413,7 +560,7 @@ def build_upbit_paper_runtime_sample_history(
         "history_evidence_role": RUNTIME_SAMPLE_HISTORY_ROLE,
         "runtime_sample_status": status,
         "primary_blocker_code": primary_blocker_code,
-        "source_loop_report_count": len(loop_report_paths),
+        "source_loop_report_count": len(loop_report_sources),
         "accepted_loop_report_count": accepted_loop_report_count,
         "accepted_cycle_sample_count": len(samples),
         "unique_runtime_cycle_hash_count": len({sample["source_runtime_cycle_hash"] for sample in samples}),
@@ -692,8 +839,11 @@ def validate_upbit_paper_runtime_sample_history_sources(
                     "SNAPSHOT_SCOPE_MISMATCH",
                 )
 
-        loop_path = root / loop_path_text
-        loop_report, loop_error = _safe_read_json(loop_path)
+        loop_report, loop_error = _safe_read_artifact_json(
+            root=root,
+            source_path=loop_path_text,
+            session_id=session_id,
+        )
         if loop_error is not None or not isinstance(loop_report, dict):
             return UpbitPaperRuntimeSampleHistoryValidationResult(
                 "BLOCKED",
@@ -714,8 +864,11 @@ def validate_upbit_paper_runtime_sample_history_sources(
                 "RECONCILIATION_REQUIRED",
             )
 
-        runtime_path = root / runtime_path_text
-        runtime_cycle, runtime_error = _safe_read_json(runtime_path)
+        runtime_cycle, runtime_error = _safe_read_artifact_json(
+            root=root,
+            source_path=runtime_path_text,
+            session_id=session_id,
+        )
         if runtime_error is not None or not isinstance(runtime_cycle, dict):
             return UpbitPaperRuntimeSampleHistoryValidationResult(
                 "BLOCKED",
