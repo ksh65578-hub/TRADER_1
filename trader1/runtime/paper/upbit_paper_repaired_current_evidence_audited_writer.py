@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
+import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -57,6 +59,7 @@ TARGET_DIRTY_CAUSE_STALE_CURRENT_TRUTH_REFRESHED = "STALE_CURRENT_TRUTH_REFRESHE
 TARGET_DIRTY_CAUSE_CONFLICTING_PROVENANCE = "CONFLICTING_PROVENANCE"
 TARGET_DIRTY_CAUSE_LOCK_BUSY = "LOCK_BUSY"
 AUDITED_CURRENT_TRUTH_REFRESH_AFTER_SECONDS = 300
+DEFAULT_AUDITED_CURRENT_EVIDENCE_MAX_UNCOMPACTED_ARCHIVES = 5
 
 EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS = [
     "paper_runtime/current_evidence/audited_current_evidence_snapshot.json",
@@ -736,6 +739,67 @@ def _archive_existing_outputs(
     return archive_records
 
 
+def _current_evidence_archive_root(runtime_base: Path) -> Path:
+    return runtime_base / "paper_runtime" / "current_evidence" / "archive"
+
+
+def _current_evidence_archive_batches(runtime_base: Path) -> list[Path]:
+    archive_root = _current_evidence_archive_root(runtime_base)
+    if not archive_root.exists():
+        return []
+    batches = [
+        path
+        for path in archive_root.iterdir()
+        if path.is_dir() and _is_under(archive_root, path) and path.resolve() != archive_root.resolve()
+    ]
+    batches.sort(key=lambda path: (path.stat().st_mtime_ns, path.name), reverse=True)
+    return batches
+
+
+def _compact_current_evidence_archive_batch(*, runtime_base: Path, batch_dir: Path) -> dict[str, Any]:
+    archive_root = _current_evidence_archive_root(runtime_base)
+    if not _is_under(archive_root, batch_dir) or batch_dir.resolve() == archive_root.resolve():
+        raise ValueError("current evidence archive batch must stay inside archive root")
+    batch_files = [path for path in batch_dir.rglob("*") if path.is_file()]
+    source_bytes = sum(path.stat().st_size for path in batch_files)
+    destination = archive_root / f"{batch_dir.name}.zip"
+    suffix = 1
+    while destination.exists():
+        suffix += 1
+        destination = archive_root / f"{batch_dir.name}.{suffix}.zip"
+    with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for path in batch_files:
+            archive.write(path, path.relative_to(batch_dir).as_posix())
+    shutil.rmtree(batch_dir)
+    return {
+        "archive_batch_id": batch_dir.name,
+        "relative_compacted_archive_path": destination.relative_to(runtime_base).as_posix(),
+        "source_artifact_count": len(batch_files),
+        "source_artifact_bytes": source_bytes,
+        "compacted_archive_bytes": destination.stat().st_size,
+        "archive_write_method": "ZIP_DEFLATED_THEN_REMOVE_BATCH_DIR",
+        "audit_preserved": True,
+        "source_delete_allowed": False,
+        "source_directory_removed_after_zip": True,
+        "live_order_allowed": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _compact_old_current_evidence_archives(
+    *,
+    runtime_base: Path,
+    max_uncompacted_archive_batches: int = DEFAULT_AUDITED_CURRENT_EVIDENCE_MAX_UNCOMPACTED_ARCHIVES,
+) -> list[dict[str, Any]]:
+    if max_uncompacted_archive_batches < 1:
+        raise ValueError("max_uncompacted_archive_batches must be >= 1")
+    compacted: list[dict[str, Any]] = []
+    batches = _current_evidence_archive_batches(runtime_base)
+    for batch in batches[max_uncompacted_archive_batches:]:
+        compacted.append(_compact_current_evidence_archive_batch(runtime_base=runtime_base, batch_dir=batch))
+    return compacted
+
+
 def build_upbit_paper_repaired_current_evidence_audited_writer_report(
     *,
     root: Path,
@@ -802,6 +866,7 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
     archive_id: str | None = None
     archived_artifacts: list[dict[str, Any]] = []
     archived_artifact_count = 0
+    archive_retention_compacted_archives: list[dict[str, Any]] = []
     stale_existing_outputs: tuple[dict[str, Any], dict[str, Any], dict[str, Any]] | None = None
 
     if primary_blocker is None:
@@ -977,6 +1042,10 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
                         _release_lock(lock_path)
                         lock_released = True
                     artifact_payloads = _load_existing_outputs(runtime_base)
+            if primary_blocker is None:
+                archive_retention_compacted_archives = _compact_old_current_evidence_archives(
+                    runtime_base=runtime_base
+                )
     if status == AUDITED_WRITER_BLOCKED_TARGET_STATUS and target_dirty_cause == TARGET_DIRTY_CAUSE_NONE:
         target_dirty_cause = (
             TARGET_DIRTY_CAUSE_TEMP_PATH_DIRTY if not temp_paths_clear else TARGET_DIRTY_CAUSE_CONFLICTING_PROVENANCE
@@ -1130,6 +1199,11 @@ def build_upbit_paper_repaired_current_evidence_audited_writer_report(
         "archive_id": archive_id,
         "archived_artifact_count": archived_artifact_count,
         "archived_artifacts": archived_artifacts,
+        "archive_retention_max_uncompacted_batches": (
+            DEFAULT_AUDITED_CURRENT_EVIDENCE_MAX_UNCOMPACTED_ARCHIVES
+        ),
+        "archive_retention_compacted_count": len(archive_retention_compacted_archives),
+        "archive_retention_compacted_archives": archive_retention_compacted_archives,
         "post_rerun_reconciliation_closure_status": (
             "PASS_STALE_CURRENT_TRUTH_SUPERSEDED"
             if stale_output_superseded
@@ -1542,6 +1616,41 @@ def validate_upbit_paper_repaired_current_evidence_audited_writer_report(
         ):
             return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
                 "BLOCKED", "audited writer archive record lost scope or live safety", "LIVE_FINAL_GUARD_FAILED"
+            )
+    compacted_archives = report.get("archive_retention_compacted_archives")
+    if (
+        not isinstance(report.get("archive_retention_max_uncompacted_batches"), int)
+        or report["archive_retention_max_uncompacted_batches"] < 1
+        or not isinstance(compacted_archives, list)
+        or report.get("archive_retention_compacted_count") != len(compacted_archives)
+    ):
+        return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+            "FAIL", "audited writer archive retention metadata is invalid", "SCHEMA_IDENTITY_MISMATCH"
+        )
+    for compacted in compacted_archives:
+        if not isinstance(compacted, dict):
+            return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+                "FAIL", "audited writer compacted archive record must be object", "SCHEMA_IDENTITY_MISMATCH"
+            )
+        if (
+            not isinstance(compacted.get("relative_compacted_archive_path"), str)
+            or not compacted["relative_compacted_archive_path"].startswith("paper_runtime/current_evidence/archive/")
+            or not compacted["relative_compacted_archive_path"].endswith(".zip")
+            or not isinstance(compacted.get("source_artifact_count"), int)
+            or compacted["source_artifact_count"] < 0
+            or not isinstance(compacted.get("source_artifact_bytes"), int)
+            or compacted["source_artifact_bytes"] < 0
+            or not isinstance(compacted.get("compacted_archive_bytes"), int)
+            or compacted["compacted_archive_bytes"] < 0
+            or compacted.get("archive_write_method") != "ZIP_DEFLATED_THEN_REMOVE_BATCH_DIR"
+            or compacted.get("audit_preserved") is not True
+            or compacted.get("source_delete_allowed") is not False
+            or compacted.get("source_directory_removed_after_zip") is not True
+            or compacted.get("live_order_allowed") is not False
+            or compacted.get("scale_up_allowed") is not False
+        ):
+            return UpbitPaperRepairedCurrentEvidenceAuditedWriterValidationResult(
+                "BLOCKED", "audited writer compacted archive record lost scope or live safety", "LIVE_FINAL_GUARD_FAILED"
             )
     controls = report.get("writer_controls")
     if not isinstance(controls, list) or report.get("writer_control_count") != len(controls):
