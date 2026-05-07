@@ -131,6 +131,102 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertEqual(focused_history["active_candidate_scope_sample_deficit"], 28)
         self.assertFalse(focused_history["live_order_allowed"])
 
+    def test_active_scope_prefers_latest_collectable_candidate_over_older_larger_scope(self):
+        old_parameter_hash = "A" * 64
+        new_parameter_hash = "B" * 64
+        samples = [
+            {
+                "generated_at_utc": "2026-05-07T00:00:01Z",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "scorecard_symbol": "KRW-OLD",
+                "scorecard_candidate_id": "KRW-OLD-pullback-trend-long",
+                "scorecard_strategy_id": "trend_pullback",
+                "scorecard_parameter_hash": old_parameter_hash,
+                "entry_reason_count": 1,
+                "exit_reason_count": 0,
+                "no_trade_reason_count": 0,
+                "candidate_count": 3,
+                "loop_id": "scope-a-1",
+                "cycle_id": "cycle-a-1",
+                "final_decision": "ENTER_LONG",
+                "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
+                "sample_hash": "1" * 64,
+                "source_runtime_cycle_hash": "2" * 64,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+            {
+                "generated_at_utc": "2026-05-07T00:00:02Z",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "scorecard_symbol": "KRW-OLD",
+                "scorecard_candidate_id": "KRW-OLD-pullback-trend-long",
+                "scorecard_strategy_id": "trend_pullback",
+                "scorecard_parameter_hash": old_parameter_hash,
+                "entry_reason_count": 1,
+                "exit_reason_count": 0,
+                "no_trade_reason_count": 0,
+                "candidate_count": 3,
+                "loop_id": "scope-a-2",
+                "cycle_id": "cycle-a-2",
+                "final_decision": "ENTER_LONG",
+                "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
+                "sample_hash": "3" * 64,
+                "source_runtime_cycle_hash": "4" * 64,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+            {
+                "generated_at_utc": "2026-05-07T00:00:03Z",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "scorecard_symbol": "KRW-NEW",
+                "scorecard_candidate_id": "KRW-NEW-breakout-retest-long",
+                "scorecard_strategy_id": "breakout_retest",
+                "scorecard_parameter_hash": new_parameter_hash,
+                "entry_reason_count": 1,
+                "exit_reason_count": 0,
+                "no_trade_reason_count": 0,
+                "candidate_count": 3,
+                "loop_id": "scope-b-1",
+                "cycle_id": "cycle-b-1",
+                "final_decision": "ENTER_LONG",
+                "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
+                "sample_hash": "5" * 64,
+                "source_runtime_cycle_hash": "6" * 64,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        ]
+        for sample in samples:
+            sample["scorecard_candidate_identity_binding_status"] = "BOUND"
+            sample["scorecard_candidate_live_flags_clear"] = True
+
+        summaries = sample_history_module._candidate_scope_sample_summaries(
+            samples,
+            min_required_sample_count=30,
+        )
+        scope_fields = sample_history_module._active_candidate_scope_fields(
+            summaries,
+            min_required_sample_count=30,
+        )
+
+        active = scope_fields["active_candidate_scope"]
+        self.assertEqual(active["candidate_id"], "KRW-NEW-breakout-retest-long")
+        self.assertEqual(active["sample_count"], 1)
+        self.assertEqual(active["sample_deficit"], 29)
+        self.assertFalse(active["live_order_allowed"])
+
     def test_entry_reason_evidence_counts_blocked_candidate_entry_review(self):
         runtime_cycle = {
             "entry_reasons": [],
