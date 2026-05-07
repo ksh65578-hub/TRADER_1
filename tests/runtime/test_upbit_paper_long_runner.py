@@ -389,6 +389,89 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertFalse(stop_path.exists())
             self.assertTrue(runner_start_reconciliation_path(root).exists())
 
+    def test_root_operator_start_does_not_open_stale_dashboard_when_preopen_refresh_fails(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            observed: dict[str, DashboardOpenResult | None] = {}
+
+            def fake_run(**kwargs):
+                observed["dashboard_open_result"] = kwargs.get("dashboard_open_result")
+                report = long_runner.build_runner_status_report(
+                    root=kwargs["root"],
+                    runner_id="test-preopen-dashboard-refresh-failed",
+                    session_id="mvp1_upbit_paper_launcher",
+                    runner_status=RUNNER_STATUS_STOPPED,
+                    started_at_utc=utc_now(),
+                    completed_cycle_count=0,
+                    failed_cycle_count=0,
+                    cycle_interval_seconds=0,
+                    stop_reason="TEST_PREOPEN_REFRESH_FAILED",
+                    dashboard_open_result=kwargs.get("dashboard_open_result"),
+                )
+                status_path = runner_status_path(kwargs["root"])
+                status_path.parent.mkdir(parents=True, exist_ok=True)
+                status_path.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+                return report
+
+            with patch.dict(
+                os.environ,
+                {
+                    "TRADER1_UPBIT_PAPER_SAFE_CHECK_ONLY": "false",
+                    "TRADER1_UPBIT_PAPER_REFRESH_DASHBOARD": "true",
+                    "TRADER1_UPBIT_PAPER_OPEN_DASHBOARD": "true",
+                    "TRADER1_UPBIT_PAPER_HOLD_ON_EXIT": "false",
+                },
+            ), patch.object(
+                long_runner,
+                "_maybe_refresh_dashboard",
+                side_effect=RuntimeError("test refresh failure"),
+            ), patch.object(
+                long_runner,
+                "open_runner_dashboard_result",
+            ) as open_mock, patch.object(
+                long_runner,
+                "run_upbit_paper_long_running_runner",
+                side_effect=fake_run,
+            ):
+                exit_code = long_runner.root_upbit_paper_long_runner_main(root)
+
+            self.assertEqual(exit_code, 0)
+            open_mock.assert_not_called()
+            dashboard_open_result = observed["dashboard_open_result"]
+            self.assertIsNotNone(dashboard_open_result)
+            assert dashboard_open_result is not None
+            self.assertTrue(dashboard_open_result.attempted)
+            self.assertFalse(dashboard_open_result.opened)
+            self.assertEqual(dashboard_open_result.method, "PRE_OPEN_REFRESH_FAILED")
+            self.assertEqual(
+                dashboard_open_result.blocker_code,
+                long_runner.DASHBOARD_PREOPEN_REFRESH_FAILED_BLOCKER_CODE,
+            )
+            self.assertIn("test refresh failure", str(dashboard_open_result.blocker_message))
+
+            loaded = _load_json(runner_status_path(root))
+            self.assertEqual(validate_upbit_paper_long_runner_status_report(loaded)["status"], "PASS")
+            self.assertTrue(loaded["dashboard_open_attempted"])
+            self.assertFalse(loaded["dashboard_opened"])
+            self.assertEqual(loaded["dashboard_open_method"], "PRE_OPEN_REFRESH_FAILED")
+            self.assertEqual(
+                loaded["dashboard_open_blocker_code"],
+                long_runner.DASHBOARD_PREOPEN_REFRESH_FAILED_BLOCKER_CODE,
+            )
+            for field in (
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+                "order_adapter_called",
+                "private_endpoint_called",
+                "credential_load_attempted",
+                "live_key_loaded",
+            ):
+                self.assertFalse(loaded[field], field)
+
     def test_root_operator_start_treats_verified_running_runner_as_success(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
