@@ -11,6 +11,7 @@ from trader1.research.profitability.candidate_scorecard import (
     has_required_robustness_source_ids,
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
+    stable_hash,
     write_upbit_paper_candidate_scorecard,
 )
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report, upbit_paper_runtime_cycle_hash
@@ -112,6 +113,92 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
             f"upbit_paper_runtime_cycle:{runtime['cycle_id']}:{runtime['cycle_hash']}",
             scorecard["source_evidence_ids"],
         )
+        self.assertFalse(scorecard["live_order_ready"])
+        self.assertFalse(scorecard["live_order_allowed"])
+        self.assertFalse(scorecard["can_live_trade"])
+        self.assertFalse(scorecard["scale_up_allowed"])
+
+    def test_managed_position_scope_focus_scores_requested_candidate_without_live_permission(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        focus_orca = build_upbit_public_candle_fixture(
+            symbol="KRW-ORCA",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(focus_orca["candles"], start=1):
+            candle["volume"] = str(1 + index * 0.1)
+        mark_price = weak_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-scorecard-managed-scope-focus",
+            source_paper_ledger_head_hash="D" * 64,
+        )
+        focus_candidate_id = "KRW-ORCA-pullback-trend-long"
+        focus_parameter_hash = stable_hash(f"{focus_candidate_id}:PULLBACK_TREND_LONG:KRW-ORCA")
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-runtime-managed-position-scope-focus",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth, focus_orca],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+            paper_scope_focus={
+                "source": "TEST_ACTIVE_CANDIDATE_SCOPE",
+                "candidate_id": focus_candidate_id,
+                "symbol": "KRW-ORCA",
+                "strategy_id": "trend_pullback",
+                "parameter_hash": focus_parameter_hash,
+                "sample_count": 1,
+                "sample_deficit": 29,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        )
+        focus_candidate = next(
+            candidate for candidate in runtime["strategy_candidates"] if candidate["candidate_id"] == focus_candidate_id
+        )
+        best_entry_candidate = max(
+            (
+                candidate
+                for candidate in runtime["strategy_candidates"]
+                if candidate["decision"] == "PAPER_ENTRY_REVIEW"
+            ),
+            key=lambda candidate: float(candidate["candidate_selection_score"]),
+        )
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+
+        self.assertEqual(runtime["paper_scope_continuity_decision"]["selection_status"], "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS")
+        self.assertEqual(focus_candidate["decision"], "PAPER_ENTRY_REVIEW")
+        self.assertNotEqual(best_entry_candidate["candidate_id"], focus_candidate_id)
+        self.assertEqual(scorecard["candidate_id"], focus_candidate_id)
+        self.assertEqual(scorecard["symbol"], "KRW-ORCA")
+        self.assertEqual(scorecard["parameter_hash"], focus_parameter_hash)
         self.assertFalse(scorecard["live_order_ready"])
         self.assertFalse(scorecard["live_order_allowed"])
         self.assertFalse(scorecard["can_live_trade"])

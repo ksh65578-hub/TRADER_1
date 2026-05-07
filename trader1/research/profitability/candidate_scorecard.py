@@ -138,6 +138,9 @@ def _candidate_scorecard_rank_key(candidate: dict[str, Any]) -> tuple[Decimal, D
 
 
 def _scorecard_candidate_from_runtime(runtime_cycle_report: dict[str, Any]) -> dict[str, Any]:
+    focused = _paper_scope_focus_candidate_from_runtime(runtime_cycle_report)
+    if focused is not None:
+        return focused
     selected = runtime_cycle_report["selected_candidate"]
     if selected.get("decision") == "PAPER_ENTRY_REVIEW":
         return selected
@@ -234,6 +237,45 @@ def _best_alternative_candidate(
     if not alternatives:
         return None
     return max(alternatives, key=_candidate_scorecard_rank_key)
+
+
+def _paper_scope_focus_candidate_from_runtime(runtime_cycle_report: dict[str, Any]) -> dict[str, Any] | None:
+    continuity = runtime_cycle_report.get("paper_scope_continuity_decision")
+    if not isinstance(continuity, dict):
+        return None
+    if continuity.get("selection_status") != "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS":
+        return None
+    if continuity.get("requested") is not True:
+        return None
+
+    requested_candidate_id = str(continuity.get("requested_candidate_id") or "")
+    requested_symbol = str(continuity.get("requested_symbol") or "")
+    requested_strategy_id = str(continuity.get("requested_strategy_id") or "")
+    requested_parameter_hash = str(continuity.get("requested_parameter_hash") or "").upper()
+    if not requested_candidate_id:
+        return None
+
+    for candidate in runtime_cycle_report.get("strategy_candidates") or []:
+        if not isinstance(candidate, dict):
+            continue
+        if candidate.get("candidate_id") != requested_candidate_id:
+            continue
+        if candidate.get("decision") != "PAPER_ENTRY_REVIEW":
+            return None
+        if not _candidate_is_non_live(candidate):
+            return None
+        candidate_symbol = str(candidate.get("symbol") or "")
+        strategy_family = str(candidate.get("strategy_family") or "")
+        candidate_strategy_id = strategy_id_for_family(strategy_family) if strategy_family else ""
+        candidate_parameter_hash = stable_hash(f"{candidate['candidate_id']}:{strategy_family}:{candidate_symbol}")
+        if requested_symbol and candidate_symbol != requested_symbol:
+            return None
+        if requested_strategy_id and candidate_strategy_id != requested_strategy_id:
+            return None
+        if requested_parameter_hash and requested_parameter_hash != candidate_parameter_hash:
+            return None
+        return candidate
+    return None
 
 
 def _rotation_review_reason(
