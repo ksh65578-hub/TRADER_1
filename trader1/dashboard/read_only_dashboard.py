@@ -25586,6 +25586,28 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if blocker and blocker not in {"NONE", "NOT_LOADED"}:
             reason = f"{reason} ({plain_blocker(blocker)})"
 
+        def safe_count(value: Any) -> int:
+            return value if isinstance(value, int) and value >= 0 else 0
+
+        runner_scope_deficit = safe_count(runner_operations.get("paper_scope_sample_deficit"))
+        runner_scope_candidate = runner_operations.get("paper_scope_candidate_id") or "current scoped candidate"
+        runner_scope_action = runner_operations.get("paper_scope_next_operator_action")
+        runner_scope_collecting = (
+            runner_scope_deficit > 0
+            and (
+                runner_actionability == "COLLECT_PAPER_SAMPLES"
+                or actionable_status == "COLLECT_PAPER_SAMPLES"
+            )
+        )
+        if runner_scope_collecting:
+            if isinstance(runner_scope_action, str) and runner_scope_action.strip():
+                return reason, runner_scope_action.strip()
+            return (
+                reason,
+                f"Collect {runner_scope_deficit} more PAPER sample(s) for {runner_scope_candidate}; "
+                "live remains blocked until scoped PAPER/SHADOW evidence validators pass.",
+            )
+
         explicit_message = maturity.get("primary_collection_deficit_message")
         explicit_message_lower = explicit_message.lower() if isinstance(explicit_message, str) else ""
         explicit_message_usable = (
@@ -25596,9 +25618,6 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         )
         if explicit_message_usable:
             return reason, explicit_message.strip()
-
-        def safe_count(value: Any) -> int:
-            return value if isinstance(value, int) and value >= 0 else 0
 
         paper_deficit = safe_count(maturity.get("paper_sample_deficit"))
         shadow_deficit = safe_count(maturity.get("shadow_sample_deficit"))
@@ -25622,10 +25641,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
                 f"Keep PAPER/SHADOW running until {span_deficit} more non-live span hour(s) are collected.",
             )
 
-        runner_scope_deficit = safe_count(runner_operations.get("paper_scope_sample_deficit"))
-        runner_scope_candidate = runner_operations.get("paper_scope_candidate_id") or "current scoped candidate"
         if runner_scope_deficit:
-            runner_scope_action = runner_operations.get("paper_scope_next_operator_action")
             if isinstance(runner_scope_action, str) and runner_scope_action.strip():
                 return reason, runner_scope_action.strip()
             return (
