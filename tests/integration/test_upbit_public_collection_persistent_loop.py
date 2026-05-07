@@ -833,6 +833,102 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertFalse(loop["can_live_trade"])
             self.assertFalse(loop["scale_up_allowed"])
 
+    def test_bounded_paper_loop_allows_paper_only_resume_from_legacy_quality_exit_fields_cycle(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-legacy-quality-exit-fields-cycle",
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            evaluation = legacy_cycle["position_management_decision"]["position_exit_evaluation"]
+            for field in (
+                "quality_feedback_exit_status",
+                "quality_feedback_exit_feedback_kind",
+                "quality_feedback_exit_reason_code",
+                "quality_feedback_exit_max_positive_return_pct",
+                "quality_feedback_exit_condition_passed",
+                "quality_feedback_exit_action",
+                "quality_feedback_exit_formula",
+            ):
+                del evaluation[field]
+            legacy_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(legacy_cycle)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            )
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(legacy_cycle, indent=2), encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-legacy-quality-exit-fields-resume",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            guard = json.loads((root / loop["preflight_runtime_recovery_guard_path"]).read_text(encoding="utf-8"))
+            guard_result = validate_upbit_paper_runtime_recovery_guard_report(guard)
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(guard_result.status, "PASS")
+            self.assertEqual(loop["preflight_recovery_guard_status"], "PASS")
+            self.assertTrue(loop["current_evidence_write_allowed"])
+            self.assertEqual(loop["completed_cycle_count"], 1)
+            self.assertEqual(guard["latest_cycle_contract_mode"], "LEGACY_RECHECK_WITHOUT_POSITION_ROTATION_FIELDS")
+            self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
+            self.assertIn("quality_feedback_exit_formula", latest["position_management_decision"]["position_exit_evaluation"])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
+
+    def test_bounded_paper_loop_chains_legacy_policy_and_quality_exit_field_recheck(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-legacy-policy-and-quality-exit-cycle",
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            legacy_cycle["symbol_selection_policy"]["selection_formula"] = "legacy-symbol-selection-formula"
+            evaluation = legacy_cycle["position_management_decision"]["position_exit_evaluation"]
+            for field in (
+                "quality_feedback_exit_status",
+                "quality_feedback_exit_feedback_kind",
+                "quality_feedback_exit_reason_code",
+                "quality_feedback_exit_max_positive_return_pct",
+                "quality_feedback_exit_condition_passed",
+                "quality_feedback_exit_action",
+                "quality_feedback_exit_formula",
+            ):
+                del evaluation[field]
+            legacy_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(legacy_cycle)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            )
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(legacy_cycle, indent=2), encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-legacy-policy-quality-exit-resume",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            guard = json.loads((root / loop["preflight_runtime_recovery_guard_path"]).read_text(encoding="utf-8"))
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(loop["preflight_recovery_guard_status"], "PASS")
+            self.assertEqual(
+                guard["latest_cycle_contract_mode"],
+                "LEGACY_RECHECK_WITHOUT_POSITION_ROTATION_FIELDS_AND_SYMBOL_SELECTION_POLICY_FORMULA",
+            )
+            self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
+            self.assertIn("quality_feedback_exit_formula", latest["position_management_decision"]["position_exit_evaluation"])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
+
     def test_bounded_paper_loop_regenerates_legacy_symbol_scorecard_cycle(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

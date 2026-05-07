@@ -307,6 +307,79 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["selected_candidate"]["recent_failure_feedback_kind"], "NONE")
         self.assertFalse(report["live_order_allowed"])
 
+    def test_open_position_exits_on_preliminary_robustness_feedback_cooldown(self):
+        wlfi = build_upbit_public_candle_fixture(
+            symbol="KRW-WLFI",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(wlfi["candles"], start=1):
+            candle["volume"] = str(20 + index * 4)
+        mark_price = wlfi["candles"][-1]["close"]
+        quantity = Decimal("6000") / Decimal(str(mark_price))
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-WLFI",
+            side="BUY",
+            quantity=str(quantity),
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="3",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-quality-feedback",
+            source_paper_ledger_head_hash="Q" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-quality-feedback-exit",
+            symbol="KRW-WLFI",
+            market_data_universe=[wlfi],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+            recent_failure_feedback=[
+                {
+                    "source": "PAPER_RUNTIME_PRELIMINARY_ROBUSTNESS_FEEDBACK",
+                    "feedback_kind": "PRELIMINARY_ROBUSTNESS_FAIL",
+                    "symbol": "KRW-WLFI",
+                    "candidate_id": "KRW-WLFI-pullback-trend-long",
+                    "strategy_family": "PULLBACK_TREND_LONG",
+                    "failure_reason_code": "PRELIMINARY_OOS_BELOW_THRESHOLD",
+                    "exit_reason_code": "PRELIMINARY_OOS_BELOW_THRESHOLD",
+                    "realized_pnl_delta": "0",
+                    "cooldown_cycles_remaining": 5,
+                }
+            ],
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["final_decision"], "EXIT_POSITION")
+        self.assertIn("COOLDOWN", report["no_trade_reasons"])
+        self.assertEqual(report["position_management_decision"]["requested_position_decision"], "EXIT_POSITION")
+        self.assertEqual(report["position_management_decision"]["position_exit_reason_code"], "COOLDOWN")
+        evaluation = report["position_management_decision"]["position_exit_evaluation"]
+        self.assertEqual(evaluation["quality_feedback_exit_status"], "ACTIVE")
+        self.assertTrue(evaluation["quality_feedback_exit_condition_passed"])
+        self.assertEqual(evaluation["quality_feedback_exit_action"], "FULL_EXIT")
+        self.assertEqual(evaluation["quality_feedback_exit_feedback_kind"], "PRELIMINARY_ROBUSTNESS_FAIL")
+        self.assertEqual(evaluation["quality_feedback_exit_reason_code"], "PRELIMINARY_OOS_BELOW_THRESHOLD")
+        self.assertEqual(report["paper_fill"]["side"], "SELL")
+        self.assertEqual(report["paper_fill"]["order_lifecycle_state"], "FILLED")
+        self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 0)
+        self.assertFalse(report["paper_fill"]["order_adapter_called"])
+        self.assertFalse(report["paper_fill"]["private_endpoint_called"])
+        self.assertFalse(report["paper_fill"]["credential_load_attempted"])
+        self.assertFalse(report["live_order_allowed"])
+
+        evaluation["quality_feedback_exit_condition_passed"] = False
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+        tampered_result = validate_upbit_paper_runtime_cycle_report(report)
+        self.assertEqual(tampered_result.status, "FAIL")
+        self.assertEqual(tampered_result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
     def test_symbol_evidence_scorecard_tamper_is_rejected(self):
         weak_btc = build_upbit_public_candle_fixture(
             symbol="KRW-BTC",

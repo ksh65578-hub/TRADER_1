@@ -95,7 +95,12 @@ ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS = {
     "TRAILING_STOP",
     "TAKE_PROFIT_2",
     "TAKE_PROFIT_1_MIN_NOTIONAL_FULL_EXIT",
+    "COOLDOWN",
 }
+QUALITY_FEEDBACK_EXIT_FORMULA = (
+    "PRELIMINARY_ROBUSTNESS_FAIL with active cooldown and return_pct<=0.25 triggers "
+    "PAPER-only full exit using no_trade_reason=COOLDOWN; hard stop, regime, trailing, and take-profit exits keep priority"
+)
 RECENT_FAILURE_COOLDOWN_CYCLES = 3
 RECENT_FAILURE_SYMBOL_EDGE_PENALTY_BPS = Decimal("32")
 RECENT_FAILURE_STRATEGY_EDGE_PENALTY_BPS = Decimal("18")
@@ -143,6 +148,13 @@ POSITION_ROTATION_EXIT_FIELDS = frozenset(
         "rotation_condition_passed",
         "rotation_reason_code",
         "rotation_action",
+        "quality_feedback_exit_status",
+        "quality_feedback_exit_feedback_kind",
+        "quality_feedback_exit_reason_code",
+        "quality_feedback_exit_max_positive_return_pct",
+        "quality_feedback_exit_condition_passed",
+        "quality_feedback_exit_action",
+        "quality_feedback_exit_formula",
     }
 )
 
@@ -574,6 +586,13 @@ def _evaluate_existing_position_exit(
         "rotation_condition_passed": False,
         "rotation_reason_code": None,
         "rotation_action": "NONE",
+        "quality_feedback_exit_status": "CLEAR",
+        "quality_feedback_exit_feedback_kind": "NONE",
+        "quality_feedback_exit_reason_code": None,
+        "quality_feedback_exit_max_positive_return_pct": _decimal_text(ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT),
+        "quality_feedback_exit_condition_passed": False,
+        "quality_feedback_exit_action": "NONE",
+        "quality_feedback_exit_formula": QUALITY_FEEDBACK_EXIT_FORMULA,
     }
     if isinstance(rotation_candidate, dict):
         rotation_context.update(
@@ -624,6 +643,22 @@ def _evaluate_existing_position_exit(
     decision = "HOLD_POSITION"
     reason = "EXIT_CONDITION_NOT_MET"
     return_pct = Decimal("0") if average_entry <= 0 else ((mark_price - average_entry) / average_entry * Decimal("100"))
+    quality_feedback_exit_condition_passed = (
+        isinstance(managed_candidate, dict)
+        and managed_candidate.get("recent_failure_feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL"
+        and _candidate_recent_failure_cooldown_active(managed_candidate)
+        and return_pct <= ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT
+    )
+    if quality_feedback_exit_condition_passed:
+        rotation_context.update(
+            {
+                "quality_feedback_exit_status": "ACTIVE",
+                "quality_feedback_exit_feedback_kind": managed_candidate.get("recent_failure_feedback_kind"),
+                "quality_feedback_exit_reason_code": managed_candidate.get("recent_failure_reason_code"),
+                "quality_feedback_exit_condition_passed": True,
+                "quality_feedback_exit_action": "FULL_EXIT",
+            }
+        )
     if isinstance(managed_candidate, dict) and isinstance(rotation_candidate, dict):
         net_ev_advantage = _decimal(rotation_context["rotation_net_ev_advantage_bps"])
         score_advantage = _decimal(rotation_context["rotation_symbol_score_advantage"])
@@ -662,6 +697,9 @@ def _evaluate_existing_position_exit(
     elif mark_price >= tp1:
         decision = "REDUCE_POSITION"
         reason = "TAKE_PROFIT_1"
+    elif quality_feedback_exit_condition_passed:
+        decision = "EXIT_POSITION"
+        reason = "COOLDOWN"
     elif rotation_context["rotation_condition_passed"]:
         decision = "EXIT_POSITION"
         reason = str(rotation_context["rotation_reason_code"] or "ROTATION_OPPORTUNITY_COST")
@@ -1765,9 +1803,52 @@ def _validate_position_rotation_context(
     if missing:
         return UpbitPaperRuntimeCycleValidationResult(
             "FAIL",
-            f"position exit evaluation missing rotation fields: {missing}",
+            f"position exit evaluation missing executable exit fields: {missing}",
             "SCHEMA_IDENTITY_MISMATCH",
         )
+    if _decimal(evaluation.get("quality_feedback_exit_max_positive_return_pct")) != ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit weak-return threshold drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if evaluation.get("quality_feedback_exit_formula") != QUALITY_FEEDBACK_EXIT_FORMULA:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit formula mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    expected_quality_feedback_exit = (
+        lifecycle.get("managed_position_symbol") is not None
+        and selected.get("recent_failure_feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL"
+        and _candidate_recent_failure_cooldown_active(selected)
+        and _decimal(evaluation.get("return_pct")) <= ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT
+    )
+    if evaluation.get("quality_feedback_exit_condition_passed") is not expected_quality_feedback_exit:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit condition does not match formula", "SCHEMA_IDENTITY_MISMATCH")
+    if expected_quality_feedback_exit:
+        if (
+            evaluation.get("quality_feedback_exit_status") != "ACTIVE"
+            or evaluation.get("quality_feedback_exit_feedback_kind") != selected.get("recent_failure_feedback_kind")
+            or evaluation.get("quality_feedback_exit_reason_code") != selected.get("recent_failure_reason_code")
+            or evaluation.get("quality_feedback_exit_action") != "FULL_EXIT"
+        ):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit action fields do not match formula", "SCHEMA_IDENTITY_MISMATCH")
+        partial_exit_fill = (
+            final_decision == "REDUCE_POSITION"
+            and lifecycle.get("requested_position_decision") == "EXIT_POSITION"
+            and lifecycle.get("execution_adjusted_position_decision_reason") == "PARTIAL_EXIT_FILL"
+        )
+        higher_priority_exit = (
+            final_decision == "EXIT_POSITION"
+            and lifecycle.get("position_exit_reason_code")
+            in ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS
+            and lifecycle.get("position_exit_reason_code") != "COOLDOWN"
+        )
+        if not higher_priority_exit and (
+            (final_decision != "EXIT_POSITION" and not partial_exit_fill)
+            or lifecycle.get("position_exit_reason_code") != "COOLDOWN"
+        ):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit did not drive the PAPER exit decision", "SCHEMA_IDENTITY_MISMATCH")
+    elif (
+        evaluation.get("quality_feedback_exit_status") != "CLEAR"
+        or evaluation.get("quality_feedback_exit_feedback_kind") != "NONE"
+        or evaluation.get("quality_feedback_exit_reason_code") is not None
+        or evaluation.get("quality_feedback_exit_action") != "NONE"
+    ):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit action is set when formula did not pass", "SCHEMA_IDENTITY_MISMATCH")
     if lifecycle.get("managed_position_symbol") is None:
         if evaluation.get("rotation_candidate_id") is not None or evaluation.get("rotation_condition_passed") or evaluation.get("rotation_action") != "NONE":
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation context cannot be active without a managed position", "SCHEMA_IDENTITY_MISMATCH")

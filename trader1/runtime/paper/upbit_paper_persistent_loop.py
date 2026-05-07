@@ -738,7 +738,12 @@ def _requires_position_rotation_schema_upgrade_recheck(
     if not isinstance(evaluation, dict):
         return False
     missing_rotation_fields = POSITION_ROTATION_EXIT_FIELDS - set(evaluation)
-    return bool(missing_rotation_fields) and runtime_result.message.startswith("position exit evaluation missing rotation fields:")
+    return bool(missing_rotation_fields) and runtime_result.message.startswith(
+        (
+            "position exit evaluation missing rotation fields:",
+            "position exit evaluation missing executable exit fields:",
+        )
+    )
 
 
 def _safe_paper_only_cycle_for_projection_upgrade(cycle: dict[str, Any] | None) -> bool:
@@ -983,6 +988,21 @@ def build_upbit_paper_runtime_recovery_guard_report(
                     require_symbol_evidence_scorecard_fields=False,
                     require_adaptive_candidate_cost_model=not candidate_cost_model_schema_upgrade_recheck,
                     require_position_rotation_fields=not position_rotation_schema_upgrade_recheck,
+                    require_current_symbol_selection_policy=not symbol_selection_policy_formula_upgrade_recheck,
+                    require_current_feature_snapshot_projection=not feature_snapshot_projection_upgrade_recheck,
+                )
+            if _requires_position_rotation_schema_upgrade_recheck(latest_cycle, legacy_result):
+                position_rotation_schema_upgrade_recheck = True
+                legacy_result = validate_upbit_paper_runtime_cycle_report(
+                    latest_cycle or {},
+                    require_quantitative_policy_summary=not legacy_quantitative_recheck,
+                    require_current_sizing_caps=not legacy_sizing_cap_recheck,
+                    require_symbol_evidence_scorecard_fields=not (
+                        symbol_evidence_scorecard_schema_upgrade_recheck
+                        or symbol_evidence_scorecard_projection_upgrade_recheck
+                    ),
+                    require_adaptive_candidate_cost_model=not candidate_cost_model_schema_upgrade_recheck,
+                    require_position_rotation_fields=False,
                     require_current_symbol_selection_policy=not symbol_selection_policy_formula_upgrade_recheck,
                     require_current_feature_snapshot_projection=not feature_snapshot_projection_upgrade_recheck,
                 )
