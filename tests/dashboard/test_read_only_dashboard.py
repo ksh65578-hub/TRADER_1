@@ -1142,7 +1142,13 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
     return status
 
 
-def build_dashboard_with_runner_operations(*, blocked=False, stopped=False, stale=False):
+def build_dashboard_with_runner_operations(
+    *,
+    blocked=False,
+    stopped=False,
+    stale=False,
+    profitability_maturity_rollup_report=None,
+):
     session_id = (
         "test_read_only_dashboard_runner_ops_stopped"
         if stopped
@@ -1183,6 +1189,7 @@ def build_dashboard_with_runner_operations(*, blocked=False, stopped=False, stal
             session_id=session_id,
             blocked=blocked,
         ),
+        profitability_maturity_rollup_report=profitability_maturity_rollup_report,
     )
 
 
@@ -2563,6 +2570,23 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn('data-ticker-field="trade_price"', html)
         self.assertIn("querySelectorAll('[data-public-ticker-symbol=", html)
         self.assertIn("wss://api.upbit.com/websocket/v1", html)
+
+    def test_dashboard_live_answer_prefers_current_runner_scope_deficit_over_rollup(self):
+        rollup = profitability_maturity_rollup_fixture()
+        dashboard = build_dashboard_with_runner_operations(profitability_maturity_rollup_report=rollup)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["profitability_maturity"]["paper_sample_deficit"], 29)
+        self.assertEqual(dashboard["paper_runner_operations_status"]["paper_scope_sample_deficit"], 27)
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Reason: PAPER/SHADOW evidence is collecting PAPER samples", html)
+        self.assertIn(
+            "Next: Collect 27 more PAPER samples for the same candidate/strategy/parameter scope.",
+            html,
+        )
+        self.assertIn("Collect 29 more PAPER samples for the same candidate/strategy/parameter scope.", html)
 
     def test_dashboard_operation_status_uses_fresh_runner_when_legacy_heartbeat_is_stale(self):
         session_id = "test_read_only_dashboard_runner_ops_stale_heartbeat"
