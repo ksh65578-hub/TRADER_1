@@ -406,6 +406,22 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             )
             canonical["runner_status"] = "RUNNING"
             canonical["running"] = True
+            lock_path = runner_lock_path(root)
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            lock_path.write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.upbit_paper_long_runner_lock.v1",
+                        "owner_token": f"canonical-running-{os.getpid()}",
+                        "pid": os.getpid(),
+                        "session_id": "mvp1_upbit_paper_launcher",
+                        "acquired_at": utc_now(),
+                        "heartbeat_at": utc_now(),
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
             canonical["status_hash"] = upbit_paper_long_runner_status_hash(canonical)
             runner_status_path(root).write_text(json.dumps(canonical, sort_keys=True, indent=2), encoding="utf-8")
 
@@ -432,6 +448,68 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
                 exit_code = root_upbit_paper_long_runner_main(root)
 
             self.assertEqual(exit_code, 0)
+            self.assertEqual(validate_upbit_paper_long_runner_status_report(_load_json(runner_status_path(root)))["status"], "PASS")
+            self.assertFalse(_load_json(runner_status_path(root))["live_order_allowed"])
+
+    def test_root_operator_start_does_not_accept_dead_pid_running_status_as_success(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            canonical = run_upbit_paper_long_running_runner(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                runner_id="canonical-dead-running-seed",
+                cycle_interval_seconds=0,
+                max_cycles=0,
+                attempt_public_symbol_discovery=False,
+                attempt_network_market_data=False,
+                refresh_dashboard=False,
+            )
+            canonical["runner_status"] = "RUNNING"
+            canonical["running"] = True
+            lock_path = runner_lock_path(root)
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            lock_path.write_text(
+                json.dumps(
+                    {
+                        "schema_id": "trader1.upbit_paper_long_runner_lock.v1",
+                        "owner_token": "canonical-dead-pid",
+                        "pid": 99999999,
+                        "session_id": "mvp1_upbit_paper_launcher",
+                        "acquired_at": utc_now(),
+                        "heartbeat_at": utc_now(),
+                    },
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            canonical["status_hash"] = upbit_paper_long_runner_status_hash(canonical)
+            runner_status_path(root).write_text(json.dumps(canonical, sort_keys=True, indent=2), encoding="utf-8")
+
+            def fake_run(**kwargs):
+                return {
+                    "runner_status": RUNNER_STATUS_LOCKED,
+                    "runner_status_path": str(runner_status_path(kwargs["root"])),
+                    "dashboard_path": str(runner_dashboard_path(kwargs["root"])),
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                }
+
+            with patch.dict(
+                os.environ,
+                {
+                    "TRADER1_UPBIT_PAPER_SAFE_CHECK_ONLY": "false",
+                    "TRADER1_UPBIT_PAPER_REFRESH_DASHBOARD": "false",
+                    "TRADER1_UPBIT_PAPER_OPEN_DASHBOARD": "false",
+                    "TRADER1_UPBIT_PAPER_HOLD_ON_EXIT": "false",
+                },
+            ), patch.object(long_runner, "run_upbit_paper_long_running_runner", side_effect=fake_run):
+                exit_code = root_upbit_paper_long_runner_main(root)
+
+            self.assertEqual(exit_code, 1)
             self.assertEqual(validate_upbit_paper_long_runner_status_report(_load_json(runner_status_path(root)))["status"], "PASS")
             self.assertFalse(_load_json(runner_status_path(root))["live_order_allowed"])
 

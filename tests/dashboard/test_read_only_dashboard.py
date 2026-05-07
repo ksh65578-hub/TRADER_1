@@ -1,4 +1,6 @@
 import json
+import os
+import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -102,6 +104,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     UPBIT_PAPER_LONG_RUNNER_RETENTION_SCHEMA_ID,
     UPBIT_PAPER_LONG_RUNNER_STATUS_SCHEMA_ID,
     build_runner_status_report,
+    runner_lock_path,
     upbit_paper_long_runner_retention_manifest_hash,
     upbit_paper_long_runner_status_hash,
 )
@@ -888,7 +891,36 @@ def runner_retention_manifest_fixture(session_id="test_read_only_dashboard_runne
     return manifest
 
 
+def _runner_lock_fixture_path(session_id: str) -> Path:
+    return Path(tempfile.gettempdir()) / "trader1_dashboard_test_runner_locks" / session_id / "session.lock"
+
+
+def _write_runner_lock_path(path: Path, session_id: str, *, pid: int | None = None) -> str:
+    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema_id": "trader1.upbit_paper_long_runner_lock.v1",
+                "owner_token": f"dashboard-test-{pid or os.getpid()}",
+                "pid": pid if pid is not None else os.getpid(),
+                "session_id": session_id,
+                "acquired_at": now,
+                "heartbeat_at": now,
+            },
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    return str(path)
+
+
+def _write_runner_lock_fixture(session_id: str, *, pid: int | None = None) -> str:
+    return _write_runner_lock_path(_runner_lock_fixture_path(session_id), session_id, pid=pid)
+
+
 def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, blocked=False):
+    lock_path = _write_runner_lock_fixture(session_id) if not blocked else str(_runner_lock_fixture_path(session_id))
     status = {
         "schema_id": UPBIT_PAPER_LONG_RUNNER_STATUS_SCHEMA_ID,
         "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
@@ -915,7 +947,7 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
         "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
         "runner_status_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/runner_status.json",
         "stop_file_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/STOP_UPBIT_PAPER.signal",
-        "lock_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/session.lock",
+        "lock_path": lock_path,
         "log_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/runner_events.jsonl",
         "dashboard_path": "system/runtime/upbit/krw_spot/paper/test/dashboard/index.html",
         "dashboard_open_attempted": True,
@@ -6152,6 +6184,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
                     / "paper_ledger_rollup_report.json"
                 ).read_text(encoding="utf-8")
             )
+            _write_runner_lock_path(runner_lock_path(root, session_id), session_id)
             runner_status = build_runner_status_report(
                 root=root,
                 runner_id="dashboard-active-runtime-truth-runner",
@@ -6163,27 +6196,27 @@ class ReadOnlyDashboardTest(unittest.TestCase):
                 cycle_interval_seconds=30.0,
                 loop_report=loop,
             )
-        current_refresh = build_paper_current_truth_refresh_report(
-            exchange=writer_report["exchange"],
-            market_type=writer_report["market_type"],
-            mode=writer_report["mode"],
-            session_id=session_id,
-            paper_portfolio_snapshot=ledger_rollup["portfolio_snapshot"],
-            heartbeat=heartbeat,
-            startup_probe=startup_probe,
-        )
-        runtime_truth = build_paper_runtime_truth_state_report(
-            exchange=writer_report["exchange"],
-            market_type=writer_report["market_type"],
-            mode=writer_report["mode"],
-            session_id=session_id,
-            heartbeat=heartbeat,
-            upbit_paper_long_runner_status_report=runner_status,
-            upbit_paper_persistent_loop_report=loop,
-            upbit_public_rest_continuity_history=continuity_history,
-            paper_ledger_rollup_report=ledger_rollup,
-            paper_current_truth_refresh_report=current_refresh,
-        )
+            current_refresh = build_paper_current_truth_refresh_report(
+                exchange=writer_report["exchange"],
+                market_type=writer_report["market_type"],
+                mode=writer_report["mode"],
+                session_id=session_id,
+                paper_portfolio_snapshot=ledger_rollup["portfolio_snapshot"],
+                heartbeat=heartbeat,
+                startup_probe=startup_probe,
+            )
+            runtime_truth = build_paper_runtime_truth_state_report(
+                exchange=writer_report["exchange"],
+                market_type=writer_report["market_type"],
+                mode=writer_report["mode"],
+                session_id=session_id,
+                heartbeat=heartbeat,
+                upbit_paper_long_runner_status_report=runner_status,
+                upbit_paper_persistent_loop_report=loop,
+                upbit_public_rest_continuity_history=continuity_history,
+                paper_ledger_rollup_report=ledger_rollup,
+                paper_current_truth_refresh_report=current_refresh,
+            )
         self.assertEqual(runtime_truth["runtime_truth_status"], "PAPER_RUNTIME_ACTIVE")
         self.assertEqual(runtime_truth["primary_blocker_code"], "LIVE_READY_MISSING")
         stale_harness = build_shadow_observation_actual_runtime_harness_report(
@@ -8734,6 +8767,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
                 session_id=session_id,
                 requested_cycle_count=1,
             )
+            _write_runner_lock_path(runner_lock_path(root, session_id), session_id)
             runner_status = build_runner_status_report(
                 root=root,
                 runner_id="test-dashboard-partial-runtime-truth-runner",
@@ -8745,18 +8779,18 @@ class ReadOnlyDashboardTest(unittest.TestCase):
                 cycle_interval_seconds=30.0,
                 loop_report=loop,
             )
-        runtime_truth = build_paper_runtime_truth_state_report(
-            exchange="UPBIT",
-            market_type="KRW_SPOT",
-            mode="PAPER",
-            session_id=session_id,
-            heartbeat=heartbeat,
-            upbit_paper_long_runner_status_report=runner_status,
-            upbit_paper_persistent_loop_report=loop,
-            upbit_public_rest_continuity_history=None,
-            paper_ledger_rollup_report=None,
-            paper_current_truth_refresh_report=None,
-        )
+            runtime_truth = build_paper_runtime_truth_state_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id=session_id,
+                heartbeat=heartbeat,
+                upbit_paper_long_runner_status_report=runner_status,
+                upbit_paper_persistent_loop_report=loop,
+                upbit_public_rest_continuity_history=None,
+                paper_ledger_rollup_report=None,
+                paper_current_truth_refresh_report=None,
+            )
         dashboard = build_read_only_dashboard_shell(
             exchange="UPBIT",
             market_type="KRW_SPOT",

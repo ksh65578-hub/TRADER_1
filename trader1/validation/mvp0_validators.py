@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -198,6 +199,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 from trader1.runtime.paper.upbit_paper_long_runner import (
     RUNNER_STATUS_RUNNING,
     build_runner_status_report,
+    runner_lock_path,
 )
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
@@ -5308,6 +5310,13 @@ def paper_runtime_truth_state_validator() -> ValidatorResult:
         "runner_status_fresh",
         "runner_status",
         "runner_running",
+        "runner_lock_loaded",
+        "runner_lock_session_match",
+        "runner_lock_fresh",
+        "runner_lock_pid_alive",
+        "runner_liveness_proven",
+        "runner_lock_pid",
+        "runner_lock_heartbeat_at_utc",
         "runner_completed_cycle_count",
         "paper_loop_advancing",
         "market_data_advancing",
@@ -5315,6 +5324,7 @@ def paper_runtime_truth_state_validator() -> ValidatorResult:
         "current_evidence_refreshing",
         "source_heartbeat_hash",
         "source_runner_status_hash",
+        "source_runner_lock_hash",
         "source_persistent_loop_hash",
         "source_market_continuity_history_hash",
         "source_paper_ledger_rollup_hash",
@@ -5430,6 +5440,23 @@ def paper_runtime_truth_state_validator() -> ValidatorResult:
             heartbeat=heartbeat,
             startup_probe=None,
         )
+        lock_path = runner_lock_path(root, "mvp1_upbit_paper_launcher")
+        lock_now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        lock_path.write_text(
+            json.dumps(
+                {
+                    "schema_id": "trader1.upbit_paper_long_runner_lock.v1",
+                    "owner_token": f"validator-{os.getpid()}",
+                    "pid": os.getpid(),
+                    "session_id": "mvp1_upbit_paper_launcher",
+                    "acquired_at": lock_now,
+                    "heartbeat_at": lock_now,
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
         runner_status = build_runner_status_report(
             root=root,
             runner_id="validator-paper-runtime-truth-state-runner",
@@ -5464,6 +5491,44 @@ def paper_runtime_truth_state_validator() -> ValidatorResult:
             paper_ledger_rollup_report=ledger_rollup,
             paper_current_truth_refresh_report=current_refresh,
         )
+        dead_lock_now = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        lock_path.write_text(
+            json.dumps(
+                {
+                    "schema_id": "trader1.upbit_paper_long_runner_lock.v1",
+                    "owner_token": "validator-dead-pid",
+                    "pid": 99999999,
+                    "session_id": "mvp1_upbit_paper_launcher",
+                    "acquired_at": dead_lock_now,
+                    "heartbeat_at": dead_lock_now,
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+        dead_pid_runner_status = build_runner_status_report(
+            root=root,
+            runner_id="validator-paper-runtime-truth-state-dead-runner",
+            session_id="mvp1_upbit_paper_launcher",
+            runner_status=RUNNER_STATUS_RUNNING,
+            started_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            completed_cycle_count=1,
+            failed_cycle_count=0,
+            cycle_interval_seconds=30.0,
+            loop_report=loop,
+        )
+        dead_pid_runtime_truth = build_paper_runtime_truth_state_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="mvp1_upbit_paper_launcher",
+            heartbeat=heartbeat,
+            upbit_paper_long_runner_status_report=dead_pid_runner_status,
+            upbit_paper_persistent_loop_report=loop,
+            upbit_public_rest_continuity_history=continuity_history,
+            paper_ledger_rollup_report=ledger_rollup,
+            paper_current_truth_refresh_report=current_refresh,
+        )
     active_result = validate_paper_runtime_truth_state_report(active)
     if (
         active_result.status != "PASS"
@@ -5471,6 +5536,8 @@ def paper_runtime_truth_state_validator() -> ValidatorResult:
         or active.get("dashboard_truth_status") != "FRESH_CURRENT_TRUTH"
         or active.get("runner_status_loaded") is not True
         or active.get("runner_running") is not True
+        or active.get("runner_liveness_proven") is not True
+        or active.get("runner_lock_pid_alive") is not True
         or active.get("market_data_advancing") is not True
         or active.get("ledger_advancing") is not True
         or active.get("current_evidence_refreshing") is not True
@@ -5485,6 +5552,16 @@ def paper_runtime_truth_state_validator() -> ValidatorResult:
         or missing_runner.get("primary_blocker_code") != "DATA_QUALITY_INSUFFICIENT"
     ):
         return fail_result("paper_runtime_truth_state_validator", "fresh source reports without a running PAPER runner claimed active truth", paths, missing_runner_result.blocker_code or "DATA_QUALITY_INSUFFICIENT")
+    dead_pid_result = validate_paper_runtime_truth_state_report(dead_pid_runtime_truth)
+    if (
+        dead_pid_result.status != "BLOCKED"
+        or dead_pid_runtime_truth.get("runtime_truth_status") == PAPER_RUNTIME_ACTIVE_STATUS
+        or dead_pid_runtime_truth.get("runner_running") is not False
+        or dead_pid_runtime_truth.get("runner_lock_pid_alive") is not False
+        or dead_pid_runtime_truth.get("runner_liveness_proven") is not False
+        or dead_pid_runtime_truth.get("primary_blocker_code") != "LATENCY_TTL_EXPIRED"
+    ):
+        return fail_result("paper_runtime_truth_state_validator", "dead runner lock PID claimed active runtime truth", paths, dead_pid_result.blocker_code or "LATENCY_TTL_EXPIRED")
     if active.get("evidence_role") != "PAPER_RUNTIME_TRUTH_STATE_ONLY_NOT_LIVE_READY":
         return fail_result("paper_runtime_truth_state_validator", "runtime truth state role could be mistaken for live readiness", paths, "LIVE_FINAL_GUARD_FAILED")
     if active.get("long_run_evidence_eligible") or active.get("promotion_eligible"):

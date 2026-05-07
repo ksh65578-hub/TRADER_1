@@ -1,4 +1,6 @@
 import unittest
+import json
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -21,6 +23,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     RUNNER_STATUS_RUNNING,
     RUNNER_STATUS_STOPPED,
     build_runner_status_report,
+    runner_lock_path,
     upbit_paper_long_runner_status_hash,
 )
 from trader1.runtime.paper.upbit_public_rest_continuity import build_upbit_public_rest_continuity_report
@@ -88,7 +91,42 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
             continuity_attempts=attempts,
         )
 
-    def _runner_status(self, root: Path, loop: dict, *, status: str = RUNNER_STATUS_RUNNING) -> dict:
+    def _write_runner_lock(
+        self,
+        root: Path,
+        *,
+        session_id: str = "mvp1_upbit_paper_launcher",
+        pid: int | None = None,
+        heartbeat_at: datetime | None = None,
+    ) -> None:
+        now = (heartbeat_at or datetime.now(timezone.utc)).replace(microsecond=0)
+        path = runner_lock_path(root, session_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(
+                {
+                    "schema_id": "trader1.upbit_paper_long_runner_lock.v1",
+                    "owner_token": f"test-{pid or os.getpid()}",
+                    "pid": pid if pid is not None else os.getpid(),
+                    "session_id": session_id,
+                    "acquired_at": now.isoformat().replace("+00:00", "Z"),
+                    "heartbeat_at": now.isoformat().replace("+00:00", "Z"),
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+
+    def _runner_status(
+        self,
+        root: Path,
+        loop: dict,
+        *,
+        status: str = RUNNER_STATUS_RUNNING,
+        lock_pid: int | None = None,
+    ) -> dict:
+        if status == RUNNER_STATUS_RUNNING:
+            self._write_runner_lock(root, pid=lock_pid)
         completed_cycles = 1 if status == RUNNER_STATUS_RUNNING else int(loop.get("completed_cycle_count") or 1)
         return build_runner_status_report(
             root=root,
@@ -202,6 +240,11 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
         self.assertTrue(report["runner_status_fresh"])
         self.assertEqual(report["runner_status"], RUNNER_STATUS_RUNNING)
         self.assertTrue(report["runner_running"])
+        self.assertTrue(report["runner_lock_loaded"])
+        self.assertTrue(report["runner_lock_session_match"])
+        self.assertTrue(report["runner_lock_fresh"])
+        self.assertTrue(report["runner_lock_pid_alive"])
+        self.assertTrue(report["runner_liveness_proven"])
         self.assertTrue(report["paper_loop_advancing"])
         self.assertTrue(report["market_data_advancing"])
         self.assertTrue(report["ledger_advancing"])
@@ -249,6 +292,7 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
         self.assertEqual(report["dashboard_truth_status"], "STALE_DISPLAY_TRUTH")
         self.assertFalse(report["runner_status_loaded"])
         self.assertFalse(report["runner_running"])
+        self.assertFalse(report["runner_liveness_proven"])
         self.assertEqual(report["runner_status"], "NOT_LOADED")
         self.assertEqual(report["primary_blocker_code"], "DATA_QUALITY_INSUFFICIENT")
         self.assertFalse(report["live_order_allowed"])
@@ -293,7 +337,54 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
         self.assertTrue(report["runner_status_loaded"])
         self.assertEqual(report["runner_status"], RUNNER_STATUS_STOPPED)
         self.assertFalse(report["runner_running"])
+        self.assertFalse(report["runner_liveness_proven"])
         self.assertEqual(report["primary_blocker_code"], "DATA_QUALITY_INSUFFICIENT")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_dead_runner_lock_pid_blocks_active_runtime_truth(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="truth-state-dead-runner-lock-loop",
+                session_id="mvp1_upbit_paper_launcher",
+                requested_cycle_count=1,
+            )
+            ledger_rollup = load_json(launcher_dashboard_paths({"exchange": "UPBIT", "market_type": "KRW_SPOT", "mode": "PAPER", "session_id": "mvp1_upbit_paper_launcher"}, root)["paper_ledger_rollup_report"])
+            heartbeat = self._heartbeat()
+            current_refresh = build_paper_current_truth_refresh_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                paper_portfolio_snapshot=ledger_rollup["portfolio_snapshot"],
+                heartbeat=heartbeat,
+                startup_probe=None,
+            )
+            report = build_paper_runtime_truth_state_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                heartbeat=heartbeat,
+                upbit_paper_long_runner_status_report=self._runner_status(root, loop, lock_pid=99999999),
+                upbit_paper_persistent_loop_report=loop,
+                upbit_public_rest_continuity_history=self._continuity_history(),
+                paper_ledger_rollup_report=ledger_rollup,
+                paper_current_truth_refresh_report=current_refresh,
+            )
+            result = validate_paper_runtime_truth_state_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertNotEqual(report["runtime_truth_status"], PAPER_RUNTIME_ACTIVE_STATUS)
+        self.assertEqual(report["dashboard_truth_status"], "STALE_DISPLAY_TRUTH")
+        self.assertEqual(report["runner_status"], RUNNER_STATUS_RUNNING)
+        self.assertFalse(report["runner_running"])
+        self.assertTrue(report["runner_lock_loaded"])
+        self.assertFalse(report["runner_lock_pid_alive"])
+        self.assertFalse(report["runner_liveness_proven"])
+        self.assertEqual(report["primary_blocker_code"], "LATENCY_TTL_EXPIRED")
+        self.assertIn("owner PID is not alive", report["blockers"][0]["message"])
         self.assertFalse(report["live_order_allowed"])
 
     def test_stale_runner_status_blocks_active_runtime_truth(self):
