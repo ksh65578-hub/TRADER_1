@@ -208,6 +208,111 @@
         "BLOCKED"
       ]
     },
+    "closed_trade_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "closed_trade_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "min_closed_trade_sample_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "profit_factor_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "profit_factor": {
+      "type": "number",
+      "minimum": 0
+    },
+    "min_profit_factor": {
+      "type": "number",
+      "minimum": 1
+    },
+    "max_drawdown_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "max_drawdown_pct": {
+      "type": "number",
+      "minimum": 0
+    },
+    "max_allowed_drawdown_pct": {
+      "type": "number",
+      "minimum": 0
+    },
+    "realized_vs_expected_edge_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "realized_vs_expected_edge_bps": {
+      "type": "number"
+    },
+    "min_realized_vs_expected_edge_bps": {
+      "type": "number"
+    },
+    "fill_quality_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "fill_quality_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "min_fill_quality_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "performance_ready": {
+      "type": "boolean"
+    },
+    "performance_source_evidence_required": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "robustness_ready": {
+      "type": "boolean"
+    },
+    "robustness_source_evidence_required": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "ranking_eligible": {
       "type": "boolean"
     },
@@ -353,6 +458,8 @@
         "SELECTED_CANDIDATE_MIN_EDGE_FAIL_WITH_ALTERNATIVE",
         "SELECTED_CANDIDATE_ROBUSTNESS_BLOCKED_WITH_ALTERNATIVE",
         "SELECTED_CANDIDATE_ROBUSTNESS_SOURCE_MISSING_WITH_ALTERNATIVE",
+        "SELECTED_CANDIDATE_CLOSED_TRADE_PERFORMANCE_BLOCKED_WITH_ALTERNATIVE",
+        "SELECTED_CANDIDATE_PERFORMANCE_SOURCE_MISSING_WITH_ALTERNATIVE",
         "SELECTED_CANDIDATE_RANKING_BLOCKED_WITH_ALTERNATIVE"
       ]
     },

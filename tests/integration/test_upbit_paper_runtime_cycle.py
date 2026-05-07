@@ -4,6 +4,8 @@ import unittest
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.core.sizing.position_sizing import sizing_decision_hash
 from trader1.runtime.paper.upbit_paper_runtime import (
+    _build_runtime_exit_plan,
+    _evaluate_existing_position_exit,
     build_upbit_paper_runtime_cycle_report,
     upbit_paper_runtime_cycle_hash,
     validate_upbit_paper_runtime_cycle_report,
@@ -14,6 +16,109 @@ from trader1.validation.mvp0_validators import run_validators
 
 
 class UpbitPaperRuntimeCycleTest(unittest.TestCase):
+    def test_pullback_strategy_exit_uses_trailing_router(self):
+        candidate = {
+            "candidate_id": "KRW-BTC-pullback-trend-long",
+            "symbol": "KRW-BTC",
+            "strategy_family": "PULLBACK_TREND_LONG",
+        }
+        features = {
+            "last_price": "101",
+            "previous_high": "106",
+            "vwap": "100.5",
+            "volatility_pct": "1.0",
+            "range_breakout_pct": "0.1",
+            "regime": "UPTREND",
+            "trend_exhaustion_status": "PASS",
+            "trend_exhaustion_score": "0",
+        }
+        exit_plan = _build_runtime_exit_plan(
+            selected_candidate=candidate,
+            features=features,
+            entry_price_override="100",
+        )
+        evaluation = _evaluate_existing_position_exit(
+            position={"symbol": "KRW-BTC", "quantity": "1", "average_entry_price": "100"},
+            features=features,
+            exit_plan=exit_plan,
+            managed_candidate=candidate,
+        )
+
+        self.assertEqual(exit_plan["strategy_exit_policy_id"], "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1")
+        self.assertEqual(exit_plan["exit_variation"], "trailing_tp")
+        self.assertEqual(evaluation["final_decision"], "EXIT_POSITION")
+        self.assertEqual(evaluation["reason_code"], "TRAILING_STOP")
+        self.assertFalse(evaluation["strategy_exit_condition_passed"])
+
+    def test_vwap_reversion_strategy_exit_closes_on_vwap_target(self):
+        candidate = {
+            "candidate_id": "KRW-BTC-vwap-mean-reversion",
+            "symbol": "KRW-BTC",
+            "strategy_family": "VWAP_MEAN_REVERSION",
+        }
+        features = {
+            "last_price": "102",
+            "previous_high": "103",
+            "vwap": "102",
+            "volatility_pct": "1.0",
+            "range_breakout_pct": "-0.1",
+            "regime": "RANGE",
+            "trend_exhaustion_status": "PASS",
+            "trend_exhaustion_score": "0",
+        }
+        exit_plan = _build_runtime_exit_plan(
+            selected_candidate=candidate,
+            features=features,
+            entry_price_override="100",
+        )
+        evaluation = _evaluate_existing_position_exit(
+            position={"symbol": "KRW-BTC", "quantity": "1", "average_entry_price": "100"},
+            features=features,
+            exit_plan=exit_plan,
+            managed_candidate=candidate,
+        )
+
+        self.assertEqual(exit_plan["exit_variation"], "fixed_tp")
+        self.assertEqual(exit_plan["vwap_reversion_target"], "102")
+        self.assertEqual(evaluation["final_decision"], "EXIT_POSITION")
+        self.assertEqual(evaluation["reason_code"], "VWAP_REVERSION_COMPLETE")
+        self.assertTrue(evaluation["strategy_exit_condition_passed"])
+        self.assertEqual(evaluation["strategy_exit_action"], "FULL_EXIT")
+
+    def test_breakout_strategy_exit_closes_when_breakout_level_is_lost(self):
+        candidate = {
+            "candidate_id": "KRW-BTC-breakout-retest-long",
+            "symbol": "KRW-BTC",
+            "strategy_family": "BREAKOUT_RETEST_LONG",
+        }
+        features = {
+            "last_price": "99.7",
+            "previous_high": "100.5",
+            "vwap": "99",
+            "volatility_pct": "1.0",
+            "range_breakout_pct": "-0.8",
+            "regime": "UPTREND",
+            "trend_exhaustion_status": "PASS",
+            "trend_exhaustion_score": "0",
+        }
+        exit_plan = _build_runtime_exit_plan(
+            selected_candidate=candidate,
+            features=features,
+            entry_price_override="100",
+        )
+        evaluation = _evaluate_existing_position_exit(
+            position={"symbol": "KRW-BTC", "quantity": "1", "average_entry_price": "100"},
+            features=features,
+            exit_plan=exit_plan,
+            managed_candidate=candidate,
+        )
+
+        self.assertEqual(exit_plan["exit_variation"], "invalidation_exit")
+        self.assertEqual(exit_plan["breakout_invalidation_level"], "99.8")
+        self.assertEqual(evaluation["final_decision"], "EXIT_POSITION")
+        self.assertEqual(evaluation["reason_code"], "BREAKOUT_LEVEL_LOST")
+        self.assertTrue(evaluation["strategy_exit_condition_passed"])
+
     def test_positive_net_ev_cycle_connects_fill_ledger_portfolio_and_summary_without_live_permission(self):
         report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-positive")
         result = validate_upbit_paper_runtime_cycle_report(report)
@@ -591,7 +696,7 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["regime"], "UPTREND")
         self.assertEqual(report["final_decision"], "NO_TRADE")
-        self.assertIn("STRATEGY_CONFIDENCE_LOW", report["no_trade_reasons"])
+        self.assertIn("STRATEGY_NOT_ELIGIBLE", report["no_trade_reasons"])
         self.assertLess(float(report["feature_snapshot"]["volume_expansion_ratio"]), 1.05)
         self.assertLess(float(report["feature_snapshot"]["momentum_pct"]), 1.50)
         self.assertLessEqual(float(report["feature_snapshot"]["range_breakout_pct"]), 0)
@@ -633,7 +738,7 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
             if candidate["strategy_family"] == "PULLBACK_TREND_LONG"
         )
         self.assertEqual(pullback_candidate["decision"], "NO_TRADE")
-        self.assertEqual(pullback_candidate["no_trade_reason"], "STRATEGY_CONFIDENCE_LOW")
+        self.assertEqual(pullback_candidate["no_trade_reason"], "STRATEGY_NOT_ELIGIBLE")
         self.assertLess(float(pullback_candidate["signal_strength"]), 0.55)
         self.assertEqual(report["final_decision"], "NO_TRADE")
         self.assertIsNone(report["paper_fill"])
@@ -673,7 +778,10 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertGreaterEqual(float(report["feature_snapshot"]["momentum_pct"]), 3.0)
         self.assertGreaterEqual(float(report["feature_snapshot"]["volume_expansion_ratio"]), 1.5)
         self.assertEqual(report["final_decision"], "NO_TRADE")
-        self.assertIn(report["selected_candidate"]["no_trade_reason"], {"MIN_EDGE_FAIL", "STRATEGY_CONFIDENCE_LOW"})
+        self.assertIn(
+            report["selected_candidate"]["no_trade_reason"],
+            {"MIN_EDGE_FAIL", "STRATEGY_CONFIDENCE_LOW", "STRATEGY_NOT_ELIGIBLE"},
+        )
         self.assertTrue(all(candidate["decision"] == "NO_TRADE" for candidate in report["strategy_candidates"]))
         self.assertIsNone(report["paper_fill"])
         self.assertEqual(report["paper_ledger_events"], [])

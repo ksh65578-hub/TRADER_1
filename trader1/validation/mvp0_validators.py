@@ -530,8 +530,10 @@ from trader1.research.replay.replay_runner import (
     validate_replay_consistency_report,
 )
 from trader1.research.profitability.candidate_scorecard import (
+    PERFORMANCE_SOURCE_PREFIXES,
     ROBUSTNESS_SOURCE_PREFIXES,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
+    has_required_performance_source_ids,
     has_required_robustness_source_ids,
     runtime_cycle_binding_from_source_ids,
     runtime_cycle_source_evidence_id,
@@ -21342,16 +21344,41 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             cycle_hash=str(scorecard.get("source_runtime_cycle_hash", "")),
         ):
             errors.append("ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids linked to the same runtime cycle hash")
+        if len(source_ids) < len(ROBUSTNESS_SOURCE_PREFIXES) + len(PERFORMANCE_SOURCE_PREFIXES) + 1:
+            errors.append("ranking_eligible scorecard requires runtime, robustness, closed trade, execution quality, and performance summary evidence ids")
+        if not has_required_performance_source_ids(source_ids):
+            errors.append("ranking_eligible scorecard requires closed trade, execution quality, and performance summary evidence ids")
         required_statuses = {
             "cost_model_status": "VALIDATED",
             "oos_status": "PASS",
             "walk_forward_status": "PASS",
             "bootstrap_status": "PASS",
             "overfit_status": "LOW",
+            "closed_trade_status": "PASS",
+            "profit_factor_status": "PASS",
+            "max_drawdown_status": "PASS",
+            "realized_vs_expected_edge_status": "PASS",
+            "fill_quality_status": "PASS",
         }
         for field, expected in required_statuses.items():
             if scorecard.get(field) != expected:
                 errors.append(f"{field} must be {expected} before ranking eligibility")
+        if int(scorecard.get("closed_trade_sample_count", 0) or 0) < int(scorecard.get("min_closed_trade_sample_count", 1) or 1):
+            errors.append("closed trade sample count must meet minimum before ranking eligibility")
+        if float(scorecard.get("profit_factor", 0) or 0) < float(scorecard.get("min_profit_factor", 1) or 1):
+            errors.append("profit_factor must meet minimum before ranking eligibility")
+        if float(scorecard.get("max_drawdown_pct", 100) or 100) > float(scorecard.get("max_allowed_drawdown_pct", 0) or 0):
+            errors.append("max_drawdown_pct must be within allowed drawdown before ranking eligibility")
+        if float(scorecard.get("realized_vs_expected_edge_bps", -999) or -999) < float(
+            scorecard.get("min_realized_vs_expected_edge_bps", 0) or 0
+        ):
+            errors.append("realized_vs_expected_edge_bps must meet minimum before ranking eligibility")
+        if float(scorecard.get("fill_quality_score", 0) or 0) < float(scorecard.get("min_fill_quality_score", 1) or 1):
+            errors.append("fill_quality_score must meet minimum before ranking eligibility")
+        if scorecard.get("performance_ready") is not True:
+            errors.append("performance_ready must be true before ranking eligibility")
+        if scorecard.get("robustness_ready") is not True:
+            errors.append("robustness_ready must be true before ranking eligibility")
 
     return errors
 
@@ -21418,7 +21445,7 @@ def candidate_scorecard_net_ev_validator() -> ValidatorResult:
 
     return pass_result(
         "candidate_scorecard_net_ev_validator",
-        "candidate scorecards require cost-adjusted net EV, robustness status, explicit blockers, and false live flags",
+        "candidate scorecards require cost-adjusted net EV, robustness, closed-trade performance gates, explicit blockers, and false live flags",
         paths,
     )
 
@@ -21533,7 +21560,7 @@ def candidate_scorecard_validator() -> ValidatorResult:
 
     return pass_result(
         "candidate_scorecard_validator",
-        "candidate scorecards are evidence-bound, paper-scorecard-input-only, cost-adjusted, robustness-gated, and non-live",
+        "candidate scorecards are evidence-bound, paper-scorecard-input-only, cost-adjusted, robustness and closed-trade performance gated, and non-live",
         paths,
     )
 

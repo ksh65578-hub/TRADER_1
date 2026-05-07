@@ -77,8 +77,13 @@ TREND_EXHAUSTION_SIGNAL_PENALTY = Decimal("0.30")
 TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS = frozenset(
     {"trend_exhaustion_status", "trend_exhaustion_score", "trend_exhaustion_formula"}
 )
+REGIME_DETAIL_FEATURE_PROJECTION_FIELDS = frozenset(
+    {"market_state", "quiet_range_status", "volatility_expansion_status", "regime_detail_formula"}
+)
 CURRENT_FEATURE_PROJECTION_UPGRADE_FIELDS = (
-    TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS | TREND_PULLBACK_ALIGNMENT_FEATURE_PROJECTION_FIELDS
+    TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS
+    | TREND_PULLBACK_ALIGNMENT_FEATURE_PROJECTION_FIELDS
+    | REGIME_DETAIL_FEATURE_PROJECTION_FIELDS
 )
 BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION = Decimal("1.20")
 BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT = Decimal("0.03")
@@ -95,6 +100,13 @@ ROTATION_EXIT_WEAK_NO_TRADE_REASONS = {"REGIME_MISMATCH", "SYMBOL_SELECTION_BIAS
 ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS = {
     "HARD_STOP",
     "REGIME_REVERSAL",
+    "TREND_INVALIDATED",
+    "VWAP_REVERSION_COMPLETE",
+    "RANGE_BREAK_INVALIDATED",
+    "VWAP_FIXED_TP",
+    "BREAKOUT_LEVEL_LOST",
+    "FALSE_BREAKOUT_INVALIDATED",
+    "VOLATILITY_INVALIDATED",
     "TRAILING_STOP",
     "TAKE_PROFIT_2",
     "TAKE_PROFIT_1_MIN_NOTIONAL_FULL_EXIT",
@@ -133,6 +145,27 @@ RECENT_FAILURE_FEEDBACK_FORMULA = (
     "quality_signal_penalty=min(0.50,0.08_symbol+0.28_same_candidate_or_strategy); "
     "active cooldown blocks PAPER_ENTRY_REVIEW"
 )
+STRATEGY_EXIT_POLICY_ID = "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1"
+TREND_PULLBACK_EXIT_VARIATION = "trailing_tp"
+VWAP_REVERSION_EXIT_VARIATION = "fixed_tp"
+BREAKOUT_RETEST_EXIT_VARIATION = "invalidation_exit"
+STRATEGY_EXIT_REASON_NONE = "NONE"
+STRATEGY_EXIT_ACTION_NONE = "NONE"
+STRATEGY_EXIT_ACTION_FULL_EXIT = "FULL_EXIT"
+STRATEGY_EXIT_REASON_TREND_INVALIDATED = "TREND_INVALIDATED"
+STRATEGY_EXIT_REASON_VWAP_REVERSION_COMPLETE = "VWAP_REVERSION_COMPLETE"
+STRATEGY_EXIT_REASON_RANGE_BREAK_INVALIDATED = "RANGE_BREAK_INVALIDATED"
+STRATEGY_EXIT_REASON_VWAP_FIXED_TP = "VWAP_FIXED_TP"
+STRATEGY_EXIT_REASON_BREAKOUT_LEVEL_LOST = "BREAKOUT_LEVEL_LOST"
+STRATEGY_EXIT_REASON_FALSE_BREAKOUT_INVALIDATED = "FALSE_BREAKOUT_INVALIDATED"
+STRATEGY_EXIT_REASON_VOLATILITY_INVALIDATED = "VOLATILITY_INVALIDATED"
+BREAKOUT_INVALIDATION_BUFFER_ATR = Decimal("0.20")
+VWAP_REVERSION_FIXED_TP_ATR_MULTIPLIER = Decimal("0.80")
+QUIET_MAX_VOLATILITY_PCT = Decimal("0.35")
+QUIET_MAX_VOLUME_EXPANSION_RATIO = Decimal("0.90")
+VOLATILITY_EXPANSION_MIN_VOLATILITY_PCT = Decimal("2.50")
+VOLATILITY_EXPANSION_MIN_VOLUME_RATIO = Decimal("1.20")
+VOLATILITY_EXPANSION_MIN_RANGE_BREAKOUT_PCT = Decimal("0.03")
 POSITION_ROTATION_EXIT_FIELDS = frozenset(
     {
         "rotation_candidate_symbol",
@@ -159,6 +192,17 @@ POSITION_ROTATION_EXIT_FIELDS = frozenset(
         "quality_feedback_exit_condition_passed",
         "quality_feedback_exit_action",
         "quality_feedback_exit_formula",
+        "strategy_exit_policy_id",
+        "strategy_family",
+        "exit_variation",
+        "strategy_exit_reason_code",
+        "strategy_exit_condition_passed",
+        "strategy_exit_action",
+        "strategy_exit_formula",
+        "strategy_exit_acceptance_condition",
+        "vwap_reversion_target",
+        "breakout_invalidation_level",
+        "trend_invalidation_regime",
     }
 )
 
@@ -631,6 +675,7 @@ def _build_runtime_exit_plan(
     entry_price = max(_decimal(entry_price_override if entry_price_override is not None else features.get("last_price")), Decimal("0"))
     volatility_rate = max(MIN_EXIT_ATR_RATE, _decimal(features.get("volatility_pct")) / Decimal("100"))
     atr_proxy = max(Decimal("0.0000001"), entry_price * volatility_rate)
+    strategy_family = str(selected_candidate.get("strategy_family") or "PULLBACK_TREND_LONG")
     trend_exhaustion_active = features.get("trend_exhaustion_status") == "WARN"
     hard_stop_atr = Decimal("0.9") if trend_exhaustion_active else Decimal("1.2")
     tp1_atr = Decimal("0.9") if trend_exhaustion_active else Decimal("1.2")
@@ -639,6 +684,55 @@ def _build_runtime_exit_plan(
     trailing_distance_atr = Decimal("0.55") if trend_exhaustion_active else Decimal("1.0")
     partial_take_profit_ratio = Decimal("0.50") if trend_exhaustion_active else Decimal("0.40")
     time_stop_candles = 5 if trend_exhaustion_active else 8
+    exit_variation = TREND_PULLBACK_EXIT_VARIATION
+    strategy_exit_formula = (
+        "TREND_PULLBACK: hard_stop first, then RISK_OFF exit, trend invalidation, "
+        "ATR trailing, TP2, quality/rotation, and partial TP1"
+    )
+    strategy_exit_acceptance_condition = (
+        "trend remains UPTREND or exit via hard stop/RISK_OFF/trailing when trend continuation evidence fails"
+    )
+    vwap = max(_decimal(features.get("vwap")), Decimal("0"))
+    previous_high = max(_decimal(features.get("previous_high")), Decimal("0"))
+    vwap_reversion_target: str | None = None
+    breakout_invalidation_level: str | None = None
+    if strategy_family == "VWAP_MEAN_REVERSION" and not trend_exhaustion_active:
+        exit_variation = VWAP_REVERSION_EXIT_VARIATION
+        hard_stop_atr = Decimal("0.9")
+        tp1_atr = VWAP_REVERSION_FIXED_TP_ATR_MULTIPLIER
+        tp2_atr = Decimal("1.4")
+        trailing_start_atr = Decimal("2.2")
+        trailing_distance_atr = Decimal("1.2")
+        partial_take_profit_ratio = Decimal("0.50")
+        time_stop_candles = 6
+        vwap_target = vwap if vwap > entry_price else entry_price + VWAP_REVERSION_FIXED_TP_ATR_MULTIPLIER * atr_proxy
+        vwap_reversion_target = _decimal_text(vwap_target)
+        strategy_exit_formula = (
+            "VWAP_REVERSION: hard_stop first, then RISK_OFF/range-break invalidation, "
+            "full exit on VWAP target or fixed TP; no partial hold-through after mean reversion completes"
+        )
+        strategy_exit_acceptance_condition = (
+            "mark_price>=vwap_reversion_target or range breaks against position; otherwise hold only inside RANGE"
+        )
+    elif strategy_family == "BREAKOUT_RETEST_LONG" and not trend_exhaustion_active:
+        exit_variation = BREAKOUT_RETEST_EXIT_VARIATION
+        hard_stop_atr = Decimal("1.0")
+        tp1_atr = Decimal("1.4")
+        tp2_atr = Decimal("3.0")
+        trailing_start_atr = Decimal("1.2")
+        trailing_distance_atr = Decimal("0.8")
+        partial_take_profit_ratio = Decimal("0.35")
+        time_stop_candles = 6
+        breakout_reference = previous_high if previous_high > 0 else entry_price
+        breakout_reference = min(entry_price, breakout_reference)
+        breakout_invalidation_level = _decimal_text(breakout_reference - BREAKOUT_INVALIDATION_BUFFER_ATR * atr_proxy)
+        strategy_exit_formula = (
+            "BREAKOUT_RETEST: hard_stop first, then RISK_OFF, breakout level lost, false breakout invalidation, "
+            "volatility exhaustion invalidation, trailing, and staged TP"
+        )
+        strategy_exit_acceptance_condition = (
+            "hold only while breakout reference holds and range_breakout remains non-negative after retest"
+        )
     plan = build_exit_plan(
         {
             "entry_price": _decimal_text(entry_price),
@@ -662,6 +756,25 @@ def _build_runtime_exit_plan(
             "source_candidate_id": selected_candidate.get("candidate_id"),
             "source_symbol": selected_candidate.get("symbol"),
             "activation_condition": "ACTIVE_AFTER_PAPER_FILL_ONLY",
+            "strategy_exit_policy_id": STRATEGY_EXIT_POLICY_ID,
+            "strategy_family": strategy_family,
+            "exit_variation": exit_variation,
+            "strategy_exit_formula": strategy_exit_formula,
+            "strategy_exit_acceptance_condition": strategy_exit_acceptance_condition,
+            "vwap_reversion_target": vwap_reversion_target,
+            "breakout_invalidation_level": breakout_invalidation_level,
+            "breakout_invalidation_buffer_atr": _decimal_text(BREAKOUT_INVALIDATION_BUFFER_ATR),
+            "strategy_exit_priority": [
+                "hard_stop",
+                "risk_off_regime_reversal",
+                "strategy_invalidation",
+                "strategy_profit_target",
+                "common_trailing",
+                "take_profit_2",
+                "quality_feedback",
+                "rotation",
+                "take_profit_1",
+            ],
             "hard_stop_formula": f"entry_price - {_decimal_text(hard_stop_atr)}*atr_proxy",
             "tp1_formula": f"entry_price + {_decimal_text(tp1_atr)}*atr_proxy",
             "tp2_formula": f"entry_price + {_decimal_text(tp2_atr)}*atr_proxy",
@@ -720,6 +833,17 @@ def _evaluate_existing_position_exit(
         "quality_feedback_exit_condition_passed": False,
         "quality_feedback_exit_action": "NONE",
         "quality_feedback_exit_formula": QUALITY_FEEDBACK_EXIT_FORMULA,
+        "strategy_exit_policy_id": exit_plan.get("strategy_exit_policy_id"),
+        "strategy_family": exit_plan.get("strategy_family"),
+        "exit_variation": exit_plan.get("exit_variation"),
+        "strategy_exit_reason_code": STRATEGY_EXIT_REASON_NONE,
+        "strategy_exit_condition_passed": False,
+        "strategy_exit_action": STRATEGY_EXIT_ACTION_NONE,
+        "strategy_exit_formula": exit_plan.get("strategy_exit_formula"),
+        "strategy_exit_acceptance_condition": exit_plan.get("strategy_exit_acceptance_condition"),
+        "vwap_reversion_target": exit_plan.get("vwap_reversion_target"),
+        "breakout_invalidation_level": exit_plan.get("breakout_invalidation_level"),
+        "trend_invalidation_regime": None,
     }
     if isinstance(rotation_candidate, dict):
         rotation_context.update(
@@ -809,12 +933,46 @@ def _evaluate_existing_position_exit(
                 else "ROTATION_OPPORTUNITY_COST"
             )
             rotation_context["rotation_action"] = "FULL_EXIT"
+    strategy_family = str(exit_plan.get("strategy_family") or "")
+    regime = str(features.get("regime") or "")
+    vwap_reversion_target = _decimal(exit_plan.get("vwap_reversion_target"))
+    breakout_invalidation_level = _decimal(exit_plan.get("breakout_invalidation_level"))
+    range_breakout_pct = _decimal(features.get("range_breakout_pct"))
+    trend_exhaustion_status = str(features.get("trend_exhaustion_status") or "PASS")
+    strategy_exit_reason: str | None = None
+    if strategy_family == "PULLBACK_TREND_LONG" and regime != "UPTREND" and return_pct <= Decimal("0.25"):
+        strategy_exit_reason = STRATEGY_EXIT_REASON_TREND_INVALIDATED
+        rotation_context["trend_invalidation_regime"] = regime
+    elif strategy_family == "VWAP_MEAN_REVERSION":
+        if regime not in {"RANGE"} and return_pct <= Decimal("0.25"):
+            strategy_exit_reason = STRATEGY_EXIT_REASON_RANGE_BREAK_INVALIDATED
+        elif vwap_reversion_target > 0 and mark_price >= vwap_reversion_target:
+            strategy_exit_reason = STRATEGY_EXIT_REASON_VWAP_REVERSION_COMPLETE
+        elif mark_price >= tp1:
+            strategy_exit_reason = STRATEGY_EXIT_REASON_VWAP_FIXED_TP
+    elif strategy_family == "BREAKOUT_RETEST_LONG":
+        if breakout_invalidation_level > 0 and mark_price <= breakout_invalidation_level:
+            strategy_exit_reason = STRATEGY_EXIT_REASON_BREAKOUT_LEVEL_LOST
+        elif range_breakout_pct < 0 and return_pct <= Decimal("0.25"):
+            strategy_exit_reason = STRATEGY_EXIT_REASON_FALSE_BREAKOUT_INVALIDATED
+        elif trend_exhaustion_status == "WARN" and return_pct <= ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT:
+            strategy_exit_reason = STRATEGY_EXIT_REASON_VOLATILITY_INVALIDATED
     if mark_price <= hard_stop:
         decision = "EXIT_POSITION"
         reason = "HARD_STOP"
     elif str(features.get("regime")) == "RISK_OFF" and mark_price < average_entry:
         decision = "EXIT_POSITION"
         reason = "REGIME_REVERSAL"
+    elif strategy_exit_reason is not None:
+        decision = "EXIT_POSITION"
+        reason = strategy_exit_reason
+        rotation_context.update(
+            {
+                "strategy_exit_reason_code": strategy_exit_reason,
+                "strategy_exit_condition_passed": True,
+                "strategy_exit_action": STRATEGY_EXIT_ACTION_FULL_EXIT,
+            }
+        )
     elif previous_high >= trailing_start and mark_price <= previous_high - trailing_distance:
         decision = "EXIT_POSITION"
         reason = "TRAILING_STOP"
@@ -899,6 +1057,22 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         regime = "RISK_OFF"
     else:
         regime = "RANGE"
+    quiet_range_active = (
+        regime == "RANGE"
+        and volatility_pct <= QUIET_MAX_VOLATILITY_PCT
+        and volume_expansion_ratio <= QUIET_MAX_VOLUME_EXPANSION_RATIO
+    )
+    volatility_expansion_active = (
+        volatility_pct >= VOLATILITY_EXPANSION_MIN_VOLATILITY_PCT
+        and volume_expansion_ratio >= VOLATILITY_EXPANSION_MIN_VOLUME_RATIO
+        and max(Decimal("0"), range_breakout_pct) >= VOLATILITY_EXPANSION_MIN_RANGE_BREAKOUT_PCT
+    )
+    if volatility_expansion_active:
+        market_state = "VOLATILITY_EXPANSION"
+    elif quiet_range_active:
+        market_state = "QUIET_RANGE"
+    else:
+        market_state = regime
     trend_structure_score = Decimal("1") if regime == "UPTREND" else Decimal("0")
     trend_momentum_confirmation = _clamp_decimal((momentum_pct - Decimal("0.35")) / Decimal("1.65"))
     trend_volume_confirmation = _clamp_decimal(
@@ -961,6 +1135,14 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         "liquidity_status": "PASS",
         "volatility_status": "PASS" if volatility_pct < Decimal("6") else "WARN",
         "regime": regime,
+        "market_state": market_state,
+        "quiet_range_status": "ACTIVE" if quiet_range_active else "CLEAR",
+        "volatility_expansion_status": "ACTIVE" if volatility_expansion_active else "CLEAR",
+        "regime_detail_formula": (
+            "Upbit KRW spot is long-only: RISK_OFF blocks new entries; QUIET_RANGE limits entry to range "
+            "candidates only; VOLATILITY_EXPANSION enables breakout candidates when volatility>=2.50pct, "
+            "volume_expansion>=1.20, and range_breakout>=0.03pct"
+        ),
         "trend_pullback_alignment_status": "PASS" if trend_pullback_alignment_reason == "PASS" else "FAIL",
         "trend_pullback_alignment_score": _decimal_text(
             trend_pullback_alignment_score.quantize(Decimal("0.0001"))
@@ -1257,6 +1439,7 @@ def _candidate(
     candidate_id: str,
     symbol: str,
     strategy_family: str,
+    features: dict[str, Any],
     expected_edge_bps: Decimal,
     cost_breakdown_bps: dict[str, str],
     signal_strength: Decimal,
@@ -1284,6 +1467,39 @@ def _candidate(
         and symbol_score >= MIN_SYMBOL_SELECTION_SCORE
         and regime != "RISK_OFF"
     )
+    market_state = str(features.get("market_state") or regime)
+    volume_expansion = _decimal(features.get("volume_expansion_ratio"))
+    range_breakout = max(Decimal("0"), _decimal(features.get("range_breakout_pct")))
+    strategy_regime_allowed = True
+    strategy_policy_reason = "PASS"
+    if regime in {"RISK_OFF", "DOWNTREND", "PANIC", "DATA_BAD", "UNCERTAIN"}:
+        strategy_regime_allowed = False
+        strategy_policy_reason = "LONG_ONLY_SPOT_RISK_OFF_BLOCK"
+    elif strategy_family == "PULLBACK_TREND_LONG":
+        strategy_regime_allowed = (
+            regime == "UPTREND"
+            and features.get("trend_pullback_alignment_status") == "PASS"
+            and features.get("trend_exhaustion_status") != "WARN"
+        )
+        if not strategy_regime_allowed:
+            strategy_policy_reason = "PULLBACK_REQUIRES_VALID_UPTREND_ALIGNMENT"
+    elif strategy_family == "BREAKOUT_RETEST_LONG":
+        strategy_regime_allowed = (
+            market_state == "VOLATILITY_EXPANSION"
+            or (
+                regime == "UPTREND"
+                and volume_expansion >= BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION
+                and range_breakout >= BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT
+            )
+        )
+        if not strategy_regime_allowed:
+            strategy_policy_reason = "BREAKOUT_REQUIRES_VOLUME_CONFIRMED_EXPANSION_OR_RETEST"
+    elif strategy_family == "VWAP_MEAN_REVERSION":
+        strategy_regime_allowed = regime == "RANGE" and market_state != "VOLATILITY_EXPANSION"
+        if not strategy_regime_allowed:
+            strategy_policy_reason = "VWAP_REVERSION_RANGE_ONLY"
+    if not strategy_regime_allowed:
+        threshold_passed = False
     decision = "PAPER_ENTRY_REVIEW" if threshold_passed else "NO_TRADE"
     no_trade_reason = None if decision == "PAPER_ENTRY_REVIEW" else "MIN_EDGE_FAIL"
     if regime == "RISK_OFF":
@@ -1292,6 +1508,8 @@ def _candidate(
     elif cooldown_active:
         decision = "NO_TRADE"
         no_trade_reason = "COOLDOWN"
+    elif not strategy_regime_allowed:
+        no_trade_reason = "REGIME_MISMATCH" if strategy_policy_reason.endswith("_BLOCK") else "STRATEGY_NOT_ELIGIBLE"
     elif symbol_score < MIN_SYMBOL_SELECTION_SCORE:
         no_trade_reason = "SYMBOL_SELECTION_BIAS"
     elif signal_strength < MIN_ENTRY_SIGNAL_STRENGTH:
@@ -1306,6 +1524,10 @@ def _candidate(
         "symbol_selection_score": symbol_selection["symbol_selection_score"],
         "candidate_selection_score": _decimal_text(candidate_selection_score),
         "candidate_selection_formula": "0.45*symbol_score+0.35*net_ev_score+0.20*signal_strength",
+        "strategy_entry_policy_id": "UPBIT_KRW_SPOT_STRATEGY_ENTRY_ROUTER_V1",
+        "strategy_regime_allowed": strategy_regime_allowed,
+        "strategy_policy_reason": strategy_policy_reason,
+        "market_state": market_state,
         "signal_strength": _decimal_text(signal_strength),
         "signal_grade": "A" if signal_strength >= Decimal("0.7") else "B" if signal_strength >= Decimal("0.55") else "C",
         "expected_edge_bps": _decimal_text(expected_edge_bps),
@@ -1455,6 +1677,7 @@ def _build_candidates(
             candidate_id=f"{symbol}-pullback-trend-long",
             symbol=symbol,
             strategy_family="PULLBACK_TREND_LONG",
+            features=features,
             expected_edge_bps=pullback_edge + edge_shift,
             cost_breakdown_bps=cost_breakdown_bps,
             signal_strength=pullback_signal,
@@ -1467,6 +1690,7 @@ def _build_candidates(
             candidate_id=f"{symbol}-breakout-retest-long",
             symbol=symbol,
             strategy_family="BREAKOUT_RETEST_LONG",
+            features=features,
             expected_edge_bps=breakout_edge + edge_shift,
             cost_breakdown_bps=cost_breakdown_bps,
             signal_strength=breakout_signal,
@@ -1479,6 +1703,7 @@ def _build_candidates(
             candidate_id=f"{symbol}-vwap-mean-reversion",
             symbol=symbol,
             strategy_family="VWAP_MEAN_REVERSION",
+            features=features,
             expected_edge_bps=mean_reversion_edge + edge_shift,
             cost_breakdown_bps=cost_breakdown_bps,
             signal_strength=mean_reversion_signal,
@@ -1551,6 +1776,9 @@ def _build_symbol_evidence_scorecard(
         "rank_input_order": rank_input_order,
         "symbol": symbol,
         "regime": features.get("regime"),
+        "market_state": features.get("market_state"),
+        "quiet_range_status": features.get("quiet_range_status"),
+        "volatility_expansion_status": features.get("volatility_expansion_status"),
         "last_price": features.get("last_price"),
         "total_quote_volume": features.get("total_quote_volume"),
         "volatility_pct": features.get("volatility_pct"),
@@ -1574,6 +1802,7 @@ def _build_symbol_evidence_scorecard(
         "best_net_ev_after_cost_bps": best_candidate.get("net_ev_after_cost_bps"),
         "best_decision": best_candidate.get("decision"),
         "best_no_trade_reason": best_candidate.get("no_trade_reason"),
+        "best_strategy_policy_reason": best_candidate.get("strategy_policy_reason"),
         "best_recent_failure_cooldown_status": best_candidate.get("recent_failure_cooldown_status", "CLEAR"),
         "best_recent_failure_feedback_kind": best_candidate.get("recent_failure_feedback_kind", "NONE"),
         "best_recent_failure_cooldown_cycles_remaining": int(
@@ -1744,6 +1973,11 @@ def _validate_candidate_costs(
     expected_grade = "A" if signal_strength >= Decimal("0.7") else "B" if signal_strength >= Decimal("0.55") else "C"
     if candidate.get("signal_grade") != expected_grade:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate signal grade does not match signal strength", "SCHEMA_IDENTITY_MISMATCH")
+    if candidate.get("strategy_entry_policy_id") != "UPBIT_KRW_SPOT_STRATEGY_ENTRY_ROUTER_V1":
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate strategy entry policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(candidate.get("strategy_regime_allowed"), bool):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate strategy_regime_allowed must be boolean", "SCHEMA_IDENTITY_MISMATCH")
+    strategy_regime_allowed = candidate.get("strategy_regime_allowed") is True
     if candidate.get("regime") == "RISK_OFF" and candidate.get("decision") != "NO_TRADE":
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "risk-off candidate cannot be paper entry review", "REGIME_MISMATCH")
     entry_threshold_passed = (
@@ -1751,6 +1985,7 @@ def _validate_candidate_costs(
         and signal_strength >= MIN_ENTRY_SIGNAL_STRENGTH
         and symbol_score >= MIN_SYMBOL_SELECTION_SCORE
         and candidate.get("regime") != "RISK_OFF"
+        and strategy_regime_allowed
         and not cooldown_active
     )
     no_trade_reason = candidate.get("no_trade_reason")
@@ -1780,6 +2015,12 @@ def _validate_candidate_costs(
             expected_reason = "REGIME_MISMATCH"
         elif cooldown_active:
             expected_reason = "COOLDOWN"
+        elif not strategy_regime_allowed:
+            expected_reason = (
+                "REGIME_MISMATCH"
+                if str(candidate.get("strategy_policy_reason") or "").endswith("_BLOCK")
+                else "STRATEGY_NOT_ELIGIBLE"
+            )
         elif symbol_score < MIN_SYMBOL_SELECTION_SCORE:
             expected_reason = "SYMBOL_SELECTION_BIAS"
         elif signal_strength < MIN_ENTRY_SIGNAL_STRENGTH:
@@ -1937,6 +2178,29 @@ def _validate_position_rotation_context(
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit weak-return threshold drifted", "SCHEMA_IDENTITY_MISMATCH")
     if evaluation.get("quality_feedback_exit_formula") != QUALITY_FEEDBACK_EXIT_FORMULA:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit formula mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if evaluation.get("strategy_exit_policy_id") != STRATEGY_EXIT_POLICY_ID:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if evaluation.get("strategy_family") not in {"PULLBACK_TREND_LONG", "VWAP_MEAN_REVERSION", "BREAKOUT_RETEST_LONG"}:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit family is not an executable strategy", "SCHEMA_IDENTITY_MISMATCH")
+    if evaluation.get("exit_variation") not in {TREND_PULLBACK_EXIT_VARIATION, VWAP_REVERSION_EXIT_VARIATION, BREAKOUT_RETEST_EXIT_VARIATION}:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit variation is not supported", "SCHEMA_IDENTITY_MISMATCH")
+    if not evaluation.get("strategy_exit_formula") or not evaluation.get("strategy_exit_acceptance_condition"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit formula or acceptance condition missing", "SCHEMA_IDENTITY_MISMATCH")
+    if evaluation.get("strategy_exit_condition_passed"):
+        if evaluation.get("strategy_exit_action") != STRATEGY_EXIT_ACTION_FULL_EXIT:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit action must be FULL_EXIT when condition passes", "SCHEMA_IDENTITY_MISMATCH")
+        partial_exit_fill = (
+            final_decision == "REDUCE_POSITION"
+            and lifecycle.get("requested_position_decision") == "EXIT_POSITION"
+            and lifecycle.get("execution_adjusted_position_decision_reason") == "PARTIAL_EXIT_FILL"
+        )
+        if (
+            lifecycle.get("position_exit_reason_code") != evaluation.get("strategy_exit_reason_code")
+            or (final_decision != "EXIT_POSITION" and not partial_exit_fill)
+        ):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit did not drive the PAPER exit decision", "SCHEMA_IDENTITY_MISMATCH")
+    elif evaluation.get("strategy_exit_reason_code") != STRATEGY_EXIT_REASON_NONE or evaluation.get("strategy_exit_action") != STRATEGY_EXIT_ACTION_NONE:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit action is set when strategy condition did not pass", "SCHEMA_IDENTITY_MISMATCH")
     expected_quality_feedback_exit = (
         lifecycle.get("managed_position_symbol") is not None
         and selected.get("recent_failure_feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL"
@@ -2047,7 +2311,12 @@ def _validate_position_rotation_context(
             and lifecycle.get("position_exit_reason_code")
             in ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS
         )
-        if not higher_priority_exit and (
+        higher_priority_partial_fill = (
+            partial_exit_fill
+            and lifecycle.get("position_exit_reason_code")
+            in ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS
+        )
+        if not higher_priority_exit and not higher_priority_partial_fill and (
             (final_decision != "EXIT_POSITION" and not partial_exit_fill)
             or lifecycle.get("position_exit_reason_code") != expected_reason
         ):
@@ -2516,6 +2785,10 @@ def build_upbit_paper_runtime_cycle_report(
         "managed_position_quantity": managed_position.get("quantity") if isinstance(managed_position, dict) else None,
         "position_exit_reason_code": position_exit_evaluation.get("reason_code"),
         "position_exit_evaluation": position_exit_evaluation,
+        "strategy_exit_policy_id": exit_plan.get("strategy_exit_policy_id"),
+        "strategy_exit_variation": exit_plan.get("exit_variation"),
+        "strategy_exit_reason_code": position_exit_evaluation.get("strategy_exit_reason_code"),
+        "strategy_exit_condition_passed": position_exit_evaluation.get("strategy_exit_condition_passed"),
         "requested_position_decision": position_exit_evaluation.get("final_decision"),
         "execution_adjusted_position_decision_reason": execution_adjusted_position_decision_reason,
         "sell_quantity": position_exit_evaluation.get("sell_quantity"),
@@ -3126,9 +3399,27 @@ def validate_upbit_paper_runtime_cycle_report(
     exit_plan = report.get("exit_plan")
     if not isinstance(exit_plan, dict):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "exit_plan must be an object", "SCHEMA_IDENTITY_MISMATCH")
-    for field in ("entry_price", "hard_stop", "tp1", "tp2", "trailing_start", "trailing_distance", "time_stop_candles", "partial_take_profit_ratio"):
+    for field in (
+        "entry_price",
+        "hard_stop",
+        "tp1",
+        "tp2",
+        "trailing_start",
+        "trailing_distance",
+        "time_stop_candles",
+        "partial_take_profit_ratio",
+        "strategy_exit_policy_id",
+        "strategy_family",
+        "exit_variation",
+        "strategy_exit_formula",
+        "strategy_exit_acceptance_condition",
+    ):
         if field not in exit_plan:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", f"exit_plan missing {field}", "SCHEMA_IDENTITY_MISMATCH")
+    if exit_plan.get("strategy_exit_policy_id") != STRATEGY_EXIT_POLICY_ID:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "exit_plan strategy exit policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if exit_plan.get("exit_variation") not in {TREND_PULLBACK_EXIT_VARIATION, VWAP_REVERSION_EXIT_VARIATION, BREAKOUT_RETEST_EXIT_VARIATION}:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "exit_plan strategy exit variation unsupported", "SCHEMA_IDENTITY_MISMATCH")
     entry_price = _decimal(exit_plan.get("entry_price"))
     hard_stop = _decimal(exit_plan.get("hard_stop"))
     tp1 = _decimal(exit_plan.get("tp1"))

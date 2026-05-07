@@ -6,8 +6,10 @@ from pathlib import Path
 
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import (
+    PERFORMANCE_PASS,
     ROBUSTNESS_PASS,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
+    has_required_performance_source_ids,
     has_required_robustness_source_ids,
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
@@ -17,6 +19,28 @@ from trader1.research.profitability.candidate_scorecard import (
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report, upbit_paper_runtime_cycle_hash
 from trader1.runtime.portfolio.paper_portfolio import build_paper_portfolio_snapshot_from_fill
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors
+
+
+def performance_source_evidence_ids(runtime: dict[str, str]) -> list[str]:
+    return [
+        f"closed_trades:{runtime['cycle_id']}:{runtime['cycle_hash']}",
+        f"execution_quality:{runtime['cycle_id']}:{runtime['cycle_hash']}",
+        f"performance_summary:{runtime['cycle_id']}:{runtime['cycle_hash']}",
+    ]
+
+
+PASS_PERFORMANCE_METRICS = {
+    "closed_trade_sample_count": 42,
+    "min_closed_trade_sample_count": 30,
+    "profit_factor": 1.42,
+    "min_profit_factor": 1.25,
+    "max_drawdown_pct": 4.8,
+    "max_allowed_drawdown_pct": 8.0,
+    "realized_vs_expected_edge_bps": 2.5,
+    "min_realized_vs_expected_edge_bps": 0.0,
+    "fill_quality_score": 0.91,
+    "min_fill_quality_score": 0.80,
+}
 
 
 class CandidateScorecardFromRuntimeTest(unittest.TestCase):
@@ -293,8 +317,8 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(scorecard["ranking_eligible"])
         self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
 
-    def test_robust_paper_scorecard_can_be_paper_ranking_input_only(self):
-        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust")
+    def test_robustness_pass_still_blocks_without_closed_trade_performance(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-no-performance")
 
         scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
             runtime,
@@ -308,6 +332,54 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         errors = _candidate_scorecard_net_ev_errors(scorecard)
 
         self.assertEqual(errors, [])
+        self.assertFalse(scorecard["performance_ready"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        blocker_codes = {blocker["code"] for blocker in scorecard["blockers"]}
+        self.assertIn("SAMPLE_INSUFFICIENT", blocker_codes)
+        self.assertIn("EXECUTION_QUALITY_UNTESTED", blocker_codes)
+
+    def test_raw_expected_edge_cannot_rank_when_realized_edge_after_cost_fails(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-raw-pnl-trap")
+        weak_performance = dict(PASS_PERFORMANCE_METRICS)
+        weak_performance["realized_vs_expected_edge_bps"] = -6.0
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses={**PERFORMANCE_PASS, "realized_vs_expected_edge_status": "FAIL"},
+            performance_metrics=weak_performance,
+            performance_source_evidence_ids=performance_source_evidence_ids(runtime),
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in scorecard["blockers"]})
+
+    def test_robust_paper_scorecard_can_be_paper_ranking_input_only(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses=PERFORMANCE_PASS,
+            performance_metrics=PASS_PERFORMANCE_METRICS,
+            performance_source_evidence_ids=performance_source_evidence_ids(runtime),
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertTrue(has_required_performance_source_ids(scorecard["source_evidence_ids"]))
         self.assertTrue(scorecard["ranking_eligible"])
         self.assertEqual(scorecard["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
         self.assertEqual(scorecard["blockers"], [])

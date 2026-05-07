@@ -25,7 +25,27 @@ ROBUSTNESS_PASS = {
     "bootstrap_status": "PASS",
     "overfit_status": "LOW",
 }
+PERFORMANCE_PASS = {
+    "closed_trade_status": "PASS",
+    "profit_factor_status": "PASS",
+    "max_drawdown_status": "PASS",
+    "realized_vs_expected_edge_status": "PASS",
+    "fill_quality_status": "PASS",
+}
+DEFAULT_PERFORMANCE_METRICS = {
+    "closed_trade_sample_count": 0,
+    "min_closed_trade_sample_count": 30,
+    "profit_factor": 0.0,
+    "min_profit_factor": 1.25,
+    "max_drawdown_pct": 100.0,
+    "max_allowed_drawdown_pct": 8.0,
+    "realized_vs_expected_edge_bps": -999.0,
+    "min_realized_vs_expected_edge_bps": 0.0,
+    "fill_quality_score": 0.0,
+    "min_fill_quality_score": 0.80,
+}
 ROBUSTNESS_SOURCE_PREFIXES = ("oos:", "walk_forward:", "bootstrap:")
+PERFORMANCE_SOURCE_PREFIXES = ("closed_trades:", "execution_quality:", "performance_summary:")
 RUNTIME_CYCLE_SOURCE_PREFIX = "upbit_paper_runtime_cycle:"
 TOP_SYMBOL_SCORECARD_LIMIT = 5
 
@@ -108,6 +128,11 @@ def has_required_robustness_source_ids(
         }
         return required.issubset(set(ids))
     return all(any(source_id.startswith(prefix) for source_id in ids) for prefix in ROBUSTNESS_SOURCE_PREFIXES)
+
+
+def has_required_performance_source_ids(source_evidence_ids: list[str] | None) -> bool:
+    ids = source_evidence_ids or []
+    return all(any(source_id.startswith(prefix) for source_id in ids) for prefix in PERFORMANCE_SOURCE_PREFIXES)
 
 
 def strategy_id_for_family(strategy_family: str) -> str:
@@ -285,6 +310,8 @@ def _rotation_review_reason(
     min_required_edge_bps: float,
     robustness_ready: bool,
     enough_robustness_sources: bool,
+    performance_ready: bool,
+    enough_performance_sources: bool,
     ranking_eligible: bool,
     has_alternative: bool,
 ) -> str:
@@ -298,6 +325,10 @@ def _rotation_review_reason(
         return "SELECTED_CANDIDATE_ROBUSTNESS_BLOCKED_WITH_ALTERNATIVE"
     if not enough_robustness_sources:
         return "SELECTED_CANDIDATE_ROBUSTNESS_SOURCE_MISSING_WITH_ALTERNATIVE"
+    if not performance_ready:
+        return "SELECTED_CANDIDATE_CLOSED_TRADE_PERFORMANCE_BLOCKED_WITH_ALTERNATIVE"
+    if not enough_performance_sources:
+        return "SELECTED_CANDIDATE_PERFORMANCE_SOURCE_MISSING_WITH_ALTERNATIVE"
     return "SELECTED_CANDIDATE_RANKING_BLOCKED_WITH_ALTERNATIVE"
 
 
@@ -309,6 +340,9 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     min_required_edge_bps: float = 10.0,
     robustness_statuses: dict[str, str] | None = None,
     robustness_source_evidence_ids: list[str] | None = None,
+    performance_statuses: dict[str, str] | None = None,
+    performance_metrics: dict[str, Any] | None = None,
+    performance_source_evidence_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     runtime_result = validate_upbit_paper_runtime_cycle_report(runtime_cycle_report)
     if runtime_result.status != "PASS":
@@ -325,23 +359,47 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     }
     if robustness_statuses:
         robustness.update(robustness_statuses)
+    performance = dict(PERFORMANCE_PASS)
+    for field in performance:
+        performance[field] = "UNTESTED"
+    if performance_statuses:
+        performance.update(performance_statuses)
+    performance_values = dict(DEFAULT_PERFORMANCE_METRICS)
+    if performance_metrics:
+        performance_values.update(performance_metrics)
 
     net_ev = number_value(selected["net_ev_after_cost_bps"])
     robustness_ready = all(robustness[field] == expected for field, expected in ROBUSTNESS_PASS.items())
+    performance_thresholds_ready = (
+        int(performance_values["closed_trade_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
+        and float(performance_values["profit_factor"]) >= float(performance_values["min_profit_factor"])
+        and float(performance_values["max_drawdown_pct"]) <= float(performance_values["max_allowed_drawdown_pct"])
+        and float(performance_values["realized_vs_expected_edge_bps"])
+        >= float(performance_values["min_realized_vs_expected_edge_bps"])
+        and float(performance_values["fill_quality_score"]) >= float(performance_values["min_fill_quality_score"])
+    )
+    performance_ready = (
+        all(performance[field] == expected for field, expected in PERFORMANCE_PASS.items())
+        and performance_thresholds_ready
+    )
     source_runtime_cycle_id = str(runtime_cycle_report["cycle_id"])
     source_runtime_cycle_hash = str(runtime_cycle_report["cycle_hash"])
     source_ids = [runtime_cycle_source_evidence_id(source_runtime_cycle_id, source_runtime_cycle_hash)]
     source_ids.extend(robustness_source_evidence_ids or [])
+    source_ids.extend(performance_source_evidence_ids or [])
     enough_robustness_sources = has_required_robustness_source_ids(
         source_ids,
         cycle_id=source_runtime_cycle_id,
         cycle_hash=source_runtime_cycle_hash,
     )
+    enough_performance_sources = has_required_performance_source_ids(source_ids)
     ranking_eligible = (
         selected.get("decision") == "PAPER_ENTRY_REVIEW"
         and net_ev >= min_required_edge_bps
         and robustness_ready
         and enough_robustness_sources
+        and performance_ready
+        and enough_performance_sources
     )
     top_symbol_scorecards = _top_symbol_evidence_scorecards(runtime_cycle_report)
     evaluated_symbol_count = int(runtime_cycle_report.get("symbol_evidence_scorecard_count", len(top_symbol_scorecards)) or 0)
@@ -358,6 +416,8 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         min_required_edge_bps=min_required_edge_bps,
         robustness_ready=robustness_ready,
         enough_robustness_sources=enough_robustness_sources,
+        performance_ready=performance_ready,
+        enough_performance_sources=enough_performance_sources,
         ranking_eligible=ranking_eligible,
         has_alternative=alternative is not None,
     )
@@ -382,6 +442,39 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
             blocker(
                 "SCORECARD_MISSING",
                 "OOS, walk-forward, and bootstrap source evidence ids are required before PAPER scorecard ranking",
+            )
+        )
+    if not performance_ready:
+        if performance["closed_trade_status"] != "PASS" or int(performance_values["closed_trade_sample_count"]) < int(
+            performance_values["min_closed_trade_sample_count"]
+        ):
+            blockers.append(blocker("SAMPLE_INSUFFICIENT", "closed PAPER trade sample is required before PAPER scorecard ranking"))
+        if performance["profit_factor_status"] != "PASS" or float(performance_values["profit_factor"]) < float(
+            performance_values["min_profit_factor"]
+        ):
+            blockers.append(blocker("MEASUREMENT_MISSING", "profit factor must pass before PAPER scorecard ranking"))
+        if performance["max_drawdown_status"] != "PASS" or float(performance_values["max_drawdown_pct"]) > float(
+            performance_values["max_allowed_drawdown_pct"]
+        ):
+            blockers.append(blocker("DRAWDOWN_FREEZE_ACTIVE", "max drawdown must remain inside policy before PAPER scorecard ranking"))
+        if performance["realized_vs_expected_edge_status"] != "PASS" or float(
+            performance_values["realized_vs_expected_edge_bps"]
+        ) < float(performance_values["min_realized_vs_expected_edge_bps"]):
+            blockers.append(
+                blocker(
+                    "EXECUTION_FEEDBACK_DIVERGENT",
+                    "realized edge after fee/slippage/impact must match or exceed expected edge before ranking",
+                )
+            )
+        if performance["fill_quality_status"] != "PASS" or float(performance_values["fill_quality_score"]) < float(
+            performance_values["min_fill_quality_score"]
+        ):
+            blockers.append(blocker("EXECUTION_QUALITY_UNTESTED", "fill quality evidence is required before PAPER scorecard ranking"))
+    if performance_ready and not enough_performance_sources:
+        blockers.append(
+            blocker(
+                "EXECUTION_FEEDBACK_MISSING",
+                "closed trade, execution quality, and performance summary evidence ids are required before PAPER scorecard ranking",
             )
         )
 
@@ -421,6 +514,25 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "walk_forward_status": robustness["walk_forward_status"],
         "bootstrap_status": robustness["bootstrap_status"],
         "overfit_status": robustness["overfit_status"],
+        "closed_trade_status": performance["closed_trade_status"],
+        "closed_trade_sample_count": int(performance_values["closed_trade_sample_count"]),
+        "min_closed_trade_sample_count": int(performance_values["min_closed_trade_sample_count"]),
+        "profit_factor_status": performance["profit_factor_status"],
+        "profit_factor": float(performance_values["profit_factor"]),
+        "min_profit_factor": float(performance_values["min_profit_factor"]),
+        "max_drawdown_status": performance["max_drawdown_status"],
+        "max_drawdown_pct": float(performance_values["max_drawdown_pct"]),
+        "max_allowed_drawdown_pct": float(performance_values["max_allowed_drawdown_pct"]),
+        "realized_vs_expected_edge_status": performance["realized_vs_expected_edge_status"],
+        "realized_vs_expected_edge_bps": float(performance_values["realized_vs_expected_edge_bps"]),
+        "min_realized_vs_expected_edge_bps": float(performance_values["min_realized_vs_expected_edge_bps"]),
+        "fill_quality_status": performance["fill_quality_status"],
+        "fill_quality_score": float(performance_values["fill_quality_score"]),
+        "min_fill_quality_score": float(performance_values["min_fill_quality_score"]),
+        "performance_ready": performance_ready,
+        "performance_source_evidence_required": list(PERFORMANCE_SOURCE_PREFIXES),
+        "robustness_ready": robustness_ready,
+        "robustness_source_evidence_required": list(ROBUSTNESS_SOURCE_PREFIXES),
         "ranking_eligible": ranking_eligible,
         "scorecard_scope": "PAPER_SCORECARD_INPUT_ONLY" if ranking_eligible else "PAPER_EVIDENCE_COLLECTION_ONLY",
         "live_readiness_status": "NOT_LIVE_READY",
