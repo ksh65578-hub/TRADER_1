@@ -962,6 +962,9 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
         "candidate_scorecard_status": "PASS",
         "candidate_scorecard_ranking_eligible": False,
         "candidate_scorecard_primary_blocker_code": "OOS_MISSING",
+        "runtime_quality_feedback_count": 1,
+        "runtime_quality_feedback_candidate_ids": ["KRW-WLFI-pullback-trend-long"],
+        "selected_candidate_recent_failure_feedback_kind": "NONE",
         "symbol_evidence_scorecard_count": 2,
         "selected_symbol_evidence_scorecard": {
             "symbol": "KRW-BTC",
@@ -981,6 +984,7 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
             "best_net_ev_after_cost_bps": "21",
             "best_decision": "PAPER_ENTRY_REVIEW",
             "best_no_trade_reason": None,
+            "best_recent_failure_feedback_kind": "NONE",
             "paper_entry_review_candidate_count": 1,
             "candidate_count": 3,
             "evidence_scope": "PAPER_SYMBOL_EVIDENCE_ONLY",
@@ -1008,6 +1012,7 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
                 "best_net_ev_after_cost_bps": "21",
                 "best_decision": "PAPER_ENTRY_REVIEW",
                 "best_no_trade_reason": None,
+                "best_recent_failure_feedback_kind": "NONE",
                 "paper_entry_review_candidate_count": 1,
                 "candidate_count": 3,
                 "evidence_scope": "PAPER_SYMBOL_EVIDENCE_ONLY",
@@ -2429,6 +2434,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(runner["runtime_sample_count"], 3)
         self.assertEqual(runner["candidate_scorecard_status"], "PASS")
         self.assertFalse(runner["candidate_scorecard_ranking_eligible"])
+        self.assertEqual(runner["runtime_quality_feedback_count"], 1)
+        self.assertEqual(runner["runtime_quality_feedback_candidate_ids"], ["KRW-WLFI-pullback-trend-long"])
+        self.assertEqual(runner["selected_candidate_recent_failure_feedback_kind"], "NONE")
         self.assertEqual(runner["overfit_preliminary_robustness_status"], "INSUFFICIENT_PRELIMINARY_SAMPLE")
         self.assertEqual(runner["overfit_preliminary_oos_status"], "UNTESTED")
         self.assertEqual(runner["symbol_evidence_scorecard_count"], 2)
@@ -2450,6 +2458,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Evidence refresh", html)
         self.assertIn("PAPER samples", html)
         self.assertIn("Early robustness", html)
+        self.assertIn("Quality feedback", html)
+        self.assertIn("KRW-WLFI-pullback-trend-long", html)
         self.assertIn("PAPER/SHADOW evidence", html)
         self.assertIn("Disk pressure", html)
         self.assertIn("Dashboard open", html)
@@ -2457,6 +2467,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Selected scorecard", html)
         self.assertIn("Symbol scorecards", html)
         self.assertIn("KRW-BTC: PULLBACK_TREND_LONG", html)
+        self.assertIn("feedback=NONE", html)
         self.assertIn("Current PAPER Runner", html)
         self.assertIn("runner-current-snapshot", html)
         self.assertIn("Running", html)

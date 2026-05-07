@@ -10772,6 +10772,12 @@
             "null"
           ]
         },
+        "best_recent_failure_feedback_kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "best_strategy_family": {
           "type": [
             "string",
@@ -10914,6 +10920,9 @@
         "runtime_sample_count",
         "candidate_scorecard_status",
         "candidate_scorecard_ranking_eligible",
+        "runtime_quality_feedback_count",
+        "runtime_quality_feedback_candidate_ids",
+        "selected_candidate_recent_failure_feedback_kind",
         "symbol_evidence_scorecard_count",
         "selected_symbol_evidence_scorecard",
         "symbol_evidence_scorecards_top",
@@ -11138,6 +11147,21 @@
         },
         "candidate_scorecard_ranking_eligible": {
           "type": "boolean"
+        },
+        "runtime_quality_feedback_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runtime_quality_feedback_candidate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "selected_candidate_recent_failure_feedback_kind": {
+          "type": "string",
+          "minLength": 1
         },
         "symbol_evidence_scorecard_count": {
           "type": "integer",

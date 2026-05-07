@@ -78,6 +78,8 @@ DEFAULT_UPBIT_PAPER_SYMBOL_UNIVERSE = (
 DEFAULT_PUBLIC_DISCOVERY_EVALUATION_LIMIT = DEFAULT_DISCOVERY_EVALUATION_LIMIT
 RECENT_FAILURE_FEEDBACK_LOOKBACK_CYCLES = 30
 RECENT_FAILURE_FEEDBACK_COOLDOWN_CYCLES = 3
+RUNTIME_QUALITY_FEEDBACK_COOLDOWN_CYCLES = 5
+RUNTIME_QUALITY_FEEDBACK_MIN_PRELIMINARY_SAMPLE_COUNT = 20
 RECENT_FAILURE_FEEDBACK_EXIT_REASONS = {
     "REGIME_REVERSAL",
     "HARD_STOP",
@@ -441,6 +443,95 @@ def _recent_negative_exit_failure_feedback(*, root: Path, session_id: str) -> li
             }
         )
     return feedback
+
+
+def _overfit_diagnostic_report_hash(report: dict[str, Any]) -> str:
+    payload = dict(report)
+    payload.pop("diagnostic_hash", None)
+    return _sha256_json(payload)
+
+
+def _strategy_family_from_candidate_id(candidate_id: str) -> str | None:
+    if candidate_id.endswith("-pullback-trend-long"):
+        return "PULLBACK_TREND_LONG"
+    if candidate_id.endswith("-breakout-retest-long"):
+        return "BREAKOUT_RETEST_LONG"
+    if candidate_id.endswith("-vwap-mean-reversion"):
+        return "VWAP_MEAN_REVERSION"
+    return None
+
+
+def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str) -> list[dict[str, Any]]:
+    diagnostic_path = _runtime_base_dir(root, session_id) / "profitability" / "overfit_diagnostic_report.json"
+    diagnostic, error = _safe_read_json(diagnostic_path)
+    if error is not None or not isinstance(diagnostic, dict):
+        return []
+    if diagnostic.get("diagnostic_hash") != _overfit_diagnostic_report_hash(diagnostic):
+        return []
+    if diagnostic.get("exchange") != "UPBIT" or diagnostic.get("market_type") != "KRW_SPOT" or diagnostic.get("mode") != "PAPER":
+        return []
+    if diagnostic.get("session_id") != session_id:
+        return []
+    if diagnostic.get("live_order_ready") or diagnostic.get("live_order_allowed") or diagnostic.get("can_live_trade") or diagnostic.get("scale_up_allowed"):
+        return []
+    candidate_id = str(diagnostic.get("candidate_id") or "")
+    symbol = str(diagnostic.get("symbol") or "")
+    if not candidate_id or not symbol:
+        return []
+    try:
+        preliminary_sample_count = int(diagnostic.get("preliminary_sample_count") or 0)
+    except (TypeError, ValueError):
+        preliminary_sample_count = 0
+    if preliminary_sample_count < RUNTIME_QUALITY_FEEDBACK_MIN_PRELIMINARY_SAMPLE_COUNT:
+        return []
+
+    preliminary_statuses = {
+        str(diagnostic.get("preliminary_robustness_status") or ""),
+        str(diagnostic.get("preliminary_oos_status") or ""),
+        str(diagnostic.get("preliminary_walk_forward_status") or ""),
+        str(diagnostic.get("preliminary_bootstrap_status") or ""),
+        str(diagnostic.get("preliminary_ranking_stability_status") or ""),
+    }
+    preliminary_net_ev = _decimal(diagnostic.get("preliminary_in_sample_net_ev_after_cost_bps"))
+    preliminary_oos_ev = _decimal(diagnostic.get("preliminary_oos_net_ev_after_cost_bps"))
+    preliminary_bootstrap_lower = _decimal(diagnostic.get("preliminary_bootstrap_confidence_lower_bps"))
+    unfavorable = (
+        diagnostic.get("overfit_status") == "HIGH"
+        or "UNFAVORABLE_BLOCKED_BY_EVIDENCE" in preliminary_statuses
+        or "FAIL" in preliminary_statuses
+        or preliminary_net_ev < 0
+        or preliminary_oos_ev < 0
+        or preliminary_bootstrap_lower < 0
+    )
+    if not unfavorable:
+        return []
+
+    return [
+        {
+            "source": "PAPER_RUNTIME_PRELIMINARY_ROBUSTNESS_FEEDBACK",
+            "feedback_kind": "PRELIMINARY_ROBUSTNESS_FAIL",
+            "symbol": symbol,
+            "candidate_id": candidate_id,
+            "strategy_family": _strategy_family_from_candidate_id(candidate_id),
+            "failure_reason_code": str(diagnostic.get("preliminary_primary_blocker_code") or "PRELIMINARY_ROBUSTNESS_FAIL"),
+            "exit_reason_code": str(diagnostic.get("preliminary_primary_blocker_code") or "PRELIMINARY_ROBUSTNESS_FAIL"),
+            "realized_pnl_delta": "0",
+            "preliminary_sample_count": preliminary_sample_count,
+            "preliminary_in_sample_net_ev_after_cost_bps": _decimal_text(preliminary_net_ev),
+            "preliminary_oos_net_ev_after_cost_bps": _decimal_text(preliminary_oos_ev),
+            "preliminary_bootstrap_confidence_lower_bps": _decimal_text(preliminary_bootstrap_lower),
+            "preliminary_robustness_status": diagnostic.get("preliminary_robustness_status"),
+            "source_runtime_cycle_id": diagnostic.get("diagnostic_id"),
+            "source_runtime_cycle_hash": diagnostic.get("diagnostic_hash"),
+            "cycles_since_failure": 0,
+            "cooldown_cycles_remaining": RUNTIME_QUALITY_FEEDBACK_COOLDOWN_CYCLES,
+            "cooldown_formula": "5-cycle PAPER cooldown when preliminary robustness/OOS/bootstrap evidence is unfavorable for the same candidate scope",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+    ]
 
 
 def _requires_legacy_quantitative_policy_recheck(cycle: dict[str, Any] | None) -> bool:
@@ -1331,6 +1422,7 @@ def run_upbit_paper_persistent_loop(
             collection_pass = bool(usable_collections)
             cycle: dict[str, Any] | None = None
             cycle_writer: dict[str, Any] | None = None
+            recent_failure_feedback: list[dict[str, Any]] = []
             cycle_result_status = "BLOCKED"
             cycle_result_blocker = next((result.blocker_code for result in collection_results if result.blocker_code), None)
             if collection_pass:
@@ -1346,7 +1438,10 @@ def run_upbit_paper_persistent_loop(
                             "message": str(cash_guard.get("message") or "PAPER ledger cash guard blocked entry sizing"),
                         }
                     )
-                recent_failure_feedback = _recent_negative_exit_failure_feedback(root=root, session_id=session_id)
+                recent_failure_feedback = [
+                    *_recent_negative_exit_failure_feedback(root=root, session_id=session_id),
+                    *_recent_unfavorable_runtime_quality_feedback(root=root, session_id=session_id),
+                ]
                 cycle = build_upbit_paper_runtime_cycle_report(
                     cycle_id=cycle_id,
                     session_id=session_id,
@@ -1415,6 +1510,19 @@ def run_upbit_paper_persistent_loop(
                         "recent_failure_cooldown_cycles_remaining"
                     ),
                     "selected_candidate_recent_failure_reason_code": selected_candidate.get("recent_failure_reason_code"),
+                    "selected_candidate_recent_failure_feedback_kind": selected_candidate.get(
+                        "recent_failure_feedback_kind"
+                    ),
+                    "runtime_quality_feedback_count": sum(
+                        1 for item in recent_failure_feedback if item.get("feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL"
+                    ),
+                    "runtime_quality_feedback_candidate_ids": sorted(
+                        {
+                            str(item.get("candidate_id"))
+                            for item in recent_failure_feedback
+                            if item.get("feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL" and item.get("candidate_id")
+                        }
+                    ),
                     "strategy_regime_cost_linkage": cycle.get("strategy_regime_cost_linkage") if isinstance(cycle, dict) else None,
                     "artifact_paths": [
                         *(path for writer in usable_collection_writers for path in (writer.get("artifact_paths") or [])),

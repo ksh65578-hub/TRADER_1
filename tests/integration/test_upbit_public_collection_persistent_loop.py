@@ -358,6 +358,90 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
         self.assertEqual(latest["paper_portfolio_snapshot"]["positions"][0]["symbol"], "KRW-ETH")
         self.assertFalse(latest["live_order_allowed"])
 
+    def test_persistent_loop_applies_preliminary_robustness_feedback_to_rotate_candidate(self):
+        repeated_wlfi = build_upbit_public_candle_fixture(
+            symbol="KRW-WLFI",
+            session_id="quality-feedback-session",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(repeated_wlfi["candles"], start=1):
+            candle["volume"] = str(10 + index * 3)
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="quality-feedback-session",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            diagnostic_dir = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/quality-feedback-session/profitability"
+            )
+            diagnostic_dir.mkdir(parents=True)
+            diagnostic = {
+                "schema_id": "trader1.overfit_diagnostic_report.v1",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "session_id": "quality-feedback-session",
+                "candidate_id": "KRW-WLFI-pullback-trend-long",
+                "symbol": "KRW-WLFI",
+                "overfit_status": "HIGH",
+                "preliminary_sample_count": 21,
+                "preliminary_robustness_status": "UNFAVORABLE_BLOCKED_BY_EVIDENCE",
+                "preliminary_primary_blocker_code": "PRELIMINARY_OOS_BELOW_THRESHOLD",
+                "preliminary_oos_status": "FAIL",
+                "preliminary_walk_forward_status": "FAIL",
+                "preliminary_bootstrap_status": "FAIL",
+                "preliminary_ranking_stability_status": "FAIL",
+                "preliminary_in_sample_net_ev_after_cost_bps": -38.5,
+                "preliminary_oos_net_ev_after_cost_bps": -26.6,
+                "preliminary_bootstrap_confidence_lower_bps": -42.5,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+            diagnostic["diagnostic_hash"] = self._hash_payload(diagnostic)
+            (diagnostic_dir / "overfit_diagnostic_report.json").write_text(
+                json.dumps(diagnostic, sort_keys=True),
+                encoding="utf-8",
+            )
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                session_id="quality-feedback-session",
+                loop_id="bounded-paper-loop-quality-feedback",
+                symbol="KRW-WLFI",
+                requested_cycle_count=1,
+                market_data_universe_sequence=[[repeated_wlfi, strong_eth]],
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/quality-feedback-session/upbit_paper_runtime_cycle_report.json"
+            )
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(loop["cycle_results"][0]["runtime_quality_feedback_count"], 1)
+        self.assertEqual(
+            loop["cycle_results"][0]["runtime_quality_feedback_candidate_ids"],
+            ["KRW-WLFI-pullback-trend-long"],
+        )
+        self.assertEqual(latest["selected_symbol"], "KRW-ETH")
+        wlfi_pullback = next(
+            candidate
+            for candidate in latest["strategy_candidates"]
+            if candidate["candidate_id"] == "KRW-WLFI-pullback-trend-long"
+        )
+        self.assertEqual(wlfi_pullback["recent_failure_feedback_kind"], "PRELIMINARY_ROBUSTNESS_FAIL")
+        self.assertEqual(wlfi_pullback["no_trade_reason"], "COOLDOWN")
+        self.assertFalse(latest["live_order_allowed"])
+
     def test_persistent_loop_applies_recent_negative_exit_cooldown_from_prior_paper_cycle(self):
         entry_market = build_upbit_public_candle_fixture(
             symbol="KRW-BTC",

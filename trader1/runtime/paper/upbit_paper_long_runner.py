@@ -1373,6 +1373,18 @@ def _portfolio_fields(runtime_cycle: dict[str, Any] | None) -> dict[str, Any]:
 
 
 def _last_cycle_fields(loop_report: dict[str, Any] | None, runtime_cycle: dict[str, Any] | None) -> dict[str, Any]:
+    def safe_count(value: Any) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return 0
+        return parsed if parsed >= 0 else 0
+
+    def safe_string_list(value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [item for item in value if isinstance(item, str) and item]
+
     last_cycle: dict[str, Any] = {}
     if loop_report:
         cycle_results = loop_report.get("cycle_results")
@@ -1389,6 +1401,13 @@ def _last_cycle_fields(loop_report: dict[str, Any] | None, runtime_cycle: dict[s
         "last_decision": last_decision or "NOT_AVAILABLE",
         "last_blocker": last_cycle.get("blocker_code") or (runtime_cycle or {}).get("blocker_code"),
         "current_symbol": last_cycle.get("selected_symbol") or (runtime_cycle or {}).get("symbol") or "UNKNOWN",
+        "runtime_quality_feedback_count": safe_count(last_cycle.get("runtime_quality_feedback_count")),
+        "runtime_quality_feedback_candidate_ids": safe_string_list(
+            last_cycle.get("runtime_quality_feedback_candidate_ids")
+        ),
+        "selected_candidate_recent_failure_feedback_kind": str(
+            last_cycle.get("selected_candidate_recent_failure_feedback_kind") or "NONE"
+        ),
     }
 
 
@@ -1421,6 +1440,7 @@ def _symbol_evidence_scorecard_fields(runtime_cycle: dict[str, Any] | None) -> d
             "best_net_ev_after_cost_bps": scorecard.get("best_net_ev_after_cost_bps"),
             "best_decision": scorecard.get("best_decision"),
             "best_no_trade_reason": scorecard.get("best_no_trade_reason"),
+            "best_recent_failure_feedback_kind": scorecard.get("best_recent_failure_feedback_kind", "NONE"),
             "paper_entry_review_candidate_count": scorecard.get("paper_entry_review_candidate_count"),
             "candidate_count": scorecard.get("candidate_count"),
             "evidence_scope": "PAPER_SYMBOL_EVIDENCE_ONLY",
@@ -1594,6 +1614,9 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
         "symbol_evidence_scorecard_count",
         "selected_symbol_evidence_scorecard",
         "symbol_evidence_scorecards_top",
+        "runtime_quality_feedback_count",
+        "runtime_quality_feedback_candidate_ids",
+        "selected_candidate_recent_failure_feedback_kind",
         "dashboard_open_attempted",
         "dashboard_opened",
         "dashboard_open_method",
@@ -1630,6 +1653,20 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
         return {"status": "BLOCKED", "blocker_code": "RUNNER_STATUS_SHADOW_CANNOT_CLAIM_LONG_RUN_MATURITY"}
     if not isinstance(report.get("symbol_evidence_scorecard_count"), int) or report["symbol_evidence_scorecard_count"] < 0:
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SYMBOL_SCORECARD_COUNT_INVALID"}
+    if (
+        not isinstance(report.get("runtime_quality_feedback_count"), int)
+        or report["runtime_quality_feedback_count"] < 0
+    ):
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_QUALITY_FEEDBACK_COUNT_INVALID"}
+    runtime_quality_feedback_candidate_ids = report.get("runtime_quality_feedback_candidate_ids")
+    if not isinstance(runtime_quality_feedback_candidate_ids, list) or any(
+        not isinstance(item, str) or not item for item in runtime_quality_feedback_candidate_ids
+    ):
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_QUALITY_FEEDBACK_CANDIDATES_INVALID"}
+    if not isinstance(report.get("selected_candidate_recent_failure_feedback_kind"), str) or not report[
+        "selected_candidate_recent_failure_feedback_kind"
+    ]:
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SELECTED_FEEDBACK_KIND_INVALID"}
     symbol_scorecards_top = report.get("symbol_evidence_scorecards_top")
     if not isinstance(symbol_scorecards_top, list):
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SYMBOL_SCORECARDS_INVALID"}
