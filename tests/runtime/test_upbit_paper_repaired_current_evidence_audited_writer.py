@@ -1,5 +1,6 @@
 import json
 import unittest
+from copy import deepcopy
 from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -15,6 +16,7 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
     AUDITED_WRITER_IDEMPOTENT_STATUS,
     AUDITED_WRITER_REFRESHED_STATUS,
     AUDITED_WRITER_WRITTEN_STATUS,
+    DEFAULT_AUDITED_CURRENT_EVIDENCE_MAX_UNCOMPACTED_ARCHIVES,
     EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS,
     build_upbit_paper_repaired_current_evidence_audited_writer_report,
     upbit_paper_repaired_current_evidence_audited_writer_report_hash,
@@ -68,34 +70,92 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             audited_writer_id="test-upbit-paper-repaired-current-evidence-audited-writer",
         )
 
-    def public_collection(self, *, close: str, minute_start: int = 30) -> dict:
+    def public_collection(self, *, close: str, minute_start: int = 30, symbol: str | None = None) -> dict:
+        if symbol is None:
+            positions = self.source_ledger_rollup()["portfolio_snapshot"].get("positions") or []
+            if positions and isinstance(positions[0], dict):
+                symbol = str(positions[0].get("symbol") or "KRW-BTC")
+            else:
+                symbol = "KRW-BTC"
         payload = []
-        close_value = int(Decimal(close))
+        close_value = Decimal(close)
+        step = max(Decimal("0.0001"), abs(close_value) * Decimal("0.001"))
         for offset in range(6):
             minute = minute_start + 5 - offset
-            trade_price = close_value - offset * 1000
+            trade_price = close_value - Decimal(offset) * step
             payload.append(
                 {
-                    "market": "KRW-BTC",
+                    "market": symbol,
                     "candle_date_time_utc": f"2026-05-06T21:{minute:02d}:00",
-                    "opening_price": str(trade_price - 500),
-                    "high_price": str(trade_price + 1000),
-                    "low_price": str(trade_price - 1000),
-                    "trade_price": str(trade_price),
+                    "opening_price": format(trade_price - (step / Decimal("2")), "f"),
+                    "high_price": format(trade_price + step, "f"),
+                    "low_price": format(max(Decimal("0"), trade_price - step), "f"),
+                    "trade_price": format(trade_price, "f"),
                     "candle_acc_trade_volume": str(10 + offset),
                 }
             )
         market_data = build_upbit_public_candle_data_from_rest_payload(
             payload=payload,
-            symbol="KRW-BTC",
+            symbol=symbol,
             session_id=SESSION_ID,
         )
         return build_upbit_public_market_data_collection_report(
             collector_id=f"test-public-rest-mark-{close}",
             session_id=SESSION_ID,
-            symbol="KRW-BTC",
+            symbol=symbol,
             market_data=market_data,
         )
+
+    def source_position_close(self, *, offset: int = 0) -> str:
+        source_position = self.source_ledger_rollup()["portfolio_snapshot"]["positions"][0]
+        base_close = max(1, int(Decimal(source_position["average_entry_price"])))
+        step = max(1, base_close // 100)
+        return str(base_close + offset * step)
+
+    def legacy_static_krw_btc_ledger_rollup(self) -> dict:
+        ledger = deepcopy(self.source_ledger_rollup())
+        portfolio = deepcopy(ledger["portfolio_snapshot"])
+        quantity = Decimal("0.0075")
+        average_entry = Decimal("1000000")
+        mark = Decimal("1000000")
+        cost_basis = quantity * average_entry
+        market_value = quantity * mark
+        unrealized = market_value - cost_basis
+        cash_available = Decimal(portfolio["cash_available"])
+        locked_balance = Decimal(portfolio["locked_balance"])
+        realized = Decimal(portfolio["realized_pnl"])
+        starting = Decimal(portfolio["starting_cash"])
+        equity = cash_available + locked_balance + market_value
+        total_pnl = realized + unrealized
+        return_pct = Decimal("0") if starting <= 0 else ((equity - starting) / starting * Decimal("100"))
+        portfolio.update(
+            {
+                "position_market_value": str(market_value),
+                "equity": str(equity),
+                "unrealized_pnl": str(unrealized),
+                "total_pnl": str(total_pnl),
+                "return_pct": str(return_pct),
+                "open_position_count": 1,
+                "positions": [
+                    {
+                        "symbol": "KRW-BTC",
+                        "side": "LONG",
+                        "quantity": str(quantity),
+                        "average_entry_price": str(average_entry),
+                        "cost_basis": str(cost_basis),
+                        "mark_price": str(mark),
+                        "market_value": str(market_value),
+                        "unrealized_pnl": str(unrealized),
+                        "source": "PAPER_LEDGER_ROLLUP",
+                        "paper_only": True,
+                    }
+                ],
+            }
+        )
+        portfolio["snapshot_hash"] = paper_portfolio_hash(portfolio)
+        ledger["portfolio_snapshot"] = portfolio
+        ledger["rollup_hash"] = paper_ledger_rollup_hash(ledger)
+        return ledger
 
     def test_writer_publishes_verified_paper_current_evidence(self):
         with TemporaryDirectory() as tmp:
@@ -164,7 +224,8 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
     def test_writer_marks_open_positions_to_public_market_current_truth(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
-            public_report = self.public_collection(close="1100000")
+            mark_close = self.source_position_close(offset=1)
+            public_report = self.public_collection(close=mark_close)
             source_portfolio = self.source_ledger_rollup()["portfolio_snapshot"]
             source_position = source_portfolio["positions"][0]
 
@@ -178,7 +239,7 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             manifest = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[1])
             portfolio = load_json(runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
             position = portfolio["positions"][0]
-            expected_market_value = Decimal(source_position["quantity"]) * Decimal("1100000")
+            expected_market_value = Decimal(source_position["quantity"]) * Decimal(mark_close)
             expected_unrealized = expected_market_value - Decimal(source_position["cost_basis"])
             expected_equity = Decimal(source_portfolio["cash_available"]) + expected_market_value
 
@@ -193,7 +254,7 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             self.assertEqual(portfolio["mark_price_source"], "PUBLIC_REST_READ_ONLY_1M_CLOSE")
             self.assertEqual(portfolio["source_public_market_data_hash"], public_report["collection_hash"])
             self.assertEqual(portfolio["marked_to_market_position_count"], portfolio["open_position_count"])
-            self.assertEqual(position["mark_price"], "1100000")
+            self.assertEqual(position["mark_price"], mark_close)
             self.assertEqual(Decimal(position["market_value"]), expected_market_value)
             self.assertEqual(Decimal(position["unrealized_pnl"]), expected_unrealized)
             self.assertEqual(Decimal(portfolio["equity"]), expected_equity)
@@ -208,8 +269,10 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
     def test_writer_refreshes_same_ledger_when_public_mark_changes(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
-            first_public = self.public_collection(close="1100000", minute_start=30)
-            second_public = self.public_collection(close="1110000", minute_start=40)
+            first_close = self.source_position_close(offset=1)
+            second_close = self.source_position_close(offset=2)
+            first_public = self.public_collection(close=first_close, minute_start=30)
+            second_public = self.public_collection(close=second_close, minute_start=40)
             first = self.build_report(root, public_market_data_collection_report=first_public)
             refreshed = self.build_report(root, public_market_data_collection_report=second_public)
 
@@ -231,19 +294,68 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
             self.assertEqual(current_evidence["source_public_market_data_hash"], second_public["collection_hash"])
             self.assertEqual(manifest["source_public_market_data_hash"], second_public["collection_hash"])
             self.assertEqual(portfolio["source_public_market_data_hash"], second_public["collection_hash"])
-            self.assertEqual(portfolio["positions"][0]["mark_price"], "1110000")
+            self.assertEqual(portfolio["positions"][0]["mark_price"], second_close)
             self.assertFalse(refreshed["live_order_ready"])
             self.assertFalse(refreshed["live_order_allowed"])
             self.assertFalse(refreshed["can_live_trade"])
             self.assertFalse(refreshed["scale_up_allowed"])
 
+    def test_writer_compacts_old_current_evidence_archive_batches(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_close = self.source_position_close(offset=1)
+            report = self.build_report(
+                root,
+                public_market_data_collection_report=self.public_collection(close=first_close, minute_start=30),
+            )
+            self.assertEqual(report["writer_status"], AUDITED_WRITER_WRITTEN_STATUS)
+
+            refreshed = report
+            refresh_count = DEFAULT_AUDITED_CURRENT_EVIDENCE_MAX_UNCOMPACTED_ARCHIVES + 3
+            for index in range(refresh_count):
+                refreshed = self.build_report(
+                    root,
+                    public_market_data_collection_report=self.public_collection(
+                        close=self.source_position_close(offset=2 + index),
+                        minute_start=31 + index,
+                    ),
+                )
+
+            self.assertEqual(refreshed["writer_status"], AUDITED_WRITER_REFRESHED_STATUS)
+            self.assertGreater(refreshed["archive_retention_compacted_count"], 0)
+            self.assertFalse(refreshed["live_order_ready"])
+            self.assertFalse(refreshed["live_order_allowed"])
+            self.assertFalse(refreshed["can_live_trade"])
+            self.assertFalse(refreshed["scale_up_allowed"])
+            for compacted in refreshed["archive_retention_compacted_archives"]:
+                self.assertTrue(compacted["relative_compacted_archive_path"].endswith(".zip"))
+                self.assertTrue(compacted["audit_preserved"])
+                self.assertFalse(compacted["source_delete_allowed"])
+                self.assertFalse(compacted["live_order_allowed"])
+                self.assertFalse(compacted["scale_up_allowed"])
+
+            runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
+            archive_root = runtime_base / "paper_runtime" / "current_evidence" / "archive"
+            uncompacted_batches = [path for path in archive_root.iterdir() if path.is_dir()]
+            compacted_batches = [path for path in archive_root.iterdir() if path.suffix == ".zip"]
+            self.assertLessEqual(
+                len(uncompacted_batches),
+                DEFAULT_AUDITED_CURRENT_EVIDENCE_MAX_UNCOMPACTED_ARCHIVES,
+            )
+            self.assertGreaterEqual(len(compacted_batches), 1)
+
     def test_writer_normalizes_legacy_static_price_basis_to_public_mark(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
-            mismatched_public = self.public_collection(close="119000000", minute_start=30)
-            source_position = self.source_ledger_rollup()["portfolio_snapshot"]["positions"][0]
+            legacy_ledger = self.legacy_static_krw_btc_ledger_rollup()
+            mismatched_public = self.public_collection(close="119000000", minute_start=30, symbol="KRW-BTC")
+            source_position = legacy_ledger["portfolio_snapshot"]["positions"][0]
 
-            report = self.build_report(root, public_market_data_collection_report=mismatched_public)
+            report = self.build_report(
+                root,
+                ledger=legacy_ledger,
+                public_market_data_collection_report=mismatched_public,
+            )
 
             self.assertEqual(report["writer_status"], AUDITED_WRITER_WRITTEN_STATUS)
             self.assertTrue(report["writer_passed"])
@@ -274,9 +386,14 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
     def test_writer_blocks_non_repairable_public_mark_price_basis_mismatch(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
-            mismatched_public = self.public_collection(close="7000000", minute_start=30)
+            legacy_ledger = self.legacy_static_krw_btc_ledger_rollup()
+            mismatched_public = self.public_collection(close="7000000", minute_start=30, symbol="KRW-BTC")
 
-            report = self.build_report(root, public_market_data_collection_report=mismatched_public)
+            report = self.build_report(
+                root,
+                ledger=legacy_ledger,
+                public_market_data_collection_report=mismatched_public,
+            )
 
             self.assertEqual(report["writer_status"], AUDITED_WRITER_BLOCKED_LEDGER_STATUS)
             self.assertFalse(report["writer_passed"])
@@ -294,14 +411,23 @@ class UpbitPaperRepairedCurrentEvidenceAuditedWriterTest(unittest.TestCase):
     def test_writer_refreshes_repaired_price_basis_without_resizing_position(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
-            first_public = self.public_collection(close="119000000", minute_start=30)
-            second_public = self.public_collection(close="119500000", minute_start=40)
-            first = self.build_report(root, public_market_data_collection_report=first_public)
+            legacy_ledger = self.legacy_static_krw_btc_ledger_rollup()
+            first_public = self.public_collection(close="119000000", minute_start=30, symbol="KRW-BTC")
+            second_public = self.public_collection(close="119500000", minute_start=40, symbol="KRW-BTC")
+            first = self.build_report(
+                root,
+                ledger=legacy_ledger,
+                public_market_data_collection_report=first_public,
+            )
             first_runtime_base = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / SESSION_ID
             first_portfolio = load_json(first_runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
             first_position = first_portfolio["positions"][0]
 
-            refreshed = self.build_report(root, public_market_data_collection_report=second_public)
+            refreshed = self.build_report(
+                root,
+                ledger=legacy_ledger,
+                public_market_data_collection_report=second_public,
+            )
             refreshed_portfolio = load_json(first_runtime_base / EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS[2])
             refreshed_position = refreshed_portfolio["positions"][0]
 
