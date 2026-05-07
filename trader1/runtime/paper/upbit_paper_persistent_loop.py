@@ -495,11 +495,13 @@ def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str)
     if generated_at is None:
         return []
     feedback_age_seconds = (datetime.now(timezone.utc) - generated_at).total_seconds()
-    if (
-        feedback_age_seconds > RUNTIME_QUALITY_FEEDBACK_MAX_AGE_SECONDS
-        or feedback_age_seconds < -RUNTIME_QUALITY_FEEDBACK_MAX_FUTURE_SKEW_SECONDS
-    ):
+    if feedback_age_seconds < -RUNTIME_QUALITY_FEEDBACK_MAX_FUTURE_SKEW_SECONDS:
         return []
+    feedback_freshness_status = (
+        "FRESH"
+        if feedback_age_seconds <= RUNTIME_QUALITY_FEEDBACK_MAX_AGE_SECONDS
+        else "STALE_BUT_ACTIVE_UNTIL_REPLACED"
+    )
     candidate_id = str(diagnostic.get("candidate_id") or "")
     symbol = str(diagnostic.get("symbol") or "")
     if not candidate_id or not symbol:
@@ -549,11 +551,12 @@ def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str)
             "preliminary_robustness_status": diagnostic.get("preliminary_robustness_status"),
             "source_generated_at_utc": diagnostic.get("generated_at_utc"),
             "source_feedback_age_seconds": str(max(0, int(feedback_age_seconds))),
+            "source_feedback_freshness_status": feedback_freshness_status,
             "source_runtime_cycle_id": diagnostic.get("diagnostic_id"),
             "source_runtime_cycle_hash": diagnostic.get("diagnostic_hash"),
             "cycles_since_failure": 0,
             "cooldown_cycles_remaining": RUNTIME_QUALITY_FEEDBACK_COOLDOWN_CYCLES,
-            "cooldown_formula": "5-cycle PAPER cooldown when preliminary robustness/OOS/bootstrap evidence is unfavorable for the same candidate scope",
+            "cooldown_formula": "5-cycle PAPER cooldown on each PAPER cycle while unfavorable preliminary robustness/OOS/bootstrap evidence remains the latest candidate-scope quality report; evidence stays active until replaced by newer candidate-scope evidence",
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
@@ -1569,6 +1572,16 @@ def run_upbit_paper_persistent_loop(
                             str(item.get("candidate_id"))
                             for item in recent_failure_feedback
                             if item.get("feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL" and item.get("candidate_id")
+                        }
+                    ),
+                    "runtime_quality_feedback_freshness_statuses": sorted(
+                        {
+                            str(item.get("source_feedback_freshness_status"))
+                            for item in recent_failure_feedback
+                            if (
+                                item.get("feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL"
+                                and item.get("source_feedback_freshness_status")
+                            )
                         }
                     ),
                     "strategy_regime_cost_linkage": cycle.get("strategy_regime_cost_linkage") if isinstance(cycle, dict) else None,

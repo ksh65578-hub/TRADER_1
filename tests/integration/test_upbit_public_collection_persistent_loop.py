@@ -437,6 +437,7 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             loop["cycle_results"][0]["runtime_quality_feedback_candidate_ids"],
             ["KRW-WLFI-pullback-trend-long"],
         )
+        self.assertEqual(loop["cycle_results"][0]["runtime_quality_feedback_freshness_statuses"], ["FRESH"])
         self.assertEqual(latest["selected_symbol"], "KRW-ETH")
         wlfi_pullback = next(
             candidate
@@ -447,7 +448,7 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
         self.assertEqual(wlfi_pullback["no_trade_reason"], "COOLDOWN")
         self.assertFalse(latest["live_order_allowed"])
 
-    def test_persistent_loop_ignores_stale_preliminary_robustness_feedback(self):
+    def test_persistent_loop_applies_aged_preliminary_robustness_feedback_until_replaced(self):
         repeated_wlfi = build_upbit_public_candle_fixture(
             symbol="KRW-WLFI",
             session_id="stale-quality-feedback-session",
@@ -517,15 +518,23 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             latest = json.loads(latest_path.read_text(encoding="utf-8"))
 
         self.assertEqual(result.status, "PASS", result.message)
-        self.assertEqual(loop["cycle_results"][0]["runtime_quality_feedback_count"], 0)
-        self.assertEqual(loop["cycle_results"][0]["runtime_quality_feedback_candidate_ids"], [])
+        self.assertEqual(loop["cycle_results"][0]["runtime_quality_feedback_count"], 1)
+        self.assertEqual(
+            loop["cycle_results"][0]["runtime_quality_feedback_candidate_ids"],
+            ["KRW-WLFI-pullback-trend-long"],
+        )
+        self.assertEqual(
+            loop["cycle_results"][0]["runtime_quality_feedback_freshness_statuses"],
+            ["STALE_BUT_ACTIVE_UNTIL_REPLACED"],
+        )
+        self.assertEqual(latest["selected_symbol"], "KRW-ETH")
         wlfi_pullback = next(
             candidate
             for candidate in latest["strategy_candidates"]
             if candidate["candidate_id"] == "KRW-WLFI-pullback-trend-long"
         )
-        self.assertEqual(wlfi_pullback["recent_failure_feedback_kind"], "NONE")
-        self.assertNotEqual(wlfi_pullback["no_trade_reason"], "COOLDOWN")
+        self.assertEqual(wlfi_pullback["recent_failure_feedback_kind"], "PRELIMINARY_ROBUSTNESS_FAIL")
+        self.assertEqual(wlfi_pullback["no_trade_reason"], "COOLDOWN")
         self.assertFalse(latest["live_order_allowed"])
 
     def test_persistent_loop_applies_recent_negative_exit_cooldown_from_prior_paper_cycle(self):
