@@ -21,7 +21,11 @@ from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence impor
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
     write_upbit_paper_ledger_idempotency_runtime_evidence_report,
 )
-from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
+from trader1.runtime.paper.upbit_paper_persistent_loop import (
+    run_upbit_paper_persistent_loop,
+    upbit_paper_persistent_loop_hash,
+)
+from trader1.runtime.paper.upbit_paper_runtime import upbit_paper_runtime_cycle_hash
 from trader1.validation.mvp0_validators import run_validators
 
 
@@ -182,6 +186,71 @@ class UpbitPaperLedgerIdempotencyRuntimeEvidenceTest(unittest.TestCase):
             self.assertEqual(report["ledger_head_binding_status"], "PASS")
             self.assertEqual(report["source_ledger_head_cycle_id"], rollup["portfolio_snapshot"]["source_runtime_cycle_id"])
             self.assertEqual(report["source_runtime_cycle_binding_source"], "PERSISTENT_LOOP_REPORT")
+            self.assertFalse(report["live_order_allowed"])
+            self.assertFalse(report["can_live_trade"])
+            self.assertFalse(report["scale_up_allowed"])
+
+    def test_evidence_accepts_legacy_single_symbol_runtime_depth_artifact_binding(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="test-upbit-paper-idempotency-legacy-runtime-depth",
+                requested_cycle_count=1,
+            )
+            head_cycle_id = loop["cycle_results"][0]["cycle_id"]
+            runtime_dir = (
+                root
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / "mvp1_upbit_paper_launcher"
+                / "paper_runtime"
+            )
+            cycle_path = runtime_dir / "cycles" / f"{head_cycle_id}.runtime_cycle.json"
+            cycle = json.loads(cycle_path.read_text(encoding="utf-8"))
+            for field in (
+                "exit_plan",
+                "feature_snapshots_by_symbol",
+                "position_management_decision",
+                "public_market_data_by_symbol",
+                "requested_symbol",
+                "risk_state",
+                "selected_symbol",
+                "selected_symbol_evidence_scorecard",
+                "source_collection_hashes_by_symbol",
+                "symbol_evidence_scorecard_count",
+                "symbol_evidence_scorecards",
+                "symbol_selection_policy",
+                "symbol_selection_universe",
+                "symbol_universe",
+            ):
+                cycle.pop(field, None)
+            cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(cycle)
+            cycle_path.write_text(json.dumps(cycle, indent=2, sort_keys=True), encoding="utf-8")
+
+            loop_path = runtime_dir / "upbit_paper_persistent_loop_report.json"
+            loop_report = json.loads(loop_path.read_text(encoding="utf-8"))
+            replacement = dict(loop_report["cycle_results"][0])
+            replacement["cycle_id"] = "test-upbit-paper-idempotency-current-loop-not-ledger-head"
+            replacement["runtime_cycle_hash"] = "A" * 64
+            replacement["strategy_regime_cost_linkage"] = dict(replacement["strategy_regime_cost_linkage"])
+            replacement["strategy_regime_cost_linkage"]["source_runtime_cycle_id"] = replacement["cycle_id"]
+            loop_report["cycle_results"] = [replacement]
+            loop_report["loop_hash"] = upbit_paper_persistent_loop_hash(loop_report)
+            loop_path.write_text(json.dumps(loop_report, indent=2, sort_keys=True), encoding="utf-8")
+
+            report = build_upbit_paper_ledger_idempotency_runtime_evidence_report(root=root)
+            result = validate_upbit_paper_ledger_idempotency_runtime_evidence_report(report)
+
+            self.assertEqual(result.status, "PASS", result.message)
+            self.assertEqual(report["source_ledger_head_cycle_id"], head_cycle_id)
+            self.assertEqual(report["source_runtime_cycle_binding_source"], "SCOPED_RUNTIME_CYCLE_ARTIFACT")
+            self.assertEqual(report["source_runtime_cycle_contract_mode"], "LEGACY_SINGLE_SYMBOL_RUNTIME_DEPTH_RECHECK")
+            self.assertFalse(report["ledger_head_cycle_in_persistent_loop"])
+            self.assertEqual(report["source_runtime_depth_status"], "PASS")
             self.assertFalse(report["live_order_allowed"])
             self.assertFalse(report["can_live_trade"])
             self.assertFalse(report["scale_up_allowed"])
