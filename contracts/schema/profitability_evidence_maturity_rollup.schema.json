@@ -81,6 +81,8 @@
       "type": "object",
       "required": [
         "status",
+        "runtime_linkage_blocker_code",
+        "runtime_linkage_validator_message",
         "source_runtime_cycle_path",
         "source_runtime_cycle_id",
         "source_runtime_cycle_hash",
@@ -94,6 +96,19 @@
         "sample_count",
         "min_required_sample_count",
         "primary_blocker_code",
+        "candidate_scorecard_path",
+        "candidate_scorecard_candidate_id",
+        "candidate_scorecard_scorecard_id",
+        "candidate_scorecard_source_runtime_cycle_id",
+        "candidate_scorecard_source_runtime_cycle_hash",
+        "candidate_scorecard_snapshot_path",
+        "candidate_scorecard_snapshot_status",
+        "candidate_scorecard_snapshot_blocker_code",
+        "candidate_scorecard_runtime_membership_status",
+        "candidate_scorecard_runtime_membership_blocker_code",
+        "candidate_scorecard_runtime_membership_source",
+        "candidate_scorecard_runtime_symbol",
+        "candidate_scorecard_runtime_decision",
         "live_order_ready",
         "live_order_allowed",
         "can_live_trade",
@@ -102,19 +117,91 @@
       "additionalProperties": false,
       "properties": {
         "status": {"enum": ["PASS", "BLOCKED"]},
+        "runtime_linkage_blocker_code": {
+          "type": ["string", "null"],
+          "enum": [
+            null,
+            "RUNTIME_CYCLE_VALIDATION_FAILED",
+            "STRATEGY_REGIME_COST_LINKAGE_MISSING",
+            "SCORECARD_SNAPSHOT_MISSING",
+            "SCORECARD_SNAPSHOT_INVALID",
+            "SCORECARD_SNAPSHOT_CANDIDATE_MISMATCH",
+            "SCORECARD_SNAPSHOT_ID_MISMATCH",
+            "SCORECARD_SNAPSHOT_SOURCE_MISMATCH",
+            "SCORECARD_SNAPSHOT_LIVE_FLAG_MUTATED",
+            "CANDIDATE_SCORECARD_RUNTIME_CANDIDATE_ID_MISSING",
+            "CANDIDATE_SCORECARD_NOT_IN_RUNTIME_SYMBOL_SCORECARDS",
+            "CANDIDATE_SCORECARD_RUNTIME_DUPLICATE",
+            "CANDIDATE_SCORECARD_RUNTIME_CYCLE_MISMATCH",
+            "CANDIDATE_SCORECARD_RUNTIME_LIVE_FLAG_MUTATED"
+          ]
+        },
+        "runtime_linkage_validator_message": {"type": "string", "minLength": 1},
         "source_runtime_cycle_path": {"type": "string", "minLength": 1},
         "source_runtime_cycle_id": {"type": "string", "minLength": 1},
         "source_runtime_cycle_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
-        "runtime_input_role": {"enum": ["STATIC_FIXTURE", "PUBLIC_MARKET_DATA_COLLECTION"]},
+        "runtime_input_role": {
+          "enum": [
+            "STATIC_FIXTURE",
+            "PUBLIC_MARKET_DATA_COLLECTION",
+            "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"
+          ]
+        },
         "runtime_public_market_data_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
         "feature_snapshot_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
         "strategy_regime_cost_linkage_status": {"enum": ["PASS", "BLOCKED"]},
         "selected_candidate_id": {"type": "string", "minLength": 1},
         "selected_candidate_net_ev_after_cost_bps": {"type": "string"},
-        "cost_model_source": {"const": "PAPER_RUNTIME_STATIC_COST_MODEL"},
+        "cost_model_source": {
+          "enum": [
+            "PAPER_RUNTIME_STATIC_COST_MODEL",
+            "PAPER_RUNTIME_ADAPTIVE_PUBLIC_L2_PROXY_COST_MODEL"
+          ]
+        },
         "sample_count": {"type": "integer", "minimum": 0},
         "min_required_sample_count": {"type": "integer", "minimum": 1},
         "primary_blocker_code": {"type": "string", "minLength": 1},
+        "candidate_scorecard_path": {"type": "string", "minLength": 1},
+        "candidate_scorecard_candidate_id": {"type": "string", "minLength": 1},
+        "candidate_scorecard_scorecard_id": {"type": "string", "minLength": 1},
+        "candidate_scorecard_source_runtime_cycle_id": {"type": "string", "minLength": 1},
+        "candidate_scorecard_source_runtime_cycle_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "candidate_scorecard_snapshot_path": {"type": "string", "minLength": 1},
+        "candidate_scorecard_snapshot_status": {"enum": ["PASS", "BLOCKED"]},
+        "candidate_scorecard_snapshot_blocker_code": {
+          "type": ["string", "null"],
+          "enum": [
+            null,
+            "SCORECARD_SNAPSHOT_MISSING",
+            "SCORECARD_SNAPSHOT_INVALID",
+            "SCORECARD_SNAPSHOT_CANDIDATE_MISMATCH",
+            "SCORECARD_SNAPSHOT_ID_MISMATCH",
+            "SCORECARD_SNAPSHOT_SOURCE_MISMATCH",
+            "SCORECARD_SNAPSHOT_LIVE_FLAG_MUTATED"
+          ]
+        },
+        "candidate_scorecard_runtime_membership_status": {"enum": ["PASS", "BLOCKED"]},
+        "candidate_scorecard_runtime_membership_blocker_code": {
+          "type": ["string", "null"],
+          "enum": [
+            null,
+            "CANDIDATE_SCORECARD_RUNTIME_CANDIDATE_ID_MISSING",
+            "CANDIDATE_SCORECARD_NOT_IN_RUNTIME_SYMBOL_SCORECARDS",
+            "CANDIDATE_SCORECARD_RUNTIME_DUPLICATE",
+            "CANDIDATE_SCORECARD_RUNTIME_CYCLE_MISMATCH",
+            "CANDIDATE_SCORECARD_RUNTIME_LIVE_FLAG_MUTATED"
+          ]
+        },
+        "candidate_scorecard_runtime_membership_source": {
+          "type": ["string", "null"],
+          "enum": [
+            null,
+            "selected_candidate",
+            "symbol_evidence_scorecards.best_candidate_id"
+          ]
+        },
+        "candidate_scorecard_runtime_symbol": {"type": ["string", "null"]},
+        "candidate_scorecard_runtime_decision": {"type": ["string", "null"]},
         "live_order_ready": {"const": false},
         "live_order_allowed": {"const": false},
         "can_live_trade": {"const": false},
@@ -538,7 +625,7 @@
     "coverage_complete": {"const": true},
     "all_component_ids_present": {"const": true},
     "all_validators_passed": {"type": "boolean"},
-    "paper_scorecard_input_allowed": {"const": true},
+    "paper_scorecard_input_allowed": {"type": "boolean"},
     "live_review_eligible": {"const": false},
     "scale_up_eligible": {"const": false},
     "primary_blocker_code": {"type": "string", "minLength": 1},
