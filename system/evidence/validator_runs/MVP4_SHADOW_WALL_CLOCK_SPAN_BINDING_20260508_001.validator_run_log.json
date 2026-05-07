@@ -1,0 +1,51 @@
+{
+  "can_live_trade": false,
+  "commands": [
+    {
+      "command": "python -B -m pytest tests\\runtime\\test_upbit_paper_runtime_evidence_collection_profile.py -q",
+      "returncode": 0,
+      "status": "PASS",
+      "summary": "20 passed"
+    },
+    {
+      "command": "python -B -m pytest tests\\research\\test_paper_shadow_evidence_accumulator.py -q",
+      "returncode": 0,
+      "status": "PASS",
+      "summary": "8 passed"
+    },
+    {
+      "command": "python -B tools\\run_runtime_schema_instance_validators.py",
+      "returncode": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python -B tools\\run_read_only_dashboard_validators.py",
+      "returncode": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python -B tools\\run_live_final_guard_validators.py",
+      "returncode": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python -B tools\\run_bytecode_free_syntax_check.py",
+      "returncode": 0,
+      "status": "PASS",
+      "summary": "files_checked=845"
+    },
+    {
+      "command": "python -B tools\\run_patch_result_runtime_schema_validators.py",
+      "returncode": 0,
+      "status": "PASS"
+    }
+  ],
+  "created_at_utc": "2026-05-07T20:30:34Z",
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "patch_id": "MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.validator_run_log.v1",
+  "status": "PASS_TARGETED_VALIDATORS_FAIL_CLOSED",
+  "updated_at_utc": "2026-05-07T20:31:30Z"
+}

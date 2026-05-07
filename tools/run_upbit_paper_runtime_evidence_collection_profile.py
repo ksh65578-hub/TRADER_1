@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any
+from typing import Any, Iterable
 
 sys.dont_write_bytecode = True
 
@@ -93,6 +93,35 @@ def utc_now() -> str:
 
 def _timestamp_compact() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _parse_utc(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _seconds_between(first: str | None, latest: str | None) -> int:
+    first_parsed = _parse_utc(first)
+    latest_parsed = _parse_utc(latest)
+    if first_parsed is None or latest_parsed is None:
+        return 0
+    return max(0, int((latest_parsed - first_parsed).total_seconds()))
+
+
+def _sorted_valid_utc_strings(values: Iterable[Any]) -> list[str]:
+    parsed_values: list[tuple[datetime, str]] = []
+    for value in values:
+        parsed = _parse_utc(value)
+        if parsed is not None:
+            parsed_values.append((parsed, str(value)))
+    return [value for _, value in sorted(parsed_values, key=lambda item: item[0])]
 
 
 def _sha256_json(value: Any) -> str:
@@ -440,10 +469,40 @@ def _shadow_runtime_sample_history_hash(history: dict[str, Any]) -> str:
     return _sha256_json(payload)
 
 
-def _shadow_runtime_sample_history_template(*, session_id: str, samples: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+def _shadow_runtime_sample_history_template(
+    *,
+    session_id: str,
+    samples: list[dict[str, Any]] | None = None,
+    legacy_first_sample_at_utc: str | None = None,
+    legacy_latest_sample_at_utc: str | None = None,
+) -> dict[str, Any]:
     accepted_samples = [sample for sample in samples or [] if sample.get("accepted") is True]
     accepted_cycle_sample_count = sum(int(sample.get("observed_actual_cycle_count") or 0) for sample in accepted_samples)
-    observed_span_seconds = sum(int(sample.get("observed_actual_runtime_seconds") or 0) for sample in accepted_samples)
+    observed_short_window_runtime_seconds = sum(
+        int(sample.get("observed_actual_runtime_seconds") or 0) for sample in accepted_samples
+    )
+    accepted_sample_times = _sorted_valid_utc_strings(
+        sample.get("sample_observed_at_utc") for sample in accepted_samples
+    )
+    legacy_bounds = _sorted_valid_utc_strings((legacy_first_sample_at_utc, legacy_latest_sample_at_utc))
+    all_bounds = _sorted_valid_utc_strings([*accepted_sample_times, *legacy_bounds])
+    if accepted_sample_times and legacy_bounds:
+        first_sample_at_utc = all_bounds[0]
+        latest_sample_at_utc = all_bounds[-1]
+        span_source = "SAMPLE_OBSERVED_AT_UTC_AND_LEGACY_HISTORY_BOUNDS"
+    elif accepted_sample_times:
+        first_sample_at_utc = accepted_sample_times[0]
+        latest_sample_at_utc = accepted_sample_times[-1]
+        span_source = "SAMPLE_OBSERVED_AT_UTC"
+    elif accepted_samples and len(legacy_bounds) == 2:
+        first_sample_at_utc = all_bounds[0]
+        latest_sample_at_utc = all_bounds[-1]
+        span_source = "LEGACY_HISTORY_BOUNDS"
+    else:
+        first_sample_at_utc = None
+        latest_sample_at_utc = None
+        span_source = "NO_ACCEPTED_SAMPLE"
+    observed_span_seconds = _seconds_between(first_sample_at_utc, latest_sample_at_utc)
     history = {
         "schema_id": SHADOW_RUNTIME_SAMPLE_HISTORY_SCHEMA_ID,
         "created_at_utc": utc_now(),
@@ -459,7 +518,11 @@ def _shadow_runtime_sample_history_template(*, session_id: str, samples: list[di
         "sample_count": len(samples or []),
         "accepted_sample_count": len(accepted_samples),
         "accepted_cycle_sample_count": accepted_cycle_sample_count,
+        "first_sample_at_utc": first_sample_at_utc,
+        "latest_sample_at_utc": latest_sample_at_utc,
         "observed_span_seconds": observed_span_seconds,
+        "observed_span_source": span_source,
+        "observed_short_window_runtime_seconds": observed_short_window_runtime_seconds,
         "min_actual_long_run_span_seconds": 86400,
         "min_actual_long_run_cycle_count": 2880,
         "span_floor_met": observed_span_seconds >= 86400,
@@ -520,6 +583,64 @@ def _load_shadow_runtime_sample_history(*, root: Path, session_id: str) -> dict[
     )
 
 
+def _normalize_shadow_runtime_sample_history(history: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(history, dict):
+        return history
+    if history.get("history_hash") != _shadow_runtime_sample_history_hash(history):
+        return history
+    samples = [dict(sample) for sample in history.get("samples") or [] if isinstance(sample, dict)]
+    accepted_samples = [sample for sample in samples if sample.get("accepted") is True]
+    observed_short_window_runtime_seconds = sum(
+        int(sample.get("observed_actual_runtime_seconds") or 0)
+        for sample in accepted_samples
+        if not isinstance(sample.get("observed_actual_runtime_seconds"), bool)
+    )
+    accepted_sample_times = _sorted_valid_utc_strings(
+        sample.get("sample_observed_at_utc") for sample in accepted_samples
+    )
+    legacy_bounds = []
+    if accepted_samples:
+        legacy_bounds = _sorted_valid_utc_strings(
+            (
+                history.get("first_sample_at_utc") or history.get("created_at_utc"),
+                history.get("latest_sample_at_utc") or history.get("updated_at_utc"),
+            )
+        )
+    all_bounds = _sorted_valid_utc_strings([*accepted_sample_times, *legacy_bounds])
+    if accepted_sample_times and legacy_bounds:
+        first_sample_at_utc = all_bounds[0]
+        latest_sample_at_utc = all_bounds[-1]
+        span_source = "SAMPLE_OBSERVED_AT_UTC_AND_LEGACY_HISTORY_BOUNDS"
+    elif accepted_sample_times:
+        first_sample_at_utc = accepted_sample_times[0]
+        latest_sample_at_utc = accepted_sample_times[-1]
+        span_source = "SAMPLE_OBSERVED_AT_UTC"
+    elif accepted_samples and len(legacy_bounds) == 2:
+        first_sample_at_utc = all_bounds[0]
+        latest_sample_at_utc = all_bounds[-1]
+        span_source = "LEGACY_HISTORY_BOUNDS"
+    else:
+        first_sample_at_utc = None
+        latest_sample_at_utc = None
+        span_source = "NO_ACCEPTED_SAMPLE"
+
+    normalized = dict(history)
+    normalized["samples"] = samples
+    normalized["first_sample_at_utc"] = first_sample_at_utc or None
+    normalized["latest_sample_at_utc"] = latest_sample_at_utc or None
+    normalized["observed_span_seconds"] = _seconds_between(first_sample_at_utc, latest_sample_at_utc)
+    normalized["observed_span_source"] = span_source
+    normalized["observed_short_window_runtime_seconds"] = observed_short_window_runtime_seconds
+    normalized["span_floor_met"] = normalized["observed_span_seconds"] >= int(
+        normalized.get("min_actual_long_run_span_seconds") or 0
+    ) > 0
+    normalized["cycle_floor_met"] = int(normalized.get("accepted_cycle_sample_count") or 0) >= int(
+        normalized.get("min_actual_long_run_cycle_count") or 0
+    ) > 0
+    normalized["history_hash"] = _shadow_runtime_sample_history_hash(normalized)
+    return normalized
+
+
 def _validate_shadow_runtime_sample_history(history: dict[str, Any]) -> ProfileValidationResult:
     required = {
         "schema_id",
@@ -536,7 +657,11 @@ def _validate_shadow_runtime_sample_history(history: dict[str, Any]) -> ProfileV
         "sample_count",
         "accepted_sample_count",
         "accepted_cycle_sample_count",
+        "first_sample_at_utc",
+        "latest_sample_at_utc",
         "observed_span_seconds",
+        "observed_span_source",
+        "observed_short_window_runtime_seconds",
         "min_actual_long_run_span_seconds",
         "min_actual_long_run_cycle_count",
         "span_floor_met",
@@ -585,7 +710,8 @@ def _validate_shadow_runtime_sample_history(history: dict[str, Any]) -> ProfileV
     seen_sample_ids: set[str] = set()
     accepted_count = 0
     accepted_cycles = 0
-    accepted_span = 0
+    accepted_short_window_runtime_seconds = 0
+    accepted_times: list[str] = []
     for sample in samples:
         if not isinstance(sample, dict):
             return ProfileValidationResult("FAIL", "SHADOW runtime sample history contains a non-object sample", "SCHEMA_IDENTITY_MISMATCH")
@@ -653,15 +779,57 @@ def _validate_shadow_runtime_sample_history(history: dict[str, Any]) -> ProfileV
                 return ProfileValidationResult("BLOCKED", "single SHADOW runtime sample cannot satisfy long-run span", LONG_RUN_EVIDENCE_BLOCKER_CODE)
             if int(sample.get("observed_actual_cycle_count") or 0) >= int(history.get("min_actual_long_run_cycle_count") or 0):
                 return ProfileValidationResult("BLOCKED", "single SHADOW runtime sample cannot satisfy long-run cycles", LONG_RUN_EVIDENCE_BLOCKER_CODE)
+            sample_time = sample.get("sample_observed_at_utc")
+            if sample_time is not None:
+                if _parse_utc(sample_time) is None:
+                    return ProfileValidationResult("FAIL", "accepted SHADOW runtime sample observed timestamp is invalid", "SCHEMA_IDENTITY_MISMATCH")
+                accepted_times.append(str(sample_time))
             accepted_count += 1
             accepted_cycles += int(sample.get("observed_actual_cycle_count") or 0)
-            accepted_span += int(sample.get("observed_actual_runtime_seconds") or 0)
+            accepted_short_window_runtime_seconds += int(sample.get("observed_actual_runtime_seconds") or 0)
     if int(history.get("sample_count") or 0) != len(samples):
         return ProfileValidationResult("FAIL", "SHADOW runtime sample history sample count drifted", "SCHEMA_IDENTITY_MISMATCH")
     if int(history.get("accepted_sample_count") or 0) != accepted_count:
         return ProfileValidationResult("FAIL", "SHADOW runtime sample history accepted sample count drifted", "SCHEMA_IDENTITY_MISMATCH")
     if int(history.get("accepted_cycle_sample_count") or 0) != accepted_cycles:
         return ProfileValidationResult("FAIL", "SHADOW runtime sample history accepted cycle count drifted", "SCHEMA_IDENTITY_MISMATCH")
+    accepted_times = _sorted_valid_utc_strings(accepted_times)
+    if accepted_times:
+        if history.get("observed_span_source") == "SAMPLE_OBSERVED_AT_UTC_AND_LEGACY_HISTORY_BOUNDS":
+            expected_first = history.get("first_sample_at_utc")
+            expected_latest = history.get("latest_sample_at_utc")
+            if _parse_utc(expected_first) is None or _parse_utc(expected_latest) is None:
+                return ProfileValidationResult("FAIL", "SHADOW runtime sample history combined wall-clock bounds are invalid", "SCHEMA_IDENTITY_MISMATCH")
+            if (
+                _parse_utc(expected_first) > _parse_utc(accepted_times[0])
+                or _parse_utc(expected_latest) < _parse_utc(accepted_times[-1])
+            ):
+                return ProfileValidationResult("FAIL", "SHADOW runtime sample history combined bounds do not cover sample timestamps", "SCHEMA_IDENTITY_MISMATCH")
+            expected_span_source = "SAMPLE_OBSERVED_AT_UTC_AND_LEGACY_HISTORY_BOUNDS"
+        else:
+            expected_first = accepted_times[0]
+            expected_latest = accepted_times[-1]
+            expected_span_source = "SAMPLE_OBSERVED_AT_UTC"
+    elif accepted_count:
+        expected_first = history.get("first_sample_at_utc")
+        expected_latest = history.get("latest_sample_at_utc")
+        expected_span_source = "LEGACY_HISTORY_BOUNDS"
+        if _parse_utc(expected_first) is None or _parse_utc(expected_latest) is None:
+            return ProfileValidationResult("FAIL", "SHADOW runtime sample history legacy wall-clock bounds are invalid", "SCHEMA_IDENTITY_MISMATCH")
+    else:
+        expected_first = None
+        expected_latest = None
+        expected_span_source = "NO_ACCEPTED_SAMPLE"
+    if history.get("first_sample_at_utc") != expected_first or history.get("latest_sample_at_utc") != expected_latest:
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history wall-clock bounds drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if history.get("observed_span_source") != expected_span_source:
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history span source drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if int(history.get("observed_short_window_runtime_seconds") or 0) != accepted_short_window_runtime_seconds:
+        return ProfileValidationResult("FAIL", "SHADOW runtime sample history short-window runtime drifted", "SCHEMA_IDENTITY_MISMATCH")
+    accepted_span = _seconds_between(
+        str(expected_first) if expected_first else None,
+        str(expected_latest) if expected_latest else None,
+    )
     if int(history.get("observed_span_seconds") or 0) != accepted_span:
         return ProfileValidationResult("FAIL", "SHADOW runtime sample history observed span drifted", "SCHEMA_IDENTITY_MISMATCH")
     if history.get("span_floor_met") is not (accepted_span >= int(history.get("min_actual_long_run_span_seconds") or 0) > 0):
@@ -713,6 +881,7 @@ def _shadow_runtime_sample_from_orchestration(orchestration: dict[str, Any], res
         "accepted": accepted,
         "validation_status": validation_status,
         "rejection_code": None if accepted else str(rejection_code or "MEASUREMENT_MISSING"),
+        "sample_observed_at_utc": str(orchestration.get("generated_at_utc") or ""),
         "orchestration_id": str(orchestration.get("orchestration_id") or ""),
         "orchestration_report_hash": str(orchestration.get("orchestration_report_hash") or ""),
         "persistent_runtime_report_hash": persistent_hash,
@@ -741,7 +910,9 @@ def _update_shadow_runtime_sample_history(
     session_id: str,
     orchestration_sources: list[tuple[dict[str, Any], Any]],
 ) -> tuple[dict[str, Any], ProfileValidationResult]:
-    existing = _load_shadow_runtime_sample_history(root=root, session_id=session_id)
+    existing = _normalize_shadow_runtime_sample_history(
+        _load_shadow_runtime_sample_history(root=root, session_id=session_id)
+    )
     existing_result = _validate_shadow_runtime_sample_history(existing)
     if existing_result.status != "PASS":
         return existing, existing_result
@@ -756,7 +927,12 @@ def _update_shadow_runtime_sample_history(
         sample = _shadow_runtime_sample_from_orchestration(orchestration, result)
         samples_by_id.setdefault(str(sample["sample_id"]), sample)
     samples = sorted(samples_by_id.values(), key=lambda item: str(item.get("sample_id") or ""))
-    updated = _shadow_runtime_sample_history_template(session_id=session_id, samples=samples)
+    updated = _shadow_runtime_sample_history_template(
+        session_id=session_id,
+        samples=samples,
+        legacy_first_sample_at_utc=existing.get("first_sample_at_utc"),
+        legacy_latest_sample_at_utc=existing.get("latest_sample_at_utc"),
+    )
     created_at = existing.get("created_at_utc")
     if isinstance(created_at, str) and created_at:
         updated["created_at_utc"] = created_at
