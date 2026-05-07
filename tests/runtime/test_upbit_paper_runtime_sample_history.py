@@ -182,6 +182,61 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
 
         self.assertEqual(sample_history_module._exit_reason_evidence_count(runtime_cycle), 6)
 
+    def test_candidate_identity_uses_scope_focus_when_managed_position_overrides_candidate_selection(self):
+        focus_candidate = {
+            "candidate_id": "KRW-ORCA-breakout-retest-long",
+            "symbol": "KRW-ORCA",
+            "strategy_family": "BREAKOUT_RETEST_LONG",
+            "decision": "PAPER_ENTRY_REVIEW",
+            "net_ev_after_cost_bps": "18.5",
+            "candidate_selection_score": "72.0",
+            "expected_edge_bps": "41.0",
+            "expected_cost_bps": "22.5",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        requested_hash = sample_history_module._candidate_parameter_hash(focus_candidate)
+        runtime_cycle = {
+            "paper_scope_continuity_decision": {
+                "requested": True,
+                "selection_status": "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS",
+                "requested_candidate_id": focus_candidate["candidate_id"],
+                "requested_symbol": focus_candidate["symbol"],
+                "requested_strategy_id": "breakout_retest",
+                "requested_parameter_hash": requested_hash,
+            },
+            "selected_candidate": {
+                "candidate_id": "KRW-BTC-vwap-mean-reversion",
+                "symbol": "KRW-BTC",
+                "strategy_family": "VWAP_MEAN_REVERSION",
+                "decision": "PAPER_ENTRY_REVIEW",
+                "net_ev_after_cost_bps": "11.0",
+                "candidate_selection_score": "64.0",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+            "strategy_candidates": [focus_candidate],
+            "symbol_evidence_scorecards": [{"symbol": "KRW-ORCA"}],
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        identity = sample_history_module._candidate_identity_fields(runtime_cycle)
+
+        self.assertEqual(identity["scorecard_candidate_identity_source"], "PAPER_SCOPE_FOCUS_CANDIDATE")
+        self.assertEqual(identity["scorecard_candidate_identity_binding_status"], "BOUND")
+        self.assertEqual(identity["scorecard_candidate_id"], focus_candidate["candidate_id"])
+        self.assertEqual(identity["scorecard_symbol"], focus_candidate["symbol"])
+        self.assertEqual(identity["scorecard_strategy_id"], "breakout_retest")
+        self.assertEqual(identity["scorecard_parameter_hash"], requested_hash)
+        self.assertTrue(identity["scorecard_candidate_live_flags_clear"])
+
     def test_runtime_sample_history_excludes_invalid_legacy_loop_sources_while_collecting(self):
         history, root = self._history()
         paper_runtime_dir = (

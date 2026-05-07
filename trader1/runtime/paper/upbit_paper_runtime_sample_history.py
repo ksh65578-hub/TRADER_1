@@ -497,7 +497,49 @@ def _candidate_parameter_hash(candidate: dict[str, Any]) -> str | None:
     return hashlib.sha256(f"{candidate_id}:{strategy_family}:{symbol}".encode("utf-8")).hexdigest().upper()
 
 
+def _paper_scope_focus_candidate_from_runtime_cycle(runtime_cycle: dict[str, Any]) -> dict[str, Any] | None:
+    continuity = runtime_cycle.get("paper_scope_continuity_decision")
+    if not isinstance(continuity, dict):
+        return None
+    if continuity.get("selection_status") != "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS":
+        return None
+    if continuity.get("requested") is not True:
+        return None
+
+    requested_candidate_id = str(continuity.get("requested_candidate_id") or "")
+    requested_symbol = str(continuity.get("requested_symbol") or "")
+    requested_strategy_id = str(continuity.get("requested_strategy_id") or "")
+    requested_parameter_hash = str(continuity.get("requested_parameter_hash") or "").upper()
+    if not requested_candidate_id:
+        return None
+
+    for candidate in runtime_cycle.get("strategy_candidates") or []:
+        if not isinstance(candidate, dict):
+            continue
+        if candidate.get("candidate_id") != requested_candidate_id:
+            continue
+        if candidate.get("decision") != "PAPER_ENTRY_REVIEW":
+            return None
+        if not _candidate_is_non_live(candidate):
+            return None
+        candidate_symbol = str(candidate.get("symbol") or "")
+        strategy_family = str(candidate.get("strategy_family") or "")
+        candidate_strategy_id = _strategy_id_for_family(strategy_family) if strategy_family else ""
+        candidate_parameter_hash = _candidate_parameter_hash(candidate)
+        if requested_symbol and candidate_symbol != requested_symbol:
+            return None
+        if requested_strategy_id and candidate_strategy_id != requested_strategy_id:
+            return None
+        if requested_parameter_hash and candidate_parameter_hash != requested_parameter_hash:
+            return None
+        return candidate
+    return None
+
+
 def _scorecard_candidate_from_runtime_cycle(runtime_cycle: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    focused = _paper_scope_focus_candidate_from_runtime_cycle(runtime_cycle)
+    if focused is not None:
+        return "PAPER_SCOPE_FOCUS_CANDIDATE", focused
     selected = runtime_cycle.get("selected_candidate")
     if isinstance(selected, dict) and selected.get("decision") == "PAPER_ENTRY_REVIEW" and _candidate_is_non_live(selected):
         return "SELECTED_CANDIDATE", selected
