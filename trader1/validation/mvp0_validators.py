@@ -195,6 +195,10 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     validate_upbit_paper_persistent_loop_report,
     validate_upbit_paper_runtime_recovery_guard_report,
 )
+from trader1.runtime.paper.upbit_paper_long_runner import (
+    RUNNER_STATUS_RUNNING,
+    build_runner_status_report,
+)
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
     upbit_paper_runtime_sample_hash,
@@ -5285,10 +5289,11 @@ def upbit_public_rest_continuity_history_validator() -> ValidatorResult:
 def paper_runtime_truth_state_validator() -> ValidatorResult:
     schema_path = ROOT / "contracts" / "schema" / "paper_runtime_truth_state_report.schema.json"
     runtime_truth_path = ROOT / "trader1" / "runtime" / "paper" / "paper_runtime_truth_state.py"
+    long_runner_path = ROOT / "trader1" / "runtime" / "paper" / "upbit_paper_long_runner.py"
     launcher_path = ROOT / "trader1" / "runtime" / "boot" / "safe_launcher.py"
     dashboard_path = ROOT / "trader1" / "dashboard" / "read_only_dashboard.py"
     test_path = ROOT / "tests" / "runtime" / "test_paper_runtime_truth_state.py"
-    paths = [schema_path, runtime_truth_path, launcher_path, dashboard_path, test_path]
+    paths = [schema_path, runtime_truth_path, long_runner_path, launcher_path, dashboard_path, test_path]
     schema = load_json(schema_path)
     if schema.get("$id") != "trader1.paper_runtime_truth_state_report.v1":
         return fail_result("paper_runtime_truth_state_validator", "PAPER runtime truth state schema_id mismatch", paths, "SCHEMA_IDENTITY_MISMATCH")
@@ -5299,11 +5304,17 @@ def paper_runtime_truth_state_validator() -> ValidatorResult:
         "runtime_truth_status",
         "dashboard_truth_status",
         "monitor_alive",
+        "runner_status_loaded",
+        "runner_status_fresh",
+        "runner_status",
+        "runner_running",
+        "runner_completed_cycle_count",
         "paper_loop_advancing",
         "market_data_advancing",
         "ledger_advancing",
         "current_evidence_refreshing",
         "source_heartbeat_hash",
+        "source_runner_status_hash",
         "source_persistent_loop_hash",
         "source_market_continuity_history_hash",
         "source_paper_ledger_rollup_hash",
@@ -5419,7 +5430,30 @@ def paper_runtime_truth_state_validator() -> ValidatorResult:
             heartbeat=heartbeat,
             startup_probe=None,
         )
+        runner_status = build_runner_status_report(
+            root=root,
+            runner_id="validator-paper-runtime-truth-state-runner",
+            session_id="mvp1_upbit_paper_launcher",
+            runner_status=RUNNER_STATUS_RUNNING,
+            started_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            completed_cycle_count=1,
+            failed_cycle_count=0,
+            cycle_interval_seconds=30.0,
+            loop_report=loop,
+        )
         active = build_paper_runtime_truth_state_report(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id="mvp1_upbit_paper_launcher",
+            heartbeat=heartbeat,
+            upbit_paper_long_runner_status_report=runner_status,
+            upbit_paper_persistent_loop_report=loop,
+            upbit_public_rest_continuity_history=continuity_history,
+            paper_ledger_rollup_report=ledger_rollup,
+            paper_current_truth_refresh_report=current_refresh,
+        )
+        missing_runner = build_paper_runtime_truth_state_report(
             exchange="UPBIT",
             market_type="KRW_SPOT",
             mode="PAPER",
@@ -5435,11 +5469,22 @@ def paper_runtime_truth_state_validator() -> ValidatorResult:
         active_result.status != "PASS"
         or active.get("runtime_truth_status") != PAPER_RUNTIME_ACTIVE_STATUS
         or active.get("dashboard_truth_status") != "FRESH_CURRENT_TRUTH"
+        or active.get("runner_status_loaded") is not True
+        or active.get("runner_running") is not True
         or active.get("market_data_advancing") is not True
         or active.get("ledger_advancing") is not True
         or active.get("current_evidence_refreshing") is not True
     ):
         return fail_result("paper_runtime_truth_state_validator", f"active PAPER runtime truth did not validate: {active_result.message}", paths, active_result.blocker_code or "HARD_TRUTH_MISSING")
+    missing_runner_result = validate_paper_runtime_truth_state_report(missing_runner)
+    if (
+        missing_runner_result.status != "BLOCKED"
+        or missing_runner.get("runtime_truth_status") == PAPER_RUNTIME_ACTIVE_STATUS
+        or missing_runner.get("dashboard_truth_status") == "FRESH_CURRENT_TRUTH"
+        or missing_runner.get("runner_status_loaded") is not False
+        or missing_runner.get("primary_blocker_code") != "DATA_QUALITY_INSUFFICIENT"
+    ):
+        return fail_result("paper_runtime_truth_state_validator", "fresh source reports without a running PAPER runner claimed active truth", paths, missing_runner_result.blocker_code or "DATA_QUALITY_INSUFFICIENT")
     if active.get("evidence_role") != "PAPER_RUNTIME_TRUTH_STATE_ONLY_NOT_LIVE_READY":
         return fail_result("paper_runtime_truth_state_validator", "runtime truth state role could be mistaken for live readiness", paths, "LIVE_FINAL_GUARD_FAILED")
     if active.get("long_run_evidence_eligible") or active.get("promotion_eligible"):

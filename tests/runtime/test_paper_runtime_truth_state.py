@@ -17,6 +17,12 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
     upbit_paper_persistent_loop_hash,
 )
+from trader1.runtime.paper.upbit_paper_long_runner import (
+    RUNNER_STATUS_RUNNING,
+    RUNNER_STATUS_STOPPED,
+    build_runner_status_report,
+    upbit_paper_long_runner_status_hash,
+)
 from trader1.runtime.paper.upbit_public_rest_continuity import build_upbit_public_rest_continuity_report
 from trader1.runtime.paper.upbit_public_rest_continuity_history import build_upbit_public_rest_continuity_history_report
 from trader1.runtime.portfolio.paper_current_truth_refresh import build_paper_current_truth_refresh_report
@@ -80,6 +86,21 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
             history_id="truth-state-continuity-history",
             session_id="mvp1_upbit_paper_launcher",
             continuity_attempts=attempts,
+        )
+
+    def _runner_status(self, root: Path, loop: dict, *, status: str = RUNNER_STATUS_RUNNING) -> dict:
+        completed_cycles = 1 if status == RUNNER_STATUS_RUNNING else int(loop.get("completed_cycle_count") or 1)
+        return build_runner_status_report(
+            root=root,
+            runner_id="truth-state-runner",
+            session_id="mvp1_upbit_paper_launcher",
+            runner_status=status,
+            started_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            completed_cycle_count=completed_cycles,
+            failed_cycle_count=0,
+            cycle_interval_seconds=30.0,
+            loop_report=loop,
+            stop_reason=None if status == RUNNER_STATUS_RUNNING else "TEST_STOPPED",
         )
 
     def test_fresh_monitor_without_loop_reports_engine_not_proven(self):
@@ -166,6 +187,7 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
                 mode="PAPER",
                 session_id="mvp1_upbit_paper_launcher",
                 heartbeat=heartbeat,
+                upbit_paper_long_runner_status_report=self._runner_status(root, loop),
                 upbit_paper_persistent_loop_report=loop,
                 upbit_public_rest_continuity_history=self._continuity_history(),
                 paper_ledger_rollup_report=ledger_rollup,
@@ -176,6 +198,10 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["runtime_truth_status"], PAPER_RUNTIME_ACTIVE_STATUS)
         self.assertEqual(report["dashboard_truth_status"], "FRESH_CURRENT_TRUTH")
+        self.assertTrue(report["runner_status_loaded"])
+        self.assertTrue(report["runner_status_fresh"])
+        self.assertEqual(report["runner_status"], RUNNER_STATUS_RUNNING)
+        self.assertTrue(report["runner_running"])
         self.assertTrue(report["paper_loop_advancing"])
         self.assertTrue(report["market_data_advancing"])
         self.assertTrue(report["ledger_advancing"])
@@ -184,6 +210,137 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])
+
+    def test_full_sources_without_runner_status_do_not_claim_active_runtime_truth(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="truth-state-no-runner-loop",
+                session_id="mvp1_upbit_paper_launcher",
+                requested_cycle_count=1,
+            )
+            ledger_rollup = load_json(launcher_dashboard_paths({"exchange": "UPBIT", "market_type": "KRW_SPOT", "mode": "PAPER", "session_id": "mvp1_upbit_paper_launcher"}, root)["paper_ledger_rollup_report"])
+            heartbeat = self._heartbeat()
+            current_refresh = build_paper_current_truth_refresh_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                paper_portfolio_snapshot=ledger_rollup["portfolio_snapshot"],
+                heartbeat=heartbeat,
+                startup_probe=None,
+            )
+            report = build_paper_runtime_truth_state_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                heartbeat=heartbeat,
+                upbit_paper_persistent_loop_report=loop,
+                upbit_public_rest_continuity_history=self._continuity_history(),
+                paper_ledger_rollup_report=ledger_rollup,
+                paper_current_truth_refresh_report=current_refresh,
+            )
+            result = validate_paper_runtime_truth_state_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertNotEqual(report["runtime_truth_status"], PAPER_RUNTIME_ACTIVE_STATUS)
+        self.assertEqual(report["dashboard_truth_status"], "STALE_DISPLAY_TRUTH")
+        self.assertFalse(report["runner_status_loaded"])
+        self.assertFalse(report["runner_running"])
+        self.assertEqual(report["runner_status"], "NOT_LOADED")
+        self.assertEqual(report["primary_blocker_code"], "DATA_QUALITY_INSUFFICIENT")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_stopped_runner_status_blocks_active_runtime_truth(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="truth-state-stopped-runner-loop",
+                session_id="mvp1_upbit_paper_launcher",
+                requested_cycle_count=1,
+            )
+            ledger_rollup = load_json(launcher_dashboard_paths({"exchange": "UPBIT", "market_type": "KRW_SPOT", "mode": "PAPER", "session_id": "mvp1_upbit_paper_launcher"}, root)["paper_ledger_rollup_report"])
+            heartbeat = self._heartbeat()
+            current_refresh = build_paper_current_truth_refresh_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                paper_portfolio_snapshot=ledger_rollup["portfolio_snapshot"],
+                heartbeat=heartbeat,
+                startup_probe=None,
+            )
+            report = build_paper_runtime_truth_state_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                heartbeat=heartbeat,
+                upbit_paper_long_runner_status_report=self._runner_status(root, loop, status=RUNNER_STATUS_STOPPED),
+                upbit_paper_persistent_loop_report=loop,
+                upbit_public_rest_continuity_history=self._continuity_history(),
+                paper_ledger_rollup_report=ledger_rollup,
+                paper_current_truth_refresh_report=current_refresh,
+            )
+            result = validate_paper_runtime_truth_state_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertNotEqual(report["runtime_truth_status"], PAPER_RUNTIME_ACTIVE_STATUS)
+        self.assertEqual(report["dashboard_truth_status"], "STALE_DISPLAY_TRUTH")
+        self.assertTrue(report["runner_status_loaded"])
+        self.assertEqual(report["runner_status"], RUNNER_STATUS_STOPPED)
+        self.assertFalse(report["runner_running"])
+        self.assertEqual(report["primary_blocker_code"], "DATA_QUALITY_INSUFFICIENT")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_stale_runner_status_blocks_active_runtime_truth(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="truth-state-stale-runner-loop",
+                session_id="mvp1_upbit_paper_launcher",
+                requested_cycle_count=1,
+            )
+            runner = self._runner_status(root, loop)
+            ledger_rollup = load_json(launcher_dashboard_paths({"exchange": "UPBIT", "market_type": "KRW_SPOT", "mode": "PAPER", "session_id": "mvp1_upbit_paper_launcher"}, root)["paper_ledger_rollup_report"])
+            heartbeat = self._heartbeat()
+            current_refresh = build_paper_current_truth_refresh_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                paper_portfolio_snapshot=ledger_rollup["portfolio_snapshot"],
+                heartbeat=heartbeat,
+                startup_probe=None,
+            )
+            now = datetime.now(timezone.utc).replace(microsecond=0)
+            stale = now - timedelta(seconds=301)
+            runner["generated_at_utc"] = stale.isoformat().replace("+00:00", "Z")
+            runner["status_hash"] = upbit_paper_long_runner_status_hash(runner)
+            report = build_paper_runtime_truth_state_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id="mvp1_upbit_paper_launcher",
+                heartbeat=heartbeat,
+                upbit_paper_long_runner_status_report=runner,
+                upbit_paper_persistent_loop_report=loop,
+                upbit_public_rest_continuity_history=self._continuity_history(),
+                paper_ledger_rollup_report=ledger_rollup,
+                paper_current_truth_refresh_report=current_refresh,
+                generated_at_utc=now.isoformat().replace("+00:00", "Z"),
+            )
+            result = validate_paper_runtime_truth_state_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(report["primary_blocker_code"], "LATENCY_TTL_EXPIRED")
+        self.assertFalse(report["runner_status_fresh"])
+        self.assertFalse(report["runner_running"])
+        self.assertFalse(report["live_order_allowed"])
 
     def test_stale_valid_loop_does_not_prove_runtime_advancement(self):
         with TemporaryDirectory() as tmp:
@@ -216,6 +373,7 @@ class PaperRuntimeTruthStateTest(unittest.TestCase):
                 mode="PAPER",
                 session_id="mvp1_upbit_paper_launcher",
                 heartbeat=heartbeat,
+                upbit_paper_long_runner_status_report=self._runner_status(root, loop),
                 upbit_paper_persistent_loop_report=loop,
                 upbit_public_rest_continuity_history=continuity_history,
                 paper_ledger_rollup_report=ledger_rollup,

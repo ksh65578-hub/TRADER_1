@@ -98,8 +98,10 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 )
 from trader1.runtime.paper.upbit_paper_long_runner import (
     DISK_PRESSURE_BLOCKER_CODE,
+    RUNNER_STATUS_RUNNING,
     UPBIT_PAPER_LONG_RUNNER_RETENTION_SCHEMA_ID,
     UPBIT_PAPER_LONG_RUNNER_STATUS_SCHEMA_ID,
+    build_runner_status_report,
     upbit_paper_long_runner_retention_manifest_hash,
     upbit_paper_long_runner_status_hash,
 )
@@ -6150,6 +6152,17 @@ class ReadOnlyDashboardTest(unittest.TestCase):
                     / "paper_ledger_rollup_report.json"
                 ).read_text(encoding="utf-8")
             )
+            runner_status = build_runner_status_report(
+                root=root,
+                runner_id="dashboard-active-runtime-truth-runner",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_RUNNING,
+                started_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                completed_cycle_count=1,
+                failed_cycle_count=0,
+                cycle_interval_seconds=30.0,
+                loop_report=loop,
+            )
         current_refresh = build_paper_current_truth_refresh_report(
             exchange=writer_report["exchange"],
             market_type=writer_report["market_type"],
@@ -6165,6 +6178,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             mode=writer_report["mode"],
             session_id=session_id,
             heartbeat=heartbeat,
+            upbit_paper_long_runner_status_report=runner_status,
             upbit_paper_persistent_loop_report=loop,
             upbit_public_rest_continuity_history=continuity_history,
             paper_ledger_rollup_report=ledger_rollup,
@@ -8713,11 +8727,23 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         session_id = "test_read_only_dashboard_partial_runtime_truth"
         summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
         with TemporaryDirectory() as tmp:
+            root = Path(tmp)
             loop = run_upbit_paper_persistent_loop(
-                root=Path(tmp),
+                root=root,
                 loop_id="test-dashboard-partial-runtime-truth-loop",
                 session_id=session_id,
                 requested_cycle_count=1,
+            )
+            runner_status = build_runner_status_report(
+                root=root,
+                runner_id="test-dashboard-partial-runtime-truth-runner",
+                session_id=session_id,
+                runner_status=RUNNER_STATUS_RUNNING,
+                started_at_utc=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+                completed_cycle_count=1,
+                failed_cycle_count=0,
+                cycle_interval_seconds=30.0,
+                loop_report=loop,
             )
         runtime_truth = build_paper_runtime_truth_state_report(
             exchange="UPBIT",
@@ -8725,6 +8751,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             mode="PAPER",
             session_id=session_id,
             heartbeat=heartbeat,
+            upbit_paper_long_runner_status_report=runner_status,
             upbit_paper_persistent_loop_report=loop,
             upbit_public_rest_continuity_history=None,
             paper_ledger_rollup_report=None,
