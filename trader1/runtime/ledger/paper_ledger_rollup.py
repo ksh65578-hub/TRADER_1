@@ -155,6 +155,8 @@ def _latest_head_ledger_path(*, root: Path, ledger_dir: Path, cycle_dir: Path, s
         return None
     if not candidate.name.endswith(".paper_ledger_events.jsonl"):
         return None
+    if not candidate.is_file():
+        return None
     return candidate
 
 
@@ -198,9 +200,6 @@ def _ledger_paths_from_active_manifest(
     excluded = manifest_excluded_ledger_paths(manifest)
     all_paths = sorted(cycle_dir.glob("*.paper_ledger_events.jsonl")) if cycle_dir.exists() else []
     all_relative_paths = {_relative_posix(path, root): path for path in all_paths}
-    missing_excluded = sorted(path for path in excluded if path not in all_relative_paths)
-    if missing_excluded:
-        blockers.append(_blocker("LEDGER_INTEGRITY_FAIL", "PAPER ledger input manifest excluded paths are missing from source scope"))
     included_paths = [path for relative_path, path in all_relative_paths.items() if relative_path not in excluded]
     ordered = _order_session_cycle_ledger_paths(
         root=root,
