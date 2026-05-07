@@ -3626,6 +3626,9 @@ def _active_paper_current_truth_dashboard_blocker(
         paper_runtime_truth_state_report.get(field) is not True
         for field in (
             "monitor_alive",
+            "runner_status_loaded",
+            "runner_status_fresh",
+            "runner_running",
             "paper_loop_advancing",
             "market_data_advancing",
             "ledger_advancing",
@@ -11060,7 +11063,7 @@ def _operation_status(
                 "recovery_hint": runtime_truth_next_action,
                 "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
                 "runtime_presence": "PAPER_RUNTIME_ACTIVE",
-                "operator_meaning": "The continuous PAPER engine is connected through loop, public market data, ledger rollup, and current-evidence refresh for this session. This is still not live readiness.",
+                "operator_meaning": "The continuous PAPER engine is connected through runner status, loop, public market data, ledger rollup, and current-evidence refresh for this session. This is still not live readiness.",
                 "source": "heartbeat.json",
                 "engine_state": engine_state or "BOOTSTRAP_READ_ONLY",
                 "heartbeat_status": "PASS",

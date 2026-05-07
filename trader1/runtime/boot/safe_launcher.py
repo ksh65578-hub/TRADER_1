@@ -2577,6 +2577,7 @@ def build_launcher_dashboard_artifacts(
             mode=report["mode"],
             session_id=report["session_id"],
             heartbeat=heartbeat,
+            upbit_paper_long_runner_status_report=upbit_paper_long_runner_status_report,
             upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
             upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
             paper_ledger_rollup_report=paper_ledger_rollup_report,
