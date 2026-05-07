@@ -10,10 +10,16 @@ from trader1.runtime.paper.upbit_paper_stale_loop_normalized_reconciliation_rech
     validate_upbit_paper_stale_loop_normalized_reconciliation_recheck_report,
     write_upbit_paper_stale_loop_normalized_reconciliation_recheck_report,
 )
+from trader1.runtime.paper.upbit_paper_stale_loop_normalized_reconciliation_preview import (
+    build_upbit_paper_stale_loop_normalized_reconciliation_preview_report,
+)
+from trader1.runtime.paper.upbit_paper_stale_loop_replacement_schema_normalization_preview import (
+    build_upbit_paper_stale_loop_replacement_schema_normalization_preview_report,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
-NORMALIZED_RECONCILIATION_PREVIEW_PATH = (
+LEDGER_RECHECK_PREVIEW_PATH = (
     ROOT
     / "system"
     / "runtime"
@@ -22,7 +28,7 @@ NORMALIZED_RECONCILIATION_PREVIEW_PATH = (
     / "paper"
     / "mvp1_upbit_paper_launcher"
     / "paper_runtime"
-    / "upbit_paper_stale_loop_normalized_reconciliation_preview_report.json"
+    / "upbit_paper_stale_loop_ledger_recheck_preview_report.json"
 )
 
 
@@ -32,9 +38,19 @@ def load_json(path: Path) -> dict:
 
 class UpbitPaperStaleLoopNormalizedReconciliationRecheckTest(unittest.TestCase):
     def build_report(self) -> dict:
+        normalization_preview = build_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(
+            root=ROOT,
+            ledger_recheck_preview_report=load_json(LEDGER_RECHECK_PREVIEW_PATH),
+            normalization_preview_id="test-stale-loop-normalized-reconciliation-recheck-source-normalization-preview",
+        )
+        normalized_reconciliation_preview = build_upbit_paper_stale_loop_normalized_reconciliation_preview_report(
+            root=ROOT,
+            normalization_preview_report=normalization_preview,
+            normalized_reconciliation_preview_id="test-stale-loop-normalized-reconciliation-recheck-source-preview",
+        )
         return build_upbit_paper_stale_loop_normalized_reconciliation_recheck_report(
             root=ROOT,
-            normalized_reconciliation_preview_report=load_json(NORMALIZED_RECONCILIATION_PREVIEW_PATH),
+            normalized_reconciliation_preview_report=normalized_reconciliation_preview,
             normalized_reconciliation_recheck_id="test-stale-loop-normalized-reconciliation-recheck",
         )
 

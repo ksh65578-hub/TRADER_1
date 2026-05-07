@@ -103,6 +103,13 @@
     .portfolio-quicklook h3 { margin: 0; font-size: 13px; color: var(--muted); }
     .portfolio-quicklook ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
     .portfolio-quicklook li { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; color: var(--ink); }
+    .public-ticker-strip { display: grid; gap: 12px; border: 1px solid #bfdbfe; border-left: 8px solid var(--safe); border-radius: 8px; background: #eff6ff; padding: 14px; min-width: 0; }
+    .public-ticker-strip h3 { margin: 0; font-size: 18px; line-height: 1.2; }
+    .public-ticker-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+    .public-ticker-tile { display: grid; gap: 5px; background: #ffffff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px; min-width: 0; }
+    .public-ticker-tile strong { color: var(--muted); font-size: 12px; line-height: 1.2; }
+    .public-ticker-tile .ticker-price { color: var(--ink); font-size: 18px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+    .public-ticker-tile small { margin-top: 0; font-size: 12px; line-height: 1.35; }
     .primary-portfolio-detail { display: grid; gap: 14px; background: #ffffff; border: 1px solid #cfd6df; border-left: 8px solid var(--safe); border-radius: 8px; padding: 16px; }
     .primary-portfolio-detail .portfolio-detail-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
     .primary-portfolio-detail .positions { border-color: var(--line); }
@@ -383,9 +390,138 @@
           }
         });
       }
+      function publicTickerSymbols(root) {
+        try {
+          var parsed = JSON.parse(root.getAttribute("data-public-ticker-symbols") || "[]");
+          return Array.isArray(parsed) ? parsed.filter(function (symbol) { return /^KRW-[A-Z0-9-]+$/.test(symbol); }).slice(0, 8) : [];
+        } catch (error) {
+          return [];
+        }
+      }
+      function formatKrw(value) {
+        var numberValue = Number(value);
+        if (!Number.isFinite(numberValue)) {
+          return "unknown";
+        }
+        return new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 0 }).format(numberValue) + " KRW";
+      }
+      function formatChangeRate(value) {
+        var numberValue = Number(value);
+        if (!Number.isFinite(numberValue)) {
+          return "--";
+        }
+        return (numberValue * 100).toFixed(2) + "%";
+      }
+      function updatePublicTickerTile(payload) {
+        if (!payload || !payload.code) {
+          return;
+        }
+        var tiles = document.querySelectorAll('[data-public-ticker-symbol="' + String(payload.code).replace(/"/g, "") + '"]');
+        if (!tiles.length) {
+          return;
+        }
+        Array.prototype.forEach.call(tiles, function (tile) {
+          var priceNode = tile.querySelector('[data-ticker-field="trade_price"]');
+          var rateNode = tile.querySelector('[data-ticker-field="change_rate"]');
+          var changeNode = tile.querySelector('[data-ticker-field="change_price"]');
+          var updatedNode = tile.querySelector('[data-ticker-field="updated_at"]');
+          if (priceNode) {
+            priceNode.textContent = formatKrw(payload.trade_price);
+          }
+          if (rateNode) {
+            rateNode.textContent = formatChangeRate(payload.signed_change_rate);
+          }
+          if (changeNode) {
+            changeNode.textContent = formatKrw(payload.signed_change_price);
+          }
+          if (updatedNode) {
+            updatedNode.textContent = new Date().toLocaleTimeString();
+          }
+        });
+      }
+      function initializePublicTickerStream() {
+        var root = document.querySelector("[data-public-ticker-symbols]");
+        if (!root) {
+          return;
+        }
+        var symbols = publicTickerSymbols(root);
+        var status = root.querySelector("[data-public-ticker-status]");
+        if (!symbols.length) {
+          if (status) {
+            status.textContent = "No KRW ticker symbols loaded.";
+          }
+          return;
+        }
+        function setStatus(message) {
+          if (status) {
+            status.textContent = message;
+          }
+        }
+        function startRestFallback() {
+          var endpoint = "https://api.upbit.com/v1/ticker?markets=" + symbols.map(encodeURIComponent).join(",");
+          function fetchOnce() {
+            fetch(endpoint, { cache: "no-store" })
+              .then(function (response) { return response.ok ? response.json() : []; })
+              .then(function (items) {
+                if (Array.isArray(items)) {
+                  items.forEach(updatePublicTickerTile);
+                  setStatus("Public REST ticker fallback active; display-only.");
+                }
+              })
+              .catch(function () {
+                setStatus("Public ticker unavailable in this browser; PAPER remains fail-closed.");
+              });
+          }
+          fetchOnce();
+          window.setInterval(fetchOnce, 5000);
+        }
+        if (!("WebSocket" in window)) {
+          startRestFallback();
+          return;
+        }
+        try {
+          var socket = new WebSocket("wss://api.upbit.com/websocket/v1");
+          var decoder = new TextDecoder("utf-8");
+          var received = false;
+          socket.binaryType = "arraybuffer";
+          socket.onopen = function () {
+            setStatus("Public websocket connected; display-only realtime prices.");
+            socket.send(JSON.stringify([
+              { ticket: "trader1-dashboard-display-only" },
+              { type: "ticker", codes: symbols, isOnlyRealtime: true }
+            ]));
+          };
+          socket.onmessage = function (event) {
+            received = true;
+            var text = typeof event.data === "string" ? event.data : decoder.decode(event.data);
+            try {
+              updatePublicTickerTile(JSON.parse(text));
+            } catch (error) {
+              setStatus("Public ticker parse error; waiting for next update.");
+            }
+          };
+          socket.onerror = function () {
+            setStatus("Public websocket failed; switching to REST fallback.");
+            startRestFallback();
+          };
+          socket.onclose = function () {
+            if (!received) {
+              startRestFallback();
+            }
+          };
+          window.setTimeout(function () {
+            if (!received && socket.readyState !== WebSocket.OPEN) {
+              startRestFallback();
+            }
+          }, 4000);
+        } catch (error) {
+          startRestFallback();
+        }
+      }
       function initializeDashboardClient() {
         updateDashboardFreshness();
         restoreDetailState();
+        initializePublicTickerStream();
         window.setInterval(updateDashboardFreshness, 1000);
         var box = document.querySelector("[data-dashboard-freshness]");
         var refreshSeconds = box ? Number(box.getAttribute("data-refresh-seconds") || "10") : 10;
@@ -421,6 +557,7 @@
         <span class="question-label">Is it running normally?</span>
         <strong>Check</strong>
         <small>PASS heartbeat</small>
+        <span class="live-answer-reason">Current: UNKNOWN / NOT_AVAILABLE</span>
       </section>
       <section class="quick-status-tile quick-status-yellow" aria-label="portfolio quick answer" data-primary-question="portfolio">
         <span class="eyebrow">Portfolio</span>
@@ -428,15 +565,25 @@
         <strong>Stale data</strong>
         <small>UNVERIFIED current equity</small>
       </section>
+      <section class="quick-status-tile quick-status-neutral" aria-label="current public price quick answer" data-primary-question="price" data-public-ticker-symbol="KRW-BTC">
+        <span class="eyebrow">Price</span>
+        <span class="question-label">What is the current public price?</span>
+        <strong><span class="ticker-price" data-ticker-field="trade_price">waiting</span></strong>
+        <small>KRW-BTC public ticker <span data-ticker-field="change_rate">--</span> <span data-ticker-field="change_price">--</span></small>
+        <span class="live-answer-reason">Current PAPER symbol: UNKNOWN</span>
+        <span class="live-answer-reason">Updated: <span data-ticker-field="updated_at">not yet</span></span>
+      </section>
       <section class="quick-status-tile quick-status-yellow" aria-label="live execution quick answer" data-primary-question="live">
         <span class="eyebrow">Live</span>
         <span class="question-label">Can live orders run?</span>
         <strong>No</strong>
         <small title="live_order_allowed=false">orders are disabled</small>
         <span class="live-answer-reason">Reason: Required evidence is missing</span>
+        <span class="live-answer-reason">Next: 13 blockers remain; no repeated implementation recheck remains.</span>
         <span class="live-blocker-summary">13 blockers remain; no repeated implementation recheck remains.</span>
       </section>
       </section>
+      <section class="public-ticker-strip" aria-label="public Upbit realtime ticker" data-public-ticker-symbols='[&quot;KRW-BTC&quot;]'><div><span class="eyebrow">Public Market</span><h3>Realtime KRW Prices</h3><p class="source-line">Public Upbit ticker only. Display-only; no credentials, private endpoint, or order path.</p><p class="source-line" data-public-ticker-status>Waiting for public ticker stream.</p></div><section class="public-ticker-grid"><section class="public-ticker-tile" data-public-ticker-symbol="KRW-BTC"><strong>KRW-BTC</strong><span class="ticker-price" data-ticker-field="trade_price">waiting</span><small><span data-ticker-field="change_rate">--</span> <span data-ticker-field="change_price">--</span></small><small>updated <span data-ticker-field="updated_at">not yet</span></small></section></section></section>
     </section>
     <section class="operator-answer-grid" aria-label="operator priority answers">
       <section class="operator-answer-card health-summary health-summary-yellow" aria-label="system health summary">
@@ -445,7 +592,8 @@
         <p class="answer-verdict">Heartbeat is stale or missing; dashboard values may be old.</p>
         <p class="answer-note">The dashboard cannot prove current operation until the heartbeat and source artifacts are refreshed; it does not prove a continuous PAPER engine is running.</p>
         <section class="answer-signal-grid" aria-label="system health signals">
-          <section class="answer-signal"><strong>Heartbeat</strong><span class="pill ok">PASS</span></section>
+          <section class="answer-signal"><strong>PAPER Runner</strong><span class="pill warn">Not Loaded</span></section>
+<section class="answer-signal"><strong>Heartbeat</strong><span class="pill ok">PASS</span></section>
 <section class="answer-signal"><strong>Sources</strong><span class="pill warn">0/3 PASS, 3 attention</span></section>
 <section class="answer-signal"><strong>Market Data</strong><span class="pill warn">Not Loaded</span></section>
 <section class="answer-signal"><strong>PAPER Loop</strong><span class="pill warn">Not Loaded</span></section>
@@ -461,8 +609,10 @@
         <p class="source-line">Runtime cycle: not linked | Ledger head: not linked | Snapshot: not linked | Balance: not verified | Age: not verified</p>
         <p class="source-line">Truth: UNKNOWN - No truth message</p>
         <p class="source-line">Runtime proof: UNKNOWN | Writer: UNKNOWN | No operator summary</p>
+
         <details class="writer-ladder"><summary>Audited writer ladder: Missing</summary><p>Writer readiness is display-only.</p><ol class="runtime-ladder" aria-label="audited writer readiness ladder"></ol></details>
         <details class="writer-ladder"><summary>Activation preflight: No Chain Loaded</summary><p>Writer activation remains blocked.</p><ol class="runtime-ladder" aria-label="audited writer activation preflight"></ol></details>
+        <div class="operator-note"><strong>Writer blocker: NO_CHAIN_LOADED</strong><p>Audited writer blocker decision is display-only.</p><small>code=NO_AUDITED_WRITER_EVIDENCE | truth=CONFIGURED_PAPER_BASELINE_ONLY | stage=PRECHECK_REPORT</small></div>
         <p class="source-line">Stale summary; rerun PAPER launcher</p>
         <section class="portfolio-kpi-grid">
           <section class="metric"><h2>configured_paper_capital</h2><p class="metric-value">UNVERIFIED</p><small>No verified source loaded</small></section>
@@ -526,6 +676,7 @@
       <p class="source-line">Runtime proof: UNKNOWN | Writer: UNKNOWN | No operator summary</p>
       <details class="writer-ladder"><summary>Audited writer ladder: Missing</summary><p>Writer readiness is display-only.</p><ol class="runtime-ladder" aria-label="audited writer readiness ladder"></ol></details>
       <details class="writer-ladder"><summary>Activation preflight: No Chain Loaded</summary><p>Writer activation remains blocked.</p><ol class="runtime-ladder" aria-label="audited writer activation preflight"></ol></details>
+      <div class="operator-note"><strong>Writer blocker: NO_CHAIN_LOADED</strong><p>Audited writer blocker decision is display-only.</p><small>code=NO_AUDITED_WRITER_EVIDENCE | truth=CONFIGURED_PAPER_BASELINE_ONLY | stage=PRECHECK_REPORT</small></div>
       <dl class="portfolio-ledger" aria-label="portfolio compact ledger"><div><dt>Locked</dt><dd>UNVERIFIED</dd></div><div><dt>Realized PnL</dt><dd>UNVERIFIED</dd></div><div><dt>Unrealized PnL</dt><dd>UNVERIFIED</dd></div><div><dt>Positions</dt><dd>UNVERIFIED</dd></div><div><dt>Candidates</dt><dd>UNVERIFIED</dd></div></dl>
       <section class="portfolio-detail-grid">
         <section class="metric"><h2>Locked Cash</h2><p class="metric-value">UNVERIFIED</p><small>Stale summary; rerun PAPER launcher</small></section>
@@ -562,7 +713,7 @@
       <span class="scope-item"><strong>Mode</strong>PAPER</span>
       <span class="scope-item"><strong>Session</strong>mvp1_read_only_dashboard</span>
         </section>
-        <section class="operation operation-yellow" aria-label="system operation status"><div class="operation-copy"><span class="eyebrow">System Status</span><h2>Heartbeat needs refresh</h2><p>Heartbeat is stale or missing; dashboard values may be old.</p><p>The dashboard cannot prove current operation until the heartbeat and source artifacts are refreshed; it does not prove a continuous PAPER engine is running.</p><p class="recovery"><strong>Recovery:</strong> Rerun the PAPER launcher and wait for a fresh heartbeat before reviewing cash, equity, positions, or decisions.</p></div><dl><div><dt>Heartbeat</dt><dd class="pill ok">PASS</dd></div><div><dt>Engine</dt><dd>BOOTSTRAP_READ_ONLY</dd></div><div><dt>Launcher mode</dt><dd>SAFE_BOOT_OR_EXPLICIT_MONITOR</dd></div><div><dt>Runtime presence</dt><dd>HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED</dd></div><div><dt>Market data</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>PAPER/SHADOW check</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>Persistent runtime</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>PAPER loop</dt><dd class="pill neutral">Not Loaded</dd></div><div><dt>PAPER recovery</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>PAPER profile</dt><dd class="pill neutral">Not Loaded</dd></div><div><dt>Source pairing</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>Actual long-run evidence</dt><dd class="pill warn">Stale</dd></div><div><dt>Runtime ladder</dt><dd class="pill neutral">Missing</dd></div><div><dt>Live orders</dt><dd class="pill safe-lock">blocked</dd></div></dl><p class="runtime-ladder-summary">Runtime evidence ladder is display-only.</p><ol class="runtime-ladder" aria-label="runtime continuity evidence ladder"></ol></section>
+        <section class="operation operation-yellow" aria-label="system operation status"><div class="operation-copy"><span class="eyebrow">System Status</span><h2>Heartbeat needs refresh</h2><p>Heartbeat is stale or missing; dashboard values may be old.</p><p>The dashboard cannot prove current operation until the heartbeat and source artifacts are refreshed; it does not prove a continuous PAPER engine is running.</p><p class="recovery"><strong>Recovery:</strong> Rerun the PAPER launcher and wait for a fresh heartbeat before reviewing cash, equity, positions, or decisions.</p></div><dl><div><dt>Heartbeat</dt><dd class="pill ok">PASS</dd></div><div><dt>Engine</dt><dd>BOOTSTRAP_READ_ONLY</dd></div><div><dt>Launcher mode</dt><dd>SAFE_BOOT_OR_EXPLICIT_MONITOR</dd></div><div><dt>Runtime presence</dt><dd>HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED</dd></div><div><dt>Market data</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>PAPER/SHADOW check</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>Persistent runtime</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>PAPER loop</dt><dd class="pill neutral">Not Loaded</dd></div><div><dt>PAPER runner</dt><dd class="pill neutral">Not Loaded</dd></div><div><dt>Runner cycles</dt><dd>0 ok / 0 fail</dd></div><div><dt>Next cycle</dt><dd>not scheduled</dd></div><div><dt>Evidence refresh</dt><dd class="pill neutral">Not Loaded</dd></div><div><dt>PAPER samples</dt><dd>0</dd></div><div><dt>Scorecard</dt><dd>NOT_LOADED / rank=false</dd></div><div><dt>Early robustness</dt><dd>INSUFFICIENT_PRELIMINARY_SAMPLE<br>OOS=UNTESTED, WF=UNTESTED, bootstrap=UNTESTED</dd></div><div><dt>Quality feedback</dt><dd>0 active<br>none<br>selected=NONE</dd></div><div><dt>Selected scorecard</dt><dd>UNKNOWN / netEV=n/a<br>feedback=NONE</dd></div><div><dt>Symbol scorecards</dt><dd>No symbol scorecards loaded</dd></div><div><dt>PAPER/SHADOW evidence</dt><dd>NOT_LOADED / NOT_LOADED</dd></div><div><dt>Retention</dt><dd class="pill neutral">Not Loaded</dd></div><div><dt>Disk pressure</dt><dd class="pill neutral">Not Loaded</dd></div><div><dt>Runner log</dt><dd>NOT_LOADED</dd></div><div><dt>Dashboard open</dt><dd>Not Attempted via NOT_ATTEMPTED</dd></div><div><dt>Dashboard target</dt><dd>NOT_LOADED</dd></div><div><dt>PAPER recovery</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>PAPER profile</dt><dd class="pill neutral">Not Loaded</dd></div><div><dt>Source pairing</dt><dd class="pill warn">Not Loaded</dd></div><div><dt>Actual long-run evidence</dt><dd class="pill warn">Stale</dd></div><div><dt>Runtime ladder</dt><dd class="pill neutral">Missing</dd></div><div><dt>Live orders</dt><dd class="pill safe-lock">blocked</dd></div></dl><p class="runtime-ladder-summary">Runtime evidence ladder is display-only.</p><ol class="runtime-ladder" aria-label="runtime continuity evidence ladder"></ol></section>
         <section class="operator-action operator-action-yellow" aria-label="operator next action"><div class="portfolio-head"><div><span class="eyebrow">What To Do Now</span><h2>Refresh PAPER status</h2></div><p><span class="pill neutral">Refresh Required</span></p></div><section class="decision-grid"><div><strong>Next Action</strong><p>Rerun the PAPER launcher to refresh heartbeat, dashboard sources, and portfolio values.</p></div><div><strong>Primary Blocker</strong><p>HARD_TRUTH_MISSING: live orders remain blocked.</p></div><div><strong>Workflow Step</strong><p>Run Paper</p></div><div><strong>Safety</strong><p><span class="pill safe-lock">PAPER review only</span><br><span class="pill safe-lock">LIVE blocked</span></p></div></section><small>Emergency controls stay visible, but this dashboard has no order buttons, no forms, and no live permission.</small></section>
         <section class="reconciliation reconciliation-yellow" aria-label="ledger reconciliation and recovery"><div class="portfolio-head"><div><span class="eyebrow">Ledger Safety</span><h2>Ledger &amp; Reconciliation</h2></div><p><span class="pill warn">Not Loaded</span></p></div><p>Ledger/reconciliation evidence is not loaded; portfolio values remain display-only.</p><section class="decision-grid"><div><strong>Reconciliation</strong><p>report=NOT_LOADED<br>validator=UNTESTED<br>mismatches=0</p></div><div><strong>Restart Recovery</strong><p>report=NOT_LOADED<br>validator=UNTESTED</p></div><div><strong>Ledger / Writer</strong><p>ledger=NOT_LOADED<br>single-writer=NOT_LOADED<br>idempotency=NOT_LOADED</p></div><div><strong>Current Ledger Evidence</strong><p>idempotency=NOT_LOADED<br>validator=UNTESTED<br>reconciliation=NOT_LOADED<br>portfolio=NOT_LOADED<br>ledger-files=0<br>events=0<br>duplicates=0/0/0/0<br>count-mismatch=0</p></div><div><strong>Post-Rerun Blockers</strong><p>rollup=NOT_LOADED<br>items=0<br>unique=0<br>current-writes=0<br>guidance=NOT_LOADED<br>steps=0<br>forbidden=0<br>guidance-writes=0<br><strong>Post-Rerun Operator Queue</strong><br>queue=NOT_LOADED<br>items=0<br>review-ready=0<br>pre-review-blocked=0<br>queue-writes=0<br>queue-usable=0<br><strong>Post-Rerun Resolution</strong><br>resolution=NOT_LOADED<br>unresolved=0<br>resolved=0<br>controls=0<br>satisfied=0<br>resolution-writes=0<br>source-bindings=NOT_LOADED/NOT_LOADED<br><strong>Post-Rerun Closure</strong><br>closure=NOT_LOADED<br>closed=0<br>evidence-closed=0<br>closure-writes=0<br>closure-source=NOT_LOADED<br><strong>Closure Recheck</strong><br>recheck=NOT_LOADED<br>bridge=NOT_LOADED<br>portfolio=NOT_LOADED<br>sources=NOT_LOADED/NOT_LOADED<br>ledger=NOT_LOADED/NOT_LOADED/NOT_LOADED/NOT_LOADED<br>recheck-writes=False<br><strong>Repair Path</strong><br>repair=NOT_LOADED<br>gates=0/0<br>blocked-gates=0<br>first-gate=NOT_LOADED/NOT_LOADED<br>repair-sources=NOT_LOADED/NOT_LOADED<br>repair-bridge=NOT_LOADED<br>repair-runtime-depth=NOT_LOADED<br>repair-loop=NOT_LOADED/NOT_LOADED<br>repair-runtime-mismatch=0<br>repair-writes=0<br><strong>Post Repair</strong><br>post-repair=NOT_LOADED<br>candidates=0<br>hash-mismatch=0<br>operator-action=0<br>usable=0<br><strong>Repair Operator Queue</strong><br>queue=NOT_LOADED<br>items=0<br>ledger-ready=0<br>cycle-rerun=0<br>recovery-rerun=0<br>hash-operator=0<br>queue-usable=0</p></div><div><strong>Stale Loop Post Regeneration</strong><p>post-regeneration=NOT_LOADED<br>accepted=0<br>blocked=0<br>usable=0<br>excluded=0<br>ledger-blocked=0</p></div><div><strong>Stale Loop Operator Queue Closure</strong><p>closure=NOT_LOADED<br>items=0<br>ledger-ready=0<br>recovery=0<br>cycle-rerun=0<br>operator-review=0<br>writes=0<br>usable-after-closure=0</p></div><div><strong>Repaired Current Evidence Guard</strong><p>guard=NOT_LOADED<br>candidates=0/0<br>clean=0<br>duplicates=0<br>ledger=0/0<br>writes=0<br>portfolio-writes=0<br>usable=0</p></div><div><strong>Audited Current Evidence Writer Precheck</strong><p>precheck=NOT_LOADED<br>validator=UNTESTED<br>gates=0/0<br>blocked-gates=0<br>candidate-ready=0<br>writer-enabled=False<br>precheck-passed=False<br>current-writes=False<br>portfolio-writes=False<br>blocker=NOT_LOADED</p></div><div><strong>Audited Current Evidence Writer Dry-Run</strong><p>dry-run=NOT_LOADED<br>validator=UNTESTED<br>checks=0/0<br>blocked-checks=0<br>configured-cash=0<br>cash=NOT_LOADED<br>portfolio-source=NOT_LOADED<br>current-written=False<br>portfolio-written=False<br>blocker=NOT_LOADED</p></div><div><strong>Audited Current Evidence Writer Locked Output</strong><p>locked-output=NOT_LOADED<br>validator=UNTESTED<br>controls=0/0<br>blocked-controls=0<br>configured-cash=0<br>cash=NOT_LOADED<br>lock-path=NOT_LOADED<br>lock-acquired=False<br>lock-written=False<br>current-written=False<br>portfolio-written=False<br>blocker=NOT_LOADED</p></div><div><strong>Audited Current Evidence Writer Implementation Prep</strong><p>implementation-prep=NOT_LOADED<br>validator=UNTESTED<br>checks=0/0<br>blocked-checks=0<br>targets=0<br>target-state-hash=NOT_LOADED<br>manifest=NOT_LOADED<br>lock-path=NOT_LOADED<br>lock-acquire-attempted=False<br>lock-acquired=False<br>lock-written=False<br>current-written=False<br>idempotency-manifest-written=False<br>portfolio-written=False<br>blocker=NOT_LOADED</p></div><div><strong>Audited Current Evidence Writer</strong><p>writer=NOT_LOADED<br>validator=UNTESTED<br>controls=0/0<br>blocked-controls=0<br>written=0 reused=0<br>current-written=False<br>idempotency-manifest-written=False<br>portfolio-written=False<br>idempotent-replay=False<br>lock-present=False<br>ledger-head=NOT_LOADED<br>blocker=NOT_LOADED</p></div><div><strong>Live Boundary</strong><p><span class="pill safe-lock">live_order_allowed=false</span><br><span class="pill safe-lock">can_live_trade=false</span><br><span class="pill safe-lock">scale_up_allowed=false</span></p></div></section><p class="next">Next: Run PAPER with reconciliation and restart recovery artifacts, then review this panel before live review.</p><small>Blocker=RECONCILIATION_REQUIRED: ledger/reconciliation and restart recovery evidence are not loaded.. Source=summary.json. Display-only ledger safety; this panel cannot approve or place orders.</small></section>
         <section class="workflow workflow-yellow" aria-label="operator workflow"><div class="portfolio-head"><div><span class="eyebrow">Operator Workflow</span><h2>Operator Workflow</h2></div><p><span class="pill neutral">Refresh Required</span></p></div><p>Refresh PAPER sources before continuing the dashboard review.</p><section class="workflow-grid"><section class="workflow-step"><h3>Run PAPER</h3><p><span class="pill neutral">CURRENT</span></p><small>Start or refresh the PAPER launcher and keep live orders blocked.</small></section>
@@ -573,7 +724,7 @@
         <section class="market-data market-data-yellow" aria-label="market data continuity status"><div class="portfolio-head"><div><span class="eyebrow">Market Data</span><h2>Market Data Continuity</h2></div><p><span class="pill warn">Not Loaded</span></p></div><p>No PAPER public market-data continuity history is loaded.</p><section class="decision-grid"><div><strong>Attempts</strong><p>pass=0/0<br>blocked=0</p></div><div><strong>Latest Data</strong><p><span class="pill warn">BLOCKED</span><br>symbol=UNKNOWN</p></div><div><strong>Data Quality Blocks</strong><p>duplicate=0<br>non-advancing=0<br>unavailable=0</p></div><div><strong>Evidence Boundary</strong><p><span class="pill safe-lock">PAPER data only</span><br><span class="pill safe-lock">not LIVE_READY</span><br><span class="pill safe-lock">live_order_allowed=false</span></p></div></section><p class="next">Next: Run PAPER public market-data continuity collection before relying on candidate or regime status.</p><small>Source=NOT_LOADED | window=NOT_LOADED | blocker=DATA_UNAVAILABLE. Display-only market-data status; execution, ledger, exchange, optimizer, and live-readiness truth remain separate.</small></section>
         <section class="paper-persistent-loop paper-persistent-loop-yellow" aria-label="paper persistent runtime loop"><div class="portfolio-head"><div><span class="eyebrow">PAPER Persistent Runtime</span><h2>PAPER Persistent Runtime</h2></div><p><span class="pill neutral">Not Loaded</span></p></div><p>No bounded PAPER persistent loop report is loaded.</p><section class="decision-grid"><div><strong>Cycles</strong><p>completed=0/0<br>actual PAPER runtime=False</p></div><div><strong>Preflight</strong><p>existing state=False<br>guard=SKIPPED<br>current writes=False</p></div><div><strong>Recovery / Ledger</strong><p>recovery=BLOCKED<br>ledger=BLOCKED<br>resume_allowed=False</p></div><div><strong>Evidence Boundary</strong><p>NOT_LOADED<br><span class="pill safe-lock">long-run eligible=False</span><br><span class="pill safe-lock">scale-up blocked</span><br>blocker=LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT</p></div></section><p class="next">Next: Run a bounded PAPER loop with verified recovery and ledger evidence.</p><small>Source=NOT_LOADED | Loop=NOT_LOADED | Blocker=ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING. Display-only bounded PAPER loop status; it cannot approve live orders, promotion, long-run evidence, or risk scale-up.</small></section>
         <section class="paper-recovery paper-recovery-yellow" aria-label="paper runtime recovery guard"><div class="portfolio-head"><div><span class="eyebrow">PAPER Runtime Recovery</span><h2>PAPER Runtime Recovery Guard</h2></div><p><span class="pill warn">Not Loaded</span></p></div><p>PAPER runtime recovery guard is not loaded; resume status is unverified.</p><section class="decision-grid"><div><strong>Latest Cycle</strong><p><span class="pill warn">MISSING</span><br>recoverable=False</p></div><div><strong>Partial Write Check</strong><p>market JSONL=0<br>ledger JSONL=0<br>quarantined=0/0<br>invalid ledger=0<br>tmp files=0</p></div><div><strong>Resume Decision</strong><p>SAFE_MODE_RECONCILE<br>resume_allowed=False</p></div><div><strong>Evidence Boundary</strong><p><span class="pill safe-lock">not LIVE_READY</span><br><span class="pill safe-lock">long-run eligible=False</span><br><span class="pill safe-lock">scale-up blocked</span><br>blocker=LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT</p></div></section><p class="next">Next: Run the bounded Upbit PAPER runtime recovery guard before relying on runtime resume status.</p><small>Source=NOT_LOADED | Guard=NOT_LOADED | Loop=NOT_LOADED | Blocker=RECONCILIATION_REQUIRED. Display-only recovery status; it cannot approve live orders, promotion, long-run evidence, or risk scale-up.</small></section>
-        <section class="paper-runtime-profile paper-runtime-profile-yellow" aria-label="paper runtime evidence collection profile"><div class="portfolio-head"><div><span class="eyebrow">PAPER Runtime Evidence</span><h2>PAPER Runtime Evidence Profile</h2></div><p><span class="pill neutral">Not Loaded</span></p></div><p>No bounded PAPER runtime evidence profile is loaded.</p><section class="decision-grid"><div><strong>Profile Cycles</strong><p>completed=0/0<br>accepted samples=0<br>unique hashes=0</p></div><div><strong>Components</strong><p>pass=0/0<br>blocked=0<br>invalid sources=0</p></div><div><strong>Ledger / Idempotency</strong><p>ledger=BLOCKED<br>idempotency=BLOCKED<br>reconciliation=BLOCKED<br>mismatches=0</p></div><div><strong>Duplicate Guards</strong><p>event_id=0<br>dedup_key=0<br>semantic=0<br>filled_order=0</p></div><div><strong>Collection Depth</strong><p>Blocked For Long Run Collection Depth<br>missing modes=SHADOW<br>remaining span=0s<br>remaining cycles=0</p></div><div><strong>Per-Mode Long Run</strong><p>Not Loaded<br>missing modes=PAPER, SHADOW<br>PAPER span/cycles=0s/0<br>SHADOW span/cycles=0s/0</p></div><div><strong>Evidence Boundary</strong><p>BOUNDED_PAPER_RUNTIME_EVIDENCE_PROFILE_NOT_LONG_RUN<br><span class="pill safe-lock">not LIVE_READY</span><br><span class="pill safe-lock">current writes=False</span><br><span class="pill safe-lock">long-run eligible=False</span><br><span class="pill safe-lock">bounded profile is long-run=False</span><br>blocker=LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT</p></div></section><p class="next">Next: Run the bounded PAPER runtime evidence collection profile before review.</p><small>Source=NOT_LOADED | Profile=NOT_LOADED | Loop=NOT_LOADED | Blocker=ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING. Display-only PAPER evidence profile; it cannot approve live orders, current-evidence writes, promotion, long-run evidence, or risk scale-up.</small></section>
+        <section class="paper-runtime-profile paper-runtime-profile-yellow" aria-label="paper runtime evidence collection profile"><div class="portfolio-head"><div><span class="eyebrow">PAPER Runtime Evidence</span><h2>PAPER Runtime Evidence Profile</h2></div><p><span class="pill neutral">Not Loaded</span></p></div><p>No bounded PAPER runtime evidence profile is loaded.</p><section class="decision-grid"><div><strong>Profile Cycles</strong><p>completed=0/0<br>accepted samples=0<br>unique hashes=0</p></div><div><strong>Components</strong><p>pass=0/0<br>blocked=0<br>invalid sources=0</p></div><div><strong>Ledger / Idempotency</strong><p>ledger=BLOCKED<br>idempotency=BLOCKED<br>reconciliation=BLOCKED<br>mismatches=0</p></div><div><strong>Duplicate Guards</strong><p>event_id=0<br>dedup_key=0<br>semantic=0<br>filled_order=0</p></div><div><strong>Collection Depth</strong><p>Blocked For Long Run Collection Depth<br>missing modes=SHADOW<br>remaining span=0s<br>remaining cycles=0</p></div><div><strong>Per-Mode Long Run</strong><p>Not Loaded<br>missing modes=PAPER, SHADOW<br>PAPER span/cycles=0s/0<br>SHADOW span/cycles=0s/0</p></div><div><strong>Next Collection</strong><p>Blocked For Reconciliation<br>PAPER batch=0/20<br>spacing=0s<br>wall-clock remaining=0s</p></div><div><strong>Evidence Boundary</strong><p>BOUNDED_PAPER_RUNTIME_EVIDENCE_PROFILE_NOT_LONG_RUN<br><span class="pill safe-lock">not LIVE_READY</span><br><span class="pill safe-lock">current writes=False</span><br><span class="pill safe-lock">long-run eligible=False</span><br><span class="pill safe-lock">bounded profile is long-run=False</span><br>blocker=LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT</p></div></section><p class="next">Next: Run the bounded PAPER runtime evidence collection profile before review.</p><small>Source=NOT_LOADED | Profile=NOT_LOADED | Loop=NOT_LOADED | Blocker=ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING. Display-only PAPER evidence profile; it cannot approve live orders, current-evidence writes, promotion, long-run evidence, or risk scale-up.</small></section>
         <section class="runtime-boundary runtime-boundary-yellow" aria-label="runtime evidence boundary"><div class="portfolio-head"><div><span class="eyebrow">Runtime Evidence Boundary</span><h2>Runtime Evidence Boundary</h2></div><p><span class="pill warn">Stale</span></p></div><p>Runtime evidence is stale. Refresh PAPER sources before trusting the dashboard.</p><section class="decision-grid"><div><strong>Actual Long-Run</strong><p><span class="pill warn">Stale</span><br>source=heartbeat.json</p></div><div><strong>Short-Window Check</strong><p>Not Loaded<br>not LIVE_READY evidence</p></div><div><strong>Persistent Stub</strong><p>Not Loaded<br>No validated persistent runtime source is loaded for long-run evidence.</p></div><div><strong>Live Review</strong><p><span class="pill safe-lock">live_review_evidence_eligible=false</span><br><span class="pill safe-lock">live_order_allowed=false</span></p></div></section><div class="evidence-requirement-head"><strong>Long-Run Evidence Requirements</strong><span>0/8 long-run evidence requirements currently pass for display-only review; LIVE review remains blocked.</span></div><section class="evidence-requirement-grid" aria-label="long-run evidence requirements"><div class="evidence-requirement"><strong>Persistent runtime source</strong><p><span class="pill warn">Missing</span></p><p>Loads the persistent runtime source as stub-only evidence; it never becomes actual long-run proof.</p><small>Source=NOT_LOADED. Next: Generate or refresh the bounded non-live persistent runtime report.</small></div>
 <div class="evidence-requirement"><strong>Short-window harness source</strong><p><span class="pill warn">Missing</span></p><p>Confirms the short-window PAPER/SHADOW harness ran; it is not long-run or LIVE_READY evidence.</p><small>Source=NOT_LOADED. Next: Run the non-live PAPER/SHADOW harness and keep live review blocked.</small></div>
 <div class="evidence-requirement"><strong>Runtime source pairing</strong><p><span class="pill warn">Missing</span></p><p>Verifies stub and harness source hashes are paired; it still blocks long-run promotion.</p><small>Source=NOT_LOADED. Next: Generate the runtime orchestration guard after both non-live sources exist.</small></div>
@@ -594,7 +745,7 @@
 <section class="stability-metric"><h3>Event latency</h3><p class="metric-value"><span class="pill ok">PASS</span></p><small>Heartbeat latency component is within the current safe threshold</small></section>
 <section class="stability-metric"><h3>Queue backlog</h3><p class="metric-value"><span class="pill ok">PASS</span></p><small>No queue backlog pressure reported by heartbeat</small></section>
 <section class="stability-metric"><h3>Rate-limit pressure</h3><p class="metric-value"><span class="pill ok">PASS</span></p><small>No rate-limit pressure reported by heartbeat</small></section></section></section>
-        <section class="maturity maturity-yellow" aria-label="strategy evidence maturity"><div class="portfolio-head"><div><span class="eyebrow">Strategy Evidence</span><h2>Strategy Evidence Maturity</h2></div><p><span class="pill warn">Stale</span></p></div><section class="decision-grid"><div><strong>Paper / Shadow Samples</strong><p>No paper/shadow evidence loaded</p></div><div><strong>Optimizer Input</strong><p><span class="pill warn">BLOCK_RANKING</span></p></div><div><strong>PAPER Scorecard</strong><p>none | UNKNOWN<br>net EV=UNVERIFIED<br><span class="pill warn">STALE</span></p><small>Dashboard summary is stale; candidate scorecard display is not trusted.</small></div><div><strong>Evidence Quality</strong><p>cost=UNTESTED, entry=UNTESTED, no-trade=UNTESTED</p></div><div><strong>Long-Run Evidence</strong><p><span class="pill warn">MISSING</span><br>0 runtime sources</p><small>No validated non-live persistent runtime source is loaded.</small></div><div><strong>Readiness Scope</strong><p><span class="pill safe-lock">STALE_DISPLAY_ONLY</span><br><span class="pill safe-lock">NOT_LIVE_READY</span></p></div><div><strong>Evidence Rollup</strong><p><span class="pill warn">NOT_LOADED</span></p><small>0/10 components | NOT_LOADED</small></div><div><strong>Promotion Thresholds</strong><p><span class="pill neutral">NOT_LOADED</span><br>replay=0/0, paper=0/0<br>runtime=0h observed, shadow=0/0</p><small>Promotion thresholds are not loaded. Codes=</small></div></section><section class="evidence-progress" aria-label="strategy evidence progress"><h3>Evidence Progress: 0%</h3><p>Evidence source is stale; progress is not trusted.</p><section class="evidence-check-grid"><section class="evidence-check"><h3>PAPER samples</h3><p><span class="pill warn">STALE</span></p><small>0/1 | PAPER samples used only for paper/shadow scorecard review.</small></section>
+        <section class="maturity maturity-yellow" aria-label="strategy evidence maturity"><div class="portfolio-head"><div><span class="eyebrow">Strategy Evidence</span><h2>Strategy Evidence Maturity</h2></div><p><span class="pill warn">Stale</span></p></div><section class="decision-grid"><div><strong>Paper / Shadow Samples</strong><p>No paper/shadow evidence loaded</p></div><div><strong>Optimizer Input</strong><p><span class="pill warn">BLOCK_RANKING</span></p></div><div><strong>Next Evidence</strong><p><span class="pill neutral">NOT_LOADED</span><br>NOT_LOADED</p><small>NOT_LOADED: No PAPER/SHADOW actionability report is loaded.</small></div><div><strong>Deficit Counts</strong><p>paper=0, shadow=0, windows=0, span=0h<br>reason=0, stale=0, runtime=0</p><small>NOT_LOADED</small></div><div><strong>Runtime Span</strong><p>No PAPER/SHADOW runtime span evidence loaded.</p><small>paired seconds=0; evidence span=0h</small></div><div><strong>PAPER Scorecard</strong><p>none | UNKNOWN<br>net EV=UNVERIFIED<br><span class="pill warn">STALE</span></p><small>Dashboard summary is stale; candidate scorecard display is not trusted.<br>evaluated symbols=0, entry-review symbols=0<br>rotation review=false, reason=NONE<br>best alternative=none / none / netEV=n/a<br>Overfit: NOT_LOADED (0/300 samples), blocker=SAMPLE_INSUFFICIENT<br>Early robustness: INSUFFICIENT_PRELIMINARY_SAMPLE, OOS=UNTESTED, WF=UNTESTED, bootstrap=UNTESTED<br>early OOS net EV=n/a bps, bootstrap lower=n/a bps; PRELIMINARY_SAMPLE_INSUFFICIENT</small></div><div><strong>Evidence Quality</strong><p>cost=UNTESTED, entry=UNTESTED, no-trade=UNTESTED</p></div><div><strong>Long-Run Evidence</strong><p><span class="pill warn">MISSING</span><br>0 runtime sources</p><small>No validated non-live persistent runtime source is loaded.</small></div><div><strong>Runtime Binding</strong><p><span class="pill neutral">NOT_LOADED</span><br>0/5 requirements | NOT_LOADED</p><small>NOT_LOADED: PAPER/SHADOW runtime source binding is not loaded.</small></div><div><strong>Readiness Scope</strong><p><span class="pill safe-lock">STALE_DISPLAY_ONLY</span><br><span class="pill safe-lock">NOT_LIVE_READY</span></p></div><div><strong>Evidence Rollup</strong><p><span class="pill warn">NOT_LOADED</span></p><small>0/10 components | NOT_LOADED</small></div><div><strong>Promotion Thresholds</strong><p><span class="pill neutral">NOT_LOADED</span><br>replay=0/0, paper=0/0<br>runtime=0h observed, shadow=0/0</p><small>Promotion thresholds are not loaded. Codes=</small></div></section><section class="evidence-progress" aria-label="strategy scorecard input checks"><h3>Scorecard Input Checks: 0%</h3><p>Evidence source is stale; progress is not trusted.. This is PAPER scorecard input only; LIVE_READY remains blocked by LATENCY_TTL_EXPIRED.</p><section class="evidence-check-grid"><section class="evidence-check"><h3>PAPER samples</h3><p><span class="pill warn">STALE</span></p><small>0/1 | PAPER samples used only for paper/shadow scorecard review.</small></section>
 <section class="evidence-check"><h3>SHADOW samples</h3><p><span class="pill warn">STALE</span></p><small>0/1 | SHADOW comparison must match the same scope before ranking.</small></section>
 <section class="evidence-check"><h3>Cost evidence</h3><p><span class="pill warn">STALE</span></p><small>0/1 | Fee, spread, slippage, and impact evidence must exist before ranking.</small></section>
 <section class="evidence-check"><h3>Entry reasons</h3><p><span class="pill warn">STALE</span></p><small>0/1 | Accepted entries must have traceable reasons.</small></section>

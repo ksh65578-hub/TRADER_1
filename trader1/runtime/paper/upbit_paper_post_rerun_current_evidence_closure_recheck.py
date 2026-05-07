@@ -41,6 +41,10 @@ POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_OUTCOME = (
 POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_SOURCE_BINDING_REQUIRED = (
     "POST_RERUN_CURRENT_EVIDENCE_CLOSURE_RECHECK_SOURCE_BINDING_REQUIRED"
 )
+LEDGER_CLOSURE_RECHECK_ALLOWED_RUNTIME_INPUT_ROLES = {
+    "PUBLIC_MARKET_DATA_COLLECTION",
+    "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION",
+}
 
 
 @dataclass(frozen=True)
@@ -229,7 +233,7 @@ def build_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
         and ledger.get("source_runtime_depth_status") == "PASS"
         and ledger.get("source_runtime_depth_mismatch_count") == 0
         and ledger.get("ledger_head_cycle_in_persistent_loop") is True
-        and ledger.get("source_runtime_input_role") == "PUBLIC_MARKET_DATA_COLLECTION"
+        and ledger.get("source_runtime_input_role") in LEDGER_CLOSURE_RECHECK_ALLOWED_RUNTIME_INPUT_ROLES
         and ledger.get("source_strategy_regime_cost_linkage_live_order_ready") is False
         and ledger.get("source_strategy_regime_cost_linkage_live_order_allowed") is False
         and ledger.get("source_strategy_regime_cost_linkage_can_live_trade") is False
@@ -599,7 +603,7 @@ def validate_upbit_paper_post_rerun_current_evidence_closure_recheck_report(
         or report.get("ledger_source_runtime_depth_blocker_code") is not None
         or report.get("ledger_source_runtime_depth_mismatch_count") != 0
         or report.get("ledger_head_cycle_in_persistent_loop") is not True
-        or report.get("ledger_source_runtime_input_role") != "PUBLIC_MARKET_DATA_COLLECTION"
+        or report.get("ledger_source_runtime_input_role") not in LEDGER_CLOSURE_RECHECK_ALLOWED_RUNTIME_INPUT_ROLES
         or report.get("ledger_source_public_market_data_hash") != report.get("ledger_source_runtime_public_market_data_hash")
         or report.get("ledger_source_canonical_event_count") < 5
         or report.get("ledger_duplicate_total_count") != 0

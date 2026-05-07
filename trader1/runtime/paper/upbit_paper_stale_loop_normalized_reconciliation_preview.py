@@ -74,7 +74,7 @@ def _build_item(item: dict[str, Any], priority_order: int) -> dict[str, Any]:
     normalized_blocker = item.get("normalized_validation_blocker_code")
     reconciliation_required = (
         item.get("normalized_validation_status") == "BLOCKED"
-        and normalized_blocker == "RECONCILIATION_REQUIRED"
+        and normalized_blocker in {"RECONCILIATION_REQUIRED", "MEASUREMENT_MISSING"}
     )
     blocker_codes = set(str(code) for code in item.get("blocker_codes") or [])
     blocker_codes.add(NORMALIZED_RECONCILIATION_PREVIEW_BLOCKER_CODE)
@@ -414,9 +414,14 @@ def validate_upbit_paper_stale_loop_normalized_reconciliation_preview_report(
                 )
         if item.get("reconciliation_required"):
             expected_reconciliation_required += 1
-            if item.get("normalized_validation_status") != "BLOCKED" or item.get("normalized_validation_blocker_code") != "RECONCILIATION_REQUIRED":
+            if (
+                item.get("normalized_validation_status") != "BLOCKED"
+                or item.get("normalized_validation_blocker_code") not in {"RECONCILIATION_REQUIRED", "MEASUREMENT_MISSING"}
+            ):
                 return UpbitPaperStaleLoopNormalizedReconciliationPreviewValidationResult(
-                    "FAIL", "reconciliation-required item must be blocked by RECONCILIATION_REQUIRED", "SCHEMA_IDENTITY_MISMATCH"
+                    "FAIL",
+                    "reconciliation-required item must be blocked by reconciliation or runtime-depth evidence",
+                    "SCHEMA_IDENTITY_MISMATCH",
                 )
             if item.get("primary_blocker_code") != NORMALIZED_RECONCILIATION_REQUIRED_BLOCKER_CODE:
                 return UpbitPaperStaleLoopNormalizedReconciliationPreviewValidationResult(

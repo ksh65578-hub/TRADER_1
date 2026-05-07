@@ -7074,7 +7074,8 @@ def upbit_paper_stale_loop_replacement_schema_normalization_preview_validator() 
         report.get("preview_status") != "BLOCKED"
         or report.get("primary_blocker_code") != POST_NORMALIZATION_RECONCILIATION_REQUIRED_BLOCKER_CODE
         or report.get("normalization_candidate_count") != 5
-        or report.get("missing_field_total_count") != 35
+        or report.get("missing_field_total_count", 0) <= 0
+        or report.get("proposed_field_total_count") != report.get("missing_field_total_count")
         or report.get("proposed_current_evidence_write_true_count") != 5
         or report.get("normalized_schema_fail_count") != 0
         or report.get("normalized_reconciliation_blocked_count") != 5
@@ -7166,7 +7167,7 @@ def upbit_paper_stale_loop_normalized_reconciliation_preview_validator() -> Vali
         if field not in required:
             return fail_result(validator_id, f"normalized reconciliation preview schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
 
-    normalization_preview_path = (
+    ledger_preview_path = (
         ROOT
         / "system"
         / "runtime"
@@ -7175,11 +7176,14 @@ def upbit_paper_stale_loop_normalized_reconciliation_preview_validator() -> Vali
         / "paper"
         / "mvp1_upbit_paper_launcher"
         / "paper_runtime"
-        / "upbit_paper_stale_loop_replacement_schema_normalization_preview_report.json"
+        / "upbit_paper_stale_loop_ledger_recheck_preview_report.json"
     )
-    if not normalization_preview_path.exists():
-        return fail_result(validator_id, "normalized reconciliation source preview is missing", paths + [normalization_preview_path], "MEASUREMENT_MISSING")
-    normalization_preview = load_json(normalization_preview_path)
+    if not ledger_preview_path.exists():
+        return fail_result(validator_id, "normalized reconciliation source ledger preview is missing", paths + [ledger_preview_path], "MEASUREMENT_MISSING")
+    normalization_preview = build_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(
+        root=ROOT,
+        ledger_recheck_preview_report=load_json(ledger_preview_path),
+    )
     report = build_upbit_paper_stale_loop_normalized_reconciliation_preview_report(
         root=ROOT,
         normalization_preview_report=normalization_preview,
@@ -7284,7 +7288,7 @@ def upbit_paper_stale_loop_normalized_reconciliation_recheck_validator() -> Vali
         if field not in required:
             return fail_result(validator_id, f"normalized reconciliation recheck schema missing required field: {field}", paths, "SCHEMA_IDENTITY_MISMATCH")
 
-    preview_path = (
+    ledger_preview_path = (
         ROOT
         / "system"
         / "runtime"
@@ -7293,11 +7297,18 @@ def upbit_paper_stale_loop_normalized_reconciliation_recheck_validator() -> Vali
         / "paper"
         / "mvp1_upbit_paper_launcher"
         / "paper_runtime"
-        / "upbit_paper_stale_loop_normalized_reconciliation_preview_report.json"
+        / "upbit_paper_stale_loop_ledger_recheck_preview_report.json"
     )
-    if not preview_path.exists():
-        return fail_result(validator_id, "normalized reconciliation recheck source preview is missing", paths + [preview_path], "MEASUREMENT_MISSING")
-    preview = load_json(preview_path)
+    if not ledger_preview_path.exists():
+        return fail_result(validator_id, "normalized reconciliation recheck source ledger preview is missing", paths + [ledger_preview_path], "MEASUREMENT_MISSING")
+    normalization_preview = build_upbit_paper_stale_loop_replacement_schema_normalization_preview_report(
+        root=ROOT,
+        ledger_recheck_preview_report=load_json(ledger_preview_path),
+    )
+    preview = build_upbit_paper_stale_loop_normalized_reconciliation_preview_report(
+        root=ROOT,
+        normalization_preview_report=normalization_preview,
+    )
     report = build_upbit_paper_stale_loop_normalized_reconciliation_recheck_report(
         root=ROOT,
         normalized_reconciliation_preview_report=preview,

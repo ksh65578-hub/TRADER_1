@@ -9,6 +9,7 @@ from typing import Any
 
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     BOUNDED_LOOP_RUNTIME_EVIDENCE_ROLE,
+    DEFAULT_PUBLIC_DISCOVERY_EVALUATION_LIMIT,
     LONG_RUN_EVIDENCE_BLOCKER_CODE,
     LONG_RUN_EVIDENCE_NEXT_ACTION,
     upbit_paper_persistent_loop_hash,
@@ -36,6 +37,20 @@ PERSISTENT_LOOP_REQUIRED_FIELDS = {
     "mode",
     "session_id",
     "symbol",
+    "symbol_universe",
+    "symbol_universe_source",
+    "public_symbol_discovery_attempted",
+    "symbol_universe_discovery_status",
+    "symbol_universe_discovery_blocker_code",
+    "symbol_universe_total_count",
+    "symbol_universe_evaluated_count",
+    "max_symbol_evaluation_count",
+    "public_symbol_discovery_market_count",
+    "public_ticker_ranked_symbol_count",
+    "public_ticker_eligible_symbol_count",
+    "public_symbol_discovery_report",
+    "public_ticker_snapshot_report",
+    "public_symbol_ranking_report",
     "loop_mode",
     "requested_cycle_count",
     "completed_cycle_count",
@@ -159,6 +174,37 @@ def _load_rollup_hash(root: Path, source: dict[str, Any]) -> str | None:
     return str(rollup_hash) if isinstance(rollup_hash, str) and rollup_hash else None
 
 
+def _legacy_symbol_universe(source: dict[str, Any]) -> list[str]:
+    raw_universe = source.get("symbol_universe")
+    if isinstance(raw_universe, list):
+        universe = [str(symbol) for symbol in raw_universe if isinstance(symbol, str) and symbol.startswith("KRW-")]
+        if universe:
+            return list(dict.fromkeys(universe))
+    symbol = source.get("symbol")
+    return [str(symbol)] if isinstance(symbol, str) and symbol.startswith("KRW-") else ["KRW-BTC"]
+
+
+def _apply_symbol_discovery_defaults(report: dict[str, Any], source: dict[str, Any]) -> None:
+    universe = _legacy_symbol_universe(source)
+    report.setdefault("symbol_universe", universe)
+    report.setdefault("symbol_universe_source", "EXPLICIT_SYMBOL_UNIVERSE")
+    report.setdefault("public_symbol_discovery_attempted", False)
+    report.setdefault("symbol_universe_discovery_status", "SKIPPED")
+    report.setdefault("symbol_universe_discovery_blocker_code", None)
+    report.setdefault("symbol_universe_total_count", len(report["symbol_universe"]))
+    report.setdefault("symbol_universe_evaluated_count", len(report["symbol_universe"]))
+    report.setdefault(
+        "max_symbol_evaluation_count",
+        max(DEFAULT_PUBLIC_DISCOVERY_EVALUATION_LIMIT, len(report["symbol_universe"])),
+    )
+    report.setdefault("public_symbol_discovery_market_count", 0)
+    report.setdefault("public_ticker_ranked_symbol_count", 0)
+    report.setdefault("public_ticker_eligible_symbol_count", 0)
+    report.setdefault("public_symbol_discovery_report", None)
+    report.setdefault("public_ticker_snapshot_report", None)
+    report.setdefault("public_symbol_ranking_report", None)
+
+
 def _normalized_persistent_loop_report(
     *,
     root: Path,
@@ -199,6 +245,7 @@ def _normalized_persistent_loop_report(
     report["mode"] = "PAPER"
     report["session_id"] = session_id
     report.setdefault("symbol", "KRW-BTC")
+    _apply_symbol_discovery_defaults(report, source)
     report.setdefault("loop_mode", "BOUNDED_PUBLIC_DATA_PAPER_LOOP")
     report.setdefault("cycle_results", [])
     report.setdefault("requested_cycle_count", len(report["cycle_results"]) or 1)
