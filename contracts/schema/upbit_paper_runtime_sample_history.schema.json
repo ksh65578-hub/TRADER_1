@@ -33,6 +33,14 @@
     "min_actual_long_run_cycle_count",
     "span_floor_met",
     "cycle_floor_met",
+    "min_profitability_scope_sample_count",
+    "candidate_scope_sample_summary_count",
+    "candidate_scope_sample_summaries",
+    "active_candidate_scope",
+    "active_candidate_scope_status",
+    "active_candidate_scope_sample_count",
+    "active_candidate_scope_sample_deficit",
+    "active_candidate_scope_next_action",
     "actual_long_run_evidence_created",
     "long_run_evidence_eligible",
     "long_run_blocker_code",
@@ -165,6 +173,78 @@
         "scale_up_allowed": {"const": false},
         "sample_hash": {"type": "string", "minLength": 64, "maxLength": 64}
       }
+    },
+    "candidate_scope_summary": {
+      "type": "object",
+      "required": [
+        "candidate_scope_id",
+        "exchange",
+        "market_type",
+        "mode",
+        "symbol",
+        "candidate_id",
+        "strategy_id",
+        "parameter_hash",
+        "sample_count",
+        "entry_reason_count",
+        "exit_reason_count",
+        "no_trade_reason_count",
+        "candidate_count_total",
+        "first_sample_at_utc",
+        "latest_sample_at_utc",
+        "latest_loop_id",
+        "latest_cycle_id",
+        "latest_final_decision",
+        "latest_candidate_decision",
+        "latest_sample_hash",
+        "latest_runtime_cycle_hash",
+        "min_required_sample_count",
+        "sample_deficit",
+        "scope_progress_status",
+        "next_collection_action",
+        "next_operator_action",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "candidate_scope_id": {"type": "string", "minLength": 1},
+        "exchange": {"const": "UPBIT"},
+        "market_type": {"const": "KRW_SPOT"},
+        "mode": {"const": "PAPER"},
+        "symbol": {"type": "string", "minLength": 1},
+        "candidate_id": {"type": "string", "minLength": 1},
+        "strategy_id": {"type": "string", "minLength": 1},
+        "parameter_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+        "sample_count": {"type": "integer", "minimum": 0},
+        "entry_reason_count": {"type": "integer", "minimum": 0},
+        "exit_reason_count": {"type": "integer", "minimum": 0},
+        "no_trade_reason_count": {"type": "integer", "minimum": 0},
+        "candidate_count_total": {"type": "integer", "minimum": 0},
+        "first_sample_at_utc": {"type": ["string", "null"]},
+        "latest_sample_at_utc": {"type": ["string", "null"]},
+        "latest_loop_id": {"type": ["string", "null"]},
+        "latest_cycle_id": {"type": ["string", "null"]},
+        "latest_final_decision": {"type": ["string", "null"]},
+        "latest_candidate_decision": {"type": ["string", "null"]},
+        "latest_sample_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+        "latest_runtime_cycle_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+        "min_required_sample_count": {"type": "integer", "minimum": 1},
+        "sample_deficit": {"type": "integer", "minimum": 0},
+        "scope_progress_status": {
+          "enum": ["COLLECT_PAPER_SCOPE_SAMPLES", "PAPER_SCOPE_SAMPLE_FLOOR_MET"]
+        },
+        "next_collection_action": {
+          "enum": ["RUN_MORE_PAPER_SAMPLE_WINDOWS", "KEEP_PAPER_RUNNING_FOR_PAIRED_WINDOWS"]
+        },
+        "next_operator_action": {"type": "string", "minLength": 1},
+        "live_order_ready": {"const": false},
+        "live_order_allowed": {"const": false},
+        "can_live_trade": {"const": false},
+        "scale_up_allowed": {"const": false}
+      }
     }
   },
   "properties": {
@@ -197,6 +277,24 @@
     "min_actual_long_run_cycle_count": {"type": "integer", "minimum": 1},
     "span_floor_met": {"type": "boolean"},
     "cycle_floor_met": {"type": "boolean"},
+    "min_profitability_scope_sample_count": {"type": "integer", "minimum": 1},
+    "candidate_scope_sample_summary_count": {"type": "integer", "minimum": 0},
+    "candidate_scope_sample_summaries": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/candidate_scope_summary"}
+    },
+    "active_candidate_scope": {
+      "anyOf": [
+        {"$ref": "#/$defs/candidate_scope_summary"},
+        {"type": "null"}
+      ]
+    },
+    "active_candidate_scope_status": {
+      "enum": ["NO_CANDIDATE_SCOPE", "COLLECT_PAPER_SCOPE_SAMPLES", "PAPER_SCOPE_SAMPLE_FLOOR_MET"]
+    },
+    "active_candidate_scope_sample_count": {"type": "integer", "minimum": 0},
+    "active_candidate_scope_sample_deficit": {"type": "integer", "minimum": 0},
+    "active_candidate_scope_next_action": {"type": "string", "minLength": 1},
     "actual_long_run_evidence_created": {"const": false},
     "long_run_evidence_eligible": {"const": false},
     "long_run_blocker_code": {"const": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"},

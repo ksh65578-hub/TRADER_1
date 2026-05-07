@@ -24,6 +24,10 @@ RUNTIME_SAMPLE_HISTORY_ROLE = "PAPER_RUNTIME_SAMPLE_HISTORY_NOT_LONG_RUN_EVIDENC
 RUNTIME_SAMPLE_TRUTH_ROLE = "paper_runtime_analysis_truth"
 DEFAULT_MIN_ACTUAL_LONG_RUN_SPAN_SECONDS = 86400
 DEFAULT_MIN_ACTUAL_LONG_RUN_CYCLE_COUNT = 2880
+DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT = 30
+PAPER_SCOPE_COLLECTING_STATUS = "COLLECT_PAPER_SCOPE_SAMPLES"
+PAPER_SCOPE_FLOOR_MET_STATUS = "PAPER_SCOPE_SAMPLE_FLOOR_MET"
+PAPER_SCOPE_MISSING_STATUS = "NO_CANDIDATE_SCOPE"
 
 
 @dataclass(frozen=True)
@@ -139,6 +143,14 @@ def _span_seconds(samples: list[dict[str, Any]]) -> int:
     return int((valid[-1] - valid[0]).total_seconds())
 
 
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return parsed if parsed >= 0 else default
+
+
 def _natural_text_key(value: Any) -> tuple[tuple[int, int | str], ...]:
     parts = re.split(r"(\d+)", str(value))
     key: list[tuple[int, int | str]] = []
@@ -153,6 +165,156 @@ def _artifact_path_allowed(path: str, session_id: str) -> bool:
     prefix = f"system/runtime/upbit/krw_spot/paper/{session_id}/"
     parts = path.replace("\\", "/").split("/")
     return path.startswith(prefix) and ".." not in parts and "live" not in parts
+
+
+def _candidate_scope_key(sample: dict[str, Any]) -> tuple[str, str, str, str, str, str] | None:
+    if sample.get("scorecard_candidate_identity_binding_status") != "BOUND":
+        return None
+    if any(sample.get(field) for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+        return None
+    exchange = str(sample.get("exchange") or "")
+    market_type = str(sample.get("market_type") or "")
+    candidate_id = str(sample.get("scorecard_candidate_id") or "")
+    strategy_id = str(sample.get("scorecard_strategy_id") or "")
+    parameter_hash = str(sample.get("scorecard_parameter_hash") or "").upper()
+    symbol = str(sample.get("scorecard_symbol") or "")
+    if not all((exchange, market_type, candidate_id, strategy_id, parameter_hash, symbol)):
+        return None
+    if re.fullmatch(r"[0-9A-F]{64}", parameter_hash) is None:
+        return None
+    return exchange, market_type, candidate_id, strategy_id, parameter_hash, symbol
+
+
+def _candidate_scope_id(key: tuple[str, str, str, str, str, str]) -> str:
+    exchange, market_type, candidate_id, strategy_id, parameter_hash, _symbol = key
+    return f"{exchange}:{market_type}:PAPER:{candidate_id}:{strategy_id}:{parameter_hash}"
+
+
+def _candidate_scope_next_action(summary: dict[str, Any]) -> str:
+    deficit = _safe_int(summary.get("sample_deficit"))
+    if deficit <= 0:
+        return (
+            "PAPER samples meet the per-candidate scope floor; keep collecting paired SHADOW/window/span "
+            "evidence before any live review."
+        )
+    return (
+        f"Collect {deficit} more PAPER samples for candidate {summary.get('candidate_id')} with strategy "
+        f"{summary.get('strategy_id')} and parameter hash {summary.get('parameter_hash')}."
+    )
+
+
+def _candidate_scope_sample_summaries(
+    samples: list[dict[str, Any]],
+    *,
+    min_required_sample_count: int,
+) -> list[dict[str, Any]]:
+    buckets: dict[tuple[str, str, str, str, str, str], dict[str, Any]] = {}
+    for sample in samples:
+        key = _candidate_scope_key(sample)
+        if key is None:
+            continue
+        exchange, market_type, candidate_id, strategy_id, parameter_hash, symbol = key
+        summary = buckets.setdefault(
+            key,
+            {
+                "candidate_scope_id": _candidate_scope_id(key),
+                "exchange": exchange,
+                "market_type": market_type,
+                "mode": "PAPER",
+                "symbol": symbol,
+                "candidate_id": candidate_id,
+                "strategy_id": strategy_id,
+                "parameter_hash": parameter_hash,
+                "sample_count": 0,
+                "entry_reason_count": 0,
+                "exit_reason_count": 0,
+                "no_trade_reason_count": 0,
+                "candidate_count_total": 0,
+                "first_sample_at_utc": sample.get("generated_at_utc"),
+                "latest_sample_at_utc": sample.get("generated_at_utc"),
+                "latest_loop_id": sample.get("loop_id"),
+                "latest_cycle_id": sample.get("cycle_id"),
+                "latest_final_decision": sample.get("final_decision"),
+                "latest_candidate_decision": sample.get("scorecard_candidate_decision"),
+                "latest_sample_hash": sample.get("sample_hash"),
+                "latest_runtime_cycle_hash": sample.get("source_runtime_cycle_hash"),
+                "min_required_sample_count": int(min_required_sample_count),
+                "sample_deficit": int(min_required_sample_count),
+                "scope_progress_status": PAPER_SCOPE_COLLECTING_STATUS,
+                "next_collection_action": "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+                "next_operator_action": "",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        )
+        summary["sample_count"] += 1
+        summary["entry_reason_count"] += _safe_int(sample.get("entry_reason_count"))
+        summary["exit_reason_count"] += _safe_int(sample.get("exit_reason_count"))
+        summary["no_trade_reason_count"] += _safe_int(sample.get("no_trade_reason_count"))
+        summary["candidate_count_total"] += _safe_int(sample.get("candidate_count"))
+        summary["latest_sample_at_utc"] = sample.get("generated_at_utc")
+        summary["latest_loop_id"] = sample.get("loop_id")
+        summary["latest_cycle_id"] = sample.get("cycle_id")
+        summary["latest_final_decision"] = sample.get("final_decision")
+        summary["latest_candidate_decision"] = sample.get("scorecard_candidate_decision")
+        summary["latest_sample_hash"] = sample.get("sample_hash")
+        summary["latest_runtime_cycle_hash"] = sample.get("source_runtime_cycle_hash")
+
+    summaries = list(buckets.values())
+    for summary in summaries:
+        sample_count = _safe_int(summary.get("sample_count"))
+        deficit = max(0, int(min_required_sample_count) - sample_count)
+        summary["sample_deficit"] = deficit
+        summary["scope_progress_status"] = PAPER_SCOPE_FLOOR_MET_STATUS if deficit == 0 else PAPER_SCOPE_COLLECTING_STATUS
+        summary["next_collection_action"] = (
+            "KEEP_PAPER_RUNNING_FOR_PAIRED_WINDOWS" if deficit == 0 else "RUN_MORE_PAPER_SAMPLE_WINDOWS"
+        )
+        summary["next_operator_action"] = _candidate_scope_next_action(summary)
+
+    return sorted(
+        summaries,
+        key=lambda item: (
+            item.get("entry_reason_count", 0) > 0,
+            item.get("latest_candidate_decision") == "PAPER_ENTRY_REVIEW",
+            item.get("sample_count", 0),
+            str(item.get("latest_sample_at_utc") or ""),
+            str(item.get("candidate_id") or ""),
+            str(item.get("strategy_id") or ""),
+            str(item.get("parameter_hash") or ""),
+        ),
+        reverse=True,
+    )
+
+
+def _active_candidate_scope_fields(
+    summaries: list[dict[str, Any]],
+    *,
+    min_required_sample_count: int,
+) -> dict[str, Any]:
+    if not summaries:
+        return {
+            "candidate_scope_sample_summary_count": 0,
+            "candidate_scope_sample_summaries": [],
+            "active_candidate_scope": None,
+            "active_candidate_scope_status": PAPER_SCOPE_MISSING_STATUS,
+            "active_candidate_scope_sample_count": 0,
+            "active_candidate_scope_sample_deficit": int(min_required_sample_count),
+            "active_candidate_scope_next_action": (
+                "Keep PAPER running until a source-bound candidate, strategy, and parameter scope appears."
+            ),
+        }
+    active = summaries[0]
+    return {
+        "candidate_scope_sample_summary_count": len(summaries),
+        "candidate_scope_sample_summaries": summaries,
+        "active_candidate_scope": active,
+        "active_candidate_scope_status": str(active["scope_progress_status"]),
+        "active_candidate_scope_sample_count": int(active["sample_count"]),
+        "active_candidate_scope_sample_deficit": int(active["sample_deficit"]),
+        "active_candidate_scope_next_action": str(active["next_operator_action"]),
+    }
 
 
 def _archive_batches_root(root: Path, session_id: str) -> Path:
@@ -531,6 +693,14 @@ def build_upbit_paper_runtime_sample_history(
     observed_span_seconds = _span_seconds(samples)
     span_floor_met = observed_span_seconds >= min_actual_long_run_span_seconds
     cycle_floor_met = len(samples) >= min_actual_long_run_cycle_count
+    candidate_scope_summaries = _candidate_scope_sample_summaries(
+        samples,
+        min_required_sample_count=DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+    )
+    candidate_scope_fields = _active_candidate_scope_fields(
+        candidate_scope_summaries,
+        min_required_sample_count=DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+    )
     if duplicate_cycle_hash_count > 0:
         status = "BLOCKED"
         primary_blocker_code = "RECONCILIATION_REQUIRED"
@@ -574,6 +744,8 @@ def build_upbit_paper_runtime_sample_history(
         "min_actual_long_run_cycle_count": min_actual_long_run_cycle_count,
         "span_floor_met": span_floor_met,
         "cycle_floor_met": cycle_floor_met,
+        "min_profitability_scope_sample_count": DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+        **candidate_scope_fields,
         "actual_long_run_evidence_created": False,
         "long_run_evidence_eligible": False,
         "long_run_blocker_code": LONG_RUN_EVIDENCE_BLOCKER_CODE,
@@ -634,6 +806,14 @@ def validate_upbit_paper_runtime_sample_history(history: dict[str, Any]) -> Upbi
         "min_actual_long_run_cycle_count",
         "span_floor_met",
         "cycle_floor_met",
+        "min_profitability_scope_sample_count",
+        "candidate_scope_sample_summary_count",
+        "candidate_scope_sample_summaries",
+        "active_candidate_scope",
+        "active_candidate_scope_status",
+        "active_candidate_scope_sample_count",
+        "active_candidate_scope_sample_deficit",
+        "active_candidate_scope_next_action",
         "actual_long_run_evidence_created",
         "long_run_evidence_eligible",
         "long_run_blocker_code",
@@ -778,6 +958,40 @@ def validate_upbit_paper_runtime_sample_history(history: dict[str, Any]) -> Upbi
     expected_cycle_floor_met = len(samples) >= int(history.get("min_actual_long_run_cycle_count", -1))
     if history.get("span_floor_met") is not expected_span_floor_met or history.get("cycle_floor_met") is not expected_cycle_floor_met:
         return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample floor flag mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    min_scope_samples = int(history.get("min_profitability_scope_sample_count", -1))
+    if min_scope_samples < 1:
+        return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample scope floor is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    expected_scope_summaries = _candidate_scope_sample_summaries(
+        samples,
+        min_required_sample_count=min_scope_samples,
+    )
+    expected_scope_fields = _active_candidate_scope_fields(
+        expected_scope_summaries,
+        min_required_sample_count=min_scope_samples,
+    )
+    for field in (
+        "candidate_scope_sample_summary_count",
+        "candidate_scope_sample_summaries",
+        "active_candidate_scope",
+        "active_candidate_scope_status",
+        "active_candidate_scope_sample_count",
+        "active_candidate_scope_sample_deficit",
+        "active_candidate_scope_next_action",
+    ):
+        if history.get(field) != expected_scope_fields[field]:
+            return UpbitPaperRuntimeSampleHistoryValidationResult(
+                "FAIL",
+                f"runtime sample candidate scope progress mismatch: {field}",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+    for summary in expected_scope_summaries:
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            if summary.get(field) is not False:
+                return UpbitPaperRuntimeSampleHistoryValidationResult(
+                    "BLOCKED",
+                    "runtime sample candidate scope summary attempted live or scale-up state",
+                    "LIVE_FINAL_GUARD_FAILED",
+                )
     if samples:
         if history.get("first_sample_at_utc") != samples[0]["generated_at_utc"] or history.get("latest_sample_at_utc") != samples[-1]["generated_at_utc"]:
             return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample first/latest timestamp mismatch", "SCHEMA_IDENTITY_MISMATCH")

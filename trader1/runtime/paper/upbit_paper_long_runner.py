@@ -60,6 +60,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 )
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
+    DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
     build_upbit_paper_runtime_sample_history,
     validate_upbit_paper_runtime_sample_history_sources,
     write_upbit_paper_runtime_sample_history,
@@ -559,6 +560,104 @@ def _result_blocker_code(result: Any) -> str | None:
     return str(blocker) if blocker else None
 
 
+def _paper_scope_progress_fields(
+    *,
+    history: dict[str, Any] | None,
+    evidence: dict[str, Any] | None,
+) -> dict[str, Any]:
+    active_scope = history.get("active_candidate_scope") if isinstance(history, dict) else None
+    active = active_scope if isinstance(active_scope, dict) else {}
+    history_scope_status = history.get("active_candidate_scope_status") if isinstance(history, dict) else None
+    active_scope_status = active.get("scope_progress_status")
+    history_scope_next_action = history.get("active_candidate_scope_next_action") if isinstance(history, dict) else None
+    active_scope_next_action = active.get("next_operator_action")
+    history_scope_sample_count = (
+        history.get("active_candidate_scope_sample_count") if isinstance(history, dict) else None
+    )
+    history_scope_sample_deficit = (
+        history.get("active_candidate_scope_sample_deficit") if isinstance(history, dict) else None
+    )
+    min_required = _int_value(
+        history.get("min_profitability_scope_sample_count") if isinstance(history, dict) else None,
+        _int_value(
+            evidence.get("min_required_sample_count") if isinstance(evidence, dict) else None,
+            DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+        ),
+    )
+    sample_count = _int_value(
+        history_scope_sample_count,
+        _int_value(
+            active.get("sample_count"),
+            _int_value(evidence.get("paper_sample_count") if isinstance(evidence, dict) else None, 0),
+        ),
+    )
+    sample_deficit = _int_value(
+        history_scope_sample_deficit,
+        _int_value(
+            active.get("sample_deficit"),
+            _int_value(
+                evidence.get("paper_sample_deficit") if isinstance(evidence, dict) else None,
+                max(0, min_required - sample_count),
+            ),
+        ),
+    )
+    status = (
+        str(
+            history_scope_status
+            or active_scope_status
+            or (evidence.get("evidence_actionability_status") if isinstance(evidence, dict) else None)
+            or "NO_CANDIDATE_SCOPE"
+        )
+    )
+    next_action = (
+        str(
+            history_scope_next_action
+            or active_scope_next_action
+            or (evidence.get("primary_collection_deficit_message") if isinstance(evidence, dict) else None)
+            or "Keep PAPER running until a source-bound candidate scope appears."
+        )
+    )
+    return {
+        "paper_scope_progress_status": status,
+        "paper_scope_candidate_id": (
+            active.get("candidate_id")
+            or (str(evidence.get("candidate_id")) if isinstance(evidence, dict) and evidence.get("candidate_id") else None)
+        ),
+        "paper_scope_strategy_id": (
+            active.get("strategy_id")
+            or (str(evidence.get("strategy_id")) if isinstance(evidence, dict) and evidence.get("strategy_id") else None)
+        ),
+        "paper_scope_parameter_hash": (
+            active.get("parameter_hash")
+            or (
+                str(evidence.get("parameter_hash"))
+                if isinstance(evidence, dict) and evidence.get("parameter_hash")
+                else None
+            )
+        ),
+        "paper_scope_symbol": active.get("symbol"),
+        "paper_scope_sample_count": sample_count,
+        "paper_scope_min_required_sample_count": min_required,
+        "paper_scope_sample_deficit": sample_deficit,
+        "paper_scope_next_collection_action": (
+            active.get("next_collection_action")
+            or (
+                str(evidence.get("next_collection_action"))
+                if isinstance(evidence, dict) and evidence.get("next_collection_action")
+                else None
+            )
+            or "RUN_MORE_PAPER_SAMPLE_WINDOWS"
+        ),
+        "paper_scope_next_operator_action": next_action,
+        "paper_scope_latest_sample_at_utc": active.get("latest_sample_at_utc"),
+        "paper_scope_summary_count": (
+            _int_value(history.get("candidate_scope_sample_summary_count"), 0)
+            if isinstance(history, dict)
+            else 0
+        ),
+    }
+
+
 def _candidate_scorecard_snapshot_fields(
     root: Path,
     session_id: str,
@@ -689,6 +788,10 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
         "runtime_sample_history_status": history_status,
         "runtime_sample_count": int(history.get("accepted_cycle_sample_count") or 0) if isinstance(history, dict) else 0,
         "runtime_sample_invalid_source_count": int(history.get("invalid_source_count") or 0) if isinstance(history, dict) else 0,
+        **_paper_scope_progress_fields(
+            history=history if isinstance(history, dict) else None,
+            evidence=evidence if isinstance(evidence, dict) else None,
+        ),
         "candidate_scorecard_path": str(scorecard_path),
         "candidate_scorecard_status": scorecard_status,
         "candidate_scorecard_ranking_eligible": (
@@ -885,6 +988,7 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             "candidate_scorecard_candidate_id": scorecard_candidate_id,
             "candidate_scorecard_snapshot_path": _relative_runtime_path(scorecard_snapshot_path, root),
             "candidate_scorecard_snapshot_status": "PASS",
+            **_paper_scope_progress_fields(history=history, evidence=None),
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
@@ -1003,6 +1107,7 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
         "evidence_refresh_reason_code": refresh_decision.evidence_refresh_reason_code,
         "evidence_refresh_selected_source": refresh_decision.selected_source,
         "runtime_sample_count": int(history.get("accepted_cycle_sample_count") or 0),
+        **_paper_scope_progress_fields(history=history, evidence=selected_evidence),
         "candidate_scorecard_status": "PASS",
         "candidate_scorecard_ranking_eligible": bool(scorecard.get("ranking_eligible")),
         "overfit_diagnostic_status": str(diagnostic.get("diagnostic_status") or "NOT_LOADED"),
@@ -1878,6 +1983,18 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
         "profitability_evidence_primary_blocker_code",
         "runtime_sample_history_status",
         "runtime_sample_count",
+        "paper_scope_progress_status",
+        "paper_scope_candidate_id",
+        "paper_scope_strategy_id",
+        "paper_scope_parameter_hash",
+        "paper_scope_symbol",
+        "paper_scope_sample_count",
+        "paper_scope_min_required_sample_count",
+        "paper_scope_sample_deficit",
+        "paper_scope_next_collection_action",
+        "paper_scope_next_operator_action",
+        "paper_scope_latest_sample_at_utc",
+        "paper_scope_summary_count",
         "candidate_scorecard_status",
         "candidate_scorecard_ranking_eligible",
         "candidate_scorecard_candidate_id",
@@ -1938,6 +2055,24 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
     candidate_scorecard_candidate_id = report.get("candidate_scorecard_candidate_id")
     if candidate_scorecard_candidate_id is not None and not isinstance(candidate_scorecard_candidate_id, str):
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_CANDIDATE_INVALID"}
+    if report.get("paper_scope_candidate_id") is not None and not isinstance(report.get("paper_scope_candidate_id"), str):
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_PAPER_SCOPE_INVALID"}
+    for counter in (
+        "paper_scope_sample_count",
+        "paper_scope_min_required_sample_count",
+        "paper_scope_sample_deficit",
+        "paper_scope_summary_count",
+    ):
+        if not isinstance(report.get(counter), int) or report[counter] < 0:
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_PAPER_SCOPE_COUNTER_INVALID", "field": counter}
+    if report.get("paper_scope_min_required_sample_count") < 1:
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_PAPER_SCOPE_COUNTER_INVALID"}
+    if not isinstance(report.get("paper_scope_progress_status"), str) or not report["paper_scope_progress_status"]:
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_PAPER_SCOPE_INVALID"}
+    if not isinstance(report.get("paper_scope_next_operator_action"), str) or not report[
+        "paper_scope_next_operator_action"
+    ]:
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_PAPER_SCOPE_INVALID"}
     if not isinstance(report.get("candidate_scorecard_snapshot_path"), str) or not report[
         "candidate_scorecard_snapshot_path"
     ]:

@@ -123,6 +123,49 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
 
         self.assertIsNone(selected)
 
+    def test_paper_scope_progress_prefers_candidate_scope_over_general_evidence_count(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        fields = long_runner._paper_scope_progress_fields(
+            history={
+                "min_profitability_scope_sample_count": 30,
+                "candidate_scope_sample_summary_count": 1,
+                "active_candidate_scope_status": "COLLECT_PAPER_SCOPE_SAMPLES",
+                "active_candidate_scope_sample_count": 3,
+                "active_candidate_scope_sample_deficit": 27,
+                "active_candidate_scope_next_action": "Collect 27 more PAPER samples for scoped candidate.",
+                "active_candidate_scope": {
+                    "candidate_id": "KRW-BTC-vwap-mean-reversion",
+                    "strategy_id": "vwap_mean_reversion",
+                    "parameter_hash": "A" * 64,
+                    "symbol": "KRW-BTC",
+                    "sample_count": 3,
+                    "sample_deficit": 27,
+                    "scope_progress_status": "COLLECT_PAPER_SCOPE_SAMPLES",
+                    "next_collection_action": "RUN_MORE_PAPER_SAMPLE_WINDOWS",
+                    "next_operator_action": "Collect 27 more PAPER samples for scoped candidate.",
+                    "latest_sample_at_utc": "2026-05-07T00:00:00Z",
+                },
+            },
+            evidence={
+                "candidate_id": "KRW-BTC-vwap-mean-reversion",
+                "strategy_id": "vwap_mean_reversion",
+                "parameter_hash": "A" * 64,
+                "paper_sample_count": 40,
+                "min_required_sample_count": 30,
+                "paper_sample_deficit": 0,
+                "evidence_actionability_status": "PASS",
+                "primary_collection_deficit_message": "General PAPER evidence already has enough samples.",
+            },
+        )
+
+        self.assertEqual(fields["paper_scope_progress_status"], "COLLECT_PAPER_SCOPE_SAMPLES")
+        self.assertEqual(fields["paper_scope_sample_count"], 3)
+        self.assertEqual(fields["paper_scope_min_required_sample_count"], 30)
+        self.assertEqual(fields["paper_scope_sample_deficit"], 27)
+        self.assertEqual(fields["paper_scope_next_operator_action"], "Collect 27 more PAPER samples for scoped candidate.")
+        self.assertEqual(fields["paper_scope_candidate_id"], "KRW-BTC-vwap-mean-reversion")
+
     def test_dashboard_refresh_uses_public_rest_continuity_when_runner_uses_public_rest(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
@@ -176,6 +219,17 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertIn(report["profitability_evidence_refresh_status"], {"PASS", "COLLECTING"})
             self.assertEqual(report["runtime_sample_history_status"], "PASS")
             self.assertGreater(report["runtime_sample_count"], 0)
+            self.assertTrue(report["paper_scope_progress_status"])
+            self.assertTrue(report["paper_scope_candidate_id"])
+            self.assertTrue(report["paper_scope_strategy_id"])
+            self.assertEqual(len(report["paper_scope_parameter_hash"]), 64)
+            self.assertGreaterEqual(report["paper_scope_sample_count"], 0)
+            self.assertGreaterEqual(report["paper_scope_min_required_sample_count"], 1)
+            self.assertEqual(
+                report["paper_scope_sample_deficit"],
+                max(0, report["paper_scope_min_required_sample_count"] - report["paper_scope_sample_count"]),
+            )
+            self.assertIn("PAPER", report["paper_scope_next_operator_action"])
             self.assertEqual(report["candidate_scorecard_status"], "PASS")
             self.assertTrue(report["candidate_scorecard_candidate_id"])
             self.assertEqual(report["candidate_scorecard_snapshot_status"], "PASS")
@@ -231,6 +285,8 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertIsInstance(loaded["runtime_quality_feedback_candidate_ids"], list)
             self.assertIsInstance(loaded["selected_candidate_recent_failure_feedback_kind"], str)
             self.assertEqual(loaded["candidate_scorecard_candidate_id"], report["candidate_scorecard_candidate_id"])
+            self.assertEqual(loaded["paper_scope_candidate_id"], report["paper_scope_candidate_id"])
+            self.assertEqual(loaded["paper_scope_sample_deficit"], report["paper_scope_sample_deficit"])
             self.assertEqual(loaded["candidate_scorecard_snapshot_status"], "PASS")
             self.assertTrue(
                 paper_candidate_scorecard_snapshot_path(
