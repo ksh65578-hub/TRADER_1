@@ -6,7 +6,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tools.run_upbit_paper_candidate_scorecard import build_current_upbit_paper_candidate_scorecard
-from trader1.research.profitability.candidate_scorecard import robustness_source_evidence_id
+from trader1.research.profitability.candidate_scorecard import (
+    robustness_source_evidence_id,
+    safe_candidate_scorecard_filename,
+)
 from trader1.research.profitability.overfit_diagnostic import (
     overfit_diagnostic_from_upbit_paper_runtime,
     overfit_diagnostic_report_hash,
@@ -20,6 +23,11 @@ def _load_written(root: Path, result: dict, key: str) -> dict:
     if not isinstance(value, dict):
         raise AssertionError(f"{key} did not point to a JSON object")
     return value
+
+
+def _candidate_snapshot_path(root: Path, result: dict, scorecard: dict) -> Path:
+    filename = f"{safe_candidate_scorecard_filename(scorecard['candidate_id'])}.candidate_scorecard.json"
+    return (root / result["candidate_scorecard_path"]).parent / "candidate_scorecards" / filename
 
 
 def _run_short_paper(root: Path) -> None:
@@ -59,9 +67,15 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
             scorecard = _load_written(root, result, "candidate_scorecard_path")
             diagnostic = _load_written(root, result, "overfit_diagnostic_path")
             history = _load_written(root, result, "runtime_sample_history_path")
+            scoped_scorecard = json.loads(
+                _candidate_snapshot_path(root, result, scorecard).read_text(encoding="utf-8")
+            )
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(_candidate_scorecard_net_ev_errors(scorecard), [])
+        self.assertEqual(_candidate_scorecard_net_ev_errors(scoped_scorecard), [])
+        self.assertEqual(scoped_scorecard["candidate_id"], scorecard["candidate_id"])
+        self.assertFalse(scoped_scorecard["live_order_allowed"])
         self.assertEqual(_overfit_diagnostic_errors(diagnostic), [])
         self.assertEqual(history["accepted_cycle_sample_count"], 2)
         self.assertEqual(diagnostic["sample_count"], 2)
@@ -175,13 +189,18 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 result = build_current_upbit_paper_candidate_scorecard(
                     root=root,
                     session_id="mvp1_upbit_paper_launcher",
-                )
+            )
             scorecard = _load_written(root, result, "candidate_scorecard_path")
             diagnostic = _load_written(root, result, "overfit_diagnostic_path")
+            scoped_scorecard = json.loads(
+                _candidate_snapshot_path(root, result, scorecard).read_text(encoding="utf-8")
+            )
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(_overfit_diagnostic_errors(diagnostic), [])
         self.assertEqual(_candidate_scorecard_net_ev_errors(scorecard), [])
+        self.assertEqual(_candidate_scorecard_net_ev_errors(scoped_scorecard), [])
+        self.assertEqual(scoped_scorecard["candidate_id"], scorecard["candidate_id"])
         self.assertTrue(diagnostic["robustness_eligible"])
         self.assertTrue(scorecard["ranking_eligible"])
         self.assertEqual(scorecard["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
