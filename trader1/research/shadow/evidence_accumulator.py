@@ -127,15 +127,19 @@ def build_paper_shadow_evidence_accumulation_from_runtime_artifacts(
     """Build a current PAPER/SHADOW accumulator from real non-live runtime artifacts."""
 
     identity = _runtime_identity(candidate_scorecard, overfit_diagnostic_report)
-    paper_samples = _paper_candidate_sample_count(overfit_diagnostic_report, paper_sample_history)
+    scoped_paper_samples = _identity_scoped_history_samples(identity, paper_sample_history)
+    paper_samples = _paper_candidate_sample_count(identity, overfit_diagnostic_report, paper_sample_history)
     shadow_samples = _shadow_observation_count(
         shadow_runtime_harness_report,
         shadow_runtime_sample_history=shadow_runtime_sample_history,
     )
-    paper_windows = _safe_int(
-        paper_sample_history.get("accepted_loop_report_count"),
-        len({str(sample.get("loop_id") or sample.get("cycle_id")) for sample in _history_samples(paper_sample_history)}),
-    )
+    if _history_has_explicit_candidate_identity(paper_sample_history):
+        paper_windows = len({str(sample.get("loop_id") or sample.get("cycle_id")) for sample in scoped_paper_samples})
+    else:
+        paper_windows = _safe_int(
+            paper_sample_history.get("accepted_loop_report_count"),
+            len({str(sample.get("loop_id") or sample.get("cycle_id")) for sample in _history_samples(paper_sample_history)}),
+        )
     shadow_windows = _shadow_runtime_window_count(
         shadow_runtime_harness_report,
         shadow_runtime_sample_history=shadow_runtime_sample_history,
@@ -203,15 +207,21 @@ def build_paper_shadow_evidence_accumulation_from_runtime_artifacts(
         paper_artifact_age_seconds=0,
         shadow_artifact_age_seconds=0,
         max_artifact_age_seconds=max_artifact_age_seconds,
-        entry_reason_count=_history_reason_count(paper_sample_history, "entry_reason_count"),
-        exit_reason_count=_history_reason_count(paper_sample_history, "exit_reason_count"),
-        no_trade_reason_count=_history_reason_count(paper_sample_history, "no_trade_reason_count"),
-        cost_evidence_count=_runtime_cost_evidence_count(candidate_scorecard, paper_sample_history, paper_samples),
+        entry_reason_count=_history_reason_count(scoped_paper_samples, "entry_reason_count"),
+        exit_reason_count=_history_reason_count(scoped_paper_samples, "exit_reason_count"),
+        no_trade_reason_count=_history_reason_count(scoped_paper_samples, "no_trade_reason_count"),
+        cost_evidence_count=_runtime_cost_evidence_count(
+            candidate_scorecard,
+            paper_sample_history,
+            paper_samples,
+            identity=identity,
+        ),
         source_evidence_ids=_runtime_supporting_source_evidence_ids(
             paper_sample_history,
             shadow_runtime_harness_report,
             shadow_runtime_sample_history,
             evidence_windows,
+            identity=identity,
         ),
         actual_runtime_source_evidence_ids=actual_runtime_source_ids,
         actual_runtime_source_status=actual_runtime_source_status,
@@ -355,9 +365,49 @@ def _history_samples(paper_sample_history: dict[str, Any]) -> list[dict[str, Any
     return [sample for sample in paper_sample_history.get("samples") or [] if isinstance(sample, dict)]
 
 
-def _paper_candidate_sample_count(overfit_diagnostic_report: dict[str, Any], paper_sample_history: dict[str, Any]) -> int:
+def _history_has_explicit_candidate_identity(paper_sample_history: dict[str, Any]) -> bool:
+    return any(
+        "scorecard_candidate_id" in sample or "selected_candidate_id" in sample
+        for sample in _history_samples(paper_sample_history)
+    )
+
+
+def _sample_matches_identity(sample: dict[str, Any], identity: dict[str, str]) -> bool:
+    if sample.get("exchange") not in {identity["exchange"], None}:
+        return False
+    if sample.get("market_type") not in {identity["market_type"], None}:
+        return False
+    candidate_id = sample.get("scorecard_candidate_id", sample.get("selected_candidate_id"))
+    if candidate_id != identity["candidate_id"]:
+        return False
+    strategy_id = sample.get("scorecard_strategy_id", sample.get("selected_strategy_id"))
+    if isinstance(strategy_id, str) and strategy_id and strategy_id != identity["strategy_id"]:
+        return False
+    parameter_hash = sample.get("scorecard_parameter_hash", sample.get("selected_parameter_hash"))
+    if isinstance(parameter_hash, str) and parameter_hash and parameter_hash != identity["parameter_hash"]:
+        return False
+    return not _any_live_flag(sample)
+
+
+def _identity_scoped_history_samples(identity: dict[str, str], paper_sample_history: dict[str, Any]) -> list[dict[str, Any]]:
+    samples = _history_samples(paper_sample_history)
+    if not _history_has_explicit_candidate_identity(paper_sample_history):
+        return samples
+    return [sample for sample in samples if _sample_matches_identity(sample, identity)]
+
+
+def _paper_candidate_sample_count(
+    identity: dict[str, str],
+    overfit_diagnostic_report: dict[str, Any],
+    paper_sample_history: dict[str, Any],
+) -> int:
     accepted = _safe_int(paper_sample_history.get("accepted_cycle_sample_count"), len(_history_samples(paper_sample_history)))
     overfit_samples = _safe_int(overfit_diagnostic_report.get("sample_count"), 0)
+    if _history_has_explicit_candidate_identity(paper_sample_history):
+        explicit_count = len(_identity_scoped_history_samples(identity, paper_sample_history))
+        if overfit_samples > 0:
+            return min(overfit_samples, explicit_count)
+        return explicit_count
     if overfit_samples > 0 and accepted > 0:
         return min(overfit_samples, accepted)
     return max(overfit_samples, accepted)
@@ -432,14 +482,16 @@ def _actual_runtime_requirement_statuses(
     }
 
 
-def _history_reason_count(paper_sample_history: dict[str, Any], field: str) -> int:
-    return sum(_safe_int(sample.get(field), 0) for sample in _history_samples(paper_sample_history))
+def _history_reason_count(samples: list[dict[str, Any]], field: str) -> int:
+    return sum(_safe_int(sample.get(field), 0) for sample in samples)
 
 
 def _runtime_cost_evidence_count(
     candidate_scorecard: dict[str, Any],
     paper_sample_history: dict[str, Any],
     paper_sample_count: int,
+    *,
+    identity: dict[str, str] | None = None,
 ) -> int:
     if candidate_scorecard.get("cost_model_status") not in RUNTIME_COST_EVIDENCE_READY_STATUSES:
         return 0
@@ -448,7 +500,8 @@ def _runtime_cost_evidence_count(
     for field in RUNTIME_COST_EVIDENCE_REQUIRED_FIELDS:
         if _safe_float(candidate_scorecard.get(field)) is None:
             return 0
-    candidate_sample_count = sum(1 for sample in _history_samples(paper_sample_history) if _safe_int(sample.get("candidate_count"), 0) > 0)
+    samples = _identity_scoped_history_samples(identity, paper_sample_history) if identity else _history_samples(paper_sample_history)
+    candidate_sample_count = sum(1 for sample in samples if _safe_int(sample.get("candidate_count"), 0) > 0)
     if candidate_sample_count <= 0:
         return 0
     return min(paper_sample_count, candidate_sample_count)
@@ -459,10 +512,12 @@ def _runtime_supporting_source_evidence_ids(
     shadow_runtime_harness_report: dict[str, Any],
     shadow_runtime_sample_history: dict[str, Any] | None,
     evidence_window_count: int,
+    *,
+    identity: dict[str, str] | None = None,
 ) -> list[str]:
     if evidence_window_count <= 0:
         return []
-    paper_windows = _paper_window_representative_samples(paper_sample_history)
+    paper_windows = _paper_window_representative_samples(paper_sample_history, identity=identity)
     shadow_window_hashes = _shadow_window_hashes(
         shadow_runtime_harness_report,
         shadow_runtime_sample_history=shadow_runtime_sample_history,
@@ -531,10 +586,15 @@ def _actual_runtime_source_status(
     return "PARTIAL_NON_LIVE_RUNTIME"
 
 
-def _paper_window_representative_samples(paper_sample_history: dict[str, Any]) -> list[dict[str, Any]]:
+def _paper_window_representative_samples(
+    paper_sample_history: dict[str, Any],
+    *,
+    identity: dict[str, str] | None = None,
+) -> list[dict[str, Any]]:
     representatives: list[dict[str, Any]] = []
     seen_loop_ids: set[str] = set()
-    for sample in _history_samples(paper_sample_history):
+    samples = _identity_scoped_history_samples(identity, paper_sample_history) if identity else _history_samples(paper_sample_history)
+    for sample in samples:
         loop_id = str(sample.get("loop_id") or sample.get("cycle_id") or "")
         if not loop_id or loop_id in seen_loop_ids:
             continue

@@ -3934,8 +3934,11 @@ def upbit_paper_ledger_idempotency_runtime_evidence_validator() -> ValidatorResu
             or report.get("idempotency_status") != "PASS"
             or report.get("reconciliation_status") != "PASS"
             or report.get("portfolio_provenance_status") != "PASS"
-            or report.get("source_ledger_jsonl_count") != 2
-            or report.get("recomputed_filled_order_count") != 2
+            or report.get("source_ledger_jsonl_count", 0) < 1
+            or report.get("source_ledger_jsonl_count", 0) > report.get("source_persistent_loop_cycle_count", 0)
+            or report.get("source_ledger_jsonl_count") != report.get("recomputed_ledger_jsonl_count")
+            or report.get("recomputed_filled_order_count", 0) < 1
+            or report.get("source_filled_order_count") != report.get("recomputed_filled_order_count")
         ):
             return fail_result(
                 "upbit_paper_ledger_idempotency_runtime_evidence_validator",

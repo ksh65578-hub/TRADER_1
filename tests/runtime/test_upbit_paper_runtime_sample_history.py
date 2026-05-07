@@ -13,6 +13,10 @@ from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     validate_upbit_paper_runtime_sample_history,
     write_upbit_paper_runtime_sample_history,
 )
+from trader1.validation.schema_instance import load_schema_bundle, schema_for_instance, validate_instance_against_schema
+
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
@@ -41,14 +45,34 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertFalse(history["live_order_allowed"])
         self.assertFalse(history["can_live_trade"])
         self.assertFalse(history["scale_up_allowed"])
-        self.assertGreaterEqual(history["samples"][0]["candidate_count"], 1)
-        self.assertGreaterEqual(history["samples"][0]["entry_reason_count"], 1)
-        self.assertIn("exit_reason_count", history["samples"][0])
+        first_sample = history["samples"][0]
+        self.assertGreaterEqual(first_sample["candidate_count"], 1)
+        self.assertGreaterEqual(first_sample["entry_reason_count"], 1)
+        self.assertIn("exit_reason_count", first_sample)
+        self.assertEqual(first_sample["scorecard_candidate_identity_binding_status"], "BOUND")
+        self.assertEqual(first_sample["scorecard_candidate_live_flags_clear"], True)
+        self.assertIsInstance(first_sample["scorecard_candidate_id"], str)
+        self.assertIsInstance(first_sample["scorecard_symbol"], str)
+        self.assertIsInstance(first_sample["scorecard_strategy_id"], str)
+        self.assertEqual(len(first_sample["scorecard_parameter_hash"]), 64)
+        self.assertEqual(
+            first_sample["paper_entry_review_candidate_count"],
+            len(first_sample["paper_entry_review_candidate_ids"]),
+        )
+        self.assertEqual(
+            first_sample["paper_entry_review_symbol_count"],
+            len(set(first_sample["paper_entry_review_symbols"])),
+        )
         self.assertEqual(history["samples"][1]["previous_sample_hash"], history["samples"][0]["sample_hash"])
 
         written_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
         written = json.loads(written_path.read_text(encoding="utf-8"))
         self.assertEqual(validate_upbit_paper_runtime_sample_history(written).status, "PASS")
+        schema_bundle = load_schema_bundle(ROOT / "contracts" / "schema")
+        schema = schema_for_instance(written, schema_bundle)
+        self.assertIsNotNone(schema)
+        schema_result = validate_instance_against_schema(written, schema, schema_bundle)
+        self.assertEqual(schema_result.status, "PASS", schema_result.errors)
 
     def test_entry_reason_evidence_counts_blocked_candidate_entry_review(self):
         runtime_cycle = {

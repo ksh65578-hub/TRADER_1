@@ -30,8 +30,11 @@ class UpbitPaperRuntimeEvidenceCollectionProfileTest(unittest.TestCase):
         self.assertEqual(report["ledger_runtime_evidence_status"], "PASS")
         self.assertEqual(report["idempotency_status"], "PASS")
         self.assertEqual(report["reconciliation_status"], "PASS")
-        self.assertEqual(report["source_ledger_jsonl_count"], 2)
-        self.assertEqual(report["recomputed_filled_order_count"], 2)
+        self.assertGreaterEqual(report["source_ledger_jsonl_count"], 1)
+        self.assertLessEqual(report["source_ledger_jsonl_count"], report["completed_cycle_count"])
+        self.assertEqual(report["mismatch_count"], 0)
+        self.assertGreaterEqual(report["recomputed_ledger_event_count"], report["recomputed_filled_order_count"])
+        self.assertGreaterEqual(report["recomputed_filled_order_count"], 1)
         depth = report["long_run_collection_depth"]
         self.assertEqual(depth["status"], "BLOCKED_FOR_LONG_RUN_COLLECTION_DEPTH")
         self.assertEqual(depth["blocker_code"], "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT")
