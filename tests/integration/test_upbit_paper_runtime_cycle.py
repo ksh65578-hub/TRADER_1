@@ -127,6 +127,64 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertFalse(report["paper_fill"]["live_order_allowed"])
         self.assertFalse(report["live_order_allowed"])
 
+    def test_adaptive_paper_broker_allows_risk_reducing_partial_exit_without_live_permission(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        mark_price = weak_btc["candles"][-1]["close"]
+        portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.3",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="150",
+            source_runtime_cycle_id="prior-paper-entry",
+            source_paper_ledger_head_hash="B" * 64,
+        )
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-risk-reducing-partial-exit",
+            market_data_universe=[weak_btc, strong_eth],
+            current_paper_portfolio_snapshot=portfolio,
+            paper_cash_available=portfolio["cash_available"],
+            paper_equity=portfolio["equity"],
+            paper_position_market_value=portfolio["position_market_value"],
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["selected_symbol"], "KRW-BTC")
+        self.assertEqual(report["final_decision"], "REDUCE_POSITION")
+        self.assertEqual(report["position_management_decision"]["requested_position_decision"], "EXIT_POSITION")
+        self.assertEqual(report["position_management_decision"]["execution_adjusted_position_decision_reason"], "PARTIAL_EXIT_FILL")
+        self.assertEqual(report["paper_fill"]["side"], "SELL")
+        self.assertEqual(report["paper_fill"]["order_lifecycle_state"], "PARTIALLY_FILLED")
+        self.assertLess(float(report["paper_fill"]["fill_ratio"]), 0.35)
+        self.assertGreaterEqual(float(report["paper_fill"]["filled_notional"]), 5000)
+        self.assertEqual(report["paper_fill"]["reject_reason"], None)
+        self.assertEqual(report["paper_fill"]["order_adapter_called"], False)
+        self.assertEqual(report["paper_fill"]["private_endpoint_called"], False)
+        self.assertEqual(report["paper_fill"]["credential_load_attempted"], False)
+        self.assertLess(
+            Decimal(report["paper_portfolio_snapshot"]["positions"][0]["quantity"]),
+            Decimal(portfolio["positions"][0]["quantity"]),
+        )
+        self.assertFalse(report["paper_fill"]["live_order_allowed"])
+        self.assertFalse(report["live_order_allowed"])
+
     def test_cycle_can_bind_public_collection_hash_without_live_permission(self):
         collection = build_upbit_public_market_data_collection_report(
             collector_id="runtime-cycle-collection-source",

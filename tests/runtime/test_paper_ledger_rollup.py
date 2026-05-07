@@ -348,6 +348,93 @@ class PaperLedgerRollupTest(unittest.TestCase):
             )
             self.assertFalse(repaired_rollup["live_order_allowed"])
 
+    def test_manifest_rollup_ignores_stale_excluded_ledger_paths_after_cleanup(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            latest_path = None
+            latest_events = None
+            latest_cycle_id = None
+            for index in range(12):
+                cycle_id = f"stale-excluded-cycle-{index + 1:02d}"
+                latest_path, latest_events = self._write_cycle_ledger(
+                    root,
+                    cycle_id,
+                    f"client-stale-excluded-{index + 1:02d}",
+                    "100000000",
+                )
+                latest_cycle_id = cycle_id
+            self.assertIsNotNone(latest_path)
+            self.assertIsNotNone(latest_events)
+            self.assertIsNotNone(latest_cycle_id)
+            self._write_latest_head(root, str(latest_cycle_id), latest_path, latest_events)
+
+            manifest = build_paper_ledger_input_manifest(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                manifest_id="test-paper-ledger-stale-excluded-manifest",
+            )
+            manifest_result = validate_paper_ledger_input_manifest(manifest)
+            self.assertEqual(manifest_result.status, "PASS")
+            self.assertGreater(manifest["excluded_ledger_path_count"], 0)
+            stale_excluded_path = root / manifest["excluded_ledger_paths"][0]["path"]
+            write_paper_ledger_input_manifest(root=root, manifest=manifest)
+            stale_excluded_path.unlink()
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-stale-excluded-rollup",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "PASS", result.message)
+            self.assertEqual(rollup["ledger_input_scope"], "SESSION_REPAIR_MANIFEST")
+            self.assertNotIn(stale_excluded_path.relative_to(root).as_posix(), rollup["artifact_paths"])
+            self.assertFalse(rollup["live_order_allowed"])
+
+    def test_manifest_rollup_ignores_stale_latest_head_target_after_cleanup(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_path, first_events = self._write_cycle_ledger(
+                root,
+                "stale-head-surviving-cycle",
+                "client-stale-head-surviving",
+                "1000000",
+            )
+            latest_path, latest_events = self._write_cycle_ledger(
+                root,
+                "stale-head-missing-cycle",
+                "client-stale-head-missing",
+                "1000100",
+            )
+            self._write_latest_head(root, "stale-head-missing-cycle", latest_path, latest_events)
+
+            manifest = build_paper_ledger_input_manifest(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                manifest_id="test-paper-ledger-stale-head-manifest",
+            )
+            manifest_result = validate_paper_ledger_input_manifest(manifest)
+            self.assertEqual(manifest_result.status, "PASS")
+            self.assertEqual(manifest["accepted_ledger_path_count_at_manifest"], 2)
+            write_paper_ledger_input_manifest(root=root, manifest=manifest)
+            latest_path.unlink()
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-stale-head-rollup",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "PASS", result.message)
+            self.assertEqual(rollup["ledger_input_scope"], "SESSION_REPAIR_MANIFEST")
+            self.assertEqual(rollup["ledger_jsonl_count"], 1)
+            self.assertEqual(rollup["ledger_head_match_status"], "NOT_APPLICABLE")
+            self.assertEqual(rollup["portfolio_snapshot"]["source_runtime_cycle_id"], "stale-head-surviving-cycle")
+            self.assertEqual(rollup["latest_ledger_head_hash"], first_events[-1]["event_hash"])
+            self.assertFalse(rollup["live_order_allowed"])
+
     def test_input_manifest_accounts_for_sell_fills_before_exposure_filtering(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
