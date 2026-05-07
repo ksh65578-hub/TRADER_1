@@ -27,6 +27,7 @@ ROBUSTNESS_PASS = {
 }
 ROBUSTNESS_SOURCE_PREFIXES = ("oos:", "walk_forward:", "bootstrap:")
 RUNTIME_CYCLE_SOURCE_PREFIX = "upbit_paper_runtime_cycle:"
+TOP_SYMBOL_SCORECARD_LIMIT = 5
 
 
 def utc_now() -> str:
@@ -146,6 +147,107 @@ def _scorecard_candidate_from_runtime(runtime_cycle_report: dict[str, Any]) -> d
     return max(entry_candidates, key=_candidate_scorecard_rank_key)
 
 
+def _candidate_is_non_live(candidate: dict[str, Any]) -> bool:
+    return (
+        candidate.get("live_order_ready") is False
+        and candidate.get("live_order_allowed") is False
+        and candidate.get("can_live_trade") is False
+        and candidate.get("scale_up_allowed") is False
+    )
+
+
+def _entry_review_candidates(runtime_cycle_report: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        candidate
+        for candidate in runtime_cycle_report.get("strategy_candidates") or []
+        if isinstance(candidate, dict)
+        and candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+        and isinstance(candidate.get("candidate_id"), str)
+        and _candidate_is_non_live(candidate)
+    ]
+
+
+def _top_symbol_evidence_scorecards(runtime_cycle_report: dict[str, Any]) -> list[dict[str, Any]]:
+    raw_scorecards = [
+        scorecard
+        for scorecard in runtime_cycle_report.get("symbol_evidence_scorecards") or []
+        if isinstance(scorecard, dict)
+        and isinstance(scorecard.get("symbol"), str)
+        and not any(
+            scorecard.get(flag) is True
+            for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+        )
+    ]
+    sorted_scorecards = sorted(
+        raw_scorecards,
+        key=lambda scorecard: (
+            decimal_value(scorecard.get("best_net_ev_after_cost_bps")),
+            decimal_value(scorecard.get("best_candidate_selection_score")),
+            -int(scorecard.get("rank_input_order", 999) or 999),
+            str(scorecard.get("symbol") or ""),
+        ),
+        reverse=True,
+    )
+    compact: list[dict[str, Any]] = []
+    for scorecard in sorted_scorecards[:TOP_SYMBOL_SCORECARD_LIMIT]:
+        compact.append(
+            {
+                "symbol": scorecard["symbol"],
+                "rank_input_order": int(scorecard.get("rank_input_order", 0) or 0),
+                "best_candidate_id": scorecard.get("best_candidate_id"),
+                "best_strategy_family": scorecard.get("best_strategy_family"),
+                "best_decision": scorecard.get("best_decision"),
+                "best_net_ev_after_cost_bps": number_value(scorecard.get("best_net_ev_after_cost_bps")),
+                "symbol_selection_score": number_value(scorecard.get("symbol_selection_score")),
+                "paper_entry_review_candidate_count": int(
+                    scorecard.get("paper_entry_review_candidate_count", 0) or 0
+                ),
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+        )
+    return compact
+
+
+def _best_alternative_candidate(
+    runtime_cycle_report: dict[str, Any],
+    selected_candidate_id: str,
+) -> dict[str, Any] | None:
+    alternatives = [
+        candidate
+        for candidate in _entry_review_candidates(runtime_cycle_report)
+        if candidate.get("candidate_id") != selected_candidate_id
+    ]
+    if not alternatives:
+        return None
+    return max(alternatives, key=_candidate_scorecard_rank_key)
+
+
+def _rotation_review_reason(
+    *,
+    selected: dict[str, Any],
+    net_ev: float,
+    min_required_edge_bps: float,
+    robustness_ready: bool,
+    enough_robustness_sources: bool,
+    ranking_eligible: bool,
+    has_alternative: bool,
+) -> str:
+    if not has_alternative or ranking_eligible:
+        return "NONE"
+    if selected.get("decision") != "PAPER_ENTRY_REVIEW":
+        return "SELECTED_CANDIDATE_NOT_ENTRY_REVIEW_WITH_ALTERNATIVE"
+    if net_ev < min_required_edge_bps:
+        return "SELECTED_CANDIDATE_MIN_EDGE_FAIL_WITH_ALTERNATIVE"
+    if not robustness_ready:
+        return "SELECTED_CANDIDATE_ROBUSTNESS_BLOCKED_WITH_ALTERNATIVE"
+    if not enough_robustness_sources:
+        return "SELECTED_CANDIDATE_ROBUSTNESS_SOURCE_MISSING_WITH_ALTERNATIVE"
+    return "SELECTED_CANDIDATE_RANKING_BLOCKED_WITH_ALTERNATIVE"
+
+
 def candidate_scorecard_from_upbit_paper_runtime_cycle(
     runtime_cycle_report: dict[str, Any],
     *,
@@ -188,6 +290,25 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         and robustness_ready
         and enough_robustness_sources
     )
+    top_symbol_scorecards = _top_symbol_evidence_scorecards(runtime_cycle_report)
+    evaluated_symbol_count = int(runtime_cycle_report.get("symbol_evidence_scorecard_count", len(top_symbol_scorecards)) or 0)
+    paper_entry_review_symbol_count = sum(
+        1
+        for scorecard in runtime_cycle_report.get("symbol_evidence_scorecards") or []
+        if isinstance(scorecard, dict) and int(scorecard.get("paper_entry_review_candidate_count", 0) or 0) > 0
+    )
+    alternative = _best_alternative_candidate(runtime_cycle_report, str(selected["candidate_id"]))
+    alternative_count = max(0, len(_entry_review_candidates(runtime_cycle_report)) - 1)
+    rotation_reason = _rotation_review_reason(
+        selected=selected,
+        net_ev=net_ev,
+        min_required_edge_bps=min_required_edge_bps,
+        robustness_ready=robustness_ready,
+        enough_robustness_sources=enough_robustness_sources,
+        ranking_eligible=ranking_eligible,
+        has_alternative=alternative is not None,
+    )
+    rotation_review_required = rotation_reason != "NONE"
 
     blockers: list[dict[str, str]] = []
     if selected.get("decision") != "PAPER_ENTRY_REVIEW":
@@ -253,6 +374,21 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "operator_warning": "PAPER candidate scorecard is not LIVE_READY and live orders remain blocked.",
         "source_evidence_ids": source_ids,
         "blockers": blockers,
+        "evaluated_symbol_count": evaluated_symbol_count,
+        "paper_entry_review_symbol_count": paper_entry_review_symbol_count,
+        "top_symbol_evidence_scorecards": top_symbol_scorecards,
+        "alternative_candidate_count": alternative_count,
+        "best_alternative_candidate_id": alternative.get("candidate_id") if alternative else None,
+        "best_alternative_symbol": alternative.get("symbol") if alternative else None,
+        "best_alternative_net_ev_after_cost_bps": (
+            number_value(alternative.get("net_ev_after_cost_bps")) if alternative else None
+        ),
+        "rotation_review_required": rotation_review_required,
+        "rotation_review_reason_code": rotation_reason,
+        "rotation_review_acceptance_condition": (
+            "rotation_review_required only when a different PAPER_ENTRY_REVIEW candidate exists and "
+            "the selected scorecard is not ranking_eligible; recommendation is PAPER-only and live flags remain false"
+        ),
         "live_order_ready": False,
         "live_order_allowed": False,
         "can_live_trade": False,

@@ -6687,6 +6687,13 @@
         "candidate_scorecard_primary_blocker_code",
         "candidate_scorecard_blocker_summary",
         "candidate_scorecard_next_action",
+        "candidate_scorecard_evaluated_symbol_count",
+        "candidate_scorecard_paper_entry_review_symbol_count",
+        "candidate_scorecard_best_alternative_candidate_id",
+        "candidate_scorecard_best_alternative_symbol",
+        "candidate_scorecard_best_alternative_net_ev_after_cost_bps",
+        "candidate_scorecard_rotation_review_required",
+        "candidate_scorecard_rotation_review_reason_code",
         "paper_sample_count",
         "shadow_sample_count",
         "min_required_samples",
@@ -7111,6 +7118,45 @@
         "candidate_scorecard_next_action": {
           "type": "string",
           "minLength": 1
+        },
+        "candidate_scorecard_evaluated_symbol_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_scorecard_paper_entry_review_symbol_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_scorecard_best_alternative_candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate_scorecard_best_alternative_symbol": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate_scorecard_best_alternative_net_ev_after_cost_bps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "candidate_scorecard_rotation_review_required": {
+          "type": "boolean"
+        },
+        "candidate_scorecard_rotation_review_reason_code": {
+          "enum": [
+            "NONE",
+            "SELECTED_CANDIDATE_NOT_ENTRY_REVIEW_WITH_ALTERNATIVE",
+            "SELECTED_CANDIDATE_MIN_EDGE_FAIL_WITH_ALTERNATIVE",
+            "SELECTED_CANDIDATE_ROBUSTNESS_BLOCKED_WITH_ALTERNATIVE",
+            "SELECTED_CANDIDATE_ROBUSTNESS_SOURCE_MISSING_WITH_ALTERNATIVE",
+            "SELECTED_CANDIDATE_RANKING_BLOCKED_WITH_ALTERNATIVE"
+          ]
         },
         "overfit_diagnostic_source": {
           "enum": [

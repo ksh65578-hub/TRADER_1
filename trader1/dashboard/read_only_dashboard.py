@@ -9064,6 +9064,13 @@ def _candidate_scorecard_projection(
         "candidate_scorecard_primary_blocker_code": "SCORECARD_NOT_LOADED",
         "candidate_scorecard_blocker_summary": "No PAPER candidate scorecard is loaded for this dashboard.",
         "candidate_scorecard_next_action": "Run the Upbit PAPER runtime scorecard bridge, then refresh this dashboard.",
+        "candidate_scorecard_evaluated_symbol_count": 0,
+        "candidate_scorecard_paper_entry_review_symbol_count": 0,
+        "candidate_scorecard_best_alternative_candidate_id": None,
+        "candidate_scorecard_best_alternative_symbol": None,
+        "candidate_scorecard_best_alternative_net_ev_after_cost_bps": None,
+        "candidate_scorecard_rotation_review_required": False,
+        "candidate_scorecard_rotation_review_reason_code": "NONE",
     }
     if summary_freshness != "PASS":
         return {
@@ -9108,6 +9115,21 @@ def _candidate_scorecard_projection(
     freshness = _freshness_from_generated_at(candidate_scorecard)
     source_evidence_ids = candidate_scorecard.get("source_evidence_ids", [])
     source_evidence_ids = source_evidence_ids if isinstance(source_evidence_ids, list) else []
+    try:
+        evaluated_symbol_count = int(candidate_scorecard.get("evaluated_symbol_count", 0) or 0)
+    except (TypeError, ValueError):
+        evaluated_symbol_count = 0
+    try:
+        paper_entry_symbol_count = int(candidate_scorecard.get("paper_entry_review_symbol_count", 0) or 0)
+    except (TypeError, ValueError):
+        paper_entry_symbol_count = 0
+    alternative_net_ev = candidate_scorecard.get("best_alternative_net_ev_after_cost_bps")
+    try:
+        alternative_net_ev_value = float(alternative_net_ev) if alternative_net_ev is not None else None
+    except (TypeError, ValueError):
+        alternative_net_ev_value = None
+    rotation_review_required = candidate_scorecard.get("rotation_review_required") is True
+    rotation_reason = str(candidate_scorecard.get("rotation_review_reason_code") or "NONE")
     projection = {
         **base,
         "candidate_scorecard_source": "candidate_scorecard.json",
@@ -9122,6 +9144,13 @@ def _candidate_scorecard_projection(
         "candidate_scorecard_scope": scorecard_scope if scorecard_scope in PROFITABILITY_SCORECARD_SCOPES else "BLOCKED_DISPLAY_ONLY",
         "candidate_scorecard_primary_blocker_code": first_blocker,
         "candidate_scorecard_blocker_summary": ", ".join(blocker_codes[:4]) if blocker_codes else "PAPER ranking input only; live remains blocked.",
+        "candidate_scorecard_evaluated_symbol_count": max(0, evaluated_symbol_count),
+        "candidate_scorecard_paper_entry_review_symbol_count": max(0, paper_entry_symbol_count),
+        "candidate_scorecard_best_alternative_candidate_id": candidate_scorecard.get("best_alternative_candidate_id"),
+        "candidate_scorecard_best_alternative_symbol": candidate_scorecard.get("best_alternative_symbol"),
+        "candidate_scorecard_best_alternative_net_ev_after_cost_bps": alternative_net_ev_value,
+        "candidate_scorecard_rotation_review_required": rotation_review_required,
+        "candidate_scorecard_rotation_review_reason_code": rotation_reason,
     }
     if live_flag_drift:
         return {
@@ -9184,7 +9213,11 @@ def _candidate_scorecard_projection(
         **projection,
         "candidate_scorecard_status": "PAPER_RANKING_BLOCKED",
         "candidate_scorecard_ranking_eligible": False,
-        "candidate_scorecard_next_action": "Resolve scorecard blockers before PAPER ranking review; do not treat this as LIVE_READY.",
+        "candidate_scorecard_next_action": (
+            "Review the PAPER rotation alternative before continuing ranking; live remains blocked."
+            if rotation_review_required
+            else "Resolve scorecard blockers before PAPER ranking review; do not treat this as LIVE_READY."
+        ),
     }
 
 
@@ -24014,6 +24047,30 @@ def validate_read_only_dashboard_shell(
     for text_field in ("candidate_scorecard_primary_blocker_code", "candidate_scorecard_blocker_summary", "candidate_scorecard_next_action"):
         if not isinstance(maturity.get(text_field), str) or not maturity.get(text_field, "").strip():
             return DashboardValidationResult("FAIL", f"candidate scorecard missing {text_field}", "SCHEMA_IDENTITY_MISMATCH")
+    evaluated_symbols = maturity.get("candidate_scorecard_evaluated_symbol_count")
+    entry_symbols = maturity.get("candidate_scorecard_paper_entry_review_symbol_count")
+    if not isinstance(evaluated_symbols, int) or evaluated_symbols < 0:
+        return DashboardValidationResult("FAIL", "candidate scorecard evaluated symbol count must be non-negative", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(entry_symbols, int) or entry_symbols < 0 or entry_symbols > evaluated_symbols:
+        return DashboardValidationResult("FAIL", "candidate scorecard entry-review symbol count is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    alternative_net_ev = maturity.get("candidate_scorecard_best_alternative_net_ev_after_cost_bps")
+    if alternative_net_ev is not None and not isinstance(alternative_net_ev, (int, float)):
+        return DashboardValidationResult("FAIL", "candidate scorecard alternative net EV must be numeric or null", "SCHEMA_IDENTITY_MISMATCH")
+    rotation_required = maturity.get("candidate_scorecard_rotation_review_required")
+    rotation_reason = maturity.get("candidate_scorecard_rotation_review_reason_code")
+    if not isinstance(rotation_required, bool):
+        return DashboardValidationResult("FAIL", "candidate scorecard rotation review flag must be boolean", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(rotation_reason, str) or not rotation_reason.strip():
+        return DashboardValidationResult("FAIL", "candidate scorecard rotation review reason is missing", "SCHEMA_IDENTITY_MISMATCH")
+    if rotation_required:
+        if rotation_reason == "NONE":
+            return DashboardValidationResult("FAIL", "candidate scorecard rotation review requires a reason", "SCHEMA_IDENTITY_MISMATCH")
+        if not maturity.get("candidate_scorecard_best_alternative_candidate_id") or not maturity.get("candidate_scorecard_best_alternative_symbol"):
+            return DashboardValidationResult("FAIL", "candidate scorecard rotation review requires an alternative candidate", "SCHEMA_IDENTITY_MISMATCH")
+        if maturity.get("candidate_scorecard_ranking_eligible") is True:
+            return DashboardValidationResult("BLOCKED", "ranking-eligible scorecard cannot require rotation review", "HARD_TRUTH_MISSING")
+    elif rotation_reason != "NONE":
+        return DashboardValidationResult("FAIL", "candidate scorecard rotation reason must be NONE when review is not required", "SCHEMA_IDENTITY_MISMATCH")
     if scorecard_status == "PAPER_RANKING_REVIEW_ONLY":
         if (
             maturity.get("candidate_scorecard_ranking_eligible") is not True
@@ -26217,6 +26274,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"net EV={safe_text(maturity.get('candidate_scorecard_net_ev_after_cost_display', 'UNVERIFIED'))}<br>"
         f"<span class=\"pill {status_class(maturity.get('candidate_scorecard_status'))}\">{safe_text(maturity.get('candidate_scorecard_status', 'NOT_LOADED'))}</span></p>"
         f"<small>{safe_text(maturity.get('candidate_scorecard_blocker_summary', 'No PAPER candidate scorecard is loaded.'))}<br>"
+        f"evaluated symbols={safe_text(maturity.get('candidate_scorecard_evaluated_symbol_count', 0))}, "
+        f"entry-review symbols={safe_text(maturity.get('candidate_scorecard_paper_entry_review_symbol_count', 0))}<br>"
+        f"rotation review={safe_text(str(maturity.get('candidate_scorecard_rotation_review_required', False)).lower())}, "
+        f"reason={safe_text(maturity.get('candidate_scorecard_rotation_review_reason_code', 'NONE'))}<br>"
+        f"best alternative={safe_text(maturity.get('candidate_scorecard_best_alternative_symbol') or 'none')} / "
+        f"{safe_text(maturity.get('candidate_scorecard_best_alternative_candidate_id') or 'none')} / "
+        f"netEV={safe_text(maturity.get('candidate_scorecard_best_alternative_net_ev_after_cost_bps', 'n/a'))}<br>"
         f"Overfit: {safe_text(maturity.get('overfit_diagnostic_status', 'NOT_LOADED'))} "
         f"({safe_text(maturity.get('overfit_diagnostic_sample_count', 0))}/{safe_text(maturity.get('overfit_diagnostic_min_required_sample_count', 300))} samples), "
         f"blocker={safe_text(maturity.get('overfit_diagnostic_primary_blocker_code', 'SAMPLE_INSUFFICIENT'))}<br>"

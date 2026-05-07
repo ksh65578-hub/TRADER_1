@@ -240,6 +240,126 @@
         "$ref": "common.defs.schema.json#/$defs/blocker_object"
       }
     },
+    "evaluated_symbol_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "paper_entry_review_symbol_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "top_symbol_evidence_scorecards": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "symbol",
+          "rank_input_order",
+          "best_candidate_id",
+          "best_strategy_family",
+          "best_decision",
+          "best_net_ev_after_cost_bps",
+          "symbol_selection_score",
+          "paper_entry_review_candidate_count",
+          "live_order_ready",
+          "live_order_allowed",
+          "can_live_trade",
+          "scale_up_allowed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rank_input_order": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "best_candidate_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "best_strategy_family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "best_decision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "best_net_ev_after_cost_bps": {
+            "type": "number"
+          },
+          "symbol_selection_score": {
+            "type": "number",
+            "minimum": 0
+          },
+          "paper_entry_review_candidate_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "live_order_ready": {
+            "const": false
+          },
+          "live_order_allowed": {
+            "const": false
+          },
+          "can_live_trade": {
+            "const": false
+          },
+          "scale_up_allowed": {
+            "const": false
+          }
+        }
+      }
+    },
+    "alternative_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "best_alternative_candidate_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "best_alternative_symbol": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "best_alternative_net_ev_after_cost_bps": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "rotation_review_required": {
+      "type": "boolean"
+    },
+    "rotation_review_reason_code": {
+      "enum": [
+        "NONE",
+        "SELECTED_CANDIDATE_NOT_ENTRY_REVIEW_WITH_ALTERNATIVE",
+        "SELECTED_CANDIDATE_MIN_EDGE_FAIL_WITH_ALTERNATIVE",
+        "SELECTED_CANDIDATE_ROBUSTNESS_BLOCKED_WITH_ALTERNATIVE",
+        "SELECTED_CANDIDATE_ROBUSTNESS_SOURCE_MISSING_WITH_ALTERNATIVE",
+        "SELECTED_CANDIDATE_RANKING_BLOCKED_WITH_ALTERNATIVE"
+      ]
+    },
+    "rotation_review_acceptance_condition": {
+      "type": "string",
+      "minLength": 1
+    },
     "live_order_ready": {
       "const": false
     },
