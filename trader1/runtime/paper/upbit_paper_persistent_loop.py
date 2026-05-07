@@ -80,6 +80,8 @@ RECENT_FAILURE_FEEDBACK_LOOKBACK_CYCLES = 30
 RECENT_FAILURE_FEEDBACK_COOLDOWN_CYCLES = 3
 RUNTIME_QUALITY_FEEDBACK_COOLDOWN_CYCLES = 5
 RUNTIME_QUALITY_FEEDBACK_MIN_PRELIMINARY_SAMPLE_COUNT = 20
+RUNTIME_QUALITY_FEEDBACK_MAX_AGE_SECONDS = 6 * 60 * 60
+RUNTIME_QUALITY_FEEDBACK_MAX_FUTURE_SKEW_SECONDS = 5 * 60
 RECENT_FAILURE_FEEDBACK_EXIT_REASONS = {
     "REGIME_REVERSAL",
     "HARD_STOP",
@@ -451,6 +453,21 @@ def _overfit_diagnostic_report_hash(report: dict[str, Any]) -> str:
     return _sha256_json(payload)
 
 
+def _parse_utc_datetime(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
 def _strategy_family_from_candidate_id(candidate_id: str) -> str | None:
     if candidate_id.endswith("-pullback-trend-long"):
         return "PULLBACK_TREND_LONG"
@@ -473,6 +490,15 @@ def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str)
     if diagnostic.get("session_id") != session_id:
         return []
     if diagnostic.get("live_order_ready") or diagnostic.get("live_order_allowed") or diagnostic.get("can_live_trade") or diagnostic.get("scale_up_allowed"):
+        return []
+    generated_at = _parse_utc_datetime(diagnostic.get("generated_at_utc"))
+    if generated_at is None:
+        return []
+    feedback_age_seconds = (datetime.now(timezone.utc) - generated_at).total_seconds()
+    if (
+        feedback_age_seconds > RUNTIME_QUALITY_FEEDBACK_MAX_AGE_SECONDS
+        or feedback_age_seconds < -RUNTIME_QUALITY_FEEDBACK_MAX_FUTURE_SKEW_SECONDS
+    ):
         return []
     candidate_id = str(diagnostic.get("candidate_id") or "")
     symbol = str(diagnostic.get("symbol") or "")
@@ -521,6 +547,8 @@ def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str)
             "preliminary_oos_net_ev_after_cost_bps": _decimal_text(preliminary_oos_ev),
             "preliminary_bootstrap_confidence_lower_bps": _decimal_text(preliminary_bootstrap_lower),
             "preliminary_robustness_status": diagnostic.get("preliminary_robustness_status"),
+            "source_generated_at_utc": diagnostic.get("generated_at_utc"),
+            "source_feedback_age_seconds": str(max(0, int(feedback_age_seconds))),
             "source_runtime_cycle_id": diagnostic.get("diagnostic_id"),
             "source_runtime_cycle_hash": diagnostic.get("diagnostic_hash"),
             "cycles_since_failure": 0,
