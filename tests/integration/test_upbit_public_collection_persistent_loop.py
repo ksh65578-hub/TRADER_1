@@ -1031,6 +1031,48 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertFalse(loop["can_live_trade"])
             self.assertFalse(loop["scale_up_allowed"])
 
+    def test_bounded_paper_loop_allows_paper_only_resume_from_legacy_quality_exit_formula_cycle(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-legacy-quality-exit-formula-cycle",
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            evaluation = legacy_cycle["position_management_decision"]["position_exit_evaluation"]
+            evaluation["quality_feedback_exit_formula"] = (
+                "PRELIMINARY_ROBUSTNESS_FAIL with active cooldown and return_pct<=0.25 triggers "
+                "PAPER-only full exit using no_trade_reason=COOLDOWN; hard stop, regime, trailing, and take-profit exits keep priority"
+            )
+            legacy_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(legacy_cycle)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            )
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(legacy_cycle, indent=2), encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-legacy-quality-exit-formula-resume",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            guard = json.loads((root / loop["preflight_runtime_recovery_guard_path"]).read_text(encoding="utf-8"))
+            guard_result = validate_upbit_paper_runtime_recovery_guard_report(guard)
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(guard_result.status, "PASS")
+            self.assertEqual(loop["preflight_recovery_guard_status"], "PASS")
+            self.assertTrue(loop["current_evidence_write_allowed"])
+            self.assertEqual(loop["completed_cycle_count"], 1)
+            self.assertEqual(guard["latest_cycle_contract_mode"], "LEGACY_RECHECK_WITHOUT_POSITION_ROTATION_FIELDS")
+            self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
+            self.assertIn("TP1 partial exits wait behind", latest["position_management_decision"]["position_exit_evaluation"]["quality_feedback_exit_formula"])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
+
     def test_bounded_paper_loop_chains_legacy_policy_and_quality_exit_field_recheck(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
