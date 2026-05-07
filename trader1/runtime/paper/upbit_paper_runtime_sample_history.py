@@ -636,8 +636,18 @@ def validate_upbit_paper_runtime_sample_history(history: dict[str, Any]) -> Upbi
             return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample first/latest timestamp mismatch", "SCHEMA_IDENTITY_MISMATCH")
     elif history.get("first_sample_at_utc") is not None or history.get("latest_sample_at_utc") is not None:
         return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "empty runtime sample history cannot carry first/latest timestamps", "SCHEMA_IDENTITY_MISMATCH")
-    if invalid_source_count > 0 and not samples and history.get("runtime_sample_status") != "BLOCKED":
-        return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "invalid runtime source with no accepted samples must block sample history", "RECONCILIATION_REQUIRED")
+    if invalid_source_count > 0 and not samples:
+        if history.get("runtime_sample_status") != "BLOCKED":
+            return UpbitPaperRuntimeSampleHistoryValidationResult(
+                "BLOCKED",
+                "invalid runtime source with no accepted samples must block sample history",
+                "RECONCILIATION_REQUIRED",
+            )
+        return UpbitPaperRuntimeSampleHistoryValidationResult(
+            "BLOCKED",
+            "invalid runtime sources left no accepted source-bound PAPER samples",
+            "RECONCILIATION_REQUIRED",
+        )
     if invalid_source_count > 0 and samples and history.get("runtime_sample_status") not in {"COLLECTING", "BLOCKED"}:
         return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample invalid source status is inconsistent", "SCHEMA_IDENTITY_MISMATCH")
     if not samples and history.get("runtime_sample_status") != "INSUFFICIENT_HISTORY":
@@ -645,3 +655,89 @@ def validate_upbit_paper_runtime_sample_history(history: dict[str, Any]) -> Upbi
     if samples and history.get("runtime_sample_status") not in {"COLLECTING", "BLOCKED"}:
         return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample history status is inconsistent", "SCHEMA_IDENTITY_MISMATCH")
     return UpbitPaperRuntimeSampleHistoryValidationResult("PASS", "Upbit PAPER runtime sample history is hash-linked, scoped, and live-blocked", None)
+
+
+def validate_upbit_paper_runtime_sample_history_sources(
+    *,
+    root: Path,
+    history: dict[str, Any],
+) -> UpbitPaperRuntimeSampleHistoryValidationResult:
+    """Validate the current source files behind a sample history artifact.
+
+    The schema validator proves the history was internally consistent when it was
+    written.  This root-bound check prevents a later cleanup or retention action
+    from leaving a stale PASS history whose source cycle files are gone.
+    """
+    base_result = validate_upbit_paper_runtime_sample_history(history)
+    if base_result.status != "PASS":
+        return base_result
+
+    root = Path(root).resolve()
+    session_id = str(history.get("session_id"))
+    for sample in history.get("samples") or []:
+        if not isinstance(sample, dict):
+            return UpbitPaperRuntimeSampleHistoryValidationResult(
+                "FAIL",
+                "runtime sample must be an object",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+
+        loop_path_text = str(sample.get("source_loop_report_path") or "")
+        runtime_path_text = str(sample.get("source_runtime_cycle_path") or "")
+        for source_path_text in (loop_path_text, runtime_path_text):
+            if not _artifact_path_allowed(source_path_text, session_id):
+                return UpbitPaperRuntimeSampleHistoryValidationResult(
+                    "BLOCKED",
+                    "runtime sample source path escaped UPBIT PAPER namespace",
+                    "SNAPSHOT_SCOPE_MISMATCH",
+                )
+
+        loop_path = root / loop_path_text
+        loop_report, loop_error = _safe_read_json(loop_path)
+        if loop_error is not None or not isinstance(loop_report, dict):
+            return UpbitPaperRuntimeSampleHistoryValidationResult(
+                "BLOCKED",
+                f"runtime sample source loop report is missing or unreadable: {loop_path_text}",
+                "RECONCILIATION_REQUIRED",
+            )
+        loop_result = validate_upbit_paper_persistent_loop_report(loop_report)
+        if loop_result.status != "PASS":
+            return UpbitPaperRuntimeSampleHistoryValidationResult(
+                "BLOCKED",
+                f"runtime sample source loop report failed validation: {loop_result.message}",
+                loop_result.blocker_code or "RECONCILIATION_REQUIRED",
+            )
+        if loop_report.get("loop_hash") != sample.get("source_loop_report_hash"):
+            return UpbitPaperRuntimeSampleHistoryValidationResult(
+                "BLOCKED",
+                "runtime sample source loop report hash mismatch",
+                "RECONCILIATION_REQUIRED",
+            )
+
+        runtime_path = root / runtime_path_text
+        runtime_cycle, runtime_error = _safe_read_json(runtime_path)
+        if runtime_error is not None or not isinstance(runtime_cycle, dict):
+            return UpbitPaperRuntimeSampleHistoryValidationResult(
+                "BLOCKED",
+                f"runtime sample source cycle is missing or unreadable: {runtime_path_text}",
+                "RECONCILIATION_REQUIRED",
+            )
+        runtime_result = validate_upbit_paper_runtime_cycle_report(runtime_cycle)
+        if runtime_result.status != "PASS":
+            return UpbitPaperRuntimeSampleHistoryValidationResult(
+                "BLOCKED",
+                f"runtime sample source cycle failed validation: {runtime_result.message}",
+                runtime_result.blocker_code or "RECONCILIATION_REQUIRED",
+            )
+        if runtime_cycle.get("cycle_hash") != sample.get("source_runtime_cycle_hash"):
+            return UpbitPaperRuntimeSampleHistoryValidationResult(
+                "BLOCKED",
+                "runtime sample source cycle hash mismatch",
+                "RECONCILIATION_REQUIRED",
+            )
+
+    return UpbitPaperRuntimeSampleHistoryValidationResult(
+        "PASS",
+        "Upbit PAPER runtime sample history sources exist, validate, and match sample hashes",
+        None,
+    )
