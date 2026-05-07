@@ -6179,6 +6179,12 @@ def _paper_runner_operations_status(
             return value
         return None
 
+    def safe_text(value: Any, default: str | None = None) -> str | None:
+        if not isinstance(value, str):
+            return default
+        stripped = value.strip()
+        return stripped or default
+
     base = {
         "title": "PAPER Runner Operations",
         "status": "NOT_LOADED",
@@ -6316,7 +6322,15 @@ def _paper_runner_operations_status(
         )
         or "NOT_LOADED"
     )
-    primary_blocker = runner_status_report.get("primary_blocker_code") or "LIVE_READY_MISSING"
+    runner_primary_blocker = safe_text(runner_status_report.get("primary_blocker_code"))
+    profitability_primary_blocker = safe_text(
+        runner_status_report.get("profitability_evidence_primary_blocker_code")
+    )
+    paper_shadow_primary_blocker = safe_text(runner_status_report.get("paper_shadow_evidence_blocker_code"))
+    paper_scope_progress_status = str(
+        runner_status_report.get("paper_scope_progress_status") or "NO_CANDIDATE_SCOPE"
+    )
+    primary_blocker = runner_primary_blocker or "LIVE_READY_MISSING"
     sample_history_consistency_status = str(
         runner_status_report.get("runtime_sample_history_source_consistency_status") or "NOT_CHECKED"
     )
@@ -6412,6 +6426,19 @@ def _paper_runner_operations_status(
 
     scope_sample_deficit = safe_count(runner_status_report.get("paper_scope_sample_deficit"))
     scope_next_action = runner_status_report.get("paper_scope_next_operator_action")
+    if (
+        status in {"RUNNING_NOW", "STOPPED"}
+        and scope_sample_deficit > 0
+        and paper_scope_progress_status == "COLLECT_PAPER_SCOPE_SAMPLES"
+    ):
+        source_bound_blocker = profitability_primary_blocker or paper_shadow_primary_blocker or "PAPER_SAMPLE_DEFICIT"
+        if primary_blocker == "LIVE_READY_MISSING":
+            primary_blocker = source_bound_blocker
+        summary = (
+            "PAPER runner is collecting source-bound candidate samples; live orders remain blocked until sample and robustness gates pass."
+            if status == "RUNNING_NOW"
+            else "PAPER runner stopped with source-bound candidate samples still below the minimum; live orders remain blocked."
+        )
     if status in {"RUNNING_NOW", "STOPPED"} and scope_sample_deficit > 0 and isinstance(scope_next_action, str):
         next_action = scope_next_action.strip() or next_action
 
@@ -6504,9 +6531,7 @@ def _paper_runner_operations_status(
                 runner_status_report.get("runtime_sample_history_companion_active_sample_count")
             ),
             "runtime_sample_count": safe_count(runner_status_report.get("runtime_sample_count")),
-            "paper_scope_progress_status": str(
-                runner_status_report.get("paper_scope_progress_status") or "NO_CANDIDATE_SCOPE"
-            ),
+            "paper_scope_progress_status": paper_scope_progress_status,
             "paper_scope_candidate_id": safe_value(runner_status_report.get("paper_scope_candidate_id")),
             "paper_scope_strategy_id": safe_value(runner_status_report.get("paper_scope_strategy_id")),
             "paper_scope_parameter_hash": safe_value(runner_status_report.get("paper_scope_parameter_hash")),
@@ -7782,11 +7807,12 @@ def _operator_action_summary(
     maturity_status = profitability_maturity.get("status")
     feedback_status = execution_feedback_snapshot.get("status")
     reconciliation_status = reconciliation_recovery_summary.get("status")
+    paper_collection_blockers = {"LIVE_READY_MISSING", "SAMPLE_INSUFFICIENT", "PAPER_SAMPLE_DEFICIT"}
     paper_runtime_active_with_current_truth = (
         operation_status.get("status") == "RUNNING_SAFE_MODE"
         and operation_status.get("severity") == "NORMAL"
         and operation_status.get("runtime_presence") == "PAPER_RUNTIME_ACTIVE"
-        and operation_status.get("primary_blocker") == "LIVE_READY_MISSING"
+        and operation_status.get("primary_blocker") in paper_collection_blockers
     )
     repaired_current_evidence_guard_blocked = (
         reconciliation_recovery_summary.get("stale_loop_isolated_event_id_scope_repaired_current_evidence_guard_status")
@@ -7825,7 +7851,7 @@ def _operator_action_summary(
     )
     active_paper_review_warning = (
         paper_runtime_active_with_current_truth
-        and blocker == "LIVE_READY_MISSING"
+        and blocker in paper_collection_blockers
         and operation_severity == "NORMAL"
         and reconciliation_status == "PASS"
         and long_run_status == "ATTENTION"
@@ -7838,7 +7864,7 @@ def _operator_action_summary(
         and operation_status.get("severity") == "WARNING"
         and operation_status.get("runner_status") == "STOPPED"
         and _safe_count(operation_status.get("completed_cycle_count")) > 0
-        and operation_status.get("primary_blocker") == "LIVE_READY_MISSING"
+        and operation_status.get("primary_blocker") in paper_collection_blockers
         and reconciliation_status not in {"BLOCKED", "INVALID"}
     )
 
@@ -19015,7 +19041,8 @@ def build_read_only_dashboard_shell(
     runner_status_current_for_dashboard = (
         runner_operations_status.get("source") == "runner_status.json"
         and runner_operations_status.get("status") in {"RUNNING_NOW", "STOPPED"}
-        and runner_operations_status.get("primary_blocker_code") == "LIVE_READY_MISSING"
+        and isinstance(runner_operations_status.get("primary_blocker_code"), str)
+        and bool(str(runner_operations_status.get("primary_blocker_code")).strip())
     )
     dashboard_primary_blocker = (
         reconciliation_recovery_summary.get("primary_blocker_code")
