@@ -6244,6 +6244,14 @@ def _paper_runner_operations_status(
         "paper_scope_next_operator_action": "Keep PAPER running until a source-bound candidate scope appears.",
         "paper_scope_latest_sample_at_utc": None,
         "paper_scope_summary_count": 0,
+        "paper_scope_continuity_status": "NOT_REQUESTED",
+        "paper_scope_continuity_requested": False,
+        "paper_scope_continuity_selected": False,
+        "paper_scope_continuity_requested_candidate_id": None,
+        "paper_scope_continuity_selected_candidate_id": None,
+        "paper_scope_continuity_best_candidate_id": None,
+        "paper_scope_continuity_score_gap": None,
+        "paper_scope_continuity_net_ev_gap_bps": None,
         "candidate_scorecard_status": "NOT_LOADED",
         "candidate_scorecard_candidate_id": None,
         "candidate_scorecard_ranking_eligible": False,
@@ -6552,6 +6560,30 @@ def _paper_runner_operations_status(
                 runner_status_report.get("paper_scope_latest_sample_at_utc")
             ),
             "paper_scope_summary_count": safe_count(runner_status_report.get("paper_scope_summary_count")),
+            "paper_scope_continuity_status": str(
+                runner_status_report.get("paper_scope_continuity_status") or "NOT_REQUESTED"
+            ),
+            "paper_scope_continuity_requested": runner_status_report.get(
+                "paper_scope_continuity_requested"
+            )
+            is True,
+            "paper_scope_continuity_selected": runner_status_report.get("paper_scope_continuity_selected")
+            is True,
+            "paper_scope_continuity_requested_candidate_id": safe_value(
+                runner_status_report.get("paper_scope_continuity_requested_candidate_id")
+            ),
+            "paper_scope_continuity_selected_candidate_id": safe_value(
+                runner_status_report.get("paper_scope_continuity_selected_candidate_id")
+            ),
+            "paper_scope_continuity_best_candidate_id": safe_value(
+                runner_status_report.get("paper_scope_continuity_best_candidate_id")
+            ),
+            "paper_scope_continuity_score_gap": safe_value(
+                runner_status_report.get("paper_scope_continuity_score_gap")
+            ),
+            "paper_scope_continuity_net_ev_gap_bps": safe_value(
+                runner_status_report.get("paper_scope_continuity_net_ev_gap_bps")
+            ),
             "candidate_scorecard_status": str(
                 runner_status_report.get("candidate_scorecard_status") or "NOT_LOADED"
             ),
@@ -25911,6 +25943,35 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     paper_scope_required = paper_runner_operations.get("paper_scope_min_required_sample_count", 0)
     paper_scope_deficit = paper_runner_operations.get("paper_scope_sample_deficit", 0)
     paper_scope_status = paper_runner_operations.get("paper_scope_progress_status", "NO_CANDIDATE_SCOPE")
+    paper_scope_continuity_status = paper_runner_operations.get(
+        "paper_scope_continuity_status",
+        "NOT_REQUESTED",
+    )
+    paper_scope_continuity_requested = (
+        "yes" if paper_runner_operations.get("paper_scope_continuity_requested") is True else "no"
+    )
+    paper_scope_continuity_selected = (
+        "yes" if paper_runner_operations.get("paper_scope_continuity_selected") is True else "no"
+    )
+    paper_scope_continuity_requested_candidate = (
+        paper_runner_operations.get("paper_scope_continuity_requested_candidate_id") or "none"
+    )
+    paper_scope_continuity_selected_candidate = (
+        paper_runner_operations.get("paper_scope_continuity_selected_candidate_id") or "none"
+    )
+    paper_scope_continuity_best_candidate = (
+        paper_runner_operations.get("paper_scope_continuity_best_candidate_id") or "none"
+    )
+    paper_scope_continuity_score_gap = (
+        paper_runner_operations.get("paper_scope_continuity_score_gap")
+        if paper_runner_operations.get("paper_scope_continuity_score_gap") is not None
+        else "n/a"
+    )
+    paper_scope_continuity_net_ev_gap = (
+        paper_runner_operations.get("paper_scope_continuity_net_ev_gap_bps")
+        if paper_runner_operations.get("paper_scope_continuity_net_ev_gap_bps") is not None
+        else "n/a"
+    )
     paper_sample_history_consistency_display = str(
         paper_runner_operations.get("runtime_sample_history_source_consistency_status", "NOT_CHECKED")
     ).replace("_", " ").title()
@@ -25951,6 +26012,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"{safe_text(paper_scope_count)} / {safe_text(paper_scope_required)}; "
         f"deficit={safe_text(paper_scope_deficit)}<br>"
         f"{safe_text(paper_scope_status)}</dd></div>"
+        f"<div><dt>Scope continuity</dt><dd>"
+        f"<span class=\"pill {status_class(paper_scope_continuity_status)}\">{safe_text(paper_scope_continuity_status)}</span><br>"
+        f"requested={safe_text(paper_scope_continuity_requested)}; selected={safe_text(paper_scope_continuity_selected)}<br>"
+        f"requested={safe_text(paper_scope_continuity_requested_candidate)}<br>"
+        f"selected={safe_text(paper_scope_continuity_selected_candidate)}; "
+        f"best={safe_text(paper_scope_continuity_best_candidate)}<br>"
+        f"score_gap={safe_text(paper_scope_continuity_score_gap)}; "
+        f"netEV_gap_bps={safe_text(paper_scope_continuity_net_ev_gap)}</dd></div>"
         f"<div><dt>Scorecard</dt><dd>{safe_text(paper_runner_operations.get('candidate_scorecard_status', 'NOT_LOADED'))} / rank={safe_text(str(paper_runner_operations.get('candidate_scorecard_ranking_eligible') is True).lower())}</dd></div>"
         f"<div><dt>Evidence scorecard</dt><dd>{safe_text(paper_runner_operations.get('candidate_scorecard_candidate_id') or 'none')}<br>"
         f"PAPER={safe_text(paper_runner_operations.get('paper_shadow_evidence_paper_sample_count', 0))} / "
