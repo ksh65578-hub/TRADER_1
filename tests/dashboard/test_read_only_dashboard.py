@@ -6626,6 +6626,45 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("STALE_SNAPSHOT_NOT_RUNTIME_PROOF", html)
         self.assertIn("WARNING | CODEX_NON_LIVE", html)
 
+    def test_dashboard_keeps_stale_public_mark_audited_current_evidence_ladder_consistent(self):
+        writer_report, current_evidence, paper_portfolio, implementation_prep = audited_writer_public_mark_output_fixture()
+        current_evidence = dict(current_evidence)
+        writer_report = dict(writer_report)
+        writer_report["artifacts"] = [
+            dict(artifact) if isinstance(artifact, dict) else artifact
+            for artifact in writer_report.get("artifacts", [])
+        ]
+        current_evidence["generated_at_utc"] = "2026-01-01T00:00:00Z"
+        current_evidence["snapshot_hash"] = upbit_paper_audited_current_evidence_snapshot_hash(current_evidence)
+        for artifact in writer_report["artifacts"]:
+            if artifact.get("artifact_id") == "AUDITED_CURRENT_EVIDENCE_SNAPSHOT":
+                artifact["payload_hash"] = current_evidence["snapshot_hash"]
+        writer_report["audited_writer_report_hash"] = upbit_paper_repaired_current_evidence_audited_writer_report_hash(
+            writer_report
+        )
+
+        dashboard = build_dashboard_with_audited_current_evidence_writer(
+            (writer_report, current_evidence, paper_portfolio, implementation_prep)
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+
+        portfolio = dashboard["portfolio_snapshot"]
+        self.assertEqual(portfolio["status"], "STALE")
+        self.assertEqual(portfolio["paper_value_truth_status"], "PAPER_LEDGER_PUBLIC_MARK_VALUES_STALE")
+        self.assertEqual(portfolio["audited_writer_readiness_ladder_status"], "STALE_SINGLE_RUN_SNAPSHOT")
+        stale_snapshot_step = next(
+            step
+            for step in portfolio["audited_writer_readiness_ladder_steps"]
+            if step["step_id"] == "SINGLE_RUN_AUDITED_SNAPSHOT"
+        )
+        self.assertEqual(stale_snapshot_step["status"], "STALE")
+        self.assertEqual(stale_snapshot_step["evidence_blocker_level"], "WARNING")
+        self.assertFalse(portfolio["live_order_ready"])
+        self.assertFalse(portfolio["live_order_allowed"])
+        self.assertFalse(portfolio["can_live_trade"])
+        self.assertFalse(portfolio["scale_up_allowed"])
+
     def test_dashboard_blocks_stale_snapshot_ladder_warning_policy_drift(self):
         writer_report, current_evidence, paper_portfolio, implementation_prep = audited_writer_output_fixture()
         current_evidence = dict(current_evidence)
