@@ -362,6 +362,37 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
         self.assertEqual(latest["paper_portfolio_snapshot"]["positions"][0]["symbol"], "KRW-ETH")
         self.assertFalse(latest["live_order_allowed"])
 
+    def test_bounded_loop_counts_managed_position_symbol_added_to_cycle_universe(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            seed = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="managed-position-universe-seed",
+                requested_cycle_count=1,
+                symbol="KRW-JTO",
+                symbol_universe=["KRW-JTO"],
+            )
+            seed_result = validate_upbit_paper_persistent_loop_report(seed)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="managed-position-universe-resume",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+        cycle_result = loop["cycle_results"][0]
+        self.assertEqual(seed_result.status, "PASS")
+        self.assertEqual(seed["cycle_results"][0]["final_decision"], "ENTER_LONG")
+        self.assertEqual(result.status, "PASS")
+        self.assertIn("KRW-JTO", cycle_result["symbol_universe"])
+        self.assertGreaterEqual(cycle_result["symbol_universe_total_count"], len(cycle_result["symbol_universe"]))
+        self.assertEqual(cycle_result["symbol_universe_evaluated_count"], len(cycle_result["symbol_universe"]))
+        self.assertFalse(cycle_result["live_order_ready"])
+        self.assertFalse(cycle_result["live_order_allowed"])
+        self.assertFalse(cycle_result["can_live_trade"])
+        self.assertFalse(cycle_result["scale_up_allowed"])
+        self.assertFalse(loop["live_order_allowed"])
+
     def test_persistent_loop_applies_preliminary_robustness_feedback_to_rotate_candidate(self):
         repeated_wlfi = build_upbit_public_candle_fixture(
             symbol="KRW-WLFI",

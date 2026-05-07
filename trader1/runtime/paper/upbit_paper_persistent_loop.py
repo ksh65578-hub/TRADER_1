@@ -1577,6 +1577,16 @@ def run_upbit_paper_persistent_loop(
             selected_candidate = cycle.get("selected_candidate") if isinstance(cycle, dict) else None
             if not isinstance(selected_candidate, dict):
                 selected_candidate = {}
+            cycle_result_symbol_universe = (
+                cycle.get("symbol_universe")
+                if isinstance(cycle, dict) and isinstance(cycle.get("symbol_universe"), list)
+                else cycle_symbol_universe
+            )
+            cycle_result_symbol_universe_count = len(cycle_result_symbol_universe)
+            cycle_result_symbol_universe_total_count = max(
+                int(symbol_discovery_context["symbol_universe_total_count"]),
+                cycle_result_symbol_universe_count,
+            )
             cycle_results.append(
                 {
                     "cycle_index": index + 1,
@@ -1597,14 +1607,10 @@ def run_upbit_paper_persistent_loop(
                     "runtime_public_market_data_hash": cycle.get("runtime_public_market_data_hash") if isinstance(cycle, dict) else None,
                     "feature_snapshot_hash": cycle.get("feature_snapshot_hash") if isinstance(cycle, dict) else None,
                     "regime": cycle.get("regime") if isinstance(cycle, dict) else None,
-                    "symbol_universe": cycle.get("symbol_universe") if isinstance(cycle, dict) else cycle_symbol_universe,
+                    "symbol_universe": cycle_result_symbol_universe,
                     "symbol_universe_source": cycle_symbol_universe_source,
-                    "symbol_universe_total_count": int(symbol_discovery_context["symbol_universe_total_count"]),
-                    "symbol_universe_evaluated_count": (
-                        len(cycle.get("symbol_universe"))
-                        if isinstance(cycle, dict) and isinstance(cycle.get("symbol_universe"), list)
-                        else len(cycle_symbol_universe)
-                    ),
+                    "symbol_universe_total_count": cycle_result_symbol_universe_total_count,
+                    "symbol_universe_evaluated_count": cycle_result_symbol_universe_count,
                     "selected_symbol": cycle.get("selected_symbol") if isinstance(cycle, dict) else None,
                     "selected_candidate_id": selected_candidate.get("candidate_id"),
                     "selected_candidate_net_ev_after_cost_bps": selected_candidate.get("net_ev_after_cost_bps"),
