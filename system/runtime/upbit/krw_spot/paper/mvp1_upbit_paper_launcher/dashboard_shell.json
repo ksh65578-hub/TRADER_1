@@ -1083,6 +1083,9 @@
     "runtime_sample_count": 21,
     "candidate_scorecard_status": "PASS",
     "candidate_scorecard_ranking_eligible": false,
+    "runtime_quality_feedback_count": 0,
+    "runtime_quality_feedback_candidate_ids": [],
+    "selected_candidate_recent_failure_feedback_kind": "NONE",
     "symbol_evidence_scorecard_count": 17,
     "selected_symbol_evidence_scorecard": {
       "best_candidate_id": "KRW-WLFI-pullback-trend-long",
@@ -3285,6 +3288,13 @@
     "candidate_scorecard_primary_blocker_code": "OOS_MISSING",
     "candidate_scorecard_blocker_summary": "OOS_MISSING, WALK_FORWARD_MISSING, BOOTSTRAP_UNSTABLE, OVERFIT_RISK_HIGH",
     "candidate_scorecard_next_action": "Resolve scorecard blockers before PAPER ranking review; do not treat this as LIVE_READY.",
+    "candidate_scorecard_evaluated_symbol_count": 0,
+    "candidate_scorecard_paper_entry_review_symbol_count": 0,
+    "candidate_scorecard_best_alternative_candidate_id": null,
+    "candidate_scorecard_best_alternative_symbol": null,
+    "candidate_scorecard_best_alternative_net_ev_after_cost_bps": null,
+    "candidate_scorecard_rotation_review_required": false,
+    "candidate_scorecard_rotation_review_reason_code": "NONE",
     "overfit_diagnostic_source": "overfit_diagnostic_report.json",
     "overfit_diagnostic_status": "BLOCKED_FOR_ROBUSTNESS",
     "overfit_diagnostic_sample_count": 21,
@@ -4284,5 +4294,5 @@
   "blocking_reason": "LIVE_READY_MISSING",
   "next_action": "Start PAPER again if you want continuous runtime evidence to advance.",
   "forbidden_wording_detected": false,
-  "dashboard_hash": "5A3AE5C367A1042B052F4C3B42D7437997FDA6FB049A77E5DB2BE7E71D0F670D"
+  "dashboard_hash": "5ED776576B73F003C785F4F04EEE141376DF79114D9C42D67A1FB5D59864DF83"
 }

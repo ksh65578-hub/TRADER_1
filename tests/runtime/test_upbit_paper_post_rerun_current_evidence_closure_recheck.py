@@ -112,7 +112,10 @@ class UpbitPaperPostRerunCurrentEvidenceClosureRecheckTest(unittest.TestCase):
         self.assertEqual(report["ledger_source_persistent_loop_validation_status"], "PASS")
         self.assertEqual(report["ledger_source_persistent_loop_hash_self_check"], "PASS")
         self.assertTrue(report["ledger_head_cycle_in_persistent_loop"])
-        self.assertEqual(report["ledger_source_runtime_input_role"], "PUBLIC_MARKET_DATA_COLLECTION")
+        self.assertIn(
+            report["ledger_source_runtime_input_role"],
+            {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"},
+        )
         self.assertEqual(
             report["ledger_source_public_market_data_hash"],
             report["ledger_source_runtime_public_market_data_hash"],

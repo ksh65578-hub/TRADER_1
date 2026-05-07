@@ -47,8 +47,8 @@ class UpbitPaperStaleLoopReplacementSchemaNormalizationPreviewTest(unittest.Test
         self.assertEqual(report["primary_blocker_code"], POST_NORMALIZATION_RECONCILIATION_REQUIRED_BLOCKER_CODE)
         self.assertEqual(report["normalization_candidate_count"], 5)
         self.assertEqual(report["replacement_path_exists_count"], 5)
-        self.assertEqual(report["missing_field_total_count"], 35)
-        self.assertEqual(report["proposed_field_total_count"], 35)
+        self.assertGreater(report["missing_field_total_count"], 35)
+        self.assertEqual(report["proposed_field_total_count"], report["missing_field_total_count"])
         self.assertEqual(report["proposed_current_evidence_write_true_count"], 5)
         self.assertEqual(report["normalized_schema_fail_count"], 0)
         self.assertEqual(report["normalized_reconciliation_blocked_count"], 5)
@@ -62,6 +62,7 @@ class UpbitPaperStaleLoopReplacementSchemaNormalizationPreviewTest(unittest.Test
         self.assertFalse(report["scale_up_allowed"])
         self.assertTrue(all(item["normalization_item_status"] == "READY_PREVIEW_ONLY" for item in report["items"]))
         self.assertTrue(all(item["normalized_validation_status"] == "BLOCKED" for item in report["items"]))
+        self.assertTrue(all("symbol_universe" in item["original_missing_fields"] for item in report["items"]))
         self.assertTrue(all(not item["normalization_write_allowed"] for item in report["items"]))
 
     def test_blocks_false_normalization_write_permission(self):

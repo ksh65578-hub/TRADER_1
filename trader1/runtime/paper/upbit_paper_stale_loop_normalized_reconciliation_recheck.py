@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
+    DEFAULT_PUBLIC_DISCOVERY_EVALUATION_LIMIT,
     upbit_paper_persistent_loop_hash,
     validate_upbit_paper_persistent_loop_report,
 )
@@ -79,6 +80,15 @@ def _load_json(path: Path) -> dict[str, Any] | None:
 
 
 def _proposed_normalization_fields(replacement_report: dict[str, Any]) -> dict[str, Any]:
+    raw_universe = replacement_report.get("symbol_universe")
+    if isinstance(raw_universe, list):
+        universe = [str(symbol) for symbol in raw_universe if isinstance(symbol, str) and symbol.startswith("KRW-")]
+    else:
+        universe = []
+    if not universe:
+        symbol = replacement_report.get("symbol")
+        universe = [str(symbol)] if isinstance(symbol, str) and symbol.startswith("KRW-") else ["KRW-BTC"]
+    universe = list(dict.fromkeys(universe))
     return {
         "preflight_existing_runtime_state_detected": True,
         "preflight_recovery_guard_status": replacement_report.get("recovery_guard_status"),
@@ -87,6 +97,25 @@ def _proposed_normalization_fields(replacement_report: dict[str, Any]) -> dict[s
         "preflight_runtime_recovery_guard_path": replacement_report.get("runtime_recovery_guard_path"),
         "preflight_paper_runtime_resume_allowed": replacement_report.get("paper_runtime_resume_allowed"),
         "current_evidence_write_allowed": True,
+        "symbol_universe": universe,
+        "symbol_universe_source": replacement_report.get("symbol_universe_source") or "EXPLICIT_SYMBOL_UNIVERSE",
+        "public_symbol_discovery_attempted": bool(replacement_report.get("public_symbol_discovery_attempted")),
+        "symbol_universe_discovery_status": replacement_report.get("symbol_universe_discovery_status") or "SKIPPED",
+        "symbol_universe_discovery_blocker_code": replacement_report.get("symbol_universe_discovery_blocker_code"),
+        "symbol_universe_total_count": int(replacement_report.get("symbol_universe_total_count") or len(universe)),
+        "symbol_universe_evaluated_count": int(
+            replacement_report.get("symbol_universe_evaluated_count") or len(universe)
+        ),
+        "max_symbol_evaluation_count": int(
+            replacement_report.get("max_symbol_evaluation_count")
+            or max(DEFAULT_PUBLIC_DISCOVERY_EVALUATION_LIMIT, len(universe))
+        ),
+        "public_symbol_discovery_market_count": int(replacement_report.get("public_symbol_discovery_market_count") or 0),
+        "public_ticker_ranked_symbol_count": int(replacement_report.get("public_ticker_ranked_symbol_count") or 0),
+        "public_ticker_eligible_symbol_count": int(replacement_report.get("public_ticker_eligible_symbol_count") or 0),
+        "public_symbol_discovery_report": replacement_report.get("public_symbol_discovery_report"),
+        "public_ticker_snapshot_report": replacement_report.get("public_ticker_snapshot_report"),
+        "public_symbol_ranking_report": replacement_report.get("public_symbol_ranking_report"),
     }
 
 
