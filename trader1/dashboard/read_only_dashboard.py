@@ -6219,6 +6219,7 @@ def _paper_runner_operations_status(
         "runtime_sample_history_status": "NOT_LOADED",
         "runtime_sample_count": 0,
         "candidate_scorecard_status": "NOT_LOADED",
+        "candidate_scorecard_candidate_id": None,
         "candidate_scorecard_ranking_eligible": False,
         "runtime_quality_feedback_count": 0,
         "runtime_quality_feedback_candidate_ids": [],
@@ -6434,6 +6435,9 @@ def _paper_runner_operations_status(
             "candidate_scorecard_status": str(
                 runner_status_report.get("candidate_scorecard_status") or "NOT_LOADED"
             ),
+            "candidate_scorecard_candidate_id": safe_value(
+                runner_status_report.get("candidate_scorecard_candidate_id")
+            ),
             "candidate_scorecard_ranking_eligible": runner_status_report.get(
                 "candidate_scorecard_ranking_eligible"
             )
@@ -6497,6 +6501,12 @@ def _paper_runner_operations_status(
             ),
             "paper_shadow_evidence_blocker_code": safe_value(
                 runner_status_report.get("paper_shadow_evidence_blocker_code")
+            ),
+            "paper_shadow_evidence_paper_sample_count": safe_count(
+                runner_status_report.get("paper_shadow_evidence_paper_sample_count")
+            ),
+            "paper_shadow_evidence_shadow_sample_count": safe_count(
+                runner_status_report.get("paper_shadow_evidence_shadow_sample_count")
             ),
             "primary_blocker_code": str(primary_blocker or "LIVE_READY_MISSING"),
             "one_line_summary": summary,
@@ -25709,6 +25719,9 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Evidence refresh</dt><dd class=\"pill {status_class(paper_runner_operations.get('profitability_evidence_refresh_status'))}\">{safe_text(paper_runner_evidence_display)}</dd></div>"
         f"<div><dt>PAPER samples</dt><dd>{safe_text(paper_runner_operations.get('runtime_sample_count', 0))}</dd></div>"
         f"<div><dt>Scorecard</dt><dd>{safe_text(paper_runner_operations.get('candidate_scorecard_status', 'NOT_LOADED'))} / rank={safe_text(str(paper_runner_operations.get('candidate_scorecard_ranking_eligible') is True).lower())}</dd></div>"
+        f"<div><dt>Evidence scorecard</dt><dd>{safe_text(paper_runner_operations.get('candidate_scorecard_candidate_id') or 'none')}<br>"
+        f"PAPER={safe_text(paper_runner_operations.get('paper_shadow_evidence_paper_sample_count', 0))} / "
+        f"SHADOW={safe_text(paper_runner_operations.get('paper_shadow_evidence_shadow_sample_count', 0))}</dd></div>"
         f"<div><dt>Early robustness</dt><dd>{safe_text(paper_runner_operations.get('overfit_preliminary_robustness_status', 'INSUFFICIENT_PRELIMINARY_SAMPLE'))}<br>"
         f"OOS={safe_text(paper_runner_operations.get('overfit_preliminary_oos_status', 'UNTESTED'))}, "
         f"WF={safe_text(paper_runner_operations.get('overfit_preliminary_walk_forward_status', 'UNTESTED'))}, "
@@ -25716,7 +25729,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Quality feedback</dt><dd>{safe_text(paper_runner_operations.get('runtime_quality_feedback_count', 0))} active<br>"
         f"{safe_text(paper_runner_quality_feedback_text)}<br>"
         f"selected={safe_text(paper_runner_operations.get('selected_candidate_recent_failure_feedback_kind', 'NONE'))}</dd></div>"
-        f"<div><dt>Selected scorecard</dt><dd>{safe_text(paper_runner_selected_symbol_scorecard.get('symbol', paper_runner_operations.get('current_symbol', 'UNKNOWN')))} / netEV={safe_text(paper_runner_selected_symbol_scorecard.get('best_net_ev_after_cost_bps', 'n/a'))}<br>"
+        f"<div><dt>Latest symbol scorecard</dt><dd>{safe_text(paper_runner_selected_symbol_scorecard.get('symbol', paper_runner_operations.get('current_symbol', 'UNKNOWN')))} / netEV={safe_text(paper_runner_selected_symbol_scorecard.get('best_net_ev_after_cost_bps', 'n/a'))}<br>"
         f"feedback={safe_text(paper_runner_selected_symbol_scorecard.get('best_recent_failure_feedback_kind', 'NONE'))}</dd></div>"
         f"<div><dt>Symbol scorecards</dt><dd>{paper_runner_symbol_scorecard_html}</dd></div>"
         f"<div><dt>PAPER/SHADOW evidence</dt><dd>{safe_text(paper_runner_operations.get('paper_shadow_evidence_validation_status', 'NOT_LOADED'))} / {safe_text(paper_runner_operations.get('paper_shadow_evidence_actionability_status', 'NOT_LOADED'))}</dd></div>"

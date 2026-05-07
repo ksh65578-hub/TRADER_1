@@ -2474,6 +2474,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(runner["runtime_sample_history_status"], "PASS")
         self.assertEqual(runner["runtime_sample_count"], 3)
         self.assertEqual(runner["candidate_scorecard_status"], "PASS")
+        self.assertEqual(runner["candidate_scorecard_candidate_id"], "KRW-BTC-pullback-trend-long")
         self.assertFalse(runner["candidate_scorecard_ranking_eligible"])
         self.assertEqual(runner["runtime_quality_feedback_count"], 1)
         self.assertEqual(runner["runtime_quality_feedback_candidate_ids"], ["KRW-WLFI-pullback-trend-long"])
@@ -2487,6 +2488,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(runner["symbol_evidence_scorecards_top"][0]["momentum_pct"], "1.25")
         self.assertEqual(runner["paper_shadow_evidence_validation_status"], "BLOCKED")
         self.assertEqual(runner["paper_shadow_evidence_actionability_status"], "COLLECT_PAPER_SAMPLES")
+        self.assertEqual(runner["paper_shadow_evidence_paper_sample_count"], 3)
+        self.assertEqual(runner["paper_shadow_evidence_shadow_sample_count"], 2)
         self.assertFalse(runner["live_order_allowed"])
         source_by_id = {source["artifact_id"]: source for source in dashboard["source_artifacts"]}
         self.assertEqual(source_by_id["PAPER_LONG_RUNNER_STATUS"]["filename"], "runner_status.json")
@@ -2502,6 +2505,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Quality feedback", html)
         self.assertIn("KRW-WLFI-pullback-trend-long", html)
         self.assertIn("PAPER/SHADOW evidence", html)
+        self.assertIn("Evidence scorecard", html)
+        self.assertIn("PAPER=3 / SHADOW=2", html)
         self.assertIn("Reason: PAPER/SHADOW evidence is collecting PAPER samples", html)
         self.assertIn(
             "Next: Keep PAPER running; current runner has 3 runtime sample(s), "
@@ -2511,7 +2516,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Disk pressure", html)
         self.assertIn("Dashboard open", html)
         self.assertIn("Dashboard target", html)
-        self.assertIn("Selected scorecard", html)
+        self.assertIn("Latest symbol scorecard", html)
         self.assertIn("Symbol scorecards", html)
         self.assertIn("KRW-BTC: PULLBACK_TREND_LONG", html)
         self.assertIn("feedback=NONE", html)

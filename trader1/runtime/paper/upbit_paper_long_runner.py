@@ -202,6 +202,79 @@ def _read_json(path: Path) -> dict[str, Any] | None:
     return loaded if isinstance(loaded, dict) else None
 
 
+def _int_value(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _float_value(value: Any, default: float = -1_000_000_000.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _sample_live_flags_clear(sample: dict[str, Any]) -> bool:
+    return all(
+        sample.get(field) is not True
+        for field in (
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+            "order_adapter_called",
+            "private_endpoint_called",
+            "credential_load_attempted",
+            "live_key_loaded",
+        )
+    ) and sample.get("scorecard_candidate_live_flags_clear") is not False
+
+
+def _profitability_sample_usable(sample: dict[str, Any]) -> bool:
+    return (
+        _sample_live_flags_clear(sample)
+        and sample.get("scorecard_candidate_identity_binding_status") == "BOUND"
+        and bool(sample.get("source_runtime_cycle_path"))
+        and bool(sample.get("source_runtime_cycle_hash"))
+        and bool(sample.get("scorecard_candidate_id"))
+        and bool(sample.get("scorecard_strategy_id"))
+        and bool(sample.get("scorecard_parameter_hash"))
+        and _int_value(sample.get("candidate_count")) > 0
+    )
+
+
+def _profitability_sample_rank_key(index: int, sample: dict[str, Any]) -> tuple[int, int, int, float, int, int, int, int]:
+    decision = str(sample.get("scorecard_candidate_decision") or "")
+    net_ev = _float_value(sample.get("scorecard_candidate_net_ev_after_cost_bps"))
+    return (
+        1 if _profitability_sample_usable(sample) else 0,
+        1 if decision == "PAPER_ENTRY_REVIEW" else 0,
+        1 if net_ev > 0 else 0,
+        net_ev,
+        1 if _int_value(sample.get("entry_reason_count")) > 0 else 0,
+        1 if _int_value(sample.get("no_trade_reason_count")) > 0 else 0,
+        _int_value(sample.get("candidate_count")),
+        index,
+    )
+
+
+def _select_profitability_evidence_sample(samples: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Prefer actionable non-live entry-review evidence over a later passive no-trade sample."""
+    valid_samples = [sample for sample in samples if isinstance(sample, dict)]
+    if not valid_samples:
+        return None
+    ranked = [
+        (index, sample)
+        for index, sample in enumerate(valid_samples)
+        if _profitability_sample_usable(sample)
+    ]
+    if not ranked:
+        return None
+    return max(ranked, key=lambda item: _profitability_sample_rank_key(item[0], item[1]))[1]
+
+
 def _runner_start_reconciliation_hash(report: dict[str, Any]) -> str:
     payload = dict(report)
     payload.pop("reconciliation_hash", None)
@@ -706,15 +779,26 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             "scale_up_allowed": False,
         }
 
-    latest_sample = history["samples"][-1]
-    runtime_path = root / str(latest_sample["source_runtime_cycle_path"])
+    selected_sample = _select_profitability_evidence_sample(history["samples"])
+    if not isinstance(selected_sample, dict):
+        return {
+            "status": NON_LIVE_PROFITABILITY_REFRESH_BLOCKED,
+            "blocker_code": "ACTUAL_PAPER_RUNTIME_SAMPLE_MISSING",
+            "message": "No usable PAPER runtime sample exists for profitability evidence refresh.",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+    runtime_path = root / str(selected_sample["source_runtime_cycle_path"])
     runtime = _read_json(runtime_path)
     if not isinstance(runtime, dict):
         return {
             "status": NON_LIVE_PROFITABILITY_REFRESH_BLOCKED,
             "blocker_code": "ACTUAL_PAPER_RUNTIME_SAMPLE_MISSING",
-            "message": "Latest PAPER runtime cycle sample cannot be loaded.",
-            "source_runtime_cycle_path": str(latest_sample.get("source_runtime_cycle_path")),
+            "message": "Selected PAPER runtime cycle sample cannot be loaded.",
+            "source_runtime_cycle_path": str(selected_sample.get("source_runtime_cycle_path")),
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
@@ -726,18 +810,18 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             "status": NON_LIVE_PROFITABILITY_REFRESH_BLOCKED,
             "blocker_code": runtime_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
             "message": runtime_result.message,
-            "source_runtime_cycle_path": str(latest_sample.get("source_runtime_cycle_path")),
+            "source_runtime_cycle_path": str(selected_sample.get("source_runtime_cycle_path")),
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
             "scale_up_allowed": False,
         }
-    if runtime.get("cycle_hash") != latest_sample.get("source_runtime_cycle_hash"):
+    if runtime.get("cycle_hash") != selected_sample.get("source_runtime_cycle_hash"):
         return {
             "status": NON_LIVE_PROFITABILITY_REFRESH_BLOCKED,
             "blocker_code": "RECONCILIATION_REQUIRED",
-            "message": "Latest PAPER runtime sample hash does not match its runtime cycle artifact.",
-            "source_runtime_cycle_path": str(latest_sample.get("source_runtime_cycle_path")),
+            "message": "Selected PAPER runtime sample hash does not match its runtime cycle artifact.",
+            "source_runtime_cycle_path": str(selected_sample.get("source_runtime_cycle_path")),
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
