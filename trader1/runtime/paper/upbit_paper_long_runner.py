@@ -413,6 +413,10 @@ def paper_runtime_sample_history_path(root: Path, session_id: str = DEFAULT_SESS
     return runner_runtime_base(root, session_id) / "paper_runtime" / "upbit_paper_runtime_sample_history.json"
 
 
+def paper_portfolio_current_truth_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
+    return runner_runtime_base(root, session_id) / "paper_runtime" / "portfolio" / "paper_portfolio_snapshot.json"
+
+
 def paper_candidate_scorecard_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
     return runner_runtime_base(root, session_id) / "profitability" / "candidate_scorecard.json"
 
@@ -1887,18 +1891,59 @@ def validate_upbit_paper_long_runner_retention_manifest(report: dict[str, Any]) 
     return {"status": "PASS" if report.get("retention_status") == "PASS" else "BLOCKED", "blocker_code": report.get("primary_blocker_code")}
 
 
-def _portfolio_fields(runtime_cycle: dict[str, Any] | None) -> dict[str, Any]:
-    snapshot = {}
-    if runtime_cycle:
+def _portfolio_snapshot_live_flags_clear(snapshot: dict[str, Any]) -> bool:
+    return all(snapshot.get(field) is not True for field in LIVE_FALSE_FLAGS)
+
+
+def _portfolio_fields(root: Path, session_id: str, runtime_cycle: dict[str, Any] | None) -> dict[str, Any]:
+    snapshot: dict[str, Any] = {}
+    source = "NOT_LOADED"
+    binding_status = "MISSING"
+    source_runtime_cycle_id = None
+    source_snapshot_hash = None
+    source_paper_ledger_head_hash = None
+    runtime_cycle_id = (
+        str(runtime_cycle.get("cycle_id"))
+        if isinstance(runtime_cycle, dict) and runtime_cycle.get("cycle_id")
+        else None
+    )
+    current_truth = _read_json(paper_portfolio_current_truth_path(root, session_id))
+    if isinstance(current_truth, dict):
+        current_truth_cycle_id = current_truth.get("source_runtime_cycle_id")
+        if (
+            runtime_cycle_id
+            and current_truth_cycle_id == runtime_cycle_id
+            and current_truth.get("snapshot_hash")
+            and _portfolio_snapshot_live_flags_clear(current_truth)
+        ):
+            snapshot = current_truth
+            source = "paper_runtime/portfolio/paper_portfolio_snapshot.json"
+            binding_status = "BOUND_TO_LATEST_RUNTIME_CYCLE"
+            source_runtime_cycle_id = current_truth_cycle_id
+            source_snapshot_hash = current_truth.get("snapshot_hash")
+            source_paper_ledger_head_hash = current_truth.get("source_paper_ledger_head_hash")
+        else:
+            binding_status = "CURRENT_TRUTH_STALE_OR_UNBOUND"
+    if not snapshot and runtime_cycle:
         raw_snapshot = runtime_cycle.get("paper_portfolio_snapshot")
         if isinstance(raw_snapshot, dict):
             snapshot = raw_snapshot
+            source = "runtime_cycle.paper_portfolio_snapshot"
+            binding_status = "FALLBACK_RUNTIME_CYCLE_SNAPSHOT"
+            source_runtime_cycle_id = runtime_cycle_id
+            source_snapshot_hash = raw_snapshot.get("snapshot_hash")
+            source_paper_ledger_head_hash = raw_snapshot.get("source_paper_ledger_head_hash")
     return {
         "current_position_count": int(snapshot.get("open_position_count") or 0),
         "cash": snapshot.get("cash_available"),
         "equity": snapshot.get("equity"),
         "realized_pnl": snapshot.get("realized_pnl"),
         "unrealized_pnl": snapshot.get("unrealized_pnl"),
+        "portfolio_truth_source": source,
+        "portfolio_truth_binding_status": binding_status,
+        "portfolio_truth_source_runtime_cycle_id": source_runtime_cycle_id,
+        "portfolio_truth_source_snapshot_hash": source_snapshot_hash,
+        "portfolio_truth_source_paper_ledger_head_hash": source_paper_ledger_head_hash,
     }
 
 
@@ -2043,7 +2088,7 @@ def build_runner_status_report(
     retention_manifest = _load_latest_retention_manifest(root, session_id)
     last_cycle_fields = _last_cycle_fields(loop_report, runtime_cycle)
     symbol_scorecard_fields = _symbol_evidence_scorecard_fields(runtime_cycle)
-    portfolio_fields = _portfolio_fields(runtime_cycle)
+    portfolio_fields = _portfolio_fields(root, session_id, runtime_cycle)
     shadow_fields = _shadow_runtime_collection_fields(root, session_id)
     profitability_fields = _profitability_evidence_refresh_fields(root, session_id)
     generated_at = utc_now()

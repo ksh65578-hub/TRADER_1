@@ -166,6 +166,99 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
         self.assertEqual(fields["paper_scope_next_operator_action"], "Collect 27 more PAPER samples for scoped candidate.")
         self.assertEqual(fields["paper_scope_candidate_id"], "KRW-BTC-vwap-mean-reversion")
 
+    def test_runner_portfolio_fields_prefer_source_bound_current_truth_snapshot(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "source_bound_portfolio"
+            current_truth_path = long_runner.paper_portfolio_current_truth_path(root, session_id)
+            current_truth_path.parent.mkdir(parents=True, exist_ok=True)
+            current_truth_path.write_text(
+                json.dumps(
+                    {
+                        "source_runtime_cycle_id": "cycle-1",
+                        "snapshot_hash": "A" * 64,
+                        "source_paper_ledger_head_hash": "B" * 64,
+                        "open_position_count": 1,
+                        "cash_available": "880000",
+                        "equity": "990000",
+                        "realized_pnl": "-10000",
+                        "unrealized_pnl": "0",
+                        "live_order_ready": False,
+                        "live_order_allowed": False,
+                        "can_live_trade": False,
+                        "scale_up_allowed": False,
+                        "order_adapter_called": False,
+                        "private_endpoint_called": False,
+                        "credential_load_attempted": False,
+                        "live_key_loaded": False,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            runtime_cycle = {
+                "cycle_id": "cycle-1",
+                "paper_portfolio_snapshot": {
+                    "open_position_count": 1,
+                    "cash_available": "1000000",
+                    "equity": "1005000",
+                    "realized_pnl": "0",
+                    "unrealized_pnl": "5000",
+                    "snapshot_hash": "C" * 64,
+                },
+            }
+
+            fields = long_runner._portfolio_fields(root, session_id, runtime_cycle)
+
+            self.assertEqual(fields["cash"], "880000")
+            self.assertEqual(fields["equity"], "990000")
+            self.assertEqual(fields["realized_pnl"], "-10000")
+            self.assertEqual(fields["portfolio_truth_source"], "paper_runtime/portfolio/paper_portfolio_snapshot.json")
+            self.assertEqual(fields["portfolio_truth_binding_status"], "BOUND_TO_LATEST_RUNTIME_CYCLE")
+            self.assertEqual(fields["portfolio_truth_source_runtime_cycle_id"], "cycle-1")
+            self.assertEqual(fields["portfolio_truth_source_snapshot_hash"], "A" * 64)
+
+    def test_runner_portfolio_fields_fall_back_when_current_truth_cycle_is_stale(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "stale_portfolio"
+            current_truth_path = long_runner.paper_portfolio_current_truth_path(root, session_id)
+            current_truth_path.parent.mkdir(parents=True, exist_ok=True)
+            current_truth_path.write_text(
+                json.dumps(
+                    {
+                        "source_runtime_cycle_id": "old-cycle",
+                        "snapshot_hash": "A" * 64,
+                        "cash_available": "880000",
+                        "equity": "990000",
+                        "live_order_allowed": False,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            runtime_cycle = {
+                "cycle_id": "cycle-2",
+                "paper_portfolio_snapshot": {
+                    "open_position_count": 1,
+                    "cash_available": "1000000",
+                    "equity": "1005000",
+                    "realized_pnl": "0",
+                    "unrealized_pnl": "5000",
+                    "snapshot_hash": "C" * 64,
+                },
+            }
+
+            fields = long_runner._portfolio_fields(root, session_id, runtime_cycle)
+
+            self.assertEqual(fields["cash"], "1000000")
+            self.assertEqual(fields["equity"], "1005000")
+            self.assertEqual(fields["portfolio_truth_source"], "runtime_cycle.paper_portfolio_snapshot")
+            self.assertEqual(fields["portfolio_truth_binding_status"], "FALLBACK_RUNTIME_CYCLE_SNAPSHOT")
+            self.assertEqual(fields["portfolio_truth_source_runtime_cycle_id"], "cycle-2")
+
     def test_dashboard_refresh_uses_public_rest_continuity_when_runner_uses_public_rest(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
