@@ -878,6 +878,95 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertFalse(log_path.exists())
             self.assertFalse(manifest["live_order_allowed"])
 
+    def test_runner_retention_reports_managed_artifacts_separately_from_legacy_tree(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "retention_managed_session"
+            base = root / "system/runtime/upbit/krw_spot/paper" / session_id
+            cycle_dir = base / "paper_runtime" / "cycles"
+            cycle_dir.mkdir(parents=True, exist_ok=True)
+            for index in range(3):
+                path = cycle_dir / f"upbit-paper-runner-managed-cycle-{index:06d}.runtime_cycle.json"
+                path.write_text(json.dumps({"index": index}), encoding="utf-8")
+                os.utime(path, (1_700_000_000 + index, 1_700_000_000 + index))
+            legacy_path = base / "dashboard" / "index.html"
+            legacy_path.parent.mkdir(parents=True, exist_ok=True)
+            legacy_path.write_text("<html>legacy tracked runtime snapshot</html>", encoding="utf-8")
+
+            manifest = apply_runner_artifact_retention(
+                root=root,
+                session_id=session_id,
+                max_active_artifacts_per_group=1,
+                log_max_bytes=128,
+                disk_pressure_max_runtime_bytes=1_000_000,
+            )
+
+            validation = validate_upbit_paper_long_runner_retention_manifest(manifest)
+            self.assertEqual(validation["status"], "PASS")
+            self.assertEqual(manifest["runtime_artifact_count_after"], 1)
+            self.assertGreater(manifest["active_runtime_tree_artifact_count_after"], manifest["runtime_artifact_count_after"])
+            self.assertEqual(manifest["unmanaged_runtime_artifact_count_after"], 1)
+            self.assertEqual(manifest["active_group_counts"]["paper_runtime_cycles"], 1)
+            self.assertGreaterEqual(manifest["archived_artifact_count"], 2)
+            self.assertFalse(manifest["live_order_allowed"])
+
+    def test_runner_retention_keeps_latest_public_collection_pointer_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "retention_public_pointer_session"
+            public_base = root / "system/runtime/upbit/krw_spot/paper" / session_id / "market_data" / "public"
+            protected_collector = "upbit-paper-runner-protected-cycle-000001-collector-1-1-KRW-BTC"
+            protected_report = public_base / "collection" / f"{protected_collector}.collection_report.json"
+            for directory in ("raw", "canonical", "collection"):
+                (public_base / directory).mkdir(parents=True, exist_ok=True)
+
+            for index in range(4):
+                collector = protected_collector if index == 0 else f"upbit-paper-runner-public-cycle-00000{index}-collector-1-{index}-KRW-ALT"
+                (public_base / "raw" / f"{collector}.raw_candles.json").write_text(json.dumps({"collector_id": collector}), encoding="utf-8")
+                (public_base / "canonical" / f"{collector}.canonical_events.jsonl").write_text(
+                    json.dumps({"collector_id": collector}) + "\n",
+                    encoding="utf-8",
+                )
+                report_path = public_base / "collection" / f"{collector}.collection_report.json"
+                report_path.write_text(json.dumps({"collector_id": collector}), encoding="utf-8")
+                (public_base / "collection" / f"{collector}.writer_report.json").write_text(
+                    json.dumps({"collector_id": collector}),
+                    encoding="utf-8",
+                )
+                os.utime(report_path, (1_700_000_000 + index, 1_700_000_000 + index))
+
+            (public_base / "latest_collection_report.json").write_text(
+                json.dumps(
+                    {
+                        "collector_id": protected_collector,
+                        "report_path": protected_report.relative_to(root).as_posix(),
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            manifest = apply_runner_artifact_retention(
+                root=root,
+                session_id=session_id,
+                max_active_artifacts_per_group=1,
+                log_max_bytes=128,
+                disk_pressure_max_runtime_bytes=1_000_000,
+            )
+
+            validation = validate_upbit_paper_long_runner_retention_manifest(manifest)
+            protected_paths = [
+                public_base / "raw" / f"{protected_collector}.raw_candles.json",
+                public_base / "canonical" / f"{protected_collector}.canonical_events.jsonl",
+                protected_report,
+                public_base / "collection" / f"{protected_collector}.writer_report.json",
+            ]
+            self.assertEqual(validation["status"], "PASS")
+            self.assertTrue(all(path.exists() for path in protected_paths))
+            self.assertEqual(manifest["effective_active_group_limits"]["public_collection_reports"], 1)
+            self.assertGreater(manifest["active_group_counts"]["public_collection_reports"], 1)
+            self.assertGreater(manifest["archived_artifact_count"], 0)
+            self.assertFalse(manifest["live_order_allowed"])
+
     def test_runner_retention_compacts_old_archive_batches_outside_active_stats(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
