@@ -18973,11 +18973,13 @@ def build_read_only_dashboard_shell(
         execution_feedback_snapshot=execution_feedback_snapshot,
         decision_trace=decision_trace,
     )
+    reconciliation_blocks_operator_action = reconciliation_recovery_summary.get("status") in {"BLOCKED", "INVALID"}
     if (
         runner_operations_status.get("status") == "NOT_LOADED"
         and paper_runtime_evidence_collection_profile_status.get("status") == "PASS"
         and paper_runtime_evidence_collection_profile_status.get("collection_plan_status")
         == "READY_TO_CONTINUE_NON_LIVE_COLLECTION"
+        and not reconciliation_blocks_operator_action
     ):
         profile_paper_remaining = _safe_count(
             paper_runtime_evidence_collection_profile_status.get("paper_mode_missing_cycle_count")
@@ -19092,7 +19094,9 @@ def build_read_only_dashboard_shell(
         primary_status_text = "PAPER PROFILE CURRENT - RUNNER NOT PROVEN - LIVE ORDERS BLOCKED"
     else:
         primary_status_text = "PAPER STATUS NOT LOADED - READ ONLY, LIVE ORDERS BLOCKED"
-    if runner_primary_status == "NOT_LOADED" and profile_primary_status == "PASS":
+    if reconciliation_blocks_operator_action:
+        next_action_value = reconciliation_recovery_summary.get("next_operator_action")
+    elif runner_primary_status == "NOT_LOADED" and profile_primary_status == "PASS":
         next_action_value = (
             paper_runtime_evidence_collection_profile_status.get("collection_plan_next_operator_action")
             or paper_runtime_evidence_collection_profile_status.get("next_operator_action")
@@ -27217,6 +27221,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if isinstance(shell.get("paper_runner_operations_status"), dict)
         else {}
     )
+    operator_action_quick = (
+        shell.get("operator_action_summary", {})
+        if isinstance(shell.get("operator_action_summary"), dict)
+        else {}
+    )
     live_quick_reason, live_quick_next_action = paper_shadow_live_answer(
         paper_runner_operations,
         maturity,
@@ -27242,6 +27251,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
                 f"{live_quick_next_action} Remaining: PAPER cycles={profile_paper_remaining}, "
                 f"SHADOW cycles={profile_shadow_remaining}."
             )
+    if operator_action_quick.get("status") == "BLOCKED":
+        live_quick_reason = str(
+            operator_action_quick.get("one_line_blocker")
+            or f"{blocker_label}: live orders remain blocked."
+        )
+        live_quick_next_action = str(
+            operator_action_quick.get("next_operator_action")
+            or "Inspect the red dashboard blocker before continuing PAPER review."
+        )
     if residual_action_items:
         residual_count_by_class = {
             str(item.get("action_class")): item.get("gap_count", 0)

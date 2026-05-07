@@ -1004,6 +1004,14 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
         "paper_scope_next_operator_action": "Collect 27 more PAPER samples for the same candidate/strategy/parameter scope.",
         "paper_scope_latest_sample_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "paper_scope_summary_count": 1,
+        "paper_scope_continuity_status": "NOT_REQUESTED",
+        "paper_scope_continuity_requested": False,
+        "paper_scope_continuity_selected": False,
+        "paper_scope_continuity_requested_candidate_id": None,
+        "paper_scope_continuity_selected_candidate_id": None,
+        "paper_scope_continuity_best_candidate_id": None,
+        "paper_scope_continuity_score_gap": None,
+        "paper_scope_continuity_net_ev_gap_bps": None,
         "candidate_scorecard_path": "system/runtime/upbit/krw_spot/paper/test/profitability/candidate_scorecard.json",
         "candidate_scorecard_candidate_id": "KRW-BTC-pullback-trend-long",
         "candidate_scorecard_snapshot_path": (
@@ -2712,6 +2720,46 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["can_live_trade"])
         self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_profile_collection_hint_does_not_override_blocked_reconciliation(self):
+        profile = run_upbit_paper_runtime_evidence_collection_profile(requested_cycle_count=1)
+        rollup = post_rerun_blocker_rollup_fixture()
+        session_id = rollup["session_id"]
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange=rollup["exchange"],
+            market_type=rollup["market_type"],
+            mode=rollup["mode"],
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_runtime_evidence_collection_profile_report=profile,
+            upbit_paper_post_rerun_reconciliation_blocker_rollup_report=rollup,
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["blocking_reason"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        self.assertIn("post-rerun blocker rollup", dashboard["next_action"])
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["status"], "BLOCKED")
+        self.assertEqual(operator_action["severity"], "ERROR")
+        self.assertEqual(operator_action["primary_action"], "STOP_AND_INSPECT")
+        self.assertEqual(operator_action["primary_blocker_code"], "POST_RERUN_RECONCILIATION_REQUIRED")
+        self.assertNotEqual(operator_action["primary_action_label"], "Continue PAPER/SHADOW collection")
+        self.assertFalse(operator_action["safe_to_continue_paper"])
+        self.assertFalse(operator_action["live_order_allowed"])
+        self.assertFalse(operator_action["scale_up_allowed"])
+        html = render_dashboard_html(dashboard)
+        quick_start = html.index('<section class="operator-quick-status" aria-label="operator quick status">')
+        ticker_start = html.index('<section class="public-ticker-strip" aria-label="public Upbit realtime ticker"')
+        quick_html = html[quick_start:ticker_start]
+        self.assertIn("POST_RERUN_RECONCILIATION_REQUIRED", quick_html)
+        self.assertIn("Inspect the post-rerun blocker rollup", quick_html)
+        self.assertNotIn("PAPER profile is current; LIVE_READY is blocked", quick_html)
 
     def test_dashboard_blocks_paper_runner_disk_pressure(self):
         dashboard = build_dashboard_with_runner_operations(blocked=True)
