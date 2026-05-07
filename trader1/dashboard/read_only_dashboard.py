@@ -25378,6 +25378,96 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         }
         return labels.get(normalized, str(blocker_code or "Evidence blocker").replace("_", " ").title())
 
+    def paper_shadow_live_answer(
+        runner_operations: dict[str, Any],
+        maturity: dict[str, Any],
+        fallback_reason: str,
+        fallback_next_action: str,
+    ) -> tuple[str, str]:
+        actionable_status = str(maturity.get("evidence_actionability_status") or "").upper()
+        runner_actionability = str(
+            runner_operations.get("paper_shadow_evidence_actionability_status") or ""
+        ).upper()
+        runner_validation = str(
+            runner_operations.get("paper_shadow_evidence_validation_status") or ""
+        ).upper()
+        runner_blocker = str(runner_operations.get("paper_shadow_evidence_blocker_code") or "")
+        blocker = str(maturity.get("primary_collection_deficit_code") or runner_blocker or "").upper()
+        actionable_labels = {
+            "COLLECT_PAPER_SAMPLES": "PAPER/SHADOW evidence is collecting PAPER samples",
+            "COLLECT_SHADOW_SAMPLES": "PAPER/SHADOW evidence is collecting SHADOW observations",
+            "SCORECARD_READY_EXTEND_RUNTIME_SPAN": "PAPER/SHADOW evidence needs longer non-live runtime",
+            "EXTEND_NON_LIVE_RUNTIME_SPAN": "PAPER/SHADOW evidence needs longer non-live runtime",
+            "COLLECT_RUNTIME_SPAN": "PAPER/SHADOW evidence needs longer non-live runtime",
+            "COLLECT_EVIDENCE_WINDOWS": "PAPER/SHADOW evidence is collecting review windows",
+            "COLLECT_REASON_COVERAGE": "PAPER/SHADOW evidence is collecting entry and no-trade reasons",
+        }
+        runner_evidence_blocked = (
+            runner_validation in {"BLOCKED", "STALE", "NOT_LOADED"}
+            and runner_actionability not in {"", "NOT_LOADED"}
+        )
+        live_blocked_evidence = (
+            actionable_status in actionable_labels
+            or runner_actionability in actionable_labels
+            or runner_evidence_blocked
+        )
+        if not live_blocked_evidence:
+            return fallback_reason, fallback_next_action
+
+        reason = actionable_labels.get(actionable_status) or actionable_labels.get(runner_actionability)
+        if not reason:
+            reason = "PAPER/SHADOW evidence is not ready"
+        if blocker and blocker not in {"NONE", "NOT_LOADED"}:
+            reason = f"{reason} ({plain_blocker(blocker)})"
+
+        explicit_message = maturity.get("primary_collection_deficit_message")
+        explicit_message_lower = explicit_message.lower() if isinstance(explicit_message, str) else ""
+        explicit_message_usable = (
+            isinstance(explicit_message, str)
+            and explicit_message.strip()
+            and "not loaded" not in explicit_message_lower
+            and "no paper/shadow actionability report" not in explicit_message_lower
+        )
+        if explicit_message_usable:
+            return reason, explicit_message.strip()
+
+        def safe_count(value: Any) -> int:
+            return value if isinstance(value, int) and value >= 0 else 0
+
+        paper_deficit = safe_count(maturity.get("paper_sample_deficit"))
+        shadow_deficit = safe_count(maturity.get("shadow_sample_deficit"))
+        window_deficit = safe_count(maturity.get("evidence_window_deficit"))
+        span_deficit = safe_count(maturity.get("evidence_span_hours_deficit"))
+        if paper_deficit:
+            return (
+                reason,
+                f"Collect {paper_deficit} more PAPER sample(s) for the same scoped candidate before review.",
+            )
+        if shadow_deficit:
+            return (
+                reason,
+                f"Collect {shadow_deficit} more SHADOW observation(s) for the same scoped candidate before review.",
+            )
+        if window_deficit:
+            return reason, f"Collect {window_deficit} more source-bound PAPER/SHADOW evidence window(s)."
+        if span_deficit:
+            return (
+                reason,
+                f"Keep PAPER/SHADOW running until {span_deficit} more non-live span hour(s) are collected.",
+            )
+
+        runtime_samples = safe_count(runner_operations.get("runtime_sample_count"))
+        if runtime_samples:
+            return (
+                reason,
+                f"Keep PAPER running; current runner has {runtime_samples} runtime sample(s), "
+                "but live remains blocked until PAPER/SHADOW evidence validators pass.",
+            )
+        return (
+            reason,
+            "Keep PAPER/SHADOW running until the evidence actionability status clears; live orders remain blocked.",
+        )
+
     scope_items = [
         ("Exchange", shell.get("exchange", "")),
         ("Market", shell.get("market_type", "")),
@@ -26936,6 +27026,17 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "Complete operator reconciliation, PAPER reruns, and PAPER/SHADOW evidence collection before promotion.",
         )
     )
+    paper_runner_operations = (
+        shell.get("paper_runner_operations_status", {})
+        if isinstance(shell.get("paper_runner_operations_status"), dict)
+        else {}
+    )
+    live_quick_reason, live_quick_next_action = paper_shadow_live_answer(
+        paper_runner_operations,
+        maturity,
+        blocker_label,
+        residual_blocker_summary,
+    )
     if residual_action_items:
         residual_count_by_class = {
             str(item.get("action_class")): item.get("gap_count", 0)
@@ -28206,7 +28307,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <span class="question-label">Can live orders run?</span>
         <strong>No</strong>
         <small title="live_order_allowed=false">orders are disabled</small>
-        <span class="live-answer-reason">Reason: """ + safe_text(blocker_label) + """</span>
+        <span class="live-answer-reason">Reason: """ + safe_text(live_quick_reason) + """</span>
+        <span class="live-answer-reason">Next: """ + safe_text(live_quick_next_action) + """</span>
         <span class="live-blocker-summary">""" + safe_text(residual_blocker_summary) + """</span>
       </section>
       </section>

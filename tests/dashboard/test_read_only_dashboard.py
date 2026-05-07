@@ -2461,6 +2461,12 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Quality feedback", html)
         self.assertIn("KRW-WLFI-pullback-trend-long", html)
         self.assertIn("PAPER/SHADOW evidence", html)
+        self.assertIn("Reason: PAPER/SHADOW evidence is collecting PAPER samples", html)
+        self.assertIn(
+            "Next: Keep PAPER running; current runner has 3 runtime sample(s), "
+            "but live remains blocked until PAPER/SHADOW evidence validators pass.",
+            html,
+        )
         self.assertIn("Disk pressure", html)
         self.assertIn("Dashboard open", html)
         self.assertIn("Dashboard target", html)
