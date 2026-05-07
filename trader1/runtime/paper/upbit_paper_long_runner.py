@@ -658,6 +658,44 @@ def _paper_scope_progress_fields(
     }
 
 
+def _paper_scope_continuity_focus_from_history(root: Path, session_id: str) -> dict[str, Any] | None:
+    try:
+        history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
+        history_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=history)
+    except Exception:  # pragma: no cover - runtime artifact discovery must fail closed.
+        return None
+    if _result_status(history_result) != "PASS":
+        return None
+    active = history.get("active_candidate_scope")
+    if not isinstance(active, dict):
+        return None
+    if any(active.get(flag) for flag in LIVE_FALSE_FLAGS[:4]):
+        return None
+    sample_deficit = _int_value(active.get("sample_deficit"), 0)
+    if sample_deficit <= 0:
+        return None
+    candidate_id = str(active.get("candidate_id") or "")
+    symbol = str(active.get("symbol") or "")
+    strategy_id = str(active.get("strategy_id") or "")
+    parameter_hash = str(active.get("parameter_hash") or "").upper()
+    if not candidate_id or not symbol.startswith("KRW-") or not strategy_id or len(parameter_hash) != 64:
+        return None
+    return {
+        "source": "PAPER_RUNTIME_SAMPLE_HISTORY_ACTIVE_CANDIDATE_SCOPE",
+        "candidate_id": candidate_id,
+        "symbol": symbol,
+        "strategy_id": strategy_id,
+        "parameter_hash": parameter_hash,
+        "sample_count": _int_value(active.get("sample_count"), 0),
+        "sample_deficit": sample_deficit,
+        "scope_progress_status": str(active.get("scope_progress_status") or "COLLECT_PAPER_SCOPE_SAMPLES"),
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def _candidate_scorecard_snapshot_fields(
     root: Path,
     session_id: str,
@@ -1786,6 +1824,18 @@ def _last_cycle_fields(loop_report: dict[str, Any] | None, runtime_cycle: dict[s
         "selected_candidate_recent_failure_feedback_kind": str(
             last_cycle.get("selected_candidate_recent_failure_feedback_kind") or "NONE"
         ),
+        "paper_scope_continuity_status": str(last_cycle.get("paper_scope_continuity_status") or "NOT_REQUESTED"),
+        "paper_scope_continuity_requested": bool(last_cycle.get("paper_scope_continuity_requested")),
+        "paper_scope_continuity_selected": bool(last_cycle.get("paper_scope_continuity_selected")),
+        "paper_scope_continuity_requested_candidate_id": last_cycle.get(
+            "paper_scope_continuity_requested_candidate_id"
+        ),
+        "paper_scope_continuity_selected_candidate_id": last_cycle.get(
+            "paper_scope_continuity_selected_candidate_id"
+        ),
+        "paper_scope_continuity_best_candidate_id": last_cycle.get("paper_scope_continuity_best_candidate_id"),
+        "paper_scope_continuity_score_gap": last_cycle.get("paper_scope_continuity_score_gap"),
+        "paper_scope_continuity_net_ev_gap_bps": last_cycle.get("paper_scope_continuity_net_ev_gap_bps"),
     }
 
 
@@ -2011,6 +2061,14 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
         "runtime_quality_feedback_count",
         "runtime_quality_feedback_candidate_ids",
         "selected_candidate_recent_failure_feedback_kind",
+        "paper_scope_continuity_status",
+        "paper_scope_continuity_requested",
+        "paper_scope_continuity_selected",
+        "paper_scope_continuity_requested_candidate_id",
+        "paper_scope_continuity_selected_candidate_id",
+        "paper_scope_continuity_best_candidate_id",
+        "paper_scope_continuity_score_gap",
+        "paper_scope_continuity_net_ev_gap_bps",
         "dashboard_open_attempted",
         "dashboard_opened",
         "dashboard_open_method",
@@ -2097,6 +2155,20 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
         "selected_candidate_recent_failure_feedback_kind"
     ]:
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SELECTED_FEEDBACK_KIND_INVALID"}
+    if report.get("paper_scope_continuity_status") not in {
+        "NOT_REQUESTED",
+        "SELECTED",
+        "FOCUS_CANDIDATE_MISSING",
+        "FOCUS_CANDIDATE_NOT_ENTRY_REVIEW",
+        "FOCUS_CANDIDATE_LIVE_FLAG_UNSAFE",
+        "SCORE_GAP_TOO_WIDE",
+        "NET_EV_GAP_TOO_WIDE",
+        "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS",
+    }:
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCOPE_CONTINUITY_INVALID"}
+    for field in ("paper_scope_continuity_requested", "paper_scope_continuity_selected"):
+        if not isinstance(report.get(field), bool):
+            return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCOPE_CONTINUITY_INVALID", "field": field}
     symbol_scorecards_top = report.get("symbol_evidence_scorecards_top")
     if not isinstance(symbol_scorecards_top, list):
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SYMBOL_SCORECARDS_INVALID"}
@@ -2554,6 +2626,7 @@ def run_upbit_paper_long_running_runner(
                 _emit_console_status(running)
 
             cycle_loop_id = f"{runner_id}-cycle-{completed + 1:06d}"
+            paper_scope_focus = _paper_scope_continuity_focus_from_history(root, session_id)
             loop_result = run_upbit_paper_persistent_loop(
                 root=root,
                 loop_id=cycle_loop_id,
@@ -2564,6 +2637,7 @@ def run_upbit_paper_long_running_runner(
                 require_public_symbol_discovery=False,
                 attempt_network_market_data=attempt_network_market_data,
                 public_discovery_timeout_seconds=public_discovery_timeout_seconds,
+                paper_scope_focus=paper_scope_focus,
             )
             last_loop_report = loop_result
             loop_validation = validate_upbit_paper_persistent_loop_report(loop_result)

@@ -249,6 +249,13 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertGreaterEqual(report["runtime_quality_feedback_count"], 0)
             self.assertIsInstance(report["runtime_quality_feedback_candidate_ids"], list)
             self.assertIsInstance(report["selected_candidate_recent_failure_feedback_kind"], str)
+            self.assertTrue(report["paper_scope_continuity_requested"])
+            self.assertIn(
+                report["paper_scope_continuity_status"],
+                {"SELECTED", "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS"},
+            )
+            self.assertEqual(report["paper_scope_continuity_requested_candidate_id"], report["paper_scope_candidate_id"])
+            self.assertFalse(report["paper_scope_continuity_selected"] and report["live_order_allowed"])
             self.assertIn(report["paper_shadow_evidence_validation_status"], {"PASS", "BLOCKED"})
             self.assertFalse(report["long_run_evidence_eligible"])
             self.assertFalse(report["shadow_long_run_evidence_eligible"])
@@ -284,6 +291,12 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertGreaterEqual(loaded["runtime_quality_feedback_count"], 0)
             self.assertIsInstance(loaded["runtime_quality_feedback_candidate_ids"], list)
             self.assertIsInstance(loaded["selected_candidate_recent_failure_feedback_kind"], str)
+            self.assertEqual(loaded["paper_scope_continuity_status"], report["paper_scope_continuity_status"])
+            self.assertTrue(loaded["paper_scope_continuity_requested"])
+            self.assertEqual(
+                loaded["paper_scope_continuity_requested_candidate_id"],
+                report["paper_scope_continuity_requested_candidate_id"],
+            )
             self.assertEqual(loaded["candidate_scorecard_candidate_id"], report["candidate_scorecard_candidate_id"])
             self.assertEqual(loaded["paper_scope_candidate_id"], report["paper_scope_candidate_id"])
             self.assertEqual(loaded["paper_scope_sample_deficit"], report["paper_scope_sample_deficit"])

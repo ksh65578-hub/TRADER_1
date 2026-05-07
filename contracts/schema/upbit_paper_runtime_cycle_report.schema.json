@@ -32,6 +32,7 @@
     "regime",
     "strategy_candidates",
     "selected_candidate",
+    "paper_scope_continuity_decision",
     "strategy_regime_cost_linkage",
     "risk_state",
     "sizing_decision",
@@ -94,6 +95,7 @@
     "regime": {"enum": ["UPTREND", "RANGE", "RISK_OFF"]},
     "strategy_candidates": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/runtime_strategy_candidate"}},
     "selected_candidate": {"$ref": "#/$defs/runtime_strategy_candidate"},
+    "paper_scope_continuity_decision": {"$ref": "#/$defs/paper_scope_continuity_decision"},
     "strategy_regime_cost_linkage": {"$ref": "#/$defs/strategy_regime_cost_linkage"},
     "risk_state": {"type": "object"},
     "sizing_decision": {"type": "object"},
@@ -120,6 +122,69 @@
     "cycle_hash": {"type": "string", "minLength": 64, "maxLength": 64}
   },
   "$defs": {
+    "paper_scope_continuity_decision": {
+      "type": "object",
+      "required": [
+        "policy_id",
+        "requested",
+        "selection_status",
+        "requested_candidate_id",
+        "requested_symbol",
+        "requested_strategy_id",
+        "requested_parameter_hash",
+        "selected",
+        "selected_candidate_id",
+        "selected_symbol",
+        "best_candidate_id",
+        "best_symbol",
+        "score_gap",
+        "net_ev_gap_bps",
+        "max_score_gap",
+        "max_net_ev_gap_bps",
+        "acceptance_condition",
+        "fallback_behavior",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "policy_id": {"const": "PAPER_SCOPE_CONTINUITY_V1"},
+        "requested": {"type": "boolean"},
+        "selection_status": {
+          "enum": [
+            "NOT_REQUESTED",
+            "SELECTED",
+            "FOCUS_CANDIDATE_MISSING",
+            "FOCUS_CANDIDATE_NOT_ENTRY_REVIEW",
+            "FOCUS_CANDIDATE_LIVE_FLAG_UNSAFE",
+            "SCORE_GAP_TOO_WIDE",
+            "NET_EV_GAP_TOO_WIDE",
+            "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS"
+          ]
+        },
+        "requested_candidate_id": {"type": ["string", "null"], "minLength": 1},
+        "requested_symbol": {"type": ["string", "null"], "minLength": 1},
+        "requested_strategy_id": {"type": ["string", "null"], "minLength": 1},
+        "requested_parameter_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
+        "selected": {"type": "boolean"},
+        "selected_candidate_id": {"type": "string", "minLength": 1},
+        "selected_symbol": {"type": "string", "minLength": 1},
+        "best_candidate_id": {"type": "string", "minLength": 1},
+        "best_symbol": {"type": "string", "minLength": 1},
+        "score_gap": {"type": "string"},
+        "net_ev_gap_bps": {"type": "string"},
+        "max_score_gap": {"type": "string"},
+        "max_net_ev_gap_bps": {"type": "string"},
+        "acceptance_condition": {"type": "string", "minLength": 1},
+        "fallback_behavior": {"type": "string", "minLength": 1},
+        "live_order_ready": {"const": false},
+        "live_order_allowed": {"const": false},
+        "can_live_trade": {"const": false},
+        "scale_up_allowed": {"const": false}
+      }
+    },
     "strategy_regime_cost_linkage": {
       "type": "object",
       "required": [

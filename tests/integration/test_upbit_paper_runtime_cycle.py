@@ -254,6 +254,61 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         )
         self.assertFalse(report["live_order_allowed"])
 
+    def test_paper_scope_focus_can_select_valid_active_candidate_without_live_permission(self):
+        base = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-paper-scope-focus-base")
+        focus_candidate = base["selected_candidate"]
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-paper-scope-focus",
+            paper_scope_focus={
+                "source": "TEST_ACTIVE_CANDIDATE_SCOPE",
+                "candidate_id": focus_candidate["candidate_id"],
+                "symbol": focus_candidate["symbol"],
+                "strategy_id": "trend_pullback",
+                "parameter_hash": "A" * 64,
+                "sample_count": 1,
+                "sample_deficit": 29,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["selected_candidate"]["candidate_id"], focus_candidate["candidate_id"])
+        continuity = report["paper_scope_continuity_decision"]
+        self.assertTrue(continuity["requested"])
+        self.assertTrue(continuity["selected"])
+        self.assertEqual(continuity["selection_status"], "SELECTED")
+        self.assertEqual(continuity["requested_candidate_id"], focus_candidate["candidate_id"])
+        self.assertFalse(continuity["live_order_allowed"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_paper_scope_focus_live_flag_is_ignored_and_stays_fail_closed(self):
+        base = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-paper-scope-focus-live-flag-base")
+        focus_candidate = base["selected_candidate"]
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-paper-scope-focus-live-flag",
+            paper_scope_focus={
+                "candidate_id": focus_candidate["candidate_id"],
+                "symbol": focus_candidate["symbol"],
+                "strategy_id": "trend_pullback",
+                "parameter_hash": "A" * 64,
+                "sample_deficit": 29,
+                "live_order_allowed": True,
+            },
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertFalse(report["paper_scope_continuity_decision"]["requested"])
+        self.assertEqual(report["paper_scope_continuity_decision"]["selection_status"], "NOT_REQUESTED")
+        self.assertFalse(report["paper_scope_continuity_decision"]["live_order_allowed"])
+        self.assertFalse(report["live_order_allowed"])
+
     def test_preliminary_robustness_feedback_rotates_away_from_unfavorable_candidate(self):
         repeated_wlfi = build_upbit_public_candle_fixture(
             symbol="KRW-WLFI",

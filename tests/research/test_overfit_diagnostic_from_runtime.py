@@ -15,6 +15,7 @@ from trader1.research.profitability.overfit_diagnostic import (
 )
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper import upbit_paper_runtime_sample_history as sample_history_module
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
     upbit_paper_runtime_sample_hash,
@@ -78,6 +79,15 @@ def _strategy_regime_pool_inputs(root: Path, sample_count: int = 20):
                 profile="UPTREND_PULLBACK",
             ),
         )
+        runtime_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        selected_candidate = runtime["selected_candidate"]
+        entry_candidates = [
+            candidate
+            for candidate in runtime.get("strategy_candidates") or []
+            if isinstance(candidate, dict) and candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+        ]
+        entry_candidate_ids = [str(candidate["candidate_id"]) for candidate in entry_candidates]
+        entry_symbols = sorted({str(candidate.get("symbol")) for candidate in entry_candidates if candidate.get("symbol")})
         runtime_path = runtime_dir / f"strategy-regime-pool-cycle-{index:03d}.runtime_cycle.json"
         runtime_path.write_text(json.dumps(runtime, sort_keys=True), encoding="utf-8")
         source_runtime_cycle_path = runtime_path.relative_to(root).as_posix()
@@ -105,6 +115,20 @@ def _strategy_regime_pool_inputs(root: Path, sample_count: int = 20):
             "entry_reason_count": max(1, len(runtime.get("entry_reasons") or [])),
             "exit_reason_count": 0,
             "no_trade_reason_count": len(runtime.get("no_trade_reasons") or []),
+            "scorecard_candidate_identity_binding_status": "BOUND",
+            "scorecard_candidate_identity_source": "SELECTED_CANDIDATE",
+            "scorecard_candidate_live_flags_clear": True,
+            "scorecard_symbol": runtime_scorecard["symbol"],
+            "scorecard_candidate_id": runtime_scorecard["candidate_id"],
+            "scorecard_strategy_family": selected_candidate["strategy_family"],
+            "scorecard_strategy_id": runtime_scorecard["strategy_id"],
+            "scorecard_parameter_hash": runtime_scorecard["parameter_hash"],
+            "scorecard_candidate_decision": selected_candidate["decision"],
+            "scorecard_candidate_net_ev_after_cost_bps": selected_candidate["net_ev_after_cost_bps"],
+            "paper_entry_review_candidate_count": len(entry_candidate_ids),
+            "paper_entry_review_candidate_ids": entry_candidate_ids,
+            "paper_entry_review_symbol_count": len(entry_symbols),
+            "paper_entry_review_symbols": entry_symbols,
             "previous_sample_hash": previous_sample_hash,
             "live_order_ready": False,
             "live_order_allowed": False,
@@ -120,6 +144,14 @@ def _strategy_regime_pool_inputs(root: Path, sample_count: int = 20):
 
     assert latest_runtime is not None
     scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(latest_runtime)
+    scope_summaries = sample_history_module._candidate_scope_sample_summaries(
+        samples,
+        min_required_sample_count=sample_history_module.DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+    )
+    scope_fields = sample_history_module._active_candidate_scope_fields(
+        scope_summaries,
+        min_required_sample_count=sample_history_module.DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+    )
     history = {
         "schema_id": "trader1.upbit_paper_runtime_sample_history.v1",
         "generated_at_utc": latest_runtime["generated_at_utc"],
@@ -150,6 +182,8 @@ def _strategy_regime_pool_inputs(root: Path, sample_count: int = 20):
         "min_actual_long_run_cycle_count": 2880,
         "span_floor_met": False,
         "cycle_floor_met": False,
+        "min_profitability_scope_sample_count": sample_history_module.DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+        **scope_fields,
         "actual_long_run_evidence_created": False,
         "long_run_evidence_eligible": False,
         "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",

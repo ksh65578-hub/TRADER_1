@@ -4,7 +4,10 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
+from trader1.runtime.paper.upbit_paper_persistent_loop import (
+    run_upbit_paper_persistent_loop,
+    validate_upbit_paper_persistent_loop_report,
+)
 from trader1.runtime.paper import upbit_paper_runtime_sample_history as sample_history_module
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
@@ -90,6 +93,43 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertIsNotNone(schema)
         schema_result = validate_instance_against_schema(written, schema, schema_bundle)
         self.assertEqual(schema_result.status, "PASS", schema_result.errors)
+
+    def test_persistent_loop_reuses_active_scope_focus_to_accumulate_candidate_samples(self):
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+
+        first_loop = run_upbit_paper_persistent_loop(root=root, loop_id="sample-history-scope-focus-a", requested_cycle_count=1)
+        self.assertEqual(first_loop["loop_status"], "PASS")
+        history = build_upbit_paper_runtime_sample_history(root=root, session_id="mvp1_upbit_paper_launcher")
+        self.assertEqual(validate_upbit_paper_runtime_sample_history_sources(root=root, history=history).status, "PASS")
+        focus = history["active_candidate_scope"]
+        self.assertIsInstance(focus, dict)
+
+        second_loop = run_upbit_paper_persistent_loop(
+            root=root,
+            loop_id="sample-history-scope-focus-b",
+            requested_cycle_count=1,
+            paper_scope_focus=focus,
+        )
+        self.assertEqual(validate_upbit_paper_persistent_loop_report(second_loop).status, "PASS")
+        cycle_result = second_loop["cycle_results"][0]
+        self.assertTrue(cycle_result["paper_scope_continuity_requested"])
+        self.assertIn(
+            cycle_result["paper_scope_continuity_status"],
+            {"SELECTED", "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS"},
+        )
+        self.assertFalse(cycle_result["live_order_allowed"])
+
+        focused_history = build_upbit_paper_runtime_sample_history(root=root, session_id="mvp1_upbit_paper_launcher")
+        focused_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=focused_history)
+        self.assertEqual(focused_result.status, "PASS", focused_result.message)
+        self.assertEqual(focused_history["active_candidate_scope"]["candidate_id"], focus["candidate_id"])
+        self.assertEqual(focused_history["active_candidate_scope"]["strategy_id"], focus["strategy_id"])
+        self.assertEqual(focused_history["active_candidate_scope"]["parameter_hash"], focus["parameter_hash"])
+        self.assertEqual(focused_history["active_candidate_scope_sample_count"], 2)
+        self.assertEqual(focused_history["active_candidate_scope_sample_deficit"], 28)
+        self.assertFalse(focused_history["live_order_allowed"])
 
     def test_entry_reason_evidence_counts_blocked_candidate_entry_review(self):
         runtime_cycle = {

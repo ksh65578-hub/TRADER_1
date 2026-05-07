@@ -51,6 +51,9 @@ UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL = Decimal("5000")
 MIN_SYMBOL_SELECTION_SCORE = Decimal("0.60")
 MIN_ENTRY_NET_EV_BPS = Decimal("5")
 MIN_ENTRY_SIGNAL_STRENGTH = Decimal("0.55")
+PAPER_SCOPE_CONTINUITY_POLICY_ID = "PAPER_SCOPE_CONTINUITY_V1"
+PAPER_SCOPE_CONTINUITY_MAX_SCORE_GAP = Decimal("0.1000")
+PAPER_SCOPE_CONTINUITY_MAX_NET_EV_GAP_BPS = Decimal("12")
 MIN_EXIT_ATR_RATE = Decimal("0.003")
 TREND_CONFIRMATION_MIN_VOLUME_EXPANSION = Decimal("1.05")
 TREND_CONFIRMATION_MIN_MOMENTUM_PCT = Decimal("1.50")
@@ -340,6 +343,129 @@ def _candidate_rank_key(candidate: dict[str, Any]) -> tuple[Decimal, Decimal, in
         _decimal(candidate.get("net_ev_after_cost_bps")),
         -int(candidate.get("selection_priority", 999)),
     )
+
+
+def _paper_scope_focus_requested(paper_scope_focus: dict[str, Any] | None) -> bool:
+    if not isinstance(paper_scope_focus, dict):
+        return False
+    return bool(
+        paper_scope_focus.get("candidate_id")
+        and paper_scope_focus.get("symbol")
+        and int(paper_scope_focus.get("sample_deficit", 0) or 0) > 0
+        and not any(
+            paper_scope_focus.get(flag)
+            for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+        )
+    )
+
+
+def _candidate_passes_scope_continuity_floor(candidate: dict[str, Any]) -> bool:
+    return (
+        candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+        and not _candidate_recent_failure_cooldown_active(candidate)
+        and _decimal(candidate.get("net_ev_after_cost_bps")) > MIN_ENTRY_NET_EV_BPS
+        and _decimal(candidate.get("signal_strength")) >= MIN_ENTRY_SIGNAL_STRENGTH
+        and _decimal(candidate.get("symbol_selection_score")) >= MIN_SYMBOL_SELECTION_SCORE
+        and not any(
+            candidate.get(flag)
+            for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+        )
+    )
+
+
+def _paper_scope_continuity_decision(
+    *,
+    candidates: list[dict[str, Any]],
+    paper_scope_focus: dict[str, Any] | None,
+    managed_position_symbol: str | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    best_candidate = max(candidates, key=_candidate_rank_key)
+    requested_candidate_id = (
+        str(paper_scope_focus.get("candidate_id") or "") if isinstance(paper_scope_focus, dict) else ""
+    )
+    requested_symbol = str(paper_scope_focus.get("symbol") or "") if isinstance(paper_scope_focus, dict) else ""
+    requested_strategy_id = (
+        str(paper_scope_focus.get("strategy_id") or "") if isinstance(paper_scope_focus, dict) else ""
+    )
+    requested_parameter_hash = (
+        str(paper_scope_focus.get("parameter_hash") or "").upper() if isinstance(paper_scope_focus, dict) else ""
+    )
+    focus_requested = _paper_scope_focus_requested(paper_scope_focus)
+    if not focus_requested:
+        requested_candidate_id = ""
+        requested_symbol = ""
+        requested_strategy_id = ""
+        requested_parameter_hash = ""
+    selected = best_candidate
+    status = "NOT_REQUESTED"
+    score_gap = Decimal("0")
+    net_ev_gap = Decimal("0")
+    if focus_requested:
+        status = "FOCUS_CANDIDATE_MISSING"
+        focused = next(
+            (candidate for candidate in candidates if candidate.get("candidate_id") == requested_candidate_id),
+            None,
+        )
+        if managed_position_symbol:
+            status = "MANAGED_POSITION_OVERRIDES_SCOPE_FOCUS"
+        elif not isinstance(focused, dict):
+            status = "FOCUS_CANDIDATE_MISSING"
+        elif not _candidate_passes_scope_continuity_floor(focused):
+            status = (
+                "FOCUS_CANDIDATE_LIVE_FLAG_UNSAFE"
+                if any(
+                    focused.get(flag)
+                    for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+                )
+                else "FOCUS_CANDIDATE_NOT_ENTRY_REVIEW"
+            )
+        else:
+            score_gap = max(
+                Decimal("0"),
+                _decimal(best_candidate.get("candidate_selection_score"))
+                - _decimal(focused.get("candidate_selection_score")),
+            )
+            net_ev_gap = max(
+                Decimal("0"),
+                _decimal(best_candidate.get("net_ev_after_cost_bps"))
+                - _decimal(focused.get("net_ev_after_cost_bps")),
+            )
+            if score_gap > PAPER_SCOPE_CONTINUITY_MAX_SCORE_GAP:
+                status = "SCORE_GAP_TOO_WIDE"
+            elif net_ev_gap > PAPER_SCOPE_CONTINUITY_MAX_NET_EV_GAP_BPS:
+                status = "NET_EV_GAP_TOO_WIDE"
+            else:
+                selected = focused
+                status = "SELECTED"
+
+    decision = {
+        "policy_id": PAPER_SCOPE_CONTINUITY_POLICY_ID,
+        "requested": focus_requested,
+        "selection_status": status,
+        "requested_candidate_id": requested_candidate_id or None,
+        "requested_symbol": requested_symbol or None,
+        "requested_strategy_id": requested_strategy_id or None,
+        "requested_parameter_hash": requested_parameter_hash or None,
+        "selected": status == "SELECTED",
+        "selected_candidate_id": selected.get("candidate_id"),
+        "selected_symbol": selected.get("symbol"),
+        "best_candidate_id": best_candidate.get("candidate_id"),
+        "best_symbol": best_candidate.get("symbol"),
+        "score_gap": _decimal_text(score_gap),
+        "net_ev_gap_bps": _decimal_text(net_ev_gap),
+        "max_score_gap": _decimal_text(PAPER_SCOPE_CONTINUITY_MAX_SCORE_GAP),
+        "max_net_ev_gap_bps": _decimal_text(PAPER_SCOPE_CONTINUITY_MAX_NET_EV_GAP_BPS),
+        "acceptance_condition": (
+            "Only select the active PAPER scope when the candidate is still PAPER_ENTRY_REVIEW, "
+            "live flags are false, net EV/signal/symbol floors pass, and score/net-EV gaps stay within policy bounds."
+        ),
+        "fallback_behavior": "Fallback to highest scored candidate when focus is absent, unsafe, stale, managed-position overridden, or outside gap limits.",
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    return selected, decision
 
 
 def _recent_failure_clear_feedback() -> dict[str, Any]:
@@ -1948,6 +2074,7 @@ def build_upbit_paper_runtime_cycle_report(
     paper_cash_source: str = "PAPER_LEDGER_ROLLUP",
     current_paper_portfolio_snapshot: dict[str, Any] | None = None,
     recent_failure_feedback: list[dict[str, Any]] | None = None,
+    paper_scope_focus: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     source_collection_report_hash = None
     source_public_market_data_hash = None
@@ -2110,9 +2237,18 @@ def build_upbit_paper_runtime_cycle_report(
         managed_symbol = str(managed_position["symbol"])
         managed_candidates = [candidate for candidate in candidates if candidate.get("symbol") == managed_symbol]
         selected = max(managed_candidates or candidates, key=_candidate_rank_key)
+        paper_scope_continuity = _paper_scope_continuity_decision(
+            candidates=managed_candidates or candidates,
+            paper_scope_focus=paper_scope_focus,
+            managed_position_symbol=managed_symbol,
+        )[1]
         rotation_candidate = _best_rotation_alternative_candidate(candidates, managed_symbol=managed_symbol)
     else:
-        selected = max(candidates, key=_candidate_rank_key)
+        selected, paper_scope_continuity = _paper_scope_continuity_decision(
+            candidates=candidates,
+            paper_scope_focus=paper_scope_focus,
+            managed_position_symbol=None,
+        )
         rotation_candidate = None
     selected_symbol = str(selected["symbol"])
     market_data = market_data_by_symbol[selected_symbol]
@@ -2536,6 +2672,7 @@ def build_upbit_paper_runtime_cycle_report(
         "regime": features.get("regime"),
         "strategy_candidates": candidates,
         "selected_candidate": selected,
+        "paper_scope_continuity_decision": paper_scope_continuity,
         "strategy_regime_cost_linkage": strategy_regime_cost_linkage,
         "risk_state": risk_state,
         "sizing_decision": sizing,
@@ -2606,6 +2743,7 @@ def validate_upbit_paper_runtime_cycle_report(
         "regime",
         "strategy_candidates",
         "selected_candidate",
+        "paper_scope_continuity_decision",
         "strategy_regime_cost_linkage",
         "risk_state",
         "sizing_decision",
@@ -2920,9 +3058,38 @@ def validate_upbit_paper_runtime_cycle_report(
         managed_pool = [candidate for candidate in expected_candidate_pool if candidate.get("symbol") == managed_position_symbol]
         if managed_pool:
             expected_candidate_pool = managed_pool
-    expected_top_candidate = max(expected_candidate_pool, key=_candidate_rank_key)
+    continuity = report.get("paper_scope_continuity_decision")
+    if not isinstance(continuity, dict):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper scope continuity decision must be an object", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        continuity.get("live_order_ready")
+        or continuity.get("live_order_allowed")
+        or continuity.get("can_live_trade")
+        or continuity.get("scale_up_allowed")
+    ):
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper scope continuity attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    expected_focus = None
+    if continuity.get("requested") is True:
+        expected_focus = {
+            "candidate_id": continuity.get("requested_candidate_id"),
+            "symbol": continuity.get("requested_symbol"),
+            "strategy_id": continuity.get("requested_strategy_id"),
+            "parameter_hash": continuity.get("requested_parameter_hash"),
+            "sample_deficit": 1,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+    expected_selected_candidate, expected_continuity = _paper_scope_continuity_decision(
+        candidates=expected_candidate_pool,
+        paper_scope_focus=expected_focus,
+        managed_position_symbol=managed_position_symbol,
+    )
+    if continuity != expected_continuity:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper scope continuity decision mismatch", "SCHEMA_IDENTITY_MISMATCH")
     net_ev = _decimal(selected.get("net_ev_after_cost_bps"))
-    if selected_id != expected_top_candidate.get("candidate_id"):
+    if selected_id != expected_selected_candidate.get("candidate_id"):
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "selected candidate is not the highest scored candidate", "MIN_EDGE_FAIL")
     if report["sizing_decision"].get("strategy_unit_id") != selected_id:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "sizing decision strategy unit does not match selected candidate", "SCHEMA_IDENTITY_MISMATCH")

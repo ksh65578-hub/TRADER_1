@@ -13,6 +13,7 @@ from trader1.adapters.upbit.market_data import (
     validate_upbit_public_candle_data,
 )
 from trader1.core.sizing.position_sizing import sizing_decision_hash
+from trader1.runtime.paper import upbit_paper_persistent_loop as persistent_loop_module
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     build_upbit_paper_runtime_recovery_guard_report,
     run_upbit_paper_persistent_loop,
@@ -203,6 +204,34 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(len(records), report["canonical_event_count"])
             self.assertIsNotNone(quarantine_path)
             self.assertFalse(writer["live_order_allowed"])
+
+    def test_public_market_data_cache_alone_does_not_trigger_runtime_recovery(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "mvp1_upbit_paper_launcher"
+            canonical_dir = (
+                root
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / session_id
+                / "market_data"
+                / "public"
+                / "canonical"
+            )
+            canonical_dir.mkdir(parents=True, exist_ok=True)
+            (canonical_dir / "dashboard-preopen.canonical_events.jsonl").write_text('{"source":"dashboard"}\n', encoding="utf-8")
+
+            self.assertFalse(persistent_loop_module._existing_runtime_state_detected(root, session_id))
+            loop = run_upbit_paper_persistent_loop(root=root, loop_id="market-data-cache-first-cycle", requested_cycle_count=1)
+            result = validate_upbit_paper_persistent_loop_report(loop)
+
+            self.assertEqual(result.status, "PASS", result.message)
+            self.assertEqual(loop["completed_cycle_count"], 1)
+            self.assertFalse(loop["preflight_existing_runtime_state_detected"])
+            self.assertFalse(loop["live_order_allowed"])
 
     def test_latest_pointer_hash_mismatch_fails_closed(self):
         report = build_upbit_public_market_data_collection_report(
