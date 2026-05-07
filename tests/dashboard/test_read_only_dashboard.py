@@ -2481,7 +2481,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(operation["realized_pnl"], "0")
         self.assertEqual(operation["unrealized_pnl"], "5000")
         self.assertEqual(operation["last_decision"], "HOLD_POSITION")
-        self.assertEqual(operation["primary_blocker"], "LIVE_READY_MISSING")
+        self.assertEqual(operation["primary_blocker"], "SAMPLE_INSUFFICIENT")
         self.assertTrue(operation["live_orders_blocked"])
         runner = dashboard["paper_runner_operations_status"]
         self.assertEqual(runner["status"], "RUNNING_NOW")
@@ -2521,6 +2521,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(runner["paper_shadow_evidence_actionability_status"], "COLLECT_PAPER_SAMPLES")
         self.assertEqual(runner["paper_shadow_evidence_paper_sample_count"], 3)
         self.assertEqual(runner["paper_shadow_evidence_shadow_sample_count"], 2)
+        self.assertEqual(runner["primary_blocker_code"], "SAMPLE_INSUFFICIENT")
+        self.assertIn("source-bound candidate samples", runner["one_line_summary"])
         self.assertFalse(runner["live_order_allowed"])
         source_by_id = {source["artifact_id"]: source for source in dashboard["source_artifacts"]}
         self.assertEqual(source_by_id["PAPER_LONG_RUNNER_STATUS"]["filename"], "runner_status.json")
@@ -2653,6 +2655,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS", result.message)
         self.assertEqual(dashboard["profitability_maturity"]["paper_sample_deficit"], 29)
         self.assertEqual(dashboard["paper_runner_operations_status"]["paper_scope_sample_deficit"], 27)
+        self.assertEqual(dashboard["paper_runner_operations_status"]["primary_blocker_code"], "SAMPLE_INSUFFICIENT")
         html = render_dashboard_html(dashboard)
         self.assertIn("Reason: PAPER/SHADOW evidence is collecting PAPER samples", html)
         self.assertIn(
@@ -2660,6 +2663,22 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             html,
         )
         self.assertIn("Collect 29 more PAPER samples for the same candidate/strategy/parameter scope.", html)
+
+    def test_dashboard_runner_stopped_scope_deficit_uses_sample_insufficient_blocker(self):
+        dashboard = build_dashboard_with_runner_operations(stopped=True)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "STOPPED")
+        self.assertEqual(runner["paper_scope_sample_deficit"], 27)
+        self.assertEqual(runner["primary_blocker_code"], "SAMPLE_INSUFFICIENT")
+        self.assertIn("Collect 27 more PAPER samples", runner["next_operator_action"])
+        self.assertFalse(runner["live_order_ready"])
+        self.assertFalse(runner["live_order_allowed"])
+        self.assertFalse(runner["can_live_trade"])
+        self.assertFalse(runner["scale_up_allowed"])
 
     def test_dashboard_operation_status_uses_fresh_runner_when_legacy_heartbeat_is_stale(self):
         session_id = "test_read_only_dashboard_runner_ops_stale_heartbeat"
@@ -2693,7 +2712,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(operation["label"], "PAPER runner active")
         self.assertEqual(operation["runtime_presence"], "PAPER_RUNTIME_ACTIVE")
         self.assertEqual(operation["source"], "runner_status.json")
-        self.assertEqual(operation["primary_blocker"], "LIVE_READY_MISSING")
+        self.assertEqual(operation["primary_blocker"], "SAMPLE_INSUFFICIENT")
         self.assertIn("Legacy heartbeat is stale", operation["message"])
         self.assertIn("continuous PAPER engine", operation["operator_meaning"])
         self.assertFalse(dashboard["live_order_ready"])
@@ -2759,7 +2778,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS", result.message)
         self.assertEqual(dashboard["primary_status_text"], "PAPER STOPPED - READ ONLY, LIVE ORDERS BLOCKED")
         self.assertIn("Collect 27 more PAPER samples", dashboard["next_action"])
-        self.assertEqual(dashboard["blocking_reason"], "LIVE_READY_MISSING")
+        self.assertEqual(dashboard["blocking_reason"], "SAMPLE_INSUFFICIENT")
         operator_action = dashboard["operator_action_summary"]
         self.assertEqual(operator_action["status"], "ACTION_REQUIRED")
         self.assertEqual(operator_action["workflow_step"], "RUN_PAPER")
