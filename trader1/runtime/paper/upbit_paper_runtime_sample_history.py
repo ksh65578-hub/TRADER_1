@@ -5,6 +5,7 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -145,6 +146,105 @@ def _exit_reason_evidence_count(runtime_cycle: dict[str, Any]) -> int:
     return max(reason_count, 1)
 
 
+def _decimal_value(value: Any) -> Decimal:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return Decimal("0")
+
+
+def _candidate_is_non_live(candidate: dict[str, Any]) -> bool:
+    return not any(
+        candidate.get(field) is True
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    )
+
+
+def _candidate_rank_key(candidate: dict[str, Any]) -> tuple[Decimal, Decimal, int, str]:
+    return (
+        _decimal_value(candidate.get("candidate_selection_score")),
+        _decimal_value(candidate.get("net_ev_after_cost_bps")),
+        -int(candidate.get("selection_priority", 999) or 999),
+        str(candidate.get("candidate_id") or ""),
+    )
+
+
+def _paper_entry_review_candidates(runtime_cycle: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        candidate
+        for candidate in runtime_cycle.get("strategy_candidates") or []
+        if isinstance(candidate, dict)
+        and candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+        and isinstance(candidate.get("candidate_id"), str)
+        and _candidate_is_non_live(candidate)
+    ]
+
+
+def _strategy_id_for_family(strategy_family: str) -> str:
+    mapping = {
+        "PULLBACK_TREND_LONG": "trend_pullback",
+        "BREAKOUT_RETEST_LONG": "breakout_retest",
+        "VWAP_MEAN_REVERSION": "vwap_mean_reversion",
+    }
+    return mapping.get(strategy_family, strategy_family.lower())
+
+
+def _candidate_parameter_hash(candidate: dict[str, Any]) -> str | None:
+    candidate_id = str(candidate.get("candidate_id") or "")
+    strategy_family = str(candidate.get("strategy_family") or "")
+    symbol = str(candidate.get("symbol") or "")
+    if not candidate_id or not strategy_family or not symbol:
+        return None
+    return hashlib.sha256(f"{candidate_id}:{strategy_family}:{symbol}".encode("utf-8")).hexdigest().upper()
+
+
+def _scorecard_candidate_from_runtime_cycle(runtime_cycle: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    selected = runtime_cycle.get("selected_candidate")
+    if isinstance(selected, dict) and selected.get("decision") == "PAPER_ENTRY_REVIEW" and _candidate_is_non_live(selected):
+        return "SELECTED_CANDIDATE", selected
+    entry_candidates = _paper_entry_review_candidates(runtime_cycle)
+    if entry_candidates:
+        return "PAPER_ENTRY_REVIEW_CANDIDATE", max(entry_candidates, key=_candidate_rank_key)
+    if isinstance(selected, dict):
+        return "SELECTED_CANDIDATE", selected
+    return "MISSING", {}
+
+
+def _candidate_identity_fields(runtime_cycle: dict[str, Any]) -> dict[str, Any]:
+    identity_source, candidate = _scorecard_candidate_from_runtime_cycle(runtime_cycle)
+    entry_candidates = sorted(_paper_entry_review_candidates(runtime_cycle), key=_candidate_rank_key, reverse=True)
+    entry_candidate_ids = [str(candidate["candidate_id"]) for candidate in entry_candidates]
+    entry_symbols = sorted({str(candidate.get("symbol")) for candidate in entry_candidates if candidate.get("symbol")})
+    strategy_family = str(candidate.get("strategy_family") or "")
+    symbol = str(candidate.get("symbol") or runtime_cycle.get("selected_symbol") or runtime_cycle.get("symbol") or "")
+    candidate_id = str(candidate.get("candidate_id") or "")
+    parameter_hash = _candidate_parameter_hash(candidate)
+    identity_bound = bool(candidate_id and strategy_family and symbol and parameter_hash and _candidate_is_non_live(candidate))
+    return {
+        "scorecard_candidate_identity_source": identity_source,
+        "scorecard_candidate_identity_binding_status": "BOUND" if identity_bound else "MISSING",
+        "scorecard_candidate_live_flags_clear": _candidate_is_non_live(candidate),
+        "scorecard_symbol": symbol or None,
+        "scorecard_candidate_id": candidate_id or None,
+        "scorecard_strategy_family": strategy_family or None,
+        "scorecard_strategy_id": _strategy_id_for_family(strategy_family) if strategy_family else None,
+        "scorecard_parameter_hash": parameter_hash,
+        "scorecard_candidate_decision": candidate.get("decision"),
+        "scorecard_candidate_net_ev_after_cost_bps": candidate.get("net_ev_after_cost_bps"),
+        "scorecard_candidate_selection_score": candidate.get("candidate_selection_score"),
+        "scorecard_expected_edge_bps": candidate.get("expected_edge_bps"),
+        "scorecard_expected_cost_bps": candidate.get("expected_cost_bps"),
+        "paper_entry_review_candidate_count": len(entry_candidates),
+        "paper_entry_review_candidate_ids": entry_candidate_ids,
+        "paper_entry_review_symbols": entry_symbols,
+        "paper_entry_review_symbol_count": len(entry_symbols),
+        "symbol_evidence_scorecard_count": int(
+            runtime_cycle.get("symbol_evidence_scorecard_count")
+            or len(runtime_cycle.get("symbol_evidence_scorecards") or [])
+        ),
+    }
+
+
 def _build_sample(
     *,
     loop_report_path: Path,
@@ -155,6 +255,7 @@ def _build_sample(
     root: Path,
     previous_sample_hash: str | None,
 ) -> dict[str, Any]:
+    identity_fields = _candidate_identity_fields(runtime_cycle)
     sample = {
         "schema_id": UPBIT_PAPER_RUNTIME_SAMPLE_SCHEMA_ID,
         "generated_at_utc": runtime_cycle["generated_at_utc"],
@@ -177,6 +278,7 @@ def _build_sample(
         "entry_reason_count": _entry_reason_evidence_count(runtime_cycle),
         "exit_reason_count": _exit_reason_evidence_count(runtime_cycle),
         "no_trade_reason_count": len(runtime_cycle.get("no_trade_reasons") or []),
+        **identity_fields,
         "previous_sample_hash": previous_sample_hash,
         "live_order_ready": False,
         "live_order_allowed": False,
@@ -476,6 +578,34 @@ def validate_upbit_paper_runtime_sample_history(history: dict[str, Any]) -> Upbi
                 return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "runtime sample source path escaped UPBIT PAPER namespace", "SNAPSHOT_SCOPE_MISMATCH")
         if sample.get("live_order_ready") or sample.get("live_order_allowed") or sample.get("can_live_trade") or sample.get("scale_up_allowed"):
             return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "runtime sample created live or scale-up permission", "LIVE_FINAL_GUARD_FAILED")
+        binding_status = sample.get("scorecard_candidate_identity_binding_status")
+        if binding_status is not None:
+            if binding_status not in {"BOUND", "MISSING"}:
+                return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample candidate identity status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+            entry_candidate_ids = sample.get("paper_entry_review_candidate_ids")
+            entry_symbols = sample.get("paper_entry_review_symbols")
+            if not isinstance(entry_candidate_ids, list) or not isinstance(entry_symbols, list):
+                return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample candidate identity lists are invalid", "SCHEMA_IDENTITY_MISMATCH")
+            if sample.get("paper_entry_review_candidate_count") != len(entry_candidate_ids):
+                return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample entry-review candidate count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+            if sample.get("paper_entry_review_symbol_count") != len(set(entry_symbols)):
+                return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample entry-review symbol count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+            if binding_status == "BOUND":
+                for field in (
+                    "scorecard_symbol",
+                    "scorecard_candidate_id",
+                    "scorecard_strategy_family",
+                    "scorecard_strategy_id",
+                    "scorecard_parameter_hash",
+                    "scorecard_candidate_identity_source",
+                ):
+                    if not isinstance(sample.get(field), str) or not sample.get(field):
+                        return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", f"runtime sample candidate identity missing field: {field}", "SCHEMA_IDENTITY_MISMATCH")
+                parameter_hash = str(sample.get("scorecard_parameter_hash") or "")
+                if re.fullmatch(r"[0-9A-F]{64}", parameter_hash) is None:
+                    return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample parameter hash is invalid", "SCHEMA_IDENTITY_MISMATCH")
+                if sample.get("scorecard_candidate_live_flags_clear") is not True:
+                    return UpbitPaperRuntimeSampleHistoryValidationResult("BLOCKED", "runtime sample candidate identity attempted live or scale-up state", "LIVE_FINAL_GUARD_FAILED")
         timestamp = _parse_utc(sample.get("generated_at_utc"))
         if timestamp is None:
             return UpbitPaperRuntimeSampleHistoryValidationResult("FAIL", "runtime sample timestamp is invalid", "SCHEMA_IDENTITY_MISMATCH")

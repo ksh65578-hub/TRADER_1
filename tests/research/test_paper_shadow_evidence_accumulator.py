@@ -264,6 +264,110 @@ class PaperShadowEvidenceAccumulatorTest(unittest.TestCase):
         self.assertFalse(report["can_live_trade"])
         self.assertFalse(report["scale_up_allowed"])
 
+    def test_runtime_artifact_accumulation_scopes_explicit_paper_samples_to_candidate_identity(self):
+        scorecard = {
+            "candidate_id": "KRW-BTC-pullback-trend-long",
+            "strategy_id": "trend_pullback",
+            "strategy_build_id": "upbit_paper_runtime_cycle_v1",
+            "parameter_hash": "B" * 64,
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "gross_expected_edge_bps": 42.0,
+            "expected_fee_bps": 5.0,
+            "expected_spread_bps": 1.0,
+            "expected_slippage_bps": 5.0,
+            "expected_impact_bps": 0.0,
+            "expected_latency_penalty_bps": 0.0,
+            "net_ev_after_cost_bps": 31.0,
+            "cost_model_status": "VALIDATED",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        overfit = {
+            "candidate_id": scorecard["candidate_id"],
+            "strategy_id": scorecard["strategy_id"],
+            "strategy_build_id": scorecard["strategy_build_id"],
+            "parameter_hash": scorecard["parameter_hash"],
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "sample_count": 30,
+            "diagnostic_hash": "C" * 64,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        samples = [
+            {
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "loop_id": f"loop-{index}",
+                "cycle_id": f"cycle-{index}",
+                "entry_reason_count": 1,
+                "exit_reason_count": 0,
+                "no_trade_reason_count": 1,
+                "candidate_count": 3,
+                "scorecard_candidate_id": "KRW-ETH-pullback-trend-long",
+                "scorecard_strategy_id": "trend_pullback",
+                "scorecard_parameter_hash": "A" * 64,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+            for index in range(30)
+        ]
+        history = {
+            "history_id": "runtime-paper-explicit-mismatch",
+            "history_hash": "D" * 64,
+            "accepted_cycle_sample_count": 30,
+            "accepted_loop_report_count": 30,
+            "observed_span_seconds": 0,
+            "samples": samples,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        harness = {
+            "harness_id": "runtime-paper-shadow-explicit-mismatch",
+            "harness_status": "PASS",
+            "completed_cycle_count": 20,
+            "observation_count": 40,
+            "observations_per_cycle": 2,
+            "heartbeat_count": 20,
+            "measured_runtime_seconds": 60,
+            "minimum_runtime_window_seconds": 86400,
+            "minimum_actual_cycle_count": 2880,
+            "harness_report_hash": "E" * 64,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        report = build_paper_shadow_evidence_accumulation_from_runtime_artifacts(
+            evidence_report_id="runtime-artifact-explicit-candidate-scope",
+            candidate_scorecard=scorecard,
+            overfit_diagnostic_report=overfit,
+            paper_sample_history=history,
+            shadow_runtime_harness_report=harness,
+        )
+        result = validate_paper_shadow_evidence_accumulation_report(report)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "SAMPLE_INSUFFICIENT")
+        self.assertEqual(report["paper_sample_count"], 0)
+        self.assertEqual(report["entry_reason_count"], 0)
+        self.assertEqual(report["cost_evidence_count"], 0)
+        self.assertEqual(report["evidence_window_count"], 0)
+        self.assertEqual(report["evidence_actionability_status"], "COLLECT_PAPER_SAMPLES")
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+
     def test_runtime_artifact_accumulation_exposes_shadow_deficit_without_live_permission(self):
         scorecard = {
             "candidate_id": "KRW-BTC-pullback-trend-long",
