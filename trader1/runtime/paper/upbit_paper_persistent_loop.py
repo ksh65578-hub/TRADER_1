@@ -268,6 +268,41 @@ def _merge_required_symbols(symbols: list[str], required_symbols: list[str], *, 
     return merged[: max(max_count, len(required_symbols))]
 
 
+def _normalized_paper_scope_focus(paper_scope_focus: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(paper_scope_focus, dict):
+        return None
+    candidate_id = str(paper_scope_focus.get("candidate_id") or "").strip()
+    symbol = str(paper_scope_focus.get("symbol") or "").strip().upper()
+    try:
+        sample_deficit = int(paper_scope_focus.get("sample_deficit", 0) or 0)
+    except (TypeError, ValueError):
+        sample_deficit = 0
+    if not candidate_id or not symbol.startswith("KRW-") or sample_deficit <= 0:
+        return None
+    if any(
+        paper_scope_focus.get(flag)
+        for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    ):
+        return None
+    strategy_id = str(paper_scope_focus.get("strategy_id") or "").strip() or None
+    parameter_hash = str(paper_scope_focus.get("parameter_hash") or "").strip().upper() or None
+    normalized = {
+        "source": str(paper_scope_focus.get("source") or "PAPER_RUNTIME_SAMPLE_HISTORY"),
+        "candidate_id": candidate_id,
+        "symbol": symbol,
+        "strategy_id": strategy_id,
+        "parameter_hash": parameter_hash,
+        "sample_count": int(paper_scope_focus.get("sample_count", 0) or 0),
+        "sample_deficit": sample_deficit,
+        "scope_progress_status": str(paper_scope_focus.get("scope_progress_status") or "COLLECT_PAPER_SCOPE_SAMPLES"),
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    return normalized
+
+
 def _mark_cash_guard_portfolio_to_public_market(
     *,
     cash_guard: dict[str, Any],
@@ -341,7 +376,6 @@ def _existing_runtime_state_detected(root: Path, session_id: str) -> bool:
     patterns = (
         "**/*.tmp",
         "paper_runtime/cycles/*.json",
-        "market_data/public/canonical/*.canonical_events.jsonl",
         "ledger/cycles/*.paper_ledger_events.jsonl",
     )
     return any(next(base.glob(pattern), None) is not None for pattern in patterns)
@@ -1419,10 +1453,13 @@ def run_upbit_paper_persistent_loop(
     market_symbols_fetcher: Callable[..., dict[str, Any]] | None = None,
     public_ticker_fetcher: Callable[..., dict[str, Any]] | None = None,
     public_candle_fetcher: Callable[..., dict[str, Any]] | None = None,
+    paper_scope_focus: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     root = Path(root).resolve()
     blockers: list[dict[str, str]] = []
     cycle_results: list[dict[str, Any]] = []
+    normalized_paper_scope_focus = _normalized_paper_scope_focus(paper_scope_focus)
+    paper_scope_focus_symbols = [normalized_paper_scope_focus["symbol"]] if normalized_paper_scope_focus else []
     preflight_existing_runtime_state = _existing_runtime_state_detected(root, session_id)
     preflight_recovery_guard: dict[str, Any] | None = None
     preflight_recovery_guard_path: Path | None = None
@@ -1468,6 +1505,11 @@ def run_upbit_paper_persistent_loop(
                 rollup_id=f"{cycle_id}-pre-entry-cash-guard",
             )
             open_position_symbols = _open_position_symbols(cash_guard.get("portfolio_snapshot"))
+            required_cycle_symbols = _merge_required_symbols(
+                open_position_symbols,
+                paper_scope_focus_symbols,
+                max_count=max_symbol_evaluation_count,
+            )
             supplied_market_data = market_data_sequence[index] if market_data_sequence and index < len(market_data_sequence) else None
             supplied_market_data_universe = (
                 market_data_universe_sequence[index]
@@ -1478,7 +1520,7 @@ def run_upbit_paper_persistent_loop(
                 cycle_market_data_by_symbol = dict(supplied_market_data_universe)
                 cycle_symbol_universe = _merge_required_symbols(
                     sorted(cycle_market_data_by_symbol),
-                    open_position_symbols,
+                    required_cycle_symbols,
                     max_count=max_symbol_evaluation_count,
                 )
                 cycle_symbol_universe_source = "SUPPLIED_MARKET_DATA_UNIVERSE"
@@ -1490,19 +1532,23 @@ def run_upbit_paper_persistent_loop(
                 }
                 cycle_symbol_universe = _merge_required_symbols(
                     list(cycle_market_data_by_symbol),
-                    open_position_symbols,
+                    required_cycle_symbols,
                     max_count=max_symbol_evaluation_count,
                 )
                 cycle_symbol_universe_source = "SUPPLIED_MARKET_DATA_UNIVERSE"
             elif supplied_market_data is not None:
                 cycle_market_data_by_symbol = {symbol: supplied_market_data}
-                cycle_symbol_universe = _merge_required_symbols([symbol], open_position_symbols, max_count=max_symbol_evaluation_count)
+                cycle_symbol_universe = _merge_required_symbols(
+                    [symbol],
+                    required_cycle_symbols,
+                    max_count=max_symbol_evaluation_count,
+                )
                 cycle_symbol_universe_source = "SUPPLIED_SINGLE_MARKET_DATA"
             else:
                 cycle_market_data_by_symbol = {}
                 cycle_symbol_universe = _merge_required_symbols(
                     list(default_symbol_universe),
-                    open_position_symbols,
+                    required_cycle_symbols,
                     max_count=max_symbol_evaluation_count,
                 )
                 cycle_symbol_universe_source = str(symbol_discovery_context["symbol_universe_source"])
@@ -1565,6 +1611,7 @@ def run_upbit_paper_persistent_loop(
                     paper_cash_source=cash_guard["source"],
                     current_paper_portfolio_snapshot=cash_guard.get("portfolio_snapshot"),
                     recent_failure_feedback=recent_failure_feedback,
+                    paper_scope_focus=normalized_paper_scope_focus,
                 )
                 runtime_result = validate_upbit_paper_runtime_cycle_report(cycle)
                 cycle_result_status = runtime_result.status
@@ -1584,6 +1631,9 @@ def run_upbit_paper_persistent_loop(
             selected_candidate = cycle.get("selected_candidate") if isinstance(cycle, dict) else None
             if not isinstance(selected_candidate, dict):
                 selected_candidate = {}
+            paper_scope_continuity = cycle.get("paper_scope_continuity_decision") if isinstance(cycle, dict) else None
+            if not isinstance(paper_scope_continuity, dict):
+                paper_scope_continuity = {}
             cycle_result_symbol_universe = (
                 cycle.get("symbol_universe")
                 if isinstance(cycle, dict) and isinstance(cycle.get("symbol_universe"), list)
@@ -1621,6 +1671,20 @@ def run_upbit_paper_persistent_loop(
                     "selected_symbol": cycle.get("selected_symbol") if isinstance(cycle, dict) else None,
                     "selected_candidate_id": selected_candidate.get("candidate_id"),
                     "selected_candidate_net_ev_after_cost_bps": selected_candidate.get("net_ev_after_cost_bps"),
+                    "paper_scope_continuity_status": str(
+                        paper_scope_continuity.get("selection_status") or "NOT_REQUESTED"
+                    ),
+                    "paper_scope_continuity_requested": bool(paper_scope_continuity.get("requested")),
+                    "paper_scope_continuity_selected": bool(paper_scope_continuity.get("selected")),
+                    "paper_scope_continuity_requested_candidate_id": paper_scope_continuity.get(
+                        "requested_candidate_id"
+                    ),
+                    "paper_scope_continuity_selected_candidate_id": paper_scope_continuity.get(
+                        "selected_candidate_id"
+                    ),
+                    "paper_scope_continuity_best_candidate_id": paper_scope_continuity.get("best_candidate_id"),
+                    "paper_scope_continuity_score_gap": paper_scope_continuity.get("score_gap"),
+                    "paper_scope_continuity_net_ev_gap_bps": paper_scope_continuity.get("net_ev_gap_bps"),
                     "selected_candidate_recent_failure_cooldown_status": selected_candidate.get(
                         "recent_failure_cooldown_status"
                     ),
