@@ -11,6 +11,7 @@ from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     upbit_paper_runtime_sample_hash,
     upbit_paper_runtime_sample_history_hash,
     validate_upbit_paper_runtime_sample_history,
+    validate_upbit_paper_runtime_sample_history_sources,
     write_upbit_paper_runtime_sample_history,
 )
 from trader1.validation.schema_instance import load_schema_bundle, schema_for_instance, validate_instance_against_schema
@@ -242,6 +243,20 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
 
         self.assertEqual(result.status, "BLOCKED")
         self.assertEqual(result.blocker_code, "SNAPSHOT_SCOPE_MISMATCH")
+
+    def test_runtime_sample_history_source_validator_blocks_missing_bound_cycle_file(self):
+        history, root = self._history()
+        result = validate_upbit_paper_runtime_sample_history(history)
+        self.assertEqual(result.status, "PASS")
+
+        missing_path = root / history["samples"][0]["source_runtime_cycle_path"]
+        missing_path.unlink()
+
+        source_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=history)
+
+        self.assertEqual(source_result.status, "BLOCKED")
+        self.assertEqual(source_result.blocker_code, "RECONCILIATION_REQUIRED")
+        self.assertIn("source cycle is missing", source_result.message)
 
     def test_runtime_sample_history_detects_floor_flag_drift(self):
         history, _ = self._history()

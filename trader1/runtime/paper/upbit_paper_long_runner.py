@@ -60,7 +60,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
-    validate_upbit_paper_runtime_sample_history,
+    validate_upbit_paper_runtime_sample_history_sources,
     write_upbit_paper_runtime_sample_history,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -488,7 +488,7 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
     evidence = _read_json(evidence_path)
 
     if isinstance(history, dict):
-        history_result = validate_upbit_paper_runtime_sample_history(history)
+        history_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=history)
         history_status = _result_status(history_result)
         history_blocker = _result_blocker_code(history_result)
     else:
@@ -618,12 +618,18 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
 def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id: str) -> dict[str, Any]:
     root = Path(root).resolve()
     history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
-    history_result = validate_upbit_paper_runtime_sample_history(history)
+    history_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=history)
     if history_result.status != "PASS":
+        history_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
         return {
             "status": NON_LIVE_PROFITABILITY_REFRESH_BLOCKED,
             "blocker_code": history_result.blocker_code or "RUNTIME_SAMPLE_HISTORY_INVALID",
             "message": history_result.message,
+            "runtime_sample_history_path": _relative_runtime_path(history_path, root),
+            "runtime_sample_history_status": history_result.status,
+            "runtime_sample_status": history.get("runtime_sample_status"),
+            "accepted_cycle_sample_count": history.get("accepted_cycle_sample_count"),
+            "invalid_source_count": history.get("invalid_source_count"),
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,

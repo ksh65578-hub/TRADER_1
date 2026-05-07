@@ -24,7 +24,7 @@ from trader1.research.profitability.overfit_diagnostic import (
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
-    validate_upbit_paper_runtime_sample_history,
+    validate_upbit_paper_runtime_sample_history_sources,
     write_upbit_paper_runtime_sample_history,
 )
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors, _overfit_diagnostic_errors
@@ -57,11 +57,17 @@ def _blocked_result(message: str, blocker_code: str, **extra: Any) -> dict[str, 
 def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str) -> dict[str, Any]:
     root = Path(root).resolve()
     history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
-    history_result = validate_upbit_paper_runtime_sample_history(history)
+    history_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=history)
     if history_result.status != "PASS":
+        history_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
         return _blocked_result(
             history_result.message,
             history_result.blocker_code or "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+            runtime_sample_history_path=_relative_path(history_path, root),
+            runtime_sample_history_status=history_result.status,
+            runtime_sample_status=history.get("runtime_sample_status"),
+            accepted_cycle_sample_count=history.get("accepted_cycle_sample_count"),
+            invalid_source_count=history.get("invalid_source_count"),
         )
     if not history.get("samples"):
         return _blocked_result(

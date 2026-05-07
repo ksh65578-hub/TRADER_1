@@ -86,6 +86,33 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         blocker_codes = {blocker["code"] for blocker in scorecard["blockers"]}
         self.assertTrue({"OOS_MISSING", "WALK_FORWARD_MISSING", "BOOTSTRAP_UNSTABLE", "OVERFIT_RISK_HIGH"}.issubset(blocker_codes))
 
+    def test_missing_bound_cycle_sources_overwrite_stale_history_with_blocked_truth(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _run_short_paper(root)
+            first_result = build_current_upbit_paper_candidate_scorecard(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            stale_history = _load_written(root, first_result, "runtime_sample_history_path")
+            for sample in stale_history["samples"]:
+                (root / sample["source_runtime_cycle_path"]).unlink()
+
+            blocked = build_current_upbit_paper_candidate_scorecard(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            rewritten_history = _load_written(root, blocked, "runtime_sample_history_path")
+
+        self.assertEqual(blocked["status"], "BLOCKED")
+        self.assertEqual(blocked["blocker_code"], "RECONCILIATION_REQUIRED")
+        self.assertEqual(blocked["runtime_sample_history_status"], "BLOCKED")
+        self.assertEqual(rewritten_history["runtime_sample_status"], "BLOCKED")
+        self.assertEqual(rewritten_history["accepted_cycle_sample_count"], 0)
+        self.assertGreater(rewritten_history["invalid_source_count"], 0)
+        self.assertFalse(blocked["live_order_allowed"])
+        self.assertFalse(blocked["scale_up_allowed"])
+
     def test_bridge_consumes_robust_diagnostic_as_paper_scorecard_input_only(self):
         def robust_diagnostic(*, candidate_scorecard: dict, runtime_sample_history: dict, root: Path) -> dict:
             report = overfit_diagnostic_from_upbit_paper_runtime(
