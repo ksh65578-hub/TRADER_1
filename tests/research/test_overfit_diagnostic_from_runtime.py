@@ -471,10 +471,20 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
 
             path = write_overfit_diagnostic_report(root=root, report=report)
             written = json.loads(path.read_text(encoding="utf-8"))
+            candidate_path = (
+                path.parent
+                / "overfit_diagnostics"
+                / f"{report['candidate_id']}.overfit_diagnostic_report.json"
+            )
+            candidate_written = json.loads(candidate_path.read_text(encoding="utf-8"))
 
         self.assertTrue(str(path).endswith("system\\runtime\\upbit\\krw_spot\\paper\\mvp1_upbit_paper_launcher\\profitability\\overfit_diagnostic_report.json"))
+        self.assertTrue(str(candidate_path).endswith(f"profitability\\overfit_diagnostics\\{report['candidate_id']}.overfit_diagnostic_report.json"))
         self.assertEqual(written["diagnostic_hash"], overfit_diagnostic_report_hash(written))
+        self.assertEqual(candidate_written["diagnostic_hash"], overfit_diagnostic_report_hash(candidate_written))
+        self.assertEqual(candidate_written["candidate_id"], written["candidate_id"])
         self.assertFalse(written["live_order_allowed"])
+        self.assertFalse(candidate_written["live_order_allowed"])
 
 
 if __name__ == "__main__":

@@ -537,6 +537,116 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
         self.assertEqual(wlfi_pullback["no_trade_reason"], "COOLDOWN")
         self.assertFalse(latest["live_order_allowed"])
 
+    def test_persistent_loop_keeps_candidate_scoped_quality_feedback_when_latest_report_is_other_candidate(self):
+        repeated_wlfi = build_upbit_public_candle_fixture(
+            symbol="KRW-WLFI",
+            session_id="candidate-quality-memory-session",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(repeated_wlfi["candles"], start=1):
+            candle["volume"] = str(10 + index * 3)
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="candidate-quality-memory-session",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            diagnostic_dir = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/candidate-quality-memory-session/profitability"
+            )
+            candidate_dir = diagnostic_dir / "overfit_diagnostics"
+            candidate_dir.mkdir(parents=True)
+            wlfi_diagnostic = {
+                "schema_id": "trader1.overfit_diagnostic_report.v1",
+                "exchange": "UPBIT",
+                "market_type": "KRW_SPOT",
+                "mode": "PAPER",
+                "session_id": "candidate-quality-memory-session",
+                "generated_at_utc": self._utc_iso(datetime.now(timezone.utc) - timedelta(minutes=2)),
+                "candidate_id": "KRW-WLFI-pullback-trend-long",
+                "symbol": "KRW-WLFI",
+                "overfit_status": "HIGH",
+                "preliminary_sample_count": 21,
+                "preliminary_robustness_status": "UNFAVORABLE_BLOCKED_BY_EVIDENCE",
+                "preliminary_primary_blocker_code": "PRELIMINARY_OOS_BELOW_THRESHOLD",
+                "preliminary_oos_status": "FAIL",
+                "preliminary_walk_forward_status": "FAIL",
+                "preliminary_bootstrap_status": "FAIL",
+                "preliminary_ranking_stability_status": "FAIL",
+                "preliminary_in_sample_net_ev_after_cost_bps": -38.5,
+                "preliminary_oos_net_ev_after_cost_bps": -26.6,
+                "preliminary_bootstrap_confidence_lower_bps": -42.5,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+            wlfi_diagnostic["diagnostic_hash"] = self._hash_payload(wlfi_diagnostic)
+            (candidate_dir / "KRW-WLFI-pullback-trend-long.overfit_diagnostic_report.json").write_text(
+                json.dumps(wlfi_diagnostic, sort_keys=True),
+                encoding="utf-8",
+            )
+            latest_other_candidate = dict(wlfi_diagnostic)
+            latest_other_candidate.update(
+                {
+                    "generated_at_utc": self._utc_iso(datetime.now(timezone.utc)),
+                    "candidate_id": "KRW-BTC-vwap-mean-reversion",
+                    "symbol": "KRW-BTC",
+                    "overfit_status": "LOW",
+                    "preliminary_robustness_status": "FAVORABLE_BLOCKED_BY_MATURITY",
+                    "preliminary_primary_blocker_code": "ROBUSTNESS_MATURITY_BLOCKED",
+                    "preliminary_oos_status": "PASS",
+                    "preliminary_walk_forward_status": "PASS",
+                    "preliminary_bootstrap_status": "PASS",
+                    "preliminary_ranking_stability_status": "PASS",
+                    "preliminary_in_sample_net_ev_after_cost_bps": 18.5,
+                    "preliminary_oos_net_ev_after_cost_bps": 12.6,
+                    "preliminary_bootstrap_confidence_lower_bps": 3.5,
+                }
+            )
+            latest_other_candidate["diagnostic_hash"] = self._hash_payload(latest_other_candidate)
+            (diagnostic_dir / "overfit_diagnostic_report.json").write_text(
+                json.dumps(latest_other_candidate, sort_keys=True),
+                encoding="utf-8",
+            )
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                session_id="candidate-quality-memory-session",
+                loop_id="bounded-paper-loop-candidate-quality-memory",
+                symbol="KRW-WLFI",
+                requested_cycle_count=1,
+                market_data_universe_sequence=[[repeated_wlfi, strong_eth]],
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/candidate-quality-memory-session/upbit_paper_runtime_cycle_report.json"
+            )
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(loop["cycle_results"][0]["runtime_quality_feedback_count"], 1)
+        self.assertEqual(
+            loop["cycle_results"][0]["runtime_quality_feedback_candidate_ids"],
+            ["KRW-WLFI-pullback-trend-long"],
+        )
+        self.assertEqual(loop["cycle_results"][0]["runtime_quality_feedback_freshness_statuses"], ["FRESH"])
+        self.assertEqual(latest["selected_symbol"], "KRW-ETH")
+        wlfi_pullback = next(
+            candidate
+            for candidate in latest["strategy_candidates"]
+            if candidate["candidate_id"] == "KRW-WLFI-pullback-trend-long"
+        )
+        self.assertEqual(wlfi_pullback["recent_failure_feedback_kind"], "PRELIMINARY_ROBUSTNESS_FAIL")
+        self.assertEqual(wlfi_pullback["no_trade_reason"], "COOLDOWN")
+        self.assertFalse(latest["live_order_allowed"])
+
     def test_persistent_loop_applies_recent_negative_exit_cooldown_from_prior_paper_cycle(self):
         entry_market = build_upbit_public_candle_fixture(
             symbol="KRW-BTC",

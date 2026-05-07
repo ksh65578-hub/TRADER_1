@@ -705,6 +705,32 @@ def robustness_inputs_from_overfit_diagnostic(report: dict[str, Any]) -> tuple[d
     return statuses, []
 
 
+def _safe_candidate_diagnostic_filename(candidate_id: Any) -> str:
+    text = str(candidate_id or "unknown-candidate")
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
+    safe = "".join(character if character in allowed else "_" for character in text).strip("._")
+    if not safe:
+        safe = "unknown-candidate"
+    if len(safe) > 96:
+        safe = f"{safe[:80]}-{_sha256_json({'candidate_id': text})[:16]}"
+    return safe
+
+
+def _candidate_overfit_diagnostic_report_path(*, root: Path, report: dict[str, Any]) -> Path:
+    return (
+        Path(root)
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / str(report["session_id"])
+        / "profitability"
+        / "overfit_diagnostics"
+        / f"{_safe_candidate_diagnostic_filename(report.get('candidate_id'))}.overfit_diagnostic_report.json"
+    )
+
+
 def write_overfit_diagnostic_report(*, root: Path, report: dict[str, Any]) -> Path:
     path = (
         Path(root)
@@ -718,4 +744,5 @@ def write_overfit_diagnostic_report(*, root: Path, report: dict[str, Any]) -> Pa
         / "overfit_diagnostic_report.json"
     )
     durable_atomic_write_json(path, report)
+    durable_atomic_write_json(_candidate_overfit_diagnostic_report_path(root=Path(root), report=report), report)
     return path
