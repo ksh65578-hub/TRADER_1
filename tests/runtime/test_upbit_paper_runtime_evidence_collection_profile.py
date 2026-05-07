@@ -1,7 +1,10 @@
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.run_upbit_paper_runtime_evidence_collection_profile import (
+    DEFAULT_REPORT_PATH,
+    _refresh_dashboard_after_profile_write,
     build_upbit_paper_runtime_evidence_collection_profile_report,
     run_upbit_paper_runtime_evidence_collection_profile,
     upbit_paper_runtime_evidence_collection_profile_hash,
@@ -15,6 +18,50 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class UpbitPaperRuntimeEvidenceCollectionProfileTest(unittest.TestCase):
+    def test_default_profile_write_refreshes_dashboard_without_live_surface_refreshes(self):
+        with patch("trader1.runtime.boot.safe_launcher.write_launcher_runtime_bundle") as write_bundle:
+            _refresh_dashboard_after_profile_write(
+                root=ROOT,
+                output=ROOT / DEFAULT_REPORT_PATH,
+                session_id="mvp1_upbit_paper_launcher",
+                duplicate_ledger_events=False,
+                refresh_dashboard=True,
+            )
+
+        self.assertTrue(write_bundle.called)
+        launcher_report = write_bundle.call_args.args[0]
+        self.assertEqual(launcher_report["launcher_name"], "UPBIT_PAPER")
+        self.assertEqual(launcher_report["session_id"], "mvp1_upbit_paper_launcher")
+        self.assertEqual(write_bundle.call_args.kwargs["root"], ROOT)
+        self.assertFalse(write_bundle.call_args.kwargs["refresh_upbit_public_rest_continuity"])
+        self.assertFalse(write_bundle.call_args.kwargs["refresh_paper_shadow_runtime"])
+
+    def test_profile_dashboard_refresh_skips_custom_output_and_negative_fixture(self):
+        with patch("trader1.runtime.boot.safe_launcher.write_launcher_runtime_bundle") as write_bundle:
+            _refresh_dashboard_after_profile_write(
+                root=ROOT,
+                output=ROOT / "tmp" / "custom_profile.json",
+                session_id="mvp1_upbit_paper_launcher",
+                duplicate_ledger_events=False,
+                refresh_dashboard=True,
+            )
+            _refresh_dashboard_after_profile_write(
+                root=ROOT,
+                output=ROOT / DEFAULT_REPORT_PATH,
+                session_id="mvp1_upbit_paper_launcher",
+                duplicate_ledger_events=True,
+                refresh_dashboard=True,
+            )
+            _refresh_dashboard_after_profile_write(
+                root=ROOT,
+                output=ROOT / DEFAULT_REPORT_PATH,
+                session_id="mvp1_upbit_paper_launcher",
+                duplicate_ledger_events=False,
+                refresh_dashboard=False,
+            )
+
+        write_bundle.assert_not_called()
+
     def test_profile_runs_bounded_paper_runtime_evidence_and_keeps_live_blocked(self):
         report = run_upbit_paper_runtime_evidence_collection_profile(requested_cycle_count=2)
         result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)

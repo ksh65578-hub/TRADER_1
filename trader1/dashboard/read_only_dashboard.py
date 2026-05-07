@@ -18953,6 +18953,7 @@ def build_read_only_dashboard_shell(
     resources = summary.get("resources", {}) if isinstance(summary, dict) else {}
     runner_primary_status = str(runner_operations_status.get("status") or "NOT_LOADED")
     runner_state_for_primary = str(runner_operations_status.get("runner_status") or "NOT_LOADED")
+    profile_primary_status = str(paper_runtime_evidence_collection_profile_status.get("status") or "NOT_LOADED")
     if runner_primary_status == "STALE" and runner_state_for_primary in {"RUNNING", "STOPPED", "BLOCKED"}:
         primary_status_text = f"PAPER STALE - LAST RUNNER {runner_state_for_primary} - LIVE ORDERS BLOCKED"
     elif runner_primary_status == "RUNNING_NOW" or runner_state_for_primary == "RUNNING":
@@ -18961,10 +18962,19 @@ def build_read_only_dashboard_shell(
         primary_status_text = "PAPER STOPPED - READ ONLY, LIVE ORDERS BLOCKED"
     elif runner_primary_status in {"BLOCKED", "ERROR"} or runner_state_for_primary == "BLOCKED":
         primary_status_text = "PAPER BLOCKED - READ ONLY, LIVE ORDERS BLOCKED"
+    elif runner_primary_status == "NOT_LOADED" and profile_primary_status == "PASS":
+        primary_status_text = "PAPER PROFILE CURRENT - RUNNER NOT PROVEN - LIVE ORDERS BLOCKED"
     else:
         primary_status_text = "PAPER STATUS NOT LOADED - READ ONLY, LIVE ORDERS BLOCKED"
+    if runner_primary_status == "NOT_LOADED" and profile_primary_status == "PASS":
+        next_action_value = (
+            paper_runtime_evidence_collection_profile_status.get("collection_plan_next_operator_action")
+            or paper_runtime_evidence_collection_profile_status.get("next_operator_action")
+        )
+    else:
+        next_action_value = runner_operations_status.get("next_operator_action")
     dashboard_next_action = str(
-        runner_operations_status.get("next_operator_action")
+        next_action_value
         or operation_status.get("recovery_hint")
         or "Start or refresh PAPER before using the dashboard for review."
     )

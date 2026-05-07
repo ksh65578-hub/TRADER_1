@@ -1603,6 +1603,31 @@ def write_upbit_paper_runtime_evidence_collection_profile_report(
     return report, result
 
 
+def _refresh_dashboard_after_profile_write(
+    *,
+    root: Path,
+    output: Path,
+    session_id: str,
+    duplicate_ledger_events: bool,
+    refresh_dashboard: bool,
+) -> None:
+    if not refresh_dashboard or duplicate_ledger_events:
+        return
+    default_output = (ROOT / DEFAULT_REPORT_PATH).resolve()
+    if output.resolve() != default_output:
+        return
+    from trader1.runtime.boot.safe_launcher import build_launcher_report, write_launcher_runtime_bundle
+
+    launcher_report = build_launcher_report("UPBIT_PAPER")
+    launcher_report["session_id"] = session_id
+    write_launcher_runtime_bundle(
+        launcher_report,
+        root=root,
+        refresh_upbit_public_rest_continuity=False,
+        refresh_paper_shadow_runtime=False,
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run bounded Upbit PAPER runtime evidence collection profile.")
     parser.add_argument("--output", type=Path, default=DEFAULT_REPORT_PATH, help="JSON report path.")
@@ -1615,10 +1640,16 @@ def main() -> int:
         action="store_true",
         help="Inject duplicate PAPER ledger events in an ephemeral fixture root to prove reconciliation blocking.",
     )
+    parser.add_argument(
+        "--no-refresh-dashboard",
+        action="store_true",
+        help="Do not refresh the UPBIT PAPER dashboard after writing the default profile report.",
+    )
     args = parser.parse_args()
 
     os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
     output = args.output if args.output.is_absolute() else ROOT / args.output
+    source_root = args.source_root if args.source_root.is_absolute() else ROOT / args.source_root
     if args.duplicate_ledger_events:
         report = run_upbit_paper_runtime_evidence_collection_profile(
             requested_cycle_count=args.requested_cycle_count,
@@ -1627,13 +1658,20 @@ def main() -> int:
         result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
         durable_atomic_write_json(output, report)
     else:
-        source_root = args.source_root if args.source_root.is_absolute() else ROOT / args.source_root
         report, result = write_upbit_paper_runtime_evidence_collection_profile_report(
             root=source_root,
             output=output,
             loop_id=args.loop_id,
             session_id=args.session_id,
             requested_cycle_count=args.requested_cycle_count,
+        )
+    if result.status in {"PASS", "BLOCKED"}:
+        _refresh_dashboard_after_profile_write(
+            root=source_root,
+            output=output,
+            session_id=args.session_id,
+            duplicate_ledger_events=args.duplicate_ledger_events,
+            refresh_dashboard=not args.no_refresh_dashboard,
         )
     print(json.dumps(report, indent=2))
     return 0 if result.status == "PASS" else 1
