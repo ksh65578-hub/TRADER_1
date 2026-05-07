@@ -22,6 +22,7 @@ from typing import Any, Callable
 
 from trader1.research.profitability.candidate_scorecard import (
     candidate_scorecard_from_upbit_paper_runtime_cycle,
+    safe_candidate_scorecard_filename,
     write_upbit_paper_candidate_scorecard,
 )
 from trader1.research.profitability.overfit_diagnostic import (
@@ -333,6 +334,15 @@ def paper_candidate_scorecard_path(root: Path, session_id: str = DEFAULT_SESSION
     return runner_runtime_base(root, session_id) / "profitability" / "candidate_scorecard.json"
 
 
+def paper_candidate_scorecard_snapshot_path(
+    root: Path,
+    session_id: str = DEFAULT_SESSION_ID,
+    candidate_id: Any = None,
+) -> Path:
+    filename = f"{safe_candidate_scorecard_filename(candidate_id)}.candidate_scorecard.json"
+    return runner_runtime_base(root, session_id) / "profitability" / "candidate_scorecards" / filename
+
+
 def paper_overfit_diagnostic_path(root: Path, session_id: str = DEFAULT_SESSION_ID) -> Path:
     return runner_runtime_base(root, session_id) / "profitability" / "overfit_diagnostic_report.json"
 
@@ -476,6 +486,48 @@ def _result_blocker_code(result: Any) -> str | None:
     return str(blocker) if blocker else None
 
 
+def _candidate_scorecard_snapshot_fields(
+    root: Path,
+    session_id: str,
+    scorecard: dict[str, Any] | None,
+    scorecard_status: str,
+) -> dict[str, Any]:
+    candidate_id = None
+    if isinstance(scorecard, dict) and scorecard.get("candidate_id"):
+        candidate_id = str(scorecard.get("candidate_id"))
+    snapshot_path = paper_candidate_scorecard_snapshot_path(root, session_id, candidate_id)
+    snapshot = _read_json(snapshot_path) if candidate_id else None
+    snapshot_errors = _candidate_scorecard_contract_errors(snapshot) if isinstance(snapshot, dict) else []
+
+    if not candidate_id or not isinstance(snapshot, dict):
+        snapshot_status = "NOT_LOADED"
+        snapshot_blocker = "SCORECARD_SNAPSHOT_MISSING" if scorecard_status == "PASS" else None
+    elif snapshot_errors:
+        snapshot_status = "FAIL"
+        snapshot_blocker = "SCORECARD_SNAPSHOT_INVALID"
+    elif snapshot.get("candidate_id") != candidate_id:
+        snapshot_status = "FAIL"
+        snapshot_blocker = "SCORECARD_SNAPSHOT_CANDIDATE_MISMATCH"
+    elif isinstance(scorecard, dict) and snapshot.get("scorecard_id") != scorecard.get("scorecard_id"):
+        snapshot_status = "FAIL"
+        snapshot_blocker = "SCORECARD_SNAPSHOT_ID_MISMATCH"
+    elif isinstance(scorecard, dict) and snapshot.get("source_runtime_cycle_hash") != scorecard.get(
+        "source_runtime_cycle_hash"
+    ):
+        snapshot_status = "FAIL"
+        snapshot_blocker = "SCORECARD_SNAPSHOT_SOURCE_MISMATCH"
+    else:
+        snapshot_status = "PASS"
+        snapshot_blocker = None
+
+    return {
+        "candidate_scorecard_candidate_id": candidate_id,
+        "candidate_scorecard_snapshot_path": str(snapshot_path),
+        "candidate_scorecard_snapshot_status": snapshot_status,
+        "candidate_scorecard_snapshot_blocker_code": snapshot_blocker,
+    }
+
+
 def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[str, Any]:
     history_path = paper_runtime_sample_history_path(root, session_id)
     scorecard_path = paper_candidate_scorecard_path(root, session_id)
@@ -502,6 +554,12 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
         scorecard_status = "FAIL"
     else:
         scorecard_status = "PASS"
+    scorecard_snapshot_fields = _candidate_scorecard_snapshot_fields(
+        root=root,
+        session_id=session_id,
+        scorecard=scorecard if isinstance(scorecard, dict) else None,
+        scorecard_status=scorecard_status,
+    )
 
     overfit_errors = _overfit_diagnostic_contract_errors(overfit) if isinstance(overfit, dict) else []
     if not isinstance(overfit, dict):
@@ -525,6 +583,7 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
             for item in (
                 history_blocker if history_status not in {"PASS"} else None,
                 "SCORECARD_SCHEMA_INVALID" if scorecard_status == "FAIL" else None,
+                scorecard_snapshot_fields.get("candidate_scorecard_snapshot_blocker_code"),
                 "SCHEMA_IDENTITY_MISMATCH" if overfit_contract_status == "FAIL" else None,
                 evidence_blocker if evidence_status in {"FAIL"} or evidence_blocker in NON_LIVE_PROFITABILITY_REFRESH_CRITICAL_BLOCKERS else None,
             )
@@ -567,6 +626,7 @@ def _profitability_evidence_refresh_fields(root: Path, session_id: str) -> dict[
             if isinstance(scorecard, dict) and scorecard.get("primary_blocker_code")
             else None
         ),
+        **scorecard_snapshot_fields,
         "overfit_diagnostic_path": str(overfit_path),
         "overfit_diagnostic_contract_status": overfit_contract_status,
         "overfit_diagnostic_status": str(overfit.get("diagnostic_status") or "NOT_LOADED") if isinstance(overfit, dict) else "NOT_LOADED",
@@ -725,6 +785,8 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
     history_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
     diagnostic_path = write_overfit_diagnostic_report(root=root, report=diagnostic)
     scorecard_path = write_upbit_paper_candidate_scorecard(root=root, scorecard=scorecard)
+    scorecard_candidate_id = str(scorecard.get("candidate_id") or "")
+    scorecard_snapshot_path = paper_candidate_scorecard_snapshot_path(root, session_id, scorecard_candidate_id)
 
     shadow_harness = _read_json(shadow_runtime_harness_path(root, session_id))
     shadow_persistent_runtime = _read_json(shadow_persistent_runtime_path(root, session_id))
@@ -736,6 +798,9 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
             "runtime_sample_history_path": _relative_runtime_path(history_path, root),
             "overfit_diagnostic_path": _relative_runtime_path(diagnostic_path, root),
             "candidate_scorecard_path": _relative_runtime_path(scorecard_path, root),
+            "candidate_scorecard_candidate_id": scorecard_candidate_id,
+            "candidate_scorecard_snapshot_path": _relative_runtime_path(scorecard_snapshot_path, root),
+            "candidate_scorecard_snapshot_status": "PASS",
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
@@ -844,6 +909,9 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
         "runtime_sample_history_path": _relative_runtime_path(history_path, root),
         "overfit_diagnostic_path": _relative_runtime_path(diagnostic_path, root),
         "candidate_scorecard_path": _relative_runtime_path(scorecard_path, root),
+        "candidate_scorecard_candidate_id": scorecard_candidate_id,
+        "candidate_scorecard_snapshot_path": _relative_runtime_path(scorecard_snapshot_path, root),
+        "candidate_scorecard_snapshot_status": "PASS",
         "paper_shadow_evidence_path": _relative_runtime_path(evidence_path, root),
         "paper_shadow_binding_path": _relative_runtime_path(paper_shadow_harness_binding_path(root, session_id), root),
         "orchestration_path": _relative_runtime_path(orchestration_path, root),
@@ -1728,6 +1796,9 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
         "runtime_sample_count",
         "candidate_scorecard_status",
         "candidate_scorecard_ranking_eligible",
+        "candidate_scorecard_candidate_id",
+        "candidate_scorecard_snapshot_path",
+        "candidate_scorecard_snapshot_status",
         "overfit_diagnostic_contract_status",
         "overfit_diagnostic_status",
         "paper_shadow_evidence_validation_status",
@@ -1780,6 +1851,24 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
         or report["runtime_quality_feedback_count"] < 0
     ):
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_QUALITY_FEEDBACK_COUNT_INVALID"}
+    candidate_scorecard_candidate_id = report.get("candidate_scorecard_candidate_id")
+    if candidate_scorecard_candidate_id is not None and not isinstance(candidate_scorecard_candidate_id, str):
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_CANDIDATE_INVALID"}
+    if not isinstance(report.get("candidate_scorecard_snapshot_path"), str) or not report[
+        "candidate_scorecard_snapshot_path"
+    ]:
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_SNAPSHOT_PATH_INVALID"}
+    if report.get("candidate_scorecard_snapshot_status") not in {"PASS", "FAIL", "NOT_LOADED"}:
+        return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_SCORECARD_SNAPSHOT_STATUS_INVALID"}
+    if (
+        report.get("completed_cycle_count", 0) > 0
+        and report.get("candidate_scorecard_status") == "PASS"
+        and report.get("candidate_scorecard_snapshot_status") != "PASS"
+    ):
+        return {
+            "status": "BLOCKED",
+            "blocker_code": report.get("candidate_scorecard_snapshot_blocker_code") or "SCORECARD_SNAPSHOT_MISSING",
+        }
     runtime_quality_feedback_candidate_ids = report.get("runtime_quality_feedback_candidate_ids")
     if not isinstance(runtime_quality_feedback_candidate_ids, list) or any(
         not isinstance(item, str) or not item for item in runtime_quality_feedback_candidate_ids
@@ -2411,6 +2500,10 @@ def run_upbit_paper_long_running_runner(
                     "completed_cycle_count": completed,
                     "refresh_status": profitability_refresh.get("status"),
                     "runtime_sample_count": profitability_refresh.get("runtime_sample_count"),
+                    "candidate_scorecard_candidate_id": profitability_refresh.get("candidate_scorecard_candidate_id"),
+                    "candidate_scorecard_snapshot_status": profitability_refresh.get(
+                        "candidate_scorecard_snapshot_status"
+                    ),
                     "candidate_scorecard_ranking_eligible": profitability_refresh.get(
                         "candidate_scorecard_ranking_eligible"
                     ),

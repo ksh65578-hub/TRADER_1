@@ -18,6 +18,7 @@ from trader1.runtime.paper.upbit_paper_long_runner import (
     open_runner_dashboard,
     open_runner_dashboard_result,
     paper_candidate_scorecard_path,
+    paper_candidate_scorecard_snapshot_path,
     paper_overfit_diagnostic_path,
     paper_runtime_sample_history_path,
     paper_shadow_evidence_accumulation_path,
@@ -103,6 +104,12 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertEqual(report["runtime_sample_history_status"], "PASS")
             self.assertGreater(report["runtime_sample_count"], 0)
             self.assertEqual(report["candidate_scorecard_status"], "PASS")
+            self.assertTrue(report["candidate_scorecard_candidate_id"])
+            self.assertEqual(report["candidate_scorecard_snapshot_status"], "PASS")
+            snapshot_path = Path(report["candidate_scorecard_snapshot_path"])
+            self.assertTrue(snapshot_path.exists())
+            snapshot = _load_json(snapshot_path)
+            self.assertEqual(snapshot["candidate_id"], report["candidate_scorecard_candidate_id"])
             self.assertGreaterEqual(report["symbol_evidence_scorecard_count"], 1)
             self.assertIsInstance(report["symbol_evidence_scorecards_top"], list)
             self.assertIsInstance(report["selected_symbol_evidence_scorecard"], dict)
@@ -150,6 +157,15 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             self.assertGreaterEqual(loaded["runtime_quality_feedback_count"], 0)
             self.assertIsInstance(loaded["runtime_quality_feedback_candidate_ids"], list)
             self.assertIsInstance(loaded["selected_candidate_recent_failure_feedback_kind"], str)
+            self.assertEqual(loaded["candidate_scorecard_candidate_id"], report["candidate_scorecard_candidate_id"])
+            self.assertEqual(loaded["candidate_scorecard_snapshot_status"], "PASS")
+            self.assertTrue(
+                paper_candidate_scorecard_snapshot_path(
+                    root,
+                    "test_long_runner",
+                    loaded["candidate_scorecard_candidate_id"],
+                ).exists()
+            )
             self.assertTrue(runner_retention_manifest_path(root, "test_long_runner").exists())
             self.assertTrue(shadow_persistent_runtime_path(root, "test_long_runner").exists())
             self.assertTrue(shadow_runtime_harness_path(root, "test_long_runner").exists())
@@ -657,6 +673,32 @@ class UpbitPaperLongRunnerTest(unittest.TestCase):
             validation = validate_upbit_paper_long_runner_status_report(mutated)
             self.assertEqual(validation["status"], "BLOCKED")
             self.assertEqual(validation["blocker_code"], "RUNNER_STATUS_LIVE_FLAG_MUTATED")
+
+    def test_runner_status_validation_blocks_missing_candidate_scorecard_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report = run_upbit_paper_long_running_runner(
+                root=root,
+                session_id="snapshot_missing_session",
+                runner_id="snapshot-missing-runner",
+                cycle_interval_seconds=0,
+                max_cycles=1,
+                attempt_public_symbol_discovery=False,
+                attempt_network_market_data=False,
+                refresh_dashboard=False,
+            )
+            mutated = dict(report)
+            mutated["candidate_scorecard_snapshot_status"] = "NOT_LOADED"
+            mutated["candidate_scorecard_snapshot_blocker_code"] = "SCORECARD_SNAPSHOT_MISSING"
+            mutated["status_hash"] = upbit_paper_long_runner_status_hash(mutated)
+            validation = validate_upbit_paper_long_runner_status_report(mutated)
+            self.assertEqual(validation["status"], "BLOCKED")
+            self.assertEqual(validation["blocker_code"], "SCORECARD_SNAPSHOT_MISSING")
+
+            startup_view = dict(mutated)
+            startup_view["completed_cycle_count"] = 0
+            startup_view["status_hash"] = upbit_paper_long_runner_status_hash(startup_view)
+            self.assertEqual(validate_upbit_paper_long_runner_status_report(startup_view)["status"], "PASS")
 
     def test_runner_retention_archives_old_cycle_artifacts_and_rotates_log(self):
         with tempfile.TemporaryDirectory() as tmp:
