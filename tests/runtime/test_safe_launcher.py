@@ -46,6 +46,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
     validate_upbit_paper_persistent_loop_report,
 )
+from trader1.runtime.paper.upbit_paper_long_runner import run_upbit_paper_long_running_runner
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_public_rest_continuity import build_upbit_public_rest_continuity_report
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
@@ -200,6 +201,48 @@ class SafeLauncherTest(unittest.TestCase):
             source_files = {source["filename"] for source in dashboard_shell["source_artifacts"]}
             self.assertIn("paper_current_truth_refresh_report.json", source_files)
             self.assertIn("paper_runtime_truth_state_report.json", source_files)
+
+    def test_launcher_dashboard_demotes_runner_when_sample_history_companion_mismatches(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runner_report = run_upbit_paper_long_running_runner(
+                root=root,
+                session_id=report["session_id"],
+                runner_id="launcher-sample-history-mismatch",
+                cycle_interval_seconds=0,
+                max_cycles=1,
+                attempt_public_symbol_discovery=False,
+                attempt_network_market_data=False,
+                refresh_dashboard=False,
+            )
+            self.assertGreater(runner_report["runtime_sample_count"], 0)
+            paths = launcher_dashboard_paths(report, root)
+            sample_history = load_json(paths["upbit_paper_runtime_sample_history"])
+            sample_history["accepted_cycle_sample_count"] = max(0, runner_report["runtime_sample_count"] - 1)
+            if isinstance(sample_history.get("active_candidate_scope"), dict):
+                sample_history["active_candidate_scope"]["sample_count"] = sample_history[
+                    "accepted_cycle_sample_count"
+                ]
+            paths["upbit_paper_runtime_sample_history"].write_text(
+                json.dumps(sample_history, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+
+            dashboard_paths = write_launcher_dashboard(report, root)
+            dashboard_shell = load_json(dashboard_paths["dashboard_shell"])
+
+        runner = dashboard_shell["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "STALE")
+        self.assertEqual(runner["runtime_sample_history_source_consistency_status"], "MISMATCH")
+        self.assertEqual(
+            runner["primary_blocker_code"],
+            "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH",
+        )
+        self.assertFalse(runner["live_order_allowed"])
+        self.assertFalse(runner["can_live_trade"])
+        source_by_id = {source["artifact_id"]: source for source in dashboard_shell["source_artifacts"]}
+        self.assertEqual(source_by_id["PAPER_LONG_RUNNER_STATUS"]["freshness_status"], "STALE")
 
     def test_launcher_refreshes_stale_ledger_idempotency_before_dashboard_current_evidence(self):
         report = build_launcher_report("UPBIT_PAPER")

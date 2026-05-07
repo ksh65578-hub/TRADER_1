@@ -6217,6 +6217,14 @@ def _paper_runner_operations_status(
         "disk_pressure_max_runtime_bytes": 0,
         "profitability_evidence_refresh_status": "NOT_LOADED",
         "runtime_sample_history_status": "NOT_LOADED",
+        "runtime_sample_history_source_consistency_status": "NOT_CHECKED",
+        "runtime_sample_history_source_consistency_issues": [],
+        "runtime_sample_history_source_consistency_blocker_code": None,
+        "runtime_sample_history_companion_path": "NOT_LOADED",
+        "runtime_sample_history_companion_generated_at_utc": None,
+        "runtime_sample_history_companion_accepted_cycle_sample_count": 0,
+        "runtime_sample_history_companion_active_candidate_id": None,
+        "runtime_sample_history_companion_active_sample_count": 0,
         "runtime_sample_count": 0,
         "paper_scope_progress_status": "NO_CANDIDATE_SCOPE",
         "paper_scope_candidate_id": None,
@@ -6309,6 +6317,19 @@ def _paper_runner_operations_status(
         or "NOT_LOADED"
     )
     primary_blocker = runner_status_report.get("primary_blocker_code") or "LIVE_READY_MISSING"
+    sample_history_consistency_status = str(
+        runner_status_report.get("runtime_sample_history_source_consistency_status") or "NOT_CHECKED"
+    )
+    sample_history_consistency_problem = sample_history_consistency_status not in {
+        "",
+        "PASS",
+        "NOT_CHECKED",
+        "NOT_LOADED",
+    }
+    sample_history_consistency_blocker = (
+        runner_status_report.get("runtime_sample_history_source_consistency_blocker_code")
+        or "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH"
+    )
     status = "RUNNING_NOW" if runner_status_report.get("running") is True else "STOPPED"
     severity = "NORMAL" if status == "RUNNING_NOW" else "WARNING"
     color_token = "green" if status == "RUNNING_NOW" else "yellow"
@@ -6346,6 +6367,16 @@ def _paper_runner_operations_status(
         primary_blocker = retention_validation.get("blocker_code") or "RETENTION_MANIFEST_INVALID"
         summary = "PAPER runner retention manifest is invalid or scoped to another session."
         next_action = "Regenerate retention manifest before relying on disk or artifact status."
+    elif sample_history_consistency_problem:
+        status = "STALE"
+        severity = "WARNING"
+        color_token = "yellow"
+        primary_blocker = str(sample_history_consistency_blocker)
+        summary = "PAPER runner status and sample-history artifact disagree; sample progress is stale."
+        next_action = str(
+            runner_status_report.get("paper_scope_next_operator_action")
+            or "Start PAPER again so runner status, sample history, and PAPER/SHADOW evidence refresh together."
+        )
     elif (
         runner_validation.get("status") == "BLOCKED"
         or retention_validation.get("status") == "BLOCKED"
@@ -6447,6 +6478,30 @@ def _paper_runner_operations_status(
             ),
             "runtime_sample_history_status": str(
                 runner_status_report.get("runtime_sample_history_status") or "NOT_LOADED"
+            ),
+            "runtime_sample_history_source_consistency_status": sample_history_consistency_status,
+            "runtime_sample_history_source_consistency_issues": (
+                runner_status_report.get("runtime_sample_history_source_consistency_issues")
+                if isinstance(runner_status_report.get("runtime_sample_history_source_consistency_issues"), list)
+                else []
+            ),
+            "runtime_sample_history_source_consistency_blocker_code": safe_value(
+                runner_status_report.get("runtime_sample_history_source_consistency_blocker_code")
+            ),
+            "runtime_sample_history_companion_path": str(
+                runner_status_report.get("runtime_sample_history_companion_path") or "NOT_LOADED"
+            ),
+            "runtime_sample_history_companion_generated_at_utc": safe_value(
+                runner_status_report.get("runtime_sample_history_companion_generated_at_utc")
+            ),
+            "runtime_sample_history_companion_accepted_cycle_sample_count": safe_count(
+                runner_status_report.get("runtime_sample_history_companion_accepted_cycle_sample_count")
+            ),
+            "runtime_sample_history_companion_active_candidate_id": safe_value(
+                runner_status_report.get("runtime_sample_history_companion_active_candidate_id")
+            ),
+            "runtime_sample_history_companion_active_sample_count": safe_count(
+                runner_status_report.get("runtime_sample_history_companion_active_sample_count")
             ),
             "runtime_sample_count": safe_count(runner_status_report.get("runtime_sample_count")),
             "paper_scope_progress_status": str(
@@ -17927,10 +17982,21 @@ def build_read_only_dashboard_shell(
     )
     if isinstance(upbit_paper_long_runner_status_report, dict):
         runner_validation = validate_upbit_paper_long_runner_status_report(upbit_paper_long_runner_status_report)
+        runner_sample_history_consistency = str(
+            upbit_paper_long_runner_status_report.get("runtime_sample_history_source_consistency_status")
+            or "NOT_CHECKED"
+        )
+        runner_sample_history_consistent = runner_sample_history_consistency in {
+            "",
+            "PASS",
+            "NOT_CHECKED",
+            "NOT_LOADED",
+        }
         runner_freshness = (
             "PASS"
             if runner_validation.get("status") in {"PASS", "BLOCKED"}
             and _freshness_from_generated_at(upbit_paper_long_runner_status_report) == "PASS"
+            and runner_sample_history_consistent
             else "STALE"
         )
         source_artifacts.append(
@@ -25818,6 +25884,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     paper_scope_required = paper_runner_operations.get("paper_scope_min_required_sample_count", 0)
     paper_scope_deficit = paper_runner_operations.get("paper_scope_sample_deficit", 0)
     paper_scope_status = paper_runner_operations.get("paper_scope_progress_status", "NO_CANDIDATE_SCOPE")
+    paper_sample_history_consistency_display = str(
+        paper_runner_operations.get("runtime_sample_history_source_consistency_status", "NOT_CHECKED")
+    ).replace("_", " ").title()
+    paper_sample_history_issues = paper_runner_operations.get("runtime_sample_history_source_consistency_issues")
+    paper_sample_history_issue_text = (
+        ", ".join(str(item) for item in paper_sample_history_issues[:4])
+        if isinstance(paper_sample_history_issues, list) and paper_sample_history_issues
+        else "none"
+    )
     operation_html = (
         f"<section class=\"operation operation-{operation_color}\" aria-label=\"system operation status\">"
         "<div class=\"operation-copy\">"
@@ -25841,6 +25916,10 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>Next cycle</dt><dd>{safe_text(paper_runner_operations.get('next_cycle_eta') or 'not scheduled')}</dd></div>"
         f"<div><dt>Evidence refresh</dt><dd class=\"pill {status_class(paper_runner_operations.get('profitability_evidence_refresh_status'))}\">{safe_text(paper_runner_evidence_display)}</dd></div>"
         f"<div><dt>PAPER samples</dt><dd>{safe_text(paper_runner_operations.get('runtime_sample_count', 0))}</dd></div>"
+        f"<div><dt>Sample history</dt><dd class=\"pill {status_class(paper_runner_operations.get('runtime_sample_history_source_consistency_status'))}\">{safe_text(paper_sample_history_consistency_display)}</dd></div>"
+        f"<div><dt>Sample source</dt><dd>{safe_text(paper_runner_operations.get('runtime_sample_history_companion_path', 'NOT_LOADED'))}<br>"
+        f"count={safe_text(paper_runner_operations.get('runtime_sample_history_companion_accepted_cycle_sample_count', 0))}; "
+        f"issues={safe_text(paper_sample_history_issue_text)}</dd></div>"
         f"<div><dt>Scope samples</dt><dd>{safe_text(paper_scope_candidate)}<br>"
         f"{safe_text(paper_scope_count)} / {safe_text(paper_scope_required)}; "
         f"deficit={safe_text(paper_scope_deficit)}<br>"

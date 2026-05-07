@@ -36,6 +36,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     validate_upbit_paper_runtime_recovery_guard_report,
 )
 from trader1.runtime.paper.upbit_paper_long_runner import (
+    upbit_paper_long_runner_status_hash,
     validate_upbit_paper_long_runner_retention_manifest,
     validate_upbit_paper_long_runner_status_report,
 )
@@ -581,6 +582,9 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         / "paper_runtime"
         / "runner"
         / "runner_status.json",
+        "upbit_paper_runtime_sample_history": base
+        / "paper_runtime"
+        / "upbit_paper_runtime_sample_history.json",
         "upbit_paper_long_runner_retention_manifest": base
         / "paper_runtime"
         / "runner"
@@ -856,7 +860,8 @@ def load_scoped_upbit_paper_long_runner_status_report(
 ) -> dict[str, Any] | None:
     if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
         return None
-    path = launcher_dashboard_paths(report, root)["upbit_paper_long_runner_status_report"]
+    paths = launcher_dashboard_paths(report, root)
+    path = paths["upbit_paper_long_runner_status_report"]
     runner_status = _load_dashboard_json_artifact(path)
     if not isinstance(runner_status, dict):
         return None
@@ -867,6 +872,11 @@ def load_scoped_upbit_paper_long_runner_status_report(
         or runner_status.get("session_id") != report.get("session_id")
     ):
         return None
+    runner_status = _apply_runner_sample_history_companion_guard(
+        runner_status,
+        root=root,
+        fallback_history_path=paths["upbit_paper_runtime_sample_history"],
+    )
     if not _dashboard_artifact_is_fresh(runner_status):
         return runner_status
     validation = validate_upbit_paper_long_runner_status_report(runner_status)
@@ -1747,6 +1757,130 @@ def _load_dashboard_json_artifact(path: Path) -> dict[str, Any] | None:
         "artifact_path": path.name,
         "artifact_load_status": "INVALID_JSON_SHAPE",
     }
+
+
+def _safe_nonnegative_int(value: Any) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return parsed if parsed >= 0 else 0
+
+
+def _runner_referenced_artifact_path(raw_path: Any, *, root: Path, fallback: Path) -> Path:
+    if isinstance(raw_path, str) and raw_path.strip():
+        candidate = Path(raw_path)
+        return candidate if candidate.is_absolute() else root / candidate
+    return fallback
+
+
+def _apply_runner_sample_history_companion_guard(
+    runner_status: dict[str, Any],
+    *,
+    root: Path,
+    fallback_history_path: Path,
+) -> dict[str, Any]:
+    guarded = dict(runner_status)
+    history_path = _runner_referenced_artifact_path(
+        guarded.get("runtime_sample_history_path"),
+        root=root,
+        fallback=fallback_history_path,
+    )
+    history = _load_dashboard_json_artifact(history_path)
+    if not isinstance(history, dict):
+        consistency_status = "MISSING"
+        issues = ["sample_history_missing"]
+        history_count = 0
+        active_scope: dict[str, Any] = {}
+        history_generated_at = None
+    elif history.get("schema_id") == "trader1.invalid_dashboard_input.v1":
+        consistency_status = "INVALID"
+        issues = [str(history.get("artifact_load_status") or "sample_history_invalid")]
+        history_count = 0
+        active_scope = {}
+        history_generated_at = None
+    else:
+        consistency_status = "PASS"
+        issues = []
+        history_count = _safe_nonnegative_int(history.get("accepted_cycle_sample_count"))
+        raw_active_scope = history.get("active_candidate_scope")
+        active_scope = raw_active_scope if isinstance(raw_active_scope, dict) else {}
+        history_generated_at = history.get("generated_at_utc")
+        runner_count = _safe_nonnegative_int(guarded.get("runtime_sample_count"))
+        if runner_count != history_count:
+            issues.append("accepted_cycle_sample_count")
+        runner_candidate = guarded.get("paper_scope_candidate_id")
+        history_candidate = active_scope.get("candidate_id")
+        if runner_candidate and history_candidate and runner_candidate != history_candidate:
+            issues.append("active_candidate_scope")
+        runner_scope_count = _safe_nonnegative_int(guarded.get("paper_scope_sample_count"))
+        history_scope_count = _safe_nonnegative_int(active_scope.get("sample_count"))
+        if runner_scope_count != history_scope_count:
+            issues.append("active_candidate_sample_count")
+        runner_latest_sample = guarded.get("paper_scope_latest_sample_at_utc")
+        history_latest_sample = active_scope.get("latest_sample_at_utc") or history.get("latest_sample_at_utc")
+        if runner_latest_sample and history_latest_sample and runner_latest_sample != history_latest_sample:
+            issues.append("active_candidate_latest_sample")
+        if issues:
+            consistency_status = "MISMATCH"
+
+    guarded.update(
+        {
+            "runtime_sample_history_source_consistency_status": consistency_status,
+            "runtime_sample_history_source_consistency_issues": issues,
+            "runtime_sample_history_source_consistency_blocker_code": (
+                None
+                if consistency_status == "PASS"
+                else "RUNTIME_SAMPLE_HISTORY_COMPANION_MISSING"
+                if consistency_status == "MISSING"
+                else "RUNTIME_SAMPLE_HISTORY_COMPANION_INVALID"
+                if consistency_status == "INVALID"
+                else "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH"
+            ),
+            "runtime_sample_history_companion_path": _runtime_display_path(history_path, root),
+            "runtime_sample_history_companion_generated_at_utc": history_generated_at,
+            "runtime_sample_history_companion_accepted_cycle_sample_count": history_count,
+            "runtime_sample_history_companion_active_candidate_id": active_scope.get("candidate_id"),
+            "runtime_sample_history_companion_active_sample_count": _safe_nonnegative_int(
+                active_scope.get("sample_count")
+            ),
+        }
+    )
+    if consistency_status != "PASS":
+        min_required = _safe_nonnegative_int(guarded.get("paper_scope_min_required_sample_count")) or 30
+        companion_scope_count = _safe_nonnegative_int(active_scope.get("sample_count"))
+        guarded.update(
+            {
+                "runtime_sample_history_status": "STALE",
+                "runtime_sample_count": history_count,
+                "paper_scope_progress_status": "STALE_SAMPLE_HISTORY_MISMATCH",
+                "paper_scope_candidate_id": active_scope.get("candidate_id") or guarded.get("paper_scope_candidate_id"),
+                "paper_scope_strategy_id": active_scope.get("strategy_id") or guarded.get("paper_scope_strategy_id"),
+                "paper_scope_parameter_hash": active_scope.get("parameter_hash")
+                or guarded.get("paper_scope_parameter_hash"),
+                "paper_scope_symbol": active_scope.get("symbol") or guarded.get("paper_scope_symbol"),
+                "paper_scope_sample_count": companion_scope_count,
+                "paper_scope_sample_deficit": max(0, min_required - companion_scope_count),
+                "paper_scope_next_operator_action": (
+                    "Start PAPER again so runner status, sample history, and PAPER/SHADOW evidence "
+                    "are refreshed from the same runtime cycle."
+                ),
+                "paper_scope_latest_sample_at_utc": active_scope.get("latest_sample_at_utc")
+                or guarded.get("paper_scope_latest_sample_at_utc"),
+                "primary_blocker_code": guarded.get("runtime_sample_history_source_consistency_blocker_code")
+                or "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH",
+                "primary_blocker_message": (
+                    "PAPER runner status and its sample-history companion artifact disagree; "
+                    "dashboard cannot treat the embedded sample count as current truth."
+                ),
+                "profitability_evidence_primary_blocker_code": (
+                    guarded.get("runtime_sample_history_source_consistency_blocker_code")
+                    or "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH"
+                ),
+            }
+        )
+    guarded["status_hash"] = upbit_paper_long_runner_status_hash(guarded)
+    return guarded
 
 
 def load_dashboard_reconciliation_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
