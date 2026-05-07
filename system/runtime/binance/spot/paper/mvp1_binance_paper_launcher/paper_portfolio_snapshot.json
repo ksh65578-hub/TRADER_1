@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.paper_portfolio_snapshot.v1",
-  "generated_at_utc": "2026-05-06T02:35:08Z",
+  "generated_at_utc": "2026-05-07T04:25:39Z",
   "project_id": "TRADER_1",
   "exchange": "BINANCE",
   "market_type": "SPOT",
@@ -28,8 +28,9 @@
   "live_order_ready": false,
   "live_order_allowed": false,
   "can_live_trade": false,
+  "scale_up_allowed": false,
   "can_submit_order": false,
   "primary_blocker_code": null,
   "blockers": [],
-  "snapshot_hash": "77AD80498465A3E91C93E8665A132D1663B716A30BC1883E55FBDC102BFA2E49"
+  "snapshot_hash": "E25B0B7100B87409EFBE2E9B356532E4913D70419AEA07AC960F60CD9F58F9DD"
 }

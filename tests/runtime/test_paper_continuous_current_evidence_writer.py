@@ -5,8 +5,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
+    AUDITED_WRITER_REFRESHED_STATUS,
     EXPECTED_AUDITED_WRITER_ARTIFACT_PATHS,
     build_upbit_paper_repaired_current_evidence_audited_writer_report,
+    upbit_paper_repaired_current_evidence_audited_writer_report_hash,
 )
 from trader1.runtime.portfolio.paper_continuous_current_evidence_writer import (
     PAPER_CONTINUOUS_WRITER_NOT_IMPLEMENTED_STATUS,
@@ -88,6 +90,36 @@ class PaperContinuousCurrentEvidenceWriterTest(unittest.TestCase):
         self.assertEqual(report["configured_capital_krw"], "1000000")
         self.assertEqual(report["current_refreshed_paper_equity_krw"], refresh["verified_equity"])
         self.assertIsNone(report["stale_display_only_equity_krw"])
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+
+    def test_refreshed_audited_writer_status_counts_as_fresh_paper_truth(self):
+        with TemporaryDirectory() as tmp:
+            writer, current_evidence, portfolio, refresh = self._writer_bundle(Path(tmp))
+            writer["writer_status"] = AUDITED_WRITER_REFRESHED_STATUS
+            writer["audited_writer_report_hash"] = upbit_paper_repaired_current_evidence_audited_writer_report_hash(
+                writer
+            )
+            report = build_paper_continuous_current_evidence_writer_report(
+                exchange="UPBIT",
+                market_type="KRW_SPOT",
+                mode="PAPER",
+                session_id=SESSION_ID,
+                audited_writer_report=writer,
+                audited_current_evidence_snapshot=current_evidence,
+                audited_paper_portfolio_snapshot=portfolio,
+                paper_current_truth_refresh_report=refresh,
+                generated_at_utc=plus_seconds(writer["generated_at_utc"], 1),
+            )
+            result = validate_paper_continuous_current_evidence_writer_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["continuous_writer_status"], PAPER_CONTINUOUS_WRITER_WRITING_STATUS)
+        self.assertTrue(report["writer_source_valid"])
+        self.assertTrue(report["writer_active_for_paper_current_truth"])
+        self.assertTrue(report["source_hash_bound"])
         self.assertFalse(report["live_order_ready"])
         self.assertFalse(report["live_order_allowed"])
         self.assertFalse(report["can_live_trade"])

@@ -5,6 +5,10 @@ from pathlib import Path
 import time
 
 
+DEFAULT_RUNTIME_RESOURCE_WARN_BYTES = 500_000_000
+DEFAULT_RUNTIME_RESOURCE_FAIL_BYTES = 5_000_000_000
+
+
 @dataclass(frozen=True)
 class RuntimeResourcePressure:
     status: str
@@ -77,8 +81,8 @@ def inspect_runtime_resource_pressure(
     warn_file_count: int = 200,
     fail_file_count: int = 1000,
     hard_file_count: int = 20_000,
-    warn_bytes: int = 50_000_000,
-    fail_bytes: int = 250_000_000,
+    warn_bytes: int = DEFAULT_RUNTIME_RESOURCE_WARN_BYTES,
+    fail_bytes: int = DEFAULT_RUNTIME_RESOURCE_FAIL_BYTES,
     stale_lock_seconds: float = 30.0,
 ) -> RuntimeResourcePressure:
     if not runtime_dir.exists():

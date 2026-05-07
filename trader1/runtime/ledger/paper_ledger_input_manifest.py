@@ -10,7 +10,15 @@ from typing import Any
 
 from trader1.core.ledger.paper_ledger import validate_upbit_paper_ledger
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
-from trader1.runtime.portfolio.paper_portfolio import PAPER_STARTING_CASH_BY_SCOPE
+from trader1.runtime.portfolio.paper_portfolio import (
+    LEGACY_STATIC_KRW_BTC_MAX_PRICE,
+    LEGACY_STATIC_KRW_BTC_MIN_PRICE,
+    PAPER_STARTING_CASH_BY_SCOPE,
+    PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO,
+    PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO,
+    UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE,
+    UPBIT_KRW_BTC_PUBLIC_MARK_MIN_PRICE,
+)
 
 
 PAPER_LEDGER_INPUT_MANIFEST_SCHEMA_ID = "trader1.paper_ledger_input_manifest.v1"
@@ -131,6 +139,78 @@ def _fill_cost(event: dict[str, Any]) -> tuple[Decimal, Decimal, Decimal]:
     return notional, fee, notional + fee
 
 
+def _position_market_value(positions_by_symbol: dict[str, dict[str, Decimal]]) -> Decimal:
+    return sum(
+        (state["quantity"] * state["mark_price"] for state in positions_by_symbol.values() if state["quantity"] > 0),
+        Decimal("0"),
+    )
+
+
+def _copy_position_state(positions_by_symbol: dict[str, dict[str, Decimal]]) -> dict[str, dict[str, Decimal]]:
+    return {symbol: dict(state) for symbol, state in positions_by_symbol.items()}
+
+
+def _repair_legacy_public_sell_state(
+    *,
+    symbol: str,
+    state: dict[str, Decimal],
+    public_sell_price: Decimal,
+) -> None:
+    if symbol != "KRW-BTC" or public_sell_price <= 0:
+        return
+    current_qty = state["quantity"]
+    current_gross_cost = state["gross_cost"]
+    if current_qty <= 0 or current_gross_cost <= 0:
+        return
+    average_entry = current_gross_cost / current_qty
+    if not (LEGACY_STATIC_KRW_BTC_MIN_PRICE <= average_entry <= LEGACY_STATIC_KRW_BTC_MAX_PRICE):
+        return
+    if not (UPBIT_KRW_BTC_PUBLIC_MARK_MIN_PRICE <= public_sell_price <= UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE):
+        return
+    ratio = public_sell_price / average_entry
+    if not (PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO < ratio <= PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO):
+        return
+    normalized_quantity = current_gross_cost / public_sell_price
+    if normalized_quantity <= 0:
+        return
+    state["quantity"] = normalized_quantity
+    state["mark_price"] = public_sell_price
+
+
+def _apply_paper_fill_to_manifest_state(
+    *,
+    positions_by_symbol: dict[str, dict[str, Decimal]],
+    cash_available: Decimal,
+    event: dict[str, Any],
+) -> tuple[Decimal, str | None]:
+    side = str(event.get("side") or "")
+    symbol = str(event.get("symbol") or "UNKNOWN")
+    qty = _decimal(event.get("quantity"))
+    price = _decimal(event.get("price"))
+    fee = _decimal(event.get("fee_amount") or "0")
+    if side not in {"BUY", "SELL"} or qty <= 0 or price <= 0 or fee < 0:
+        return cash_available, "INVALID_LEDGER_INPUT"
+    notional = qty * price
+    state = positions_by_symbol.setdefault(symbol, {"quantity": Decimal("0"), "gross_cost": Decimal("0"), "mark_price": price})
+    current_qty = state["quantity"]
+    current_gross_cost = state["gross_cost"]
+    if side == "BUY":
+        state["quantity"] = current_qty + qty
+        state["gross_cost"] = current_gross_cost + notional
+        state["mark_price"] = price
+        return cash_available - notional - fee, None
+    _repair_legacy_public_sell_state(symbol=symbol, state=state, public_sell_price=price)
+    current_qty = state["quantity"]
+    current_gross_cost = state["gross_cost"]
+    if current_qty <= 0 or qty > current_qty:
+        return cash_available, "INVALID_LEDGER_INPUT"
+    sell_fraction = qty / current_qty
+    state["quantity"] = current_qty - qty
+    state["gross_cost"] = current_gross_cost - (current_gross_cost * sell_fraction)
+    state["mark_price"] = price
+    return cash_available + notional - fee, None
+
+
 def _build_source_file(path: Path, root: Path, session_id: str) -> dict[str, Any]:
     records, load_status, file_hash = _safe_read_jsonl(path)
     rel = _relative_posix(path, root)
@@ -163,7 +243,7 @@ def build_paper_ledger_input_manifest(
     ledger_paths = sorted(cycle_dir.glob("*.paper_ledger_events.jsonl"), key=_ledger_sort_key) if cycle_dir.exists() else []
     _, starting_cash = PAPER_STARTING_CASH_BY_SCOPE[("UPBIT", "KRW_SPOT")]
     cash_available = starting_cash
-    position_market_value = Decimal("0")
+    positions_by_symbol: dict[str, dict[str, Decimal]] = {}
     accepted: list[dict[str, Any]] = []
     excluded: list[dict[str, Any]] = []
     source_files: list[dict[str, Any]] = []
@@ -181,8 +261,8 @@ def build_paper_ledger_input_manifest(
                     "exclude_reason_code": "LEDGER_LOAD_FAILED",
                     "cash_available_before": _decimal_text(cash_available),
                     "cash_available_after": _decimal_text(cash_available),
-                    "position_market_value_before": _decimal_text(position_market_value),
-                    "position_market_value_after": _decimal_text(position_market_value),
+                    "position_market_value_before": _decimal_text(_position_market_value(positions_by_symbol)),
+                    "position_market_value_after": _decimal_text(_position_market_value(positions_by_symbol)),
                     "exposure_to_equity_after": "0",
                     "source_event_count": source["event_count"],
                     "source_ledger_head_hash": None,
@@ -197,8 +277,8 @@ def build_paper_ledger_input_manifest(
                     "exclude_reason_code": "INVALID_LEDGER_INPUT",
                     "cash_available_before": _decimal_text(cash_available),
                     "cash_available_after": _decimal_text(cash_available),
-                    "position_market_value_before": _decimal_text(position_market_value),
-                    "position_market_value_after": _decimal_text(position_market_value),
+                    "position_market_value_before": _decimal_text(_position_market_value(positions_by_symbol)),
+                    "position_market_value_after": _decimal_text(_position_market_value(positions_by_symbol)),
                     "exposure_to_equity_after": "0",
                     "source_event_count": source["event_count"],
                     "source_ledger_head_hash": records[-1].get("event_hash") if records else None,
@@ -207,17 +287,19 @@ def build_paper_ledger_input_manifest(
             continue
 
         next_cash = cash_available
-        next_position_market_value = position_market_value
+        next_positions_by_symbol = _copy_position_state(positions_by_symbol)
         exclude_reason: str | None = None
         for event in records:
             if event.get("event_type") != "ORDER_FILLED":
                 continue
-            notional, fee, total_cost = _fill_cost(event)
-            if min(notional, fee, total_cost) < 0:
-                exclude_reason = "INVALID_LEDGER_INPUT"
+            next_cash, exclude_reason = _apply_paper_fill_to_manifest_state(
+                positions_by_symbol=next_positions_by_symbol,
+                cash_available=next_cash,
+                event=event,
+            )
+            if exclude_reason is not None:
                 break
-            next_cash -= total_cost
-            next_position_market_value += notional
+            next_position_market_value = _position_market_value(next_positions_by_symbol)
             next_equity = next_cash + next_position_market_value
             max_exposure = max(Decimal("0"), next_equity * MAX_EXPOSURE_TO_EQUITY_RATIO)
             if next_cash < MIN_CASH_AFTER_FILL:
@@ -227,8 +309,10 @@ def build_paper_ledger_input_manifest(
                 exclude_reason = "EXPOSURE_CAP_EXCEEDED"
                 break
 
+        next_position_market_value = _position_market_value(next_positions_by_symbol)
         next_equity = next_cash + next_position_market_value
         exposure_ratio = Decimal("0") if next_equity <= 0 else next_position_market_value / next_equity
+        position_market_value = _position_market_value(positions_by_symbol)
         item = {
             "path": rel,
             "file_sha256": source["file_sha256"],
@@ -243,7 +327,7 @@ def build_paper_ledger_input_manifest(
         if exclude_reason is None:
             accepted.append(item)
             cash_available = next_cash
-            position_market_value = next_position_market_value
+            positions_by_symbol = next_positions_by_symbol
         else:
             excluded.append({"exclude_reason_code": exclude_reason, **item})
 
@@ -279,7 +363,7 @@ def build_paper_ledger_input_manifest(
         "min_cash_after_fill": _decimal_text(MIN_CASH_AFTER_FILL),
         "max_exposure_to_equity_ratio": _decimal_text(MAX_EXPOSURE_TO_EQUITY_RATIO),
         "final_cash_available_after_accepted": _decimal_text(cash_available),
-        "final_position_market_value_after_accepted": _decimal_text(position_market_value),
+        "final_position_market_value_after_accepted": _decimal_text(_position_market_value(positions_by_symbol)),
         "source_ledger_files": source_files,
         "accepted_ledger_paths": accepted,
         "excluded_ledger_paths": excluded,

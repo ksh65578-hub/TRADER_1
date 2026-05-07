@@ -287,6 +287,144 @@
         "BLOCKED"
       ]
     },
+    "preliminary_robustness_status": {
+      "enum": [
+        "INSUFFICIENT_PRELIMINARY_SAMPLE",
+        "FAVORABLE_BLOCKED_BY_MATURITY",
+        "UNFAVORABLE_BLOCKED_BY_EVIDENCE"
+      ]
+    },
+    "preliminary_min_required_sample_count": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "preliminary_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preliminary_exact_candidate_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preliminary_evidence_scope": {
+      "enum": [
+        "EXACT_CANDIDATE",
+        "STRATEGY_REGIME_CYCLE_POOL"
+      ]
+    },
+    "preliminary_match_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "preliminary_distinct_symbol_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preliminary_distinct_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preliminary_train_window_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preliminary_oos_window_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preliminary_walk_forward_window_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preliminary_walk_forward_window_size": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preliminary_bootstrap_iteration_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "preliminary_oos_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "preliminary_walk_forward_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "preliminary_bootstrap_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "preliminary_ranking_stability_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "preliminary_concentration_risk_status": {
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "preliminary_in_sample_net_ev_after_cost_bps": {
+      "type": "number"
+    },
+    "preliminary_oos_net_ev_after_cost_bps": {
+      "type": "number"
+    },
+    "preliminary_oos_degradation_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "preliminary_walk_forward_pass_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "preliminary_bootstrap_confidence_lower_bps": {
+      "type": "number"
+    },
+    "preliminary_ranking_stability_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "preliminary_primary_blocker_code": {
+      "type": "string",
+      "minLength": 1
+    },
+    "preliminary_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "preliminary_next_action": {
+      "type": "string",
+      "minLength": 1
+    },
     "robustness_eligible": {
       "type": "boolean"
     },

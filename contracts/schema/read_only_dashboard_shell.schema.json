@@ -112,6 +112,8 @@
             "AUDITED_PAPER_PORTFOLIO_SNAPSHOT",
             "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE",
             "MARKET_DATA_CONTINUITY_HISTORY",
+            "PAPER_LONG_RUNNER_STATUS",
+            "PAPER_LONG_RUNNER_RETENTION",
             "CANDIDATE_SCORECARD",
             "OVERFIT_DIAGNOSTIC",
             "RESIDUAL_OPERATOR_HANDOFF_PACKET",
@@ -167,6 +169,8 @@
             "paper_portfolio_snapshot.json",
             "upbit_paper_ledger_idempotency_runtime_evidence_report.json",
             "rest_continuity_history.json",
+            "runner_status.json",
+            "runner_retention_manifest.json",
             "candidate_scorecard.json",
             "overfit_diagnostic_report.json",
             "MVP4_RESIDUAL_OPERATOR_HANDOFF_PACKET.report.json",
@@ -420,7 +424,8 @@
           "enum": [
             "summary.json",
             "heartbeat.json",
-            "startup_probe.json"
+            "startup_probe.json",
+            "runner_status.json"
           ]
         },
         "engine_state": {
@@ -463,6 +468,105 @@
         },
         "live_orders_blocked": {
           "const": true
+        },
+        "runner_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "running": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "completed_cycle_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "failed_cycle_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "last_cycle_time": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_cycle_eta": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_symbol": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_position_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "cash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "equity": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "realized_pnl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unrealized_pnl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_decision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_blocker": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "one_line_summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_operator_action": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -1542,6 +1646,7 @@
             "NOT_LOADED",
             "PASS_AUDITED_CURRENT_EVIDENCE_WRITTEN",
             "PASS_AUDITED_CURRENT_EVIDENCE_ALREADY_WRITTEN",
+            "PASS_AUDITED_CURRENT_EVIDENCE_REFRESHED",
             "BLOCKED_SOURCE_IMPLEMENTATION_PREP_INVALID",
             "BLOCKED_SOURCE_LEDGER_ROLLUP_INVALID",
             "BLOCKED_AUDITED_CURRENT_EVIDENCE_TARGET_DIRTY",
@@ -7051,6 +7156,75 @@
         "overfit_diagnostic_robustness_eligible": {
           "type": "boolean"
         },
+        "overfit_preliminary_robustness_status": {
+          "enum": [
+            "INSUFFICIENT_PRELIMINARY_SAMPLE",
+            "FAVORABLE_BLOCKED_BY_MATURITY",
+            "UNFAVORABLE_BLOCKED_BY_EVIDENCE"
+          ]
+        },
+        "overfit_preliminary_min_required_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "overfit_preliminary_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "overfit_preliminary_oos_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_walk_forward_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_bootstrap_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_ranking_stability_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_concentration_risk_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_oos_net_ev_after_cost_bps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "overfit_preliminary_bootstrap_confidence_lower_bps": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "overfit_preliminary_walk_forward_pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "overfit_preliminary_ranking_stability_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "overfit_preliminary_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_next_action": {
+          "type": "string",
+          "minLength": 1
+        },
         "overfit_diagnostic_primary_blocker_code": {
           "type": "string",
           "minLength": 1
@@ -7190,6 +7364,7 @@
           "enum": [
             "MISSING",
             "STUB_ONLY",
+            "PARTIAL_NON_LIVE_RUNTIME",
             "VALIDATED_NON_LIVE_RUNTIME"
           ]
         },
@@ -8664,7 +8839,8 @@
             "heartbeat.json",
             "startup_probe.json",
             "paper_portfolio_snapshot.json",
-            "audited_current_evidence_snapshot.json"
+            "audited_current_evidence_snapshot.json",
+            "paper_current_truth_refresh_report.json"
           ]
         },
         "open_position_count": {
@@ -8901,6 +9077,37 @@
         "operator_truth_summary": {
           "type": "string",
           "minLength": 1
+        },
+        "mark_to_market_status": {
+          "enum": [
+            "PASS",
+            "PASS_PUBLIC_MARK_TO_MARKET",
+            "NOT_REQUIRED_NO_POSITION",
+            "STALE",
+            "UNTESTED",
+            "BLOCKED",
+            null
+          ]
+        },
+        "mark_price_source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_public_market_data_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "source_public_market_event_time_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "audited_writer_blocker_decision_status": {
           "enum": [
@@ -10509,6 +10716,535 @@
         }
       }
     },
+    "paper_runner_symbol_evidence_scorecard": {
+      "type": "object",
+      "required": [
+        "symbol",
+        "evidence_scope",
+        "candidate_count",
+        "paper_entry_review_candidate_count",
+        "best_candidate_id",
+        "best_decision",
+        "best_no_trade_reason",
+        "best_strategy_family",
+        "best_candidate_selection_score",
+        "best_net_ev_after_cost_bps",
+        "symbol_selection_score",
+        "rank_input_order",
+        "regime",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_scope": {
+          "const": "PAPER_SYMBOL_EVIDENCE_ONLY"
+        },
+        "candidate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_entry_review_candidate_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "best_candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "best_decision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "best_no_trade_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "best_strategy_family": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "best_candidate_selection_score": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "best_net_ev_after_cost_bps": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "symbol_selection_score": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "rank_input_order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "regime": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_price": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "momentum_pct": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "volatility_pct": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "volume_expansion_ratio": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "spread_bps": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "total_quote_volume": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "source_public_market_data_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
+    "paper_runner_operations_status": {
+      "type": "object",
+      "required": [
+        "title",
+        "status",
+        "severity",
+        "color_token",
+        "truth_role",
+        "source",
+        "runner_status",
+        "running",
+        "completed_cycle_count",
+        "failed_cycle_count",
+        "last_cycle_time",
+        "next_cycle_eta",
+        "current_symbol",
+        "current_position_count",
+        "cash",
+        "equity",
+        "realized_pnl",
+        "unrealized_pnl",
+        "last_decision",
+        "last_blocker",
+        "stop_method",
+        "log_path",
+        "dashboard_open_attempted",
+        "dashboard_opened",
+        "dashboard_open_method",
+        "dashboard_open_target",
+        "dashboard_open_blocker_code",
+        "dashboard_open_blocker_message",
+        "retention_manifest_path",
+        "artifact_retention_status",
+        "disk_pressure_status",
+        "runtime_artifact_count",
+        "runtime_artifact_bytes",
+        "archived_artifact_count",
+        "disk_pressure_max_runtime_bytes",
+        "profitability_evidence_refresh_status",
+        "runtime_sample_history_status",
+        "runtime_sample_count",
+        "candidate_scorecard_status",
+        "candidate_scorecard_ranking_eligible",
+        "symbol_evidence_scorecard_count",
+        "selected_symbol_evidence_scorecard",
+        "symbol_evidence_scorecards_top",
+        "overfit_diagnostic_status",
+        "paper_shadow_evidence_validation_status",
+        "paper_shadow_evidence_actionability_status",
+        "paper_shadow_evidence_blocker_code",
+        "primary_blocker_code",
+        "one_line_summary",
+        "next_operator_action",
+        "display_only",
+        "dashboard_truth_only",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "const": "PAPER Runner Operations"
+        },
+        "status": {
+          "enum": [
+            "NOT_LOADED",
+            "RUNNING_NOW",
+            "STOPPED",
+            "BLOCKED",
+            "STALE",
+            "INVALID"
+          ]
+        },
+        "severity": {
+          "enum": [
+            "NORMAL",
+            "WARNING",
+            "ERROR"
+          ]
+        },
+        "color_token": {
+          "enum": [
+            "green",
+            "blue",
+            "yellow",
+            "red"
+          ]
+        },
+        "truth_role": {
+          "const": "dashboard_serving_truth"
+        },
+        "source": {
+          "enum": [
+            "NOT_LOADED",
+            "runner_status.json"
+          ]
+        },
+        "runner_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "completed_cycle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed_cycle_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_cycle_time": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_cycle_eta": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_symbol": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "current_position_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cash": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "equity": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "realized_pnl": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "unrealized_pnl": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "last_decision": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_blocker": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stop_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "log_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dashboard_open_attempted": {
+          "type": "boolean"
+        },
+        "dashboard_opened": {
+          "type": "boolean"
+        },
+        "dashboard_open_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dashboard_open_target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dashboard_open_blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dashboard_open_blocker_message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retention_manifest_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifact_retention_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "disk_pressure_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_artifact_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "runtime_artifact_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "archived_artifact_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disk_pressure_max_runtime_bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "profitability_evidence_refresh_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_sample_history_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_scorecard_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_scorecard_ranking_eligible": {
+          "type": "boolean"
+        },
+        "symbol_evidence_scorecard_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "selected_symbol_evidence_scorecard": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/paper_runner_symbol_evidence_scorecard"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "symbol_evidence_scorecards_top": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/paper_runner_symbol_evidence_scorecard"
+          }
+        },
+        "overfit_diagnostic_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_robustness_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_oos_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_walk_forward_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_bootstrap_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overfit_preliminary_oos_net_ev_after_cost_bps": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "overfit_preliminary_bootstrap_confidence_lower_bps": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "overfit_preliminary_primary_blocker_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_shadow_evidence_validation_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_shadow_evidence_actionability_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_shadow_evidence_blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "primary_blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "one_line_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_operator_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_only": {
+          "const": true
+        },
+        "dashboard_truth_only": {
+          "const": true
+        },
+        "live_order_ready": {
+          "const": false
+        },
+        "live_order_allowed": {
+          "const": false
+        },
+        "can_live_trade": {
+          "const": false
+        },
+        "scale_up_allowed": {
+          "const": false
+        }
+      }
+    },
     "paper_runtime_recovery_guard_status": {
       "type": "object",
       "required": [
@@ -11151,7 +11887,7 @@
     "source_artifacts": {
       "type": "array",
       "minItems": 3,
-      "maxItems": 40,
+      "maxItems": 64,
       "items": {
         "$ref": "#/$defs/source_artifact"
       }
@@ -11179,6 +11915,9 @@
     },
     "paper_persistent_loop_status": {
       "$ref": "#/$defs/paper_persistent_loop_status"
+    },
+    "paper_runner_operations_status": {
+      "$ref": "#/$defs/paper_runner_operations_status"
     },
     "paper_runtime_recovery_guard_status": {
       "$ref": "#/$defs/paper_runtime_recovery_guard_status"

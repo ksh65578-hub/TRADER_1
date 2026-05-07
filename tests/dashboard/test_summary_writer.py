@@ -3,13 +3,20 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from trader1.adapters.upbit.market_data import (
+    UPBIT_PUBLIC_CANDLE_HOST,
+    UPBIT_PUBLIC_CANDLE_PATH,
+    build_upbit_public_candle_fixture,
+)
 from trader1.config.config_schema import build_runtime_config
 from trader1.dashboard.summary_writer import build_summary_shell, validate_summary_shell
 from trader1.runtime.boot.startup_probe import build_startup_probe
 from trader1.runtime.health.heartbeat import build_heartbeat
+from trader1.runtime.paper.upbit_public_collector import build_upbit_public_market_data_collection_report
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
     build_paper_portfolio_snapshot_from_fill,
+    mark_paper_portfolio_snapshot_to_public_market,
     paper_portfolio_hash,
 )
 from trader1.runtime.readiness.readiness_surface import build_readiness_surface
@@ -101,6 +108,29 @@ def stale_paper_portfolio(snapshot, seconds_old=3600):
     stale["generated_at_utc"] = generated_at.replace(microsecond=0).isoformat().replace("+00:00", "Z")
     stale["snapshot_hash"] = paper_portfolio_hash(stale)
     return stale
+
+
+def public_rest_collection(symbol="KRW-BTC", session_id="test_summary_shell"):
+    market_data = build_upbit_public_candle_fixture(symbol=symbol, session_id=session_id)
+    market_data.update(
+        {
+            "source": "PUBLIC_REST_READ_ONLY",
+            "profile": "PUBLIC_REST_READ_ONLY_1M_CANDLES",
+            "public_endpoint_host": UPBIT_PUBLIC_CANDLE_HOST,
+            "public_endpoint_path": UPBIT_PUBLIC_CANDLE_PATH,
+            "raw_payload_private_fields_present": False,
+            "credential_load_attempted": False,
+            "authorization_header_present": False,
+            "private_endpoint_called": False,
+            "order_endpoint_called": False,
+        }
+    )
+    return build_upbit_public_market_data_collection_report(
+        collector_id="summary-public-mark",
+        session_id=session_id,
+        symbol=symbol,
+        market_data=market_data,
+    )
 
 
 class SummaryWriterTest(unittest.TestCase):
@@ -260,6 +290,59 @@ class SummaryWriterTest(unittest.TestCase):
         self.assertEqual(summary["positions"][0]["side"], "LONG")
         self.assertIn(summary["positions"][0]["source"], {"PAPER_LEDGER_SCAFFOLD", "PAPER_LEDGER_ROLLUP"})
         self.assertTrue(summary["positions"][0]["paper_only"])
+
+    def test_summary_accepts_public_marked_paper_position_detail(self):
+        paper_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test_summary_shell",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+            source_runtime_cycle_id="summary-runtime-cycle",
+            source_paper_ledger_head_hash="D" * 64,
+        )
+        marked = mark_paper_portfolio_snapshot_to_public_market(
+            paper_portfolio_snapshot=paper_portfolio,
+            public_market_data_collection_report=public_rest_collection(),
+        )
+
+        summary = build_summary(with_paper_portfolio=True, paper_portfolio_snapshot=marked)
+        result = validate_summary_shell(summary, set(registry()["enums"]["live_blocker_code"]["values"]))
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(summary["positions"][0]["source"], "PAPER_LEDGER_ROLLUP_PUBLIC_MARK")
+        self.assertEqual(summary["positions"][0]["mark_price_source"], "PUBLIC_REST_READ_ONLY_1M_CLOSE")
+        self.assertIsInstance(summary["positions"][0]["source_public_market_event_time_utc"], str)
+        self.assertEqual(len(summary["positions"][0]["source_public_market_event_hash"]), 64)
+        self.assertTrue(summary["positions"][0]["paper_only"])
+
+    def test_summary_blocks_public_marked_position_without_public_provenance(self):
+        paper_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test_summary_shell",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000500",
+            mark_price="1000000",
+            fee_amount="5",
+        )
+        marked = mark_paper_portfolio_snapshot_to_public_market(
+            paper_portfolio_snapshot=paper_portfolio,
+            public_market_data_collection_report=public_rest_collection(),
+        )
+        summary = build_summary(with_paper_portfolio=True, paper_portfolio_snapshot=marked)
+        summary["positions"][0]["source_public_market_event_hash"] = None
+
+        result = validate_summary_shell(summary)
+
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
 
     def test_summary_blocks_tampered_position_market_value(self):
         paper_portfolio = build_paper_portfolio_snapshot_from_fill(

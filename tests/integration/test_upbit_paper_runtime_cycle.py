@@ -1,3 +1,4 @@
+from decimal import Decimal
 import unittest
 
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
@@ -8,7 +9,7 @@ from trader1.runtime.paper.upbit_paper_runtime import (
     validate_upbit_paper_runtime_cycle_report,
 )
 from trader1.runtime.paper.upbit_public_collector import build_upbit_public_market_data_collection_report
-from trader1.runtime.portfolio.paper_portfolio import paper_portfolio_hash
+from trader1.runtime.portfolio.paper_portfolio import build_paper_portfolio_snapshot_from_fill, paper_portfolio_hash
 from trader1.validation.mvp0_validators import run_validators
 
 
@@ -19,6 +20,20 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(report["final_decision"], "ENTER_LONG")
         self.assertEqual(report["paper_fill"]["order_lifecycle_state"], "FILLED")
+        self.assertEqual(report["selected_candidate"]["cost_model_source"], "PAPER_RUNTIME_ADAPTIVE_PUBLIC_L2_PROXY_COST_MODEL")
+        self.assertEqual(report["paper_fill"]["fill_source"], "PAPER_BROKER_SIMULATION_ADAPTIVE_PUBLIC_L2_PROXY")
+        self.assertEqual(report["paper_fill"]["broker_model_id"], "UPBIT_KRW_SPOT_ADAPTIVE_PUBLIC_L2_PROXY_V1")
+        self.assertEqual(report["paper_fill"]["maker_taker"], "TAKER")
+        self.assertEqual(report["paper_fill"]["order_type"], "MARKETABLE_LIMIT_PAPER")
+        self.assertEqual(report["paper_fill"]["time_in_force"], "IOC_PAPER")
+        self.assertEqual(report["paper_fill"]["orderbook_proxy"]["source"], "PUBLIC_CANDLE_DERIVED_L2_PROXY")
+        self.assertGreater(float(report["paper_fill"]["slippage_bps"]), float(report["paper_fill"]["spread_bps"]))
+        self.assertGreater(float(report["paper_fill"]["market_impact_bps"]), 0)
+        self.assertGreater(float(report["paper_fill"]["latency_penalty_bps"]), 0)
+        self.assertTrue(report["paper_fill"]["reservation_released"])
+        self.assertFalse(report["paper_fill"]["order_adapter_called"])
+        self.assertFalse(report["paper_fill"]["private_endpoint_called"])
+        self.assertFalse(report["paper_fill"]["credential_load_attempted"])
         self.assertEqual(report["paper_ledger_events"][-1]["event_type"], "ORDER_FILLED")
         self.assertEqual(report["paper_ledger_head_hash"], report["paper_ledger_events"][-1]["event_hash"])
         self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 1)
@@ -53,6 +68,64 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertFalse(report["can_submit_order"])
         self.assertFalse(report["scale_up_allowed"])
         self.assertFalse(report["order_adapter_called"])
+
+    def test_recent_negative_exit_feedback_cooldown_blocks_same_symbol_reentry(self):
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-recent-negative-exit-cooldown",
+            recent_failure_feedback=[
+                {
+                    "source": "PAPER_RUNTIME_RECENT_NEGATIVE_EXIT_FEEDBACK",
+                    "symbol": "KRW-BTC",
+                    "candidate_id": "KRW-BTC-pullback-trend-long",
+                    "strategy_family": "PULLBACK_TREND_LONG",
+                    "exit_reason_code": "REGIME_REVERSAL",
+                    "realized_pnl_delta": "-1250.50",
+                    "source_runtime_cycle_id": "previous-negative-regime-reversal-exit",
+                    "source_runtime_cycle_hash": "B" * 64,
+                    "cycles_since_failure": 1,
+                    "cooldown_cycles_remaining": 2,
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                }
+            ],
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["final_decision"], "NO_TRADE")
+        self.assertIn("COOLDOWN", report["no_trade_reasons"])
+        self.assertEqual(report["selected_candidate"]["recent_failure_cooldown_status"], "ACTIVE")
+        self.assertEqual(report["selected_candidate"]["recent_failure_cooldown_cycles_remaining"], 2)
+        self.assertEqual(report["selected_candidate"]["recent_failure_reason_code"], "REGIME_REVERSAL")
+        self.assertEqual(report["selected_candidate"]["no_trade_reason"], "COOLDOWN")
+        self.assertGreater(float(report["selected_candidate"]["recent_failure_penalty_bps"]), 0)
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["paper_ledger_events"], [])
+        self.assertEqual(report["selected_symbol_evidence_scorecard"]["best_recent_failure_cooldown_status"], "ACTIVE")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_adaptive_paper_broker_can_record_partial_fill_without_live_permission(self):
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-adaptive-partial-fill",
+            starting_cash="50000000",
+            paper_cash_available="50000000",
+            paper_equity="50000000",
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["final_decision"], "ENTER_LONG")
+        self.assertEqual(report["paper_fill"]["order_lifecycle_state"], "PARTIALLY_FILLED")
+        self.assertTrue(report["paper_fill"]["partial_fill"])
+        self.assertLess(float(report["paper_fill"]["filled_notional"]), float(report["paper_fill"]["requested_notional"]))
+        self.assertGreaterEqual(float(report["paper_fill"]["filled_notional"]), 5000)
+        self.assertGreater(float(report["paper_fill"]["reservation_release_amount"]), 0)
+        self.assertEqual(report["paper_ledger_events"][-1]["quantity"], report["paper_fill"]["filled_quantity"])
+        self.assertEqual(report["paper_portfolio_snapshot"]["positions"][0]["quantity"], report["paper_fill"]["filled_quantity"])
+        self.assertFalse(report["paper_fill"]["live_order_allowed"])
+        self.assertFalse(report["live_order_allowed"])
 
     def test_cycle_can_bind_public_collection_hash_without_live_permission(self):
         collection = build_upbit_public_market_data_collection_report(
@@ -103,6 +176,16 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["position_management_decision"]["selected_symbol"], "KRW-ETH")
         self.assertIn("KRW-BTC", report["symbol_universe"])
         self.assertIn("KRW-ETH", report["symbol_universe"])
+        self.assertEqual(report["symbol_selection_policy"]["symbol_scope"], "KRW_UNIVERSE")
+        self.assertEqual(report["symbol_selection_policy"]["live_order_allowed"], False)
+        scorecards_by_symbol = {item["symbol"]: item for item in report["symbol_evidence_scorecards"]}
+        self.assertEqual(report["symbol_evidence_scorecard_count"], 2)
+        self.assertEqual(set(scorecards_by_symbol), {"KRW-BTC", "KRW-ETH"})
+        self.assertEqual(report["selected_symbol_evidence_scorecard"], scorecards_by_symbol["KRW-ETH"])
+        self.assertEqual(scorecards_by_symbol["KRW-ETH"]["best_candidate_id"], report["selected_candidate"]["candidate_id"])
+        self.assertGreater(float(scorecards_by_symbol["KRW-ETH"]["best_net_ev_after_cost_bps"]), 0)
+        self.assertGreaterEqual(scorecards_by_symbol["KRW-BTC"]["candidate_count"], 3)
+        self.assertEqual(scorecards_by_symbol["KRW-BTC"]["live_order_allowed"], False)
         self.assertGreater(
             float(report["selected_candidate"]["symbol_selection_score"]),
             float(next(item for item in report["symbol_selection_universe"] if item["symbol"] == "KRW-BTC")["symbol_selection_score"]),
@@ -112,6 +195,37 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
             max(float(candidate["candidate_selection_score"]) for candidate in report["strategy_candidates"]),
         )
         self.assertFalse(report["live_order_allowed"])
+
+    def test_symbol_evidence_scorecard_tamper_is_rejected(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-symbol-scorecard-tamper",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth],
+        )
+        report["symbol_evidence_scorecards"] = [
+            item for item in report["symbol_evidence_scorecards"] if item["symbol"] != report["selected_symbol"]
+        ]
+        report["symbol_evidence_scorecard_count"] = len(report["symbol_evidence_scorecards"])
+        report["selected_symbol_evidence_scorecard"] = {}
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
 
     def test_drawdown_risk_state_blocks_new_paper_entry_before_fill(self):
         report = build_upbit_paper_runtime_cycle_report(
@@ -214,6 +328,121 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertIsNone(report["paper_portfolio_snapshot"]["source_paper_ledger_head_hash"])
         self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 0)
 
+    def test_weak_confirmation_uptrend_is_no_trade_before_paper_fill(self):
+        market_data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        closes = ["1000000", "1001500", "1004000", "1009000", "1007000", "1008000"]
+        for candle, close in zip(market_data["candles"], closes):
+            price = int(close)
+            candle["open"] = str(price - 1200)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = close
+            candle["volume"] = "5"
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-weak-confirmation-uptrend",
+            market_data=market_data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["regime"], "UPTREND")
+        self.assertEqual(report["final_decision"], "NO_TRADE")
+        self.assertIn("STRATEGY_CONFIDENCE_LOW", report["no_trade_reasons"])
+        self.assertLess(float(report["feature_snapshot"]["volume_expansion_ratio"]), 1.05)
+        self.assertLess(float(report["feature_snapshot"]["momentum_pct"]), 1.50)
+        self.assertLessEqual(float(report["feature_snapshot"]["range_breakout_pct"]), 0)
+        self.assertTrue(all(candidate["decision"] == "NO_TRADE" for candidate in report["strategy_candidates"]))
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["paper_ledger_events"], [])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_range_regime_blocks_pullback_trend_entry_review(self):
+        market_data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        closes = ["1000000", "1020000", "1030000", "1025000", "1020000", "1015000"]
+        for candle, close in zip(market_data["candles"], closes):
+            price = int(close)
+            candle["open"] = str(price - 1000)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = close
+            candle["volume"] = "20"
+        market_data["candles"][-1]["volume"] = "80"
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-range-pullback-alignment-block",
+            market_data=market_data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["feature_snapshot"]["regime"], "RANGE")
+        self.assertEqual(report["feature_snapshot"]["trend_pullback_alignment_status"], "FAIL")
+        self.assertEqual(report["feature_snapshot"]["trend_pullback_alignment_reason"], "REGIME_NOT_UPTREND")
+        self.assertLess(float(report["feature_snapshot"]["trend_pullback_alignment_score"]), 0.70)
+        pullback_candidate = next(
+            candidate
+            for candidate in report["strategy_candidates"]
+            if candidate["strategy_family"] == "PULLBACK_TREND_LONG"
+        )
+        self.assertEqual(pullback_candidate["decision"], "NO_TRADE")
+        self.assertEqual(pullback_candidate["no_trade_reason"], "STRATEGY_CONFIDENCE_LOW")
+        self.assertLess(float(pullback_candidate["signal_strength"]), 0.55)
+        self.assertEqual(report["final_decision"], "NO_TRADE")
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["paper_ledger_events"], [])
+        self.assertEqual(
+            report["selected_symbol_evidence_scorecard"]["trend_pullback_alignment_status"],
+            "FAIL",
+        )
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_overextended_uptrend_exhaustion_blocks_new_entry_and_tightens_exit_plan(self):
+        market_data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        closes = ["1000000", "1010000", "1020000", "1030000", "1040000", "1050000"]
+        volumes = ["5", "5", "5", "5", "5", "20"]
+        for candle, close, volume in zip(market_data["candles"], closes, volumes):
+            price = int(close)
+            candle["open"] = str(price - 2500)
+            candle["high"] = str(price + 3500)
+            candle["low"] = str(price - 3500)
+            candle["close"] = close
+            candle["volume"] = volume
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-overextended-trend-exhaustion",
+            market_data=market_data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["feature_snapshot"]["regime"], "UPTREND")
+        self.assertEqual(report["feature_snapshot"]["trend_exhaustion_status"], "WARN")
+        self.assertGreaterEqual(float(report["feature_snapshot"]["volatility_pct"]), 3.0)
+        self.assertGreaterEqual(float(report["feature_snapshot"]["momentum_pct"]), 3.0)
+        self.assertGreaterEqual(float(report["feature_snapshot"]["volume_expansion_ratio"]), 1.5)
+        self.assertEqual(report["final_decision"], "NO_TRADE")
+        self.assertIn(report["selected_candidate"]["no_trade_reason"], {"MIN_EDGE_FAIL", "STRATEGY_CONFIDENCE_LOW"})
+        self.assertTrue(all(candidate["decision"] == "NO_TRADE" for candidate in report["strategy_candidates"]))
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["paper_ledger_events"], [])
+        self.assertEqual(report["exit_plan"]["trend_exhaustion_exit_adjustment"], "TIGHTENED_TRAILING_AND_TIME_STOP")
+        self.assertEqual(report["exit_plan"]["time_stop_candles"], 5)
+        self.assertEqual(report["exit_plan"]["trailing_formula"], "start_after_0.8*atr_proxy_then_distance_0.55*atr_proxy")
+        self.assertFalse(report["live_order_allowed"])
+
     def test_ledger_backed_cash_guard_blocks_entry_before_fill(self):
         report = build_upbit_paper_runtime_cycle_report(
             cycle_id="runtime-cycle-cash-guard",
@@ -230,6 +459,395 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["paper_ledger_events"], [])
         self.assertEqual(report["sizing_decision"]["inputs"]["paper_cash_available"], "100000")
         self.assertEqual(report["sizing_decision"]["inputs"]["paper_position_market_value"], "340000")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_existing_position_near_exposure_cap_holds_position_without_new_fill(self):
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.3465",
+            fill_price="1000000",
+            mark_price="1000000",
+            fee_amount="173.25",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle",
+            source_paper_ledger_head_hash="A" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-hold-existing-position",
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["final_decision"], "HOLD_POSITION")
+        self.assertIn("POSITION_LIMIT", report["no_trade_reasons"])
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["paper_ledger_events"], [])
+        self.assertEqual(report["paper_ledger_head_hash"], "A" * 64)
+        self.assertEqual(report["paper_portfolio_snapshot"]["source_runtime_cycle_id"], report["cycle_id"])
+        self.assertEqual(report["paper_portfolio_snapshot"]["source_paper_ledger_head_hash"], "A" * 64)
+        self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 1)
+        self.assertEqual(report["paper_portfolio_snapshot"]["positions"][0]["symbol"], "KRW-BTC")
+        self.assertEqual(report["position_management_decision"]["decision"], "HOLD_EXISTING_POSITION_NO_NEW_ENTRY")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_existing_position_sizing_veto_keeps_managed_symbol_scope_when_universe_top_differs(self):
+        btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for candle in [*btc["candles"], *eth["candles"]]:
+            candle["volume"] = "5"
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.36",
+            fill_price="1000000",
+            mark_price="1000000",
+            fee_amount="180",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-managed-scope",
+            source_paper_ledger_head_hash="E" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-managed-scope-with-entry-sizing-veto",
+            symbol="KRW-BTC",
+            market_data_universe=[eth, btc],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["selected_symbol"], "KRW-BTC")
+        self.assertEqual(report["final_decision"], "HOLD_POSITION")
+        self.assertIn("POSITION_LIMIT", report["no_trade_reasons"])
+        self.assertEqual(report["sizing_decision"]["sizing_status"], "BLOCKED")
+        self.assertEqual(report["sizing_decision"]["primary_blocker_code"], "RISK_VETO")
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["paper_ledger_events"], [])
+        self.assertEqual(report["position_management_decision"]["decision"], "HOLD_EXISTING_POSITION_NO_NEW_ENTRY")
+        self.assertEqual(report["position_management_decision"]["managed_position_symbol"], "KRW-BTC")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_existing_position_exits_when_rotation_opportunity_cost_is_material(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        mark_price = weak_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-rotation",
+            source_paper_ledger_head_hash="B" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-rotation-exit",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["final_decision"], "EXIT_POSITION")
+        self.assertIn("ROTATION_OPPORTUNITY_COST", report["no_trade_reasons"])
+        self.assertEqual(report["selected_symbol"], "KRW-BTC")
+        self.assertEqual(report["paper_fill"]["side"], "SELL")
+        self.assertEqual(report["paper_fill"]["symbol"], "KRW-BTC")
+        self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 0)
+        rotation = report["position_management_decision"]["position_exit_evaluation"]
+        self.assertTrue(rotation["rotation_condition_passed"])
+        self.assertEqual(rotation["rotation_action"], "FULL_EXIT")
+        self.assertEqual(rotation["rotation_candidate_symbol"], "KRW-ETH")
+        self.assertGreaterEqual(float(rotation["rotation_net_ev_advantage_bps"]), float(rotation["rotation_threshold_bps"]))
+        self.assertFalse(report["paper_fill"]["order_adapter_called"])
+        self.assertFalse(report["paper_fill"]["private_endpoint_called"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_existing_position_rotation_partial_exit_records_reduce_without_blocking_writer(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        mark_price = weak_btc["candles"][-1]["close"]
+        quantity = Decimal("20000") / Decimal(str(mark_price))
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity=str(quantity),
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="10",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-partial-rotation",
+            source_paper_ledger_head_hash="F" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-rotation-partial-exit",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["final_decision"], "REDUCE_POSITION")
+        self.assertEqual(report["paper_fill"]["side"], "SELL")
+        self.assertTrue(report["paper_fill"]["partial_fill"])
+        self.assertEqual(report["position_management_decision"]["requested_position_decision"], "EXIT_POSITION")
+        self.assertEqual(report["position_management_decision"]["execution_adjusted_position_decision_reason"], "PARTIAL_EXIT_FILL")
+        self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 1)
+        self.assertFalse(report["paper_fill"]["order_adapter_called"])
+        self.assertFalse(report["paper_fill"]["private_endpoint_called"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_risk_off_exit_records_rotation_opportunity_without_blocking_writer(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="DOWNTREND",
+        )
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        mark_price = weak_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price="1000000",
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-risk-off-rotation",
+            source_paper_ledger_head_hash="E" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-risk-off-exit-with-rotation-opportunity",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["final_decision"], "EXIT_POSITION")
+        self.assertIn("REGIME_REVERSAL", report["no_trade_reasons"])
+        rotation = report["position_management_decision"]["position_exit_evaluation"]
+        self.assertTrue(rotation["rotation_condition_passed"])
+        self.assertEqual(rotation["rotation_action"], "FULL_EXIT")
+        self.assertEqual(rotation["rotation_reason_code"], "REGIME_ROTATION_EXIT")
+        self.assertEqual(report["position_management_decision"]["position_exit_reason_code"], "REGIME_REVERSAL")
+        self.assertEqual(report["paper_fill"]["side"], "SELL")
+        self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 0)
+        self.assertFalse(report["paper_fill"]["order_adapter_called"])
+        self.assertFalse(report["paper_fill"]["private_endpoint_called"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_existing_position_rotation_stays_hold_when_advantage_is_below_threshold(self):
+        btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for candle in [*btc["candles"], *eth["candles"]]:
+            candle["volume"] = "5"
+        mark_price = btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-rotation-hold",
+            source_paper_ledger_head_hash="D" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-rotation-hold",
+            symbol="KRW-BTC",
+            market_data_universe=[btc, eth],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["final_decision"], "HOLD_POSITION")
+        self.assertIsNone(report["paper_fill"])
+        rotation = report["position_management_decision"]["position_exit_evaluation"]
+        self.assertFalse(rotation["rotation_condition_passed"])
+        self.assertEqual(rotation["rotation_action"], "NONE")
+        self.assertEqual(rotation["rotation_net_ev_advantage_bps"], "0")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_position_rotation_advantage_tamper_is_rejected(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+        mark_price = weak_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-rotation-tamper",
+            source_paper_ledger_head_hash="E" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-rotation-tamper",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        report["position_management_decision"]["position_exit_evaluation"]["rotation_net_ev_advantage_bps"] = "0"
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_existing_position_take_profit_exits_with_paper_sell_fill_and_closes_portfolio(self):
+        market_data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="900000",
+            mark_price=market_data["candles"][-1]["close"],
+            fee_amount="4.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-tp",
+            source_paper_ledger_head_hash="C" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-exit-existing-position",
+            market_data=market_data,
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(report["final_decision"], "EXIT_POSITION")
+        self.assertIn("TAKE_PROFIT_2", report["no_trade_reasons"])
+        self.assertEqual(report["paper_fill"]["side"], "SELL")
+        self.assertEqual(report["paper_fill"]["order_lifecycle_state"], "FILLED")
+        self.assertEqual(report["paper_ledger_events"][-1]["side"], "SELL")
+        self.assertEqual(report["paper_ledger_head_hash"], report["paper_ledger_events"][-1]["event_hash"])
+        self.assertEqual(report["paper_portfolio_snapshot"]["open_position_count"], 0)
+        self.assertEqual(report["position_management_decision"]["decision"], "EXIT_POSITION_WITH_PAPER_SELL_FILL")
+        self.assertEqual(report["position_management_decision"]["managed_position_symbol"], "KRW-BTC")
         self.assertFalse(report["live_order_allowed"])
 
     def test_risk_off_regime_is_no_trade_and_writes_no_fill_ledger(self):
@@ -291,6 +909,16 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-cost-sum-mismatch")
         report["strategy_candidates"][0]["cost_breakdown_bps"]["slippage_bps"] = "99"
         report["selected_candidate"] = dict(report["strategy_candidates"][0])
+        report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.blocker_code, "SCHEMA_IDENTITY_MISMATCH")
+
+    def test_paper_broker_fill_component_tamper_is_rejected(self):
+        report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-fill-cost-tamper")
+        report["paper_fill"]["market_impact_bps"] = "999"
         report["cycle_hash"] = upbit_paper_runtime_cycle_hash(report)
 
         result = validate_upbit_paper_runtime_cycle_report(report)

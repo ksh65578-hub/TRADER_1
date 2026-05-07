@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import candidate_scorecard_from_upbit_paper_runtime_cycle
 from trader1.research.profitability.overfit_diagnostic import (
     _bootstrap_confidence_lower_bound,
@@ -13,7 +14,12 @@ from trader1.research.profitability.overfit_diagnostic import (
     write_overfit_diagnostic_report,
 )
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
-from trader1.runtime.paper.upbit_paper_runtime_sample_history import build_upbit_paper_runtime_sample_history
+from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
+    build_upbit_paper_runtime_sample_history,
+    upbit_paper_runtime_sample_hash,
+    upbit_paper_runtime_sample_history_hash,
+)
 from trader1.research.profitability.candidate_scorecard import robustness_source_evidence_id
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors, _overfit_diagnostic_errors
 
@@ -29,6 +35,142 @@ def _short_paper_runtime_inputs(root: Path):
     runtime = json.loads((root / latest_sample["source_runtime_cycle_path"]).read_text(encoding="utf-8"))
     scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
     return runtime, scorecard, history
+
+
+def _strategy_regime_pool_inputs(root: Path, sample_count: int = 20):
+    session_id = "mvp1_upbit_paper_launcher"
+    runtime_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id / "paper_runtime"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    symbols = [
+        "KRW-BTC",
+        "KRW-ETH",
+        "KRW-XRP",
+        "KRW-SOL",
+        "KRW-ADA",
+        "KRW-DOGE",
+        "KRW-AVAX",
+        "KRW-DOT",
+        "KRW-LINK",
+        "KRW-NEAR",
+        "KRW-APT",
+        "KRW-ARB",
+        "KRW-ONDO",
+        "KRW-JTO",
+        "KRW-ICP",
+        "KRW-ALGO",
+        "KRW-HIVE",
+        "KRW-AXL",
+        "KRW-ZIL",
+        "KRW-PRL",
+    ]
+    samples = []
+    source_hashes = []
+    previous_sample_hash = None
+    latest_runtime = None
+    for index, symbol in enumerate(symbols[:sample_count], start=1):
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id=f"strategy-regime-pool-cycle-{index:03d}",
+            session_id=session_id,
+            symbol=symbol,
+            market_data=build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id=session_id,
+                profile="UPTREND_PULLBACK",
+            ),
+        )
+        runtime_path = runtime_dir / f"strategy-regime-pool-cycle-{index:03d}.runtime_cycle.json"
+        runtime_path.write_text(json.dumps(runtime, sort_keys=True), encoding="utf-8")
+        source_runtime_cycle_path = runtime_path.relative_to(root).as_posix()
+        sample = {
+            "schema_id": "trader1.upbit_paper_runtime_sample.v1",
+            "generated_at_utc": runtime["generated_at_utc"],
+            "project_id": "TRADER_1",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": session_id,
+            "loop_id": "strategy-regime-pool-loop",
+            "cycle_id": runtime["cycle_id"],
+            "source_loop_report_path": (
+                f"system/runtime/upbit/krw_spot/paper/{session_id}/paper_runtime/strategy-regime-pool-loop.persistent_loop_report.json"
+            ),
+            "source_loop_report_hash": "A" * 64,
+            "source_runtime_cycle_path": source_runtime_cycle_path,
+            "source_runtime_cycle_hash": runtime["cycle_hash"],
+            "runtime_input_role": runtime["runtime_input_role"],
+            "final_decision": runtime["final_decision"],
+            "paper_ledger_head_hash": runtime.get("paper_ledger_head_hash"),
+            "paper_portfolio_snapshot_hash": runtime.get("paper_portfolio_snapshot", {}).get("snapshot_hash"),
+            "candidate_count": len(runtime.get("strategy_candidates") or []),
+            "entry_reason_count": max(1, len(runtime.get("entry_reasons") or [])),
+            "exit_reason_count": 0,
+            "no_trade_reason_count": len(runtime.get("no_trade_reasons") or []),
+            "previous_sample_hash": previous_sample_hash,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "sample_hash": "",
+        }
+        sample["sample_hash"] = upbit_paper_runtime_sample_hash(sample)
+        previous_sample_hash = sample["sample_hash"]
+        samples.append(sample)
+        source_hashes.append(runtime["cycle_hash"])
+        latest_runtime = runtime
+
+    assert latest_runtime is not None
+    scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(latest_runtime)
+    history = {
+        "schema_id": "trader1.upbit_paper_runtime_sample_history.v1",
+        "generated_at_utc": latest_runtime["generated_at_utc"],
+        "project_id": "TRADER_1",
+        "history_id": "upbit-paper-runtime-sample-history",
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "truth_role": "paper_runtime_analysis_truth",
+        "runtime_analysis_only": True,
+        "execution_truth": False,
+        "dashboard_truth_only": False,
+        "history_evidence_role": "PAPER_RUNTIME_SAMPLE_HISTORY_NOT_LONG_RUN_EVIDENCE",
+        "runtime_sample_status": "COLLECTING",
+        "primary_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        "source_loop_report_count": 1,
+        "accepted_loop_report_count": 1,
+        "accepted_cycle_sample_count": len(samples),
+        "unique_runtime_cycle_hash_count": len(set(source_hashes)),
+        "duplicate_cycle_hash_count": 0,
+        "invalid_source_count": 0,
+        "invalid_sources": [],
+        "first_sample_at_utc": samples[0]["generated_at_utc"],
+        "latest_sample_at_utc": samples[-1]["generated_at_utc"],
+        "observed_span_seconds": 0,
+        "min_actual_long_run_span_seconds": 86400,
+        "min_actual_long_run_cycle_count": 2880,
+        "span_floor_met": False,
+        "cycle_floor_met": False,
+        "actual_long_run_evidence_created": False,
+        "long_run_evidence_eligible": False,
+        "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        "long_run_next_action": "Collect validated PAPER history before live review.",
+        "promotion_eligible": False,
+        "source_loop_report_hashes": ["A" * 64],
+        "source_runtime_cycle_hashes": source_hashes,
+        "samples": samples,
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "history_hash": "",
+    }
+    history["history_hash"] = upbit_paper_runtime_sample_history_hash(history)
+    return latest_runtime, scorecard, history
 
 
 class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
@@ -88,6 +230,9 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
         self.assertFalse(report["scale_up_allowed"])
         self.assertEqual(report["sample_count"], 2)
         self.assertEqual(report["min_required_sample_count"], 300)
+        self.assertEqual(report["preliminary_robustness_status"], "INSUFFICIENT_PRELIMINARY_SAMPLE")
+        self.assertEqual(report["preliminary_min_required_sample_count"], 20)
+        self.assertEqual(report["preliminary_oos_status"], "UNTESTED")
         self.assertEqual(report["diagnostic_hash"], overfit_diagnostic_report_hash(report))
         blocker_codes = {blocker["code"] for blocker in report["blockers"]}
         self.assertTrue(
@@ -101,6 +246,131 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
         )
         self.assertTrue(any(source_id.startswith("runtime_sample_history:") for source_id in report["source_evidence_ids"]))
         self.assertTrue(any(source_id.startswith("upbit_paper_runtime_cycle:") for source_id in report["source_evidence_ids"]))
+
+    def test_preliminary_diagnostic_measures_short_window_without_full_robustness(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _, scorecard, history = _short_paper_runtime_inputs(root)
+
+            report = overfit_diagnostic_from_upbit_paper_runtime(
+                candidate_scorecard=scorecard,
+                runtime_sample_history=history,
+                root=root,
+                min_preliminary_sample_count=2,
+            )
+
+            statuses, source_ids = robustness_inputs_from_overfit_diagnostic(report)
+
+        self.assertEqual(_overfit_diagnostic_errors(report), [])
+        self.assertEqual(report["sample_count"], 2)
+        self.assertEqual(report["min_required_sample_count"], 300)
+        self.assertEqual(report["preliminary_min_required_sample_count"], 2)
+        self.assertIn(
+            report["preliminary_robustness_status"],
+            {"FAVORABLE_BLOCKED_BY_MATURITY", "UNFAVORABLE_BLOCKED_BY_EVIDENCE"},
+        )
+        self.assertIn(report["preliminary_oos_status"], {"PASS", "FAIL"})
+        self.assertIn(report["preliminary_walk_forward_status"], {"PASS", "FAIL"})
+        self.assertIn(report["preliminary_bootstrap_status"], {"PASS", "FAIL"})
+        self.assertGreaterEqual(report["preliminary_walk_forward_window_count"], 1)
+        self.assertEqual(report["preliminary_bootstrap_iteration_count"], 500)
+        self.assertIsInstance(report["preliminary_summary"], str)
+        self.assertIsInstance(report["preliminary_next_action"], str)
+        self.assertEqual(report["oos_status"], "UNTESTED")
+        self.assertFalse(report["robustness_eligible"])
+        self.assertFalse(report["promotion_eligible"])
+        self.assertFalse(source_ids)
+        self.assertEqual(statuses["oos_status"], "UNTESTED")
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_preliminary_diagnostic_uses_strategy_regime_cycle_pool_without_live_claim(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _, scorecard, history = _strategy_regime_pool_inputs(root, sample_count=20)
+
+            report = overfit_diagnostic_from_upbit_paper_runtime(
+                candidate_scorecard=scorecard,
+                runtime_sample_history=history,
+                root=root,
+            )
+
+            statuses, source_ids = robustness_inputs_from_overfit_diagnostic(report)
+
+        self.assertEqual(_overfit_diagnostic_errors(report), [])
+        self.assertEqual(report["sample_count"], 1)
+        self.assertEqual(report["preliminary_exact_candidate_sample_count"], 1)
+        self.assertEqual(report["preliminary_sample_count"], 20)
+        self.assertEqual(report["preliminary_evidence_scope"], "STRATEGY_REGIME_CYCLE_POOL")
+        self.assertGreaterEqual(report["preliminary_distinct_symbol_count"], 20)
+        self.assertGreaterEqual(report["preliminary_distinct_candidate_count"], 20)
+        self.assertIn(report["preliminary_oos_status"], {"PASS", "FAIL"})
+        self.assertIn(report["preliminary_walk_forward_status"], {"PASS", "FAIL"})
+        self.assertIn(report["preliminary_bootstrap_status"], {"PASS", "FAIL"})
+        self.assertEqual(report["oos_status"], "UNTESTED")
+        self.assertEqual(report["walk_forward_status"], "UNTESTED")
+        self.assertEqual(report["bootstrap_status"], "UNTESTED")
+        self.assertEqual(report["diagnostic_status"], "BLOCKED_FOR_ROBUSTNESS")
+        self.assertFalse(report["robustness_eligible"])
+        self.assertFalse(report["promotion_eligible"])
+        self.assertFalse(source_ids)
+        self.assertEqual(statuses["oos_status"], "UNTESTED")
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+
+    def test_diagnostic_matches_same_cycle_shadow_entry_when_runtime_symbol_is_managed_position(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            session_id = "mvp1_upbit_paper_launcher"
+            entry_btc = build_upbit_public_candle_fixture(
+                symbol="KRW-BTC",
+                session_id=session_id,
+                profile="UPTREND_PULLBACK",
+            )
+            weak_btc = build_upbit_public_candle_fixture(
+                symbol="KRW-BTC",
+                session_id=session_id,
+                profile="WEAK_RANGE",
+            )
+            for candle in weak_btc["candles"]:
+                candle["volume"] = "1"
+            strong_eth = build_upbit_public_candle_fixture(
+                symbol="KRW-ETH",
+                session_id=session_id,
+                profile="UPTREND_PULLBACK",
+            )
+            for candle in strong_eth["candles"]:
+                candle["volume"] = "5"
+            run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="overfit-diagnostic-managed-position-shadow-entry",
+                requested_cycle_count=2,
+                market_data_universe_sequence=[
+                    [entry_btc],
+                    [weak_btc, strong_eth],
+                ],
+            )
+            history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
+            latest_sample = history["samples"][-1]
+            runtime = json.loads((root / latest_sample["source_runtime_cycle_path"]).read_text(encoding="utf-8"))
+            scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+            report = overfit_diagnostic_from_upbit_paper_runtime(
+                candidate_scorecard=scorecard,
+                runtime_sample_history=history,
+                root=root,
+                min_required_sample_count=1,
+            )
+
+        self.assertEqual(_overfit_diagnostic_errors(report), [])
+        self.assertEqual(runtime["symbol"], "KRW-BTC")
+        self.assertEqual(runtime["selected_candidate"]["decision"], "NO_TRADE")
+        self.assertEqual(scorecard["symbol"], "KRW-ETH")
+        self.assertEqual(scorecard["candidate_id"], "KRW-ETH-pullback-trend-long")
+        self.assertEqual(report["sample_count"], 1)
+        self.assertTrue(any(source_id.startswith("upbit_paper_runtime_cycle:") for source_id in report["source_evidence_ids"]))
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
 
     def test_blocked_diagnostic_keeps_scorecard_in_evidence_collection_only(self):
         with tempfile.TemporaryDirectory() as tmp:

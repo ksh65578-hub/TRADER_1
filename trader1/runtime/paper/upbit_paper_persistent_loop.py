@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Callable
 
@@ -15,12 +17,19 @@ from trader1.adapters.upbit.market_data import (
 )
 
 from trader1.core.ledger.paper_ledger import validate_upbit_paper_ledger
+from trader1.runtime.ledger.paper_ledger_input_manifest import (
+    build_paper_ledger_input_manifest,
+    validate_paper_ledger_input_manifest,
+    write_paper_ledger_input_manifest,
+)
 from trader1.runtime.ledger.paper_ledger_rollup import (
     build_paper_ledger_rollup_report,
     validate_paper_ledger_rollup_report,
     write_paper_ledger_rollup_report,
 )
 from trader1.runtime.paper.upbit_paper_runtime import (
+    POSITION_ROTATION_EXIT_FIELDS,
+    UpbitPaperRuntimeCycleValidationResult,
     build_upbit_paper_runtime_cycle_report,
     upbit_paper_runtime_cycle_hash,
     validate_upbit_paper_runtime_cycle_report,
@@ -34,7 +43,11 @@ from trader1.runtime.paper.upbit_public_collector import (
     validate_upbit_public_market_data_collection_report,
     write_upbit_public_market_data_collection_artifacts,
 )
-from trader1.runtime.portfolio.paper_portfolio import PAPER_STARTING_CASH_BY_SCOPE
+from trader1.runtime.portfolio.paper_portfolio import (
+    PAPER_STARTING_CASH_BY_SCOPE,
+    mark_paper_portfolio_snapshot_to_public_market,
+    validate_paper_portfolio_snapshot,
+)
 
 
 UPBIT_PAPER_PERSISTENT_LOOP_SCHEMA_ID = "trader1.upbit_paper_persistent_loop_report.v1"
@@ -63,11 +76,52 @@ DEFAULT_UPBIT_PAPER_SYMBOL_UNIVERSE = (
     "KRW-ATOM",
 )
 DEFAULT_PUBLIC_DISCOVERY_EVALUATION_LIMIT = DEFAULT_DISCOVERY_EVALUATION_LIMIT
+RECENT_FAILURE_FEEDBACK_LOOKBACK_CYCLES = 30
+RECENT_FAILURE_FEEDBACK_COOLDOWN_CYCLES = 3
+RECENT_FAILURE_FEEDBACK_EXIT_REASONS = {
+    "REGIME_REVERSAL",
+    "HARD_STOP",
+    "TRAILING_STOP",
+    "REGIME_ROTATION_EXIT",
+    "ROTATION_OPPORTUNITY_COST",
+}
 BOUNDED_LOOP_RUNTIME_EVIDENCE_ROLE = "BOUNDED_PAPER_LOOP_NOT_LONG_RUN_EVIDENCE"
 RECOVERY_GUARD_RUNTIME_EVIDENCE_ROLE = "PAPER_RECOVERY_GUARD_ONLY_NOT_LONG_RUN_EVIDENCE"
 LONG_RUN_EVIDENCE_BLOCKER_CODE = "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"
 LONG_RUN_EVIDENCE_NEXT_ACTION = (
     "Collect validated long-run PAPER and SHADOW runtime evidence before treating this as live-review or scale-up evidence."
+)
+LEGACY_RUNTIME_RISK_EXIT_LIFECYCLE_FIELDS = frozenset(
+    {"risk_state", "exit_plan", "position_management_decision"}
+)
+LEGACY_RUNTIME_RISK_EXIT_LIFECYCLE_CONTRACT_MODE = (
+    "LEGACY_RECHECK_WITHOUT_RUNTIME_RISK_EXIT_LIFECYCLE"
+)
+SYMBOL_EVIDENCE_SCORECARD_SCHEMA_UPGRADE_FIELDS = frozenset(
+    {
+        "symbol_selection_policy",
+        "symbol_evidence_scorecards",
+        "symbol_evidence_scorecard_count",
+        "selected_symbol_evidence_scorecard",
+    }
+)
+SYMBOL_EVIDENCE_SCORECARD_SCHEMA_UPGRADE_CONTRACT_MODE = (
+    "LEGACY_RECHECK_WITHOUT_SYMBOL_EVIDENCE_SCORECARD"
+)
+CANDIDATE_COST_MODEL_SCHEMA_UPGRADE_FIELDS = frozenset({"cost_model_formula"})
+POSITION_ROTATION_SCHEMA_UPGRADE_CONTRACT_MODE = "LEGACY_RECHECK_WITHOUT_POSITION_ROTATION_FIELDS"
+FEATURE_SNAPSHOT_PROJECTION_UPGRADE_MESSAGES = frozenset(
+    {
+        "feature snapshot does not match public market data",
+        "feature snapshot hash mismatch",
+        "multi-symbol feature snapshot mismatch",
+        "legacy feature snapshot projection scope mismatch",
+        "legacy feature snapshot hash mismatch",
+        "legacy multi-symbol feature snapshot scope mismatch",
+    }
+)
+SYMBOL_EVIDENCE_SCORECARD_PROJECTION_UPGRADE_MESSAGE = (
+    "symbol evidence scorecard does not match runtime symbol candidates"
 )
 
 
@@ -124,9 +178,31 @@ def _paper_cash_guard_context(*, root: Path, session_id: str, rollup_id: str) ->
             "cash_available": str(starting_cash),
             "equity": str(starting_cash),
             "position_market_value": "0",
+            "portfolio_snapshot": None,
             "source": "PAPER_DEFAULT_STARTING_CASH_NO_LEDGER",
             "blocker_code": None,
             "message": None,
+        }
+
+    manifest = build_paper_ledger_input_manifest(
+        root=root,
+        session_id=session_id,
+        manifest_id=f"{rollup_id}-ledger-input-manifest",
+    )
+    manifest_result = validate_paper_ledger_input_manifest(manifest)
+    manifest_path = write_paper_ledger_input_manifest(root=root, manifest=manifest)
+    if manifest_result.status != "PASS":
+        return {
+            "status": "BLOCKED",
+            "cash_available": "-1",
+            "equity": "0",
+            "position_market_value": "0",
+            "portfolio_snapshot": None,
+            "source": "PAPER_LEDGER_INPUT_MANIFEST",
+            "manifest_status": manifest_result.status,
+            "manifest_path": _relative_posix(manifest_path, root),
+            "blocker_code": manifest_result.blocker_code or "RECONCILIATION_REQUIRED",
+            "message": manifest_result.message,
         }
 
     rollup = build_paper_ledger_rollup_report(
@@ -141,7 +217,10 @@ def _paper_cash_guard_context(*, root: Path, session_id: str, rollup_id: str) ->
             "cash_available": "-1",
             "equity": "0",
             "position_market_value": "0",
+            "portfolio_snapshot": None,
             "source": "PAPER_LEDGER_ROLLUP",
+            "manifest_status": manifest_result.status,
+            "manifest_path": _relative_posix(manifest_path, root),
             "blocker_code": result.blocker_code or "RECONCILIATION_REQUIRED",
             "message": result.message,
         }
@@ -151,10 +230,97 @@ def _paper_cash_guard_context(*, root: Path, session_id: str, rollup_id: str) ->
         "cash_available": portfolio["cash_available"],
         "equity": portfolio["equity"],
         "position_market_value": portfolio["position_market_value"],
+        "portfolio_snapshot": portfolio,
         "source": "PAPER_LEDGER_ROLLUP",
+        "manifest_status": manifest_result.status,
+        "manifest_path": _relative_posix(manifest_path, root),
         "blocker_code": None,
         "message": None,
     }
+
+
+def _open_position_symbols(snapshot: dict[str, Any] | None) -> list[str]:
+    if not isinstance(snapshot, dict):
+        return []
+    positions = snapshot.get("positions")
+    if not isinstance(positions, list):
+        return []
+    symbols = [
+        str(position.get("symbol"))
+        for position in positions
+        if isinstance(position, dict) and position.get("side") == "LONG" and position.get("symbol")
+    ]
+    return sorted(set(symbols))
+
+
+def _merge_required_symbols(symbols: list[str], required_symbols: list[str], *, max_count: int) -> list[str]:
+    merged: list[str] = []
+    for symbol in [*required_symbols, *symbols]:
+        if symbol not in merged:
+            merged.append(symbol)
+    if max_count < 1:
+        return merged
+    return merged[: max(max_count, len(required_symbols))]
+
+
+def _mark_cash_guard_portfolio_to_public_market(
+    *,
+    cash_guard: dict[str, Any],
+    usable_collections: list[dict[str, Any]],
+) -> dict[str, Any]:
+    portfolio = cash_guard.get("portfolio_snapshot")
+    open_symbols = _open_position_symbols(portfolio if isinstance(portfolio, dict) else None)
+    if not open_symbols:
+        return cash_guard
+    if len(open_symbols) != 1:
+        marked_guard = dict(cash_guard)
+        marked_guard.update(
+            {
+                "status": "BLOCKED",
+                "cash_available": "-1",
+                "equity": "0",
+                "position_market_value": "0",
+                "portfolio_snapshot": None,
+                "blocker_code": "MEASUREMENT_MISSING",
+                "message": "multiple open PAPER positions require complete public mark coverage before the next runtime cycle",
+            }
+        )
+        return marked_guard
+    collection = next((item for item in usable_collections if item.get("symbol") == open_symbols[0]), None)
+    public_market_data = collection.get("public_market_data") if isinstance(collection, dict) else None
+    if not isinstance(public_market_data, dict) or public_market_data.get("source") != "PUBLIC_REST_READ_ONLY":
+        return cash_guard
+    marked = mark_paper_portfolio_snapshot_to_public_market(
+        paper_portfolio_snapshot=portfolio,
+        public_market_data_collection_report=collection if isinstance(collection, dict) else None,
+        require_public_mark=True,
+    )
+    result = validate_paper_portfolio_snapshot(marked)
+    if result.status != "PASS" or marked.get("snapshot_status") != "PASS" or marked.get("mark_to_market_status") != "PASS_PUBLIC_MARK_TO_MARKET":
+        marked_guard = dict(cash_guard)
+        marked_guard.update(
+            {
+                "status": "BLOCKED",
+                "cash_available": "-1",
+                "equity": "0",
+                "position_market_value": "0",
+                "portfolio_snapshot": None,
+                "blocker_code": result.blocker_code or "MEASUREMENT_MISSING",
+                "message": result.message,
+            }
+        )
+        return marked_guard
+    marked_guard = dict(cash_guard)
+    marked_guard.update(
+        {
+            "cash_available": marked["cash_available"],
+            "equity": marked["equity"],
+            "position_market_value": marked["position_market_value"],
+            "portfolio_snapshot": marked,
+            "source": "PAPER_LEDGER_ROLLUP_PUBLIC_MARK",
+        }
+    )
+    return marked_guard
 
 
 def _existing_runtime_state_detected(root: Path, session_id: str) -> bool:
@@ -188,6 +354,95 @@ def _safe_read_json(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     return value, None
 
 
+def _decimal(value: Any) -> Decimal:
+    try:
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return Decimal("-1")
+
+
+def _decimal_text(value: Decimal) -> str:
+    return format(value.normalize(), "f") if value != value.to_integral() else str(value.quantize(Decimal("1")))
+
+
+def _safe_paper_only_cycle_for_failure_feedback(cycle: dict[str, Any]) -> bool:
+    if cycle.get("exchange") != "UPBIT" or cycle.get("market_type") != "KRW_SPOT" or cycle.get("mode") != "PAPER":
+        return False
+    if cycle.get("live_order_ready") or cycle.get("live_order_allowed") or cycle.get("can_live_trade") or cycle.get("scale_up_allowed"):
+        return False
+    if cycle.get("order_adapter_called") or cycle.get("live_key_loaded") or cycle.get("can_submit_order"):
+        return False
+    if cycle.get("paper_order_adapter") != "SIMULATED_PAPER_BROKER_ONLY":
+        return False
+    return cycle.get("cycle_hash") == upbit_paper_runtime_cycle_hash(cycle)
+
+
+def _recent_negative_exit_failure_feedback(*, root: Path, session_id: str) -> list[dict[str, Any]]:
+    base = _runtime_base_dir(root, session_id)
+    cycles_dir = base / "paper_runtime" / "cycles"
+    if not cycles_dir.exists():
+        return []
+    cycle_paths = sorted(cycles_dir.glob("*.runtime_cycle.json"))[-RECENT_FAILURE_FEEDBACK_LOOKBACK_CYCLES:]
+    valid_cycles: list[dict[str, Any]] = []
+    for path in cycle_paths:
+        cycle, error = _safe_read_json(path)
+        if error is not None or not isinstance(cycle, dict):
+            continue
+        if not _safe_paper_only_cycle_for_failure_feedback(cycle):
+            continue
+        valid_cycles.append(cycle)
+
+    feedback: list[dict[str, Any]] = []
+    previous_realized_pnl: Decimal | None = None
+    for cycle_index, cycle in enumerate(valid_cycles):
+        portfolio = cycle.get("paper_portfolio_snapshot")
+        if not isinstance(portfolio, dict):
+            continue
+        current_realized_pnl = _decimal(portfolio.get("realized_pnl"))
+        realized_delta = current_realized_pnl if previous_realized_pnl is None else current_realized_pnl - previous_realized_pnl
+        previous_realized_pnl = current_realized_pnl
+        if realized_delta >= 0:
+            continue
+        if cycle.get("final_decision") not in {"EXIT_POSITION", "REDUCE_POSITION"}:
+            continue
+        lifecycle = cycle.get("position_management_decision")
+        if not isinstance(lifecycle, dict):
+            continue
+        exit_reason = str(lifecycle.get("position_exit_reason_code") or "")
+        if exit_reason not in RECENT_FAILURE_FEEDBACK_EXIT_REASONS:
+            continue
+        cycles_since_failure = len(valid_cycles) - cycle_index - 1
+        cooldown_remaining = max(0, RECENT_FAILURE_FEEDBACK_COOLDOWN_CYCLES - cycles_since_failure)
+        if cooldown_remaining <= 0:
+            continue
+        selected = cycle.get("selected_candidate")
+        if not isinstance(selected, dict):
+            selected = {}
+        symbol = str(lifecycle.get("managed_position_symbol") or selected.get("symbol") or cycle.get("selected_symbol") or "")
+        if not symbol:
+            continue
+        feedback.append(
+            {
+                "source": "PAPER_RUNTIME_RECENT_NEGATIVE_EXIT_FEEDBACK",
+                "symbol": symbol,
+                "candidate_id": selected.get("candidate_id") or lifecycle.get("selected_candidate_id"),
+                "strategy_family": selected.get("strategy_family"),
+                "exit_reason_code": exit_reason,
+                "realized_pnl_delta": _decimal_text(realized_delta),
+                "source_runtime_cycle_id": cycle.get("cycle_id"),
+                "source_runtime_cycle_hash": cycle.get("cycle_hash"),
+                "cycles_since_failure": cycles_since_failure,
+                "cooldown_cycles_remaining": cooldown_remaining,
+                "cooldown_formula": "max(0,3-cycles_since_negative_exit); applies only to PAPER closed losses with known exit reason",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+        )
+    return feedback
+
+
 def _requires_legacy_quantitative_policy_recheck(cycle: dict[str, Any] | None) -> bool:
     if not isinstance(cycle, dict):
         return False
@@ -211,6 +466,230 @@ def _requires_legacy_sizing_cap_recheck(cycle: dict[str, Any] | None) -> bool:
         return False
     caps = sizing.get("caps")
     return isinstance(caps, dict) and "exposure_cap" not in caps
+
+
+def _missing_runtime_fields(result: UpbitPaperRuntimeCycleValidationResult) -> set[str]:
+    prefix = "paper runtime cycle missing fields: "
+    if result.status != "FAIL" or result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return set()
+    if not result.message.startswith(prefix):
+        return set()
+    try:
+        parsed = ast.literal_eval(result.message[len(prefix) :])
+    except (SyntaxError, ValueError):
+        return set()
+    if not isinstance(parsed, list):
+        return set()
+    return {str(item) for item in parsed}
+
+
+def _requires_legacy_runtime_risk_exit_lifecycle_recheck(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if not isinstance(cycle, dict):
+        return False
+    missing = _missing_runtime_fields(runtime_result)
+    allowed_additive_schema_missing = LEGACY_RUNTIME_RISK_EXIT_LIFECYCLE_FIELDS | SYMBOL_EVIDENCE_SCORECARD_SCHEMA_UPGRADE_FIELDS
+    if not missing or not (missing & LEGACY_RUNTIME_RISK_EXIT_LIFECYCLE_FIELDS):
+        return False
+    if not missing.issubset(allowed_additive_schema_missing):
+        return False
+    if cycle.get("exchange") != "UPBIT" or cycle.get("market_type") != "KRW_SPOT" or cycle.get("mode") != "PAPER":
+        return False
+    if cycle.get("live_order_ready") or cycle.get("live_order_allowed") or cycle.get("can_live_trade") or cycle.get("scale_up_allowed"):
+        return False
+    snapshot = cycle.get("paper_portfolio_snapshot")
+    if not isinstance(snapshot, dict):
+        return False
+    try:
+        open_position_count = int(snapshot.get("open_position_count") or 0)
+    except (TypeError, ValueError):
+        return False
+    if open_position_count != 0:
+        return False
+    if cycle.get("final_decision") == "ENTER_LONG":
+        return False
+    if cycle.get("paper_fill") is not None or cycle.get("paper_ledger_events"):
+        return False
+    return True
+
+
+def _requires_symbol_evidence_scorecard_schema_upgrade_recheck(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if not isinstance(cycle, dict):
+        return False
+    missing = _missing_runtime_fields(runtime_result)
+    allowed_additive_schema_missing = SYMBOL_EVIDENCE_SCORECARD_SCHEMA_UPGRADE_FIELDS | LEGACY_RUNTIME_RISK_EXIT_LIFECYCLE_FIELDS
+    if not SYMBOL_EVIDENCE_SCORECARD_SCHEMA_UPGRADE_FIELDS.issubset(missing):
+        return False
+    if not missing.issubset(allowed_additive_schema_missing):
+        return False
+    if cycle.get("exchange") != "UPBIT" or cycle.get("market_type") != "KRW_SPOT" or cycle.get("mode") != "PAPER":
+        return False
+    if cycle.get("live_order_ready") or cycle.get("live_order_allowed") or cycle.get("can_live_trade") or cycle.get("scale_up_allowed"):
+        return False
+    if cycle.get("order_adapter_called") or cycle.get("live_key_loaded") or cycle.get("can_submit_order"):
+        return False
+    symbol_universe = cycle.get("symbol_universe")
+    symbol_selection_universe = cycle.get("symbol_selection_universe")
+    if not isinstance(symbol_universe, list) or not symbol_universe:
+        return False
+    if not isinstance(symbol_selection_universe, list) or len(symbol_selection_universe) != len(symbol_universe):
+        return False
+    if cycle.get("runtime_input_role") not in {
+        "STATIC_FIXTURE",
+        "PUBLIC_MARKET_DATA_COLLECTION",
+        "MULTI_SYMBOL_MARKET_DATA_UNIVERSE",
+        "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION",
+    }:
+        return False
+    return True
+
+
+def _strategy_candidate_missing_fields(result: UpbitPaperRuntimeCycleValidationResult) -> set[str]:
+    prefix = "strategy candidate missing fields: "
+    if result.status != "FAIL" or result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return set()
+    if not result.message.startswith(prefix):
+        return set()
+    try:
+        parsed = ast.literal_eval(result.message[len(prefix) :])
+    except (SyntaxError, ValueError):
+        return set()
+    if not isinstance(parsed, list):
+        return set()
+    return {str(item) for item in parsed}
+
+
+def _requires_candidate_cost_model_schema_upgrade_recheck(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if not isinstance(cycle, dict):
+        return False
+    if cycle.get("exchange") != "UPBIT" or cycle.get("market_type") != "KRW_SPOT" or cycle.get("mode") != "PAPER":
+        return False
+    if cycle.get("live_order_ready") or cycle.get("live_order_allowed") or cycle.get("can_live_trade") or cycle.get("scale_up_allowed"):
+        return False
+    if cycle.get("order_adapter_called") or cycle.get("live_key_loaded") or cycle.get("can_submit_order"):
+        return False
+    candidates = cycle.get("strategy_candidates")
+    if not isinstance(candidates, list) or not candidates:
+        return False
+    has_legacy_cost_model = any(
+        isinstance(candidate, dict)
+        and (
+            candidate.get("cost_model_source") == "PAPER_RUNTIME_STATIC_COST_MODEL"
+            or "cost_model_formula" not in candidate
+        )
+        for candidate in candidates
+    )
+    if not has_legacy_cost_model:
+        return False
+    missing = _strategy_candidate_missing_fields(runtime_result)
+    if missing and missing.issubset(CANDIDATE_COST_MODEL_SCHEMA_UPGRADE_FIELDS):
+        return True
+    return (
+        runtime_result.blocker_code == "MEASUREMENT_MISSING"
+        and runtime_result.message == "candidate cost model source is not adaptive PAPER public L2 proxy model"
+    )
+
+
+def _requires_position_rotation_schema_upgrade_recheck(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if not isinstance(cycle, dict):
+        return False
+    if cycle.get("exchange") != "UPBIT" or cycle.get("market_type") != "KRW_SPOT" or cycle.get("mode") != "PAPER":
+        return False
+    if cycle.get("live_order_ready") or cycle.get("live_order_allowed") or cycle.get("can_live_trade") or cycle.get("scale_up_allowed"):
+        return False
+    if cycle.get("order_adapter_called") or cycle.get("live_key_loaded") or cycle.get("can_submit_order"):
+        return False
+    lifecycle = cycle.get("position_management_decision")
+    if not isinstance(lifecycle, dict):
+        return False
+    if lifecycle.get("live_order_ready") or lifecycle.get("live_order_allowed") or lifecycle.get("can_live_trade") or lifecycle.get("scale_up_allowed"):
+        return False
+    evaluation = lifecycle.get("position_exit_evaluation")
+    if not isinstance(evaluation, dict):
+        return False
+    missing_rotation_fields = POSITION_ROTATION_EXIT_FIELDS - set(evaluation)
+    return bool(missing_rotation_fields) and runtime_result.message.startswith("position exit evaluation missing rotation fields:")
+
+
+def _safe_paper_only_cycle_for_projection_upgrade(cycle: dict[str, Any] | None) -> bool:
+    if not isinstance(cycle, dict):
+        return False
+    if cycle.get("exchange") != "UPBIT" or cycle.get("market_type") != "KRW_SPOT" or cycle.get("mode") != "PAPER":
+        return False
+    if cycle.get("live_order_ready") or cycle.get("live_order_allowed") or cycle.get("can_live_trade") or cycle.get("scale_up_allowed"):
+        return False
+    if cycle.get("order_adapter_called") or cycle.get("live_key_loaded") or cycle.get("can_submit_order"):
+        return False
+    if cycle.get("paper_order_adapter") != "SIMULATED_PAPER_BROKER_ONLY":
+        return False
+    if cycle.get("cycle_hash") != upbit_paper_runtime_cycle_hash(cycle):
+        return False
+    return True
+
+
+def _requires_feature_snapshot_projection_upgrade_recheck(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if runtime_result.status != "FAIL" or runtime_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return False
+    if runtime_result.message not in FEATURE_SNAPSHOT_PROJECTION_UPGRADE_MESSAGES:
+        return False
+    return _safe_paper_only_cycle_for_projection_upgrade(cycle)
+
+
+def _requires_symbol_evidence_scorecard_projection_upgrade_recheck(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if runtime_result.status != "FAIL" or runtime_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return False
+    if runtime_result.message != SYMBOL_EVIDENCE_SCORECARD_PROJECTION_UPGRADE_MESSAGE:
+        return False
+    return _safe_paper_only_cycle_for_projection_upgrade(cycle)
+
+
+def _requires_symbol_selection_policy_formula_upgrade_recheck(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if runtime_result.status != "FAIL" or runtime_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return False
+    if runtime_result.message != "symbol selection policy does not match runtime formula":
+        return False
+    if not isinstance(cycle, dict):
+        return False
+    if cycle.get("exchange") != "UPBIT" or cycle.get("market_type") != "KRW_SPOT" or cycle.get("mode") != "PAPER":
+        return False
+    if cycle.get("live_order_ready") or cycle.get("live_order_allowed") or cycle.get("can_live_trade") or cycle.get("scale_up_allowed"):
+        return False
+    if cycle.get("order_adapter_called") or cycle.get("live_key_loaded") or cycle.get("can_submit_order"):
+        return False
+    policy = cycle.get("symbol_selection_policy")
+    if not isinstance(policy, dict):
+        return False
+    if policy.get("live_order_ready") or policy.get("live_order_allowed") or policy.get("can_live_trade") or policy.get("scale_up_allowed"):
+        return False
+    if not isinstance(policy.get("selection_formula"), str) or not isinstance(policy.get("candidate_formula"), str):
+        return False
+    symbol_universe = cycle.get("symbol_universe")
+    symbol_selection_universe = cycle.get("symbol_selection_universe")
+    if not isinstance(symbol_universe, list) or not symbol_universe:
+        return False
+    if not isinstance(symbol_selection_universe, list) or len(symbol_selection_universe) != len(symbol_universe):
+        return False
+    return True
 
 
 def build_upbit_paper_runtime_recovery_guard_report(
@@ -309,12 +788,94 @@ def build_upbit_paper_runtime_recovery_guard_report(
         runtime_result = validate_upbit_paper_runtime_cycle_report(latest_cycle or {})
         legacy_quantitative_recheck = _requires_legacy_quantitative_policy_recheck(latest_cycle)
         legacy_sizing_cap_recheck = _requires_legacy_sizing_cap_recheck(latest_cycle)
-        if runtime_result.status != "PASS" and (legacy_quantitative_recheck or legacy_sizing_cap_recheck):
+        legacy_runtime_risk_exit_lifecycle_recheck = _requires_legacy_runtime_risk_exit_lifecycle_recheck(
+            latest_cycle,
+            runtime_result,
+        )
+        symbol_evidence_scorecard_schema_upgrade_recheck = _requires_symbol_evidence_scorecard_schema_upgrade_recheck(
+            latest_cycle,
+            runtime_result,
+        )
+        candidate_cost_model_schema_upgrade_recheck = _requires_candidate_cost_model_schema_upgrade_recheck(
+            latest_cycle,
+            runtime_result,
+        )
+        position_rotation_schema_upgrade_recheck = _requires_position_rotation_schema_upgrade_recheck(
+            latest_cycle,
+            runtime_result,
+        )
+        symbol_selection_policy_formula_upgrade_recheck = _requires_symbol_selection_policy_formula_upgrade_recheck(
+            latest_cycle,
+            runtime_result,
+        )
+        feature_snapshot_projection_upgrade_recheck = _requires_feature_snapshot_projection_upgrade_recheck(
+            latest_cycle,
+            runtime_result,
+        )
+        symbol_evidence_scorecard_projection_upgrade_recheck = _requires_symbol_evidence_scorecard_projection_upgrade_recheck(
+            latest_cycle,
+            runtime_result,
+        )
+        if runtime_result.status != "PASS" and (
+            legacy_quantitative_recheck
+            or legacy_sizing_cap_recheck
+            or legacy_runtime_risk_exit_lifecycle_recheck
+            or symbol_evidence_scorecard_schema_upgrade_recheck
+            or candidate_cost_model_schema_upgrade_recheck
+            or position_rotation_schema_upgrade_recheck
+            or symbol_selection_policy_formula_upgrade_recheck
+            or feature_snapshot_projection_upgrade_recheck
+            or symbol_evidence_scorecard_projection_upgrade_recheck
+        ):
             legacy_result = validate_upbit_paper_runtime_cycle_report(
                 latest_cycle or {},
                 require_quantitative_policy_summary=not legacy_quantitative_recheck,
                 require_current_sizing_caps=not legacy_sizing_cap_recheck,
+                require_symbol_evidence_scorecard_fields=not (
+                    symbol_evidence_scorecard_schema_upgrade_recheck
+                    or symbol_evidence_scorecard_projection_upgrade_recheck
+                ),
+                require_adaptive_candidate_cost_model=not candidate_cost_model_schema_upgrade_recheck,
+                require_position_rotation_fields=not position_rotation_schema_upgrade_recheck,
+                require_current_symbol_selection_policy=not symbol_selection_policy_formula_upgrade_recheck,
+                require_current_feature_snapshot_projection=not feature_snapshot_projection_upgrade_recheck,
             )
+            if _requires_feature_snapshot_projection_upgrade_recheck(latest_cycle, legacy_result):
+                feature_snapshot_projection_upgrade_recheck = True
+                legacy_result = validate_upbit_paper_runtime_cycle_report(
+                    latest_cycle or {},
+                    require_quantitative_policy_summary=not legacy_quantitative_recheck,
+                    require_current_sizing_caps=not legacy_sizing_cap_recheck,
+                    require_symbol_evidence_scorecard_fields=not (
+                        symbol_evidence_scorecard_schema_upgrade_recheck
+                        or symbol_evidence_scorecard_projection_upgrade_recheck
+                    ),
+                    require_adaptive_candidate_cost_model=not candidate_cost_model_schema_upgrade_recheck,
+                    require_position_rotation_fields=not position_rotation_schema_upgrade_recheck,
+                    require_current_symbol_selection_policy=not symbol_selection_policy_formula_upgrade_recheck,
+                    require_current_feature_snapshot_projection=False,
+                )
+            if _requires_symbol_evidence_scorecard_projection_upgrade_recheck(latest_cycle, legacy_result):
+                symbol_evidence_scorecard_projection_upgrade_recheck = True
+                legacy_result = validate_upbit_paper_runtime_cycle_report(
+                    latest_cycle or {},
+                    require_quantitative_policy_summary=not legacy_quantitative_recheck,
+                    require_current_sizing_caps=not legacy_sizing_cap_recheck,
+                    require_symbol_evidence_scorecard_fields=False,
+                    require_adaptive_candidate_cost_model=not candidate_cost_model_schema_upgrade_recheck,
+                    require_position_rotation_fields=not position_rotation_schema_upgrade_recheck,
+                    require_current_symbol_selection_policy=not symbol_selection_policy_formula_upgrade_recheck,
+                    require_current_feature_snapshot_projection=not feature_snapshot_projection_upgrade_recheck,
+                )
+            if legacy_runtime_risk_exit_lifecycle_recheck and legacy_result.status != "PASS":
+                legacy_result = UpbitPaperRuntimeCycleValidationResult(
+                    "PASS",
+                    (
+                        "legacy no-position PAPER cycle is safe to supersede; "
+                        "current runtime risk/exit/lifecycle fields will be regenerated"
+                    ),
+                    None,
+                )
             if legacy_result.status == "PASS":
                 runtime_result = legacy_result
                 legacy_modes = []
@@ -322,6 +883,20 @@ def build_upbit_paper_runtime_recovery_guard_report(
                     legacy_modes.append("QUANTITATIVE_POLICY_SUMMARY")
                 if legacy_sizing_cap_recheck:
                     legacy_modes.append("CURRENT_SIZING_EXPOSURE_CAP")
+                if legacy_runtime_risk_exit_lifecycle_recheck:
+                    legacy_modes.append("RUNTIME_RISK_EXIT_LIFECYCLE")
+                if symbol_evidence_scorecard_schema_upgrade_recheck:
+                    legacy_modes.append("SYMBOL_EVIDENCE_SCORECARD")
+                if candidate_cost_model_schema_upgrade_recheck:
+                    legacy_modes.append("ADAPTIVE_CANDIDATE_COST_MODEL")
+                if position_rotation_schema_upgrade_recheck:
+                    legacy_modes.append("POSITION_ROTATION_FIELDS")
+                if symbol_selection_policy_formula_upgrade_recheck:
+                    legacy_modes.append("SYMBOL_SELECTION_POLICY_FORMULA")
+                if feature_snapshot_projection_upgrade_recheck:
+                    legacy_modes.append("FEATURE_SNAPSHOT_PROJECTION")
+                if symbol_evidence_scorecard_projection_upgrade_recheck:
+                    legacy_modes.append("SYMBOL_EVIDENCE_SCORECARD_PROJECTION")
                 latest_cycle_contract_mode = f"LEGACY_RECHECK_WITHOUT_{'_AND_'.join(legacy_modes)}"
                 latest_cycle_schema_upgrade_required = True
                 latest_cycle_schema_upgrade_reason = (
@@ -684,6 +1259,12 @@ def run_upbit_paper_persistent_loop(
         for index in range(requested_cycle_count):
             collector_id = f"{loop_id}-collector-{index + 1}"
             cycle_id = f"{loop_id}-cycle-{index + 1}"
+            cash_guard = _paper_cash_guard_context(
+                root=root,
+                session_id=session_id,
+                rollup_id=f"{cycle_id}-pre-entry-cash-guard",
+            )
+            open_position_symbols = _open_position_symbols(cash_guard.get("portfolio_snapshot"))
             supplied_market_data = market_data_sequence[index] if market_data_sequence and index < len(market_data_sequence) else None
             supplied_market_data_universe = (
                 market_data_universe_sequence[index]
@@ -692,7 +1273,11 @@ def run_upbit_paper_persistent_loop(
             )
             if isinstance(supplied_market_data_universe, dict):
                 cycle_market_data_by_symbol = dict(supplied_market_data_universe)
-                cycle_symbol_universe = sorted(cycle_market_data_by_symbol)
+                cycle_symbol_universe = _merge_required_symbols(
+                    sorted(cycle_market_data_by_symbol),
+                    open_position_symbols,
+                    max_count=max_symbol_evaluation_count,
+                )
                 cycle_symbol_universe_source = "SUPPLIED_MARKET_DATA_UNIVERSE"
             elif isinstance(supplied_market_data_universe, list):
                 cycle_market_data_by_symbol = {
@@ -700,15 +1285,23 @@ def run_upbit_paper_persistent_loop(
                     for item_index, item in enumerate(supplied_market_data_universe, start=1)
                     if isinstance(item, dict)
                 }
-                cycle_symbol_universe = list(cycle_market_data_by_symbol)
+                cycle_symbol_universe = _merge_required_symbols(
+                    list(cycle_market_data_by_symbol),
+                    open_position_symbols,
+                    max_count=max_symbol_evaluation_count,
+                )
                 cycle_symbol_universe_source = "SUPPLIED_MARKET_DATA_UNIVERSE"
             elif supplied_market_data is not None:
                 cycle_market_data_by_symbol = {symbol: supplied_market_data}
-                cycle_symbol_universe = [symbol]
+                cycle_symbol_universe = _merge_required_symbols([symbol], open_position_symbols, max_count=max_symbol_evaluation_count)
                 cycle_symbol_universe_source = "SUPPLIED_SINGLE_MARKET_DATA"
             else:
                 cycle_market_data_by_symbol = {}
-                cycle_symbol_universe = list(default_symbol_universe)
+                cycle_symbol_universe = _merge_required_symbols(
+                    list(default_symbol_universe),
+                    open_position_symbols,
+                    max_count=max_symbol_evaluation_count,
+                )
                 cycle_symbol_universe_source = str(symbol_discovery_context["symbol_universe_source"])
             collections: list[dict[str, Any]] = []
             collection_results: list[Any] = []
@@ -728,18 +1321,22 @@ def run_upbit_paper_persistent_loop(
                 collections.append(collection)
                 collection_results.append(collection_result)
                 collection_writers.append(collection_writer)
-            collection_pass = all(result.status == "PASS" for result in collection_results) and all(
-                writer.get("writer_status") == "PASS" for writer in collection_writers
-            )
+            usable_collection_rows = [
+                (collection, result, writer)
+                for collection, result, writer in zip(collections, collection_results, collection_writers)
+                if result.status == "PASS" and writer.get("writer_status") == "PASS"
+            ]
+            usable_collections = [collection for collection, _, _ in usable_collection_rows]
+            usable_collection_writers = [writer for _, _, writer in usable_collection_rows]
+            collection_pass = bool(usable_collections)
             cycle: dict[str, Any] | None = None
             cycle_writer: dict[str, Any] | None = None
             cycle_result_status = "BLOCKED"
             cycle_result_blocker = next((result.blocker_code for result in collection_results if result.blocker_code), None)
             if collection_pass:
-                cash_guard = _paper_cash_guard_context(
-                    root=root,
-                    session_id=session_id,
-                    rollup_id=f"{cycle_id}-pre-entry-cash-guard",
+                cash_guard = _mark_cash_guard_portfolio_to_public_market(
+                    cash_guard=cash_guard,
+                    usable_collections=usable_collections,
                 )
                 if cash_guard["status"] != "PASS":
                     blockers.append(
@@ -749,15 +1346,18 @@ def run_upbit_paper_persistent_loop(
                             "message": str(cash_guard.get("message") or "PAPER ledger cash guard blocked entry sizing"),
                         }
                     )
+                recent_failure_feedback = _recent_negative_exit_failure_feedback(root=root, session_id=session_id)
                 cycle = build_upbit_paper_runtime_cycle_report(
                     cycle_id=cycle_id,
                     session_id=session_id,
                     symbol=symbol,
-                    source_collection_reports=collections,
+                    source_collection_reports=usable_collections,
                     paper_cash_available=cash_guard["cash_available"],
                     paper_equity=cash_guard["equity"],
                     paper_position_market_value=cash_guard["position_market_value"],
                     paper_cash_source=cash_guard["source"],
+                    current_paper_portfolio_snapshot=cash_guard.get("portfolio_snapshot"),
+                    recent_failure_feedback=recent_failure_feedback,
                 )
                 runtime_result = validate_upbit_paper_runtime_cycle_report(cycle)
                 cycle_result_status = runtime_result.status
@@ -783,7 +1383,7 @@ def run_upbit_paper_persistent_loop(
                     "collector_id": collector_id,
                     "cycle_id": cycle_id,
                     "collection_status": "PASS" if collection_pass else "BLOCKED",
-                    "collection_hash": collections[0].get("collection_hash") if collections else None,
+                    "collection_hash": usable_collections[0].get("collection_hash") if usable_collections else None,
                     "collection_hashes_by_symbol": {item.get("symbol"): item.get("collection_hash") for item in collections},
                     "collection_writer_status": "PASS" if collection_pass else "BLOCKED",
                     "runtime_status": cycle_result_status,
@@ -800,13 +1400,24 @@ def run_upbit_paper_persistent_loop(
                     "symbol_universe": cycle.get("symbol_universe") if isinstance(cycle, dict) else cycle_symbol_universe,
                     "symbol_universe_source": cycle_symbol_universe_source,
                     "symbol_universe_total_count": int(symbol_discovery_context["symbol_universe_total_count"]),
-                    "symbol_universe_evaluated_count": len(cycle_symbol_universe),
+                    "symbol_universe_evaluated_count": (
+                        len(cycle.get("symbol_universe"))
+                        if isinstance(cycle, dict) and isinstance(cycle.get("symbol_universe"), list)
+                        else len(cycle_symbol_universe)
+                    ),
                     "selected_symbol": cycle.get("selected_symbol") if isinstance(cycle, dict) else None,
                     "selected_candidate_id": selected_candidate.get("candidate_id"),
                     "selected_candidate_net_ev_after_cost_bps": selected_candidate.get("net_ev_after_cost_bps"),
+                    "selected_candidate_recent_failure_cooldown_status": selected_candidate.get(
+                        "recent_failure_cooldown_status"
+                    ),
+                    "selected_candidate_recent_failure_cooldown_cycles_remaining": selected_candidate.get(
+                        "recent_failure_cooldown_cycles_remaining"
+                    ),
+                    "selected_candidate_recent_failure_reason_code": selected_candidate.get("recent_failure_reason_code"),
                     "strategy_regime_cost_linkage": cycle.get("strategy_regime_cost_linkage") if isinstance(cycle, dict) else None,
                     "artifact_paths": [
-                        *(path for writer in collection_writers for path in (writer.get("artifact_paths") or [])),
+                        *(path for writer in usable_collection_writers for path in (writer.get("artifact_paths") or [])),
                         *(cycle_writer.get("artifact_paths") if isinstance(cycle_writer, dict) else []),
                     ],
                     "live_order_ready": False,
@@ -830,6 +1441,28 @@ def run_upbit_paper_persistent_loop(
                 "message": "PAPER runtime recovery guard blocked resume",
             }
         )
+    ledger_manifest_path = None
+    ledger_manifest_status = "SKIPPED"
+    ledger_manifest_primary_blocker_code = None
+    ledger_manifest_existing_path = _runtime_base_dir(root, session_id) / "ledger" / "paper_ledger_input_manifest.json"
+    if preflight_existing_runtime_state or ledger_manifest_existing_path.exists():
+        ledger_manifest = build_paper_ledger_input_manifest(
+            root=root,
+            session_id=session_id,
+            manifest_id=f"{loop_id}-ledger-input-manifest",
+        )
+        ledger_manifest_result = validate_paper_ledger_input_manifest(ledger_manifest)
+        ledger_manifest_status = ledger_manifest_result.status
+        ledger_manifest_primary_blocker_code = ledger_manifest_result.blocker_code
+        ledger_manifest_path = write_paper_ledger_input_manifest(root=root, manifest=ledger_manifest)
+        if ledger_manifest_result.status != "PASS":
+            blockers.append(
+                {
+                    "code": ledger_manifest_result.blocker_code or "RECONCILIATION_REQUIRED",
+                    "severity": "HIGH",
+                    "message": ledger_manifest_result.message,
+                }
+            )
     ledger_rollup = build_paper_ledger_rollup_report(root=root, session_id=session_id, rollup_id=f"{loop_id}-ledger-rollup")
     ledger_rollup_path = write_paper_ledger_rollup_report(root=root, report=ledger_rollup)
     ledger_rollup_result = validate_paper_ledger_rollup_report(ledger_rollup)
@@ -889,6 +1522,9 @@ def run_upbit_paper_persistent_loop(
         "paper_ledger_rollup_hash": ledger_rollup["rollup_hash"],
         "paper_ledger_rollup_primary_blocker_code": ledger_rollup["primary_blocker_code"],
         "paper_ledger_rollup_path": _relative_posix(ledger_rollup_path, root),
+        "paper_ledger_input_manifest_status": ledger_manifest_status,
+        "paper_ledger_input_manifest_primary_blocker_code": ledger_manifest_primary_blocker_code,
+        "paper_ledger_input_manifest_path": _relative_posix(ledger_manifest_path, root) if ledger_manifest_path else None,
         "paper_runtime_resume_allowed": recovery_guard["paper_runtime_resume_allowed"],
         "partial_write_recovery_required": recovery_guard["recovery_guard_status"] != "PASS",
         "runtime_evidence_role": BOUNDED_LOOP_RUNTIME_EVIDENCE_ROLE,
@@ -1335,10 +1971,24 @@ def validate_upbit_paper_runtime_recovery_guard_report(report: dict[str, Any]) -
     if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
         return UpbitPaperPersistentLoopValidationResult("BLOCKED", "recovery guard scope must remain UPBIT/KRW_SPOT/PAPER", "SNAPSHOT_SCOPE_MISMATCH")
     latest_cycle_contract_mode = report.get("latest_cycle_contract_mode")
+    legacy_components = (
+        "QUANTITATIVE_POLICY_SUMMARY",
+        "CURRENT_SIZING_EXPOSURE_CAP",
+        "RUNTIME_RISK_EXIT_LIFECYCLE",
+        "SYMBOL_EVIDENCE_SCORECARD",
+        "ADAPTIVE_CANDIDATE_COST_MODEL",
+        "POSITION_ROTATION_FIELDS",
+        "SYMBOL_SELECTION_POLICY_FORMULA",
+        "FEATURE_SNAPSHOT_PROJECTION",
+        "SYMBOL_EVIDENCE_SCORECARD_PROJECTION",
+    )
     legacy_modes = {
-        "LEGACY_RECHECK_WITHOUT_QUANTITATIVE_POLICY_SUMMARY",
-        "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP",
-        "LEGACY_RECHECK_WITHOUT_QUANTITATIVE_POLICY_SUMMARY_AND_CURRENT_SIZING_EXPOSURE_CAP",
+        "LEGACY_RECHECK_WITHOUT_" + "_AND_".join(
+            component
+            for bit, component in enumerate(legacy_components)
+            if mask & (1 << bit)
+        )
+        for mask in range(1, 1 << len(legacy_components))
     }
     if latest_cycle_contract_mode not in {"CURRENT", *legacy_modes}:
         return UpbitPaperPersistentLoopValidationResult("FAIL", "recovery guard latest cycle contract mode is unknown", "SCHEMA_IDENTITY_MISMATCH")

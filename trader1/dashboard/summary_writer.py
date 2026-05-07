@@ -5,7 +5,11 @@ from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from trader1.runtime.portfolio.paper_portfolio import PAPER_STARTING_CASH_BY_SCOPE, validate_paper_portfolio_snapshot
+from trader1.runtime.portfolio.paper_portfolio import (
+    PAPER_STARTING_CASH_BY_SCOPE,
+    PUBLIC_MARK_PRICE_SOURCE,
+    validate_paper_portfolio_snapshot,
+)
 
 
 SUMMARY_SCHEMA_ID = "trader1.summary.v1"
@@ -27,6 +31,11 @@ CONFIGURED_PAPER_STARTING_CASH_STATUSES = {
 }
 QUANTITATIVE_POLICY_SOURCES = {"SUMMARY_BUILDER", "QUANTITATIVE_POLICY_REPORT"}
 QUANTITATIVE_POLICY_STATUSES = {"IMPLEMENTED_LIVE_BLOCKED", "BLOCKED", "UNTESTED"}
+SUMMARY_POSITION_PAPER_SOURCES = {
+    "PAPER_LEDGER_SCAFFOLD",
+    "PAPER_LEDGER_ROLLUP",
+    "PAPER_LEDGER_ROLLUP_PUBLIC_MARK",
+}
 
 
 @dataclass(frozen=True)
@@ -305,8 +314,27 @@ def _validate_summary_positions(positions: Any) -> tuple[SummaryValidationResult
                 Decimal("0"),
                 Decimal("0"),
             )
-        if position.get("paper_only") is not True or position.get("source") not in {"PAPER_LEDGER_SCAFFOLD", "PAPER_LEDGER_ROLLUP"}:
+        position_source = position.get("source")
+        if position.get("paper_only") is not True or position_source not in SUMMARY_POSITION_PAPER_SOURCES:
             return SummaryValidationResult("BLOCKED", "summary position cannot claim exchange truth", "LIVE_FINAL_GUARD_FAILED"), Decimal("0"), Decimal("0")
+        if position_source == "PAPER_LEDGER_ROLLUP_PUBLIC_MARK":
+            public_mark_time = position.get("source_public_market_event_time_utc")
+            public_mark_hash = position.get("source_public_market_event_hash")
+            if (
+                position.get("mark_price_source") != PUBLIC_MARK_PRICE_SOURCE
+                or _parse_utc(public_mark_time) is None
+                or not isinstance(public_mark_hash, str)
+                or len(public_mark_hash) != 64
+            ):
+                return (
+                    SummaryValidationResult(
+                        "BLOCKED",
+                        "public-marked summary position requires public mark provenance",
+                        "HARD_TRUTH_MISSING",
+                    ),
+                    Decimal("0"),
+                    Decimal("0"),
+                )
         if position.get("side") != "LONG":
             return SummaryValidationResult("BLOCKED", "summary position must remain long spot only", "LIVE_FINAL_GUARD_FAILED"), Decimal("0"), Decimal("0")
         if not isinstance(position.get("symbol"), str) or not position["symbol"]:

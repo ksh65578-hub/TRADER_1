@@ -15,7 +15,9 @@ from trader1.research.profitability.candidate_scorecard import (
     ROBUSTNESS_SOURCE_PREFIXES,
     current_authority_hashes,
     number_value,
+    regime_scope_for_runtime_regime,
     robustness_source_evidence_id,
+    strategy_id_for_family,
 )
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import validate_upbit_paper_runtime_sample_history
@@ -31,6 +33,7 @@ DEFAULT_MAX_ALLOWED_OOS_DEGRADATION_BPS = 12.0
 DEFAULT_MIN_REQUIRED_WALK_FORWARD_PASS_RATE = 0.70
 DEFAULT_MIN_REQUIRED_BOOTSTRAP_CONFIDENCE_LOWER_BPS = 1.0
 DEFAULT_MIN_REQUIRED_RANKING_STABILITY_SCORE = 0.75
+DEFAULT_MIN_PRELIMINARY_SAMPLE_COUNT = 20
 WALK_FORWARD_WINDOW_SIZE = 50
 
 
@@ -89,6 +92,30 @@ def _candidate_net_ev(runtime_cycle: dict[str, Any], candidate_id: str) -> float
     return None
 
 
+def _validated_runtime_from_sample(
+    *,
+    root: Path,
+    sample: dict[str, Any],
+    candidate_scorecard: dict[str, Any],
+) -> dict[str, Any] | None:
+    runtime = _load_json(root, str(sample.get("source_runtime_cycle_path") or ""))
+    if not runtime:
+        return None
+    validation = validate_upbit_paper_runtime_cycle_report(runtime, require_quantitative_policy_summary=False)
+    if validation.status != "PASS":
+        return None
+    if runtime.get("cycle_hash") != sample.get("source_runtime_cycle_hash"):
+        return None
+    if (
+        runtime.get("exchange") != candidate_scorecard.get("exchange")
+        or runtime.get("market_type") != candidate_scorecard.get("market_type")
+    ):
+        return None
+    if runtime.get("mode") != candidate_scorecard.get("mode") or runtime.get("session_id") != candidate_scorecard.get("session_id"):
+        return None
+    return runtime
+
+
 def _matched_runtime_values(
     *,
     root: Path,
@@ -107,19 +134,8 @@ def _matched_runtime_values(
     for sample in runtime_sample_history.get("samples") or []:
         if not isinstance(sample, dict):
             continue
-        runtime = _load_json(root, str(sample.get("source_runtime_cycle_path") or ""))
+        runtime = _validated_runtime_from_sample(root=root, sample=sample, candidate_scorecard=candidate_scorecard)
         if not runtime:
-            continue
-        validation = validate_upbit_paper_runtime_cycle_report(runtime, require_quantitative_policy_summary=False)
-        if validation.status != "PASS":
-            continue
-        if runtime.get("cycle_hash") != sample.get("source_runtime_cycle_hash"):
-            continue
-        if runtime.get("exchange") != candidate_scorecard.get("exchange") or runtime.get("market_type") != candidate_scorecard.get("market_type"):
-            continue
-        if runtime.get("mode") != candidate_scorecard.get("mode") or runtime.get("session_id") != candidate_scorecard.get("session_id"):
-            continue
-        if runtime.get("symbol") != candidate_scorecard.get("symbol"):
             continue
         net_ev = _candidate_net_ev(runtime, candidate_id)
         if net_ev is None:
@@ -129,6 +145,84 @@ def _matched_runtime_values(
         source_ids.append(_relative_id("upbit_paper_runtime_cycle", str(runtime["cycle_id"]), str(runtime["cycle_hash"])))
 
     return values, matched_samples, sorted(set(source_ids))
+
+
+def _compatible_preliminary_candidate(
+    runtime_cycle: dict[str, Any],
+    *,
+    strategy_id: str,
+    regime_scope: str,
+) -> dict[str, Any] | None:
+    compatible: list[dict[str, Any]] = []
+    for candidate in runtime_cycle.get("strategy_candidates") or []:
+        if not isinstance(candidate, dict):
+            continue
+        candidate_strategy_id = strategy_id_for_family(str(candidate.get("strategy_family") or ""))
+        candidate_regime_scope = regime_scope_for_runtime_regime(str(candidate.get("regime") or runtime_cycle.get("regime") or ""))
+        if candidate_strategy_id != strategy_id or candidate_regime_scope != regime_scope:
+            continue
+        net_ev = number_value(candidate.get("net_ev_after_cost_bps"))
+        score = number_value(candidate.get("candidate_selection_score"))
+        if not math.isfinite(net_ev) or not math.isfinite(score):
+            continue
+        compatible.append(candidate)
+    if not compatible:
+        return None
+    return max(
+        compatible,
+        key=lambda candidate: (
+            1 if candidate.get("decision") == "PAPER_ENTRY_REVIEW" else 0,
+            number_value(candidate.get("candidate_selection_score")),
+            number_value(candidate.get("net_ev_after_cost_bps")),
+            str(candidate.get("candidate_id") or ""),
+        ),
+    )
+
+
+def _compatible_preliminary_runtime_values(
+    *,
+    root: Path,
+    candidate_scorecard: dict[str, Any],
+    runtime_sample_history: dict[str, Any],
+) -> tuple[list[float], list[dict[str, Any]], list[str], dict[str, Any]]:
+    strategy_id = str(candidate_scorecard.get("strategy_id") or "")
+    regime_scope = str(candidate_scorecard.get("regime_scope") or "")
+    values: list[float] = []
+    matched_samples: list[dict[str, Any]] = []
+    source_ids: list[str] = []
+    matched_symbols: set[str] = set()
+    matched_candidate_ids: set[str] = set()
+
+    history_id = str(runtime_sample_history.get("history_id") or "unknown_history")
+    history_hash = str(runtime_sample_history.get("history_hash") or "missing_hash")
+    source_ids.append(_relative_id("runtime_sample_history", history_id, history_hash))
+
+    for sample in runtime_sample_history.get("samples") or []:
+        if not isinstance(sample, dict):
+            continue
+        runtime = _validated_runtime_from_sample(root=root, sample=sample, candidate_scorecard=candidate_scorecard)
+        if not runtime:
+            continue
+        candidate = _compatible_preliminary_candidate(
+            runtime,
+            strategy_id=strategy_id,
+            regime_scope=regime_scope,
+        )
+        if candidate is None:
+            continue
+        values.append(number_value(candidate.get("net_ev_after_cost_bps")))
+        matched_samples.append(sample)
+        matched_symbols.add(str(candidate.get("symbol") or "UNKNOWN"))
+        matched_candidate_ids.add(str(candidate.get("candidate_id") or "UNKNOWN"))
+        source_ids.append(_relative_id("upbit_paper_runtime_cycle", str(runtime["cycle_id"]), str(runtime["cycle_hash"])))
+
+    meta = {
+        "preliminary_evidence_scope": "STRATEGY_REGIME_CYCLE_POOL",
+        "preliminary_match_scope": f"strategy_id={strategy_id};regime_scope={regime_scope};one_candidate_per_cycle=true;live_order_allowed=false",
+        "preliminary_distinct_symbol_count": len(matched_symbols),
+        "preliminary_distinct_candidate_count": len(matched_candidate_ids),
+    }
+    return values, matched_samples, sorted(set(source_ids)), meta
 
 
 def _walk_forward_metrics(
@@ -144,6 +238,22 @@ def _walk_forward_metrics(
         return 0, 0.0
     passed = sum(1 for window in windows if _mean(window) >= min_required_oos_net_ev_bps)
     return len(windows), passed / len(windows)
+
+
+def _preliminary_walk_forward_metrics(
+    values: list[float],
+    *,
+    min_required_sample_count: int,
+    min_required_oos_net_ev_bps: float,
+) -> tuple[int, float, int]:
+    if len(values) < min_required_sample_count or min_required_sample_count < 2:
+        return 0, 0.0, 0
+    window_size = max(2, min(WALK_FORWARD_WINDOW_SIZE, max(2, len(values) // 4)))
+    windows = [values[index:index + window_size] for index in range(0, len(values) - window_size + 1, window_size)]
+    if not windows:
+        return 0, 0.0, window_size
+    passed = sum(1 for window in windows if _mean(window) >= min_required_oos_net_ev_bps)
+    return len(windows), passed / len(windows), window_size
 
 
 def _ranking_stability(values: list[float], *, min_required_sample_count: int) -> float:
@@ -208,6 +318,29 @@ def _concentration_status(samples: list[dict[str, Any]], *, min_required_sample_
     return "HIGH"
 
 
+def _preliminary_robustness_summary(
+    *,
+    status: str,
+    sample_count: int,
+    min_preliminary_sample_count: int,
+    min_required_sample_count: int,
+) -> tuple[str, str]:
+    if status == "INSUFFICIENT_PRELIMINARY_SAMPLE":
+        return (
+            f"{sample_count}/{min_preliminary_sample_count} matched PAPER samples available for early diagnostics.",
+            "Keep PAPER running until early OOS, walk-forward, bootstrap, and ranking-stability diagnostics can be measured.",
+        )
+    if status == "FAVORABLE_BLOCKED_BY_MATURITY":
+        return (
+            "Early PAPER diagnostics are favorable, but full robustness remains blocked by maturity requirements.",
+            f"Keep collecting non-live PAPER samples until {min_required_sample_count} samples and full OOS/walk-forward/bootstrap checks pass.",
+        )
+    return (
+        "Early PAPER diagnostics are unfavorable or unstable; treat the candidate as evidence-collection only.",
+        "Review symbol selection, regime fit, fees/slippage, and entry/no-trade thresholds while continuing PAPER collection.",
+    )
+
+
 def overfit_diagnostic_from_upbit_paper_runtime(
     *,
     candidate_scorecard: dict[str, Any],
@@ -221,6 +354,7 @@ def overfit_diagnostic_from_upbit_paper_runtime(
     min_required_walk_forward_pass_rate: float = DEFAULT_MIN_REQUIRED_WALK_FORWARD_PASS_RATE,
     min_required_bootstrap_confidence_lower_bps: float = DEFAULT_MIN_REQUIRED_BOOTSTRAP_CONFIDENCE_LOWER_BPS,
     min_required_ranking_stability_score: float = DEFAULT_MIN_REQUIRED_RANKING_STABILITY_SCORE,
+    min_preliminary_sample_count: int = DEFAULT_MIN_PRELIMINARY_SAMPLE_COUNT,
 ) -> dict[str, Any]:
     root = Path(root).resolve()
     sample_validation = validate_upbit_paper_runtime_sample_history(runtime_sample_history)
@@ -230,6 +364,15 @@ def overfit_diagnostic_from_upbit_paper_runtime(
             candidate_scorecard=candidate_scorecard,
             runtime_sample_history=runtime_sample_history,
         )
+        preliminary_values = values
+        preliminary_samples = samples
+        preliminary_source_ids = source_ids
+        preliminary_meta = {
+            "preliminary_evidence_scope": "EXACT_CANDIDATE",
+            "preliminary_match_scope": f"candidate_id={candidate_scorecard.get('candidate_id')};one_candidate_per_cycle=true;live_order_allowed=false",
+            "preliminary_distinct_symbol_count": 1 if values else 0,
+            "preliminary_distinct_candidate_count": 1 if values else 0,
+        }
     else:
         values = []
         samples = []
@@ -240,8 +383,30 @@ def overfit_diagnostic_from_upbit_paper_runtime(
                 str(runtime_sample_history.get("history_hash") or sample_validation.blocker_code or "invalid"),
             )
         ]
+        preliminary_values = []
+        preliminary_samples = []
+        preliminary_source_ids = source_ids
+        preliminary_meta = {
+            "preliminary_evidence_scope": "EXACT_CANDIDATE",
+            "preliminary_match_scope": "invalid_runtime_sample_history",
+            "preliminary_distinct_symbol_count": 0,
+            "preliminary_distinct_candidate_count": 0,
+        }
 
     sample_count = len(values)
+    min_preliminary_sample_count = max(2, min(int(min_preliminary_sample_count), int(min_required_sample_count)))
+    if sample_validation.status == "PASS" and len(preliminary_values) < min_preliminary_sample_count:
+        compatible_values, compatible_samples, compatible_source_ids, compatible_meta = _compatible_preliminary_runtime_values(
+            root=root,
+            candidate_scorecard=candidate_scorecard,
+            runtime_sample_history=runtime_sample_history,
+        )
+        if len(compatible_values) > len(preliminary_values):
+            preliminary_values = compatible_values
+            preliminary_samples = compatible_samples
+            preliminary_source_ids = compatible_source_ids
+            preliminary_meta = compatible_meta
+
     enough_samples = sample_count >= min_required_sample_count
     train_count = int(sample_count * 0.60) if enough_samples else min(sample_count, int(sample_count * 0.60))
     train_values = values[:train_count] if train_count else values
@@ -269,6 +434,115 @@ def overfit_diagnostic_from_upbit_paper_runtime(
     )
     ranking_stability = _ranking_stability(values, min_required_sample_count=min_required_sample_count)
     concentration_status = _concentration_status(samples, min_required_sample_count=min_required_sample_count)
+
+    preliminary_sample_count = len(preliminary_values)
+    preliminary_enough_samples = preliminary_sample_count >= min_preliminary_sample_count
+    preliminary_train_count = 0
+    preliminary_oos_values: list[float] = []
+    if preliminary_enough_samples:
+        preliminary_train_count = max(1, min(preliminary_sample_count - 1, int(preliminary_sample_count * 0.60)))
+        preliminary_oos_values = preliminary_values[preliminary_train_count:]
+    preliminary_train_values = preliminary_values[:preliminary_train_count] if preliminary_train_count else []
+    preliminary_in_sample_ev = _mean(preliminary_train_values)
+    preliminary_oos_ev = _mean(preliminary_oos_values)
+    preliminary_degradation = max(0.0, preliminary_in_sample_ev - preliminary_oos_ev)
+    preliminary_oos_window_count = 1 if preliminary_oos_values else 0
+    preliminary_walk_forward_window_count, preliminary_walk_forward_pass_rate, preliminary_walk_forward_window_size = (
+        _preliminary_walk_forward_metrics(
+            preliminary_values,
+            min_required_sample_count=min_preliminary_sample_count,
+            min_required_oos_net_ev_bps=min_required_oos_net_ev_bps,
+        )
+    )
+    preliminary_bootstrap_lower, preliminary_bootstrap_iteration_count = _bootstrap_confidence_lower_bound(
+        preliminary_values,
+        min_required_sample_count=min_preliminary_sample_count,
+        iteration_count=min_required_bootstrap_iterations,
+        seed_material={
+            "preliminary": True,
+            "preliminary_evidence_scope": preliminary_meta["preliminary_evidence_scope"],
+            "preliminary_match_scope": preliminary_meta["preliminary_match_scope"],
+            "candidate_id": candidate_scorecard.get("candidate_id"),
+            "strategy_build_id": candidate_scorecard.get("strategy_build_id"),
+            "parameter_hash": candidate_scorecard.get("parameter_hash"),
+            "session_id": candidate_scorecard.get("session_id"),
+            "source_evidence_ids": preliminary_source_ids,
+        },
+    )
+    preliminary_ranking_stability = _ranking_stability(
+        preliminary_values,
+        min_required_sample_count=min_preliminary_sample_count,
+    )
+    preliminary_concentration_status = _concentration_status(
+        preliminary_samples,
+        min_required_sample_count=min_preliminary_sample_count,
+    )
+
+    preliminary_oos_status = "UNTESTED"
+    if preliminary_enough_samples and preliminary_oos_values:
+        preliminary_oos_status = (
+            "PASS"
+            if preliminary_oos_ev >= min_required_oos_net_ev_bps
+            and preliminary_degradation <= max_allowed_oos_degradation_bps
+            else "FAIL"
+        )
+
+    preliminary_walk_forward_status = "UNTESTED"
+    if preliminary_walk_forward_window_count > 0:
+        preliminary_walk_forward_status = (
+            "PASS" if preliminary_walk_forward_pass_rate >= min_required_walk_forward_pass_rate else "FAIL"
+        )
+
+    preliminary_bootstrap_status = "UNTESTED"
+    if preliminary_bootstrap_iteration_count >= min_required_bootstrap_iterations:
+        preliminary_bootstrap_status = (
+            "PASS"
+            if preliminary_bootstrap_lower >= min_required_bootstrap_confidence_lower_bps
+            else "FAIL"
+        )
+
+    preliminary_ranking_stability_status = "UNTESTED"
+    if preliminary_enough_samples:
+        preliminary_ranking_stability_status = (
+            "PASS" if preliminary_ranking_stability >= min_required_ranking_stability_score else "FAIL"
+        )
+
+    preliminary_status_checks = {
+        "preliminary_oos_status": preliminary_oos_status,
+        "preliminary_walk_forward_status": preliminary_walk_forward_status,
+        "preliminary_bootstrap_status": preliminary_bootstrap_status,
+        "preliminary_ranking_stability_status": preliminary_ranking_stability_status,
+    }
+    preliminary_primary_blocker_code = "PRELIMINARY_SAMPLE_INSUFFICIENT"
+    preliminary_robustness_status = "INSUFFICIENT_PRELIMINARY_SAMPLE"
+    if preliminary_enough_samples:
+        preliminary_failure_codes = [
+            ("preliminary_oos_status", "PRELIMINARY_OOS_BELOW_THRESHOLD"),
+            ("preliminary_walk_forward_status", "PRELIMINARY_WALK_FORWARD_UNSTABLE"),
+            ("preliminary_bootstrap_status", "PRELIMINARY_BOOTSTRAP_UNSTABLE"),
+            ("preliminary_ranking_stability_status", "PRELIMINARY_RANKING_UNSTABLE"),
+        ]
+        preliminary_primary_blocker_code = next(
+            (
+                code
+                for field, code in preliminary_failure_codes
+                if preliminary_status_checks[field] != "PASS"
+            ),
+            "PRELIMINARY_CONCENTRATION_HIGH"
+            if preliminary_concentration_status == "HIGH"
+            else "ROBUSTNESS_MATURITY_BLOCKED",
+        )
+        preliminary_robustness_status = (
+            "FAVORABLE_BLOCKED_BY_MATURITY"
+            if preliminary_primary_blocker_code == "ROBUSTNESS_MATURITY_BLOCKED"
+            else "UNFAVORABLE_BLOCKED_BY_EVIDENCE"
+        )
+    preliminary_summary, preliminary_next_action = _preliminary_robustness_summary(
+        status=preliminary_robustness_status,
+        sample_count=preliminary_sample_count,
+        min_preliminary_sample_count=min_preliminary_sample_count,
+        min_required_sample_count=min_required_sample_count,
+    )
 
     oos_status = "UNTESTED"
     if enough_samples:
@@ -306,7 +580,7 @@ def overfit_diagnostic_from_upbit_paper_runtime(
         source_cycle_id = str(candidate_scorecard.get("source_runtime_cycle_id"))
         source_cycle_hash = str(candidate_scorecard.get("source_runtime_cycle_hash"))
         source_ids.extend(robustness_source_evidence_id(prefix, source_cycle_id, source_cycle_hash) for prefix in ROBUSTNESS_SOURCE_PREFIXES)
-        source_ids = sorted(set(source_ids))
+    source_ids = sorted(set(source_ids + preliminary_source_ids))
 
     blockers: list[dict[str, str]] = []
     if sample_count < min_required_sample_count:
@@ -371,6 +645,30 @@ def overfit_diagnostic_from_upbit_paper_runtime(
         "concentration_risk_status": concentration_status,
         "survivorship_bias_check": survivorship_bias_check,
         "data_snooping_check": data_snooping_check,
+        "preliminary_robustness_status": preliminary_robustness_status,
+        "preliminary_min_required_sample_count": int(min_preliminary_sample_count),
+        "preliminary_sample_count": preliminary_sample_count,
+        "preliminary_exact_candidate_sample_count": sample_count,
+        **preliminary_meta,
+        "preliminary_train_window_count": preliminary_train_count,
+        "preliminary_oos_window_count": preliminary_oos_window_count,
+        "preliminary_walk_forward_window_count": preliminary_walk_forward_window_count,
+        "preliminary_walk_forward_window_size": preliminary_walk_forward_window_size,
+        "preliminary_bootstrap_iteration_count": preliminary_bootstrap_iteration_count,
+        "preliminary_oos_status": preliminary_oos_status,
+        "preliminary_walk_forward_status": preliminary_walk_forward_status,
+        "preliminary_bootstrap_status": preliminary_bootstrap_status,
+        "preliminary_ranking_stability_status": preliminary_ranking_stability_status,
+        "preliminary_concentration_risk_status": preliminary_concentration_status,
+        "preliminary_in_sample_net_ev_after_cost_bps": round(preliminary_in_sample_ev, 8),
+        "preliminary_oos_net_ev_after_cost_bps": round(preliminary_oos_ev, 8),
+        "preliminary_oos_degradation_bps": round(preliminary_degradation, 8),
+        "preliminary_walk_forward_pass_rate": round(preliminary_walk_forward_pass_rate, 8),
+        "preliminary_bootstrap_confidence_lower_bps": round(preliminary_bootstrap_lower, 8),
+        "preliminary_ranking_stability_score": round(preliminary_ranking_stability, 8),
+        "preliminary_primary_blocker_code": preliminary_primary_blocker_code,
+        "preliminary_summary": preliminary_summary,
+        "preliminary_next_action": preliminary_next_action,
         "robustness_eligible": robustness_eligible,
         "dashboard_display_truth_only": True,
         "promotion_eligible": False,

@@ -298,6 +298,7 @@ def append_upbit_public_rest_continuity_history(
     min_required_pass_attempts: int = 2,
 ) -> tuple[Path, dict[str, Any]]:
     session_id = str(continuity_report["session_id"])
+    symbol = str(continuity_report["symbol"])
     history_path = _history_path(Path(root), session_id)
     previous_attempts: list[dict[str, Any]] = []
     if history_path.exists():
@@ -306,7 +307,13 @@ def append_upbit_public_rest_continuity_history(
             if isinstance(previous, dict):
                 previous_result = validate_upbit_public_rest_continuity_history_report(previous)
                 if previous_result.status in {"PASS", "WARN", "BLOCKED"} and isinstance(previous.get("continuity_attempts"), list):
-                    previous_attempts = [attempt for attempt in previous["continuity_attempts"] if isinstance(attempt, dict)]
+                    previous_attempts = [
+                        attempt
+                        for attempt in previous["continuity_attempts"]
+                        if isinstance(attempt, dict)
+                        and attempt.get("session_id") == session_id
+                        and attempt.get("symbol") == symbol
+                    ]
                 else:
                     _quarantine_history(history_path, "invalid")
             else:
@@ -316,7 +323,7 @@ def append_upbit_public_rest_continuity_history(
     history = build_upbit_public_rest_continuity_history_report(
         history_id=history_id,
         session_id=session_id,
-        symbol=str(continuity_report["symbol"]),
+        symbol=symbol,
         continuity_attempts=[*previous_attempts, continuity_report],
         max_attempts=max_attempts,
         min_required_pass_attempts=min_required_pass_attempts,
