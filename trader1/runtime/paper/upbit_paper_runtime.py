@@ -99,7 +99,8 @@ ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS = {
 }
 QUALITY_FEEDBACK_EXIT_FORMULA = (
     "PRELIMINARY_ROBUSTNESS_FAIL with active cooldown and return_pct<=0.25 triggers "
-    "PAPER-only full exit using no_trade_reason=COOLDOWN; hard stop, regime, trailing, and take-profit exits keep priority"
+    "PAPER-only full exit using no_trade_reason=COOLDOWN; hard stop, regime, trailing, and TP2 exits keep priority; "
+    "TP1 partial exits wait behind quality and rotation full-exit decisions"
 )
 RECENT_FAILURE_COOLDOWN_CYCLES = 3
 RECENT_FAILURE_SYMBOL_EDGE_PENALTY_BPS = Decimal("32")
@@ -694,15 +695,15 @@ def _evaluate_existing_position_exit(
     elif mark_price >= tp2:
         decision = "EXIT_POSITION"
         reason = "TAKE_PROFIT_2"
-    elif mark_price >= tp1:
-        decision = "REDUCE_POSITION"
-        reason = "TAKE_PROFIT_1"
     elif quality_feedback_exit_condition_passed:
         decision = "EXIT_POSITION"
         reason = "COOLDOWN"
     elif rotation_context["rotation_condition_passed"]:
         decision = "EXIT_POSITION"
         reason = str(rotation_context["rotation_reason_code"] or "ROTATION_OPPORTUNITY_COST")
+    elif mark_price >= tp1:
+        decision = "REDUCE_POSITION"
+        reason = "TAKE_PROFIT_1"
 
     if decision == "REDUCE_POSITION":
         sell_quantity = quantity * partial_ratio

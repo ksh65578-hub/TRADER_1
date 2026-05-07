@@ -7727,6 +7727,15 @@ def _operator_action_summary(
         and risk_status not in {"BLOCKED", "STALE"}
         and feedback_status not in {"BLOCKED", "STALE"}
     )
+    fresh_stopped_runner_ready_to_continue = (
+        operation_status.get("source") == "runner_status.json"
+        and operation_status.get("status") == "CHECKING_SAFE_MODE"
+        and operation_status.get("severity") == "WARNING"
+        and operation_status.get("runner_status") == "STOPPED"
+        and _safe_count(operation_status.get("completed_cycle_count")) > 0
+        and operation_status.get("primary_blocker") == "LIVE_READY_MISSING"
+        and reconciliation_status not in {"BLOCKED", "INVALID"}
+    )
 
     if (
         operation_severity == "ERROR"
@@ -7759,6 +7768,18 @@ def _operator_action_summary(
             reconciliation_recovery_summary.get("next_operator_action")
             if reconciliation_status in {"BLOCKED", "INVALID"}
             else "Keep trading disabled and inspect the red blocker before continuing PAPER review."
+        )
+    elif fresh_stopped_runner_ready_to_continue:
+        status = "ACTION_REQUIRED"
+        severity = "WARNING"
+        color_token = "yellow"
+        primary_action = "CONTINUE_PAPER"
+        workflow_step = "RUN_PAPER"
+        label = "Start PAPER again"
+        next_operator_action = str(
+            operation_status.get("next_operator_action")
+            or operation_status.get("recovery_hint")
+            or "Start PAPER again if you want continuous runtime evidence to advance."
         )
     elif long_run_status == "STALE" or risk_status == "STALE" or feedback_status == "STALE":
         status = "REFRESH_REQUIRED"
@@ -18875,10 +18896,19 @@ def build_read_only_dashboard_shell(
         optimizer_feedback_report=optimizer_feedback_report,
         summary_freshness=summary_freshness,
     )
+    runner_status_current_for_dashboard = (
+        runner_operations_status.get("source") == "runner_status.json"
+        and runner_operations_status.get("status") in {"RUNNING_NOW", "STOPPED"}
+        and runner_operations_status.get("primary_blocker_code") == "LIVE_READY_MISSING"
+    )
     dashboard_primary_blocker = (
         reconciliation_recovery_summary.get("primary_blocker_code")
         if reconciliation_recovery_summary.get("status") in {"BLOCKED", "INVALID"}
-        else primary_blocker
+        else (
+            runner_operations_status.get("primary_blocker_code")
+            if primary_blocker == "HARD_TRUTH_MISSING" and runner_status_current_for_dashboard
+            else primary_blocker
+        )
     )
     if dashboard_primary_blocker != primary_blocker:
         decision_trace = _decision_trace(summary, dashboard_primary_blocker, position_snapshot)
@@ -28330,13 +28360,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <strong>""" + safe_text(portfolio_quick_status) + """</strong>
         <small>""" + safe_text(portfolio_quick_detail) + """</small>
       </section>
-      <section class="quick-status-tile quick-status-""" + safe_text(operator_price_class) + """" aria-label="current public price quick answer" data-primary-question="price" data-public-ticker-symbol=\"""" + safe_text(operator_price_symbol) + """\">
-        <span class="eyebrow">Price</span>
-        <span class="question-label">What is the current public price?</span>
-        <strong><span class="ticker-price" data-ticker-field="trade_price">""" + safe_text(operator_price_initial) + """</span></strong>
-        <small>""" + safe_text(operator_price_symbol) + """ public ticker <span data-ticker-field="change_rate">--</span> <span data-ticker-field="change_price">--</span></small>
-        <span class="live-answer-reason">Current PAPER symbol: """ + safe_text(runner_current_symbol) + """</span>
-        <span class="live-answer-reason">Updated: <span data-ticker-field="updated_at">""" + safe_text(operator_price_source) + """</span></span>
+      <section class="quick-status-tile quick-status-""" + safe_text(operator_color) + """" aria-label="operator next action quick answer" data-primary-question="next-action">
+        <span class="eyebrow">Next</span>
+        <span class="question-label">What should I do now?</span>
+        <strong>""" + safe_text(operator_action.get("primary_action_label", "Resolve dashboard blocker")) + """</strong>
+        <small>""" + safe_text(operator_action.get("next_operator_action", "Resolve visible blocker and rerun PAPER.")) + """</small>
+        <span class="live-answer-reason">Step: """ + safe_text(operator_action.get("workflow_step", "INSPECT_DASHBOARD")).replace("_", " ").title() + """</span>
+        <span class="live-answer-reason">Action: """ + safe_text(operator_action.get("primary_action", "RESOLVE_BLOCKER")).replace("_", " ").title() + """</span>
       </section>
       <section class="quick-status-tile quick-status-yellow" aria-label="live execution quick answer" data-primary-question="live">
         <span class="eyebrow">Live</span>

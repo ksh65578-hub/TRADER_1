@@ -795,11 +795,18 @@ def _requires_position_rotation_schema_upgrade_recheck(
     if not isinstance(evaluation, dict):
         return False
     missing_rotation_fields = POSITION_ROTATION_EXIT_FIELDS - set(evaluation)
-    return bool(missing_rotation_fields) and runtime_result.message.startswith(
+    if bool(missing_rotation_fields) and runtime_result.message.startswith(
         (
             "position exit evaluation missing rotation fields:",
             "position exit evaluation missing executable exit fields:",
         )
+    ):
+        return True
+    return (
+        runtime_result.status == "FAIL"
+        and runtime_result.blocker_code == "SCHEMA_IDENTITY_MISMATCH"
+        and runtime_result.message == "quality feedback exit formula mismatch"
+        and _safe_paper_only_cycle_for_projection_upgrade(cycle)
     )
 
 
