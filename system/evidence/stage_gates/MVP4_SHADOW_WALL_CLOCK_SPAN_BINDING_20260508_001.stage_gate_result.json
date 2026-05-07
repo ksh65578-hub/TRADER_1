@@ -1,0 +1,31 @@
+{
+  "can_live_trade": false,
+  "created_at_utc": "2026-05-07T20:30:34Z",
+  "current_evidence_write_allowed": false,
+  "legacy_shadow_history_bounds_normalized": true,
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "long_run_evidence_eligible": false,
+  "patch_id": "MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001",
+  "remaining_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "scale_up_allowed": false,
+  "schema_id": "trader1.stage_gate_result.v1",
+  "shadow_wall_clock_span_binding_status": "PASS",
+  "short_window_runtime_counts_as_long_run_span": false,
+  "status": "PASS_NON_LIVE_SHADOW_WALL_CLOCK_SPAN_BINDING",
+  "wall_clock_span_source_required": true
+}

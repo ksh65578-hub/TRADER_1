@@ -1,0 +1,241 @@
+{
+  "active_read_surface_used": [
+    "current_implementation_state",
+    "PAPER/SHADOW runtime evidence collection profile",
+    "SHADOW runtime sample history",
+    "live final guard"
+  ],
+  "affected_contract_ids": [
+    "REQ-MVP4-UPBIT-PAPER-LONG-RUN-SAMPLE-ACCUMULATION-SPAN-PROVENANCE",
+    "REQ-MVP4-PAPER-SHADOW-LONG-RUN-STATE-CONSISTENCY",
+    "REQ-MVP4-PAPER-SHADOW-RUNTIME-SOURCE-REQUIRED-FIELDS",
+    "REQ-MVP4-PAPER-SHADOW-ACTUAL-RUNTIME-SOURCE-GUARD",
+    "REQ-MVP4-LIVE-FINAL-GUARD"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER,SHADOW",
+  "authority_hash_checked": true,
+  "authority_section_map_status": "CURRENT",
+  "can_live_trade_after": false,
+  "can_live_trade_before": false,
+  "context_pack_status": "UNCHANGED",
+  "context_pack_update_required": false,
+  "convergence_guardrail_result": "PASS_NO_SCALE_UP_WALL_CLOCK_SPAN_BINDING_ONLY",
+  "convergence_layer_changed": false,
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "convergence_state_after": "SHADOW_WALL_CLOCK_SPAN_BOUND_SHORT_WINDOW_ONLY_NOT_LONG_RUN",
+  "convergence_state_before": "WAITING_FOR_REAL_RUNTIME_OR_REPLAY_EVIDENCE",
+  "convergence_validators_required": [
+    "read_only_dashboard_validator",
+    "live_final_guard_validator"
+  ],
+  "convergence_validators_run": [
+    "read_only_dashboard_validator:PASS",
+    "live_final_guard_validator:PASS"
+  ],
+  "coverage_index_result": "UNCHANGED_PASS",
+  "coverage_unmapped_count": 0,
+  "created_at_utc": "2026-05-07T20:30:34Z",
+  "current_implementation_state_status": "UPDATED",
+  "current_implementation_state_updated": true,
+  "detail_reduction_allowed": false,
+  "evidence_manifest_path": "system/evidence/MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001.evidence_manifest.json",
+  "expanded_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "exploration_exploitation_policy_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_CHANGED",
+  "file_split": false,
+  "forbidden_default_sections_respected": true,
+  "full_document_read": false,
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "PASS",
+  "live_order_allowed_after": false,
+  "live_order_allowed_before": false,
+  "live_order_ready_after": false,
+  "live_order_ready_before": false,
+  "memory_schema_changed": false,
+  "merged_requirements": [],
+  "new_or_changed_schema_ids": [
+    "trader1.upbit_paper_runtime_evidence_collection_profile_report.v1"
+  ],
+  "new_registry_items": [],
+  "next_forbidden_default_sections": [
+    "RETAINED_ARCHIVE",
+    "LIVE_ENABLING_PATCH",
+    "BINANCE_FUTURES_LIVE"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_STRATEGY_PROFITABILITY",
+    "SECTION_RUNTIME_RECOVERY_RTO_ACTIVE",
+    "SECTION_WATCHDOG_OPERATIONS"
+  ],
+  "next_required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_task_class": "MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION",
+  "objective_profile_changed": false,
+  "optimizer_guardrail_result": "PASS_NO_LIVE_MUTATION_NO_SCORE_PROMOTION",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "optimizer_maturity_level_after": "SHADOW_WALL_CLOCK_SPAN_BOUND_SHORT_WINDOW_ONLY_NOT_LONG_RUN",
+  "optimizer_maturity_level_before": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_output_type": "NO_OPTIMIZER_OUTPUT_CREATED",
+  "optimizer_patch": "false",
+  "optimizer_stage": "NOT_CHANGED_WAITING_FOR_LONG_RUN_EVIDENCE",
+  "optimizer_status_after": "WAITING_FOR_LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE",
+  "optimizer_status_before": "WAITING_FOR_REAL_RUNTIME_OR_REPLAY_EVIDENCE",
+  "optimizer_validators_required": [
+    "read_only_dashboard_validator",
+    "live_final_guard_validator"
+  ],
+  "optimizer_validators_run": [
+    "read_only_dashboard_validator:PASS",
+    "live_final_guard_validator:PASS"
+  ],
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "patch_id": "MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001",
+  "profit_convergence_patch": "false",
+  "read_cache_invalidated": false,
+  "read_cache_manifest_status": "UNCHANGED",
+  "read_cache_update_required": false,
+  "regime_adaptation_changed": false,
+  "registry_placeholders_remaining": [],
+  "registry_yaml_parse_status": "PASS",
+  "remaining_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "removed_requirements": [],
+  "required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "requirement_artifact_matrix_status": "UNCHANGED",
+  "requirement_index_status": "UNCHANGED",
+  "result_hash": "3C2EA729AD68AAE175ED193E22663463C121CFF3810FDD593E5F2745F779A585",
+  "retained_archive_preserved": true,
+  "retained_archive_read": false,
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED",
+  "risk_scaling_policy_changed": false,
+  "scale_up_allowed_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_eligibility_changed": false,
+  "schema_id": "trader1.patch_result.v1",
+  "semantic_reduction_allowed": false,
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001.stage_gate_result.json",
+  "survival_layer_changed": false,
+  "target_mvp_level": "MVP-4",
+  "task_class": "MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING",
+  "tests_run": [
+    {
+      "command": "python -B -m pytest tests\\runtime\\test_upbit_paper_runtime_evidence_collection_profile.py -q",
+      "returncode": 0,
+      "status": "PASS",
+      "summary": "20 passed"
+    },
+    {
+      "command": "python -B -m pytest tests\\research\\test_paper_shadow_evidence_accumulator.py -q",
+      "returncode": 0,
+      "status": "PASS",
+      "summary": "8 passed"
+    },
+    {
+      "command": "python -B tools\\run_runtime_schema_instance_validators.py",
+      "returncode": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python -B tools\\run_read_only_dashboard_validators.py",
+      "returncode": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python -B tools\\run_live_final_guard_validators.py",
+      "returncode": 0,
+      "status": "PASS"
+    },
+    {
+      "command": "python -B tools\\run_bytecode_free_syntax_check.py",
+      "returncode": 0,
+      "status": "PASS",
+      "summary": "files_checked=845"
+    },
+    {
+      "command": "python -B tools\\run_patch_result_runtime_schema_validators.py",
+      "returncode": 0,
+      "status": "PASS"
+    }
+  ],
+  "token_navigation_patch": true,
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001.validator_run_log.json",
+  "validators_required": [
+    "schema_validator",
+    "upbit_paper_runtime_evidence_collection_profile_validator",
+    "paper_shadow_evidence_accumulation_validator",
+    "runtime_schema_instance_validator",
+    "read_only_dashboard_validator",
+    "bytecode_free_syntax_validator",
+    "live_final_guard_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator"
+  ],
+  "validators_run": [
+    {
+      "status": "PASS",
+      "validator_id": "schema_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "upbit_paper_runtime_evidence_collection_profile_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "paper_shadow_evidence_accumulation_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "runtime_schema_instance_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "read_only_dashboard_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "bytecode_free_syntax_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "live_final_guard_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "patch_result_schema_validator"
+    },
+    {
+      "status": "PASS",
+      "validator_id": "patch_result_runtime_schema_instance_validator"
+    }
+  ]
+}

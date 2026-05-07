@@ -1,0 +1,35 @@
+{
+  "artifact_hashes": {
+    "system/evidence/patch_results/MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001.patch_result.json": "13EA6D2BA51471061909BDBE23808C2C725B7FEF94689728E4D2F536F5BC200C",
+    "system/evidence/stage_gates/MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001.stage_gate_result.json": "F4CADAA4573951272EFA41C4435F0B1C6705C9B69F71F93DE4A2A9D976656C0C",
+    "system/evidence/validator_runs/MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001.validator_run_log.json": "1B723E1015A1E5997CBC194E2CEC6226AE78CA243976A034051DB8483DDAF497",
+    "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py": "46BE336B1895C1BA8C59DE041DA1C55C472F6A9694F4BC74F4DBD04E0C27A066",
+    "tools/run_upbit_paper_runtime_evidence_collection_profile.py": "82774897B17AADC533FA97E1AABFA6C7F57FE951CA80D88CB02CFA1DA71E2C71"
+  },
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001.patch_result.json",
+    "system/evidence/validator_runs/MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001.stage_gate_result.json",
+    "tools/run_upbit_paper_runtime_evidence_collection_profile.py",
+    "tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py"
+  ],
+  "authority": {
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B"
+  },
+  "blockers": [],
+  "can_live_trade": false,
+  "evidence_manifest_id": "MVP4_SHADOW_WALL_CLOCK_SPAN_BINDING_20260508_001",
+  "exchange": "UPBIT",
+  "generated_at_utc": "2026-05-07T20:30:34Z",
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "long_run_evidence_eligible": false,
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER,SHADOW",
+  "notes": "SHADOW runtime sample history now separates wall-clock observed span from short-window measured runtime. This improves non-live long-run progress accounting without creating actual long-run maturity or live permission.",
+  "project_id": "TRADER_1",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.evidence_manifest.v1",
+  "status": "PASS_NON_LIVE_SHADOW_WALL_CLOCK_SPAN_BINDING"
+}

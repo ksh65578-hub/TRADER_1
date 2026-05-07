@@ -9,6 +9,8 @@ from tools.run_upbit_paper_runtime_evidence_collection_profile import (
     _refresh_dashboard_after_profile_write,
     _load_actual_loop_runtime_cycles,
     _runtime_cycle_shadow_identity,
+    _shadow_runtime_sample_history_template,
+    _validate_shadow_runtime_sample_history,
     build_upbit_paper_runtime_evidence_collection_profile_report,
     run_upbit_paper_runtime_evidence_collection_profile,
     upbit_paper_runtime_evidence_collection_profile_hash,
@@ -375,9 +377,84 @@ class UpbitPaperRuntimeEvidenceCollectionProfileTest(unittest.TestCase):
         self.assertEqual(history["accepted_sample_count"], 2)
         self.assertEqual(history["accepted_cycle_sample_count"], 5)
         self.assertEqual(shadow_depth["observed_cycle_count"], 5)
+        self.assertIn(
+            history["observed_span_source"],
+            {"SAMPLE_OBSERVED_AT_UTC", "SAMPLE_OBSERVED_AT_UTC_AND_LEGACY_HISTORY_BOUNDS"},
+        )
+        self.assertIsNotNone(history["first_sample_at_utc"])
+        self.assertIsNotNone(history["latest_sample_at_utc"])
+        self.assertEqual(shadow_depth["observed_span_seconds"], history["observed_span_seconds"])
+        self.assertGreaterEqual(history["observed_short_window_runtime_seconds"], 0)
         self.assertEqual(shadow_depth["missing_cycle_count"], second["min_actual_long_run_cycle_count"] - 5)
         self.assertFalse(history["live_order_allowed"])
         self.assertFalse(second["live_order_allowed"])
+
+    def test_shadow_runtime_history_uses_wall_clock_span_not_short_window_runtime_sum(self):
+        history = _shadow_runtime_sample_history_template(
+            session_id="mvp1_upbit_paper_launcher",
+            samples=[
+                {
+                    "sample_id": "sample-a",
+                    "accepted": True,
+                    "validation_status": "PASS",
+                    "rejection_code": None,
+                    "orchestration_id": "orchestration-a",
+                    "orchestration_report_hash": "hash-a",
+                    "persistent_runtime_report_hash": "persistent-a",
+                    "harness_report_hash": "harness-a",
+                    "observed_actual_runtime_seconds": 2,
+                    "observed_actual_cycle_count": 2,
+                    "sample_observed_at_utc": "2026-05-07T00:00:00Z",
+                    "source_hashes_verified": True,
+                    "source_runtime_hash_pairing_verified": True,
+                    "source_validation_status": "PASS",
+                    "runtime_evidence_role": "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN",
+                    "long_run_evidence_eligible": False,
+                    "actual_long_run_runtime_present": False,
+                    "scorecard_input_eligible": False,
+                    "promotion_eligible": False,
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                    "order_adapter_called": False,
+                },
+                {
+                    "sample_id": "sample-b",
+                    "accepted": True,
+                    "validation_status": "PASS",
+                    "rejection_code": None,
+                    "orchestration_id": "orchestration-b",
+                    "orchestration_report_hash": "hash-b",
+                    "persistent_runtime_report_hash": "persistent-b",
+                    "harness_report_hash": "harness-b",
+                    "observed_actual_runtime_seconds": 3,
+                    "observed_actual_cycle_count": 3,
+                    "sample_observed_at_utc": "2026-05-07T01:00:00Z",
+                    "source_hashes_verified": True,
+                    "source_runtime_hash_pairing_verified": True,
+                    "source_validation_status": "PASS",
+                    "runtime_evidence_role": "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN",
+                    "long_run_evidence_eligible": False,
+                    "actual_long_run_runtime_present": False,
+                    "scorecard_input_eligible": False,
+                    "promotion_eligible": False,
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                    "order_adapter_called": False,
+                },
+            ],
+        )
+        result = _validate_shadow_runtime_sample_history(history)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(history["observed_span_source"], "SAMPLE_OBSERVED_AT_UTC")
+        self.assertEqual(history["observed_span_seconds"], 3600)
+        self.assertEqual(history["observed_short_window_runtime_seconds"], 5)
+        self.assertFalse(history["live_order_allowed"])
+        self.assertFalse(history["can_live_trade"])
 
     def test_profile_shadow_observations_bind_to_actual_paper_loop_candidate_scope(self):
         from tempfile import TemporaryDirectory
@@ -535,13 +612,25 @@ class UpbitPaperRuntimeEvidenceCollectionProfileTest(unittest.TestCase):
                 loop_id="profile-shadow-short-window-consumer",
                 requested_cycle_count=1,
             )
+            history_path = (
+                root
+                / "system/runtime/upbit/krw_spot/shadow"
+                / session_id
+                / "shadow_runtime_sample_history.json"
+            )
+            history = json.loads(history_path.read_text(encoding="utf-8"))
 
         result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
         shadow_depth = report["long_run_collection_depth"]["runtime_mode_depth_evidence"]["mode_depths"]["shadow"]
 
         self.assertEqual(result.status, "PASS")
         self.assertEqual(shadow_depth["source_status"], "PRESENT_BLOCKER_ONLY_NOT_LONG_RUN")
-        self.assertGreaterEqual(shadow_depth["observed_span_seconds"], 2)
+        self.assertEqual(shadow_depth["observed_span_seconds"], history["observed_span_seconds"])
+        self.assertGreaterEqual(history["observed_short_window_runtime_seconds"], 2)
+        self.assertIn(
+            history["observed_span_source"],
+            {"SAMPLE_OBSERVED_AT_UTC", "SAMPLE_OBSERVED_AT_UTC_AND_LEGACY_HISTORY_BOUNDS"},
+        )
         self.assertGreaterEqual(shadow_depth["observed_cycle_count"], 5)
         self.assertEqual(
             shadow_depth["missing_span_seconds"],
