@@ -115,6 +115,7 @@ NON_LIVE_PROFITABILITY_REFRESH_CRITICAL_BLOCKERS = {
 }
 DASHBOARD_FILE_MISSING_BLOCKER_CODE = "DASHBOARD_FILE_MISSING"
 DASHBOARD_OPEN_FAILED_BLOCKER_CODE = "DASHBOARD_OPEN_FAILED"
+DASHBOARD_PREOPEN_REFRESH_FAILED_BLOCKER_CODE = "DASHBOARD_PREOPEN_REFRESH_FAILED"
 
 LIVE_FALSE_FLAGS = (
     "live_order_ready",
@@ -1862,6 +1863,7 @@ def validate_upbit_paper_long_runner_status_report(report: dict[str, Any]) -> di
     elif report.get("dashboard_opened") is not True and report.get("dashboard_open_blocker_code") not in {
         DASHBOARD_FILE_MISSING_BLOCKER_CODE,
         DASHBOARD_OPEN_FAILED_BLOCKER_CODE,
+        DASHBOARD_PREOPEN_REFRESH_FAILED_BLOCKER_CODE,
     }:
         return {"status": "FAIL", "blocker_code": "RUNNER_STATUS_DASHBOARD_OPEN_BLOCKER_MISSING"}
     return {"status": "PASS", "blocker_code": None}
@@ -2060,6 +2062,27 @@ def open_runner_dashboard(
     opener: Callable[[str], bool] | None = None,
 ) -> bool:
     return open_runner_dashboard_result(root, session_id, opener=opener).opened
+
+
+def dashboard_preopen_refresh_failed_result(
+    root: Path,
+    session_id: str = DEFAULT_SESSION_ID,
+    *,
+    error: str,
+) -> DashboardOpenResult:
+    path = runner_dashboard_path(root, session_id)
+    return DashboardOpenResult(
+        attempted=True,
+        opened=False,
+        method="PRE_OPEN_REFRESH_FAILED",
+        target=str(path.resolve()),
+        path=str(path),
+        blocker_code=DASHBOARD_PREOPEN_REFRESH_FAILED_BLOCKER_CODE,
+        blocker_message=(
+            "Dashboard refresh failed before opening, so the launcher did not open a possibly stale dashboard: "
+            f"{error}"
+        ),
+    )
 
 
 def run_upbit_paper_long_running_runner(
@@ -2622,13 +2645,22 @@ def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
             return 1
     dashboard_open_result: DashboardOpenResult | None = None
     dashboard_opened = False
+    dashboard_refresh_error: str | None = None
     if refresh_dashboard:
         try:
             _maybe_refresh_dashboard(root)
         except Exception as exc:
+            dashboard_refresh_error = str(exc)
             print(f"TRADER_1 UPBIT_PAPER dashboard_refresh_failed={exc}", flush=True)
     if open_dashboard:
-        dashboard_open_result = open_runner_dashboard_result(root)
+        if dashboard_refresh_error:
+            dashboard_open_result = dashboard_preopen_refresh_failed_result(
+                root,
+                DEFAULT_SESSION_ID,
+                error=dashboard_refresh_error,
+            )
+        else:
+            dashboard_open_result = open_runner_dashboard_result(root)
         dashboard_opened = dashboard_open_result.opened
         print(f"TRADER_1 UPBIT_PAPER dashboard_opened={str(dashboard_opened).lower()}", flush=True)
         print(f"dashboard_open_method={dashboard_open_result.method}", flush=True)
