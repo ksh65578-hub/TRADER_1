@@ -50,6 +50,79 @@ def _load_json(path: Path) -> dict:
 
 
 class UpbitPaperLongRunnerTest(unittest.TestCase):
+    def test_profitability_sample_selection_prefers_entry_review_over_later_no_trade(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        samples = [
+            {
+                "cycle_id": "cycle-entry-review",
+                "source_runtime_cycle_path": "paper_runtime/cycles/cycle-entry-review.runtime_cycle.json",
+                "source_runtime_cycle_hash": "A" * 64,
+                "candidate_count": 60,
+                "entry_reason_count": 2,
+                "no_trade_reason_count": 2,
+                "scorecard_candidate_identity_binding_status": "BOUND",
+                "scorecard_candidate_live_flags_clear": True,
+                "scorecard_candidate_decision": "PAPER_ENTRY_REVIEW",
+                "scorecard_candidate_id": "KRW-ONDO-breakout-retest-long",
+                "scorecard_strategy_id": "breakout_retest",
+                "scorecard_parameter_hash": "B" * 64,
+                "scorecard_candidate_net_ev_after_cost_bps": "28.12",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+            {
+                "cycle_id": "cycle-latest-no-trade",
+                "source_runtime_cycle_path": "paper_runtime/cycles/cycle-latest-no-trade.runtime_cycle.json",
+                "source_runtime_cycle_hash": "C" * 64,
+                "candidate_count": 51,
+                "entry_reason_count": 0,
+                "no_trade_reason_count": 3,
+                "scorecard_candidate_identity_binding_status": "BOUND",
+                "scorecard_candidate_live_flags_clear": True,
+                "scorecard_candidate_decision": "NO_TRADE",
+                "scorecard_candidate_id": "KRW-BTC-vwap-mean-reversion",
+                "scorecard_strategy_id": "vwap_mean_reversion",
+                "scorecard_parameter_hash": "D" * 64,
+                "scorecard_candidate_net_ev_after_cost_bps": "-14.25",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        ]
+
+        selected = long_runner._select_profitability_evidence_sample(samples)
+
+        self.assertEqual(selected["cycle_id"], "cycle-entry-review")
+        self.assertEqual(selected["scorecard_candidate_id"], "KRW-ONDO-breakout-retest-long")
+        self.assertFalse(selected["live_order_allowed"])
+        self.assertFalse(selected["can_live_trade"])
+
+    def test_profitability_sample_selection_fails_closed_without_usable_sample(self):
+        import trader1.runtime.paper.upbit_paper_long_runner as long_runner
+
+        selected = long_runner._select_profitability_evidence_sample(
+            [
+                {
+                    "cycle_id": "cycle-live-flagged",
+                    "candidate_count": 12,
+                    "source_runtime_cycle_path": "paper_runtime/cycles/cycle-live-flagged.runtime_cycle.json",
+                    "source_runtime_cycle_hash": "E" * 64,
+                    "scorecard_candidate_identity_binding_status": "BOUND",
+                    "scorecard_candidate_live_flags_clear": False,
+                    "scorecard_candidate_id": "KRW-BTC-vwap-mean-reversion",
+                    "scorecard_strategy_id": "vwap_mean_reversion",
+                    "scorecard_parameter_hash": "F" * 64,
+                    "live_order_allowed": True,
+                }
+            ]
+        )
+
+        self.assertIsNone(selected)
+
     def test_dashboard_refresh_uses_public_rest_continuity_when_runner_uses_public_rest(self):
         import trader1.runtime.paper.upbit_paper_long_runner as long_runner
 
