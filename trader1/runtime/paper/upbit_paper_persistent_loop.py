@@ -82,6 +82,7 @@ RUNTIME_QUALITY_FEEDBACK_COOLDOWN_CYCLES = 5
 RUNTIME_QUALITY_FEEDBACK_MIN_PRELIMINARY_SAMPLE_COUNT = 20
 RUNTIME_QUALITY_FEEDBACK_MAX_AGE_SECONDS = 6 * 60 * 60
 RUNTIME_QUALITY_FEEDBACK_MAX_FUTURE_SKEW_SECONDS = 5 * 60
+RUNTIME_QUALITY_FEEDBACK_MAX_ACTIVE_CANDIDATES = 20
 RECENT_FAILURE_FEEDBACK_EXIT_REASONS = {
     "REGIME_REVERSAL",
     "HARD_STOP",
@@ -478,25 +479,42 @@ def _strategy_family_from_candidate_id(candidate_id: str) -> str | None:
     return None
 
 
-def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str) -> list[dict[str, Any]]:
-    diagnostic_path = _runtime_base_dir(root, session_id) / "profitability" / "overfit_diagnostic_report.json"
-    diagnostic, error = _safe_read_json(diagnostic_path)
-    if error is not None or not isinstance(diagnostic, dict):
-        return []
+def _runtime_quality_diagnostic_paths(*, root: Path, session_id: str) -> list[Path]:
+    profitability_dir = _runtime_base_dir(root, session_id) / "profitability"
+    paths = [profitability_dir / "overfit_diagnostic_report.json"]
+    candidate_dir = profitability_dir / "overfit_diagnostics"
+    if candidate_dir.exists():
+        paths.extend(sorted(candidate_dir.glob("*.overfit_diagnostic_report.json")))
+    unique_paths: list[Path] = []
+    seen: set[str] = set()
+    for path in paths:
+        key = str(path)
+        if key not in seen:
+            unique_paths.append(path)
+            seen.add(key)
+    return unique_paths
+
+
+def _runtime_quality_candidate_record_from_diagnostic(
+    diagnostic: dict[str, Any],
+    *,
+    session_id: str,
+    now_utc: datetime,
+) -> tuple[str, datetime, dict[str, Any] | None] | None:
     if diagnostic.get("diagnostic_hash") != _overfit_diagnostic_report_hash(diagnostic):
-        return []
+        return None
     if diagnostic.get("exchange") != "UPBIT" or diagnostic.get("market_type") != "KRW_SPOT" or diagnostic.get("mode") != "PAPER":
-        return []
+        return None
     if diagnostic.get("session_id") != session_id:
-        return []
+        return None
     if diagnostic.get("live_order_ready") or diagnostic.get("live_order_allowed") or diagnostic.get("can_live_trade") or diagnostic.get("scale_up_allowed"):
-        return []
+        return None
     generated_at = _parse_utc_datetime(diagnostic.get("generated_at_utc"))
     if generated_at is None:
-        return []
-    feedback_age_seconds = (datetime.now(timezone.utc) - generated_at).total_seconds()
+        return None
+    feedback_age_seconds = (now_utc - generated_at).total_seconds()
     if feedback_age_seconds < -RUNTIME_QUALITY_FEEDBACK_MAX_FUTURE_SKEW_SECONDS:
-        return []
+        return None
     feedback_freshness_status = (
         "FRESH"
         if feedback_age_seconds <= RUNTIME_QUALITY_FEEDBACK_MAX_AGE_SECONDS
@@ -505,13 +523,13 @@ def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str)
     candidate_id = str(diagnostic.get("candidate_id") or "")
     symbol = str(diagnostic.get("symbol") or "")
     if not candidate_id or not symbol:
-        return []
+        return None
     try:
         preliminary_sample_count = int(diagnostic.get("preliminary_sample_count") or 0)
     except (TypeError, ValueError):
         preliminary_sample_count = 0
     if preliminary_sample_count < RUNTIME_QUALITY_FEEDBACK_MIN_PRELIMINARY_SAMPLE_COUNT:
-        return []
+        return None
 
     preliminary_statuses = {
         str(diagnostic.get("preliminary_robustness_status") or ""),
@@ -532,9 +550,11 @@ def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str)
         or preliminary_bootstrap_lower < 0
     )
     if not unfavorable:
-        return []
+        return candidate_id, generated_at, None
 
-    return [
+    return (
+        candidate_id,
+        generated_at,
         {
             "source": "PAPER_RUNTIME_PRELIMINARY_ROBUSTNESS_FEEDBACK",
             "feedback_kind": "PRELIMINARY_ROBUSTNESS_FAIL",
@@ -561,8 +581,42 @@ def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str)
             "live_order_allowed": False,
             "can_live_trade": False,
             "scale_up_allowed": False,
-        }
+        },
+    )
+
+
+def _recent_unfavorable_runtime_quality_feedback(*, root: Path, session_id: str) -> list[dict[str, Any]]:
+    latest_actionable_record_by_candidate: dict[str, tuple[datetime, dict[str, Any] | None]] = {}
+    now_utc = datetime.now(timezone.utc)
+    for diagnostic_path in _runtime_quality_diagnostic_paths(root=root, session_id=session_id):
+        diagnostic, error = _safe_read_json(diagnostic_path)
+        if error is not None or not isinstance(diagnostic, dict):
+            continue
+        record = _runtime_quality_candidate_record_from_diagnostic(
+            diagnostic,
+            session_id=session_id,
+            now_utc=now_utc,
+        )
+        if record is None:
+            continue
+        candidate_id, generated_at, feedback = record
+        existing = latest_actionable_record_by_candidate.get(candidate_id)
+        if existing is None or generated_at >= existing[0]:
+            latest_actionable_record_by_candidate[candidate_id] = (generated_at, feedback)
+
+    feedback = [
+        item_feedback
+        for _, item_feedback in latest_actionable_record_by_candidate.values()
+        if item_feedback is not None
     ]
+    feedback.sort(
+        key=lambda item: (
+            _parse_utc_datetime(item.get("source_generated_at_utc")) or datetime.min.replace(tzinfo=timezone.utc),
+            str(item.get("candidate_id") or ""),
+        ),
+        reverse=True,
+    )
+    return feedback[:RUNTIME_QUALITY_FEEDBACK_MAX_ACTIVE_CANDIDATES]
 
 
 def _requires_legacy_quantitative_policy_recheck(cycle: dict[str, Any] | None) -> bool:
