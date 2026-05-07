@@ -241,6 +241,58 @@ def _history_span_fields(
     }
 
 
+def _sample_metric_by_id(sample: dict[str, Any], metric_id: str) -> dict[str, Any] | None:
+    metrics = sample.get("metrics", [])
+    if not isinstance(metrics, list):
+        return None
+    for metric in metrics:
+        if isinstance(metric, dict) and metric.get("metric_id") == metric_id:
+            return metric
+    return None
+
+
+def _uses_runner_backed_stability_metrics(sample: dict[str, Any]) -> bool:
+    heartbeat_metric = _sample_metric_by_id(sample, "heartbeat_age") or {}
+    artifact_metric = _sample_metric_by_id(sample, "runtime_artifact_pressure") or {}
+    queue_metric = _sample_metric_by_id(sample, "queue_backlog") or {}
+    return (
+        sample.get("status") != "ERROR"
+        and sample.get("metric_status_counts", {}).get("FAIL", 0) == 0
+        and heartbeat_metric.get("status") == "WARN"
+        and heartbeat_metric.get("value_display") == "RUNNER_ACTIVE / HEARTBEAT_STALE"
+        and artifact_metric.get("status") == "PASS"
+        and queue_metric.get("status") in {"PASS", "WARN"}
+    )
+
+
+def _contains_legacy_artifact_pressure_error(samples: list[dict[str, Any]]) -> bool:
+    for sample in samples:
+        if sample.get("status") != "ERROR":
+            continue
+        artifact_metric = _sample_metric_by_id(sample, "runtime_artifact_pressure") or {}
+        queue_metric = _sample_metric_by_id(sample, "queue_backlog") or {}
+        resource_metric = _sample_metric_by_id(sample, "resource_health") or {}
+        if "FAIL" in {
+            artifact_metric.get("status"),
+            queue_metric.get("status"),
+            resource_metric.get("status"),
+        }:
+            return True
+    return False
+
+
+def _should_reset_for_runner_backed_metric_semantics(
+    previous_history: dict[str, Any],
+    previous_samples: list[dict[str, Any]],
+    sample: dict[str, Any],
+) -> bool:
+    return (
+        previous_history.get("history_status") == "ERROR"
+        and _uses_runner_backed_stability_metrics(sample)
+        and _contains_legacy_artifact_pressure_error(previous_samples)
+    )
+
+
 def _new_history(
     sample: dict[str, Any],
     *,
@@ -327,6 +379,14 @@ def append_stability_history(
             sample,
             max_samples=max_samples,
             reset_reason="PREVIOUS_HISTORY_ISOLATED",
+            min_validated_span_seconds=min_validated_span_seconds,
+            min_validated_sample_count=min_validated_sample_count,
+        )
+    if _should_reset_for_runner_backed_metric_semantics(previous_history, previous_samples, sample):
+        return _new_history(
+            sample,
+            max_samples=max_samples,
+            reset_reason="RUNNER_BACKED_STABILITY_METRIC_SOURCE_CHANGED",
             min_validated_span_seconds=min_validated_span_seconds,
             min_validated_sample_count=min_validated_sample_count,
         )

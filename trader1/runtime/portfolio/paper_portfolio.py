@@ -623,6 +623,121 @@ def build_paper_portfolio_snapshot_from_fill(
     return snapshot
 
 
+def build_paper_portfolio_snapshot_after_sell_fill(
+    *,
+    current_snapshot: dict[str, Any],
+    session_id: str,
+    symbol: str,
+    quantity: str | int | float | Decimal,
+    fill_price: str | int | float | Decimal,
+    fee_amount: str | int | float | Decimal,
+    source_runtime_cycle_id: str | None = None,
+    source_paper_ledger_head_hash: str | None = None,
+) -> dict[str, Any]:
+    base = dict(current_snapshot)
+    base["positions"] = [dict(position) for position in current_snapshot.get("positions", []) if isinstance(position, dict)]
+    blockers: list[dict[str, str]] = []
+    base_result = validate_paper_portfolio_snapshot(base)
+    if base_result.status != "PASS":
+        blockers.append(
+            {
+                "code": base_result.blocker_code or "MEASUREMENT_MISSING",
+                "severity": "HIGH",
+                "message": base_result.message,
+            }
+        )
+
+    qty_to_sell = _decimal(quantity)
+    sell_price = _decimal(fill_price)
+    sell_fee = _decimal(fee_amount)
+    if qty_to_sell <= 0 or sell_price <= 0 or sell_fee < 0:
+        blockers.append({"code": "MEASUREMENT_MISSING", "severity": "HIGH", "message": "paper sell fill values must be positive"})
+
+    positions: list[dict[str, Any]] = []
+    selected_found = False
+    realized_delta = Decimal("0")
+    for position in base.get("positions", []):
+        current = dict(position)
+        if str(current.get("symbol")) != symbol:
+            positions.append(current)
+            continue
+        selected_found = True
+        current_qty = _decimal(current.get("quantity"))
+        current_cost_basis = _decimal(current.get("cost_basis"))
+        if current_qty <= 0 or current_cost_basis <= 0:
+            blockers.append({"code": "MEASUREMENT_MISSING", "severity": "HIGH", "message": "paper sell source position is invalid"})
+            positions.append(current)
+            continue
+        if qty_to_sell > current_qty:
+            blockers.append({"code": "RECONCILIATION_REQUIRED", "severity": "HIGH", "message": "paper sell fill exceeds open long quantity"})
+            positions.append(current)
+            continue
+
+        sell_fraction = qty_to_sell / current_qty
+        allocated_cost_basis = current_cost_basis * sell_fraction
+        sell_proceeds = qty_to_sell * sell_price
+        realized_delta += sell_proceeds - allocated_cost_basis - sell_fee
+        remaining_qty = current_qty - qty_to_sell
+        remaining_cost_basis = current_cost_basis - allocated_cost_basis
+        if remaining_qty > 0:
+            updated = dict(current)
+            updated["quantity"] = _decimal_text(remaining_qty)
+            updated["mark_price"] = _decimal_text(sell_price)
+            updated["cost_basis"] = _decimal_text(remaining_cost_basis)
+            updated["market_value"] = _decimal_text(remaining_qty * sell_price)
+            updated["unrealized_pnl"] = _decimal_text((remaining_qty * sell_price) - remaining_cost_basis)
+            updated["source"] = "PAPER_LEDGER_SCAFFOLD"
+            updated["paper_only"] = True
+            positions.append(updated)
+    if not selected_found:
+        blockers.append({"code": "MEASUREMENT_MISSING", "severity": "HIGH", "message": "paper sell fill source position is missing"})
+
+    cash_available = _decimal(base.get("cash_available")) + (qty_to_sell * sell_price) - sell_fee
+    locked_balance = _decimal(base.get("locked_balance"))
+    realized_pnl = _decimal(base.get("realized_pnl")) + realized_delta
+    position_market_value = sum((_decimal(position.get("market_value")) for position in positions), Decimal("0"))
+    unrealized_pnl = sum((_decimal(position.get("unrealized_pnl")) for position in positions), Decimal("0"))
+    total_pnl = realized_pnl + unrealized_pnl
+    equity = cash_available + locked_balance + position_market_value
+    starting = _decimal(base.get("starting_cash"))
+    if cash_available < 0 or equity <= 0:
+        blockers.append({"code": "RISK_VETO", "severity": "HIGH", "message": "paper sell fill produced invalid simulated cash or equity"})
+    return_pct = Decimal("0") if starting <= 0 else ((equity - starting) / starting * Decimal("100"))
+    snapshot = dict(base)
+    snapshot.update(
+        {
+            "generated_at_utc": utc_now(),
+            "session_id": session_id,
+            "source_runtime_cycle_id": source_runtime_cycle_id,
+            "source_paper_ledger_head_hash": source_paper_ledger_head_hash,
+            "snapshot_status": "PASS" if not blockers else "BLOCKED",
+            "source": "PAPER_LEDGER_SCAFFOLD",
+            "cash_available": _decimal_text(cash_available),
+            "locked_balance": _decimal_text(locked_balance),
+            "position_market_value": _decimal_text(position_market_value),
+            "equity": _decimal_text(equity),
+            "realized_pnl": _decimal_text(realized_pnl),
+            "unrealized_pnl": _decimal_text(unrealized_pnl),
+            "total_pnl": _decimal_text(total_pnl),
+            "return_pct": _decimal_text(return_pct),
+            "open_position_count": len(positions) if not blockers else 0,
+            "positions": positions if not blockers else [],
+            "paper_only": True,
+            "display_balance_kind": "SIMULATED_PAPER_LEDGER",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "can_submit_order": False,
+            "primary_blocker_code": blockers[0]["code"] if blockers else None,
+            "blockers": blockers,
+            "snapshot_hash": "",
+        }
+    )
+    snapshot["snapshot_hash"] = paper_portfolio_hash(snapshot)
+    return snapshot
+
+
 def validate_paper_portfolio_snapshot(snapshot: dict[str, Any]) -> PaperPortfolioValidationResult:
     required = {
         "schema_id",

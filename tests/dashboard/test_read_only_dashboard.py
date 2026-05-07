@@ -90,10 +90,18 @@ from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer 
     upbit_paper_audited_current_evidence_snapshot_hash,
     upbit_paper_repaired_current_evidence_audited_writer_report_hash,
 )
+from trader1.runtime.ledger.paper_ledger_rollup import paper_ledger_rollup_hash
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import (
     run_upbit_paper_persistent_loop,
     upbit_paper_runtime_recovery_guard_hash,
+)
+from trader1.runtime.paper.upbit_paper_long_runner import (
+    DISK_PRESSURE_BLOCKER_CODE,
+    UPBIT_PAPER_LONG_RUNNER_RETENTION_SCHEMA_ID,
+    UPBIT_PAPER_LONG_RUNNER_STATUS_SCHEMA_ID,
+    upbit_paper_long_runner_retention_manifest_hash,
+    upbit_paper_long_runner_status_hash,
 )
 from trader1.runtime.paper.upbit_public_collector import build_upbit_public_market_data_collection_report
 from trader1.runtime.paper.upbit_public_rest_continuity import build_upbit_public_rest_continuity_report
@@ -159,6 +167,12 @@ def hashes():
 
 def krw_display(value):
     return f"{Decimal(str(value)):,.0f} KRW"
+
+
+def krw_signed_display(value):
+    amount = Decimal(str(value))
+    sign = "+" if amount >= 0 else "-"
+    return f"{sign}{abs(amount):,.0f} KRW"
 
 
 def build_inputs(
@@ -820,6 +834,292 @@ def build_dashboard_with_ledger_idempotency_runtime_evidence(report=None):
     )
 
 
+def runner_retention_manifest_fixture(session_id="test_read_only_dashboard_runner_ops", *, blocked=False):
+    manifest = {
+        "schema_id": UPBIT_PAPER_LONG_RUNNER_RETENTION_SCHEMA_ID,
+        "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "project_id": "TRADER_1",
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "retention_id": "test-runner-retention",
+        "retention_status": "BLOCKED" if blocked else "PASS",
+        "primary_blocker_code": DISK_PRESSURE_BLOCKER_CODE if blocked else None,
+        "max_active_artifacts_per_group": 2,
+        "log_max_bytes": 128,
+        "disk_pressure_max_runtime_bytes": 1000,
+        "disk_pressure_status": "BLOCKED" if blocked else "PASS",
+        "runtime_artifact_count_before": 8,
+        "runtime_artifact_bytes_before": 900,
+        "runtime_artifact_count_after": 4,
+        "runtime_artifact_bytes_after": 700 if not blocked else 1200,
+        "total_runtime_artifact_count_before": 12,
+        "total_runtime_artifact_bytes_before": 960,
+        "total_runtime_artifact_count_after": 6,
+        "total_runtime_artifact_bytes_after": 760 if not blocked else 1200,
+        "archive_artifact_count_before": 4,
+        "archive_artifact_bytes_before": 60,
+        "archive_artifact_count_after": 2,
+        "archive_artifact_bytes_after": 60,
+        "active_group_counts": {"paper_runtime_cycles": 2},
+        "archived_artifact_count": 2,
+        "archived_artifact_bytes": 200,
+        "archived_artifacts": [
+            {"group": "paper_runtime_cycles", "artifact_bytes": 100},
+            {"group": "runner_logs", "artifact_bytes": 100},
+        ],
+        "max_uncompacted_archive_batches": 3,
+        "compacted_archive_count": 0,
+        "compacted_archives": [],
+        "archive_root": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/archive/test",
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "order_adapter_called": False,
+        "private_endpoint_called": False,
+        "credential_load_attempted": False,
+        "live_key_loaded": False,
+    }
+    manifest["manifest_hash"] = upbit_paper_long_runner_retention_manifest_hash(manifest)
+    return manifest
+
+
+def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, blocked=False):
+    status = {
+        "schema_id": UPBIT_PAPER_LONG_RUNNER_STATUS_SCHEMA_ID,
+        "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "project_id": "TRADER_1",
+        "runner_id": "test-runner",
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "runner_status": "BLOCKED" if blocked else "RUNNING",
+        "running": False if blocked else True,
+        "started_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "updated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "completed_cycle_count": 3,
+        "failed_cycle_count": 0,
+        "cycle_interval_seconds": 30.0,
+        "next_cycle_eta": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "stop_method": "STOP_FILE_OR_CTRL_C",
+        "stop_reason": None,
+        "primary_blocker_code": DISK_PRESSURE_BLOCKER_CODE if blocked else None,
+        "primary_blocker_message": "Runtime disk pressure guard blocked collection." if blocked else None,
+        "actual_long_running_runner": True,
+        "long_run_evidence_eligible": False,
+        "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        "runner_status_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/runner_status.json",
+        "stop_file_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/STOP_UPBIT_PAPER.signal",
+        "lock_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/session.lock",
+        "log_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/runner_events.jsonl",
+        "dashboard_path": "system/runtime/upbit/krw_spot/paper/test/dashboard/index.html",
+        "dashboard_open_attempted": True,
+        "dashboard_opened": True,
+        "dashboard_open_method": "webbrowser.open",
+        "dashboard_open_target": "file:///C:/TRADER_1/system/runtime/upbit/krw_spot/paper/test/dashboard/index.html",
+        "dashboard_open_blocker_code": None,
+        "dashboard_open_blocker_message": None,
+        "last_loop_report_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/upbit_paper_persistent_loop_report.json",
+        "last_loop_hash": "loop-hash",
+        "last_runtime_cycle_hash": "cycle-hash",
+        "retention_manifest_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/runner/runner_retention_manifest.json",
+        "artifact_retention_status": "BLOCKED" if blocked else "PASS",
+        "runtime_artifact_count": 4,
+        "runtime_artifact_bytes": 700 if not blocked else 1200,
+        "archived_artifact_count": 2,
+        "disk_pressure_status": "BLOCKED" if blocked else "PASS",
+        "disk_pressure_max_runtime_bytes": 1000,
+        "paper_shadow_runtime_collection_status": "SHORT_WINDOW_EXECUTED",
+        "paper_shadow_runtime_collection_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "shadow_persistent_runtime_path": "system/runtime/upbit/krw_spot/shadow/test/shadow_observation/shadow_observation_persistent_runtime_report.json",
+        "shadow_runtime_harness_path": "system/runtime/upbit/krw_spot/shadow/test/actual_runtime_harness_report.json",
+        "shadow_runtime_orchestration_path": "system/runtime/upbit/krw_spot/shadow/test/runtime_orchestration_report.json",
+        "paper_shadow_harness_binding_path": "system/runtime/upbit/krw_spot/shadow/test/paper_shadow_harness_binding_report.json",
+        "shadow_persistent_runtime_hash": "shadow-persistent-hash",
+        "shadow_runtime_harness_hash": "shadow-harness-hash",
+        "shadow_runtime_orchestration_hash": "shadow-orchestration-hash",
+        "paper_shadow_harness_binding_hash": "paper-shadow-binding-hash",
+        "shadow_persistent_runtime_validation_status": "PASS",
+        "shadow_runtime_harness_validation_status": "PASS",
+        "shadow_runtime_orchestration_validation_status": "PASS",
+        "paper_shadow_harness_binding_validation_status": "PASS",
+        "shadow_completed_cycle_count": 1,
+        "shadow_observation_count": 2,
+        "shadow_observed_runtime_seconds": 60,
+        "shadow_actual_persistent_runtime_executed": True,
+        "shadow_long_run_evidence_eligible": False,
+        "paper_shadow_primary_blocker_code": None,
+        "profitability_evidence_refresh_status": "COLLECTING",
+        "profitability_evidence_primary_blocker_code": "SAMPLE_INSUFFICIENT",
+        "runtime_sample_history_path": "system/runtime/upbit/krw_spot/paper/test/paper_runtime/upbit_paper_runtime_sample_history.json",
+        "runtime_sample_history_status": "PASS",
+        "runtime_sample_count": 3,
+        "runtime_sample_invalid_source_count": 0,
+        "candidate_scorecard_path": "system/runtime/upbit/krw_spot/paper/test/profitability/candidate_scorecard.json",
+        "candidate_scorecard_status": "PASS",
+        "candidate_scorecard_ranking_eligible": False,
+        "candidate_scorecard_primary_blocker_code": "OOS_MISSING",
+        "symbol_evidence_scorecard_count": 2,
+        "selected_symbol_evidence_scorecard": {
+            "symbol": "KRW-BTC",
+            "rank_input_order": 1,
+            "regime": "UPTREND",
+            "last_price": "98765.5",
+            "momentum_pct": "1.25",
+            "volatility_pct": "0.80",
+            "volume_expansion_ratio": "1.10",
+            "spread_bps": "1.00",
+            "total_quote_volume": "123456789",
+            "source_public_market_data_hash": "A" * 64,
+            "symbol_selection_score": "0.7400",
+            "best_candidate_id": "KRW-BTC-pullback-trend-long",
+            "best_strategy_family": "PULLBACK_TREND_LONG",
+            "best_candidate_selection_score": "0.6900",
+            "best_net_ev_after_cost_bps": "21",
+            "best_decision": "PAPER_ENTRY_REVIEW",
+            "best_no_trade_reason": None,
+            "paper_entry_review_candidate_count": 1,
+            "candidate_count": 3,
+            "evidence_scope": "PAPER_SYMBOL_EVIDENCE_ONLY",
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        },
+        "symbol_evidence_scorecards_top": [
+            {
+                "symbol": "KRW-BTC",
+                "rank_input_order": 1,
+                "regime": "UPTREND",
+                "last_price": "98765.5",
+                "momentum_pct": "1.25",
+                "volatility_pct": "0.80",
+                "volume_expansion_ratio": "1.10",
+                "spread_bps": "1.00",
+                "total_quote_volume": "123456789",
+                "source_public_market_data_hash": "A" * 64,
+                "symbol_selection_score": "0.7400",
+                "best_candidate_id": "KRW-BTC-pullback-trend-long",
+                "best_strategy_family": "PULLBACK_TREND_LONG",
+                "best_candidate_selection_score": "0.6900",
+                "best_net_ev_after_cost_bps": "21",
+                "best_decision": "PAPER_ENTRY_REVIEW",
+                "best_no_trade_reason": None,
+                "paper_entry_review_candidate_count": 1,
+                "candidate_count": 3,
+                "evidence_scope": "PAPER_SYMBOL_EVIDENCE_ONLY",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+            {
+                "symbol": "KRW-ETH",
+                "rank_input_order": 2,
+                "regime": "RANGE",
+                "last_price": "4321000",
+                "momentum_pct": "-0.10",
+                "volatility_pct": "0.55",
+                "volume_expansion_ratio": "0.90",
+                "spread_bps": "1.00",
+                "total_quote_volume": "222222222",
+                "source_public_market_data_hash": "B" * 64,
+                "symbol_selection_score": "0.6100",
+                "best_candidate_id": "KRW-ETH-vwap-mean-reversion",
+                "best_strategy_family": "VWAP_MEAN_REVERSION",
+                "best_candidate_selection_score": "0.5500",
+                "best_net_ev_after_cost_bps": "6",
+                "best_decision": "PAPER_ENTRY_REVIEW",
+                "best_no_trade_reason": None,
+                "paper_entry_review_candidate_count": 1,
+                "candidate_count": 3,
+                "evidence_scope": "PAPER_SYMBOL_EVIDENCE_ONLY",
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            },
+        ],
+        "overfit_diagnostic_path": "system/runtime/upbit/krw_spot/paper/test/profitability/overfit_diagnostic_report.json",
+        "overfit_diagnostic_contract_status": "PASS",
+        "overfit_diagnostic_status": "BLOCKED_FOR_ROBUSTNESS",
+        "overfit_diagnostic_sample_count": 3,
+        "paper_shadow_evidence_accumulation_path": "system/runtime/upbit/krw_spot/paper/test/paper_shadow_evidence_accumulation_report.json",
+        "paper_shadow_evidence_validation_status": "BLOCKED",
+        "paper_shadow_evidence_blocker_code": "SAMPLE_INSUFFICIENT",
+        "paper_shadow_evidence_actionability_status": "COLLECT_PAPER_SAMPLES",
+        "paper_shadow_evidence_paper_sample_count": 3,
+        "paper_shadow_evidence_shadow_sample_count": 2,
+        "current_cycle_id": "test-cycle-3",
+        "last_cycle_time": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "last_decision": "HOLD_POSITION",
+        "last_blocker": None,
+        "current_symbol": "KRW-BTC",
+        "current_position_count": 1,
+        "cash": "750000",
+        "equity": "1000000",
+        "realized_pnl": "0",
+        "unrealized_pnl": "5000",
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "order_adapter_called": False,
+        "private_endpoint_called": False,
+        "credential_load_attempted": False,
+        "live_key_loaded": False,
+    }
+    status["status_hash"] = upbit_paper_long_runner_status_hash(status)
+    return status
+
+
+def build_dashboard_with_runner_operations(*, blocked=False, stopped=False, stale=False):
+    session_id = (
+        "test_read_only_dashboard_runner_ops_stopped"
+        if stopped
+        else "test_read_only_dashboard_runner_ops_blocked"
+        if blocked
+        else "test_read_only_dashboard_runner_ops"
+    )
+    summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+    runner_status = runner_status_fixture(session_id=session_id, blocked=blocked)
+    if stopped:
+        runner_status.update(
+            {
+                "runner_status": "STOPPED",
+                "running": False,
+                "next_cycle_eta": None,
+                "stop_reason": "MAX_CYCLES_REACHED",
+                "primary_blocker_code": "LIVE_READY_MISSING",
+                "primary_blocker_message": "PAPER runner stopped after the configured bounded collection window.",
+            }
+        )
+    if stale:
+        stale_time = (datetime.now(timezone.utc) - timedelta(hours=2)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        runner_status["generated_at_utc"] = stale_time
+        runner_status["updated_at_utc"] = stale_time
+        runner_status["last_cycle_time"] = stale_time
+    if stopped or stale:
+        runner_status["status_hash"] = upbit_paper_long_runner_status_hash(runner_status)
+    return build_read_only_dashboard_shell(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        mode="PAPER",
+        session_id=session_id,
+        summary=summary,
+        heartbeat=heartbeat,
+        startup_probe=startup_probe,
+        upbit_paper_long_runner_status_report=runner_status,
+        upbit_paper_long_runner_retention_manifest=runner_retention_manifest_fixture(
+            session_id=session_id,
+            blocked=blocked,
+        ),
+    )
+
+
 def post_rerun_blocker_rollup_fixture():
     return json.loads(
         (
@@ -1052,6 +1352,41 @@ def audited_writer_implementation_prep_fixture(source_locked_output_report=None)
         )
 
 
+def audited_writer_open_position_ledger_rollup_fixture(ledger_rollup: dict) -> dict:
+    rollup = json.loads(json.dumps(ledger_rollup))
+    portfolio = rollup.get("portfolio_snapshot")
+    if not isinstance(portfolio, dict):
+        return rollup
+    position = {
+        "symbol": "KRW-BTC",
+        "side": "LONG",
+        "quantity": "0.01",
+        "average_entry_price": "100000000",
+        "mark_price": "101000000",
+        "cost_basis": "1000000",
+        "market_value": "1010000",
+        "unrealized_pnl": "10000",
+        "paper_only": True,
+        "source": "PAPER_LEDGER_ROLLUP",
+    }
+    cash = Decimal(str(portfolio.get("cash_available") or "0"))
+    realized = Decimal(str(portfolio.get("realized_pnl") or "0"))
+    unrealized = Decimal(position["unrealized_pnl"])
+    market_value = Decimal(position["market_value"])
+    portfolio["positions"] = [position]
+    portfolio["open_position_count"] = 1
+    portfolio["position_market_value"] = str(market_value)
+    portfolio["unrealized_pnl"] = str(unrealized)
+    portfolio["total_pnl"] = str(realized + unrealized)
+    portfolio["equity"] = str(cash + market_value)
+    starting = Decimal(str(portfolio.get("starting_cash") or "0"))
+    portfolio["return_pct"] = str(Decimal("0") if starting <= 0 else ((Decimal(str(portfolio["equity"])) - starting) / starting * Decimal("100")))
+    portfolio["snapshot_hash"] = paper_portfolio_hash(portfolio)
+    rollup["portfolio_snapshot"] = portfolio
+    rollup["rollup_hash"] = paper_ledger_rollup_hash(rollup)
+    return rollup
+
+
 def audited_writer_output_fixture():
     with TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -1069,6 +1404,7 @@ def audited_writer_output_fixture():
                 / "paper_ledger_rollup_report.json"
             ).read_text(encoding="utf-8")
         )
+        ledger_rollup = audited_writer_open_position_ledger_rollup_fixture(ledger_rollup)
         writer_report = build_upbit_paper_repaired_current_evidence_audited_writer_report(
             root=root,
             source_implementation_prep_report=implementation_prep,
@@ -1100,32 +1436,39 @@ def audited_writer_output_fixture():
         return writer_report, current_evidence, paper_portfolio, implementation_prep
 
 
-def public_market_data_collection_fixture(*, close: str = "119000000", minute_start: int = 30) -> dict:
+def public_market_data_collection_fixture(
+    *,
+    symbol: str = "KRW-BTC",
+    close: str = "119000000",
+    minute_start: int = 30,
+) -> dict:
     payload = []
-    close_value = int(Decimal(close))
+    close_value = Decimal(close)
+    step = max(close_value.copy_abs() * Decimal("0.001"), Decimal("0.0001"))
     for offset in range(6):
         minute = minute_start + 5 - offset
-        trade_price = close_value - offset * 1000
+        trade_price = close_value - step * offset
+        low_price = max(Decimal("0"), trade_price - step)
         payload.append(
             {
-                "market": "KRW-BTC",
+                "market": symbol,
                 "candle_date_time_utc": f"2026-05-06T21:{minute:02d}:00",
-                "opening_price": str(trade_price - 500),
-                "high_price": str(trade_price + 1000),
-                "low_price": str(trade_price - 1000),
+                "opening_price": str(trade_price - step / Decimal("2")),
+                "high_price": str(trade_price + step),
+                "low_price": str(low_price),
                 "trade_price": str(trade_price),
                 "candle_acc_trade_volume": str(10 + offset),
             }
         )
     market_data = build_upbit_public_candle_data_from_rest_payload(
         payload=payload,
-        symbol="KRW-BTC",
+        symbol=symbol,
         session_id="mvp1_upbit_paper_launcher",
     )
     return build_upbit_public_market_data_collection_report(
         collector_id=f"test-dashboard-public-mark-{close}",
         session_id="mvp1_upbit_paper_launcher",
-        symbol="KRW-BTC",
+        symbol=symbol,
         market_data=market_data,
     )
 
@@ -1147,11 +1490,19 @@ def audited_writer_public_mark_output_fixture():
                 / "paper_ledger_rollup_report.json"
             ).read_text(encoding="utf-8")
         )
+        ledger_rollup = audited_writer_open_position_ledger_rollup_fixture(ledger_rollup)
+        positions = ledger_rollup.get("portfolio_snapshot", {}).get("positions", [])
+        position = positions[0] if positions and isinstance(positions[0], dict) else {}
+        public_symbol = str(position.get("symbol") or "KRW-BTC")
+        public_close = str(position.get("mark_price") or position.get("average_entry_price") or "119000000")
         writer_report = build_upbit_paper_repaired_current_evidence_audited_writer_report(
             root=root,
             source_implementation_prep_report=implementation_prep,
             source_ledger_rollup_report=ledger_rollup,
-            public_market_data_collection_report=public_market_data_collection_fixture(),
+            public_market_data_collection_report=public_market_data_collection_fixture(
+                symbol=public_symbol,
+                close=public_close,
+            ),
             audited_writer_id="test-dashboard-audited-current-evidence-public-mark-writer",
         )
         runtime_base = (
@@ -1232,7 +1583,10 @@ def audited_writer_full_activation_outputs_fixture():
         return writer_report, current_evidence, paper_portfolio, precheck, dry_run, locked_output, implementation_prep
 
 
-def build_dashboard_with_audited_current_evidence_writer(outputs=None):
+def build_dashboard_with_audited_current_evidence_writer(
+    outputs=None,
+    ledger_idempotency_runtime_evidence_report=None,
+):
     writer_report, current_evidence, paper_portfolio, implementation_prep = outputs or audited_writer_output_fixture()
     session_id = writer_report["session_id"]
     summary, heartbeat, startup_probe = build_inputs(session_id=session_id, with_paper_portfolio=False)
@@ -1248,6 +1602,7 @@ def build_dashboard_with_audited_current_evidence_writer(outputs=None):
         upbit_paper_repaired_current_evidence_audited_writer_report=writer_report,
         audited_current_evidence_snapshot=current_evidence,
         audited_paper_portfolio_snapshot=paper_portfolio,
+        upbit_paper_ledger_idempotency_runtime_evidence_report=ledger_idempotency_runtime_evidence_report,
     )
 
 
@@ -2030,6 +2385,231 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["can_live_trade"])
         self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_surfaces_paper_runner_operations_and_retention_status(self):
+        dashboard = build_dashboard_with_runner_operations()
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["primary_status_text"], "PAPER RUNNING - READ ONLY, LIVE ORDERS BLOCKED")
+        operation = dashboard["operation_status"]
+        self.assertEqual(operation["source"], "runner_status.json")
+        self.assertEqual(operation["runner_status"], "RUNNING")
+        self.assertTrue(operation["running"])
+        self.assertEqual(operation["completed_cycle_count"], 3)
+        self.assertEqual(operation["failed_cycle_count"], 0)
+        self.assertIsNotNone(operation["last_cycle_time"])
+        self.assertIsNotNone(operation["next_cycle_eta"])
+        self.assertEqual(operation["current_symbol"], "KRW-BTC")
+        self.assertEqual(operation["current_position_count"], 1)
+        self.assertEqual(operation["cash"], "750000")
+        self.assertEqual(operation["equity"], "1000000")
+        self.assertEqual(operation["realized_pnl"], "0")
+        self.assertEqual(operation["unrealized_pnl"], "5000")
+        self.assertEqual(operation["last_decision"], "HOLD_POSITION")
+        self.assertEqual(operation["primary_blocker"], "LIVE_READY_MISSING")
+        self.assertTrue(operation["live_orders_blocked"])
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "RUNNING_NOW")
+        self.assertEqual(runner["runner_status"], "RUNNING")
+        self.assertTrue(runner["running"])
+        self.assertEqual(runner["completed_cycle_count"], 3)
+        self.assertEqual(runner["failed_cycle_count"], 0)
+        self.assertEqual(runner["current_symbol"], "KRW-BTC")
+        self.assertEqual(runner["artifact_retention_status"], "PASS")
+        self.assertEqual(runner["disk_pressure_status"], "PASS")
+        self.assertTrue(runner["dashboard_open_attempted"])
+        self.assertTrue(runner["dashboard_opened"])
+        self.assertEqual(runner["dashboard_open_method"], "webbrowser.open")
+        self.assertEqual(runner["runtime_artifact_count"], 4)
+        self.assertEqual(runner["archived_artifact_count"], 2)
+        self.assertEqual(runner["profitability_evidence_refresh_status"], "COLLECTING")
+        self.assertEqual(runner["runtime_sample_history_status"], "PASS")
+        self.assertEqual(runner["runtime_sample_count"], 3)
+        self.assertEqual(runner["candidate_scorecard_status"], "PASS")
+        self.assertFalse(runner["candidate_scorecard_ranking_eligible"])
+        self.assertEqual(runner["overfit_preliminary_robustness_status"], "INSUFFICIENT_PRELIMINARY_SAMPLE")
+        self.assertEqual(runner["overfit_preliminary_oos_status"], "UNTESTED")
+        self.assertEqual(runner["symbol_evidence_scorecard_count"], 2)
+        self.assertEqual(runner["selected_symbol_evidence_scorecard"]["symbol"], "KRW-BTC")
+        self.assertEqual(runner["selected_symbol_evidence_scorecard"]["last_price"], "98765.5")
+        self.assertEqual(runner["symbol_evidence_scorecards_top"][0]["best_strategy_family"], "PULLBACK_TREND_LONG")
+        self.assertEqual(runner["symbol_evidence_scorecards_top"][0]["momentum_pct"], "1.25")
+        self.assertEqual(runner["paper_shadow_evidence_validation_status"], "BLOCKED")
+        self.assertEqual(runner["paper_shadow_evidence_actionability_status"], "COLLECT_PAPER_SAMPLES")
+        self.assertFalse(runner["live_order_allowed"])
+        source_by_id = {source["artifact_id"]: source for source in dashboard["source_artifacts"]}
+        self.assertEqual(source_by_id["PAPER_LONG_RUNNER_STATUS"]["filename"], "runner_status.json")
+        self.assertEqual(source_by_id["PAPER_LONG_RUNNER_STATUS"]["freshness_status"], "PASS")
+        self.assertEqual(source_by_id["PAPER_LONG_RUNNER_RETENTION"]["filename"], "runner_retention_manifest.json")
+        self.assertEqual(source_by_id["PAPER_LONG_RUNNER_RETENTION"]["freshness_status"], "PASS")
+        html = render_dashboard_html(dashboard)
+        self.assertIn("PAPER runner", html)
+        self.assertIn("Runner cycles", html)
+        self.assertIn("Evidence refresh", html)
+        self.assertIn("PAPER samples", html)
+        self.assertIn("Early robustness", html)
+        self.assertIn("PAPER/SHADOW evidence", html)
+        self.assertIn("Disk pressure", html)
+        self.assertIn("Dashboard open", html)
+        self.assertIn("Dashboard target", html)
+        self.assertIn("Selected scorecard", html)
+        self.assertIn("Symbol scorecards", html)
+        self.assertIn("KRW-BTC: PULLBACK_TREND_LONG", html)
+        self.assertIn("Current PAPER Runner", html)
+        self.assertIn("runner-current-snapshot", html)
+        self.assertIn("Running", html)
+        self.assertIn("Current: KRW-BTC / HOLD_POSITION", html)
+        self.assertIn("1 open PAPER position(s)", html)
+        self.assertIn("750,000 KRW", html)
+        self.assertIn("1,000,000 KRW", html)
+        self.assertIn("+5,000 KRW", html)
+        self.assertIn('data-primary-question="price"', html)
+        self.assertIn('aria-label="current public price quick answer"', html)
+        self.assertIn('data-public-ticker-symbol="KRW-BTC"', html)
+        self.assertIn(">98765.5</span>", html)
+        self.assertIn("PAPER runtime cycle", html)
+        self.assertIn("Current PAPER symbol: KRW-BTC", html)
+        self.assertIn('data-ticker-field="trade_price"', html)
+        self.assertIn("querySelectorAll('[data-public-ticker-symbol=", html)
+        self.assertIn("wss://api.upbit.com/websocket/v1", html)
+
+    def test_dashboard_operation_status_uses_fresh_runner_when_legacy_heartbeat_is_stale(self):
+        session_id = "test_read_only_dashboard_runner_ops_stale_heartbeat"
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+        stale_time = (datetime.now(timezone.utc) - timedelta(hours=2)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        heartbeat["generated_at_utc"] = stale_time
+        runner_status = runner_status_fixture(session_id=session_id)
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_long_runner_status_report=runner_status,
+            upbit_paper_long_runner_retention_manifest=runner_retention_manifest_fixture(
+                session_id=session_id,
+            ),
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["primary_status_text"], "PAPER RUNNING - READ ONLY, LIVE ORDERS BLOCKED")
+        operation = dashboard["operation_status"]
+        self.assertEqual(operation["status"], "RUNNING_SAFE_MODE")
+        self.assertEqual(operation["severity"], "WARNING")
+        self.assertEqual(operation["color_token"], "yellow")
+        self.assertEqual(operation["label"], "PAPER runner active")
+        self.assertEqual(operation["runtime_presence"], "PAPER_RUNTIME_ACTIVE")
+        self.assertEqual(operation["source"], "runner_status.json")
+        self.assertEqual(operation["primary_blocker"], "LIVE_READY_MISSING")
+        self.assertIn("Legacy heartbeat is stale", operation["message"])
+        self.assertIn("continuous PAPER engine", operation["operator_meaning"])
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_uses_runner_retention_for_active_runner_stale_heartbeat_pressure(self):
+        session_id = "test_read_only_dashboard_runner_ops_stale_heartbeat_pressure"
+        summary, heartbeat, startup_probe = build_inputs(
+            session_id=session_id,
+            heartbeat_component_overrides={
+                "disk": {"status": "FAIL", "message": "legacy heartbeat artifact pressure FAIL"},
+                "queue_backlog": {"status": "FAIL", "message": "legacy heartbeat queue backlog FAIL"},
+            },
+        )
+        heartbeat["heartbeat_status"] = "STALE"
+        heartbeat["heartbeat_age_seconds"] = 0.0
+        runner_status = runner_status_fixture(session_id=session_id)
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_long_runner_status_report=runner_status,
+            upbit_paper_long_runner_retention_manifest=runner_retention_manifest_fixture(
+                session_id=session_id,
+            ),
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["operation_status"]["runtime_presence"], "PAPER_RUNTIME_ACTIVE")
+        stability = dashboard["stability_trends"]
+        self.assertEqual(stability["status"], "ATTENTION")
+        self.assertEqual(stability["severity"], "WARNING")
+        metrics = {metric["metric_id"]: metric for metric in stability["metrics"]}
+        self.assertEqual(metrics["heartbeat_age"]["status"], "WARN")
+        self.assertEqual(metrics["resource_health"]["status"], "WARN")
+        self.assertEqual(metrics["runtime_artifact_pressure"]["status"], "PASS")
+        self.assertEqual(metrics["runtime_artifact_pressure"]["source"], "runner_retention_manifest.json")
+        self.assertEqual(metrics["queue_backlog"]["status"], "WARN")
+        self.assertNotIn("FAIL", {metric["status"] for metric in metrics.values()})
+        history = append_stability_history(None, dashboard)
+        self.assertEqual(history["history_status"], "ATTENTION")
+        self.assertEqual(history["error_sample_count"], 0)
+        self.assertEqual(history["samples"][0]["metric_status_counts"]["FAIL"], 0)
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
+    def test_dashboard_primary_status_uses_stopped_runner_truth(self):
+        dashboard = build_dashboard_with_runner_operations(stopped=True)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["primary_status_text"], "PAPER STOPPED - READ ONLY, LIVE ORDERS BLOCKED")
+        self.assertIn("Start PAPER again", dashboard["next_action"])
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "STOPPED")
+        self.assertEqual(runner["runner_status"], "STOPPED")
+        self.assertFalse(runner["running"])
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+
+    def test_dashboard_primary_status_preserves_last_runner_state_when_stale(self):
+        dashboard = build_dashboard_with_runner_operations(stopped=True, stale=True)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(
+            dashboard["primary_status_text"],
+            "PAPER STALE - LAST RUNNER STOPPED - LIVE ORDERS BLOCKED",
+        )
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "STALE")
+        self.assertEqual(runner["runner_status"], "STOPPED")
+        self.assertFalse(runner["running"])
+
+    def test_dashboard_blocks_paper_runner_disk_pressure(self):
+        dashboard = build_dashboard_with_runner_operations(blocked=True)
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(dashboard["primary_status_text"], "PAPER BLOCKED - READ ONLY, LIVE ORDERS BLOCKED")
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "BLOCKED")
+        self.assertEqual(runner["severity"], "ERROR")
+        self.assertEqual(runner["color_token"], "red")
+        self.assertEqual(runner["disk_pressure_status"], "BLOCKED")
+        self.assertEqual(runner["primary_blocker_code"], DISK_PRESSURE_BLOCKER_CODE)
+        self.assertFalse(runner["live_order_allowed"])
 
     def test_dashboard_binds_quantitative_policy_as_display_only_live_blocked_status(self):
         dashboard = build_dashboard()
@@ -2943,6 +3523,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["overfit_diagnostic_status"], "BLOCKED_FOR_ROBUSTNESS")
         self.assertEqual(maturity["overfit_diagnostic_sample_count"], 12)
         self.assertEqual(maturity["overfit_diagnostic_min_required_sample_count"], 300)
+        self.assertEqual(maturity["overfit_preliminary_robustness_status"], "INSUFFICIENT_PRELIMINARY_SAMPLE")
+        self.assertEqual(maturity["overfit_preliminary_primary_blocker_code"], "PRELIMINARY_SAMPLE_INSUFFICIENT")
         self.assertFalse(maturity["overfit_diagnostic_robustness_eligible"])
         self.assertEqual(maturity["overfit_diagnostic_primary_blocker_code"], "SAMPLE_INSUFFICIENT")
         sources = [source for source in dashboard["source_artifacts"] if source["artifact_id"] == "OVERFIT_DIAGNOSTIC"]
@@ -2950,6 +3532,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(sources[0]["filename"], "overfit_diagnostic_report.json")
         html = render_dashboard_html(dashboard)
         self.assertIn("Overfit: BLOCKED_FOR_ROBUSTNESS", html)
+        self.assertIn("Early robustness", html)
         self.assertIn("12/300 samples", html)
         self.assertFalse(maturity["live_order_allowed"])
 
@@ -3098,6 +3681,38 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(reconciliation["ledger_idempotency_runtime_validation_status"], "BLOCKED")
         self.assertEqual(reconciliation["status"], "BLOCKED")
         self.assertEqual(reconciliation["primary_blocker_code"], "LIVE_FINAL_GUARD_FAILED")
+        self.assertFalse(reconciliation["live_order_allowed"])
+        self.assertFalse(dashboard["live_order_allowed"])
+
+    def test_dashboard_blocked_ledger_idempotency_overrides_audited_writer_display_pass(self):
+        outputs = audited_writer_output_fixture()
+        writer_report = outputs[0]
+        report = ledger_idempotency_runtime_evidence_fixture(
+            session_id=writer_report["session_id"],
+            evidence_id="test-dashboard-ledger-idempotency-blocked-overrides-audited-writer",
+        )
+        report["runtime_evidence_status"] = "BLOCKED"
+        report["reconciliation_status"] = "BLOCKED"
+        report["primary_blocker_code"] = "RECONCILIATION_REQUIRED"
+        report["blockers"] = [
+            {
+                "code": "RECONCILIATION_REQUIRED",
+                "severity": "HIGH",
+                "message": "forced blocked ledger idempotency evidence",
+            }
+        ]
+        report["evidence_hash"] = upbit_paper_ledger_idempotency_runtime_evidence_hash(report)
+        dashboard = build_dashboard_with_audited_current_evidence_writer(
+            outputs,
+            ledger_idempotency_runtime_evidence_report=report,
+        )
+        result = validate_read_only_dashboard_shell(dashboard, set(registry()["enums"]["live_blocker_code"]["values"]))
+        self.assertEqual(result.status, "PASS", result.message)
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertTrue(reconciliation["upbit_paper_repaired_current_evidence_audited_writer_verified_for_display"])
+        self.assertEqual(reconciliation["ledger_idempotency_runtime_evidence_status"], "BLOCKED")
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(reconciliation["primary_blocker_code"], "RECONCILIATION_REQUIRED")
         self.assertFalse(reconciliation["live_order_allowed"])
         self.assertFalse(dashboard["live_order_allowed"])
 
@@ -4975,6 +5590,83 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(dashboard["live_order_allowed"])
         self.assertFalse(dashboard["scale_up_allowed"])
 
+    def test_dashboard_accepts_implementation_prep_with_measurement_missing_writer_blocker(self):
+        runtime_base = (
+            ROOT
+            / "system"
+            / "runtime"
+            / "upbit"
+            / "krw_spot"
+            / "paper"
+            / "mvp1_upbit_paper_launcher"
+            / "paper_runtime"
+        )
+        implementation_prep = json.loads(
+            (runtime_base / "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        ledger_rollup = json.loads(
+            (
+                ROOT
+                / "system"
+                / "runtime"
+                / "upbit"
+                / "krw_spot"
+                / "paper"
+                / "mvp1_upbit_paper_launcher"
+                / "ledger"
+                / "paper_ledger_rollup_report.json"
+            ).read_text(encoding="utf-8")
+        )
+        ledger_rollup = json.loads(json.dumps(ledger_rollup))
+        portfolio = ledger_rollup["portfolio_snapshot"]
+        portfolio["equity"] = "0"
+        portfolio["snapshot_hash"] = paper_portfolio_hash(portfolio)
+        ledger_rollup["rollup_hash"] = paper_ledger_rollup_hash(ledger_rollup)
+        with TemporaryDirectory() as tmp:
+            blocked_writer = build_upbit_paper_repaired_current_evidence_audited_writer_report(
+                root=Path(tmp),
+                source_implementation_prep_report=implementation_prep,
+                source_ledger_rollup_report=ledger_rollup,
+                audited_writer_id="test-dashboard-measurement-missing-blocked-writer",
+            )
+            summary, heartbeat, startup_probe = build_inputs(session_id=implementation_prep["session_id"])
+            dashboard = build_read_only_dashboard_shell(
+                exchange=implementation_prep["exchange"],
+                market_type=implementation_prep["market_type"],
+                mode=implementation_prep["mode"],
+                session_id=implementation_prep["session_id"],
+                summary=summary,
+                heartbeat=heartbeat,
+                startup_probe=startup_probe,
+                upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report=implementation_prep,
+                upbit_paper_repaired_current_evidence_audited_writer_report=blocked_writer,
+            )
+        reconciliation = dashboard["reconciliation_recovery_summary"]
+        self.assertEqual(reconciliation["status"], "BLOCKED")
+        self.assertEqual(reconciliation["severity"], "ERROR")
+        self.assertEqual(reconciliation["color_token"], "red")
+        self.assertEqual(
+            reconciliation["source"],
+            "upbit_paper_repaired_current_evidence_audited_writer_implementation_prep_report.json",
+        )
+        self.assertEqual(reconciliation["primary_blocker_code"], "MEASUREMENT_MISSING")
+        self.assertEqual(
+            reconciliation["upbit_paper_repaired_current_evidence_audited_writer_status"],
+            "BLOCKED_SOURCE_LEDGER_ROLLUP_INVALID",
+        )
+        operator_action = dashboard["operator_action_summary"]
+        self.assertEqual(operator_action["primary_action_label"], "Inspect audited writer implementation prep")
+        self.assertIn(
+            "audited current-evidence writer implementation prep is review-only",
+            operator_action["one_line_blocker"],
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
     def test_dashboard_blocks_audited_writer_implementation_prep_operator_action_drift(self):
         dashboard = build_dashboard_with_audited_writer_implementation_prep()
         dashboard["operator_action_summary"]["primary_action_label"] = "Inspect audited writer locked output"
@@ -5114,7 +5806,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["configured_paper_capital"]["value_display"], "1,000,000 KRW")
         expected_cash_display = krw_display(current_evidence["verified_cash_krw"])
         expected_equity_display = krw_display(current_evidence["verified_equity_krw"])
-        expected_total_pnl_display = krw_display(current_evidence["verified_total_pnl_krw"])
+        expected_total_pnl_display = krw_signed_display(current_evidence["verified_total_pnl_krw"])
         self.assertEqual(portfolio["cash"]["value_display"], expected_cash_display)
         self.assertEqual(portfolio["equity"]["value_display"], expected_equity_display)
         self.assertEqual(portfolio["total_pnl"]["value_display"], expected_total_pnl_display)
@@ -5193,11 +5885,14 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(portfolio["equity"]["value_display"], krw_display(current_evidence["verified_equity_krw"]))
         self.assertEqual(
             portfolio["total_pnl"]["value_display"],
-            krw_display(current_evidence["verified_total_pnl_krw"]),
+            krw_signed_display(current_evidence["verified_total_pnl_krw"]),
         )
-        self.assertEqual(
+        self.assertIn(
             paper_portfolio["price_basis_repair_status"],
-            "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION",
+            {
+                "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION",
+                "NOT_REQUIRED",
+            },
         )
         html = render_dashboard_html(dashboard)
         self.assertIn("PAPER_LEDGER_PUBLIC_MARK_VALUES_VERIFIED", html)
@@ -6368,7 +7063,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         html = render_dashboard_html(dashboard)
         self.assertIn("Collecting", html)
         self.assertIn("BLOCK_RANKING", html)
-        self.assertIn("Evidence Progress: 40%", html)
+        self.assertIn("Scorecard Input Checks: 40%", html)
+        self.assertIn("This is PAPER scorecard input only; LIVE_READY remains blocked", html)
         self.assertIn("Maturity Gap: OPEN_HIGH", html)
         self.assertIn("9 maturity gaps remain", html)
         self.assertIn("Strategy Entry Exit No Trade", html)
@@ -7554,6 +8250,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("portfolio-detail-grid", html)
         self.assertIn("Held Positions", html)
         self.assertIn("KRW-BTC | LONG | qty 0.01 | avg 100000000 | mark 99900000 | value 999000 | PnL -2500 KRW", html)
+        self.assertIn('data-public-ticker-symbol="KRW-BTC"', html)
+        self.assertIn('data-ticker-field="trade_price">99900000</span>', html)
+        self.assertIn("PAPER public mark snapshot", html)
         self.assertIn("Mark Price", html)
         self.assertIn("Market Value", html)
         self.assertIn("Cost Basis", html)
@@ -7815,6 +8514,16 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(portfolio["live_order_allowed"])
         self.assertFalse(portfolio["can_live_trade"])
         self.assertFalse(portfolio["scale_up_allowed"])
+        positions = dashboard["position_snapshot"]
+        self.assertEqual(positions["source"], "paper_current_truth_refresh_report.json")
+        self.assertEqual(positions["status"], "OPEN")
+        self.assertEqual(positions["open_position_count"], 1)
+        self.assertEqual(positions["rows"][0]["symbol"], "KRW-BTC")
+        self.assertEqual(positions["rows"][0]["mark_price"], "49000000")
+        self.assertFalse(positions["live_order_ready"])
+        self.assertFalse(positions["live_order_allowed"])
+        self.assertFalse(positions["can_live_trade"])
+        self.assertFalse(positions["scale_up_allowed"])
 
     def test_current_truth_refresh_display_survives_blocked_continuous_writer_preflight(self):
         session_id = "test_read_only_dashboard_current_truth_refresh_writer_blocked"
@@ -7923,6 +8632,13 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(portfolio["live_order_allowed"])
         self.assertFalse(portfolio["can_live_trade"])
         self.assertFalse(portfolio["scale_up_allowed"])
+        positions = dashboard["position_snapshot"]
+        self.assertEqual(positions["status"], "UNVERIFIED")
+        self.assertEqual(positions["source"], "paper_current_truth_refresh_report.json")
+        self.assertFalse(positions["live_order_ready"])
+        self.assertFalse(positions["live_order_allowed"])
+        self.assertFalse(positions["can_live_trade"])
+        self.assertFalse(positions["scale_up_allowed"])
 
     def test_dashboard_prioritizes_partial_runtime_truth_over_verified_portfolio(self):
         session_id = "test_read_only_dashboard_partial_runtime_truth"
@@ -8666,7 +9382,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Paper / Shadow Samples", html)
         self.assertIn("Optimizer Input", html)
         self.assertIn("Evidence Quality", html)
-        self.assertIn("Evidence Progress: 0%", html)
+        self.assertIn("Scorecard Input Checks: 0%", html)
+        self.assertIn("This is PAPER scorecard input only; LIVE_READY remains blocked", html)
         self.assertIn("Maturity Gap: OPEN_HIGH", html)
         self.assertIn("10 maturity gaps remain", html)
         self.assertIn("Strategy Entry Exit No Trade", html)
@@ -8773,6 +9490,16 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn('detail.addEventListener("toggle"', html)
         self.assertIn("data-refresh-seconds=\"10\"", html)
         self.assertIn("data-stale-after=\"300\"", html)
+        self.assertIn("Realtime KRW Prices", html)
+        self.assertIn("data-public-ticker-symbols=", html)
+        self.assertIn('data-public-ticker-symbol="KRW-BTC"', html)
+        self.assertIn("wss://api.upbit.com/websocket/v1", html)
+        self.assertIn("Public Upbit ticker only", html)
+        self.assertIn("no credentials, private endpoint, or order path", html)
+        ticker_index = html.index("Realtime KRW Prices")
+        self.assertLess(html.index("operator decision surface"), ticker_index)
+        self.assertLess(ticker_index, html.index("operator priority answers"))
+        self.assertEqual(html.count('<section class="public-ticker-strip"'), 1)
         self.assertIn("Primary Blocker", html)
         self.assertIn("Next operator action", html)
         self.assertIn("Dashboard display truth only", html)
@@ -8855,17 +9582,20 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         html = render_dashboard_html(build_dashboard())
         decision_start = html.index('<section class="operator-decision-surface" aria-label="operator decision surface">')
         quick_start = html.index('<section class="operator-quick-status" aria-label="operator quick status">')
+        ticker_start = html.index('<section class="public-ticker-strip" aria-label="public Upbit realtime ticker"')
         answer_start = html.index('<section class="operator-answer-grid" aria-label="operator priority answers">')
         portfolio_start = html.index('<section class="primary-portfolio-detail" aria-label="primary portfolio detail">')
         detail_start = html.index('<details class="detail-drawer" data-detail-key="main-detail-drawer">')
         freshness_start = html.index('<section class="freshness-strip" data-dashboard-freshness')
         decision_html = html[decision_start:quick_start]
-        quick_html = html[quick_start:answer_start]
+        quick_html = html[quick_start:ticker_start]
+        ticker_html = html[ticker_start:answer_start]
         answer_html = html[answer_start:portfolio_start]
         portfolio_html = html[portfolio_start:detail_start]
 
         self.assertLess(decision_start, quick_start)
-        self.assertLess(quick_start, answer_start)
+        self.assertLess(quick_start, ticker_start)
+        self.assertLess(ticker_start, answer_start)
         self.assertLess(answer_start, portfolio_start)
         self.assertLess(portfolio_start, detail_start)
         self.assertLess(detail_start, freshness_start)
@@ -8881,6 +9611,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("Reason:", quick_html)
         self.assertIn("13 blockers remain", quick_html)
         self.assertIn("live_order_allowed=false", quick_html)
+        self.assertIn("Realtime KRW Prices", ticker_html)
+        self.assertIn("data-public-ticker-symbols=", ticker_html)
+        self.assertIn("Public Upbit ticker only", ticker_html)
+        self.assertNotIn("live_order_allowed=true", ticker_html)
         self.assertIn("System Health", answer_html)
         self.assertIn("Portfolio Detail", answer_html)
         self.assertIn("Live Execution", answer_html)

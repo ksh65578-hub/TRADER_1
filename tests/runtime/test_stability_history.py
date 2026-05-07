@@ -102,6 +102,49 @@ class StabilityHistoryTest(unittest.TestCase):
         self.assertEqual(history["history_status"], "ATTENTION")
         self.assertEqual(history["sample_count"], 1)
 
+    def test_runner_backed_metric_semantics_reset_legacy_false_error_history(self):
+        legacy = fresh_dashboard_snapshot(build_dashboard(), "2026-04-30T00:00:00Z")
+        legacy["stability_trends"]["status"] = "ERROR"
+        legacy["stability_trends"]["severity"] = "ERROR"
+        legacy["stability_trends"]["color_token"] = "red"
+        for metric in legacy["stability_trends"]["metrics"]:
+            if metric["metric_id"] in {"resource_health", "runtime_artifact_pressure", "queue_backlog"}:
+                metric["status"] = "FAIL"
+                metric["value_display"] = "FAIL"
+        legacy["dashboard_hash"] = dashboard_shell_hash(legacy)
+        history = append_stability_history(None, legacy)
+        self.assertEqual(history["history_status"], "ERROR")
+        self.assertEqual(history["error_sample_count"], 1)
+
+        recovered = fresh_dashboard_snapshot(build_dashboard(), "2026-04-30T00:01:00Z")
+        recovered["stability_trends"]["status"] = "ATTENTION"
+        recovered["stability_trends"]["severity"] = "WARNING"
+        recovered["stability_trends"]["color_token"] = "yellow"
+        for metric in recovered["stability_trends"]["metrics"]:
+            if metric["metric_id"] == "heartbeat_age":
+                metric["status"] = "WARN"
+                metric["value_display"] = "RUNNER_ACTIVE / HEARTBEAT_STALE"
+            elif metric["metric_id"] == "source_freshness":
+                metric["status"] = "STALE"
+            elif metric["metric_id"] in {"resource_health", "queue_backlog"}:
+                metric["status"] = "WARN"
+                metric["value_display"] = "WARN"
+            elif metric["metric_id"] == "runtime_artifact_pressure":
+                metric["status"] = "PASS"
+                metric["value_display"] = "PASS"
+        recovered["dashboard_hash"] = dashboard_shell_hash(recovered)
+
+        reset = append_stability_history(history, recovered)
+        result = validate_stability_history(reset)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(reset["reset_reason"], "RUNNER_BACKED_STABILITY_METRIC_SOURCE_CHANGED")
+        self.assertEqual(reset["history_status"], "ATTENTION")
+        self.assertEqual(reset["sample_count"], 1)
+        self.assertEqual(reset["error_sample_count"], 0)
+        self.assertEqual(reset["attention_sample_count"], 1)
+        self.assertIsNone(reset["samples"][0]["previous_sample_hash"])
+
     def test_stability_history_blocks_live_permission_mutation(self):
         history = append_stability_history(None, fresh_dashboard_snapshot(build_dashboard(), "2026-04-30T00:00:00Z"))
         history["live_order_allowed"] = True

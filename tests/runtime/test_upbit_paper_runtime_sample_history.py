@@ -43,6 +43,7 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertFalse(history["scale_up_allowed"])
         self.assertGreaterEqual(history["samples"][0]["candidate_count"], 1)
         self.assertGreaterEqual(history["samples"][0]["entry_reason_count"], 1)
+        self.assertIn("exit_reason_count", history["samples"][0])
         self.assertEqual(history["samples"][1]["previous_sample_hash"], history["samples"][0]["sample_hash"])
 
         written_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
@@ -62,6 +63,43 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         }
 
         self.assertEqual(sample_history_module._entry_reason_evidence_count(runtime_cycle), 1)
+
+    def test_entry_reason_evidence_counts_review_candidates_when_position_management_overrides_final_decision(self):
+        runtime_cycle = {
+            "entry_reasons": [],
+            "selected_candidate": {"decision": "NO_TRADE", "no_trade_reason": "REGIME_MISMATCH"},
+            "strategy_candidates": [
+                {"candidate_id": "candidate-1", "decision": "PAPER_ENTRY_REVIEW"},
+                {"candidate_id": "candidate-2", "decision": "NO_TRADE"},
+                {"candidate_id": "candidate-3", "decision": "PAPER_ENTRY_REVIEW"},
+            ],
+            "final_decision": "EXIT_POSITION",
+            "no_trade_reasons": ["REGIME_ROTATION_EXIT"],
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        self.assertEqual(sample_history_module._entry_reason_evidence_count(runtime_cycle), 2)
+
+    def test_exit_reason_evidence_counts_position_management_decision(self):
+        runtime_cycle = {
+            "final_decision": "REDUCE_POSITION",
+            "no_trade_reasons": ["PARTIAL_EXIT_FILL", "REGIME_ROTATION_EXIT"],
+            "position_management_decision": {
+                "final_decision": "REDUCE_POSITION",
+                "requested_position_decision": "EXIT_POSITION",
+                "reason_code": "REGIME_ROTATION_EXIT",
+                "execution_adjusted_position_decision_reason": "PARTIAL_EXIT_FILL",
+            },
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+
+        self.assertEqual(sample_history_module._exit_reason_evidence_count(runtime_cycle), 6)
 
     def test_runtime_sample_history_excludes_invalid_legacy_loop_sources_while_collecting(self):
         history, root = self._history()

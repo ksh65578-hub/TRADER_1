@@ -1,3 +1,4 @@
+import hashlib
 import json
 import unittest
 from pathlib import Path
@@ -32,10 +33,16 @@ from trader1.runtime.paper.upbit_public_collector import (
     validate_upbit_public_market_data_latest_pointer,
     write_upbit_public_market_data_collection_artifacts,
 )
+from trader1.runtime.portfolio.paper_portfolio import build_paper_portfolio_snapshot_from_fill
 from trader1.validation.mvp0_validators import run_validators
 
 
 class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
+    def _hash_payload(self, payload: dict[str, object]) -> str:
+        return hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+        ).hexdigest().upper()
+
     def _upbit_rest_payload(self) -> list[dict[str, object]]:
         return [
             {
@@ -302,20 +309,20 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
                 for artifact_path in cycle_result["artifact_paths"]
                 if artifact_path.endswith(".paper_ledger_events.jsonl")
             ]
-            self.assertEqual(len(ledger_artifacts), 2)
+            self.assertEqual(len(ledger_artifacts), 1)
             ledger_head_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/latest_paper_ledger_head.json"
             ledger_head = json.loads(ledger_head_path.read_text(encoding="utf-8"))
             self.assertEqual(ledger_head["schema_id"], "trader1.paper_ledger_head.v1")
             self.assertEqual(ledger_head["ledger_head_hash"], latest["paper_ledger_head_hash"])
             self.assertFalse(ledger_head["live_order_allowed"])
-            self.assertEqual(guard["ledger_jsonl_checked_count"], 2)
+            self.assertEqual(guard["ledger_jsonl_checked_count"], 1)
             self.assertEqual(guard["corrupted_ledger_jsonl_quarantined_count"], 0)
             self.assertEqual(guard["ledger_jsonl_invalid_count"], 0)
             rollup = json.loads((root / loop["paper_ledger_rollup_path"]).read_text(encoding="utf-8"))
-            self.assertEqual(rollup["ledger_jsonl_count"], 2)
-            self.assertEqual(rollup["filled_order_count"], 2)
+            self.assertEqual(rollup["ledger_jsonl_count"], 1)
+            self.assertEqual(rollup["filled_order_count"], 1)
             self.assertEqual(rollup["portfolio_snapshot"]["source"], "PAPER_LEDGER_ROLLUP")
-            self.assertEqual(rollup["portfolio_snapshot"]["source_runtime_cycle_id"], "bounded-paper-loop-cycle-2")
+            self.assertEqual(rollup["portfolio_snapshot"]["source_runtime_cycle_id"], "bounded-paper-loop-cycle-1")
             self.assertEqual(rollup["portfolio_snapshot"]["source_paper_ledger_head_hash"], rollup["latest_ledger_head_hash"])
             self.assertFalse(rollup["live_order_allowed"])
 
@@ -349,6 +356,56 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
         self.assertEqual(latest["selected_symbol"], "KRW-ETH")
         self.assertEqual(latest["paper_fill"]["symbol"], "KRW-ETH")
         self.assertEqual(latest["paper_portfolio_snapshot"]["positions"][0]["symbol"], "KRW-ETH")
+        self.assertFalse(latest["live_order_allowed"])
+
+    def test_persistent_loop_applies_recent_negative_exit_cooldown_from_prior_paper_cycle(self):
+        entry_market = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp1_upbit_paper_launcher",
+            profile="UPTREND_PULLBACK",
+        )
+        exit_market = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp1_upbit_paper_launcher",
+            profile="DOWNTREND",
+        )
+        retry_market = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp1_upbit_paper_launcher",
+            profile="UPTREND_PULLBACK",
+        )
+        for data in (entry_market, retry_market):
+            for index, candle in enumerate(data["candles"], start=1):
+                candle["volume"] = str(10 + index * 3)
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-recent-negative-exit-feedback",
+                requested_cycle_count=3,
+                symbol_universe=["KRW-BTC"],
+                market_data_universe_sequence=[[entry_market], [exit_market], [retry_market]],
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(loop["completed_cycle_count"], 3)
+        self.assertEqual(loop["cycle_results"][0]["final_decision"], "ENTER_LONG")
+        self.assertEqual(loop["cycle_results"][1]["final_decision"], "EXIT_POSITION")
+        self.assertEqual(loop["cycle_results"][2]["final_decision"], "NO_TRADE")
+        self.assertEqual(loop["cycle_results"][2]["selected_candidate_recent_failure_cooldown_status"], "ACTIVE")
+        self.assertGreater(loop["cycle_results"][2]["selected_candidate_recent_failure_cooldown_cycles_remaining"], 0)
+        self.assertEqual(loop["cycle_results"][2]["selected_candidate_recent_failure_reason_code"], "REGIME_REVERSAL")
+        self.assertEqual(latest["selected_candidate"]["recent_failure_cooldown_status"], "ACTIVE")
+        self.assertEqual(latest["selected_candidate"]["recent_failure_reason_code"], "REGIME_REVERSAL")
+        self.assertEqual(latest["selected_candidate"]["no_trade_reason"], "COOLDOWN")
+        self.assertIn("COOLDOWN", latest["no_trade_reasons"])
+        self.assertLess(float(latest["selected_candidate"]["recent_failure_realized_pnl_delta"]), 0)
+        self.assertIsNone(latest["paper_fill"])
+        self.assertFalse(loop["live_order_allowed"])
         self.assertFalse(latest["live_order_allowed"])
 
     def test_bounded_paper_loop_discovers_all_krw_markets_then_evaluates_ranked_public_candidates(self):
@@ -419,6 +476,66 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
         self.assertFalse(loop["live_order_allowed"])
         self.assertFalse(latest["live_order_allowed"])
 
+    def test_bounded_paper_loop_skips_ranked_symbols_without_enough_public_candles(self):
+        def fake_market_symbols_fetcher(**_: object) -> dict[str, object]:
+            return build_upbit_public_krw_symbol_discovery_report_from_payload(
+                session_id="mvp1_upbit_paper_launcher",
+                payload=[
+                    {"market": "KRW-NEW"},
+                    {"market": "KRW-SOL"},
+                    {"market": "KRW-ETH"},
+                ],
+            )
+
+        def fake_ticker_fetcher(*, symbols: list[str], session_id: str, **_: object) -> dict[str, object]:
+            return build_upbit_public_ticker_snapshot_from_rest_payload(
+                payload=[
+                    {"market": "KRW-NEW", "trade_price": 1000, "acc_trade_price_24h": 9000000000, "signed_change_rate": "0.09", "acc_trade_volume_24h": 900000},
+                    {"market": "KRW-SOL", "trade_price": 220000, "acc_trade_price_24h": 8000000000, "signed_change_rate": "0.04", "acc_trade_volume_24h": 50000},
+                    {"market": "KRW-ETH", "trade_price": 6000000, "acc_trade_price_24h": 1200000000, "signed_change_rate": "0.02", "acc_trade_volume_24h": 200},
+                ],
+                requested_symbols=symbols,
+                session_id=session_id,
+            )
+
+        def fake_candle_fetcher(*, symbol: str, session_id: str, **_: object) -> dict[str, object]:
+            profile = "UPTREND_PULLBACK" if symbol == "KRW-SOL" else "WEAK_RANGE"
+            data = build_upbit_public_candle_fixture(symbol=symbol, session_id=session_id, profile=profile)
+            if symbol == "KRW-NEW":
+                data["candles"] = data["candles"][:2]
+            if symbol == "KRW-SOL":
+                for index, candle in enumerate(data["candles"], start=1):
+                    candle["volume"] = str(10 + index * 4)
+            return data
+
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-public-discovery-skip-short-candle-symbol",
+                requested_cycle_count=1,
+                attempt_public_symbol_discovery=True,
+                attempt_network_market_data=True,
+                max_symbol_evaluation_count=3,
+                market_symbols_fetcher=fake_market_symbols_fetcher,
+                public_ticker_fetcher=fake_ticker_fetcher,
+                public_candle_fetcher=fake_candle_fetcher,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+        cycle_result = loop["cycle_results"][0]
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(loop["symbol_universe"][0], "KRW-NEW")
+        self.assertIn("KRW-NEW", cycle_result["collection_hashes_by_symbol"])
+        self.assertNotIn("KRW-NEW", cycle_result["symbol_universe"])
+        self.assertEqual(cycle_result["symbol_universe_evaluated_count"], 2)
+        self.assertEqual(latest["selected_symbol"], "KRW-SOL")
+        self.assertEqual(latest["paper_fill"]["symbol"], "KRW-SOL")
+        self.assertFalse(loop["live_order_allowed"])
+        self.assertFalse(latest["live_order_allowed"])
+
     def test_bounded_paper_loop_allows_clean_preflight_resume(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -440,6 +557,37 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertTrue(second["preflight_paper_runtime_resume_allowed"])
             self.assertTrue(second["current_evidence_write_allowed"])
             self.assertEqual(second["completed_cycle_count"], 1)
+            self.assertFalse(second["live_order_allowed"])
+
+    def test_bounded_paper_loop_refreshes_stale_cash_guard_manifest_before_sizing(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-stale-cash-manifest-a",
+                requested_cycle_count=1,
+            )
+            self.assertEqual(validate_upbit_paper_persistent_loop_report(first).status, "PASS")
+
+            manifest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/paper_ledger_input_manifest.json"
+            )
+            manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            manifest_path.write_text(json.dumps({"schema_id": "stale-test-manifest"}), encoding="utf-8")
+
+            second = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-stale-cash-manifest-b",
+                requested_cycle_count=1,
+            )
+            latest_path = root / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(validate_upbit_paper_persistent_loop_report(second).status, "PASS")
+            self.assertEqual(second["completed_cycle_count"], 1)
+            self.assertEqual(latest["sizing_decision"]["inputs"]["paper_cash_guard_source"], "PAPER_LEDGER_ROLLUP")
+            self.assertNotEqual(latest["sizing_decision"]["inputs"]["paper_cash_available"], "-1")
             self.assertFalse(second["live_order_allowed"])
 
     def test_bounded_paper_loop_allows_paper_only_resume_from_legacy_quant_policy_cycle(self):
@@ -511,6 +659,183 @@ class UpbitPublicCollectionPersistentLoopTest(unittest.TestCase):
             self.assertEqual(loop["completed_cycle_count"], 1)
             self.assertEqual(guard["latest_cycle_contract_mode"], "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP")
             self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
+
+    def test_bounded_paper_loop_regenerates_legacy_symbol_scorecard_cycle(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-legacy-symbol-scorecard-cycle",
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            for field in (
+                "symbol_selection_policy",
+                "symbol_evidence_scorecards",
+                "symbol_evidence_scorecard_count",
+                "selected_symbol_evidence_scorecard",
+            ):
+                del legacy_cycle[field]
+            legacy_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(legacy_cycle)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            )
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(legacy_cycle, indent=2), encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-legacy-symbol-scorecard-resume",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            guard = json.loads((root / loop["preflight_runtime_recovery_guard_path"]).read_text(encoding="utf-8"))
+            guard_result = validate_upbit_paper_runtime_recovery_guard_report(guard)
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(guard_result.status, "PASS")
+            self.assertEqual(loop["preflight_recovery_guard_status"], "PASS")
+            self.assertTrue(loop["current_evidence_write_allowed"])
+            self.assertEqual(loop["completed_cycle_count"], 1)
+            self.assertEqual(guard["latest_cycle_contract_mode"], "LEGACY_RECHECK_WITHOUT_SYMBOL_EVIDENCE_SCORECARD")
+            self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
+            self.assertGreaterEqual(latest["symbol_evidence_scorecard_count"], 1)
+            self.assertIsInstance(latest["selected_symbol_evidence_scorecard"], dict)
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
+            self.assertFalse(latest["live_order_allowed"])
+
+    def test_bounded_paper_loop_regenerates_legacy_symbol_selection_policy_formula_cycle(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-legacy-symbol-policy-formula-cycle",
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            legacy_cycle["symbol_selection_policy"]["candidate_formula"] = "0.45*symbol_score+0.35*net_ev_score+0.20*signal_strength"
+            legacy_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(legacy_cycle)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            )
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(legacy_cycle, indent=2), encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-legacy-symbol-policy-formula-resume",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            guard = json.loads((root / loop["preflight_runtime_recovery_guard_path"]).read_text(encoding="utf-8"))
+            guard_result = validate_upbit_paper_runtime_recovery_guard_report(guard)
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(guard_result.status, "PASS")
+            self.assertEqual(loop["preflight_recovery_guard_status"], "PASS")
+            self.assertTrue(loop["current_evidence_write_allowed"])
+            self.assertEqual(loop["completed_cycle_count"], 1)
+            self.assertEqual(guard["latest_cycle_contract_mode"], "LEGACY_RECHECK_WITHOUT_SYMBOL_SELECTION_POLICY_FORMULA")
+            self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
+            self.assertIn("trend_or_breakout_or_mean_reversion_confirmation", latest["symbol_selection_policy"]["candidate_formula"])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
+            self.assertFalse(latest["live_order_allowed"])
+
+    def test_bounded_paper_loop_regenerates_legacy_trend_exhaustion_projection_cycle(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-legacy-trend-exhaustion-projection-cycle",
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            legacy_cycle["symbol_selection_policy"]["candidate_formula"] = "0.45*symbol_score+0.35*net_ev_score+0.20*signal_strength"
+            for field in ("trend_exhaustion_status", "trend_exhaustion_score", "trend_exhaustion_formula"):
+                legacy_cycle["feature_snapshot"].pop(field, None)
+                for feature_snapshot in legacy_cycle["feature_snapshots_by_symbol"].values():
+                    feature_snapshot.pop(field, None)
+                for scorecard in legacy_cycle["symbol_evidence_scorecards"]:
+                    scorecard.pop(field, None)
+                legacy_cycle["selected_symbol_evidence_scorecard"].pop(field, None)
+            legacy_cycle["feature_snapshot_hash"] = self._hash_payload(legacy_cycle["feature_snapshot"])
+            legacy_cycle["strategy_regime_cost_linkage"]["feature_snapshot_hash"] = legacy_cycle["feature_snapshot_hash"]
+            legacy_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(legacy_cycle)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            )
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(legacy_cycle, indent=2), encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-legacy-trend-exhaustion-projection-resume",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            guard = json.loads((root / loop["preflight_runtime_recovery_guard_path"]).read_text(encoding="utf-8"))
+            guard_result = validate_upbit_paper_runtime_recovery_guard_report(guard)
+            latest = json.loads(latest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(guard_result.status, "PASS")
+            self.assertEqual(loop["preflight_recovery_guard_status"], "PASS")
+            self.assertTrue(loop["current_evidence_write_allowed"])
+            self.assertEqual(loop["completed_cycle_count"], 1)
+            self.assertEqual(
+                guard["latest_cycle_contract_mode"],
+                (
+                    "LEGACY_RECHECK_WITHOUT_SYMBOL_SELECTION_POLICY_FORMULA"
+                    "_AND_FEATURE_SNAPSHOT_PROJECTION_AND_SYMBOL_EVIDENCE_SCORECARD_PROJECTION"
+                ),
+            )
+            self.assertTrue(guard["latest_cycle_schema_upgrade_required"])
+            self.assertIn("trend_exhaustion_status", latest["feature_snapshot"])
+            self.assertIn("trend_exhaustion_status", latest["selected_symbol_evidence_scorecard"])
+            self.assertFalse(loop["live_order_allowed"])
+            self.assertFalse(loop["can_live_trade"])
+            self.assertFalse(loop["scale_up_allowed"])
+            self.assertFalse(latest["live_order_allowed"])
+
+    def test_bounded_paper_loop_blocks_partial_symbol_scorecard_schema_tamper(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            tampered_cycle = build_upbit_paper_runtime_cycle_report(
+                cycle_id="bounded-paper-loop-partial-symbol-scorecard-tamper-cycle",
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            del tampered_cycle["selected_symbol_evidence_scorecard"]
+            tampered_cycle["cycle_hash"] = upbit_paper_runtime_cycle_hash(tampered_cycle)
+            latest_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/upbit_paper_runtime_cycle_report.json"
+            )
+            latest_path.parent.mkdir(parents=True, exist_ok=True)
+            latest_path.write_text(json.dumps(tampered_cycle, indent=2), encoding="utf-8")
+
+            loop = run_upbit_paper_persistent_loop(
+                root=root,
+                loop_id="bounded-paper-loop-partial-symbol-scorecard-tamper",
+                requested_cycle_count=1,
+            )
+            result = validate_upbit_paper_persistent_loop_report(loop)
+            guard = json.loads((root / loop["preflight_runtime_recovery_guard_path"]).read_text(encoding="utf-8"))
+            guard_result = validate_upbit_paper_runtime_recovery_guard_report(guard)
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(guard_result.status, "BLOCKED")
+            self.assertEqual(loop["preflight_recovery_guard_status"], "BLOCKED")
+            self.assertFalse(loop["current_evidence_write_allowed"])
+            self.assertEqual(loop["completed_cycle_count"], 0)
+            self.assertEqual(guard["latest_cycle_contract_mode"], "CURRENT")
+            self.assertFalse(guard["latest_cycle_schema_upgrade_required"])
+            self.assertEqual(guard["primary_blocker_code"], "SCHEMA_IDENTITY_MISMATCH")
             self.assertFalse(loop["live_order_allowed"])
             self.assertFalse(loop["can_live_trade"])
             self.assertFalse(loop["scale_up_allowed"])

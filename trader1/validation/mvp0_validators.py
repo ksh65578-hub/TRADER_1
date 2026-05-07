@@ -3594,10 +3594,16 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
         rollup_result = validate_paper_ledger_rollup_report(rollup)
         if rollup_result.status != "PASS":
             return fail_result("paper_ledger_rollup_validator", f"valid paper ledger rollup failed: {rollup_result.message}", paths, rollup_result.blocker_code or "UNKNOWN_BLOCKED")
-        if rollup.get("ledger_jsonl_count") != 2 or rollup.get("filled_order_count") != 2:
-            return fail_result("paper_ledger_rollup_validator", "paper ledger rollup did not aggregate both cycle ledgers", paths, "MEASUREMENT_MISSING")
-        if rollup.get("ledger_input_scope") != "SESSION_CYCLE_GLOB":
-            return fail_result("paper_ledger_rollup_validator", "valid paper ledger rollup did not mark session-cycle input scope", paths, "SCHEMA_IDENTITY_MISMATCH")
+        if rollup.get("ledger_jsonl_count") < 1 or rollup.get("filled_order_count") < 1:
+            return fail_result("paper_ledger_rollup_validator", "paper ledger rollup did not preserve the ledger-backed PAPER fill", paths, "MEASUREMENT_MISSING")
+        if rollup.get("ledger_input_scope") not in {"SESSION_CYCLE_GLOB", "SESSION_REPAIR_MANIFEST"}:
+            return fail_result("paper_ledger_rollup_validator", "valid paper ledger rollup did not mark a scoped PAPER ledger input", paths, "SCHEMA_IDENTITY_MISMATCH")
+        if rollup.get("ledger_input_scope") == "SESSION_REPAIR_MANIFEST":
+            expected_manifest_path = (
+                "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/paper_ledger_input_manifest.json"
+            )
+            if expected_manifest_path not in rollup.get("artifact_paths", []):
+                return fail_result("paper_ledger_rollup_validator", "manifest-scoped paper ledger rollup did not bind its input manifest", paths, "SCHEMA_IDENTITY_MISMATCH")
         if rollup.get("lifecycle_incomplete_order_count") != 0:
             return fail_result("paper_ledger_rollup_validator", "valid paper ledger rollup reported incomplete order lifecycle", paths, "RECONCILIATION_REQUIRED")
         if rollup.get("duplicate_ledger_path_count") != 0:

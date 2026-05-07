@@ -3,51 +3,69 @@
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B"
   },
-  "blockers": [],
-  "bootstrap_status": "PASS",
+  "blockers": [
+    {
+      "code": "OOS_MISSING",
+      "message": "OOS evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "WALK_FORWARD_MISSING",
+      "message": "walk-forward evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "BOOTSTRAP_UNSTABLE",
+      "message": "bootstrap robustness evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "OVERFIT_RISK_HIGH",
+      "message": "overfit risk must be LOW before PAPER scorecard ranking",
+      "severity": "HIGH"
+    }
+  ],
+  "bootstrap_status": "UNTESTED",
   "can_live_trade": false,
-  "candidate_id": "KRW-BTC-pullback-trend-long",
+  "candidate_id": "KRW-WLFI-pullback-trend-long",
   "cost_model_status": "VALIDATED",
   "exchange": "UPBIT",
   "expected_fee_bps": 5.0,
-  "expected_impact_bps": 0.0,
-  "expected_latency_penalty_bps": 0.0,
-  "expected_slippage_bps": 5.0,
+  "expected_impact_bps": 1.0304372887342181,
+  "expected_latency_penalty_bps": 1.710186586016279,
+  "expected_slippage_bps": 2.0238095238095237,
   "expected_spread_bps": 1.0,
-  "generated_at_utc": "2026-05-06T17:01:22Z",
-  "gross_expected_edge_bps": 42.0,
+  "generated_at_utc": "2026-05-07T10:11:42Z",
+  "gross_expected_edge_bps": 39.325736981465134,
   "live_order_allowed": false,
   "live_order_ready": false,
   "live_readiness_status": "NOT_LIVE_READY",
   "market_type": "KRW_SPOT",
   "min_required_edge_bps": 10.0,
   "mode": "PAPER",
-  "net_ev_after_cost_bps": 31.0,
+  "net_ev_after_cost_bps": 28.561303582905115,
   "notes": "Generated from Upbit PAPER runtime cycle. It is PAPER scorecard evidence only and cannot create live permission.",
   "objective_basis": "NET_EV_AFTER_COST",
-  "oos_status": "PASS",
+  "oos_status": "UNTESTED",
   "operator_warning": "PAPER candidate scorecard is not LIVE_READY and live orders remain blocked.",
-  "overfit_status": "LOW",
-  "parameter_hash": "B579722DD59327143FA7D6E414FC78393F8C6A7543E5ECCF59F688015BC761A6",
+  "overfit_status": "HIGH",
+  "parameter_hash": "4F23E8421A8A132445C14DB4677E9F5A11DD18F8A74DEE767B885DB17822693C",
   "project_id": "TRADER_1",
-  "ranking_eligible": true,
+  "ranking_eligible": false,
   "regime_scope": "TRENDING",
   "scale_up_allowed": false,
   "schema_id": "trader1.candidate_scorecard.v1",
-  "scorecard_id": "scorecard:paper-shadow-short-window-refresh-20260507T020000Z-loop-1-cycle-20:KRW-BTC-pullback-trend-long",
-  "scorecard_scope": "PAPER_SCORECARD_INPUT_ONLY",
+  "scorecard_id": "scorecard:upbit-paper-runner-1778146958-7116-cycle-000021-cycle-1:KRW-WLFI-pullback-trend-long",
+  "scorecard_scope": "PAPER_EVIDENCE_COLLECTION_ONLY",
   "session_id": "mvp1_upbit_paper_launcher",
   "source_evidence_ids": [
-    "upbit_paper_runtime_cycle:paper-shadow-short-window-refresh-20260507T020000Z-loop-1-cycle-20:0C1FF4CA8DFFB765A6F5E46B81D906AD0880ACAC6A3004824B3D72E9DBD47BCF",
-    "bootstrap:paper-shadow-short-window-refresh-20260507T020000Z-loop-1-cycle-20:0C1FF4CA8DFFB765A6F5E46B81D906AD0880ACAC6A3004824B3D72E9DBD47BCF",
-    "oos:paper-shadow-short-window-refresh-20260507T020000Z-loop-1-cycle-20:0C1FF4CA8DFFB765A6F5E46B81D906AD0880ACAC6A3004824B3D72E9DBD47BCF",
-    "walk_forward:paper-shadow-short-window-refresh-20260507T020000Z-loop-1-cycle-20:0C1FF4CA8DFFB765A6F5E46B81D906AD0880ACAC6A3004824B3D72E9DBD47BCF"
+    "upbit_paper_runtime_cycle:upbit-paper-runner-1778146958-7116-cycle-000021-cycle-1:C69873EFB8605E21E54ABAF47E07ED6E1D20957690FD9BA9BDAD58DBB09791C6"
   ],
-  "source_runtime_cycle_hash": "0C1FF4CA8DFFB765A6F5E46B81D906AD0880ACAC6A3004824B3D72E9DBD47BCF",
-  "source_runtime_cycle_id": "paper-shadow-short-window-refresh-20260507T020000Z-loop-1-cycle-20",
+  "source_runtime_cycle_hash": "C69873EFB8605E21E54ABAF47E07ED6E1D20957690FD9BA9BDAD58DBB09791C6",
+  "source_runtime_cycle_id": "upbit-paper-runner-1778146958-7116-cycle-000021-cycle-1",
   "strategy_build_id": "upbit_paper_runtime_cycle_v1",
   "strategy_id": "trend_pullback",
-  "symbol": "KRW-BTC",
+  "symbol": "KRW-WLFI",
   "timeframe_scope": "runtime_cycle_fixture_or_public_collection",
-  "walk_forward_status": "PASS"
+  "walk_forward_status": "UNTESTED"
 }

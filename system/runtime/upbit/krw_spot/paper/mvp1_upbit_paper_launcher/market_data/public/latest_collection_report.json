@@ -3,18 +3,18 @@
   "canonical_event_count": 6,
   "collector_id": "launcher-public-rest-continuity-auto-refresh-sample-1-collection",
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-06T22:49:50Z",
+  "generated_at_utc": "2026-05-07T10:13:26Z",
   "live_order_allowed": false,
   "live_order_ready": false,
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
   "project_id": "TRADER_1",
-  "public_market_data_hash": "86BADC762291B252153610483B04087602C6C57D41622CAE24FDCC2E12D4F695",
+  "public_market_data_hash": "F8836D9D5D8CA3BA437FE63995F0740D9534D4B6223B949C58698BC3B22C91E0",
   "quarantine_path": null,
-  "report_hash": "236C76C4BD418D9355D0806A2B278ABDED8F16B4C7B0BE058744E5D0CC175F38",
+  "report_hash": "7214E4ECD70B7C3A4C5DEA03ED270A3B22E88B3D8E61A6A19416B3109623F59E",
   "report_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/market_data/public/collection/launcher-public-rest-continuity-auto-refresh-sample-1-collection.collection_report.json",
   "scale_up_allowed": false,
   "schema_id": "trader1.upbit_public_market_data_latest_pointer.v1",
   "session_id": "mvp1_upbit_paper_launcher",
-  "symbol": "KRW-BTC"
+  "symbol": "KRW-WLFI"
 }

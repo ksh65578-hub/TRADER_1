@@ -2,6 +2,7 @@ import unittest
 
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
+    build_paper_portfolio_snapshot_after_sell_fill,
     build_paper_portfolio_snapshot_from_fill,
     paper_portfolio_hash,
     validate_paper_portfolio_snapshot,
@@ -124,6 +125,43 @@ class PaperPortfolioTest(unittest.TestCase):
         self.assertEqual(snapshot["unrealized_pnl"], "-10")
         self.assertEqual(snapshot["total_pnl"], "-10")
         self.assertEqual(snapshot["equity"], "999990")
+        self.assertFalse(snapshot["live_order_allowed"])
+
+    def test_upbit_paper_portfolio_reduces_long_position_with_realized_pnl_from_sell_fill(self):
+        entry = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-portfolio-sell",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000000",
+            mark_price="1000000",
+            fee_amount="5",
+            source_runtime_cycle_id="portfolio-buy-cycle",
+            source_paper_ledger_head_hash="A" * 64,
+        )
+        snapshot = build_paper_portfolio_snapshot_after_sell_fill(
+            current_snapshot=entry,
+            session_id="test-paper-portfolio-sell",
+            symbol="KRW-BTC",
+            quantity="0.004",
+            fill_price="1100000",
+            fee_amount="2",
+            source_runtime_cycle_id="portfolio-sell-cycle",
+            source_paper_ledger_head_hash="B" * 64,
+        )
+        result = validate_paper_portfolio_snapshot(snapshot)
+
+        self.assertEqual(result.status, "PASS")
+        self.assertEqual(snapshot["cash_available"], "994393")
+        self.assertEqual(snapshot["realized_pnl"], "396")
+        self.assertEqual(snapshot["unrealized_pnl"], "597")
+        self.assertEqual(snapshot["total_pnl"], "993")
+        self.assertEqual(snapshot["equity"], "1000993")
+        self.assertEqual(snapshot["open_position_count"], 1)
+        self.assertEqual(snapshot["positions"][0]["quantity"], "0.006")
+        self.assertEqual(snapshot["positions"][0]["cost_basis"], "6003")
         self.assertFalse(snapshot["live_order_allowed"])
 
     def test_paper_portfolio_accepts_explicit_rollup_source(self):

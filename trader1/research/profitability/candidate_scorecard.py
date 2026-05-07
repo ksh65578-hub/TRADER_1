@@ -116,6 +116,36 @@ def regime_scope_for_runtime_regime(regime: str) -> str:
     return mapping.get(regime, "RISK_OFF")
 
 
+def _candidate_scorecard_rank_key(candidate: dict[str, Any]) -> tuple[Decimal, Decimal, int, str]:
+    return (
+        decimal_value(candidate.get("candidate_selection_score")),
+        decimal_value(candidate.get("net_ev_after_cost_bps")),
+        -int(candidate.get("selection_priority", 999)),
+        str(candidate.get("candidate_id") or ""),
+    )
+
+
+def _scorecard_candidate_from_runtime(runtime_cycle_report: dict[str, Any]) -> dict[str, Any]:
+    selected = runtime_cycle_report["selected_candidate"]
+    if selected.get("decision") == "PAPER_ENTRY_REVIEW":
+        return selected
+
+    entry_candidates = [
+        candidate
+        for candidate in runtime_cycle_report.get("strategy_candidates") or []
+        if isinstance(candidate, dict)
+        and candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+        and isinstance(candidate.get("candidate_id"), str)
+        and candidate.get("live_order_ready") is False
+        and candidate.get("live_order_allowed") is False
+        and candidate.get("can_live_trade") is False
+        and candidate.get("scale_up_allowed") is False
+    ]
+    if not entry_candidates:
+        return selected
+    return max(entry_candidates, key=_candidate_scorecard_rank_key)
+
+
 def candidate_scorecard_from_upbit_paper_runtime_cycle(
     runtime_cycle_report: dict[str, Any],
     *,
@@ -129,7 +159,8 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     if runtime_result.status != "PASS":
         raise ValueError(f"runtime cycle is not valid for scorecard input: {runtime_result.status}:{runtime_result.blocker_code}")
 
-    selected = runtime_cycle_report["selected_candidate"]
+    selected = _scorecard_candidate_from_runtime(runtime_cycle_report)
+    selected_symbol = str(selected.get("symbol") or runtime_cycle_report["symbol"])
     cost_breakdown = selected["cost_breakdown_bps"]
     robustness = {
         "oos_status": "UNTESTED",
@@ -194,14 +225,14 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "source_runtime_cycle_hash": source_runtime_cycle_hash,
         "strategy_id": strategy_id_for_family(selected["strategy_family"]),
         "strategy_build_id": "upbit_paper_runtime_cycle_v1",
-        "parameter_hash": stable_hash(f"{selected['candidate_id']}:{selected['strategy_family']}:{runtime_cycle_report['symbol']}"),
+        "parameter_hash": stable_hash(f"{selected['candidate_id']}:{selected['strategy_family']}:{selected_symbol}"),
         "exchange": runtime_cycle_report["exchange"],
         "market_type": runtime_cycle_report["market_type"],
         "mode": runtime_cycle_report["mode"],
         "session_id": runtime_cycle_report["session_id"],
-        "symbol": runtime_cycle_report["symbol"],
+        "symbol": selected_symbol,
         "timeframe_scope": "runtime_cycle_fixture_or_public_collection",
-        "regime_scope": regime_scope_for_runtime_regime(str(runtime_cycle_report.get("regime"))),
+        "regime_scope": regime_scope_for_runtime_regime(str(selected.get("regime") or runtime_cycle_report.get("regime"))),
         "objective_basis": "NET_EV_AFTER_COST",
         "gross_expected_edge_bps": number_value(selected["expected_edge_bps"]),
         "expected_fee_bps": number_value(cost_breakdown[COST_FIELD_MAP["expected_fee_bps"]]),

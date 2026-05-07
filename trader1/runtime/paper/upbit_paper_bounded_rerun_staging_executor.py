@@ -17,8 +17,14 @@ from trader1.runtime.paper.upbit_paper_missing_cycle_rerun_guard import (
 )
 from trader1.runtime.paper.upbit_paper_runtime import (
     _build_strategy_regime_cost_linkage,
+    _candidate_selection_score_value,
+    _cost_breakdown_sum,
+    _decimal,
+    _decimal_text,
     _feature_snapshot,
     _hash_payload,
+    _paper_candidate_cost_breakdown,
+    PAPER_RUNTIME_COST_MODEL_SOURCE,
     upbit_paper_runtime_cycle_hash,
     validate_upbit_paper_runtime_cycle_report,
 )
@@ -224,16 +230,28 @@ def _normalize_runtime_cycle_for_staging(cycle: dict[str, Any]) -> tuple[dict[st
         normalized["feature_snapshot_hash"] = feature_hash
         for candidate in normalized.get("strategy_candidates") or []:
             if isinstance(candidate, dict) and (
-                "cost_breakdown_bps" not in candidate or "cost_model_source" not in candidate
+                "cost_breakdown_bps" not in candidate
+                or "cost_model_source" not in candidate
+                or candidate.get("cost_model_source") != PAPER_RUNTIME_COST_MODEL_SOURCE
             ):
-                candidate["cost_breakdown_bps"] = {
-                    "fee_bps": "5",
-                    "slippage_bps": "5",
-                    "spread_bps": str(expected_features.get("spread_bps", "1")),
-                    "market_impact_bps": "0",
-                    "latency_bps": "0",
-                }
-                candidate["cost_model_source"] = "PAPER_RUNTIME_STATIC_COST_MODEL"
+                cost_breakdown = _paper_candidate_cost_breakdown(expected_features)
+                expected_cost = _cost_breakdown_sum(cost_breakdown)
+                expected_edge = _decimal(candidate.get("expected_edge_bps"))
+                signal_strength = _decimal(candidate.get("signal_strength"))
+                symbol_score = _decimal(candidate.get("symbol_selection_score", "0"))
+                net_ev = expected_edge - expected_cost
+                candidate["cost_breakdown_bps"] = cost_breakdown
+                candidate["expected_cost_bps"] = _decimal_text(expected_cost)
+                candidate["cost_model_source"] = PAPER_RUNTIME_COST_MODEL_SOURCE
+                candidate["cost_model_formula"] = "fee_bps+adaptive_slippage_bps+spread_bps+public_depth_impact_bps+latency_penalty_bps"
+                candidate["net_ev_after_cost_bps"] = _decimal_text(net_ev)
+                candidate["candidate_selection_score"] = _decimal_text(
+                    _candidate_selection_score_value(
+                        symbol_score=symbol_score,
+                        net_ev_bps=net_ev,
+                        signal_strength=signal_strength,
+                    )
+                )
         selected_id = normalized.get("selected_candidate", {}).get("candidate_id")
         normalized["selected_candidate"] = next(
             (

@@ -1,78 +1,78 @@
 {
-  "schema_id": "trader1.shadow_observation_runtime_orchestration_report.v1",
-  "generated_at_utc": "2026-05-06T22:49:50Z",
-  "project_id": "TRADER_1",
-  "authority": {
-    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
-    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
-  },
-  "orchestration_id": "mvp1_upbit_paper_launcher",
-  "exchange": "UPBIT",
-  "market_type": "KRW_SPOT",
-  "source_mode": "PAPER",
-  "mode": "SHADOW",
-  "session_id": "mvp1_upbit_paper_launcher",
-  "orchestration_artifact_path": "system/runtime/upbit/krw_spot/shadow/mvp1_upbit_paper_launcher/runtime_orchestration_report.json",
-  "orchestration_status": "BLOCKED",
-  "orchestration_decision": "BLOCK_LONG_RUN_EVIDENCE",
-  "source_validation_status": "PASS",
-  "source_hashes_verified": true,
-  "source_runtime_hash_pairing_verified": true,
-  "source_scope_match": true,
-  "source_binding_count": 2,
-  "source_evidence_bindings": [
-    {
-      "source_role": "PERSISTENT_RUNTIME_SHORT_WINDOW",
-      "source_id": "mvp1_upbit_paper_launcher",
-      "source_hash": "460BAF224DC61A0576539311015E764FDD0FE6E95B06D2631028CD7503AFC722",
-      "hash_verified": true,
-      "validation_status": "PASS",
-      "evidence_role": "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY"
-    },
-    {
-      "source_role": "SHORT_WINDOW_HARNESS",
-      "source_id": "mvp1_upbit_paper_launcher",
-      "source_hash": "3A17940ED074CD6A20D28A0A8A3105E63D64090797BF7358D3E9013DE63171E7",
-      "hash_verified": true,
-      "validation_status": "PASS",
-      "evidence_role": "EXECUTION_HARNESS_PROOF_ONLY_NOT_LONG_RUN"
-    }
-  ],
-  "persistent_stub_not_long_run_confirmed": true,
-  "short_window_harness_not_long_run_confirmed": true,
-  "minimum_runtime_window_seconds": 86400,
-  "observed_actual_runtime_seconds": 300,
-  "minimum_actual_cycle_count": 2880,
-  "observed_actual_cycle_count": 20,
-  "minimum_evidence_window_count": 20,
-  "observed_evidence_window_count": 0,
   "actual_long_run_runtime_present": false,
-  "long_run_evidence_eligible": false,
-  "scorecard_input_eligible": false,
-  "optimizer_ranking_action": "BLOCK_RANKING",
-  "runtime_evidence_role": "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN",
-  "dashboard_display_truth_only": true,
-  "dashboard_visibility_status": "VISIBLE_AS_BLOCKED_LONG_RUN_REQUIREMENTS",
-  "promotion_eligible": false,
-  "live_order_ready": false,
-  "live_order_allowed": false,
-  "can_live_trade": false,
-  "scale_up_allowed": false,
-  "order_adapter_called": false,
-  "primary_blocker_code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+  "authority": {
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B"
+  },
   "blockers": [
     {
       "code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
-      "severity": "HIGH",
-      "message": "Actual long-run PAPER/SHADOW runtime evidence is missing; short-window harness and stub artifacts cannot satisfy the review gate."
+      "message": "Actual long-run PAPER/SHADOW runtime evidence is missing; short-window harness and stub artifacts cannot satisfy the review gate.",
+      "severity": "HIGH"
     },
     {
       "code": "MEASUREMENT_MISSING",
-      "severity": "HIGH",
-      "message": "No validated actual runtime window, cycle count, and per-window PAPER/SHADOW source coverage has been recorded."
+      "message": "No validated actual runtime window, cycle count, and per-window PAPER/SHADOW source coverage has been recorded.",
+      "severity": "HIGH"
     }
   ],
-  "operator_message": "Runtime orchestration is healthy enough for display-only review, but it is short-window only and not long-run evidence. Live orders remain blocked.",
+  "can_live_trade": false,
+  "dashboard_display_truth_only": true,
+  "dashboard_visibility_status": "VISIBLE_AS_BLOCKED_LONG_RUN_REQUIREMENTS",
+  "exchange": "UPBIT",
+  "generated_at_utc": "2026-05-07T10:11:42Z",
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "long_run_evidence_eligible": false,
+  "market_type": "KRW_SPOT",
+  "minimum_actual_cycle_count": 2880,
+  "minimum_evidence_window_count": 20,
+  "minimum_runtime_window_seconds": 86400,
+  "mode": "SHADOW",
   "next_operator_action": "Continue PAPER/SHADOW collection until actual duration, cycle, heartbeat, recovery, and per-window source coverage pass; do not treat short-window harness output as LIVE_READY.",
-  "orchestration_report_hash": "96B00CD15C5534AB7D895D0BEA0650CC6AFCDCDA842F656B4677F025E1E99643"
+  "observed_actual_cycle_count": 1,
+  "observed_actual_runtime_seconds": 5,
+  "observed_evidence_window_count": 0,
+  "operator_message": "Runtime orchestration is healthy enough for display-only review, but it is short-window only and not long-run evidence. Live orders remain blocked.",
+  "optimizer_ranking_action": "BLOCK_RANKING",
+  "orchestration_artifact_path": "system/runtime/upbit/krw_spot/shadow/mvp1_upbit_paper_launcher/runtime_orchestration_report.json",
+  "orchestration_decision": "BLOCK_LONG_RUN_EVIDENCE",
+  "orchestration_id": "mvp1_upbit_paper_launcher",
+  "orchestration_report_hash": "B8E52CADC36F1A6D6FA4F8F3939668B899F5FB54684362F19C74E1280B10571D",
+  "orchestration_status": "BLOCKED",
+  "order_adapter_called": false,
+  "persistent_stub_not_long_run_confirmed": true,
+  "primary_blocker_code": "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING",
+  "project_id": "TRADER_1",
+  "promotion_eligible": false,
+  "runtime_evidence_role": "ORCHESTRATION_BLOCKER_ONLY_NOT_LONG_RUN",
+  "scale_up_allowed": false,
+  "schema_id": "trader1.shadow_observation_runtime_orchestration_report.v1",
+  "scorecard_input_eligible": false,
+  "session_id": "mvp1_upbit_paper_launcher",
+  "short_window_harness_not_long_run_confirmed": true,
+  "source_binding_count": 2,
+  "source_evidence_bindings": [
+    {
+      "evidence_role": "PERSISTENT_RUNTIME_SHORT_WINDOW_ONLY",
+      "hash_verified": true,
+      "source_hash": "BABA6DE2B735A474E04D0C992E163C283DB297E71CC140E96D06E994085B31CF",
+      "source_id": "mvp1_upbit_paper_launcher",
+      "source_role": "PERSISTENT_RUNTIME_SHORT_WINDOW",
+      "validation_status": "PASS"
+    },
+    {
+      "evidence_role": "EXECUTION_HARNESS_PROOF_ONLY_NOT_LONG_RUN",
+      "hash_verified": true,
+      "source_hash": "8549FCEB4F9BA09C0FF2E55254C85E198E91AEEBB84FB4BD72589F21785599E9",
+      "source_id": "mvp1_upbit_paper_launcher",
+      "source_role": "SHORT_WINDOW_HARNESS",
+      "validation_status": "PASS"
+    }
+  ],
+  "source_hashes_verified": true,
+  "source_mode": "PAPER",
+  "source_runtime_hash_pairing_verified": true,
+  "source_scope_match": true,
+  "source_validation_status": "PASS"
 }

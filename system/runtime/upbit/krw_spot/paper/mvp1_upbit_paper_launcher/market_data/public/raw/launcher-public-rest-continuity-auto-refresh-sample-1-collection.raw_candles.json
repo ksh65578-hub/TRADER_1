@@ -2,59 +2,59 @@
   "authorization_header_present": false,
   "candles": [
     {
-      "close": "119585000",
-      "high": "119622000",
-      "low": "119585000",
-      "open": "119592000",
-      "timestamp": "2026-05-06T22:44:00Z",
-      "volume": "0.88699961"
+      "close": "104",
+      "high": "104",
+      "low": "104",
+      "open": "104",
+      "timestamp": "2026-05-07T10:08:00Z",
+      "volume": "8716.31491945"
     },
     {
-      "close": "119625000",
-      "high": "119625000",
-      "low": "119585000",
-      "open": "119585000",
-      "timestamp": "2026-05-06T22:45:00Z",
-      "volume": "3.19974073"
+      "close": "104",
+      "high": "105",
+      "low": "104",
+      "open": "104",
+      "timestamp": "2026-05-07T10:09:00Z",
+      "volume": "433707.37363961"
     },
     {
-      "close": "119622000",
-      "high": "119667000",
-      "low": "119600000",
-      "open": "119625000",
-      "timestamp": "2026-05-06T22:46:00Z",
-      "volume": "1.11125417"
+      "close": "105",
+      "high": "105",
+      "low": "104",
+      "open": "104",
+      "timestamp": "2026-05-07T10:10:00Z",
+      "volume": "64514.90411637"
     },
     {
-      "close": "119600000",
-      "high": "119640000",
-      "low": "119585000",
-      "open": "119622000",
-      "timestamp": "2026-05-06T22:47:00Z",
-      "volume": "1.62031951"
+      "close": "105",
+      "high": "105",
+      "low": "104",
+      "open": "105",
+      "timestamp": "2026-05-07T10:11:00Z",
+      "volume": "31969.77553448"
     },
     {
-      "close": "119571000",
-      "high": "119600000",
-      "low": "119568000",
-      "open": "119600000",
-      "timestamp": "2026-05-06T22:48:00Z",
-      "volume": "1.80442503"
+      "close": "104",
+      "high": "105",
+      "low": "104",
+      "open": "105",
+      "timestamp": "2026-05-07T10:12:00Z",
+      "volume": "256630.03814494"
     },
     {
-      "close": "119566000",
-      "high": "119571000",
-      "low": "119565000",
-      "open": "119571000",
-      "timestamp": "2026-05-06T22:49:00Z",
-      "volume": "0.56018189"
+      "close": "104",
+      "high": "104",
+      "low": "104",
+      "open": "104",
+      "timestamp": "2026-05-07T10:13:00Z",
+      "volume": "163490.53488236"
     }
   ],
   "credential_load_attempted": false,
   "exchange": "UPBIT",
   "interval": "1m",
   "is_public": true,
-  "loaded_at_utc": "2026-05-06T22:49:50Z",
+  "loaded_at_utc": "2026-05-07T10:13:26Z",
   "market_type": "KRW_SPOT",
   "mode": "PAPER",
   "order_endpoint_called": false,
@@ -67,5 +67,5 @@
   "raw_sample_count": 6,
   "session_id": "mvp1_upbit_paper_launcher",
   "source": "PUBLIC_REST_READ_ONLY",
-  "symbol": "KRW-BTC"
+  "symbol": "KRW-WLFI"
 }

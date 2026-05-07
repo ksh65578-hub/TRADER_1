@@ -230,7 +230,7 @@ class SafeLauncherTest(unittest.TestCase):
         self.assertEqual(validate_upbit_paper_persistent_loop_report(first_loop).status, "PASS")
         self.assertEqual(validate_upbit_paper_persistent_loop_report(second_loop).status, "PASS")
 
-    def test_current_truth_uses_current_rollup_when_audited_portfolio_is_stale(self):
+    def test_current_truth_uses_current_runtime_cycle_when_audited_portfolio_is_stale(self):
         report = build_launcher_report("UPBIT_PAPER")
         with TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -242,6 +242,8 @@ class SafeLauncherTest(unittest.TestCase):
             paths = launcher_dashboard_paths(report, root)
             first_rollup = load_json(paths["paper_ledger_rollup_report"])
             stale_portfolio = dict(first_rollup["portfolio_snapshot"])
+            stale_portfolio["source_runtime_cycle_id"] = "older-runtime-cycle"
+            stale_portfolio["snapshot_hash"] = "A" * 64
             paths["audited_paper_portfolio_snapshot"].parent.mkdir(parents=True, exist_ok=True)
             paths["audited_paper_portfolio_snapshot"].write_text(
                 json.dumps(stale_portfolio, indent=2, sort_keys=True),
@@ -256,21 +258,64 @@ class SafeLauncherTest(unittest.TestCase):
             dashboard_paths = write_launcher_dashboard(report, root)
             current_truth = load_json(dashboard_paths["paper_current_truth_refresh_report"])
             current_rollup = load_json(dashboard_paths["paper_ledger_rollup_report"])
+            latest_runtime_cycle = load_json(dashboard_paths["upbit_paper_runtime_cycle_report"])
 
         self.assertEqual(validate_upbit_paper_persistent_loop_report(first_loop).status, "PASS")
         self.assertEqual(validate_upbit_paper_persistent_loop_report(second_loop).status, "PASS")
         self.assertNotEqual(
             stale_portfolio["snapshot_hash"],
-            current_rollup["portfolio_snapshot"]["snapshot_hash"],
-        )
-        self.assertEqual(
             current_truth["source_portfolio_snapshot_hash"],
-            current_rollup["portfolio_snapshot"]["snapshot_hash"],
         )
+        self.assertEqual(current_truth["source_portfolio_snapshot_status"], "PASS")
+        self.assertEqual(current_truth["source_runtime_cycle_id"], latest_runtime_cycle["cycle_id"])
         self.assertEqual(current_truth["source_paper_ledger_head_hash"], current_rollup["latest_ledger_head_hash"])
         self.assertFalse(current_truth["current_evidence_write_allowed"])
         self.assertFalse(current_truth["live_order_allowed"])
         self.assertFalse(current_truth["scale_up_allowed"])
+
+    def test_public_mark_symbol_prefers_latest_runtime_position_over_stale_audited_snapshot(self):
+        report = build_launcher_report("UPBIT_PAPER")
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            paths = launcher_dashboard_paths(report, root)
+            paths["audited_paper_portfolio_snapshot"].parent.mkdir(parents=True, exist_ok=True)
+            paths["audited_paper_portfolio_snapshot"].write_text(
+                json.dumps(
+                    {
+                        "positions": [
+                            {
+                                "symbol": "KRW-BTC",
+                                "quantity": "0.01",
+                            }
+                        ]
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+            paths["upbit_paper_runtime_cycle_report"].parent.mkdir(parents=True, exist_ok=True)
+            paths["upbit_paper_runtime_cycle_report"].write_text(
+                json.dumps(
+                    {
+                        "paper_portfolio_snapshot": {
+                            "positions": [
+                                {
+                                    "symbol": "KRW-ARKM",
+                                    "quantity": "10",
+                                }
+                            ]
+                        }
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
+
+            symbol = safe_launcher.current_scoped_upbit_public_mark_symbol(report, root)
+
+        self.assertEqual(symbol, "KRW-ARKM")
 
     def test_launcher_ignores_invalid_rest_continuity_history_instead_of_schema_mismatch(self):
         report = build_launcher_report("UPBIT_PAPER")

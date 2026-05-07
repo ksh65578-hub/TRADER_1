@@ -1,6 +1,7 @@
 import copy
 import unittest
 
+from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import (
     ROBUSTNESS_PASS,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
@@ -8,6 +9,7 @@ from trader1.research.profitability.candidate_scorecard import (
     robustness_source_evidence_id,
 )
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report, upbit_paper_runtime_cycle_hash
+from trader1.runtime.portfolio.paper_portfolio import build_paper_portfolio_snapshot_from_fill
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors
 
 
@@ -52,6 +54,63 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertIn("MIN_EDGE_FAIL", {blocker["code"] for blocker in scorecard["blockers"]})
         self.assertLess(scorecard["net_ev_after_cost_bps"], scorecard["min_required_edge_bps"])
         self.assertFalse(scorecard["live_order_allowed"])
+
+    def test_managed_position_no_trade_scores_best_same_cycle_entry_opportunity(self):
+        weak_btc = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="WEAK_RANGE",
+        )
+        for candle in weak_btc["candles"]:
+            candle["volume"] = "1"
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for candle in strong_eth["candles"]:
+            candle["volume"] = "5"
+        mark_price = weak_btc["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.005",
+            fill_price=mark_price,
+            mark_price=mark_price,
+            fee_amount="2.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-scorecard-managed-position",
+            source_paper_ledger_head_hash="C" * 64,
+        )
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-runtime-managed-position-shadow-entry",
+            symbol="KRW-BTC",
+            market_data_universe=[weak_btc, strong_eth],
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(runtime["selected_candidate"]["decision"], "NO_TRADE")
+        self.assertEqual(scorecard["candidate_id"], "KRW-ETH-pullback-trend-long")
+        self.assertEqual(scorecard["symbol"], "KRW-ETH")
+        self.assertGreater(scorecard["net_ev_after_cost_bps"], scorecard["min_required_edge_bps"])
+        self.assertIn(
+            f"upbit_paper_runtime_cycle:{runtime['cycle_id']}:{runtime['cycle_hash']}",
+            scorecard["source_evidence_ids"],
+        )
+        self.assertFalse(scorecard["live_order_ready"])
+        self.assertFalse(scorecard["live_order_allowed"])
+        self.assertFalse(scorecard["can_live_trade"])
+        self.assertFalse(scorecard["scale_up_allowed"])
 
     def test_robustness_pass_requires_source_evidence_before_paper_ranking(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-no-source")

@@ -12,6 +12,7 @@ from trader1.runtime.paper.paper_runtime_truth_state import (
 )
 from trader1.runtime.paper.upbit_paper_repaired_current_evidence_audited_writer import (
     AUDITED_WRITER_IDEMPOTENT_STATUS,
+    AUDITED_WRITER_REFRESHED_STATUS,
     AUDITED_WRITER_WRITTEN_STATUS,
     validate_upbit_paper_audited_current_evidence_snapshot,
     validate_upbit_paper_repaired_current_evidence_audited_writer_report,
@@ -187,7 +188,8 @@ def build_paper_continuous_current_evidence_writer_report(
         paper_scope
         and writer_result is not None
         and writer_result.status == "PASS"
-        and audited_writer_report.get("writer_status") in {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS}
+        and audited_writer_report.get("writer_status")
+        in {AUDITED_WRITER_WRITTEN_STATUS, AUDITED_WRITER_IDEMPOTENT_STATUS, AUDITED_WRITER_REFRESHED_STATUS}
         and audited_writer_report.get("writer_passed") is True
         and audited_writer_report.get("current_evidence_artifact_written") is True
         and audited_writer_report.get("idempotency_manifest_written") is True

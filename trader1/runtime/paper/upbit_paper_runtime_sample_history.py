@@ -117,9 +117,32 @@ def _runtime_cycle_path(cycle_result: dict[str, Any], root: Path) -> Path | None
 def _entry_reason_evidence_count(runtime_cycle: dict[str, Any]) -> int:
     explicit_entry_reasons = len(runtime_cycle.get("entry_reasons") or [])
     selected = runtime_cycle.get("selected_candidate")
+    entry_review_candidates = sum(
+        1
+        for candidate in runtime_cycle.get("strategy_candidates") or []
+        if isinstance(candidate, dict) and candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+    )
     if isinstance(selected, dict) and selected.get("decision") == "PAPER_ENTRY_REVIEW":
-        return max(explicit_entry_reasons, 1)
-    return explicit_entry_reasons
+        return max(explicit_entry_reasons, entry_review_candidates, 1)
+    return max(explicit_entry_reasons, entry_review_candidates)
+
+
+def _exit_reason_evidence_count(runtime_cycle: dict[str, Any]) -> int:
+    final_decision = str(runtime_cycle.get("final_decision") or "")
+    if final_decision not in {"EXIT_POSITION", "REDUCE_POSITION", "HOLD_POSITION"}:
+        return 0
+    reason_count = len(runtime_cycle.get("no_trade_reasons") or [])
+    position_decision = runtime_cycle.get("position_management_decision")
+    if isinstance(position_decision, dict):
+        for field in (
+            "final_decision",
+            "requested_position_decision",
+            "reason_code",
+            "execution_adjusted_position_decision_reason",
+        ):
+            if position_decision.get(field):
+                reason_count += 1
+    return max(reason_count, 1)
 
 
 def _build_sample(
@@ -152,6 +175,7 @@ def _build_sample(
         "paper_portfolio_snapshot_hash": runtime_cycle.get("paper_portfolio_snapshot", {}).get("snapshot_hash"),
         "candidate_count": len(runtime_cycle.get("strategy_candidates") or []),
         "entry_reason_count": _entry_reason_evidence_count(runtime_cycle),
+        "exit_reason_count": _exit_reason_evidence_count(runtime_cycle),
         "no_trade_reason_count": len(runtime_cycle.get("no_trade_reasons") or []),
         "previous_sample_hash": previous_sample_hash,
         "live_order_ready": False,

@@ -35,6 +35,10 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     validate_upbit_paper_persistent_loop_report,
     validate_upbit_paper_runtime_recovery_guard_report,
 )
+from trader1.runtime.paper.upbit_paper_long_runner import (
+    validate_upbit_paper_long_runner_retention_manifest,
+    validate_upbit_paper_long_runner_status_report,
+)
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
     validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
 )
@@ -573,6 +577,14 @@ def launcher_dashboard_paths(report: dict[str, Any], root: Path = ROOT) -> dict[
         "upbit_paper_persistent_loop_report": base
         / "paper_runtime"
         / "upbit_paper_persistent_loop_report.json",
+        "upbit_paper_long_runner_status_report": base
+        / "paper_runtime"
+        / "runner"
+        / "runner_status.json",
+        "upbit_paper_long_runner_retention_manifest": base
+        / "paper_runtime"
+        / "runner"
+        / "runner_retention_manifest.json",
         "upbit_paper_runtime_recovery_guard_report": base
         / "paper_runtime"
         / "upbit_paper_runtime_recovery_guard_report.json",
@@ -837,6 +849,54 @@ def load_scoped_upbit_paper_persistent_loop_report(report: dict[str, Any], root:
         if result.status in {"PASS", "BLOCKED"}:
             return persistent_loop
     return None
+
+
+def load_scoped_upbit_paper_long_runner_status_report(
+    report: dict[str, Any], root: Path = ROOT
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    path = launcher_dashboard_paths(report, root)["upbit_paper_long_runner_status_report"]
+    runner_status = _load_dashboard_json_artifact(path)
+    if not isinstance(runner_status, dict):
+        return None
+    if (
+        runner_status.get("exchange") != report.get("exchange")
+        or runner_status.get("market_type") != report.get("market_type")
+        or runner_status.get("mode") != report.get("mode")
+        or runner_status.get("session_id") != report.get("session_id")
+    ):
+        return None
+    if not _dashboard_artifact_is_fresh(runner_status):
+        return runner_status
+    validation = validate_upbit_paper_long_runner_status_report(runner_status)
+    if validation.get("status") in {"PASS", "BLOCKED"}:
+        return runner_status
+    return runner_status
+
+
+def load_scoped_upbit_paper_long_runner_retention_manifest(
+    report: dict[str, Any], root: Path = ROOT
+) -> dict[str, Any] | None:
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return None
+    path = launcher_dashboard_paths(report, root)["upbit_paper_long_runner_retention_manifest"]
+    retention_manifest = _load_dashboard_json_artifact(path)
+    if not isinstance(retention_manifest, dict):
+        return None
+    if (
+        retention_manifest.get("exchange") != report.get("exchange")
+        or retention_manifest.get("market_type") != report.get("market_type")
+        or retention_manifest.get("mode") != report.get("mode")
+        or retention_manifest.get("session_id") != report.get("session_id")
+    ):
+        return None
+    if not _dashboard_artifact_is_fresh(retention_manifest):
+        return retention_manifest
+    validation = validate_upbit_paper_long_runner_retention_manifest(retention_manifest)
+    if validation.get("status") in {"PASS", "BLOCKED"}:
+        return retention_manifest
+    return retention_manifest
 
 
 def load_scoped_upbit_paper_runtime_recovery_guard_report(report: dict[str, Any], root: Path = ROOT) -> dict[str, Any] | None:
@@ -1282,6 +1342,47 @@ def _audited_portfolio_binds_current_rollup(
     return exact_rollup_match or public_mark_match
 
 
+def _runtime_cycle_portfolio_binds_current_rollup(
+    portfolio: dict[str, Any] | None,
+    runtime_cycle: dict[str, Any] | None,
+    ledger_rollup: dict[str, Any] | None,
+) -> bool:
+    if not isinstance(portfolio, dict) or not isinstance(runtime_cycle, dict) or not isinstance(ledger_rollup, dict):
+        return False
+    if ledger_rollup.get("rollup_status") != "PASS":
+        return False
+    if portfolio.get("source") not in {"PAPER_LEDGER_ROLLUP", "PAPER_LEDGER_ROLLUP_PUBLIC_MARK"}:
+        return False
+    if validate_paper_portfolio_snapshot(portfolio).status != "PASS":
+        return False
+    if (
+        portfolio.get("exchange") != runtime_cycle.get("exchange")
+        or portfolio.get("market_type") != runtime_cycle.get("market_type")
+        or portfolio.get("mode") != runtime_cycle.get("mode")
+        or portfolio.get("session_id") != runtime_cycle.get("session_id")
+    ):
+        return False
+    if (
+        portfolio.get("source_runtime_cycle_id") != runtime_cycle.get("cycle_id")
+        or portfolio.get("source_paper_ledger_head_hash") != ledger_rollup.get("latest_ledger_head_hash")
+    ):
+        return False
+    if (
+        portfolio.get("live_order_ready") is not False
+        or portfolio.get("live_order_allowed") is not False
+        or portfolio.get("can_live_trade") is not False
+        or portfolio.get("scale_up_allowed") is not False
+    ):
+        return False
+    if portfolio.get("source") == "PAPER_LEDGER_ROLLUP_PUBLIC_MARK":
+        return (
+            portfolio.get("mark_to_market_status") == "PASS_PUBLIC_MARK_TO_MARKET"
+            and isinstance(portfolio.get("source_public_market_data_hash"), str)
+            and len(portfolio.get("source_public_market_data_hash")) == 64
+        )
+    return True
+
+
 def refresh_scoped_upbit_paper_ledger_idempotency_runtime_evidence_if_safe(
     report: dict[str, Any],
     root: Path = ROOT,
@@ -1412,10 +1513,10 @@ def current_scoped_upbit_public_mark_symbol(report: dict[str, Any], root: Path =
         return "KRW-BTC"
     paths = launcher_dashboard_paths(report, root)
     for artifact_key in (
-        "audited_paper_portfolio_snapshot",
-        "paper_portfolio_snapshot",
-        "paper_ledger_rollup_report",
         "upbit_paper_runtime_cycle_report",
+        "paper_ledger_rollup_report",
+        "paper_portfolio_snapshot",
+        "audited_paper_portfolio_snapshot",
     ):
         symbol = _single_open_position_symbol_from_artifact(_load_dashboard_json_artifact(paths[artifact_key]))
         if symbol is not None:
@@ -2141,8 +2242,15 @@ def build_launcher_dashboard_artifacts(
     if paper_ledger_rollup_usable:
         paper_portfolio = paper_ledger_rollup_report.get("portfolio_snapshot")
     if isinstance(paper_runtime_cycle_report, dict):
-        if paper_portfolio is None:
-            paper_portfolio = paper_runtime_cycle_report.get("paper_portfolio_snapshot")
+        runtime_cycle_portfolio = paper_runtime_cycle_report.get("paper_portfolio_snapshot")
+        if _runtime_cycle_portfolio_binds_current_rollup(
+            runtime_cycle_portfolio,
+            paper_runtime_cycle_report,
+            paper_ledger_rollup_report,
+        ):
+            paper_portfolio = runtime_cycle_portfolio
+        elif paper_portfolio is None:
+            paper_portfolio = runtime_cycle_portfolio
         entry_candidates = paper_runtime_cycle_report.get("strategy_candidates")
         recent_entry_context = paper_runtime_cycle_report.get("entry_reasons")
         recent_no_trade_context = [
@@ -2202,6 +2310,12 @@ def build_launcher_dashboard_artifacts(
         "restart_recovery_report": _runtime_display_path(paths["restart_recovery_report"], root),
         "paper_ledger_rollup_report": _runtime_display_path(paths["paper_ledger_rollup_report"], root),
         "upbit_paper_persistent_loop": _runtime_display_path(paths["upbit_paper_persistent_loop_report"], root),
+        "upbit_paper_long_runner_status": _runtime_display_path(
+            paths["upbit_paper_long_runner_status_report"], root
+        ),
+        "upbit_paper_long_runner_retention_manifest": _runtime_display_path(
+            paths["upbit_paper_long_runner_retention_manifest"], root
+        ),
         "upbit_paper_runtime_recovery_guard": _runtime_display_path(paths["upbit_paper_runtime_recovery_guard_report"], root),
         "upbit_paper_runtime_evidence_collection_profile": _runtime_display_path(
             paths["upbit_paper_runtime_evidence_collection_profile_report"], root
@@ -2313,6 +2427,8 @@ def build_launcher_dashboard_artifacts(
         root=root,
     )
     upbit_paper_persistent_loop_report = load_scoped_upbit_paper_persistent_loop_report(report, root)
+    upbit_paper_long_runner_status_report = load_scoped_upbit_paper_long_runner_status_report(report, root)
+    upbit_paper_long_runner_retention_manifest = load_scoped_upbit_paper_long_runner_retention_manifest(report, root)
     upbit_paper_runtime_recovery_guard_report = load_scoped_upbit_paper_runtime_recovery_guard_report(report, root)
     upbit_paper_runtime_evidence_collection_profile_report = (
         load_scoped_upbit_paper_runtime_evidence_collection_profile_report(report, root)
@@ -2557,6 +2673,8 @@ def build_launcher_dashboard_artifacts(
         paper_continuous_current_evidence_writer_report=paper_continuous_current_evidence_writer_report,
         upbit_paper_ledger_idempotency_runtime_evidence_report=upbit_paper_ledger_idempotency_runtime_evidence_report,
         upbit_paper_persistent_loop_report=upbit_paper_persistent_loop_report,
+        upbit_paper_long_runner_status_report=upbit_paper_long_runner_status_report,
+        upbit_paper_long_runner_retention_manifest=upbit_paper_long_runner_retention_manifest,
         upbit_paper_runtime_recovery_guard_report=upbit_paper_runtime_recovery_guard_report,
         upbit_paper_runtime_evidence_collection_profile_report=upbit_paper_runtime_evidence_collection_profile_report,
         upbit_public_rest_continuity_history=upbit_public_rest_continuity_history,
@@ -2577,6 +2695,8 @@ def build_launcher_dashboard_artifacts(
         "paper_current_truth_refresh_report": paper_current_truth_refresh_report,
         "paper_continuous_current_evidence_writer_report": paper_continuous_current_evidence_writer_report,
         "paper_runtime_truth_state_report": paper_runtime_truth_state_report,
+        "upbit_paper_long_runner_status_report": upbit_paper_long_runner_status_report,
+        "upbit_paper_long_runner_retention_manifest": upbit_paper_long_runner_retention_manifest,
         "summary": summary,
         "dashboard_shell": dashboard,
         "dashboard_html": render_dashboard_html(dashboard),

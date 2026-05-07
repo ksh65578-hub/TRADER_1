@@ -63,6 +63,19 @@ class UpbitPublicRestContinuityHistoryTest(unittest.TestCase):
         payload[0]["candle_acc_trade_volume"] = float(payload[0]["candle_acc_trade_volume"]) + 0.25
         return payload
 
+    def _symbol_sequence_fetcher(self, symbol: str, starts: list[int]):
+        base_fetcher = self._payload_sequence_fetcher(
+            [
+                [dict(candle, market=symbol) for candle in self._payload(start)]
+                for start in starts
+            ]
+        )
+
+        def fetcher(*, symbol: str, session_id: str, timeout_seconds: float) -> dict[str, object]:
+            return base_fetcher(symbol=symbol, session_id=session_id, timeout_seconds=timeout_seconds)
+
+        return fetcher
+
     def _continuity(self, continuity_id: str, starts: list[int]) -> dict[str, object]:
         return build_upbit_public_rest_continuity_report(
             continuity_id=continuity_id,
@@ -187,6 +200,49 @@ class UpbitPublicRestContinuityHistoryTest(unittest.TestCase):
             self.assertEqual(second_history["total_attempt_count"], 2)
             self.assertEqual(validate_upbit_public_rest_continuity_history_report(second_history).status, "PASS")
             self.assertFalse(second_history["live_order_allowed"])
+
+    def test_append_isolates_history_when_symbol_rotates(self):
+        first = build_upbit_public_rest_continuity_report(
+            continuity_id="mock-history-symbol-a",
+            session_id="mvp1_upbit_paper_launcher",
+            symbol="KRW-FLOCK",
+            fetcher=self._symbol_sequence_fetcher("KRW-FLOCK", [0, 1]),
+        )
+        second = build_upbit_public_rest_continuity_report(
+            continuity_id="mock-history-symbol-b",
+            session_id="mvp1_upbit_paper_launcher",
+            symbol="KRW-WLFI",
+            fetcher=self._symbol_sequence_fetcher("KRW-WLFI", [1, 2]),
+        )
+        third = build_upbit_public_rest_continuity_report(
+            continuity_id="mock-history-symbol-b-2",
+            session_id="mvp1_upbit_paper_launcher",
+            symbol="KRW-WLFI",
+            fetcher=self._symbol_sequence_fetcher("KRW-WLFI", [2, 3]),
+        )
+        with TemporaryDirectory() as tmp:
+            append_upbit_public_rest_continuity_history(
+                root=Path(tmp),
+                continuity_report=first,
+                min_required_pass_attempts=1,
+            )
+            _, second_history = append_upbit_public_rest_continuity_history(
+                root=Path(tmp),
+                continuity_report=second,
+                min_required_pass_attempts=1,
+            )
+            _, third_history = append_upbit_public_rest_continuity_history(
+                root=Path(tmp),
+                continuity_report=third,
+                min_required_pass_attempts=1,
+            )
+
+        self.assertEqual(second_history["symbol"], "KRW-WLFI")
+        self.assertEqual(second_history["total_attempt_count"], 1)
+        self.assertEqual(third_history["total_attempt_count"], 2)
+        self.assertEqual({attempt["symbol"] for attempt in third_history["continuity_attempts"]}, {"KRW-WLFI"})
+        self.assertEqual(validate_upbit_public_rest_continuity_history_report(third_history).status, "PASS")
+        self.assertFalse(third_history["live_order_allowed"])
 
     def test_append_quarantines_corrupted_previous_history(self):
         first = self._continuity("mock-history-corrupt-recovery", [0, 1])

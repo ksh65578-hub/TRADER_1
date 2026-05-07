@@ -85,6 +85,7 @@
         "paper_portfolio_snapshot_hash",
         "candidate_count",
         "entry_reason_count",
+        "exit_reason_count",
         "no_trade_reason_count",
         "previous_sample_hash",
         "live_order_ready",
@@ -108,12 +109,30 @@
         "source_loop_report_hash": {"type": "string", "minLength": 64, "maxLength": 64},
         "source_runtime_cycle_path": {"type": "string", "minLength": 1},
         "source_runtime_cycle_hash": {"type": "string", "minLength": 64, "maxLength": 64},
-        "runtime_input_role": {"enum": ["STATIC_FIXTURE", "PUBLIC_MARKET_DATA_COLLECTION"]},
-        "final_decision": {"enum": ["ENTER_LONG", "NO_TRADE", "BLOCKED", "SAFE_MODE", "RECONCILE_REQUIRED"]},
+        "runtime_input_role": {
+          "enum": [
+            "STATIC_FIXTURE",
+            "PUBLIC_MARKET_DATA_COLLECTION",
+            "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"
+          ]
+        },
+        "final_decision": {
+          "enum": [
+            "ENTER_LONG",
+            "NO_TRADE",
+            "BLOCKED",
+            "SAFE_MODE",
+            "RECONCILE_REQUIRED",
+            "HOLD_POSITION",
+            "EXIT_POSITION",
+            "REDUCE_POSITION"
+          ]
+        },
         "paper_ledger_head_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
         "paper_portfolio_snapshot_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
         "candidate_count": {"type": "integer", "minimum": 0},
         "entry_reason_count": {"type": "integer", "minimum": 0},
+        "exit_reason_count": {"type": "integer", "minimum": 0},
         "no_trade_reason_count": {"type": "integer", "minimum": 0},
         "previous_sample_hash": {"type": ["string", "null"], "minLength": 64, "maxLength": 64},
         "live_order_ready": {"const": false},

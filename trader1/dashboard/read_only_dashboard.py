@@ -19,6 +19,11 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
     validate_upbit_paper_persistent_loop_report,
     validate_upbit_paper_runtime_recovery_guard_report,
 )
+from trader1.runtime.paper.upbit_paper_long_runner import (
+    DISK_PRESSURE_BLOCKER_CODE,
+    validate_upbit_paper_long_runner_retention_manifest,
+    validate_upbit_paper_long_runner_status_report,
+)
 from trader1.runtime.paper.upbit_paper_post_rerun_reconciliation_blocker_rollup import (
     validate_upbit_paper_post_rerun_reconciliation_blocker_rollup_report,
 )
@@ -115,6 +120,8 @@ OPTIONAL_DISPLAY_SOURCE_FILENAMES = {
     "runtime_orchestration_report.json",
     "upbit_paper_persistent_loop_report.json",
     "upbit_paper_runtime_recovery_guard_report.json",
+    "runner_status.json",
+    "runner_retention_manifest.json",
     "MVP4_UPBIT_PAPER_RUNTIME_EVIDENCE_COLLECTION_PROFILE.report.json",
     "upbit_paper_post_rerun_reconciliation_blocker_rollup_report.json",
     "upbit_paper_post_rerun_operator_reconciliation_review_guidance_report.json",
@@ -884,6 +891,11 @@ OVERFIT_DIAGNOSTIC_STATUSES = {
     "FAIL",
     "UNTESTED",
     "STALE",
+}
+OVERFIT_PRELIMINARY_ROBUSTNESS_STATUSES = {
+    "INSUFFICIENT_PRELIMINARY_SAMPLE",
+    "FAVORABLE_BLOCKED_BY_MATURITY",
+    "UNFAVORABLE_BLOCKED_BY_EVIDENCE",
 }
 RISK_EXPOSURE_STATUSES = {"LOW_RISK", "ATTENTION", "BLOCKED", "STALE", "UNVERIFIED"}
 RISK_EXPOSURE_SOURCES = {"summary.json"}
@@ -4496,12 +4508,91 @@ def _unverified_position_snapshot(*, source: str, empty_message: str) -> dict[st
     }
 
 
+def _paper_current_truth_refresh_position_snapshot(
+    *,
+    exchange: str,
+    market_type: str,
+    mode: str,
+    session_id: str,
+    paper_current_truth_refresh_report: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if not isinstance(paper_current_truth_refresh_report, dict):
+        return None
+
+    refresh_result = validate_paper_current_truth_refresh_report(paper_current_truth_refresh_report)
+    if refresh_result.status != "PASS":
+        if refresh_result.blocker_code == "LIVE_FINAL_GUARD_FAILED":
+            return _unverified_position_snapshot(
+                source="paper_current_truth_refresh_report.json",
+                empty_message=(
+                    "Position detail hidden because PAPER current-truth refresh failed the live safety guard."
+                ),
+            )
+        return None
+
+    expected_scope = {"exchange": exchange, "market_type": market_type, "mode": mode, "session_id": session_id}
+    if any(paper_current_truth_refresh_report.get(key) != value for key, value in expected_scope.items()):
+        return None
+    if paper_current_truth_refresh_report.get("refresh_status") != PAPER_CURRENT_TRUTH_REFRESH_PASS_STATUS:
+        return None
+
+    source_age_seconds = _snapshot_age_seconds(paper_current_truth_refresh_report.get("generated_at_utc"))
+    if source_age_seconds is None:
+        return _unverified_position_snapshot(
+            source="paper_current_truth_refresh_report.json",
+            empty_message="Position detail hidden because PAPER current-truth refresh has an invalid timestamp.",
+        )
+
+    source_stale = source_age_seconds > SOURCE_FRESHNESS_MAX_AGE_SECONDS
+    positions = paper_current_truth_refresh_report.get("positions", [])
+    positions = positions if isinstance(positions, list) else []
+    rows = [_position_row(position) for position in positions[:20] if isinstance(position, dict)]
+    count = len(positions)
+    status = "STALE" if source_stale else "NONE" if count == 0 else "OPEN" if rows else "UNVERIFIED"
+    empty_message = (
+        "Position detail is stale; refresh PAPER current truth before using positions."
+        if source_stale
+        else "No open PAPER positions"
+    )
+    return {
+        "title": "Open PAPER Positions",
+        "status": status,
+        "truth_role": "dashboard_serving_truth",
+        "source": "paper_current_truth_refresh_report.json",
+        "open_position_count": count,
+        "rows": rows,
+        "empty_message": empty_message,
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def _position_snapshot(
     summary: dict[str, Any] | None,
     summary_freshness: str,
+    *,
+    exchange: str,
+    market_type: str,
+    mode: str,
+    session_id: str,
+    paper_current_truth_refresh_report: dict[str, Any] | None = None,
     audited_current_evidence_snapshot: dict[str, Any] | None = None,
     audited_paper_portfolio_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    current_truth_positions = _paper_current_truth_refresh_position_snapshot(
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+        paper_current_truth_refresh_report=paper_current_truth_refresh_report,
+    )
+    if current_truth_positions is not None:
+        return current_truth_positions
+
     positions = summary.get("positions", []) if isinstance(summary, dict) else []
     if summary is not None and summary_freshness != "PASS":
         return {
@@ -5095,6 +5186,7 @@ def _stability_trends(
     heartbeat: dict[str, Any] | None,
     source_artifacts: list[dict[str, Any]],
     operation_status: dict[str, Any],
+    runner_operations_status: dict[str, Any] | None,
     stability_history: dict[str, Any] | None,
 ) -> dict[str, Any]:
     heartbeat_loaded = isinstance(heartbeat, dict)
@@ -5114,12 +5206,40 @@ def _stability_trends(
     source_detail = "All dashboard display sources are fresh" if not stale_sources else "Refresh required: " + ", ".join(stale_sources)
 
     components = heartbeat.get("components", {}) if heartbeat_loaded and isinstance(heartbeat.get("components"), dict) else {}
-    resource_status = _worst_status([_component_status(components, name) for name in ("cpu", "memory", "disk")])
+    cpu_status = _component_status(components, "cpu")
+    memory_status = _component_status(components, "memory")
+    disk_status = _component_status(components, "disk")
+    resource_status = _worst_status([cpu_status, memory_status, disk_status])
     disk_detail = _component_message(components, "disk", "Runtime artifact count, disk usage, and writer lock are within safe thresholds")
     artifact_pressure_status = _component_status(components, "disk")
     event_latency_status = _component_status(components, "event_latency")
     queue_status = _component_status(components, "queue_backlog")
     rate_limit_status = _component_status(components, "rate_limit_pressure")
+
+    def runner_safe_count(value: Any) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return 0
+        return parsed if parsed >= 0 else 0
+
+    runner_ops = runner_operations_status if isinstance(runner_operations_status, dict) else {}
+    runner_runtime_active = (
+        operation_status.get("runtime_presence") == "PAPER_RUNTIME_ACTIVE"
+        and operation_status.get("source") == "runner_status.json"
+        and runner_ops.get("source") == "runner_status.json"
+        and runner_ops.get("status") == "RUNNING_NOW"
+        and runner_ops.get("runner_status") == "RUNNING"
+        and runner_ops.get("running") is True
+        and runner_safe_count(runner_ops.get("completed_cycle_count")) > 0
+        and runner_safe_count(runner_ops.get("failed_cycle_count")) == 0
+        and runner_ops.get("artifact_retention_status") == "PASS"
+        and runner_ops.get("disk_pressure_status") == "PASS"
+        and not any(
+            runner_ops.get(field) is not False
+            for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+        )
+    )
 
     metrics = [
         _stability_metric(
@@ -5179,6 +5299,65 @@ def _stability_trends(
             "heartbeat.json",
         ),
     ]
+    if runner_runtime_active:
+        normalized_metrics = []
+        for metric in metrics:
+            metric = dict(metric)
+            metric_id = metric.get("metric_id")
+            metric_status = metric.get("status")
+            if metric_id == "heartbeat_age" and metric_status == "STALE":
+                metric.update(
+                    {
+                        "status": "WARN",
+                        "value_display": "RUNNER_ACTIVE / HEARTBEAT_STALE",
+                        "detail": (
+                            "PAPER runner cycles are fresh, but the legacy heartbeat is stale; "
+                            "keep this as a review warning, not runtime proof for live readiness."
+                        ),
+                    }
+                )
+            elif metric_id == "runtime_artifact_pressure" and metric_status in {"WARN", "FAIL", "STALE"}:
+                metric.update(
+                    {
+                        "status": "PASS",
+                        "value_display": "PASS",
+                        "detail": (
+                            "Active PAPER runner retention and disk-pressure guard are PASS; "
+                            "legacy heartbeat artifact pressure is not the active runner disk guard."
+                        ),
+                        "source": "runner_retention_manifest.json",
+                    }
+                )
+            elif (
+                metric_id == "resource_health"
+                and metric_status == "FAIL"
+                and disk_status == "FAIL"
+                and cpu_status != "FAIL"
+                and memory_status != "FAIL"
+            ):
+                metric.update(
+                    {
+                        "status": "WARN",
+                        "value_display": "WARN",
+                        "detail": (
+                            "Legacy heartbeat disk resource check failed, but active PAPER runner "
+                            "retention and disk-pressure guard are PASS; CPU and memory remain non-failing."
+                        ),
+                    }
+                )
+            elif metric_id == "queue_backlog" and metric_status == "FAIL":
+                metric.update(
+                    {
+                        "status": "WARN",
+                        "value_display": "WARN",
+                        "detail": (
+                            "Legacy heartbeat queue backlog reported FAIL while active PAPER runner cycles "
+                            "continue without failed cycles; keep operator attention without marking runtime ERROR."
+                        ),
+                    }
+                )
+            normalized_metrics.append(metric)
+        metrics = normalized_metrics
     metric_statuses = [metric["status"] for metric in metrics]
     history_valid = (
         isinstance(stability_history, dict)
@@ -5957,6 +6136,327 @@ def _paper_persistent_loop_status(
             "long_run_evidence_eligible": False,
             "long_run_blocker_code": str(report.get("long_run_blocker_code") or "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT"),
             "promotion_eligible": False,
+            "primary_blocker_code": str(primary_blocker or "LIVE_READY_MISSING"),
+            "one_line_summary": summary,
+            "next_operator_action": next_action,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+    )
+    return base
+
+
+def _paper_runner_operations_status(
+    *,
+    runner_status_report: dict[str, Any] | None,
+    retention_manifest: dict[str, Any] | None,
+    exchange: str,
+    market_type: str,
+    mode: str,
+    session_id: str,
+) -> dict[str, Any]:
+    def safe_count(value: Any) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return 0
+        return parsed if parsed >= 0 else 0
+
+    def safe_value(value: Any) -> int | float | str | None:
+        if isinstance(value, (int, float, str)) or value is None:
+            return value
+        return None
+
+    base = {
+        "title": "PAPER Runner Operations",
+        "status": "NOT_LOADED",
+        "severity": "WARNING",
+        "color_token": "yellow",
+        "truth_role": "dashboard_serving_truth",
+        "source": "NOT_LOADED",
+        "runner_status": "NOT_LOADED",
+        "running": False,
+        "completed_cycle_count": 0,
+        "failed_cycle_count": 0,
+        "last_cycle_time": None,
+        "next_cycle_eta": None,
+        "current_symbol": "UNKNOWN",
+        "current_position_count": 0,
+        "cash": None,
+        "equity": None,
+        "realized_pnl": None,
+        "unrealized_pnl": None,
+        "last_decision": "NOT_AVAILABLE",
+        "last_blocker": None,
+        "stop_method": "STOP_FILE_OR_CTRL_C",
+        "log_path": "NOT_LOADED",
+        "dashboard_open_attempted": False,
+        "dashboard_opened": False,
+        "dashboard_open_method": "NOT_ATTEMPTED",
+        "dashboard_open_target": "NOT_LOADED",
+        "dashboard_open_blocker_code": None,
+        "dashboard_open_blocker_message": None,
+        "retention_manifest_path": "NOT_LOADED",
+        "artifact_retention_status": "NOT_LOADED",
+        "disk_pressure_status": "NOT_LOADED",
+        "runtime_artifact_count": 0,
+        "runtime_artifact_bytes": 0,
+        "archived_artifact_count": 0,
+        "disk_pressure_max_runtime_bytes": 0,
+        "profitability_evidence_refresh_status": "NOT_LOADED",
+        "runtime_sample_history_status": "NOT_LOADED",
+        "runtime_sample_count": 0,
+        "candidate_scorecard_status": "NOT_LOADED",
+        "candidate_scorecard_ranking_eligible": False,
+        "symbol_evidence_scorecard_count": 0,
+        "selected_symbol_evidence_scorecard": None,
+        "symbol_evidence_scorecards_top": [],
+        "overfit_diagnostic_status": "NOT_LOADED",
+        "overfit_preliminary_robustness_status": "INSUFFICIENT_PRELIMINARY_SAMPLE",
+        "overfit_preliminary_oos_status": "UNTESTED",
+        "overfit_preliminary_walk_forward_status": "UNTESTED",
+        "overfit_preliminary_bootstrap_status": "UNTESTED",
+        "overfit_preliminary_oos_net_ev_after_cost_bps": None,
+        "overfit_preliminary_bootstrap_confidence_lower_bps": None,
+        "overfit_preliminary_primary_blocker_code": "PRELIMINARY_SAMPLE_INSUFFICIENT",
+        "paper_shadow_evidence_validation_status": "NOT_LOADED",
+        "paper_shadow_evidence_actionability_status": "NOT_LOADED",
+        "paper_shadow_evidence_blocker_code": None,
+        "primary_blocker_code": "RUNNER_STATUS_MISSING",
+        "one_line_summary": "No PAPER long runner status is loaded.",
+        "next_operator_action": "Start PAPER with the root launcher and keep this dashboard open.",
+        "display_only": True,
+        "dashboard_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+    if not isinstance(runner_status_report, dict):
+        return base
+
+    runner_validation = validate_upbit_paper_long_runner_status_report(runner_status_report)
+    retention_validation = (
+        validate_upbit_paper_long_runner_retention_manifest(retention_manifest)
+        if isinstance(retention_manifest, dict)
+        else {"status": "NOT_LOADED", "blocker_code": "RETENTION_MANIFEST_MISSING"}
+    )
+    runner_scope_matches = (
+        runner_status_report.get("exchange") == exchange
+        and runner_status_report.get("market_type") == market_type
+        and runner_status_report.get("mode") == mode
+        and runner_status_report.get("session_id") == session_id
+    )
+    retention_scope_matches = not isinstance(retention_manifest, dict) or (
+        retention_manifest.get("exchange") == exchange
+        and retention_manifest.get("market_type") == market_type
+        and retention_manifest.get("mode") == mode
+        and retention_manifest.get("session_id") == session_id
+    )
+    runner_fresh = _freshness_from_generated_at(runner_status_report) == "PASS"
+    retention_fresh = not isinstance(retention_manifest, dict) or _freshness_from_generated_at(retention_manifest) == "PASS"
+    unsafe_permission = any(
+        payload.get(field) is not False
+        for payload in (runner_status_report, retention_manifest if isinstance(retention_manifest, dict) else {})
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    )
+
+    runner_state = str(runner_status_report.get("runner_status") or "UNKNOWN")
+    artifact_retention_status = str(
+        (
+            retention_manifest.get("retention_status")
+            if isinstance(retention_manifest, dict)
+            else runner_status_report.get("artifact_retention_status")
+        )
+        or "NOT_LOADED"
+    )
+    disk_pressure_status = str(
+        (
+            retention_manifest.get("disk_pressure_status")
+            if isinstance(retention_manifest, dict)
+            else runner_status_report.get("disk_pressure_status")
+        )
+        or "NOT_LOADED"
+    )
+    primary_blocker = runner_status_report.get("primary_blocker_code") or "LIVE_READY_MISSING"
+    status = "RUNNING_NOW" if runner_status_report.get("running") is True else "STOPPED"
+    severity = "NORMAL" if status == "RUNNING_NOW" else "WARNING"
+    color_token = "green" if status == "RUNNING_NOW" else "yellow"
+    summary = (
+        "PAPER long runner is running; cycles, next ETA, retention, and disk pressure are visible here."
+        if status == "RUNNING_NOW"
+        else "PAPER long runner is stopped; latest cycle and retention evidence remain display-only."
+    )
+    next_action = (
+        "Keep PAPER running and watch cycle time, failures, retention, and disk pressure before any live review."
+        if status == "RUNNING_NOW"
+        else "Start PAPER again if you want continuous runtime evidence to advance."
+    )
+
+    if unsafe_permission:
+        status = "ERROR"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = "LIVE_FINAL_GUARD_FAILED"
+        summary = "PAPER runner status attempted live or scale permission; dashboard blocked it."
+        next_action = "Stop review and regenerate runner artifacts with all live flags false."
+    elif runner_validation.get("status") == "FAIL" or not runner_scope_matches:
+        status = "ERROR"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = runner_validation.get("blocker_code") or "SCHEMA_IDENTITY_MISMATCH"
+        summary = "PAPER runner status is invalid or scoped to another session."
+        next_action = "Regenerate the scoped PAPER runner status before trusting runtime operations."
+    elif isinstance(retention_manifest, dict) and (
+        retention_validation.get("status") == "FAIL" or not retention_scope_matches
+    ):
+        status = "ERROR"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = retention_validation.get("blocker_code") or "RETENTION_MANIFEST_INVALID"
+        summary = "PAPER runner retention manifest is invalid or scoped to another session."
+        next_action = "Regenerate retention manifest before relying on disk or artifact status."
+    elif (
+        runner_validation.get("status") == "BLOCKED"
+        or retention_validation.get("status") == "BLOCKED"
+        or disk_pressure_status == "BLOCKED"
+        or runner_state == "BLOCKED"
+    ):
+        status = "BLOCKED"
+        severity = "ERROR"
+        color_token = "red"
+        primary_blocker = (
+            DISK_PRESSURE_BLOCKER_CODE
+            if disk_pressure_status == "BLOCKED"
+            else runner_validation.get("blocker_code")
+            or retention_validation.get("blocker_code")
+            or str(primary_blocker or "RUNNER_BLOCKED")
+        )
+        summary = "PAPER runner blocked fail-closed before continuing runtime collection."
+        next_action = "Resolve disk pressure, lock, or runtime blocker; live orders remain blocked."
+    elif not runner_fresh or not retention_fresh:
+        status = "STALE"
+        severity = "WARNING"
+        color_token = "yellow"
+        primary_blocker = "LATENCY_TTL_EXPIRED"
+        summary = "PAPER runner operations are stale and cannot prove current runtime status."
+        next_action = "Rerun PAPER or wait for the next runner cycle to refresh status."
+
+    base.update(
+        {
+            "status": status,
+            "severity": severity,
+            "color_token": color_token,
+            "source": "runner_status.json",
+            "runner_status": runner_state,
+            "running": runner_status_report.get("running") is True and status == "RUNNING_NOW",
+            "completed_cycle_count": safe_count(runner_status_report.get("completed_cycle_count")),
+            "failed_cycle_count": safe_count(runner_status_report.get("failed_cycle_count")),
+            "last_cycle_time": safe_value(runner_status_report.get("last_cycle_time")),
+            "next_cycle_eta": safe_value(runner_status_report.get("next_cycle_eta")),
+            "current_symbol": str(runner_status_report.get("current_symbol") or "UNKNOWN"),
+            "current_position_count": safe_count(runner_status_report.get("current_position_count")),
+            "cash": safe_value(runner_status_report.get("cash")),
+            "equity": safe_value(runner_status_report.get("equity")),
+            "realized_pnl": safe_value(runner_status_report.get("realized_pnl")),
+            "unrealized_pnl": safe_value(runner_status_report.get("unrealized_pnl")),
+            "last_decision": str(runner_status_report.get("last_decision") or "NOT_AVAILABLE"),
+            "last_blocker": safe_value(runner_status_report.get("last_blocker")),
+            "stop_method": str(runner_status_report.get("stop_method") or "STOP_FILE_OR_CTRL_C"),
+            "log_path": str(runner_status_report.get("log_path") or "NOT_LOADED"),
+            "dashboard_open_attempted": runner_status_report.get("dashboard_open_attempted") is True,
+            "dashboard_opened": runner_status_report.get("dashboard_opened") is True,
+            "dashboard_open_method": str(runner_status_report.get("dashboard_open_method") or "NOT_ATTEMPTED"),
+            "dashboard_open_target": str(runner_status_report.get("dashboard_open_target") or "NOT_LOADED"),
+            "dashboard_open_blocker_code": safe_value(runner_status_report.get("dashboard_open_blocker_code")),
+            "dashboard_open_blocker_message": safe_value(runner_status_report.get("dashboard_open_blocker_message")),
+            "retention_manifest_path": str(runner_status_report.get("retention_manifest_path") or "NOT_LOADED"),
+            "artifact_retention_status": artifact_retention_status,
+            "disk_pressure_status": disk_pressure_status,
+            "runtime_artifact_count": safe_count(
+                (retention_manifest or {}).get("runtime_artifact_count_after")
+                if isinstance(retention_manifest, dict)
+                else runner_status_report.get("runtime_artifact_count")
+            ),
+            "runtime_artifact_bytes": safe_count(
+                (retention_manifest or {}).get("runtime_artifact_bytes_after")
+                if isinstance(retention_manifest, dict)
+                else runner_status_report.get("runtime_artifact_bytes")
+            ),
+            "archived_artifact_count": safe_count(
+                (retention_manifest or {}).get("archived_artifact_count")
+                if isinstance(retention_manifest, dict)
+                else runner_status_report.get("archived_artifact_count")
+            ),
+            "disk_pressure_max_runtime_bytes": safe_count(
+                (retention_manifest or {}).get("disk_pressure_max_runtime_bytes")
+                if isinstance(retention_manifest, dict)
+                else runner_status_report.get("disk_pressure_max_runtime_bytes")
+            ),
+            "profitability_evidence_refresh_status": str(
+                runner_status_report.get("profitability_evidence_refresh_status") or "NOT_LOADED"
+            ),
+            "runtime_sample_history_status": str(
+                runner_status_report.get("runtime_sample_history_status") or "NOT_LOADED"
+            ),
+            "runtime_sample_count": safe_count(runner_status_report.get("runtime_sample_count")),
+            "candidate_scorecard_status": str(
+                runner_status_report.get("candidate_scorecard_status") or "NOT_LOADED"
+            ),
+            "candidate_scorecard_ranking_eligible": runner_status_report.get(
+                "candidate_scorecard_ranking_eligible"
+            )
+            is True,
+            "symbol_evidence_scorecard_count": safe_count(
+                runner_status_report.get("symbol_evidence_scorecard_count")
+            ),
+            "selected_symbol_evidence_scorecard": (
+                runner_status_report.get("selected_symbol_evidence_scorecard")
+                if isinstance(runner_status_report.get("selected_symbol_evidence_scorecard"), dict)
+                else None
+            ),
+            "symbol_evidence_scorecards_top": (
+                runner_status_report.get("symbol_evidence_scorecards_top")
+                if isinstance(runner_status_report.get("symbol_evidence_scorecards_top"), list)
+                else []
+            ),
+            "overfit_diagnostic_status": str(
+                runner_status_report.get("overfit_diagnostic_status") or "NOT_LOADED"
+            ),
+            "overfit_preliminary_robustness_status": str(
+                runner_status_report.get("overfit_preliminary_robustness_status")
+                or "INSUFFICIENT_PRELIMINARY_SAMPLE"
+            ),
+            "overfit_preliminary_oos_status": str(
+                runner_status_report.get("overfit_preliminary_oos_status") or "UNTESTED"
+            ),
+            "overfit_preliminary_walk_forward_status": str(
+                runner_status_report.get("overfit_preliminary_walk_forward_status") or "UNTESTED"
+            ),
+            "overfit_preliminary_bootstrap_status": str(
+                runner_status_report.get("overfit_preliminary_bootstrap_status") or "UNTESTED"
+            ),
+            "overfit_preliminary_oos_net_ev_after_cost_bps": safe_value(
+                runner_status_report.get("overfit_preliminary_oos_net_ev_after_cost_bps")
+            ),
+            "overfit_preliminary_bootstrap_confidence_lower_bps": safe_value(
+                runner_status_report.get("overfit_preliminary_bootstrap_confidence_lower_bps")
+            ),
+            "overfit_preliminary_primary_blocker_code": str(
+                runner_status_report.get("overfit_preliminary_primary_blocker_code")
+                or "PRELIMINARY_SAMPLE_INSUFFICIENT"
+            ),
+            "paper_shadow_evidence_validation_status": str(
+                runner_status_report.get("paper_shadow_evidence_validation_status") or "NOT_LOADED"
+            ),
+            "paper_shadow_evidence_actionability_status": str(
+                runner_status_report.get("paper_shadow_evidence_actionability_status") or "NOT_LOADED"
+            ),
+            "paper_shadow_evidence_blocker_code": safe_value(
+                runner_status_report.get("paper_shadow_evidence_blocker_code")
+            ),
             "primary_blocker_code": str(primary_blocker or "LIVE_READY_MISSING"),
             "one_line_summary": summary,
             "next_operator_action": next_action,
@@ -8682,6 +9182,19 @@ def _overfit_diagnostic_projection(
     overfit_diagnostic_report: dict[str, Any] | None,
     summary_freshness: str,
 ) -> dict[str, Any]:
+    def safe_int(value: Any, default: int = 0) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return default
+        return parsed if parsed >= 0 else default
+
+    def safe_float(value: Any) -> float | None:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+
     base = {
         "overfit_diagnostic_source": "NOT_LOADED",
         "overfit_diagnostic_status": "NOT_LOADED",
@@ -8692,6 +9205,21 @@ def _overfit_diagnostic_projection(
         "overfit_diagnostic_walk_forward_status": "UNTESTED",
         "overfit_diagnostic_bootstrap_status": "UNTESTED",
         "overfit_diagnostic_overfit_status": "UNTESTED",
+        "overfit_preliminary_robustness_status": "INSUFFICIENT_PRELIMINARY_SAMPLE",
+        "overfit_preliminary_min_required_sample_count": 20,
+        "overfit_preliminary_sample_count": 0,
+        "overfit_preliminary_oos_status": "UNTESTED",
+        "overfit_preliminary_walk_forward_status": "UNTESTED",
+        "overfit_preliminary_bootstrap_status": "UNTESTED",
+        "overfit_preliminary_ranking_stability_status": "UNTESTED",
+        "overfit_preliminary_concentration_risk_status": "UNTESTED",
+        "overfit_preliminary_oos_net_ev_after_cost_bps": None,
+        "overfit_preliminary_bootstrap_confidence_lower_bps": None,
+        "overfit_preliminary_walk_forward_pass_rate": 0.0,
+        "overfit_preliminary_ranking_stability_score": 0.0,
+        "overfit_preliminary_primary_blocker_code": "PRELIMINARY_SAMPLE_INSUFFICIENT",
+        "overfit_preliminary_summary": "No PAPER overfit diagnostic is loaded for early review.",
+        "overfit_preliminary_next_action": "Keep PAPER running until early diagnostics can be measured.",
         "overfit_diagnostic_primary_blocker_code": "SAMPLE_INSUFFICIENT",
         "overfit_diagnostic_blocker_summary": "No PAPER overfit diagnostic is loaded for this dashboard.",
         "overfit_diagnostic_next_action": "Run the Upbit PAPER overfit diagnostic after collecting more PAPER runtime samples.",
@@ -8721,13 +9249,66 @@ def _overfit_diagnostic_projection(
         **base,
         "overfit_diagnostic_source": "overfit_diagnostic_report.json",
         "overfit_diagnostic_status": status if status in OVERFIT_DIAGNOSTIC_STATUSES else "BLOCKED",
-        "overfit_diagnostic_sample_count": int(overfit_diagnostic_report.get("sample_count") or 0),
-        "overfit_diagnostic_min_required_sample_count": int(overfit_diagnostic_report.get("min_required_sample_count") or 300),
+        "overfit_diagnostic_sample_count": safe_int(overfit_diagnostic_report.get("sample_count")),
+        "overfit_diagnostic_min_required_sample_count": safe_int(
+            overfit_diagnostic_report.get("min_required_sample_count"),
+            300,
+        ),
         "overfit_diagnostic_robustness_eligible": overfit_diagnostic_report.get("robustness_eligible") is True,
         "overfit_diagnostic_oos_status": str(overfit_diagnostic_report.get("oos_status") or "UNTESTED"),
         "overfit_diagnostic_walk_forward_status": str(overfit_diagnostic_report.get("walk_forward_status") or "UNTESTED"),
         "overfit_diagnostic_bootstrap_status": str(overfit_diagnostic_report.get("bootstrap_status") or "UNTESTED"),
         "overfit_diagnostic_overfit_status": str(overfit_diagnostic_report.get("overfit_status") or "UNTESTED"),
+        "overfit_preliminary_robustness_status": str(
+            overfit_diagnostic_report.get("preliminary_robustness_status")
+            or "INSUFFICIENT_PRELIMINARY_SAMPLE"
+        ),
+        "overfit_preliminary_min_required_sample_count": safe_int(
+            overfit_diagnostic_report.get("preliminary_min_required_sample_count"),
+            20,
+        ),
+        "overfit_preliminary_sample_count": safe_int(
+            overfit_diagnostic_report.get("preliminary_sample_count") or overfit_diagnostic_report.get("sample_count")
+        ),
+        "overfit_preliminary_oos_status": str(overfit_diagnostic_report.get("preliminary_oos_status") or "UNTESTED"),
+        "overfit_preliminary_walk_forward_status": str(
+            overfit_diagnostic_report.get("preliminary_walk_forward_status") or "UNTESTED"
+        ),
+        "overfit_preliminary_bootstrap_status": str(
+            overfit_diagnostic_report.get("preliminary_bootstrap_status") or "UNTESTED"
+        ),
+        "overfit_preliminary_ranking_stability_status": str(
+            overfit_diagnostic_report.get("preliminary_ranking_stability_status") or "UNTESTED"
+        ),
+        "overfit_preliminary_concentration_risk_status": str(
+            overfit_diagnostic_report.get("preliminary_concentration_risk_status") or "UNTESTED"
+        ),
+        "overfit_preliminary_oos_net_ev_after_cost_bps": safe_float(
+            overfit_diagnostic_report.get("preliminary_oos_net_ev_after_cost_bps")
+        ),
+        "overfit_preliminary_bootstrap_confidence_lower_bps": safe_float(
+            overfit_diagnostic_report.get("preliminary_bootstrap_confidence_lower_bps")
+        ),
+        "overfit_preliminary_walk_forward_pass_rate": safe_float(
+            overfit_diagnostic_report.get("preliminary_walk_forward_pass_rate")
+        )
+        or 0.0,
+        "overfit_preliminary_ranking_stability_score": safe_float(
+            overfit_diagnostic_report.get("preliminary_ranking_stability_score")
+        )
+        or 0.0,
+        "overfit_preliminary_primary_blocker_code": str(
+            overfit_diagnostic_report.get("preliminary_primary_blocker_code")
+            or "PRELIMINARY_SAMPLE_INSUFFICIENT"
+        ),
+        "overfit_preliminary_summary": str(
+            overfit_diagnostic_report.get("preliminary_summary")
+            or "Early PAPER diagnostics are not available on this artifact."
+        ),
+        "overfit_preliminary_next_action": str(
+            overfit_diagnostic_report.get("preliminary_next_action")
+            or "Regenerate the overfit diagnostic from fresh PAPER runtime samples."
+        ),
         "overfit_diagnostic_primary_blocker_code": first_blocker,
         "overfit_diagnostic_blocker_summary": ", ".join(blocker_codes[:4]) if blocker_codes else "PAPER robustness review only; live remains blocked.",
         "overfit_diagnostic_next_action": (
@@ -10219,6 +10800,7 @@ def _operation_status(
     portfolio_snapshot: dict[str, Any] | None,
     reconciliation_recovery_summary: dict[str, Any] | None = None,
     paper_runtime_truth_state_report: dict[str, Any] | None = None,
+    runner_operations_status: dict[str, Any] | None = None,
     primary_blocker: str | None = None,
 ) -> dict[str, Any]:
     heartbeat_status = heartbeat.get("heartbeat_status") if isinstance(heartbeat, dict) else "STALE"
@@ -10251,6 +10833,126 @@ def _operation_status(
         else "Run the scoped PAPER runtime loop so ledger, market data, and current evidence can advance."
     )
     reconciliation_blocker = _portfolio_reconciliation_blocker_code(reconciliation_recovery_summary)
+    if isinstance(runner_operations_status, dict):
+        runner_status = str(runner_operations_status.get("status") or "NOT_LOADED")
+        runner_state = str(runner_operations_status.get("runner_status") or "NOT_LOADED")
+        runner_source_loaded = runner_operations_status.get("source") == "runner_status.json"
+        runner_blocker = str(runner_operations_status.get("primary_blocker_code") or primary_blocker or "LIVE_READY_MISSING")
+        runner_message = str(
+            runner_operations_status.get("one_line_summary")
+            or "PAPER runner status is loaded; live orders remain blocked."
+        )
+        runner_next_action = str(
+            runner_operations_status.get("next_operator_action")
+            or "Keep PAPER status fresh and continue collecting non-live evidence."
+        )
+        def runner_optional_text(field: str) -> str | None:
+            value = runner_operations_status.get(field)
+            if value is None or value == "":
+                return None
+            return str(value)
+
+        def runner_count(field: str) -> int:
+            value = runner_operations_status.get(field)
+            try:
+                return max(0, int(value))
+            except (TypeError, ValueError):
+                return 0
+
+        runner_runtime_fields = {
+            "runner_status": runner_state,
+            "running": runner_operations_status.get("running") is True and runner_status == "RUNNING_NOW",
+            "completed_cycle_count": runner_count("completed_cycle_count"),
+            "failed_cycle_count": runner_count("failed_cycle_count"),
+            "last_cycle_time": runner_optional_text("last_cycle_time"),
+            "next_cycle_eta": runner_optional_text("next_cycle_eta"),
+            "current_symbol": runner_optional_text("current_symbol") or "UNKNOWN",
+            "current_position_count": runner_count("current_position_count"),
+            "cash": runner_optional_text("cash"),
+            "equity": runner_optional_text("equity"),
+            "realized_pnl": runner_optional_text("realized_pnl"),
+            "unrealized_pnl": runner_optional_text("unrealized_pnl"),
+            "last_decision": runner_optional_text("last_decision") or "UNKNOWN",
+            "last_blocker": runner_optional_text("last_blocker"),
+            "one_line_summary": runner_message,
+            "next_operator_action": runner_next_action,
+        }
+        runner_unsafe = any(
+            runner_operations_status.get(field) is not False
+            for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+        )
+        if runner_source_loaded and runner_unsafe:
+            return {
+                "status": "ERROR",
+                "severity": "ERROR",
+                "color_token": "red",
+                "label": "PAPER runner blocked",
+                "message": "PAPER runner operations attempted live or scale permission; dashboard blocked it.",
+                "recovery_hint": "Stop review and regenerate runner artifacts with all live flags false.",
+                "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+                "runtime_presence": "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED",
+                "operator_meaning": "The continuous PAPER engine status is unsafe and cannot be trusted; this is not live readiness.",
+                "source": "runner_status.json",
+                "engine_state": runner_state or engine_state or "UNKNOWN",
+                "heartbeat_status": heartbeat_status or "STALE",
+                "summary_freshness_status": summary_freshness,
+                "startup_freshness_status": startup_freshness,
+                "portfolio_status": portfolio_status,
+                "portfolio_blocking_reason": portfolio_blocker,
+                "portfolio_next_action": portfolio_next_action_text,
+                "primary_blocker": "LIVE_FINAL_GUARD_FAILED",
+                "live_orders_blocked": live_orders_blocked,
+                **runner_runtime_fields,
+            }
+        if runner_source_loaded and runner_status in {"RUNNING_NOW", "STOPPED", "STALE", "BLOCKED", "ERROR"}:
+            runner_active = runner_status == "RUNNING_NOW" and runner_state == "RUNNING"
+            runner_blocked = runner_status in {"BLOCKED", "ERROR"}
+            runner_current = runner_status in {"RUNNING_NOW", "STOPPED"}
+            heartbeat_current = heartbeat_status == "PASS" and heartbeat_freshness == "PASS"
+            portfolio_verified = portfolio_status == "VERIFIED"
+            if runner_blocked:
+                status = "ERROR"
+                severity = "ERROR"
+                color_token = "red"
+                label = "PAPER runner blocked"
+                runtime_presence = "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED"
+            elif runner_active:
+                status = "RUNNING_SAFE_MODE"
+                severity = "NORMAL" if heartbeat_current and portfolio_verified else "WARNING"
+                color_token = "green" if severity == "NORMAL" else "yellow"
+                label = "PAPER runner active"
+                runtime_presence = "PAPER_RUNTIME_ACTIVE"
+            else:
+                status = "CHECKING_SAFE_MODE"
+                severity = "WARNING"
+                color_token = "yellow"
+                label = "PAPER runner stopped" if runner_current else "PAPER runner stale"
+                runtime_presence = "HEARTBEAT_STALE_OR_SOURCE_ATTENTION_REQUIRED"
+            heartbeat_note = ""
+            if runner_active and not heartbeat_current:
+                heartbeat_note = " Legacy heartbeat is stale, so this remains a warning until the monitor heartbeat refreshes."
+            return {
+                "status": status,
+                "severity": severity,
+                "color_token": color_token,
+                "label": label,
+                "message": runner_message + heartbeat_note,
+                "recovery_hint": runner_next_action,
+                "launcher_execution_mode": "SAFE_BOOT_OR_EXPLICIT_MONITOR",
+                "runtime_presence": runtime_presence,
+                "operator_meaning": "The continuous PAPER engine status is sourced from the PAPER runner operations report; stale heartbeat or source warnings remain separate, and this is not live readiness.",
+                "source": "runner_status.json",
+                "engine_state": runner_state or engine_state or "UNKNOWN",
+                "heartbeat_status": heartbeat_status or "STALE",
+                "summary_freshness_status": summary_freshness,
+                "startup_freshness_status": startup_freshness,
+                "portfolio_status": portfolio_status,
+                "portfolio_blocking_reason": portfolio_blocker,
+                "portfolio_next_action": portfolio_next_action_text,
+                "primary_blocker": runner_blocker,
+                "live_orders_blocked": live_orders_blocked,
+                **runner_runtime_fields,
+            }
     if heartbeat_status == "PASS" and heartbeat_freshness == "PASS":
         if runtime_truth_result is not None and runtime_truth_result.status == "FAIL":
             return {
@@ -10978,6 +11680,7 @@ def _reconciliation_recovery_summary(
             ledger_state = "RECONCILE_REQUIRED" if evidence_result.status == "BLOCKED" else "INVALID"
             idempotency_state = "RECONCILE_REQUIRED" if evidence_result.status == "BLOCKED" else "INVALID"
             primary_blocker = evidence_result.blocker_code or ledger_idempotency_runtime_primary_blocker_code
+            ledger_idempotency_runtime_primary_blocker_code = primary_blocker
             issue_messages.append(f"Ledger idempotency runtime evidence invalid: {evidence_result.message}")
         elif not _scope_matches(
             ledger_idempotency_runtime_evidence_report,
@@ -13039,7 +13742,10 @@ def _reconciliation_recovery_summary(
             f"candidate-ready={upbit_paper_repaired_current_evidence_audited_writer_precheck_candidate_ready_count}, "
             "writer-enabled=false, current-evidence writes=false, portfolio truth writes=false."
         )
-    elif upbit_paper_repaired_current_evidence_audited_writer_verified_for_display:
+    elif (
+        upbit_paper_repaired_current_evidence_audited_writer_verified_for_display
+        and ledger_idempotency_runtime_evidence_status != "BLOCKED"
+    ):
         status = "PASS"
         severity = "NORMAL"
         color_token = "green"
@@ -13348,7 +14054,10 @@ def _reconciliation_recovery_summary(
             f"Post-rerun reconciliation remains blocked: {post_rerun_unique_blocker_count} unresolved blocker code(s), "
             f"{post_rerun_current_evidence_write_allowed_count} current-evidence writes allowed."
         )
-    elif upbit_paper_repaired_current_evidence_audited_writer_verified_for_display:
+    elif (
+        upbit_paper_repaired_current_evidence_audited_writer_verified_for_display
+        and ledger_idempotency_runtime_evidence_status != "BLOCKED"
+    ):
         status = "PASS"
         severity = "NORMAL"
         color_token = "green"
@@ -13459,6 +14168,7 @@ def _reconciliation_recovery_summary(
         status = "BLOCKED"
         severity = "ERROR"
         color_token = "red"
+        primary_blocker = ledger_idempotency_runtime_primary_blocker_code or "RECONCILIATION_REQUIRED"
         one_line_blocker = f"{primary_blocker}: current PAPER ledger idempotency evidence is blocked."
         next_action = "Inspect duplicate, count-mismatch, and provenance evidence before any PAPER trading review."
         message = issue_messages[0] if issue_messages else "PAPER ledger idempotency runtime evidence requires reconciliation."
@@ -16416,6 +17126,8 @@ def build_read_only_dashboard_shell(
     paper_continuous_current_evidence_writer_report: dict[str, Any] | None = None,
     upbit_paper_ledger_idempotency_runtime_evidence_report: dict[str, Any] | None = None,
     upbit_paper_persistent_loop_report: dict[str, Any] | None = None,
+    upbit_paper_long_runner_status_report: dict[str, Any] | None = None,
+    upbit_paper_long_runner_retention_manifest: dict[str, Any] | None = None,
     upbit_paper_runtime_recovery_guard_report: dict[str, Any] | None = None,
     upbit_paper_runtime_evidence_collection_profile_report: dict[str, Any] | None = None,
     upbit_public_rest_continuity_history: dict[str, Any] | None = None,
@@ -16481,6 +17193,8 @@ def build_read_only_dashboard_shell(
         "paper_runtime_truth_state_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/paper_runtime_truth_state_report.json",
         "audited_paper_portfolio_snapshot": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/portfolio/paper_portfolio_snapshot.json",
         "upbit_paper_ledger_idempotency_runtime_evidence": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/ledger/upbit_paper_ledger_idempotency_runtime_evidence_report.json",
+        "upbit_paper_long_runner_status": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/runner/runner_status.json",
+        "upbit_paper_long_runner_retention_manifest": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/runner/runner_retention_manifest.json",
         "upbit_public_rest_continuity_history": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/market_data/public/rest_continuity_history.json",
         "candidate_scorecard": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/candidate_scorecard.json",
         "overfit_diagnostic_report": f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/profitability/overfit_diagnostic_report.json",
@@ -17056,6 +17770,54 @@ def build_read_only_dashboard_shell(
                 ),
                 True,
                 persistent_loop_freshness,
+            )
+        )
+    runner_operations_status = _paper_runner_operations_status(
+        runner_status_report=upbit_paper_long_runner_status_report,
+        retention_manifest=upbit_paper_long_runner_retention_manifest,
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+    )
+    if isinstance(upbit_paper_long_runner_status_report, dict):
+        runner_validation = validate_upbit_paper_long_runner_status_report(upbit_paper_long_runner_status_report)
+        runner_freshness = (
+            "PASS"
+            if runner_validation.get("status") in {"PASS", "BLOCKED"}
+            and _freshness_from_generated_at(upbit_paper_long_runner_status_report) == "PASS"
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "PAPER_LONG_RUNNER_STATUS",
+                paths.get(
+                    "upbit_paper_long_runner_status",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/runner/runner_status.json",
+                ),
+                True,
+                runner_freshness,
+            )
+        )
+    if isinstance(upbit_paper_long_runner_retention_manifest, dict):
+        retention_validation = validate_upbit_paper_long_runner_retention_manifest(
+            upbit_paper_long_runner_retention_manifest
+        )
+        retention_freshness = (
+            "PASS"
+            if retention_validation.get("status") in {"PASS", "BLOCKED"}
+            and _freshness_from_generated_at(upbit_paper_long_runner_retention_manifest) == "PASS"
+            else "STALE"
+        )
+        source_artifacts.append(
+            _source_artifact(
+                "PAPER_LONG_RUNNER_RETENTION",
+                paths.get(
+                    "upbit_paper_long_runner_retention_manifest",
+                    f"system/runtime/{exchange.lower()}/{market_type.lower()}/paper/{session_id}/paper_runtime/runner/runner_retention_manifest.json",
+                ),
+                True,
+                retention_freshness,
             )
         )
     paper_runtime_recovery_guard_status = _paper_runtime_recovery_guard_status(
@@ -17918,6 +18680,11 @@ def build_read_only_dashboard_shell(
     position_snapshot = _position_snapshot(
         summary,
         summary_freshness,
+        exchange=exchange,
+        market_type=market_type,
+        mode=mode,
+        session_id=session_id,
+        paper_current_truth_refresh_report=paper_current_truth_refresh_report,
         audited_current_evidence_snapshot=audited_current_evidence_snapshot,
         audited_paper_portfolio_snapshot=audited_paper_portfolio_snapshot,
     )
@@ -17951,6 +18718,7 @@ def build_read_only_dashboard_shell(
         portfolio_snapshot=portfolio_snapshot,
         reconciliation_recovery_summary=reconciliation_recovery_summary,
         paper_runtime_truth_state_report=paper_runtime_truth_state_report,
+        runner_operations_status=runner_operations_status,
         primary_blocker=primary_blocker,
     )
     stability_trends = _stability_trends(
@@ -17961,6 +18729,7 @@ def build_read_only_dashboard_shell(
         heartbeat=heartbeat,
         source_artifacts=source_artifacts,
         operation_status=operation_status,
+        runner_operations_status=runner_operations_status,
         stability_history=stability_history,
     )
     long_run_operator_summary = _long_run_operator_summary(
@@ -18108,6 +18877,23 @@ def build_read_only_dashboard_shell(
     startup_status = summary.get("startup", {}) if isinstance(summary, dict) else {}
     connectivity = summary.get("connectivity", {}) if isinstance(summary, dict) else {}
     resources = summary.get("resources", {}) if isinstance(summary, dict) else {}
+    runner_primary_status = str(runner_operations_status.get("status") or "NOT_LOADED")
+    runner_state_for_primary = str(runner_operations_status.get("runner_status") or "NOT_LOADED")
+    if runner_primary_status == "STALE" and runner_state_for_primary in {"RUNNING", "STOPPED", "BLOCKED"}:
+        primary_status_text = f"PAPER STALE - LAST RUNNER {runner_state_for_primary} - LIVE ORDERS BLOCKED"
+    elif runner_primary_status == "RUNNING_NOW" or runner_state_for_primary == "RUNNING":
+        primary_status_text = "PAPER RUNNING - READ ONLY, LIVE ORDERS BLOCKED"
+    elif runner_primary_status == "STOPPED" or runner_state_for_primary == "STOPPED":
+        primary_status_text = "PAPER STOPPED - READ ONLY, LIVE ORDERS BLOCKED"
+    elif runner_primary_status in {"BLOCKED", "ERROR"} or runner_state_for_primary == "BLOCKED":
+        primary_status_text = "PAPER BLOCKED - READ ONLY, LIVE ORDERS BLOCKED"
+    else:
+        primary_status_text = "PAPER STATUS NOT LOADED - READ ONLY, LIVE ORDERS BLOCKED"
+    dashboard_next_action = str(
+        runner_operations_status.get("next_operator_action")
+        or operation_status.get("recovery_hint")
+        or "Start or refresh PAPER before using the dashboard for review."
+    )
 
     shell = {
         "schema_id": READ_ONLY_DASHBOARD_SCHEMA_ID,
@@ -18148,6 +18934,7 @@ def build_read_only_dashboard_shell(
         "shadow_runtime_harness_status": shadow_runtime_harness_status,
         "shadow_persistent_runtime_status": shadow_persistent_runtime_status,
         "paper_persistent_loop_status": paper_persistent_loop_status,
+        "paper_runner_operations_status": runner_operations_status,
         "paper_runtime_recovery_guard_status": paper_runtime_recovery_guard_status,
         "paper_runtime_evidence_collection_profile_status": paper_runtime_evidence_collection_profile_status,
         "runtime_evidence_boundary": runtime_evidence_boundary,
@@ -18184,7 +18971,7 @@ def build_read_only_dashboard_shell(
             _panel("Resources", resources.get("status", "UNTESTED"), "heartbeat.json", resources.get("message")),
             _panel("Live Orders", "BLOCKED", "summary.json", "LIVE ORDERS BLOCKED"),
         ],
-        "primary_status_text": "RUNNING SAFE MODE - READ ONLY, LIVE ORDERS BLOCKED",
+        "primary_status_text": primary_status_text,
         "live_order_ready": False,
         "live_order_allowed": False,
         "can_live_trade": False,
@@ -18192,7 +18979,7 @@ def build_read_only_dashboard_shell(
         "can_submit_order": False,
         "final_action": "NO_TRADE" if dashboard_primary_blocker else "SAFE_MODE",
         "blocking_reason": dashboard_primary_blocker,
-        "next_action": "continue read-only monitoring; resolve blockers before any trading review",
+        "next_action": dashboard_next_action,
         "forbidden_wording_detected": False,
         "dashboard_hash": "",
     }
@@ -18215,6 +19002,20 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "launcher_execution_mode",
                 "runtime_presence",
                 "operator_meaning",
+            )
+        )
+    runner_operations = shell.get("paper_runner_operations_status", {})
+    if isinstance(runner_operations, dict):
+        values.extend(
+            str(runner_operations.get(key, ""))
+            for key in (
+                "status",
+                "runner_status",
+                "artifact_retention_status",
+                "disk_pressure_status",
+                "primary_blocker_code",
+                "one_line_summary",
+                "next_operator_action",
             )
         )
     shadow_harness = shell.get("shadow_runtime_harness_status", {})
@@ -19176,6 +19977,35 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("FAIL", "warning operation must use yellow status color", "SCHEMA_IDENTITY_MISMATCH")
     if operation.get("severity") == "ERROR" and operation.get("color_token") != "red":
         return DashboardValidationResult("FAIL", "error operation must use red status color", "SCHEMA_IDENTITY_MISMATCH")
+    runner_operations = shell.get("paper_runner_operations_status")
+    if not isinstance(runner_operations, dict):
+        return DashboardValidationResult("FAIL", "dashboard paper runner operations status missing", "SCHEMA_IDENTITY_MISMATCH")
+    if runner_operations.get("truth_role") != "dashboard_serving_truth":
+        return DashboardValidationResult("FAIL", "paper runner operations must be dashboard serving truth", "SCHEMA_IDENTITY_MISMATCH")
+    if runner_operations.get("display_only") is not True or runner_operations.get("dashboard_truth_only") is not True:
+        return DashboardValidationResult("BLOCKED", "paper runner operations must remain display-only", "LIVE_FINAL_GUARD_FAILED")
+    if (
+        runner_operations.get("live_order_ready")
+        or runner_operations.get("live_order_allowed")
+        or runner_operations.get("can_live_trade")
+        or runner_operations.get("scale_up_allowed")
+    ):
+        return DashboardValidationResult("BLOCKED", "paper runner operations attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
+    if runner_operations.get("source") not in {"NOT_LOADED", "runner_status.json"}:
+        return DashboardValidationResult("FAIL", "paper runner operations source is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if runner_operations.get("severity") not in OPERATION_STATUS_LEVELS:
+        return DashboardValidationResult("FAIL", "paper runner operations severity is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if runner_operations.get("color_token") not in OPERATION_COLOR_TOKENS:
+        return DashboardValidationResult("FAIL", "paper runner operations color token is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    if runner_operations.get("disk_pressure_status") == "BLOCKED":
+        if runner_operations.get("status") != "BLOCKED" or runner_operations.get("primary_blocker_code") != DISK_PRESSURE_BLOCKER_CODE:
+            return DashboardValidationResult(
+                "BLOCKED",
+                "paper runner disk pressure must surface fail-closed blocker",
+                DISK_PRESSURE_BLOCKER_CODE,
+            )
+    if not isinstance(runner_operations.get("next_operator_action"), str) or not runner_operations.get("next_operator_action", "").strip():
+        return DashboardValidationResult("FAIL", "paper runner operations must expose next action", "SCHEMA_IDENTITY_MISMATCH")
     portfolio = shell.get("portfolio_snapshot")
     if not isinstance(portfolio, dict):
         return DashboardValidationResult("FAIL", "dashboard portfolio_snapshot missing", "SCHEMA_IDENTITY_MISMATCH")
@@ -21192,6 +22022,7 @@ def validate_read_only_dashboard_shell(
             or reconciliation.get("primary_blocker_code")
             not in {
                 "AUDITED_CURRENT_EVIDENCE_WRITER_NOT_IMPLEMENTED",
+                "MEASUREMENT_MISSING",
                 "POST_RERUN_RECONCILIATION_REQUIRED",
                 "PUBLIC_MARK_PRICE_BASIS_MISMATCH",
             }
@@ -23173,16 +24004,41 @@ def validate_read_only_dashboard_shell(
         return DashboardValidationResult("BLOCKED", "overfit diagnostic display must be backed by a listed source artifact", "HARD_TRUTH_MISSING")
     if not overfit_source_loaded and overfit_source_listed:
         return DashboardValidationResult("BLOCKED", "overfit diagnostic source artifact is listed while display is not loaded", "SCHEMA_IDENTITY_MISMATCH")
-    for numeric_field in ("overfit_diagnostic_sample_count", "overfit_diagnostic_min_required_sample_count"):
+    for numeric_field in (
+        "overfit_diagnostic_sample_count",
+        "overfit_diagnostic_min_required_sample_count",
+        "overfit_preliminary_min_required_sample_count",
+        "overfit_preliminary_sample_count",
+    ):
         if not isinstance(maturity.get(numeric_field), int):
             return DashboardValidationResult("FAIL", f"overfit diagnostic {numeric_field} must be integer", "SCHEMA_IDENTITY_MISMATCH")
     if not isinstance(maturity.get("overfit_diagnostic_robustness_eligible"), bool):
         return DashboardValidationResult("FAIL", "overfit diagnostic robustness flag must be boolean", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("overfit_preliminary_robustness_status") not in OVERFIT_PRELIMINARY_ROBUSTNESS_STATUSES:
+        return DashboardValidationResult("FAIL", "overfit preliminary robustness status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    for numeric_or_null_field in (
+        "overfit_preliminary_oos_net_ev_after_cost_bps",
+        "overfit_preliminary_bootstrap_confidence_lower_bps",
+        "overfit_preliminary_walk_forward_pass_rate",
+        "overfit_preliminary_ranking_stability_score",
+    ):
+        if maturity.get(numeric_or_null_field) is not None and not isinstance(
+            maturity.get(numeric_or_null_field), (int, float)
+        ):
+            return DashboardValidationResult("FAIL", f"overfit diagnostic {numeric_or_null_field} must be numeric or null", "SCHEMA_IDENTITY_MISMATCH")
     for text_field in (
         "overfit_diagnostic_oos_status",
         "overfit_diagnostic_walk_forward_status",
         "overfit_diagnostic_bootstrap_status",
         "overfit_diagnostic_overfit_status",
+        "overfit_preliminary_oos_status",
+        "overfit_preliminary_walk_forward_status",
+        "overfit_preliminary_bootstrap_status",
+        "overfit_preliminary_ranking_stability_status",
+        "overfit_preliminary_concentration_risk_status",
+        "overfit_preliminary_primary_blocker_code",
+        "overfit_preliminary_summary",
+        "overfit_preliminary_next_action",
         "overfit_diagnostic_primary_blocker_code",
         "overfit_diagnostic_blocker_summary",
         "overfit_diagnostic_next_action",
@@ -24343,6 +25199,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "STUB_ESTIMATE_ONLY",
             "NOT_LONG_RUN_EVIDENCE",
             "ACTUAL_LONG_RUN_MISSING",
+            "STOPPED",
         }:
             return "warn"
         if normalized in {"FAIL", "ERROR", "CRITICAL", "KILL_SWITCH"}:
@@ -24388,6 +25245,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "STUB_ESTIMATE_ONLY": "Stub estimate only",
             "NOT_LONG_RUN_EVIDENCE": "Not long-run evidence",
             "ACTUAL_LONG_RUN_MISSING": "Long-run evidence missing",
+            "STOPPED": "Stopped",
             "FAIL": "Failed",
             "ERROR": "Error",
             "CRITICAL": "Critical",
@@ -24496,6 +25354,50 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     shadow_persistent_status_display = str(shadow_persistent.get("status", "NOT_LOADED")).replace("_", " ").title()
     paper_persistent_loop = shell.get("paper_persistent_loop_status", {}) if isinstance(shell.get("paper_persistent_loop_status"), dict) else {}
     paper_persistent_loop_status_display = str(paper_persistent_loop.get("status", "NOT_LOADED")).replace("_", " ").title()
+    paper_runner_operations = (
+        shell.get("paper_runner_operations_status", {})
+        if isinstance(shell.get("paper_runner_operations_status"), dict)
+        else {}
+    )
+    paper_runner_status_display = str(paper_runner_operations.get("status", "NOT_LOADED")).replace("_", " ").title()
+    paper_runner_retention_display = str(
+        paper_runner_operations.get("artifact_retention_status", "NOT_LOADED")
+    ).replace("_", " ").title()
+    paper_runner_disk_display = str(paper_runner_operations.get("disk_pressure_status", "NOT_LOADED")).replace("_", " ").title()
+    paper_runner_evidence_display = str(
+        paper_runner_operations.get("profitability_evidence_refresh_status", "NOT_LOADED")
+    ).replace("_", " ").title()
+    paper_runner_dashboard_open_display = (
+        "Opened"
+        if paper_runner_operations.get("dashboard_opened") is True
+        else (
+            "Tried, Needs Manual Open"
+            if paper_runner_operations.get("dashboard_open_attempted") is True
+            else "Not Attempted"
+        )
+    )
+    paper_runner_symbol_scorecards = (
+        paper_runner_operations.get("symbol_evidence_scorecards_top")
+        if isinstance(paper_runner_operations.get("symbol_evidence_scorecards_top"), list)
+        else []
+    )
+    paper_runner_selected_symbol_scorecard = (
+        paper_runner_operations.get("selected_symbol_evidence_scorecard")
+        if isinstance(paper_runner_operations.get("selected_symbol_evidence_scorecard"), dict)
+        else {}
+    )
+    paper_runner_symbol_scorecard_preview = []
+    for scorecard in paper_runner_symbol_scorecards[:3]:
+        if not isinstance(scorecard, dict):
+            continue
+        paper_runner_symbol_scorecard_preview.append(
+            f"{scorecard.get('symbol', 'UNKNOWN')}: {scorecard.get('best_strategy_family', 'UNKNOWN')} "
+            f"netEV={scorecard.get('best_net_ev_after_cost_bps', 'n/a')} "
+            f"decision={scorecard.get('best_decision', 'UNKNOWN')}"
+        )
+    if not paper_runner_symbol_scorecard_preview:
+        paper_runner_symbol_scorecard_preview = ["No symbol scorecards loaded"]
+    paper_runner_symbol_scorecard_html = "<br>".join(safe_text(item) for item in paper_runner_symbol_scorecard_preview)
     paper_recovery_guard = shell.get("paper_runtime_recovery_guard_status", {}) if isinstance(shell.get("paper_runtime_recovery_guard_status"), dict) else {}
     paper_recovery_guard_status_display = str(paper_recovery_guard.get("status", "NOT_LOADED")).replace("_", " ").title()
     paper_runtime_profile = (
@@ -24542,6 +25444,24 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<div><dt>PAPER/SHADOW check</dt><dd class=\"pill {status_class(shadow_harness.get('status'))}\">{safe_text(shadow_harness_status_display)}</dd></div>"
         f"<div><dt>Persistent runtime</dt><dd class=\"pill {status_class(shadow_persistent.get('status'))}\">{safe_text(shadow_persistent_status_display)}</dd></div>"
         f"<div><dt>PAPER loop</dt><dd class=\"pill {status_class(paper_persistent_loop.get('status'))}\">{safe_text(paper_persistent_loop_status_display)}</dd></div>"
+        f"<div><dt>PAPER runner</dt><dd class=\"pill {status_class(paper_runner_operations.get('status'))}\">{safe_text(paper_runner_status_display)}</dd></div>"
+        f"<div><dt>Runner cycles</dt><dd>{safe_text(paper_runner_operations.get('completed_cycle_count', 0))} ok / {safe_text(paper_runner_operations.get('failed_cycle_count', 0))} fail</dd></div>"
+        f"<div><dt>Next cycle</dt><dd>{safe_text(paper_runner_operations.get('next_cycle_eta') or 'not scheduled')}</dd></div>"
+        f"<div><dt>Evidence refresh</dt><dd class=\"pill {status_class(paper_runner_operations.get('profitability_evidence_refresh_status'))}\">{safe_text(paper_runner_evidence_display)}</dd></div>"
+        f"<div><dt>PAPER samples</dt><dd>{safe_text(paper_runner_operations.get('runtime_sample_count', 0))}</dd></div>"
+        f"<div><dt>Scorecard</dt><dd>{safe_text(paper_runner_operations.get('candidate_scorecard_status', 'NOT_LOADED'))} / rank={safe_text(str(paper_runner_operations.get('candidate_scorecard_ranking_eligible') is True).lower())}</dd></div>"
+        f"<div><dt>Early robustness</dt><dd>{safe_text(paper_runner_operations.get('overfit_preliminary_robustness_status', 'INSUFFICIENT_PRELIMINARY_SAMPLE'))}<br>"
+        f"OOS={safe_text(paper_runner_operations.get('overfit_preliminary_oos_status', 'UNTESTED'))}, "
+        f"WF={safe_text(paper_runner_operations.get('overfit_preliminary_walk_forward_status', 'UNTESTED'))}, "
+        f"bootstrap={safe_text(paper_runner_operations.get('overfit_preliminary_bootstrap_status', 'UNTESTED'))}</dd></div>"
+        f"<div><dt>Selected scorecard</dt><dd>{safe_text(paper_runner_selected_symbol_scorecard.get('symbol', paper_runner_operations.get('current_symbol', 'UNKNOWN')))} / netEV={safe_text(paper_runner_selected_symbol_scorecard.get('best_net_ev_after_cost_bps', 'n/a'))}</dd></div>"
+        f"<div><dt>Symbol scorecards</dt><dd>{paper_runner_symbol_scorecard_html}</dd></div>"
+        f"<div><dt>PAPER/SHADOW evidence</dt><dd>{safe_text(paper_runner_operations.get('paper_shadow_evidence_validation_status', 'NOT_LOADED'))} / {safe_text(paper_runner_operations.get('paper_shadow_evidence_actionability_status', 'NOT_LOADED'))}</dd></div>"
+        f"<div><dt>Retention</dt><dd class=\"pill {status_class(paper_runner_operations.get('artifact_retention_status'))}\">{safe_text(paper_runner_retention_display)}</dd></div>"
+        f"<div><dt>Disk pressure</dt><dd class=\"pill {status_class(paper_runner_operations.get('disk_pressure_status'))}\">{safe_text(paper_runner_disk_display)}</dd></div>"
+        f"<div><dt>Runner log</dt><dd>{safe_text(paper_runner_operations.get('log_path', 'NOT_LOADED'))}</dd></div>"
+        f"<div><dt>Dashboard open</dt><dd>{safe_text(paper_runner_dashboard_open_display)} via {safe_text(paper_runner_operations.get('dashboard_open_method', 'NOT_ATTEMPTED'))}</dd></div>"
+        f"<div><dt>Dashboard target</dt><dd>{safe_text(paper_runner_operations.get('dashboard_open_target', 'NOT_LOADED'))}</dd></div>"
         f"<div><dt>PAPER recovery</dt><dd class=\"pill {status_class(paper_recovery_guard.get('status'))}\">{safe_text(paper_recovery_guard_status_display)}</dd></div>"
         f"<div><dt>PAPER profile</dt><dd class=\"pill {status_class(paper_runtime_profile.get('status'))}\">{safe_text(paper_runtime_profile_status_display)}</dd></div>"
         f"<div><dt>Source pairing</dt><dd class=\"pill {status_class(runtime_orchestration.get('status'))}\">{safe_text(runtime_orchestration_status_display)}</dd></div>"
@@ -25249,7 +26169,14 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<small>{safe_text(maturity.get('candidate_scorecard_blocker_summary', 'No PAPER candidate scorecard is loaded.'))}<br>"
         f"Overfit: {safe_text(maturity.get('overfit_diagnostic_status', 'NOT_LOADED'))} "
         f"({safe_text(maturity.get('overfit_diagnostic_sample_count', 0))}/{safe_text(maturity.get('overfit_diagnostic_min_required_sample_count', 300))} samples), "
-        f"blocker={safe_text(maturity.get('overfit_diagnostic_primary_blocker_code', 'SAMPLE_INSUFFICIENT'))}</small></div>"
+        f"blocker={safe_text(maturity.get('overfit_diagnostic_primary_blocker_code', 'SAMPLE_INSUFFICIENT'))}<br>"
+        f"Early robustness: {safe_text(maturity.get('overfit_preliminary_robustness_status', 'INSUFFICIENT_PRELIMINARY_SAMPLE'))}, "
+        f"OOS={safe_text(maturity.get('overfit_preliminary_oos_status', 'UNTESTED'))}, "
+        f"WF={safe_text(maturity.get('overfit_preliminary_walk_forward_status', 'UNTESTED'))}, "
+        f"bootstrap={safe_text(maturity.get('overfit_preliminary_bootstrap_status', 'UNTESTED'))}<br>"
+        f"early OOS net EV={safe_text(maturity.get('overfit_preliminary_oos_net_ev_after_cost_bps', 'n/a'))} bps, "
+        f"bootstrap lower={safe_text(maturity.get('overfit_preliminary_bootstrap_confidence_lower_bps', 'n/a'))} bps; "
+        f"{safe_text(maturity.get('overfit_preliminary_primary_blocker_code', 'PRELIMINARY_SAMPLE_INSUFFICIENT'))}</small></div>"
         "<div><strong>Evidence Quality</strong>"
         f"<p>cost={safe_text(maturity.get('cost_evidence_status', 'UNTESTED'))}, entry={safe_text(maturity.get('entry_reason_status', 'UNTESTED'))}, no-trade={safe_text(maturity.get('no_trade_reason_status', 'UNTESTED'))}</p></div>"
         "<div><strong>Long-Run Evidence</strong>"
@@ -25274,9 +26201,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"shadow={safe_text(maturity.get('promotion_threshold_shadow_signal_opportunities', 0))}/{safe_text(maturity.get('promotion_threshold_min_shadow_signal_opportunities', 0))}</p>"
         f"<small>{safe_text(maturity.get('promotion_threshold_summary', 'Promotion thresholds are not loaded.'))} Codes={safe_text(threshold_codes_display)}</small></div>"
         "</section>"
-        "<section class=\"evidence-progress\" aria-label=\"strategy evidence progress\">"
-        f"<h3>Evidence Progress: {safe_text(maturity.get('evidence_progress_pct', 0))}%</h3>"
-        f"<p>{safe_text(maturity.get('evidence_progress_summary', 'Evidence checks not started'))}</p>"
+        "<section class=\"evidence-progress\" aria-label=\"strategy scorecard input checks\">"
+        f"<h3>Scorecard Input Checks: {safe_text(maturity.get('evidence_progress_pct', 0))}%</h3>"
+        f"<p>{safe_text(maturity.get('evidence_progress_summary', 'Evidence checks not started'))}. "
+        f"This is PAPER scorecard input only; LIVE_READY remains blocked by "
+        f"{safe_text(maturity.get('primary_blocker_code') or 'PROFITABILITY_EVIDENCE_MATURITY')}.</p>"
         f"<section class=\"evidence-check-grid\">{maturity_check_html}</section>"
         "</section>"
         "<section class=\"evidence-progress\" aria-label=\"profitability maturity gap checklist\">"
@@ -25694,6 +26623,96 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     if not candidate_items:
         candidate_items = [candidate_detail]
     candidate_preview_html = "\n".join(f"<li>{safe_text(item)}</li>" for item in candidate_items[:5])
+    public_ticker_symbols: list[str] = []
+    public_ticker_initial_prices: dict[str, tuple[str, str]] = {}
+
+    def normalize_public_ticker_symbol(value: Any) -> str | None:
+        text = str(value or "").strip().upper().replace("_", "-")
+        if (
+            not text
+            or not text.startswith("KRW-")
+            or len(text) > 24
+            or not all(ch.isalnum() or ch == "-" for ch in text)
+        ):
+            return None
+        return text
+
+    def add_public_ticker_symbol(value: Any) -> None:
+        text = normalize_public_ticker_symbol(value)
+        if not text or text in public_ticker_symbols:
+            return
+        public_ticker_symbols.append(text)
+
+    def add_public_ticker_initial_price(symbol_value: Any, price_value: Any, source_label: str) -> None:
+        symbol = normalize_public_ticker_symbol(symbol_value)
+        price_text = str(price_value or "").strip()
+        if not symbol or not price_text or price_text.upper() in {"UNKNOWN", "UNVERIFIED", "NONE", "NULL"}:
+            return
+        public_ticker_initial_prices.setdefault(symbol, (price_text, source_label))
+
+    for row in position_rows:
+        if isinstance(row, dict):
+            add_public_ticker_symbol(row.get("symbol"))
+            add_public_ticker_initial_price(
+                row.get("symbol"),
+                row.get("mark_price"),
+                str(portfolio.get("source_public_market_event_time_utc") or "PAPER public mark snapshot")
+                if isinstance(portfolio, dict)
+                else "PAPER public mark snapshot",
+            )
+    for scorecard in [paper_runner_selected_symbol_scorecard, *paper_runner_symbol_scorecards]:
+        if not isinstance(scorecard, dict):
+            continue
+        add_public_ticker_symbol(scorecard.get("symbol"))
+        add_public_ticker_initial_price(
+            scorecard.get("symbol"),
+            scorecard.get("last_price"),
+            f"PAPER runtime cycle {paper_runner_operations.get('last_cycle_time') or 'latest'}",
+        )
+    for item in candidate_items:
+        add_public_ticker_symbol(str(item).split()[0].strip(","))
+    add_public_ticker_symbol(paper_runner_operations.get("current_symbol"))
+    add_public_ticker_symbol(market_data.get("symbol"))
+    if not public_ticker_symbols and shell.get("exchange") == "UPBIT" and shell.get("market_type") == "KRW_SPOT":
+        add_public_ticker_symbol("KRW-BTC")
+    public_ticker_symbols = public_ticker_symbols[:8]
+    operator_price_symbol = public_ticker_symbols[0] if public_ticker_symbols else "KRW-BTC"
+    operator_price_initial, operator_price_source = public_ticker_initial_prices.get(
+        operator_price_symbol,
+        ("waiting", "not yet"),
+    )
+    operator_price_class = (
+        "blue"
+        if str(operator_price_initial).strip().lower() not in {"", "waiting", "unknown", "unverified", "not loaded"}
+        else "neutral"
+    )
+    public_ticker_symbols_json = json.dumps(public_ticker_symbols, ensure_ascii=False, separators=(",", ":"))
+    public_ticker_tile_html = "\n".join(
+        (
+            f'<section class="public-ticker-tile" data-public-ticker-symbol="{safe_text(symbol)}">'
+            f"<strong>{safe_text(symbol)}</strong>"
+            f'<span class="ticker-price" data-ticker-field="trade_price">{safe_text(public_ticker_initial_prices.get(symbol, ("waiting", ""))[0])}</span>'
+            '<small><span data-ticker-field="change_rate">--</span> '
+            '<span data-ticker-field="change_price">--</span></small>'
+            f'<small>updated <span data-ticker-field="updated_at">{safe_text(public_ticker_initial_prices.get(symbol, ("", "not yet"))[1] or "not yet")}</span></small>'
+            "</section>"
+        )
+        for symbol in public_ticker_symbols
+    )
+    if not public_ticker_tile_html:
+        public_ticker_tile_html = '<section class="public-ticker-tile"><strong>KRW ticker</strong><span class="ticker-price">not loaded</span></section>'
+    public_ticker_html = (
+        '<section class="public-ticker-strip" aria-label="public Upbit realtime ticker" '
+        f"data-public-ticker-symbols='{safe_text(public_ticker_symbols_json)}'>"
+        "<div>"
+        '<span class="eyebrow">Public Market</span>'
+        "<h3>Realtime KRW Prices</h3>"
+        '<p class="source-line">Public Upbit ticker only. Display-only; no credentials, private endpoint, or order path.</p>'
+        '<p class="source-line" data-public-ticker-status>Waiting for public ticker stream.</p>'
+        "</div>"
+        f'<section class="public-ticker-grid">{public_ticker_tile_html}</section>'
+        "</section>"
+    )
     scorecard_status_display = str(maturity.get("candidate_scorecard_status", "NOT_LOADED")).replace("_", " ").title()
     scorecard_quicklook_items = [
         f"Status: {scorecard_status_display}",
@@ -26392,6 +27411,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
             "</section>"
         )
     health_signal_items = [
+        ("PAPER Runner", paper_runner_status_display, paper_runner_operations.get("status", "NOT_LOADED")),
         ("Heartbeat", operation.get("heartbeat_status", "STALE"), operation.get("heartbeat_status", "STALE")),
         ("Sources", source_health_display, source_health_status),
         ("Market Data", market_data_status_display, market_data.get("status", "NOT_LOADED")),
@@ -26404,7 +27424,30 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         "</section>"
         for label, display, status in health_signal_items
     )
-    operation_quick_status = "OK" if operation_color in {"green", "blue"} else "Check"
+    runner_status_raw = str(paper_runner_operations.get("status", "NOT_LOADED"))
+    runner_current_symbol = str(paper_runner_operations.get("current_symbol") or "UNKNOWN")
+    runner_last_decision = str(paper_runner_operations.get("last_decision") or "NOT_AVAILABLE")
+    runner_quick_class = (
+        str(paper_runner_operations.get("color_token") or operation_color)
+        if runner_status_raw != "NOT_LOADED"
+        else operation_color
+    )
+    runner_quick_status = (
+        "Running"
+        if runner_status_raw == "RUNNING_NOW" and paper_runner_operations.get("running") is True
+        else "Stopped"
+        if runner_status_raw == "STOPPED"
+        else "Blocked"
+        if runner_status_raw == "BLOCKED"
+        else "Stale"
+        if runner_status_raw == "STALE"
+        else ("OK" if operation_color in {"green", "blue"} else "Check")
+    )
+    runner_quick_detail = (
+        f"{paper_runner_operations.get('completed_cycle_count', 0)} cycles, last {paper_runner_operations.get('last_cycle_time') or 'not loaded'}"
+        if runner_status_raw != "NOT_LOADED"
+        else f"{operation.get('heartbeat_status', 'STALE')} heartbeat"
+    )
     portfolio_quick_status = (
         "Verified"
         if str(portfolio_status).startswith("PAPER LEDGER VERIFIED")
@@ -26412,6 +27455,30 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if str(portfolio_status).startswith("STALE")
         else plain_status(portfolio_raw_status)
     )
+    def runner_display_money(value: Any, *, signed: bool = False) -> str:
+        if value is None:
+            return "not loaded"
+        return _format_signed_money(value, "KRW") if signed else _format_money(value, "KRW")
+
+    runner_equity_display = runner_display_money(paper_runner_operations.get("equity"))
+    runner_cash_display = runner_display_money(paper_runner_operations.get("cash"))
+    runner_realized_pnl_display = runner_display_money(paper_runner_operations.get("realized_pnl"), signed=True)
+    runner_unrealized_pnl_display = runner_display_money(
+        paper_runner_operations.get("unrealized_pnl"),
+        signed=True,
+    )
+    runner_display_values_available = (
+        runner_status_raw != "NOT_LOADED"
+        and (
+            paper_runner_operations.get("cash") is not None
+            or paper_runner_operations.get("equity") is not None
+            or paper_runner_operations.get("current_position_count", 0)
+        )
+    )
+    portfolio_quick_detail = portfolio_value("equity") + " current equity"
+    if runner_display_values_available and not str(portfolio_status).startswith("PAPER LEDGER VERIFIED"):
+        portfolio_quick_status = "Runner display"
+        portfolio_quick_detail = runner_equity_display + " runner equity"
     portfolio_quick_class = (
         "blue"
         if str(portfolio_status).startswith("PAPER LEDGER VERIFIED")
@@ -26419,6 +27486,32 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if str(portfolio_status).startswith(("STALE", "UNVERIFIED"))
         else status_class(portfolio_status)
     )
+    runner_display_snapshot_html = ""
+    if runner_display_values_available:
+        runner_display_snapshot_html = (
+            '<section class="runner-current-snapshot" aria-label="paper runner display snapshot">'
+            '<div class="portfolio-head">'
+            '<div><span class="eyebrow">Runtime Display</span><h3>Current PAPER Runner</h3></div>'
+            f'<p><span class="pill {status_class(runner_status_raw)}">{safe_text(runner_status_raw.replace("_", " ").title())}</span></p>'
+            "</div>"
+            '<section class="decision-grid">'
+            "<div><strong>Current Symbol</strong>"
+            f"<p>{safe_text(runner_current_symbol)}<br>decision={safe_text(runner_last_decision)}</p></div>"
+            "<div><strong>Position</strong>"
+            f"<p>{safe_text(paper_runner_operations.get('current_position_count', 0))} open PAPER position(s)<br>display-only runner state</p></div>"
+            "<div><strong>Cash / Equity</strong>"
+            f"<p>{safe_text(runner_cash_display)}<br>{safe_text(runner_equity_display)}</p></div>"
+            "<div><strong>PnL</strong>"
+            f"<p>realized {safe_text(runner_realized_pnl_display)}<br>unrealized {safe_text(runner_unrealized_pnl_display)}</p></div>"
+            "<div><strong>Cycle</strong>"
+            f"<p>{safe_text(paper_runner_operations.get('completed_cycle_count', 0))} ok / "
+            f"{safe_text(paper_runner_operations.get('failed_cycle_count', 0))} fail<br>"
+            f"last {safe_text(paper_runner_operations.get('last_cycle_time') or 'not loaded')}<br>"
+            f"next {safe_text(paper_runner_operations.get('next_cycle_eta') or 'not scheduled')}</p></div>"
+            "</section>"
+            '<small>Source=runner_status.json. This is display-only runtime status for the operator; ledger/current-evidence truth, live readiness, and order permission remain separate and blocked.</small>'
+            "</section>"
+        )
     return _strip_dashboard_html_trailing_whitespace("""<!doctype html>
 <html lang="en">
 <head>
@@ -26524,6 +27617,13 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     .portfolio-quicklook h3 { margin: 0; font-size: 13px; color: var(--muted); }
     .portfolio-quicklook ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
     .portfolio-quicklook li { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; color: var(--ink); }
+    .public-ticker-strip { display: grid; gap: 12px; border: 1px solid #bfdbfe; border-left: 8px solid var(--safe); border-radius: 8px; background: #eff6ff; padding: 14px; min-width: 0; }
+    .public-ticker-strip h3 { margin: 0; font-size: 18px; line-height: 1.2; }
+    .public-ticker-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); }
+    .public-ticker-tile { display: grid; gap: 5px; background: #ffffff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px; min-width: 0; }
+    .public-ticker-tile strong { color: var(--muted); font-size: 12px; line-height: 1.2; }
+    .public-ticker-tile .ticker-price { color: var(--ink); font-size: 18px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+    .public-ticker-tile small { margin-top: 0; font-size: 12px; line-height: 1.35; }
     .primary-portfolio-detail { display: grid; gap: 14px; background: #ffffff; border: 1px solid #cfd6df; border-left: 8px solid var(--safe); border-radius: 8px; padding: 16px; }
     .primary-portfolio-detail .portfolio-detail-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
     .primary-portfolio-detail .positions { border-color: var(--line); }
@@ -26804,9 +27904,138 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
           }
         });
       }
+      function publicTickerSymbols(root) {
+        try {
+          var parsed = JSON.parse(root.getAttribute("data-public-ticker-symbols") || "[]");
+          return Array.isArray(parsed) ? parsed.filter(function (symbol) { return /^KRW-[A-Z0-9-]+$/.test(symbol); }).slice(0, 8) : [];
+        } catch (error) {
+          return [];
+        }
+      }
+      function formatKrw(value) {
+        var numberValue = Number(value);
+        if (!Number.isFinite(numberValue)) {
+          return "unknown";
+        }
+        return new Intl.NumberFormat("ko-KR", { maximumFractionDigits: 0 }).format(numberValue) + " KRW";
+      }
+      function formatChangeRate(value) {
+        var numberValue = Number(value);
+        if (!Number.isFinite(numberValue)) {
+          return "--";
+        }
+        return (numberValue * 100).toFixed(2) + "%";
+      }
+      function updatePublicTickerTile(payload) {
+        if (!payload || !payload.code) {
+          return;
+        }
+        var tiles = document.querySelectorAll('[data-public-ticker-symbol="' + String(payload.code).replace(/"/g, "") + '"]');
+        if (!tiles.length) {
+          return;
+        }
+        Array.prototype.forEach.call(tiles, function (tile) {
+          var priceNode = tile.querySelector('[data-ticker-field="trade_price"]');
+          var rateNode = tile.querySelector('[data-ticker-field="change_rate"]');
+          var changeNode = tile.querySelector('[data-ticker-field="change_price"]');
+          var updatedNode = tile.querySelector('[data-ticker-field="updated_at"]');
+          if (priceNode) {
+            priceNode.textContent = formatKrw(payload.trade_price);
+          }
+          if (rateNode) {
+            rateNode.textContent = formatChangeRate(payload.signed_change_rate);
+          }
+          if (changeNode) {
+            changeNode.textContent = formatKrw(payload.signed_change_price);
+          }
+          if (updatedNode) {
+            updatedNode.textContent = new Date().toLocaleTimeString();
+          }
+        });
+      }
+      function initializePublicTickerStream() {
+        var root = document.querySelector("[data-public-ticker-symbols]");
+        if (!root) {
+          return;
+        }
+        var symbols = publicTickerSymbols(root);
+        var status = root.querySelector("[data-public-ticker-status]");
+        if (!symbols.length) {
+          if (status) {
+            status.textContent = "No KRW ticker symbols loaded.";
+          }
+          return;
+        }
+        function setStatus(message) {
+          if (status) {
+            status.textContent = message;
+          }
+        }
+        function startRestFallback() {
+          var endpoint = "https://api.upbit.com/v1/ticker?markets=" + symbols.map(encodeURIComponent).join(",");
+          function fetchOnce() {
+            fetch(endpoint, { cache: "no-store" })
+              .then(function (response) { return response.ok ? response.json() : []; })
+              .then(function (items) {
+                if (Array.isArray(items)) {
+                  items.forEach(updatePublicTickerTile);
+                  setStatus("Public REST ticker fallback active; display-only.");
+                }
+              })
+              .catch(function () {
+                setStatus("Public ticker unavailable in this browser; PAPER remains fail-closed.");
+              });
+          }
+          fetchOnce();
+          window.setInterval(fetchOnce, 5000);
+        }
+        if (!("WebSocket" in window)) {
+          startRestFallback();
+          return;
+        }
+        try {
+          var socket = new WebSocket("wss://api.upbit.com/websocket/v1");
+          var decoder = new TextDecoder("utf-8");
+          var received = false;
+          socket.binaryType = "arraybuffer";
+          socket.onopen = function () {
+            setStatus("Public websocket connected; display-only realtime prices.");
+            socket.send(JSON.stringify([
+              { ticket: "trader1-dashboard-display-only" },
+              { type: "ticker", codes: symbols, isOnlyRealtime: true }
+            ]));
+          };
+          socket.onmessage = function (event) {
+            received = true;
+            var text = typeof event.data === "string" ? event.data : decoder.decode(event.data);
+            try {
+              updatePublicTickerTile(JSON.parse(text));
+            } catch (error) {
+              setStatus("Public ticker parse error; waiting for next update.");
+            }
+          };
+          socket.onerror = function () {
+            setStatus("Public websocket failed; switching to REST fallback.");
+            startRestFallback();
+          };
+          socket.onclose = function () {
+            if (!received) {
+              startRestFallback();
+            }
+          };
+          window.setTimeout(function () {
+            if (!received && socket.readyState !== WebSocket.OPEN) {
+              startRestFallback();
+            }
+          }, 4000);
+        } catch (error) {
+          startRestFallback();
+        }
+      }
       function initializeDashboardClient() {
         updateDashboardFreshness();
         restoreDetailState();
+        initializePublicTickerStream();
         window.setInterval(updateDashboardFreshness, 1000);
         var box = document.querySelector("[data-dashboard-freshness]");
         var refreshSeconds = box ? Number(box.getAttribute("data-refresh-seconds") || "10") : 10;
@@ -26837,17 +28066,26 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p>Running status, PAPER portfolio, and live execution availability are the primary dashboard answers. Technical evidence stays below.</p>
       </div>
       <section class="operator-quick-status" aria-label="operator quick status">
-      <section class="quick-status-tile quick-status-""" + operation_color + """" aria-label="running state quick answer" data-primary-question="run">
+      <section class="quick-status-tile quick-status-""" + safe_text(runner_quick_class) + """" aria-label="running state quick answer" data-primary-question="run">
         <span class="eyebrow">Run</span>
         <span class="question-label">Is it running normally?</span>
-        <strong>""" + safe_text(operation_quick_status) + """</strong>
-        <small>""" + safe_text(operation.get("heartbeat_status", "STALE")) + """ heartbeat</small>
+        <strong>""" + safe_text(runner_quick_status) + """</strong>
+        <small>""" + safe_text(runner_quick_detail) + """</small>
+        <span class="live-answer-reason">Current: """ + safe_text(runner_current_symbol) + """ / """ + safe_text(runner_last_decision) + """</span>
       </section>
       <section class="quick-status-tile quick-status-""" + safe_text(portfolio_quick_class) + """" aria-label="portfolio quick answer" data-primary-question="portfolio">
         <span class="eyebrow">Portfolio</span>
         <span class="question-label">What is the PAPER portfolio?</span>
         <strong>""" + safe_text(portfolio_quick_status) + """</strong>
-        <small>""" + portfolio_value("equity") + """ current equity</small>
+        <small>""" + safe_text(portfolio_quick_detail) + """</small>
+      </section>
+      <section class="quick-status-tile quick-status-""" + safe_text(operator_price_class) + """" aria-label="current public price quick answer" data-primary-question="price" data-public-ticker-symbol=\"""" + safe_text(operator_price_symbol) + """\">
+        <span class="eyebrow">Price</span>
+        <span class="question-label">What is the current public price?</span>
+        <strong><span class="ticker-price" data-ticker-field="trade_price">""" + safe_text(operator_price_initial) + """</span></strong>
+        <small>""" + safe_text(operator_price_symbol) + """ public ticker <span data-ticker-field="change_rate">--</span> <span data-ticker-field="change_price">--</span></small>
+        <span class="live-answer-reason">Current PAPER symbol: """ + safe_text(runner_current_symbol) + """</span>
+        <span class="live-answer-reason">Updated: <span data-ticker-field="updated_at">""" + safe_text(operator_price_source) + """</span></span>
       </section>
       <section class="quick-status-tile quick-status-yellow" aria-label="live execution quick answer" data-primary-question="live">
         <span class="eyebrow">Live</span>
@@ -26858,6 +28096,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <span class="live-blocker-summary">""" + safe_text(residual_blocker_summary) + """</span>
       </section>
       </section>
+      """ + public_ticker_html + """
     </section>
     <section class="operator-answer-grid" aria-label="operator priority answers">
       <section class="operator-answer-card health-summary health-summary-""" + operation_color + """" aria-label="system health summary">
@@ -26879,6 +28118,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         <p class="source-line">""" + safe_text(portfolio_source_line) + """</p>
         <p class="source-line">""" + safe_text(portfolio_interpretation_line) + """</p>
         <p class="source-line">""" + safe_text(portfolio_runtime_line) + """</p>
+        """ + runner_display_snapshot_html + """
         """ + audited_writer_ladder_html + """
         """ + audited_writer_activation_html + """
         """ + audited_writer_blocker_html + """
@@ -27057,6 +28297,10 @@ def validate_dashboard_visual_layout_contract(html: str) -> DashboardValidationR
         "position_mark_price_column": "Mark Price",
         "position_market_value_column": "Market Value",
         "position_cost_basis_column": "Cost Basis",
+        "public_ticker_stream_markup": '<section class="public-ticker-strip" aria-label="public Upbit realtime ticker"',
+        "public_ticker_symbols_attr": "data-public-ticker-symbols=",
+        "public_ticker_websocket": "wss://api.upbit.com/websocket/v1",
+        "public_ticker_no_private_copy": "no credentials, private endpoint, or order path",
         "market_data_continuity": "Market Data Continuity",
         "market_data_color_class": ".market-data-blue",
         "detail_state_storage": "trader1.dashboard.detailsOpen.",

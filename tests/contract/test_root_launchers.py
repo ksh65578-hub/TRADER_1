@@ -33,11 +33,14 @@ class RootLauncherGuardTest(unittest.TestCase):
         self.assertEqual(result.status, "PASS")
         self.assertEqual(set(result.root_launchers_found), ALLOWED_ROOT_LAUNCHERS)
 
-    def test_current_repo_root_launchers_hold_console_for_operator_monitor(self):
+    def test_current_repo_root_launchers_expose_operator_entrypoints(self):
         root = Path(__file__).resolve().parents[2]
         for launcher in ALLOWED_ROOT_LAUNCHERS:
             text = (root / f"{launcher}.py").read_text(encoding="utf-8")
-            self.assertIn("root_operator_launcher_main(LAUNCHER_NAME)", text, launcher)
+            if launcher == "UPBIT_PAPER":
+                self.assertIn("root_upbit_paper_long_runner_main()", text, launcher)
+            else:
+                self.assertIn("root_operator_launcher_main(LAUNCHER_NAME)", text, launcher)
 
     def test_exact_four_allowed_launchers_pass_when_present(self):
         with tempfile.TemporaryDirectory() as tmp:

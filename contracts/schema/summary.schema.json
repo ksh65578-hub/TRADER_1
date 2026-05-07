@@ -353,8 +353,48 @@
         "source": {
           "enum": [
             "PAPER_LEDGER_SCAFFOLD",
-            "PAPER_LEDGER_ROLLUP"
+            "PAPER_LEDGER_ROLLUP",
+            "PAPER_LEDGER_ROLLUP_PUBLIC_MARK"
           ]
+        },
+        "mark_price_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_public_market_event_time_utc": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_public_market_event_hash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "price_basis_repair_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "price_basis_repair_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "price_basis_original_quantity": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_original_average_entry_price": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_original_gross_entry_cost": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_scale_factor": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_normalized_quantity": {
+          "$ref": "#/$defs/decimal_string"
+        },
+        "price_basis_normalized_average_entry_price": {
+          "$ref": "#/$defs/decimal_string"
         },
         "paper_only": {
           "const": true

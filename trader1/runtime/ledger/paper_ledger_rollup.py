@@ -21,8 +21,16 @@ from trader1.runtime.ledger.paper_ledger_input_manifest import (
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json, recover_jsonl_records
 from trader1.runtime.portfolio.paper_portfolio import (
+    LEGACY_STATIC_KRW_BTC_MAX_PRICE,
+    LEGACY_STATIC_KRW_BTC_MIN_PRICE,
     PAPER_PORTFOLIO_SCHEMA_ID,
     PAPER_STARTING_CASH_BY_SCOPE,
+    PRICE_BASIS_REPAIR_SOURCE,
+    PRICE_BASIS_REPAIR_STATUS_APPLIED,
+    PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO,
+    PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO,
+    UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE,
+    UPBIT_KRW_BTC_PUBLIC_MARK_MIN_PRICE,
     paper_portfolio_hash,
     validate_paper_portfolio_snapshot,
 )
@@ -72,6 +80,43 @@ def _decimal_text(value: Decimal) -> str:
 
 def _blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
+
+
+def _legacy_public_sell_price_basis_repair(
+    *,
+    symbol: str,
+    state: dict[str, Decimal | str],
+    public_sell_price: Decimal,
+) -> dict[str, Decimal | str] | None:
+    if symbol != "KRW-BTC" or public_sell_price <= 0:
+        return None
+    current_qty = Decimal(state["quantity"])
+    current_gross_cost = Decimal(state["gross_cost"])
+    if current_qty <= 0 or current_gross_cost <= 0:
+        return None
+    average_entry = current_gross_cost / current_qty
+    if not (LEGACY_STATIC_KRW_BTC_MIN_PRICE <= average_entry <= LEGACY_STATIC_KRW_BTC_MAX_PRICE):
+        return None
+    if not (UPBIT_KRW_BTC_PUBLIC_MARK_MIN_PRICE <= public_sell_price <= UPBIT_KRW_BTC_PUBLIC_MARK_MAX_PRICE):
+        return None
+    ratio = public_sell_price / average_entry
+    if not (PUBLIC_MARK_PRICE_BASIS_REPAIR_MIN_RATIO < ratio <= PUBLIC_MARK_PRICE_BASIS_REPAIR_MAX_RATIO):
+        return None
+    normalized_quantity = current_gross_cost / public_sell_price
+    if normalized_quantity <= 0:
+        return None
+    return {
+        "quantity": normalized_quantity,
+        "mark_price": public_sell_price,
+        "price_basis_repair_status": PRICE_BASIS_REPAIR_STATUS_APPLIED,
+        "price_basis_repair_source": PRICE_BASIS_REPAIR_SOURCE,
+        "price_basis_original_quantity": _decimal_text(current_qty),
+        "price_basis_original_average_entry_price": _decimal_text(average_entry),
+        "price_basis_original_gross_entry_cost": _decimal_text(current_gross_cost),
+        "price_basis_scale_factor": _decimal_text(ratio),
+        "price_basis_normalized_quantity": _decimal_text(normalized_quantity),
+        "price_basis_normalized_average_entry_price": _decimal_text(public_sell_price),
+    }
 
 
 def _relative_posix(path: Path, root: Path) -> str:
@@ -281,8 +326,8 @@ def _portfolio_snapshot_from_fills(
 ) -> dict[str, Any]:
     currency, starting = PAPER_STARTING_CASH_BY_SCOPE[("UPBIT", "KRW_SPOT")]
     positions_by_symbol: dict[str, dict[str, Decimal | str]] = {}
-    gross_cost_total = Decimal("0")
-    fee_total = Decimal("0")
+    cash_delta = Decimal("0")
+    realized_pnl = Decimal("0")
 
     for event in fill_events:
         symbol = str(event.get("symbol") or "UNKNOWN")
@@ -290,53 +335,102 @@ def _portfolio_snapshot_from_fills(
         qty = _decimal(event.get("quantity"))
         price = _decimal(event.get("price"))
         fee = _decimal(event.get("fee_amount") or "0")
-        if side != "BUY" or qty <= 0 or price <= 0 or fee < 0:
-            blockers.append(_blocker("RECONCILIATION_REQUIRED", "PAPER ledger rollup only supports valid long spot fill events"))
+        if side not in {"BUY", "SELL"} or qty <= 0 or price <= 0 or fee < 0:
+            blockers.append(_blocker("RECONCILIATION_REQUIRED", "PAPER ledger rollup only supports valid long spot buy/sell fill events"))
             continue
         current = positions_by_symbol.setdefault(
             symbol,
             {"quantity": Decimal("0"), "gross_cost": Decimal("0"), "fee": Decimal("0"), "mark_price": price},
         )
-        current["quantity"] = Decimal(current["quantity"]) + qty
-        current["gross_cost"] = Decimal(current["gross_cost"]) + (qty * price)
-        current["fee"] = Decimal(current["fee"]) + fee
+        current_qty = Decimal(current["quantity"])
+        current_gross_cost = Decimal(current["gross_cost"])
+        current_fee = Decimal(current["fee"])
+        if side == "BUY":
+            current["quantity"] = current_qty + qty
+            current["gross_cost"] = current_gross_cost + (qty * price)
+            current["fee"] = current_fee + fee
+            current["mark_price"] = price
+            cash_delta -= (qty * price) + fee
+            continue
+
+        repair = _legacy_public_sell_price_basis_repair(symbol=symbol, state=current, public_sell_price=price)
+        if repair is not None:
+            current.update(repair)
+            current_qty = Decimal(current["quantity"])
+            current_gross_cost = Decimal(current["gross_cost"])
+            current_fee = Decimal(current["fee"])
+
+        if current_qty <= 0 or qty > current_qty:
+            blockers.append(_blocker("RECONCILIATION_REQUIRED", f"PAPER ledger sell fill exceeds open long quantity for {symbol}"))
+            continue
+        sell_fraction = qty / current_qty
+        allocated_gross_cost = current_gross_cost * sell_fraction
+        allocated_fee = current_fee * sell_fraction
+        proceeds = qty * price
+        realized_pnl += proceeds - allocated_gross_cost - allocated_fee - fee
+        current["quantity"] = current_qty - qty
+        current["gross_cost"] = current_gross_cost - allocated_gross_cost
+        current["fee"] = current_fee - allocated_fee
         current["mark_price"] = price
-        gross_cost_total += qty * price
-        fee_total += fee
+        cash_delta += proceeds - fee
 
     positions: list[dict[str, Any]] = []
     position_market_value = Decimal("0")
     unrealized_pnl = Decimal("0")
     for symbol, state in sorted(positions_by_symbol.items()):
         qty = Decimal(state["quantity"])
+        if qty <= 0:
+            continue
         gross_cost = Decimal(state["gross_cost"])
         fee = Decimal(state["fee"])
         mark_price = Decimal(state["mark_price"])
         average_entry = Decimal("0") if qty <= 0 else gross_cost / qty
         market_value = qty * mark_price
-        position_unrealized = market_value - gross_cost - fee
-        position_market_value += market_value
-        unrealized_pnl += position_unrealized
-        positions.append(
-            {
-                "symbol": symbol,
-                "side": "LONG",
-                "quantity": _decimal_text(qty),
-                "average_entry_price": _decimal_text(average_entry),
-                "mark_price": _decimal_text(mark_price),
-                "cost_basis": _decimal_text(gross_cost + fee),
-                "market_value": _decimal_text(market_value),
-                "unrealized_pnl": _decimal_text(position_unrealized),
-                "source": "PAPER_LEDGER_ROLLUP",
-                "paper_only": True,
-            }
-        )
+        cost_basis = gross_cost + fee
+        market_value_text = _decimal_text(market_value)
+        cost_basis_text = _decimal_text(cost_basis)
+        position_unrealized = _decimal(market_value_text) - _decimal(cost_basis_text)
+        position_unrealized_text = _decimal_text(position_unrealized)
+        position_market_value += _decimal(market_value_text)
+        unrealized_pnl += _decimal(position_unrealized_text)
+        position = {
+            "symbol": symbol,
+            "side": "LONG",
+            "quantity": _decimal_text(qty),
+            "average_entry_price": _decimal_text(average_entry),
+            "mark_price": _decimal_text(mark_price),
+            "cost_basis": cost_basis_text,
+            "market_value": market_value_text,
+            "unrealized_pnl": position_unrealized_text,
+            "source": "PAPER_LEDGER_ROLLUP",
+            "paper_only": True,
+        }
+        for key in (
+            "price_basis_repair_status",
+            "price_basis_repair_source",
+            "price_basis_original_quantity",
+            "price_basis_original_average_entry_price",
+            "price_basis_original_gross_entry_cost",
+            "price_basis_scale_factor",
+            "price_basis_normalized_quantity",
+            "price_basis_normalized_average_entry_price",
+        ):
+            value = state.get(key)
+            if isinstance(value, str) and value:
+                position[key] = value
+        positions.append(position)
 
-    realized_pnl = Decimal("0")
-    total_pnl = realized_pnl + unrealized_pnl
-    cash_available = starting - gross_cost_total - fee_total
+    cash_available = starting + cash_delta
     locked_balance = Decimal("0")
-    equity = cash_available + locked_balance + position_market_value
+    cash_available_text = _decimal_text(cash_available)
+    locked_balance_text = _decimal_text(locked_balance)
+    position_market_value_text = _decimal_text(position_market_value)
+    equity = _decimal(cash_available_text) + _decimal(locked_balance_text) + _decimal(position_market_value_text)
+    realized_pnl_text = _decimal_text(realized_pnl)
+    unrealized_pnl_text = _decimal_text(unrealized_pnl)
+    total_pnl = _decimal(realized_pnl_text) + _decimal(unrealized_pnl_text)
+    total_pnl_text = _decimal_text(total_pnl)
+    equity_text = _decimal_text(equity)
     if cash_available < 0:
         blockers.append(_blocker("RISK_VETO", "PAPER ledger rollup would make simulated cash negative"))
     max_exposure = max(Decimal("0"), equity * Decimal("0.35"))
@@ -358,13 +452,13 @@ def _portfolio_snapshot_from_fills(
         "starting_cash_source": "MVP_PAPER_DEFAULT_NOT_LIVE_ACCOUNT",
         "currency": currency,
         "starting_cash": _decimal_text(starting),
-        "cash_available": _decimal_text(cash_available),
-        "locked_balance": _decimal_text(locked_balance),
-        "position_market_value": _decimal_text(position_market_value),
-        "equity": _decimal_text(equity),
-        "realized_pnl": _decimal_text(realized_pnl),
-        "unrealized_pnl": _decimal_text(unrealized_pnl),
-        "total_pnl": _decimal_text(total_pnl),
+        "cash_available": cash_available_text,
+        "locked_balance": locked_balance_text,
+        "position_market_value": position_market_value_text,
+        "equity": equity_text,
+        "realized_pnl": realized_pnl_text,
+        "unrealized_pnl": unrealized_pnl_text,
+        "total_pnl": total_pnl_text,
         "return_pct": _decimal_text(return_pct),
         "open_position_count": len(positions) if not blockers else 0,
         "positions": positions if not blockers else [],
@@ -764,8 +858,10 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
             return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup portfolio ledger head provenance mismatch", "LEDGER_INTEGRITY_FAIL")
         position_count = int(portfolio.get("open_position_count", -1))
         filled_count = int(report.get("filled_order_count", -1))
-        if filled_count > 0 and position_count < 1:
-            return PaperLedgerRollupValidationResult("FAIL", "filled PAPER rollup requires at least one portfolio position", "SCHEMA_IDENTITY_MISMATCH")
+        if filled_count > 0 and position_count == 0 and _decimal(portfolio.get("position_market_value")) != 0:
+            return PaperLedgerRollupValidationResult("FAIL", "flat PAPER rollup cannot carry position market value", "SCHEMA_IDENTITY_MISMATCH")
+        if filled_count > 0 and position_count < 0:
+            return PaperLedgerRollupValidationResult("FAIL", "filled PAPER rollup position count is invalid", "SCHEMA_IDENTITY_MISMATCH")
         if position_count > filled_count:
             return PaperLedgerRollupValidationResult("FAIL", "paper rollup portfolio position count exceeds filled order count", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("rollup_status") == "PASS":

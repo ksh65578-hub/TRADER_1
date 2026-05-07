@@ -24,7 +24,9 @@ from trader1.core.strategy.quantitative_policy import (
 from trader1.dashboard.summary_writer import build_summary_shell, validate_summary_shell
 from trader1.runtime.portfolio.paper_portfolio import (
     build_initial_paper_portfolio_snapshot,
+    build_paper_portfolio_snapshot_after_sell_fill,
     build_paper_portfolio_snapshot_from_fill,
+    paper_portfolio_hash,
     validate_paper_portfolio_snapshot,
 )
 from trader1.runtime.paper.upbit_public_collector import (
@@ -34,14 +36,107 @@ from trader1.runtime.paper.upbit_public_collector import (
 
 
 UPBIT_PAPER_RUNTIME_CYCLE_SCHEMA_ID = "trader1.upbit_paper_runtime_cycle_report.v1"
-SAFE_FINAL_DECISIONS = {"ENTER_LONG", "NO_TRADE", "BLOCKED", "SAFE_MODE", "RECONCILE_REQUIRED"}
+SAFE_FINAL_DECISIONS = {"ENTER_LONG", "EXIT_POSITION", "REDUCE_POSITION", "HOLD_POSITION", "NO_TRADE", "BLOCKED", "SAFE_MODE", "RECONCILE_REQUIRED"}
 PAPER_ENTRY_FEE_RATE = Decimal("0.0005")
 PAPER_ENTRY_SLIPPAGE_BPS = Decimal("5")
+PAPER_EXIT_FEE_RATE = Decimal("0.0005")
+PAPER_EXIT_SLIPPAGE_BPS = Decimal("5")
+PAPER_BROKER_MODEL_ID = "UPBIT_KRW_SPOT_ADAPTIVE_PUBLIC_L2_PROXY_V1"
+PAPER_BROKER_FILL_SOURCE = "PAPER_BROKER_SIMULATION_ADAPTIVE_PUBLIC_L2_PROXY"
+PAPER_RUNTIME_COST_MODEL_SOURCE = "PAPER_RUNTIME_ADAPTIVE_PUBLIC_L2_PROXY_COST_MODEL"
+PAPER_BROKER_MIN_FILL_RATIO = Decimal("0.35")
+PAPER_BROKER_MAX_IMPACT_BPS = Decimal("120")
+PAPER_BROKER_MAX_LATENCY_BPS = Decimal("45")
 UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL = Decimal("5000")
 MIN_SYMBOL_SELECTION_SCORE = Decimal("0.60")
 MIN_ENTRY_NET_EV_BPS = Decimal("5")
 MIN_ENTRY_SIGNAL_STRENGTH = Decimal("0.55")
 MIN_EXIT_ATR_RATE = Decimal("0.003")
+TREND_CONFIRMATION_MIN_VOLUME_EXPANSION = Decimal("1.05")
+TREND_CONFIRMATION_MIN_MOMENTUM_PCT = Decimal("1.50")
+TREND_PULLBACK_ALIGNMENT_MIN_SCORE = Decimal("0.70")
+TREND_PULLBACK_ALIGNMENT_MIN_VWAP_DISTANCE_PCT = Decimal("-0.25")
+TREND_PULLBACK_ALIGNMENT_EDGE_PENALTY_BPS = Decimal("35")
+TREND_PULLBACK_ALIGNMENT_SIGNAL_PENALTY = Decimal("0.38")
+TREND_PULLBACK_ALIGNMENT_FEATURE_PROJECTION_FIELDS = frozenset(
+    {
+        "trend_pullback_alignment_status",
+        "trend_pullback_alignment_score",
+        "trend_pullback_alignment_reason",
+        "trend_pullback_alignment_formula",
+    }
+)
+TREND_EXHAUSTION_MIN_VOLATILITY_PCT = Decimal("3.00")
+TREND_EXHAUSTION_MIN_MOMENTUM_PCT = Decimal("3.00")
+TREND_EXHAUSTION_MIN_VOLUME_EXPANSION = Decimal("1.50")
+TREND_EXHAUSTION_EDGE_PENALTY_BPS = Decimal("42")
+TREND_EXHAUSTION_SIGNAL_PENALTY = Decimal("0.30")
+TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS = frozenset(
+    {"trend_exhaustion_status", "trend_exhaustion_score", "trend_exhaustion_formula"}
+)
+CURRENT_FEATURE_PROJECTION_UPGRADE_FIELDS = (
+    TREND_EXHAUSTION_FEATURE_PROJECTION_FIELDS | TREND_PULLBACK_ALIGNMENT_FEATURE_PROJECTION_FIELDS
+)
+BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION = Decimal("1.20")
+BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT = Decimal("0.03")
+MEAN_REVERSION_MIN_VWAP_DISTANCE_PCT = Decimal("0.35")
+MEAN_REVERSION_MAX_VOLUME_EXPANSION = Decimal("1.35")
+WEAK_TREND_EDGE_PENALTY_BPS = Decimal("24")
+FALSE_BREAKOUT_EDGE_PENALTY_BPS = Decimal("22")
+FAILED_MEAN_REVERSION_EDGE_PENALTY_BPS = Decimal("18")
+VOLATILITY_LIQUIDITY_EDGE_PENALTY_BPS = Decimal("8")
+ROTATION_EXIT_MIN_NET_EV_ADVANTAGE_BPS = Decimal("8")
+ROTATION_EXIT_MIN_SYMBOL_SCORE_BUFFER = Decimal("0.05")
+ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT = Decimal("0.25")
+ROTATION_EXIT_WEAK_NO_TRADE_REASONS = {"REGIME_MISMATCH", "SYMBOL_SELECTION_BIAS", "STRATEGY_CONFIDENCE_LOW"}
+ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS = {
+    "HARD_STOP",
+    "REGIME_REVERSAL",
+    "TRAILING_STOP",
+    "TAKE_PROFIT_2",
+    "TAKE_PROFIT_1_MIN_NOTIONAL_FULL_EXIT",
+}
+RECENT_FAILURE_COOLDOWN_CYCLES = 3
+RECENT_FAILURE_SYMBOL_EDGE_PENALTY_BPS = Decimal("32")
+RECENT_FAILURE_STRATEGY_EDGE_PENALTY_BPS = Decimal("18")
+RECENT_FAILURE_REGIME_REVERSAL_EDGE_PENALTY_BPS = Decimal("12")
+RECENT_FAILURE_SYMBOL_SIGNAL_PENALTY = Decimal("0.18")
+RECENT_FAILURE_STRATEGY_SIGNAL_PENALTY = Decimal("0.12")
+RECENT_FAILURE_MAX_EDGE_PENALTY_BPS = Decimal("80")
+RECENT_FAILURE_MAX_SIGNAL_PENALTY = Decimal("0.50")
+RECENT_FAILURE_COOLDOWN_EXIT_REASONS = {
+    "REGIME_REVERSAL",
+    "HARD_STOP",
+    "TRAILING_STOP",
+    "REGIME_ROTATION_EXIT",
+    "ROTATION_OPPORTUNITY_COST",
+}
+RECENT_FAILURE_FEEDBACK_FORMULA = (
+    "active when recent PAPER closed loss has same symbol and cooldown_cycles_remaining>0; "
+    "edge_penalty=min(80,32bps_symbol+18bps_same_strategy+12bps_regime_reversal); "
+    "signal_penalty=min(0.50,0.18_symbol+0.12_same_strategy); active cooldown blocks PAPER_ENTRY_REVIEW"
+)
+POSITION_ROTATION_EXIT_FIELDS = frozenset(
+    {
+        "rotation_candidate_symbol",
+        "rotation_candidate_id",
+        "rotation_candidate_decision",
+        "rotation_candidate_selection_score",
+        "rotation_candidate_net_ev_after_cost_bps",
+        "rotation_managed_candidate_id",
+        "rotation_managed_candidate_decision",
+        "rotation_managed_symbol_selection_score",
+        "rotation_managed_net_ev_after_cost_bps",
+        "rotation_net_ev_advantage_bps",
+        "rotation_symbol_score_advantage",
+        "rotation_threshold_bps",
+        "rotation_score_buffer_threshold",
+        "rotation_max_positive_return_pct",
+        "rotation_condition_passed",
+        "rotation_reason_code",
+        "rotation_action",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -159,6 +254,59 @@ def _candidate_sizing_inputs(
     return inputs
 
 
+def _cycle_bound_current_portfolio_snapshot(
+    snapshot: dict[str, Any] | None,
+    *,
+    cycle_id: str,
+) -> dict[str, Any] | None:
+    if not isinstance(snapshot, dict):
+        return None
+    result = validate_paper_portfolio_snapshot(snapshot)
+    if result.status != "PASS":
+        return None
+    current = dict(snapshot)
+    current["positions"] = [dict(item) for item in snapshot.get("positions", []) if isinstance(item, dict)]
+    current["source_runtime_cycle_id"] = cycle_id
+    current["live_order_ready"] = False
+    current["live_order_allowed"] = False
+    current["can_live_trade"] = False
+    current["scale_up_allowed"] = False
+    current["can_submit_order"] = False
+    current["snapshot_hash"] = paper_portfolio_hash(current)
+    return current
+
+
+def _open_long_positions(snapshot: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not isinstance(snapshot, dict):
+        return []
+    positions = snapshot.get("positions")
+    if not isinstance(positions, list):
+        return []
+    return [
+        dict(position)
+        for position in positions
+        if isinstance(position, dict) and position.get("side") == "LONG" and _decimal(position.get("quantity")) > 0
+    ]
+
+
+def _select_managed_position(
+    snapshot: dict[str, Any] | None,
+    *,
+    feature_snapshots_by_symbol: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    priced_positions = [
+        position
+        for position in _open_long_positions(snapshot)
+        if isinstance(position.get("symbol"), str) and position["symbol"] in feature_snapshots_by_symbol
+    ]
+    if not priced_positions:
+        return None
+    return sorted(
+        priced_positions,
+        key=lambda position: (-_decimal(position.get("market_value")), str(position.get("symbol"))),
+    )[0]
+
+
 def _candidate_selection_score_value(*, symbol_score: Decimal, net_ev_bps: Decimal, signal_strength: Decimal) -> Decimal:
     net_ev_score = _clamp_decimal((net_ev_bps - MIN_ENTRY_NET_EV_BPS) / Decimal("35"))
     score = Decimal("0.45") * symbol_score + Decimal("0.35") * net_ev_score + Decimal("0.20") * signal_strength
@@ -171,6 +319,110 @@ def _candidate_rank_key(candidate: dict[str, Any]) -> tuple[Decimal, Decimal, in
         _decimal(candidate.get("net_ev_after_cost_bps")),
         -int(candidate.get("selection_priority", 999)),
     )
+
+
+def _recent_failure_clear_feedback() -> dict[str, Any]:
+    return {
+        "recent_failure_cooldown_status": "CLEAR",
+        "recent_failure_cooldown_cycles_remaining": 0,
+        "recent_failure_penalty_bps": "0",
+        "recent_failure_signal_penalty": "0",
+        "recent_failure_reason_code": None,
+        "recent_failure_source_cycle_id": None,
+        "recent_failure_source_cycle_hash": None,
+        "recent_failure_realized_pnl_delta": "0",
+        "recent_failure_formula": RECENT_FAILURE_FEEDBACK_FORMULA,
+    }
+
+
+def _candidate_recent_failure_cooldown_active(candidate: dict[str, Any]) -> bool:
+    try:
+        remaining = int(candidate.get("recent_failure_cooldown_cycles_remaining", 0) or 0)
+    except (TypeError, ValueError):
+        remaining = 0
+    return (
+        candidate.get("recent_failure_cooldown_status") == "ACTIVE"
+        and remaining > 0
+        and _decimal(candidate.get("recent_failure_penalty_bps")) > 0
+    )
+
+
+def _recent_failure_feedback_for_candidate(
+    *,
+    symbol: str,
+    strategy_family: str,
+    candidate_id: str,
+    recent_failure_feedback: list[dict[str, Any]] | None,
+) -> dict[str, Any]:
+    if not isinstance(recent_failure_feedback, list):
+        return _recent_failure_clear_feedback()
+    matched: list[dict[str, Any]] = []
+    for feedback in recent_failure_feedback:
+        if not isinstance(feedback, dict) or feedback.get("symbol") != symbol:
+            continue
+        try:
+            remaining = int(feedback.get("cooldown_cycles_remaining", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if remaining <= 0:
+            continue
+        if _decimal(feedback.get("realized_pnl_delta", feedback.get("realized_pnl", "0"))) >= 0:
+            continue
+        reason = str(feedback.get("exit_reason_code") or feedback.get("failure_reason_code") or "")
+        if reason not in RECENT_FAILURE_COOLDOWN_EXIT_REASONS:
+            continue
+        matched.append(feedback)
+    if not matched:
+        return _recent_failure_clear_feedback()
+
+    matched.sort(
+        key=lambda item: (
+            int(item.get("cooldown_cycles_remaining", 0) or 0),
+            abs(_decimal(item.get("realized_pnl_delta", item.get("realized_pnl", "0")))),
+            str(item.get("source_runtime_cycle_id") or ""),
+        ),
+        reverse=True,
+    )
+    selected = matched[0]
+    same_strategy = selected.get("strategy_family") == strategy_family or selected.get("candidate_id") == candidate_id
+    reason = str(selected.get("exit_reason_code") or selected.get("failure_reason_code") or "RECENT_PAPER_CLOSED_LOSS")
+    edge_penalty = RECENT_FAILURE_SYMBOL_EDGE_PENALTY_BPS
+    signal_penalty = RECENT_FAILURE_SYMBOL_SIGNAL_PENALTY
+    if same_strategy:
+        edge_penalty += RECENT_FAILURE_STRATEGY_EDGE_PENALTY_BPS
+        signal_penalty += RECENT_FAILURE_STRATEGY_SIGNAL_PENALTY
+    if reason == "REGIME_REVERSAL":
+        edge_penalty += RECENT_FAILURE_REGIME_REVERSAL_EDGE_PENALTY_BPS
+    edge_penalty = min(edge_penalty, RECENT_FAILURE_MAX_EDGE_PENALTY_BPS)
+    signal_penalty = min(signal_penalty, RECENT_FAILURE_MAX_SIGNAL_PENALTY)
+    return {
+        "recent_failure_cooldown_status": "ACTIVE",
+        "recent_failure_cooldown_cycles_remaining": int(selected.get("cooldown_cycles_remaining", 0) or 0),
+        "recent_failure_penalty_bps": _decimal_text(edge_penalty),
+        "recent_failure_signal_penalty": _decimal_text(signal_penalty),
+        "recent_failure_reason_code": reason,
+        "recent_failure_source_cycle_id": selected.get("source_runtime_cycle_id"),
+        "recent_failure_source_cycle_hash": selected.get("source_runtime_cycle_hash"),
+        "recent_failure_realized_pnl_delta": _decimal_text(
+            _decimal(selected.get("realized_pnl_delta", selected.get("realized_pnl", "0")))
+        ),
+        "recent_failure_formula": RECENT_FAILURE_FEEDBACK_FORMULA,
+    }
+
+
+def _best_rotation_alternative_candidate(
+    candidates: list[dict[str, Any]],
+    *,
+    managed_symbol: str | None,
+) -> dict[str, Any] | None:
+    alternatives = [
+        candidate
+        for candidate in candidates
+        if candidate.get("symbol") != managed_symbol and candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+    ]
+    if not alternatives:
+        return None
+    return max(alternatives, key=_candidate_rank_key)
 
 
 def _build_runtime_risk_state(
@@ -214,22 +466,31 @@ def _build_runtime_exit_plan(
     *,
     selected_candidate: dict[str, Any],
     features: dict[str, Any],
+    entry_price_override: str | int | float | Decimal | None = None,
 ) -> dict[str, Any]:
-    entry_price = max(_decimal(features.get("last_price")), Decimal("0"))
+    entry_price = max(_decimal(entry_price_override if entry_price_override is not None else features.get("last_price")), Decimal("0"))
     volatility_rate = max(MIN_EXIT_ATR_RATE, _decimal(features.get("volatility_pct")) / Decimal("100"))
     atr_proxy = max(Decimal("0.0000001"), entry_price * volatility_rate)
+    trend_exhaustion_active = features.get("trend_exhaustion_status") == "WARN"
+    hard_stop_atr = Decimal("0.9") if trend_exhaustion_active else Decimal("1.2")
+    tp1_atr = Decimal("0.9") if trend_exhaustion_active else Decimal("1.2")
+    tp2_atr = Decimal("1.8") if trend_exhaustion_active else Decimal("2.5")
+    trailing_start_atr = Decimal("0.8") if trend_exhaustion_active else Decimal("1.5")
+    trailing_distance_atr = Decimal("0.55") if trend_exhaustion_active else Decimal("1.0")
+    partial_take_profit_ratio = Decimal("0.50") if trend_exhaustion_active else Decimal("0.40")
+    time_stop_candles = 5 if trend_exhaustion_active else 8
     plan = build_exit_plan(
         {
             "entry_price": _decimal_text(entry_price),
             "atr": _decimal_text(atr_proxy),
             "side": "LONG",
-            "hard_stop_atr": "1.2",
-            "tp1_atr": "1.2",
-            "tp2_atr": "2.5",
-            "trailing_start_atr": "1.5",
-            "trailing_distance_atr": "1.0",
-            "partial_take_profit_ratio": "0.40",
-            "time_stop_candles": "8",
+            "hard_stop_atr": _decimal_text(hard_stop_atr),
+            "tp1_atr": _decimal_text(tp1_atr),
+            "tp2_atr": _decimal_text(tp2_atr),
+            "trailing_start_atr": _decimal_text(trailing_start_atr),
+            "trailing_distance_atr": _decimal_text(trailing_distance_atr),
+            "partial_take_profit_ratio": _decimal_text(partial_take_profit_ratio),
+            "time_stop_candles": str(time_stop_candles),
             "invalidation_rule": "regime_reversal_or_signal_score_below_0.55",
         }
     )
@@ -241,10 +502,18 @@ def _build_runtime_exit_plan(
             "source_candidate_id": selected_candidate.get("candidate_id"),
             "source_symbol": selected_candidate.get("symbol"),
             "activation_condition": "ACTIVE_AFTER_PAPER_FILL_ONLY",
-            "hard_stop_formula": "entry_price - 1.2*atr_proxy",
-            "tp1_formula": "entry_price + 1.2*atr_proxy",
-            "tp2_formula": "entry_price + 2.5*atr_proxy",
-            "trailing_formula": "start_after_1.5*atr_proxy_then_distance_1.0*atr_proxy",
+            "hard_stop_formula": f"entry_price - {_decimal_text(hard_stop_atr)}*atr_proxy",
+            "tp1_formula": f"entry_price + {_decimal_text(tp1_atr)}*atr_proxy",
+            "tp2_formula": f"entry_price + {_decimal_text(tp2_atr)}*atr_proxy",
+            "trailing_formula": (
+                f"start_after_{_decimal_text(trailing_start_atr)}*atr_proxy"
+                f"_then_distance_{_decimal_text(trailing_distance_atr)}*atr_proxy"
+            ),
+            "trend_exhaustion_status": features.get("trend_exhaustion_status", "PASS"),
+            "trend_exhaustion_score": features.get("trend_exhaustion_score", "0"),
+            "trend_exhaustion_exit_adjustment": (
+                "TIGHTENED_TRAILING_AND_TIME_STOP" if trend_exhaustion_active else "STANDARD_ATR_EXIT_PLAN"
+            ),
             "live_order_ready": False,
             "live_order_allowed": False,
             "can_live_trade": False,
@@ -252,6 +521,156 @@ def _build_runtime_exit_plan(
         }
     )
     return plan
+
+
+def _evaluate_existing_position_exit(
+    *,
+    position: dict[str, Any] | None,
+    features: dict[str, Any] | None,
+    exit_plan: dict[str, Any],
+    managed_candidate: dict[str, Any] | None = None,
+    rotation_candidate: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    rotation_context: dict[str, Any] = {
+        "rotation_candidate_symbol": None,
+        "rotation_candidate_id": None,
+        "rotation_candidate_decision": None,
+        "rotation_candidate_selection_score": "0",
+        "rotation_candidate_net_ev_after_cost_bps": "0",
+        "rotation_managed_candidate_id": managed_candidate.get("candidate_id") if isinstance(managed_candidate, dict) else None,
+        "rotation_managed_candidate_decision": managed_candidate.get("decision") if isinstance(managed_candidate, dict) else None,
+        "rotation_managed_symbol_selection_score": (
+            managed_candidate.get("symbol_selection_score") if isinstance(managed_candidate, dict) else "0"
+        ),
+        "rotation_managed_net_ev_after_cost_bps": (
+            managed_candidate.get("net_ev_after_cost_bps") if isinstance(managed_candidate, dict) else "0"
+        ),
+        "rotation_net_ev_advantage_bps": "0",
+        "rotation_symbol_score_advantage": "0",
+        "rotation_threshold_bps": _decimal_text(ROTATION_EXIT_MIN_NET_EV_ADVANTAGE_BPS),
+        "rotation_score_buffer_threshold": _decimal_text(ROTATION_EXIT_MIN_SYMBOL_SCORE_BUFFER),
+        "rotation_max_positive_return_pct": _decimal_text(ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT),
+        "rotation_condition_passed": False,
+        "rotation_reason_code": None,
+        "rotation_action": "NONE",
+    }
+    if isinstance(rotation_candidate, dict):
+        rotation_context.update(
+            {
+                "rotation_candidate_symbol": rotation_candidate.get("symbol"),
+                "rotation_candidate_id": rotation_candidate.get("candidate_id"),
+                "rotation_candidate_decision": rotation_candidate.get("decision"),
+                "rotation_candidate_selection_score": rotation_candidate.get("symbol_selection_score", "0"),
+                "rotation_candidate_net_ev_after_cost_bps": rotation_candidate.get("net_ev_after_cost_bps", "0"),
+            }
+        )
+        if isinstance(managed_candidate, dict):
+            rotation_context["rotation_net_ev_advantage_bps"] = _decimal_text(
+                _decimal(rotation_candidate.get("net_ev_after_cost_bps")) - _decimal(managed_candidate.get("net_ev_after_cost_bps"))
+            )
+            rotation_context["rotation_symbol_score_advantage"] = _decimal_text(
+                _decimal(rotation_candidate.get("symbol_selection_score")) - _decimal(managed_candidate.get("symbol_selection_score"))
+            )
+    if not isinstance(position, dict) or not isinstance(features, dict):
+        return {
+            "final_decision": None,
+            "reason_code": None,
+            "message": "no managed PAPER position",
+            "sell_quantity": "0",
+            "sell_notional": "0",
+            **rotation_context,
+        }
+    mark_price = _decimal(features.get("last_price"))
+    quantity = _decimal(position.get("quantity"))
+    average_entry = _decimal(position.get("average_entry_price"))
+    hard_stop = _decimal(exit_plan.get("hard_stop"))
+    tp1 = _decimal(exit_plan.get("tp1"))
+    tp2 = _decimal(exit_plan.get("tp2"))
+    trailing_start = _decimal(exit_plan.get("trailing_start"))
+    trailing_distance = _decimal(exit_plan.get("trailing_distance"))
+    previous_high = _decimal(features.get("previous_high"))
+    partial_ratio = _decimal(exit_plan.get("partial_take_profit_ratio"))
+    if min(mark_price, quantity, average_entry, hard_stop, tp1, tp2, trailing_start, trailing_distance, partial_ratio) <= 0:
+        return {
+            "final_decision": "HOLD_POSITION",
+            "reason_code": "POSITION_MARK_DATA_INVALID",
+            "message": "PAPER position exit evaluation is missing valid public mark data",
+            "sell_quantity": "0",
+            "sell_notional": "0",
+            **rotation_context,
+        }
+
+    decision = "HOLD_POSITION"
+    reason = "EXIT_CONDITION_NOT_MET"
+    return_pct = Decimal("0") if average_entry <= 0 else ((mark_price - average_entry) / average_entry * Decimal("100"))
+    if isinstance(managed_candidate, dict) and isinstance(rotation_candidate, dict):
+        net_ev_advantage = _decimal(rotation_context["rotation_net_ev_advantage_bps"])
+        score_advantage = _decimal(rotation_context["rotation_symbol_score_advantage"])
+        managed_no_trade_reason = str(managed_candidate.get("no_trade_reason") or "")
+        managed_is_weak_or_unqualified = (
+            managed_candidate.get("decision") != "PAPER_ENTRY_REVIEW"
+            or managed_no_trade_reason in ROTATION_EXIT_WEAK_NO_TRADE_REASONS
+            or return_pct <= ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT
+        )
+        rotation_condition_passed = (
+            rotation_candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+            and net_ev_advantage >= ROTATION_EXIT_MIN_NET_EV_ADVANTAGE_BPS
+            and score_advantage >= ROTATION_EXIT_MIN_SYMBOL_SCORE_BUFFER
+            and managed_is_weak_or_unqualified
+        )
+        rotation_context["rotation_condition_passed"] = rotation_condition_passed
+        if rotation_condition_passed:
+            rotation_context["rotation_reason_code"] = (
+                "REGIME_ROTATION_EXIT"
+                if managed_candidate.get("regime") == "RISK_OFF"
+                else "ROTATION_OPPORTUNITY_COST"
+            )
+            rotation_context["rotation_action"] = "FULL_EXIT"
+    if mark_price <= hard_stop:
+        decision = "EXIT_POSITION"
+        reason = "HARD_STOP"
+    elif str(features.get("regime")) == "RISK_OFF" and mark_price < average_entry:
+        decision = "EXIT_POSITION"
+        reason = "REGIME_REVERSAL"
+    elif previous_high >= trailing_start and mark_price <= previous_high - trailing_distance:
+        decision = "EXIT_POSITION"
+        reason = "TRAILING_STOP"
+    elif mark_price >= tp2:
+        decision = "EXIT_POSITION"
+        reason = "TAKE_PROFIT_2"
+    elif mark_price >= tp1:
+        decision = "REDUCE_POSITION"
+        reason = "TAKE_PROFIT_1"
+    elif rotation_context["rotation_condition_passed"]:
+        decision = "EXIT_POSITION"
+        reason = str(rotation_context["rotation_reason_code"] or "ROTATION_OPPORTUNITY_COST")
+
+    if decision == "REDUCE_POSITION":
+        sell_quantity = quantity * partial_ratio
+        if sell_quantity * mark_price < UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL:
+            decision = "EXIT_POSITION"
+            reason = "TAKE_PROFIT_1_MIN_NOTIONAL_FULL_EXIT"
+            sell_quantity = quantity
+    elif decision == "EXIT_POSITION":
+        sell_quantity = quantity
+    else:
+        sell_quantity = Decimal("0")
+    return {
+        "final_decision": decision,
+        "reason_code": reason,
+        "message": f"{reason}: mark={_decimal_text(mark_price)}, entry={_decimal_text(average_entry)}, return_pct={_decimal_text(return_pct)}",
+        "sell_quantity": _decimal_text(sell_quantity),
+        "sell_notional": _decimal_text(sell_quantity * mark_price),
+        "mark_price": _decimal_text(mark_price),
+        "average_entry_price": _decimal_text(average_entry),
+        "return_pct": _decimal_text(return_pct),
+        "hard_stop": _decimal_text(hard_stop),
+        "tp1": _decimal_text(tp1),
+        "tp2": _decimal_text(tp2),
+        "trailing_start": _decimal_text(trailing_start),
+        "trailing_distance": _decimal_text(trailing_distance),
+        **rotation_context,
+    }
 
 
 def _ema(values: list[Decimal], period: int) -> Decimal:
@@ -294,6 +713,50 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         regime = "RISK_OFF"
     else:
         regime = "RANGE"
+    trend_structure_score = Decimal("1") if regime == "UPTREND" else Decimal("0")
+    trend_momentum_confirmation = _clamp_decimal((momentum_pct - Decimal("0.35")) / Decimal("1.65"))
+    trend_volume_confirmation = _clamp_decimal(
+        (volume_expansion_ratio - Decimal("0.85")) / Decimal("0.65")
+    )
+    trend_vwap_pullback_quality = _clamp_decimal(
+        (vwap_distance_pct - TREND_PULLBACK_ALIGNMENT_MIN_VWAP_DISTANCE_PCT) / Decimal("1.25")
+    )
+    trend_ema_alignment = Decimal("1") if ema_fast > ema_slow and last >= ema_slow else Decimal("0")
+    trend_pullback_alignment_score = (
+        Decimal("0.30") * trend_structure_score
+        + Decimal("0.25") * trend_momentum_confirmation
+        + Decimal("0.20") * trend_volume_confirmation
+        + Decimal("0.15") * trend_vwap_pullback_quality
+        + Decimal("0.10") * trend_ema_alignment
+    )
+    trend_confirmation_active = (
+        volume_expansion_ratio >= TREND_CONFIRMATION_MIN_VOLUME_EXPANSION
+        or momentum_pct >= TREND_CONFIRMATION_MIN_MOMENTUM_PCT
+        or max(Decimal("0"), range_breakout_pct) >= BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT
+    )
+    if regime != "UPTREND":
+        trend_pullback_alignment_reason = "REGIME_NOT_UPTREND"
+    elif not trend_confirmation_active:
+        trend_pullback_alignment_reason = "WEAK_TREND_CONFIRMATION"
+    elif vwap_distance_pct < TREND_PULLBACK_ALIGNMENT_MIN_VWAP_DISTANCE_PCT:
+        trend_pullback_alignment_reason = "VWAP_BREAKDOWN"
+    elif trend_pullback_alignment_score < TREND_PULLBACK_ALIGNMENT_MIN_SCORE:
+        trend_pullback_alignment_reason = "ALIGNMENT_SCORE_LOW"
+    else:
+        trend_pullback_alignment_reason = "PASS"
+    positive_vwap_extension_pct = max(Decimal("0"), vwap_distance_pct)
+    trend_exhaustion_score = (
+        Decimal("0.35") * _clamp_decimal((volatility_pct - TREND_EXHAUSTION_MIN_VOLATILITY_PCT) / Decimal("3.00"))
+        + Decimal("0.30") * _clamp_decimal((momentum_pct - TREND_EXHAUSTION_MIN_MOMENTUM_PCT) / Decimal("3.00"))
+        + Decimal("0.25") * _clamp_decimal((volume_expansion_ratio - TREND_EXHAUSTION_MIN_VOLUME_EXPANSION) / Decimal("1.50"))
+        + Decimal("0.10") * _clamp_decimal(positive_vwap_extension_pct / Decimal("1.50"))
+    )
+    trend_exhaustion_active = (
+        regime == "UPTREND"
+        and volatility_pct >= TREND_EXHAUSTION_MIN_VOLATILITY_PCT
+        and momentum_pct >= TREND_EXHAUSTION_MIN_MOMENTUM_PCT
+        and volume_expansion_ratio >= TREND_EXHAUSTION_MIN_VOLUME_EXPANSION
+    )
     return {
         "source": market_data.get("source", "UNAVAILABLE"),
         "symbol": market_data["symbol"],
@@ -312,6 +775,222 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         "liquidity_status": "PASS",
         "volatility_status": "PASS" if volatility_pct < Decimal("6") else "WARN",
         "regime": regime,
+        "trend_pullback_alignment_status": "PASS" if trend_pullback_alignment_reason == "PASS" else "FAIL",
+        "trend_pullback_alignment_score": _decimal_text(
+            trend_pullback_alignment_score.quantize(Decimal("0.0001"))
+        ),
+        "trend_pullback_alignment_reason": trend_pullback_alignment_reason,
+        "trend_pullback_alignment_formula": (
+            "PASS when UPTREND, confirmation(volume>=1.05 or momentum>=1.50 or breakout>=0.03), "
+            "vwap_distance>=-0.25pct, and score>=0.70; "
+            "score=0.30*trend_structure+0.25*momentum+0.20*volume+0.15*vwap_pullback+0.10*ema_alignment"
+        ),
+        "trend_exhaustion_status": "WARN" if trend_exhaustion_active else "PASS",
+        "trend_exhaustion_score": _decimal_text(trend_exhaustion_score.quantize(Decimal("0.0001"))),
+        "trend_exhaustion_formula": (
+            "WARN when UPTREND and volatility>=3.00pct and momentum>=3.00pct "
+            "and volume_expansion>=1.50; score=0.35*vol+0.30*momentum+0.25*volume+0.10*vwap_extension"
+        ),
+    }
+
+
+def _matches_legacy_feature_snapshot_projection(
+    reported: Any,
+    expected: dict[str, Any],
+) -> bool:
+    if not isinstance(reported, dict):
+        return False
+    if not set(reported).issubset(set(expected)):
+        return False
+    for key, value in expected.items():
+        if key in CURRENT_FEATURE_PROJECTION_UPGRADE_FIELDS and key not in reported:
+            continue
+        if reported.get(key) != value:
+            return False
+    return True
+
+
+def _paper_orderbook_proxy(features: dict[str, Any]) -> dict[str, Any]:
+    mark_price = max(Decimal("0"), _decimal(features.get("last_price")))
+    spread_bps = max(Decimal("0.5"), _decimal(features.get("spread_bps")))
+    quote_volume = max(Decimal("0"), _decimal(features.get("total_quote_volume")))
+    volatility_pct = max(Decimal("0"), _decimal(features.get("volatility_pct")))
+    volume_expansion = max(Decimal("0"), _decimal(features.get("volume_expansion_ratio")))
+    depth_factor = (
+        Decimal("0.040")
+        + _clamp_decimal(volume_expansion / Decimal("3"), high=Decimal("1")) * Decimal("0.015")
+        - _clamp_decimal(volatility_pct / Decimal("10"), high=Decimal("1")) * Decimal("0.010")
+    )
+    depth_factor = _clamp_decimal(depth_factor, low=Decimal("0.015"), high=Decimal("0.060"))
+    aggregate_depth = Decimal("0") if quote_volume <= 0 else max(Decimal("100000"), quote_volume * depth_factor)
+    top_depth = Decimal("0") if aggregate_depth <= 0 else max(Decimal("10000"), aggregate_depth * Decimal("0.012"))
+    queue_ahead = top_depth * Decimal("0.22")
+    bid_price = Decimal("0") if mark_price <= 0 else mark_price * (Decimal("1") - (spread_bps / Decimal("20000")))
+    ask_price = Decimal("0") if mark_price <= 0 else mark_price * (Decimal("1") + (spread_bps / Decimal("20000")))
+    liquidity_status = str(features.get("liquidity_status") or "BLOCKED")
+    if mark_price <= 0 or aggregate_depth < UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL:
+        liquidity_status = "BLOCKED"
+    return {
+        "model_id": PAPER_BROKER_MODEL_ID,
+        "source": "PUBLIC_CANDLE_DERIVED_L2_PROXY",
+        "mark_price": _decimal_text(mark_price),
+        "best_bid": _decimal_text(bid_price),
+        "best_ask": _decimal_text(ask_price),
+        "spread_bps": _decimal_text(spread_bps),
+        "estimated_top_bid_depth_krw": _decimal_text(top_depth),
+        "estimated_top_ask_depth_krw": _decimal_text(top_depth),
+        "estimated_aggregate_depth_krw": _decimal_text(aggregate_depth),
+        "queue_ahead_notional_krw": _decimal_text(queue_ahead),
+        "queue_position_fraction": _decimal_text(Decimal("0.22")),
+        "depth_formula": "max(100000,total_quote_volume*(0.040+volume_expansion_adj-volatility_adj)); top_depth=max(10000,aggregate*0.012)",
+        "total_quote_volume": _decimal_text(quote_volume),
+        "volatility_pct": _decimal_text(volatility_pct),
+        "volume_expansion_ratio": _decimal_text(volume_expansion),
+        "liquidity_status": liquidity_status,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _paper_candidate_cost_breakdown(features: dict[str, Any]) -> dict[str, str]:
+    proxy = _paper_orderbook_proxy(features)
+    spread_bps = _decimal(proxy["spread_bps"])
+    volatility_pct = max(Decimal("0"), _decimal(features.get("volatility_pct")))
+    aggregate_depth = max(Decimal("1"), _decimal(proxy["estimated_aggregate_depth_krw"]))
+    expected_notional = UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL
+    adaptive_slippage_bps = max(Decimal("1.50"), (spread_bps / Decimal("2")) + (volatility_pct * Decimal("0.80")))
+    impact_bps = min(Decimal("30"), (expected_notional / aggregate_depth) * Decimal("500"))
+    latency_bps = min(Decimal("15"), Decimal("0.75") + (volatility_pct * Decimal("0.45")) + (impact_bps * Decimal("0.10")))
+    return {
+        "fee_bps": "5",
+        "slippage_bps": _decimal_text(adaptive_slippage_bps),
+        "spread_bps": _decimal_text(spread_bps),
+        "market_impact_bps": _decimal_text(impact_bps),
+        "latency_bps": _decimal_text(latency_bps),
+    }
+
+
+def _cost_breakdown_sum(cost_breakdown_bps: dict[str, Any]) -> Decimal:
+    return sum(
+        (_decimal(cost_breakdown_bps.get(field)) for field in ("fee_bps", "slippage_bps", "spread_bps", "market_impact_bps", "latency_bps")),
+        Decimal("0"),
+    )
+
+
+def _simulate_paper_broker_execution(
+    *,
+    cycle_id: str,
+    symbol: str,
+    side: str,
+    requested_notional: Decimal,
+    requested_quantity: Decimal,
+    mark_price: Decimal,
+    features: dict[str, Any],
+    fee_rate: Decimal,
+) -> dict[str, Any]:
+    proxy = _paper_orderbook_proxy(features)
+    spread_bps = _decimal(proxy["spread_bps"])
+    volatility_pct = max(Decimal("0"), _decimal(features.get("volatility_pct")))
+    aggregate_depth = max(Decimal("1"), _decimal(proxy["estimated_aggregate_depth_krw"]))
+    top_depth = max(
+        Decimal("0"),
+        _decimal(proxy["estimated_top_ask_depth_krw"] if side == "BUY" else proxy["estimated_top_bid_depth_krw"]),
+    )
+    queue_ahead = max(Decimal("0"), _decimal(proxy["queue_ahead_notional_krw"]))
+    queue_fill_probability = _clamp_decimal((top_depth - queue_ahead) / max(top_depth, Decimal("1")), low=Decimal("0"), high=Decimal("1"))
+    impact_bps = min(Decimal("150"), (requested_notional / aggregate_depth) * Decimal("500"))
+    adaptive_slippage_bps = max(Decimal("1.50"), volatility_pct * Decimal("0.80"))
+    latency_bps = min(Decimal("60"), Decimal("0.75") + (volatility_pct * Decimal("0.45")) + (impact_bps * Decimal("0.10")))
+    latency_ms = Decimal("250") + (volatility_pct * Decimal("80")) + (impact_bps * Decimal("5"))
+    adverse_price_bps = (spread_bps / Decimal("2")) + adaptive_slippage_bps + impact_bps + latency_bps
+    if requested_notional <= top_depth * Decimal("0.85"):
+        fill_ratio = Decimal("1")
+    else:
+        available = top_depth * (Decimal("0.70") + (queue_fill_probability * Decimal("0.20")))
+        fill_ratio = _clamp_decimal(available / max(requested_notional, Decimal("1")), low=Decimal("0"), high=Decimal("1"))
+    lifecycle_state = "FILLED" if fill_ratio >= Decimal("0.999999") else "PARTIALLY_FILLED"
+    reject_reason = None
+    cancel_reason = None
+    if (
+        mark_price <= 0
+        or requested_notional <= 0
+        or requested_quantity <= 0
+        or proxy.get("liquidity_status") == "BLOCKED"
+        or impact_bps > PAPER_BROKER_MAX_IMPACT_BPS
+        or fill_ratio < PAPER_BROKER_MIN_FILL_RATIO
+    ):
+        lifecycle_state = "REJECTED"
+        reject_reason = "PAPER_DEPTH_OR_IMPACT_REJECT"
+        fill_ratio = Decimal("0")
+    elif latency_bps > PAPER_BROKER_MAX_LATENCY_BPS:
+        lifecycle_state = "CANCELLED"
+        cancel_reason = "PAPER_LATENCY_CANCEL"
+        fill_ratio = Decimal("0")
+
+    if side == "BUY":
+        fill_price = mark_price * (Decimal("1") + (adverse_price_bps / Decimal("10000")))
+        filled_notional = requested_notional * fill_ratio
+        filled_quantity = Decimal("0") if fill_price <= 0 else filled_notional / fill_price
+        reserved_cash = requested_notional * (Decimal("1") + fee_rate)
+        reserved_quantity = Decimal("0")
+    else:
+        fill_price = mark_price * (Decimal("1") - (adverse_price_bps / Decimal("10000")))
+        filled_quantity = requested_quantity * fill_ratio
+        filled_notional = filled_quantity * fill_price
+        reserved_cash = Decimal("0")
+        reserved_quantity = requested_quantity
+    fee_amount = filled_notional * fee_rate
+    reservation_used = filled_notional + fee_amount if side == "BUY" else filled_quantity
+    reservation_requested = reserved_cash if side == "BUY" else reserved_quantity
+    reservation_release = max(Decimal("0"), reservation_requested - reservation_used)
+    return {
+        "fill_source": PAPER_BROKER_FILL_SOURCE,
+        "broker_model_id": PAPER_BROKER_MODEL_ID,
+        "order_lifecycle_state": lifecycle_state,
+        "client_order_id": hashlib.sha256(f"{cycle_id}:{symbol}:{side}:adaptive-paper-fill".encode("utf-8")).hexdigest()[:24].upper(),
+        "symbol": symbol,
+        "side": side,
+        "order_type": "MARKETABLE_LIMIT_PAPER",
+        "time_in_force": "IOC_PAPER",
+        "maker_taker": "TAKER",
+        "requested_notional": _decimal_text(requested_notional),
+        "requested_quantity": _decimal_text(requested_quantity),
+        "filled_notional": _decimal_text(filled_notional),
+        "filled_quantity": _decimal_text(filled_quantity),
+        "notional": _decimal_text(filled_notional),
+        "quantity": _decimal_text(filled_quantity),
+        "fill_ratio": _decimal_text(fill_ratio),
+        "partial_fill": lifecycle_state == "PARTIALLY_FILLED",
+        "fill_price": _decimal_text(fill_price),
+        "mark_price": _decimal_text(mark_price),
+        "fee_rate": _decimal_text(fee_rate),
+        "fee_amount": _decimal_text(fee_amount),
+        "fee_asset": "KRW",
+        "slippage_bps": _decimal_text(adverse_price_bps),
+        "adaptive_slippage_bps": _decimal_text(adaptive_slippage_bps),
+        "spread_bps": _decimal_text(spread_bps),
+        "market_impact_bps": _decimal_text(impact_bps),
+        "latency_penalty_bps": _decimal_text(latency_bps),
+        "latency_ms": _decimal_text(latency_ms),
+        "queue_ahead_notional_krw": _decimal_text(queue_ahead),
+        "queue_fill_probability": _decimal_text(queue_fill_probability),
+        "orderbook_proxy": proxy,
+        "reservation_required": True,
+        "reserved_cash": _decimal_text(reserved_cash),
+        "reserved_quantity": _decimal_text(reserved_quantity),
+        "reservation_released": True,
+        "reservation_release_amount": _decimal_text(reservation_release),
+        "reject_reason": reject_reason,
+        "cancel_reason": cancel_reason,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "order_adapter_called": False,
+        "private_endpoint_called": False,
+        "credential_load_attempted": False,
     }
 
 
@@ -359,20 +1038,49 @@ def _symbol_selection_score(features: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _setup_confirmation_scores(features: dict[str, Any]) -> dict[str, Decimal]:
+    momentum = _decimal(features.get("momentum_pct"))
+    volume_expansion = _decimal(features.get("volume_expansion_ratio"))
+    range_breakout = max(Decimal("0"), _decimal(features.get("range_breakout_pct")))
+    vwap_distance = abs(_decimal(features.get("vwap_distance_pct")))
+    trend_persistence = _clamp_decimal((momentum - Decimal("0.35")) / Decimal("1.65"))
+    volume_confirmation = _clamp_decimal((volume_expansion - Decimal("0.85")) / Decimal("0.65"))
+    breakout_confirmation = (
+        _clamp_decimal(range_breakout / Decimal("0.75")) * volume_confirmation
+        if range_breakout > 0
+        else Decimal("0")
+    )
+    mean_reversion_distance = _clamp_decimal((vwap_distance - Decimal("0.25")) / Decimal("1.25"))
+    mean_reversion_volume = _clamp_decimal((MEAN_REVERSION_MAX_VOLUME_EXPANSION - volume_expansion) / Decimal("0.65"))
+    return {
+        "trend_persistence": trend_persistence,
+        "volume_confirmation": volume_confirmation,
+        "breakout_confirmation": breakout_confirmation,
+        "mean_reversion_quality": mean_reversion_distance * mean_reversion_volume,
+    }
+
+
 def _candidate(
     *,
     candidate_id: str,
     symbol: str,
     strategy_family: str,
     expected_edge_bps: Decimal,
-    expected_cost_bps: Decimal,
+    cost_breakdown_bps: dict[str, str],
     signal_strength: Decimal,
     regime: str,
     symbol_selection: dict[str, str],
     selection_priority: int,
+    recent_failure_feedback: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    expected_cost_bps = _cost_breakdown_sum(cost_breakdown_bps)
     net_ev = expected_edge_bps - expected_cost_bps
     symbol_score = _decimal(symbol_selection.get("symbol_selection_score"))
+    recent_failure_feedback = recent_failure_feedback or _recent_failure_clear_feedback()
+    cooldown_active = (
+        recent_failure_feedback.get("recent_failure_cooldown_status") == "ACTIVE"
+        and int(recent_failure_feedback.get("recent_failure_cooldown_cycles_remaining", 0) or 0) > 0
+    )
     candidate_selection_score = _candidate_selection_score_value(
         symbol_score=symbol_score,
         net_ev_bps=net_ev,
@@ -389,6 +1097,9 @@ def _candidate(
     if regime == "RISK_OFF":
         decision = "NO_TRADE"
         no_trade_reason = "REGIME_MISMATCH"
+    elif cooldown_active:
+        decision = "NO_TRADE"
+        no_trade_reason = "COOLDOWN"
     elif symbol_score < MIN_SYMBOL_SELECTION_SCORE:
         no_trade_reason = "SYMBOL_SELECTION_BIAS"
     elif signal_strength < MIN_ENTRY_SIGNAL_STRENGTH:
@@ -407,17 +1118,13 @@ def _candidate(
         "signal_grade": "A" if signal_strength >= Decimal("0.7") else "B" if signal_strength >= Decimal("0.55") else "C",
         "expected_edge_bps": _decimal_text(expected_edge_bps),
         "expected_cost_bps": _decimal_text(expected_cost_bps),
-        "cost_breakdown_bps": {
-            "fee_bps": "5",
-            "slippage_bps": "5",
-            "spread_bps": "1",
-            "market_impact_bps": "0",
-            "latency_bps": "0",
-        },
-        "cost_model_source": "PAPER_RUNTIME_STATIC_COST_MODEL",
+        "cost_breakdown_bps": dict(cost_breakdown_bps),
+        "cost_model_source": PAPER_RUNTIME_COST_MODEL_SOURCE,
+        "cost_model_formula": "fee_bps+adaptive_slippage_bps+spread_bps+public_depth_impact_bps+latency_penalty_bps",
         "net_ev_after_cost_bps": _decimal_text(net_ev),
         "decision": decision,
         "no_trade_reason": no_trade_reason,
+        **recent_failure_feedback,
         "live_order_ready": False,
         "live_order_allowed": False,
         "can_live_trade": False,
@@ -425,60 +1132,270 @@ def _candidate(
     }
 
 
-def _build_candidates(symbol: str, features: dict[str, Any], *, edge_profile: str) -> list[dict[str, Any]]:
+def _apply_recent_failure_penalty(
+    *,
+    edge_bps: Decimal,
+    signal_strength: Decimal,
+    feedback: dict[str, Any],
+) -> tuple[Decimal, Decimal]:
+    if feedback.get("recent_failure_cooldown_status") != "ACTIVE":
+        return edge_bps, signal_strength
+    return (
+        edge_bps - _decimal(feedback.get("recent_failure_penalty_bps")),
+        _clamp_decimal(signal_strength - _decimal(feedback.get("recent_failure_signal_penalty"))),
+    )
+
+
+def _build_candidates(
+    symbol: str,
+    features: dict[str, Any],
+    *,
+    edge_profile: str,
+    recent_failure_feedback: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     regime = str(features["regime"])
-    cost_bps = Decimal("11")
+    cost_breakdown_bps = _paper_candidate_cost_breakdown(features)
     symbol_selection = _symbol_selection_score(features)
     symbol_score = _decimal(symbol_selection["symbol_selection_score"])
     momentum = _decimal(features.get("momentum_pct"))
     volume_expansion = _decimal(features.get("volume_expansion_ratio"))
     range_breakout = _decimal(features.get("range_breakout_pct"))
     vwap_distance = abs(_decimal(features.get("vwap_distance_pct")))
-    pullback_edge = Decimal("8") + symbol_score * Decimal("36") + _clamp_decimal(momentum / Decimal("3")) * Decimal("8")
-    breakout_edge = Decimal("6") + symbol_score * Decimal("28") + _clamp_decimal(volume_expansion / Decimal("2")) * Decimal("8")
-    if range_breakout > 0:
-        breakout_edge += _clamp_decimal(range_breakout / Decimal("1.5")) * Decimal("6")
-    mean_reversion_edge = Decimal("4") + symbol_score * Decimal("18") + _clamp_decimal(vwap_distance / Decimal("1.5")) * Decimal("6")
+    setup_scores = _setup_confirmation_scores(features)
+    trend_persistence = setup_scores["trend_persistence"]
+    volume_confirmation = setup_scores["volume_confirmation"]
+    breakout_confirmation = setup_scores["breakout_confirmation"]
+    mean_reversion_quality = setup_scores["mean_reversion_quality"]
+    pullback_edge = (
+        Decimal("5")
+        + symbol_score * Decimal("25")
+        + trend_persistence * Decimal("14")
+        + volume_confirmation * Decimal("10")
+    )
+    pullback_signal = _clamp_decimal(
+        Decimal("0.42") + symbol_score * Decimal("0.25") + trend_persistence * Decimal("0.18") + volume_confirmation * Decimal("0.12")
+    )
+    trend_confirmation_passed = (
+        volume_expansion >= TREND_CONFIRMATION_MIN_VOLUME_EXPANSION
+        or momentum >= TREND_CONFIRMATION_MIN_MOMENTUM_PCT
+        or max(Decimal("0"), range_breakout) >= BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT
+    )
+    if features.get("trend_pullback_alignment_status") != "PASS":
+        pullback_edge -= TREND_PULLBACK_ALIGNMENT_EDGE_PENALTY_BPS
+        pullback_signal = _clamp_decimal(pullback_signal - TREND_PULLBACK_ALIGNMENT_SIGNAL_PENALTY)
+    if not trend_confirmation_passed:
+        pullback_edge -= WEAK_TREND_EDGE_PENALTY_BPS
+        pullback_signal = _clamp_decimal(pullback_signal - Decimal("0.20"))
+    if _decimal(features.get("volatility_pct")) > Decimal("4") and volume_confirmation < Decimal("0.50"):
+        pullback_edge -= VOLATILITY_LIQUIDITY_EDGE_PENALTY_BPS
+        pullback_signal = _clamp_decimal(pullback_signal - Decimal("0.06"))
+    if features.get("trend_exhaustion_status") == "WARN":
+        pullback_edge -= TREND_EXHAUSTION_EDGE_PENALTY_BPS
+        pullback_signal = _clamp_decimal(pullback_signal - TREND_EXHAUSTION_SIGNAL_PENALTY)
+
+    breakout_edge = Decimal("4") + symbol_score * Decimal("20") + volume_confirmation * Decimal("12") + breakout_confirmation * Decimal("10")
+    breakout_signal = _clamp_decimal(
+        Decimal("0.38") + symbol_score * Decimal("0.22") + volume_confirmation * Decimal("0.16") + breakout_confirmation * Decimal("0.18")
+    )
+    breakout_confirmation_passed = (
+        volume_expansion >= BREAKOUT_CONFIRMATION_MIN_VOLUME_EXPANSION
+        and max(Decimal("0"), range_breakout) >= BREAKOUT_CONFIRMATION_MIN_RANGE_BREAKOUT_PCT
+    )
+    if not breakout_confirmation_passed:
+        breakout_edge -= FALSE_BREAKOUT_EDGE_PENALTY_BPS
+        breakout_signal = _clamp_decimal(breakout_signal - Decimal("0.18"))
+    if features.get("trend_exhaustion_status") == "WARN":
+        breakout_edge -= TREND_EXHAUSTION_EDGE_PENALTY_BPS
+        breakout_signal = _clamp_decimal(breakout_signal - TREND_EXHAUSTION_SIGNAL_PENALTY)
+
+    mean_reversion_edge = Decimal("4") + symbol_score * Decimal("16") + mean_reversion_quality * Decimal("14")
+    mean_reversion_signal = _clamp_decimal(
+        Decimal("0.36") + symbol_score * Decimal("0.18") + mean_reversion_quality * Decimal("0.20")
+    )
+    mean_reversion_guard_passed = (
+        regime == "RANGE"
+        and vwap_distance >= MEAN_REVERSION_MIN_VWAP_DISTANCE_PCT
+        and volume_expansion <= MEAN_REVERSION_MAX_VOLUME_EXPANSION
+    )
+    if not mean_reversion_guard_passed:
+        mean_reversion_edge -= FAILED_MEAN_REVERSION_EDGE_PENALTY_BPS
+        mean_reversion_signal = _clamp_decimal(mean_reversion_signal - Decimal("0.12"))
     if regime == "RISK_OFF":
         pullback_edge -= Decimal("30")
         breakout_edge -= Decimal("25")
         mean_reversion_edge -= Decimal("18")
     edge_shift = Decimal("-45") if edge_profile == "NEGATIVE" else Decimal("-25") if edge_profile == "WEAK" else Decimal("0")
+    pullback_feedback = _recent_failure_feedback_for_candidate(
+        symbol=symbol,
+        strategy_family="PULLBACK_TREND_LONG",
+        candidate_id=f"{symbol}-pullback-trend-long",
+        recent_failure_feedback=recent_failure_feedback,
+    )
+    breakout_feedback = _recent_failure_feedback_for_candidate(
+        symbol=symbol,
+        strategy_family="BREAKOUT_RETEST_LONG",
+        candidate_id=f"{symbol}-breakout-retest-long",
+        recent_failure_feedback=recent_failure_feedback,
+    )
+    mean_reversion_feedback = _recent_failure_feedback_for_candidate(
+        symbol=symbol,
+        strategy_family="VWAP_MEAN_REVERSION",
+        candidate_id=f"{symbol}-vwap-mean-reversion",
+        recent_failure_feedback=recent_failure_feedback,
+    )
+    pullback_edge, pullback_signal = _apply_recent_failure_penalty(
+        edge_bps=pullback_edge,
+        signal_strength=pullback_signal,
+        feedback=pullback_feedback,
+    )
+    breakout_edge, breakout_signal = _apply_recent_failure_penalty(
+        edge_bps=breakout_edge,
+        signal_strength=breakout_signal,
+        feedback=breakout_feedback,
+    )
+    mean_reversion_edge, mean_reversion_signal = _apply_recent_failure_penalty(
+        edge_bps=mean_reversion_edge,
+        signal_strength=mean_reversion_signal,
+        feedback=mean_reversion_feedback,
+    )
     return [
         _candidate(
             candidate_id=f"{symbol}-pullback-trend-long",
             symbol=symbol,
             strategy_family="PULLBACK_TREND_LONG",
             expected_edge_bps=pullback_edge + edge_shift,
-            expected_cost_bps=cost_bps,
-            signal_strength=_clamp_decimal(Decimal("0.46") + symbol_score * Decimal("0.38")),
+            cost_breakdown_bps=cost_breakdown_bps,
+            signal_strength=pullback_signal,
             regime=regime,
             symbol_selection=symbol_selection,
             selection_priority=1,
+            recent_failure_feedback=pullback_feedback,
         ),
         _candidate(
             candidate_id=f"{symbol}-breakout-retest-long",
             symbol=symbol,
             strategy_family="BREAKOUT_RETEST_LONG",
             expected_edge_bps=breakout_edge + edge_shift,
-            expected_cost_bps=cost_bps,
-            signal_strength=_clamp_decimal(Decimal("0.42") + symbol_score * Decimal("0.32")),
+            cost_breakdown_bps=cost_breakdown_bps,
+            signal_strength=breakout_signal,
             regime=regime,
             symbol_selection=symbol_selection,
             selection_priority=2,
+            recent_failure_feedback=breakout_feedback,
         ),
         _candidate(
             candidate_id=f"{symbol}-vwap-mean-reversion",
             symbol=symbol,
             strategy_family="VWAP_MEAN_REVERSION",
             expected_edge_bps=mean_reversion_edge + edge_shift,
-            expected_cost_bps=cost_bps,
-            signal_strength=_clamp_decimal(Decimal("0.38") + symbol_score * Decimal("0.28")),
+            cost_breakdown_bps=cost_breakdown_bps,
+            signal_strength=mean_reversion_signal,
             regime=regime,
             symbol_selection=symbol_selection,
             selection_priority=3,
+            recent_failure_feedback=mean_reversion_feedback,
         ),
     ]
+
+
+def _symbol_selection_policy(*, runtime_input_role: str, symbol_count: int) -> dict[str, Any]:
+    return {
+        "policy_id": "UPBIT_KRW_SPOT_ADAPTIVE_SYMBOL_SELECTION_V1",
+        "runtime_input_role": runtime_input_role,
+        "symbol_scope": "KRW_UNIVERSE" if symbol_count > 1 else "SINGLE_SYMBOL_FALLBACK",
+        "evaluated_symbol_count": symbol_count,
+        "selection_formula": "0.25*liquidity+0.20*volatility+0.20*relative_strength+0.15*spread_quality+0.10*volume_expansion+0.10*regime_fit",
+        "candidate_formula": (
+            "edge=strategy_base+symbol_score+trend_or_breakout_or_mean_reversion_confirmation"
+            "-pullback_alignment_weak_trend_false_breakout_failed_mean_reversion_trend_exhaustion_recent_failure_penalties; "
+            "selection=0.45*symbol_score+0.35*net_ev_score+0.20*signal_strength"
+        ),
+        "minimum_symbol_selection_score": _decimal_text(MIN_SYMBOL_SELECTION_SCORE),
+        "minimum_entry_net_ev_bps": _decimal_text(MIN_ENTRY_NET_EV_BPS),
+        "minimum_entry_signal_strength": _decimal_text(MIN_ENTRY_SIGNAL_STRENGTH),
+        "deterministic_priority": (
+            "candidate_selection_score DESC, net_ev_after_cost_bps DESC, selection_priority ASC; "
+            "pullback requires UPTREND alignment score>=0.70 and vwap_distance>=-0.25pct, "
+            "setup confirmation thresholds volume>=1.05 or momentum>=1.50 for pullback, "
+            "volume>=1.20 and range_breakout>=0.03 for breakout, RANGE and VWAP distance>=0.35 for mean reversion; "
+            "trend exhaustion guard volatility>=3.00pct and momentum>=3.00pct and volume>=1.50 applies -42bps edge; "
+            "recent negative PAPER closed loss applies 3-cycle symbol cooldown and ranking penalty"
+        ),
+        "fallback_behavior": "Use configured single symbol when no universe is supplied; block with RISK_OFF/MEASUREMENT_MISSING when no valid public candle source exists.",
+        "acceptance_condition": "Every evaluated symbol must have one PAPER_SYMBOL_EVIDENCE_ONLY scorecard and all live/order flags false.",
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _build_symbol_evidence_scorecard(
+    *,
+    cycle_id: str,
+    rank_input_order: int,
+    symbol: str,
+    features: dict[str, Any],
+    symbol_selection: dict[str, str],
+    symbol_candidates: list[dict[str, Any]],
+    source_binding: dict[str, Any] | None,
+) -> dict[str, Any]:
+    sorted_candidates = sorted(symbol_candidates, key=_candidate_rank_key, reverse=True)
+    best_candidate = sorted_candidates[0] if sorted_candidates else {}
+    paper_entry_review_count = sum(1 for candidate in symbol_candidates if candidate.get("decision") == "PAPER_ENTRY_REVIEW")
+    no_trade_reasons = sorted(
+        {
+            str(candidate.get("no_trade_reason"))
+            for candidate in symbol_candidates
+            if candidate.get("no_trade_reason")
+        }
+    )
+    source_binding = source_binding or {}
+    return {
+        "source": "PAPER_RUNTIME_SYMBOL_EVIDENCE_SCORECARD",
+        "evidence_scope": "PAPER_SYMBOL_EVIDENCE_ONLY",
+        "cycle_id": cycle_id,
+        "rank_input_order": rank_input_order,
+        "symbol": symbol,
+        "regime": features.get("regime"),
+        "last_price": features.get("last_price"),
+        "total_quote_volume": features.get("total_quote_volume"),
+        "volatility_pct": features.get("volatility_pct"),
+        "momentum_pct": features.get("momentum_pct"),
+        "volume_expansion_ratio": features.get("volume_expansion_ratio"),
+        "trend_pullback_alignment_status": features.get("trend_pullback_alignment_status"),
+        "trend_pullback_alignment_score": features.get("trend_pullback_alignment_score"),
+        "trend_pullback_alignment_reason": features.get("trend_pullback_alignment_reason"),
+        "trend_exhaustion_status": features.get("trend_exhaustion_status"),
+        "trend_exhaustion_score": features.get("trend_exhaustion_score"),
+        "spread_bps": features.get("spread_bps"),
+        "symbol_selection": symbol_selection,
+        "symbol_selection_score": symbol_selection.get("symbol_selection_score"),
+        "candidate_count": len(symbol_candidates),
+        "paper_entry_review_candidate_count": paper_entry_review_count,
+        "no_trade_candidate_count": len(symbol_candidates) - paper_entry_review_count,
+        "no_trade_reasons": no_trade_reasons,
+        "best_candidate_id": best_candidate.get("candidate_id"),
+        "best_strategy_family": best_candidate.get("strategy_family"),
+        "best_candidate_selection_score": best_candidate.get("candidate_selection_score"),
+        "best_net_ev_after_cost_bps": best_candidate.get("net_ev_after_cost_bps"),
+        "best_decision": best_candidate.get("decision"),
+        "best_no_trade_reason": best_candidate.get("no_trade_reason"),
+        "best_recent_failure_cooldown_status": best_candidate.get("recent_failure_cooldown_status", "CLEAR"),
+        "best_recent_failure_cooldown_cycles_remaining": int(
+            best_candidate.get("recent_failure_cooldown_cycles_remaining", 0) or 0
+        ),
+        "best_recent_failure_reason_code": best_candidate.get("recent_failure_reason_code"),
+        "best_recent_failure_penalty_bps": best_candidate.get("recent_failure_penalty_bps", "0"),
+        "source_collection_report_hash": source_binding.get("source_collection_report_hash"),
+        "source_public_market_data_hash": source_binding.get("source_public_market_data_hash"),
+        "canonical_event_count": int(source_binding.get("canonical_event_count", 0) or 0),
+        "acceptance_condition": "candidate_count>=1; scorecard is PAPER-only; validator recomputes best candidate and live flags.",
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
 
 
 def _ordered_market_data_universe(
@@ -554,7 +1471,12 @@ def upbit_paper_runtime_cycle_hash(report: dict[str, Any]) -> str:
     return _hash_report(report)
 
 
-def _validate_candidate_costs(candidate: dict[str, Any]) -> UpbitPaperRuntimeCycleValidationResult:
+def _validate_candidate_costs(
+    candidate: dict[str, Any],
+    *,
+    features: dict[str, Any] | None = None,
+    require_adaptive_cost_model: bool = True,
+) -> UpbitPaperRuntimeCycleValidationResult:
     required = {
         "candidate_id",
         "symbol",
@@ -579,6 +1501,8 @@ def _validate_candidate_costs(candidate: dict[str, Any]) -> UpbitPaperRuntimeCyc
         "can_live_trade",
         "scale_up_allowed",
     }
+    if require_adaptive_cost_model:
+        required.add("cost_model_formula")
     missing = sorted(required - set(candidate))
     if missing:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", f"strategy candidate missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH")
@@ -589,22 +1513,37 @@ def _validate_candidate_costs(candidate: dict[str, Any]) -> UpbitPaperRuntimeCyc
     missing_costs = sorted(cost_fields - set(breakdown))
     if missing_costs:
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", f"candidate cost breakdown missing: {missing_costs}", "MEASUREMENT_MISSING")
-    if candidate.get("cost_model_source") != "PAPER_RUNTIME_STATIC_COST_MODEL":
-        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "candidate cost model source is not PAPER runtime static cost model", "MEASUREMENT_MISSING")
+    if require_adaptive_cost_model:
+        if candidate.get("cost_model_source") != PAPER_RUNTIME_COST_MODEL_SOURCE:
+            return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "candidate cost model source is not adaptive PAPER public L2 proxy model", "MEASUREMENT_MISSING")
+        if candidate.get("cost_model_formula") != "fee_bps+adaptive_slippage_bps+spread_bps+public_depth_impact_bps+latency_penalty_bps":
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate cost model formula mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    elif candidate.get("cost_model_source") not in {PAPER_RUNTIME_COST_MODEL_SOURCE, "PAPER_RUNTIME_STATIC_COST_MODEL"}:
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "candidate cost model source is not recognized for PAPER recovery", "MEASUREMENT_MISSING")
     expected_edge = _decimal(candidate.get("expected_edge_bps"))
     expected_cost = _decimal(candidate.get("expected_cost_bps"))
     reported_net_ev = _decimal(candidate.get("net_ev_after_cost_bps"))
     signal_strength = _decimal(candidate.get("signal_strength"))
     symbol_score = _decimal(candidate.get("symbol_selection_score", "1"))
+    cooldown_active = _candidate_recent_failure_cooldown_active(candidate)
     expected_candidate_selection_score = _candidate_selection_score_value(
         symbol_score=symbol_score,
         net_ev_bps=reported_net_ev,
         signal_strength=signal_strength,
     )
     component_cost = sum((_decimal(breakdown[field]) for field in sorted(cost_fields)), Decimal("0"))
-    if expected_cost != component_cost:
+    if require_adaptive_cost_model and isinstance(features, dict):
+        expected_breakdown = _paper_candidate_cost_breakdown(features)
+        for field in sorted(cost_fields):
+            if _decimal(breakdown.get(field)) != _decimal(expected_breakdown.get(field)):
+                return UpbitPaperRuntimeCycleValidationResult(
+                    "FAIL",
+                    f"candidate adaptive cost component mismatch: {field}",
+                    "SCHEMA_IDENTITY_MISMATCH",
+                )
+    if not _decimal_close(expected_cost, component_cost):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate expected cost does not equal fee+slippage+spread+impact+latency", "SCHEMA_IDENTITY_MISMATCH")
-    if reported_net_ev != expected_edge - expected_cost:
+    if not _decimal_close(reported_net_ev, expected_edge - expected_cost):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate net EV after cost arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if signal_strength < 0 or signal_strength > 1:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate signal strength must be between 0 and 1", "SCHEMA_IDENTITY_MISMATCH")
@@ -618,9 +1557,16 @@ def _validate_candidate_costs(candidate: dict[str, Any]) -> UpbitPaperRuntimeCyc
         and signal_strength >= MIN_ENTRY_SIGNAL_STRENGTH
         and symbol_score >= MIN_SYMBOL_SELECTION_SCORE
         and candidate.get("regime") != "RISK_OFF"
+        and not cooldown_active
     )
     no_trade_reason = candidate.get("no_trade_reason")
     if candidate.get("decision") == "PAPER_ENTRY_REVIEW":
+        if cooldown_active:
+            return UpbitPaperRuntimeCycleValidationResult(
+                "BLOCKED",
+                "recent failure cooldown candidate cannot be paper entry review",
+                "COOLDOWN",
+            )
         if not entry_threshold_passed:
             return UpbitPaperRuntimeCycleValidationResult(
                 "BLOCKED",
@@ -638,6 +1584,8 @@ def _validate_candidate_costs(candidate: dict[str, Any]) -> UpbitPaperRuntimeCyc
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "no-trade candidate requires a no-trade reason", "SCHEMA_IDENTITY_MISMATCH")
         if candidate.get("regime") == "RISK_OFF":
             expected_reason = "REGIME_MISMATCH"
+        elif cooldown_active:
+            expected_reason = "COOLDOWN"
         elif symbol_score < MIN_SYMBOL_SELECTION_SCORE:
             expected_reason = "SYMBOL_SELECTION_BIAS"
         elif signal_strength < MIN_ENTRY_SIGNAL_STRENGTH:
@@ -661,6 +1609,217 @@ def _validate_candidate_costs(candidate: dict[str, Any]) -> UpbitPaperRuntimeCyc
     return UpbitPaperRuntimeCycleValidationResult("PASS", "candidate cost model is internally consistent", None)
 
 
+def _decimal_close(left: Decimal, right: Decimal, tolerance: Decimal = Decimal("0.000001")) -> bool:
+    return abs(left - right) <= tolerance
+
+
+def _validate_paper_broker_fill(fill: dict[str, Any], *, features: dict[str, Any], expected_side: str) -> UpbitPaperRuntimeCycleValidationResult:
+    required = {
+        "fill_source",
+        "broker_model_id",
+        "order_lifecycle_state",
+        "client_order_id",
+        "symbol",
+        "side",
+        "order_type",
+        "time_in_force",
+        "maker_taker",
+        "requested_notional",
+        "requested_quantity",
+        "filled_notional",
+        "filled_quantity",
+        "notional",
+        "quantity",
+        "fill_ratio",
+        "partial_fill",
+        "fill_price",
+        "mark_price",
+        "fee_rate",
+        "fee_amount",
+        "fee_asset",
+        "slippage_bps",
+        "adaptive_slippage_bps",
+        "spread_bps",
+        "market_impact_bps",
+        "latency_penalty_bps",
+        "latency_ms",
+        "queue_ahead_notional_krw",
+        "queue_fill_probability",
+        "orderbook_proxy",
+        "reservation_required",
+        "reserved_cash",
+        "reserved_quantity",
+        "reservation_released",
+        "reservation_release_amount",
+        "reject_reason",
+        "cancel_reason",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "order_adapter_called",
+        "private_endpoint_called",
+        "credential_load_attempted",
+    }
+    missing = sorted(required - set(fill))
+    if missing:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", f"paper broker fill missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH")
+    if fill.get("fill_source") != PAPER_BROKER_FILL_SOURCE or fill.get("broker_model_id") != PAPER_BROKER_MODEL_ID:
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper fill is not from adaptive PAPER broker model", "MEASUREMENT_MISSING")
+    if fill.get("side") != expected_side:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill side mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if fill.get("order_lifecycle_state") not in {"FILLED", "PARTIALLY_FILLED"}:
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper fill lifecycle state is not accepted", "RECONCILIATION_REQUIRED")
+    if fill.get("partial_fill") is not (fill.get("order_lifecycle_state") == "PARTIALLY_FILLED"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper partial fill flag does not match lifecycle", "SCHEMA_IDENTITY_MISMATCH")
+    if fill.get("order_type") != "MARKETABLE_LIMIT_PAPER" or fill.get("time_in_force") != "IOC_PAPER" or fill.get("maker_taker") != "TAKER":
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill order type, TIF, or maker/taker marker mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        fill.get("live_order_ready")
+        or fill.get("live_order_allowed")
+        or fill.get("can_live_trade")
+        or fill.get("scale_up_allowed")
+        or fill.get("order_adapter_called")
+        or fill.get("private_endpoint_called")
+        or fill.get("credential_load_attempted")
+    ):
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper broker fill attempted live/order/private access", "LIVE_FINAL_GUARD_FAILED")
+    expected_proxy = _paper_orderbook_proxy(features)
+    if fill.get("orderbook_proxy") != expected_proxy:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker orderbook proxy does not match runtime features", "SCHEMA_IDENTITY_MISMATCH")
+    mark_price = _decimal(fill.get("mark_price"))
+    fill_price = _decimal(fill.get("fill_price"))
+    filled_notional = _decimal(fill.get("filled_notional"))
+    filled_quantity = _decimal(fill.get("filled_quantity"))
+    fee_rate = _decimal(fill.get("fee_rate"))
+    fee_amount = _decimal(fill.get("fee_amount"))
+    fill_ratio = _decimal(fill.get("fill_ratio"))
+    if min(mark_price, fill_price, filled_notional, filled_quantity, fee_rate, fee_amount, fill_ratio) < 0 or fill_ratio <= 0 or fill_ratio > 1:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill numeric fields are outside closed ranges", "SCHEMA_IDENTITY_MISMATCH")
+    if not _decimal_close(_decimal(fill.get("notional")), filled_notional) or not _decimal_close(_decimal(fill.get("quantity")), filled_quantity):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill notional/quantity aliases mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if not _decimal_close(filled_quantity * fill_price, filled_notional, tolerance=Decimal("0.01")):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill notional does not equal filled quantity times fill price", "SCHEMA_IDENTITY_MISMATCH")
+    if not _decimal_close(fee_amount, filled_notional * fee_rate):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill fee accounting mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    adverse_bps = (
+        (_decimal(fill.get("spread_bps")) / Decimal("2"))
+        + _decimal(fill.get("adaptive_slippage_bps"))
+        + _decimal(fill.get("market_impact_bps"))
+        + _decimal(fill.get("latency_penalty_bps"))
+    )
+    if not _decimal_close(_decimal(fill.get("slippage_bps")), adverse_bps):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill slippage components do not sum to execution slippage", "SCHEMA_IDENTITY_MISMATCH")
+    if expected_side == "BUY" and fill_price <= mark_price:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper BUY fill price must include adverse spread/slippage", "SCHEMA_IDENTITY_MISMATCH")
+    if expected_side == "SELL" and fill_price >= mark_price:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper SELL fill price must include adverse spread/slippage", "SCHEMA_IDENTITY_MISMATCH")
+    if fill.get("reservation_required") is not True or fill.get("reservation_released") is not True:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker reservation lifecycle did not release", "RECONCILIATION_REQUIRED")
+    queue_probability = _decimal(fill.get("queue_fill_probability"))
+    if queue_probability < 0 or queue_probability > 1:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker queue fill probability outside closed range", "SCHEMA_IDENTITY_MISMATCH")
+    return UpbitPaperRuntimeCycleValidationResult("PASS", "adaptive PAPER broker fill is depth, fee, and live-guard consistent", None)
+
+
+def _validate_position_rotation_context(
+    lifecycle: dict[str, Any],
+    *,
+    selected: dict[str, Any],
+    candidates_by_id: dict[str, dict[str, Any]],
+    final_decision: str,
+) -> UpbitPaperRuntimeCycleValidationResult:
+    evaluation = lifecycle.get("position_exit_evaluation")
+    if not isinstance(evaluation, dict):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "position exit evaluation must be an object", "SCHEMA_IDENTITY_MISMATCH")
+    missing = sorted(POSITION_ROTATION_EXIT_FIELDS - set(evaluation))
+    if missing:
+        return UpbitPaperRuntimeCycleValidationResult(
+            "FAIL",
+            f"position exit evaluation missing rotation fields: {missing}",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if lifecycle.get("managed_position_symbol") is None:
+        if evaluation.get("rotation_candidate_id") is not None or evaluation.get("rotation_condition_passed") or evaluation.get("rotation_action") != "NONE":
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation context cannot be active without a managed position", "SCHEMA_IDENTITY_MISMATCH")
+        return UpbitPaperRuntimeCycleValidationResult("PASS", "position rotation context is inactive without a managed position", None)
+    if evaluation.get("rotation_managed_candidate_id") not in {None, selected.get("candidate_id")}:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation managed candidate diverges from selected position candidate", "SCHEMA_IDENTITY_MISMATCH")
+    if _decimal(evaluation.get("rotation_managed_net_ev_after_cost_bps")) != _decimal(selected.get("net_ev_after_cost_bps")):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation managed net EV does not match selected candidate", "SCHEMA_IDENTITY_MISMATCH")
+    if _decimal(evaluation.get("rotation_managed_symbol_selection_score")) != _decimal(selected.get("symbol_selection_score")):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation managed symbol score does not match selected candidate", "SCHEMA_IDENTITY_MISMATCH")
+
+    rotation_candidate_id = evaluation.get("rotation_candidate_id")
+    if rotation_candidate_id is None:
+        if evaluation.get("rotation_condition_passed") or evaluation.get("rotation_action") != "NONE":
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation action cannot pass without a rotation candidate", "SCHEMA_IDENTITY_MISMATCH")
+        return UpbitPaperRuntimeCycleValidationResult("PASS", "position rotation context is internally consistent", None)
+    if not isinstance(rotation_candidate_id, str) or rotation_candidate_id not in candidates_by_id:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation candidate id is not present in strategy candidates", "SCHEMA_IDENTITY_MISMATCH")
+    rotation_candidate = candidates_by_id[rotation_candidate_id]
+    if rotation_candidate.get("symbol") == selected.get("symbol"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation candidate must be a different symbol", "SCHEMA_IDENTITY_MISMATCH")
+    if evaluation.get("rotation_candidate_symbol") != rotation_candidate.get("symbol"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation candidate symbol mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if evaluation.get("rotation_candidate_decision") != rotation_candidate.get("decision"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation candidate decision mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if _decimal(evaluation.get("rotation_candidate_net_ev_after_cost_bps")) != _decimal(rotation_candidate.get("net_ev_after_cost_bps")):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation candidate net EV mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if _decimal(evaluation.get("rotation_candidate_selection_score")) != _decimal(rotation_candidate.get("symbol_selection_score")):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation candidate symbol score mismatch", "SCHEMA_IDENTITY_MISMATCH")
+
+    expected_net_advantage = _decimal(rotation_candidate.get("net_ev_after_cost_bps")) - _decimal(selected.get("net_ev_after_cost_bps"))
+    expected_score_advantage = _decimal(rotation_candidate.get("symbol_selection_score")) - _decimal(selected.get("symbol_selection_score"))
+    if _decimal(evaluation.get("rotation_net_ev_advantage_bps")) != expected_net_advantage:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation net EV advantage formula mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if _decimal(evaluation.get("rotation_symbol_score_advantage")) != expected_score_advantage:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation symbol score advantage formula mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if _decimal(evaluation.get("rotation_threshold_bps")) != ROTATION_EXIT_MIN_NET_EV_ADVANTAGE_BPS:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation threshold drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if _decimal(evaluation.get("rotation_score_buffer_threshold")) != ROTATION_EXIT_MIN_SYMBOL_SCORE_BUFFER:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation score buffer threshold drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if _decimal(evaluation.get("rotation_max_positive_return_pct")) != ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation weak-return threshold drifted", "SCHEMA_IDENTITY_MISMATCH")
+
+    managed_no_trade_reason = str(selected.get("no_trade_reason") or "")
+    managed_is_weak_or_unqualified = (
+        selected.get("decision") != "PAPER_ENTRY_REVIEW"
+        or managed_no_trade_reason in ROTATION_EXIT_WEAK_NO_TRADE_REASONS
+        or _decimal(evaluation.get("return_pct")) <= ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT
+    )
+    expected_condition = (
+        rotation_candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+        and expected_net_advantage >= ROTATION_EXIT_MIN_NET_EV_ADVANTAGE_BPS
+        and expected_score_advantage >= ROTATION_EXIT_MIN_SYMBOL_SCORE_BUFFER
+        and managed_is_weak_or_unqualified
+    )
+    if evaluation.get("rotation_condition_passed") is not expected_condition:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation condition does not match formula", "SCHEMA_IDENTITY_MISMATCH")
+    if expected_condition:
+        expected_reason = "REGIME_ROTATION_EXIT" if selected.get("regime") == "RISK_OFF" else "ROTATION_OPPORTUNITY_COST"
+        if evaluation.get("rotation_action") != "FULL_EXIT" or evaluation.get("rotation_reason_code") != expected_reason:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation action or reason does not match formula", "SCHEMA_IDENTITY_MISMATCH")
+        partial_exit_fill = (
+            final_decision == "REDUCE_POSITION"
+            and lifecycle.get("requested_position_decision") == "EXIT_POSITION"
+            and lifecycle.get("execution_adjusted_position_decision_reason") == "PARTIAL_EXIT_FILL"
+        )
+        higher_priority_exit = (
+            final_decision == "EXIT_POSITION"
+            and lifecycle.get("position_exit_reason_code")
+            in ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS
+        )
+        if not higher_priority_exit and (
+            (final_decision != "EXIT_POSITION" and not partial_exit_fill)
+            or lifecycle.get("position_exit_reason_code") != expected_reason
+        ):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation exit did not drive the PAPER exit decision", "SCHEMA_IDENTITY_MISMATCH")
+    elif evaluation.get("rotation_action") != "NONE" or evaluation.get("rotation_reason_code") is not None:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "rotation action is set when formula did not pass", "SCHEMA_IDENTITY_MISMATCH")
+    return UpbitPaperRuntimeCycleValidationResult("PASS", "position rotation context is internally consistent", None)
+
+
 def build_upbit_paper_runtime_cycle_report(
     *,
     cycle_id: str,
@@ -676,6 +1835,8 @@ def build_upbit_paper_runtime_cycle_report(
     paper_equity: str | int | float | Decimal | None = None,
     paper_position_market_value: str | int | float | Decimal | None = None,
     paper_cash_source: str = "PAPER_LEDGER_ROLLUP",
+    current_paper_portfolio_snapshot: dict[str, Any] | None = None,
+    recent_failure_feedback: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     source_collection_report_hash = None
     source_public_market_data_hash = None
@@ -708,6 +1869,7 @@ def build_upbit_paper_runtime_cycle_report(
     feature_snapshots_by_symbol: dict[str, dict[str, Any]] = {}
     market_data_by_symbol: dict[str, dict[str, Any]] = {}
     symbol_selection_universe: list[dict[str, Any]] = []
+    symbol_evidence_scorecards: list[dict[str, Any]] = []
     candidates: list[dict[str, Any]] = []
     for index, candidate_market_data in enumerate(market_data_items, start=1):
         candidate_symbol = str(candidate_market_data.get("symbol") or symbol)
@@ -725,6 +1887,12 @@ def build_upbit_paper_runtime_cycle_report(
             continue
         candidate_features = _feature_snapshot(candidate_market_data)
         symbol_selection = _symbol_selection_score(candidate_features)
+        symbol_candidates = _build_candidates(
+            candidate_symbol,
+            candidate_features,
+            edge_profile=edge_profile,
+            recent_failure_feedback=recent_failure_feedback,
+        )
         feature_snapshots_by_symbol[candidate_symbol] = candidate_features
         market_data_by_symbol[candidate_symbol] = candidate_market_data
         symbol_selection_universe.append(
@@ -741,7 +1909,18 @@ def build_upbit_paper_runtime_cycle_report(
                 "scale_up_allowed": False,
             }
         )
-        candidates.extend(_build_candidates(candidate_symbol, candidate_features, edge_profile=edge_profile))
+        candidates.extend(symbol_candidates)
+        symbol_evidence_scorecards.append(
+            _build_symbol_evidence_scorecard(
+                cycle_id=cycle_id,
+                rank_input_order=index,
+                symbol=candidate_symbol,
+                features=candidate_features,
+                symbol_selection=symbol_selection,
+                symbol_candidates=symbol_candidates,
+                source_binding=source_by_symbol.get(candidate_symbol),
+            )
+        )
     if not candidates:
         fallback_market_data = market_data or build_upbit_public_candle_fixture(symbol=symbol, session_id=session_id)
         market_data_by_symbol[symbol] = fallback_market_data
@@ -764,11 +1943,77 @@ def build_upbit_paper_runtime_cycle_report(
             "liquidity_status": "BLOCKED",
             "volatility_status": "BLOCKED",
         }
-        candidates = _build_candidates(symbol, feature_snapshots_by_symbol[symbol], edge_profile="NEGATIVE")
-    selected = max(candidates, key=_candidate_rank_key)
+        candidates = _build_candidates(
+            symbol,
+            feature_snapshots_by_symbol[symbol],
+            edge_profile="NEGATIVE",
+            recent_failure_feedback=recent_failure_feedback,
+        )
+        fallback_symbol_selection = _symbol_selection_score(feature_snapshots_by_symbol[symbol])
+        symbol_selection_universe = [
+            {
+                "rank_input_order": 1,
+                "symbol": symbol,
+                "regime": feature_snapshots_by_symbol[symbol]["regime"],
+                **fallback_symbol_selection,
+                "eligible_for_entry_candidate": False,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+        ]
+        symbol_evidence_scorecards = [
+            _build_symbol_evidence_scorecard(
+                cycle_id=cycle_id,
+                rank_input_order=1,
+                symbol=symbol,
+                features=feature_snapshots_by_symbol[symbol],
+                symbol_selection=fallback_symbol_selection,
+                symbol_candidates=candidates,
+                source_binding=None,
+            )
+        ]
+    current_portfolio = _cycle_bound_current_portfolio_snapshot(
+        current_paper_portfolio_snapshot,
+        cycle_id=cycle_id,
+    )
+    current_open_positions = _open_long_positions(current_portfolio)
+    unpriced_position_symbols = sorted(
+        str(position.get("symbol"))
+        for position in current_open_positions
+        if str(position.get("symbol")) not in feature_snapshots_by_symbol
+    )
+    if unpriced_position_symbols:
+        blockers.append(
+            _blocker(
+                "MEASUREMENT_MISSING",
+                f"open PAPER position symbols are missing public mark data: {', '.join(unpriced_position_symbols)}",
+            )
+        )
+    managed_position = _select_managed_position(
+        current_portfolio,
+        feature_snapshots_by_symbol=feature_snapshots_by_symbol,
+    )
+    if managed_position is not None:
+        managed_symbol = str(managed_position["symbol"])
+        managed_candidates = [candidate for candidate in candidates if candidate.get("symbol") == managed_symbol]
+        selected = max(managed_candidates or candidates, key=_candidate_rank_key)
+        rotation_candidate = _best_rotation_alternative_candidate(candidates, managed_symbol=managed_symbol)
+    else:
+        selected = max(candidates, key=_candidate_rank_key)
+        rotation_candidate = None
     selected_symbol = str(selected["symbol"])
     market_data = market_data_by_symbol[selected_symbol]
     features = feature_snapshots_by_symbol[selected_symbol]
+    selected_symbol_evidence_scorecard = next(
+        (scorecard for scorecard in symbol_evidence_scorecards if scorecard.get("symbol") == selected_symbol),
+        {},
+    )
+    symbol_selection_policy = _symbol_selection_policy(
+        runtime_input_role=runtime_input_role,
+        symbol_count=len(symbol_selection_universe),
+    )
     selected_source = source_by_symbol.get(selected_symbol, {})
     source_collection_report_hash = selected_source.get("source_collection_report_hash")  # type: ignore[assignment]
     source_public_market_data_hash = selected_source.get("source_public_market_data_hash")  # type: ignore[assignment]
@@ -817,15 +2062,30 @@ def build_upbit_paper_runtime_cycle_report(
         risk_state=risk_state,
     )
     blockers.extend(sizing_input_blockers)
-    if risk_state.get("new_entry_allowed") is not True:
-        for risk_blocker in risk_state.get("blockers", []):
-            if isinstance(risk_blocker, dict):
-                blockers.append(risk_blocker)
+    risk_new_entry_blockers = [
+        risk_blocker
+        for risk_blocker in risk_state.get("blockers", [])
+        if isinstance(risk_blocker, dict)
+    ]
+    # A new-entry veto must not suppress existing PAPER position exit/hold management.
+    if risk_state.get("new_entry_allowed") is not True and managed_position is None:
+        blockers.extend(risk_new_entry_blockers)
         final_decision = "BLOCKED"
         no_trade_reasons = order_blocker_codes(blockers)
         entry_reasons = []
 
-    exit_plan = _build_runtime_exit_plan(selected_candidate=selected, features=features)
+    exit_plan = _build_runtime_exit_plan(
+        selected_candidate=selected,
+        features=features,
+        entry_price_override=managed_position.get("average_entry_price") if isinstance(managed_position, dict) else None,
+    )
+    position_exit_evaluation = _evaluate_existing_position_exit(
+        position=managed_position,
+        features=features,
+        exit_plan=exit_plan,
+        managed_candidate=selected if isinstance(managed_position, dict) else None,
+        rotation_candidate=rotation_candidate,
+    )
 
     sizing = build_position_sizing_decision(
         sizing_decision_id=f"{cycle_id}-sizing",
@@ -834,7 +2094,7 @@ def build_upbit_paper_runtime_cycle_report(
         inputs=sizing_inputs,
     )
     sizing_result = validate_position_sizing_decision(sizing)
-    if sizing_result.status != "PASS" or sizing.get("sizing_status") != "PASS":
+    if managed_position is None and (sizing_result.status != "PASS" or sizing.get("sizing_status") != "PASS"):
         sizing_blocker = sizing.get("primary_blocker_code") or sizing_result.blocker_code or "RISK_VETO"
         sizing_message = sizing_result.message
         if sizing.get("sizing_status") != "PASS":
@@ -846,19 +2106,46 @@ def build_upbit_paper_runtime_cycle_report(
         no_trade_reasons = order_blocker_codes(blockers)
         entry_reasons = []
 
+    if managed_position is not None and not blockers:
+        position_decision = position_exit_evaluation.get("final_decision")
+        if position_decision in {"EXIT_POSITION", "REDUCE_POSITION"}:
+            final_decision = str(position_decision)
+            no_trade_reasons = [str(position_exit_evaluation.get("reason_code") or "POSITION_EXIT")]
+            entry_reasons = []
+        else:
+            final_decision = "HOLD_POSITION"
+            hold_reasons = []
+            current_exposure = _decimal(sizing.get("inputs", {}).get("current_exposure", "0"))
+            exposure_cap = _decimal(sizing.get("caps", {}).get("exposure_cap", "0"))
+            if current_exposure > 0 and exposure_cap < UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL:
+                hold_reasons.append("POSITION_LIMIT")
+            hold_reasons.extend(["POSITION_ALREADY_OPEN", str(position_exit_evaluation.get("reason_code") or "EXIT_CONDITION_NOT_MET")])
+            no_trade_reasons = hold_reasons
+            selected_no_trade_reason = selected.get("no_trade_reason")
+            if selected_no_trade_reason and selected_no_trade_reason not in no_trade_reasons:
+                no_trade_reasons.append(str(selected_no_trade_reason))
+            entry_reasons = []
+
     if final_decision == "ENTER_LONG":
         selected_notional = _decimal(sizing["selected_notional"])
         entry_cash_required = selected_notional * (Decimal("1") + PAPER_ENTRY_FEE_RATE)
         if selected_notional < UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL:
-            blockers.append(
-                _blocker(
-                    "RISK_VETO",
-                    (
-                        "PAPER entry notional is below the 5000 KRW minimum simulation floor "
-                        f"(selected_notional={_decimal_text(selected_notional)})"
-                    ),
+            current_exposure = _decimal(sizing.get("inputs", {}).get("current_exposure", "0"))
+            exposure_cap = _decimal(sizing.get("caps", {}).get("exposure_cap", "0"))
+            if current_exposure > 0 and exposure_cap < UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL:
+                final_decision = "HOLD_POSITION"
+                no_trade_reasons = ["POSITION_LIMIT"]
+                entry_reasons = []
+            else:
+                blockers.append(
+                    _blocker(
+                        "RISK_VETO",
+                        (
+                            "PAPER entry notional is below the 5000 KRW minimum simulation floor "
+                            f"(selected_notional={_decimal_text(selected_notional)})"
+                        ),
+                    )
                 )
-            )
         elif guarded_cash_available is not None and guarded_cash_available - entry_cash_required < Decimal("0"):
             blockers.append(
                 _blocker(
@@ -880,6 +2167,77 @@ def build_upbit_paper_runtime_cycle_report(
         no_trade_reasons = order_blocker_codes(blockers)
         entry_reasons = []
 
+    broker_execution: dict[str, Any] | None = None
+    execution_adjusted_position_decision_reason: str | None = None
+    if final_decision == "ENTER_LONG":
+        requested_notional = _decimal(sizing["selected_notional"])
+        mark_price = _decimal(features["last_price"])
+        requested_quantity = Decimal("0") if mark_price <= 0 else requested_notional / mark_price
+        broker_execution = _simulate_paper_broker_execution(
+            cycle_id=cycle_id,
+            symbol=selected_symbol,
+            side="BUY",
+            requested_notional=requested_notional,
+            requested_quantity=requested_quantity,
+            mark_price=mark_price,
+            features=features,
+            fee_rate=PAPER_ENTRY_FEE_RATE,
+        )
+        accepted_state = broker_execution.get("order_lifecycle_state") in {"FILLED", "PARTIALLY_FILLED"}
+        if not accepted_state or _decimal(broker_execution.get("filled_notional")) < UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL:
+            blockers.append(
+                _blocker(
+                    "MEASUREMENT_MISSING",
+                    (
+                        "adaptive PAPER broker could not produce an acceptable entry fill "
+                        f"(state={broker_execution.get('order_lifecycle_state')}, "
+                        f"filled_notional={broker_execution.get('filled_notional')})"
+                    ),
+                )
+            )
+            final_decision = "BLOCKED"
+            no_trade_reasons = order_blocker_codes(blockers)
+            entry_reasons = []
+    elif final_decision in {"EXIT_POSITION", "REDUCE_POSITION"} and isinstance(managed_position, dict):
+        sell_quantity = _decimal(position_exit_evaluation.get("sell_quantity"))
+        mark_price = _decimal(features["last_price"])
+        broker_execution = _simulate_paper_broker_execution(
+            cycle_id=cycle_id,
+            symbol=selected_symbol,
+            side="SELL",
+            requested_notional=sell_quantity * mark_price,
+            requested_quantity=sell_quantity,
+            mark_price=mark_price,
+            features=features,
+            fee_rate=PAPER_EXIT_FEE_RATE,
+        )
+        if broker_execution.get("order_lifecycle_state") not in {"FILLED", "PARTIALLY_FILLED"} or _decimal(
+            broker_execution.get("filled_quantity")
+        ) <= 0:
+            blockers.append(
+                _blocker(
+                    "MEASUREMENT_MISSING",
+                    (
+                        "adaptive PAPER broker could not produce an acceptable exit fill "
+                        f"(state={broker_execution.get('order_lifecycle_state')})"
+                    ),
+                )
+            )
+            final_decision = "BLOCKED"
+            no_trade_reasons = order_blocker_codes(blockers)
+            entry_reasons = []
+        elif final_decision == "EXIT_POSITION" and _decimal(broker_execution.get("filled_quantity")) < sell_quantity:
+            final_decision = "REDUCE_POSITION"
+            execution_adjusted_position_decision_reason = "PARTIAL_EXIT_FILL"
+            no_trade_reasons = [
+                "PARTIAL_EXIT_FILL",
+                str(position_exit_evaluation.get("reason_code") or "POSITION_EXIT"),
+            ]
+            entry_reasons = []
+
+    current_open_position_count = int(current_portfolio.get("open_position_count", 0)) if current_portfolio else 0
+    current_ledger_head_hash = current_portfolio.get("source_paper_ledger_head_hash") if current_portfolio else None
+
     position_management_decision = {
         "source": "PAPER_RUNTIME_POSITION_LIFECYCLE_DECISION",
         "selected_symbol": selected_symbol,
@@ -888,11 +2246,37 @@ def build_upbit_paper_runtime_cycle_report(
         "decision": (
             "ENTER_LONG_WITH_ATTACHED_EXIT_PLAN"
             if final_decision == "ENTER_LONG"
+            else "EXIT_POSITION_WITH_PAPER_SELL_FILL"
+            if final_decision == "EXIT_POSITION"
+            else "REDUCE_POSITION_WITH_PAPER_SELL_FILL"
+            if final_decision == "REDUCE_POSITION"
+            else "HOLD_EXISTING_POSITION_NO_NEW_ENTRY"
+            if final_decision == "HOLD_POSITION" or current_open_position_count > 0
             else "ENTRY_BLOCKED_NO_POSITION"
             if final_decision == "BLOCKED"
             else "NO_ENTRY_NO_POSITION"
         ),
-        "exit_plan_status": "ARMED_PAPER_ONLY_AFTER_FILL" if final_decision == "ENTER_LONG" else "NOT_ACTIVE_NO_POSITION",
+        "exit_plan_status": (
+            "ARMED_PAPER_ONLY_AFTER_FILL"
+            if final_decision == "ENTER_LONG"
+            else "TRIGGERED_PAPER_ONLY_SELL"
+            if final_decision in {"EXIT_POSITION", "REDUCE_POSITION"}
+            else "MONITORING_EXISTING_POSITION"
+            if final_decision == "HOLD_POSITION" or current_open_position_count > 0
+            else "NOT_ACTIVE_NO_POSITION"
+        ),
+        "managed_position_symbol": managed_position.get("symbol") if isinstance(managed_position, dict) else None,
+        "managed_position_quantity": managed_position.get("quantity") if isinstance(managed_position, dict) else None,
+        "position_exit_reason_code": position_exit_evaluation.get("reason_code"),
+        "position_exit_evaluation": position_exit_evaluation,
+        "requested_position_decision": position_exit_evaluation.get("final_decision"),
+        "execution_adjusted_position_decision_reason": execution_adjusted_position_decision_reason,
+        "sell_quantity": position_exit_evaluation.get("sell_quantity"),
+        "sell_notional": position_exit_evaluation.get("sell_notional"),
+        "exit_fee_rate": _decimal_text(PAPER_EXIT_FEE_RATE),
+        "exit_slippage_bps": _paper_candidate_cost_breakdown(features)["slippage_bps"],
+        "paper_broker_model_id": PAPER_BROKER_MODEL_ID,
+        "paper_broker_cost_model_source": PAPER_RUNTIME_COST_MODEL_SOURCE,
         "position_sizing_status": sizing.get("sizing_status"),
         "selected_notional": sizing.get("selected_notional"),
         "hard_stop": exit_plan.get("hard_stop"),
@@ -909,16 +2293,14 @@ def build_upbit_paper_runtime_cycle_report(
 
     fill: dict[str, Any] | None = None
     ledger_events: list[dict[str, Any]] = []
-    ledger_head_hash: str | None = None
-    if final_decision == "ENTER_LONG":
-        notional = _decimal(sizing["selected_notional"])
-        mark_price = _decimal(features["last_price"])
-        slippage_bps = PAPER_ENTRY_SLIPPAGE_BPS
-        fee_rate = PAPER_ENTRY_FEE_RATE
-        fill_price = mark_price * (Decimal("1") + (slippage_bps / Decimal("10000")))
-        quantity = notional / fill_price
-        fee_amount = notional * fee_rate
-        client_order_id = hashlib.sha256(f"{cycle_id}:{selected_symbol}:paper-fill".encode("utf-8")).hexdigest()[:24].upper()
+    ledger_head_hash: str | None = str(current_ledger_head_hash) if current_ledger_head_hash else None
+    if final_decision == "ENTER_LONG" and isinstance(broker_execution, dict):
+        notional = _decimal(broker_execution["filled_notional"])
+        mark_price = _decimal(broker_execution["mark_price"])
+        fill_price = _decimal(broker_execution["fill_price"])
+        quantity = _decimal(broker_execution["filled_quantity"])
+        fee_amount = _decimal(broker_execution["fee_amount"])
+        client_order_id = str(broker_execution["client_order_id"])
         ledger_events = build_upbit_paper_fill_chain(
             session_id=session_id,
             symbol=selected_symbol,
@@ -930,20 +2312,7 @@ def build_upbit_paper_runtime_cycle_report(
             fee_amount=_decimal_text(fee_amount),
         )
         ledger_head_hash = ledger_events[-1]["event_hash"]
-        fill = {
-            "fill_source": "PAPER_BROKER_SIMULATION",
-            "order_lifecycle_state": "FILLED",
-            "client_order_id": client_order_id,
-            "symbol": selected_symbol,
-            "side": "BUY",
-            "notional": _decimal_text(notional),
-            "quantity": _decimal_text(quantity),
-            "fill_price": _decimal_text(fill_price),
-            "mark_price": _decimal_text(mark_price),
-            "fee_amount": _decimal_text(fee_amount),
-            "fee_asset": "KRW",
-            "slippage_bps": _decimal_text(slippage_bps),
-        }
+        fill = dict(broker_execution)
         portfolio = build_paper_portfolio_snapshot_from_fill(
             exchange="UPBIT",
             market_type="KRW_SPOT",
@@ -958,8 +2327,37 @@ def build_upbit_paper_runtime_cycle_report(
             source_runtime_cycle_id=cycle_id,
             source_paper_ledger_head_hash=ledger_head_hash,
         )
+    elif final_decision in {"EXIT_POSITION", "REDUCE_POSITION"} and isinstance(managed_position, dict) and isinstance(broker_execution, dict):
+        sell_quantity = _decimal(broker_execution["filled_quantity"])
+        mark_price = _decimal(broker_execution["mark_price"])
+        fill_price = _decimal(broker_execution["fill_price"])
+        fee_amount = _decimal(broker_execution["fee_amount"])
+        client_order_id = str(broker_execution["client_order_id"])
+        ledger_events = build_upbit_paper_fill_chain(
+            session_id=session_id,
+            symbol=selected_symbol,
+            intent_id=f"{cycle_id}-exit-intent",
+            client_order_id=client_order_id,
+            side="SELL",
+            quantity=_decimal_text(sell_quantity),
+            price=_decimal_text(fill_price),
+            fee_amount=_decimal_text(fee_amount),
+        )
+        ledger_head_hash = ledger_events[-1]["event_hash"]
+        fill = dict(broker_execution)
+        fill["position_exit_reason_code"] = position_exit_evaluation.get("reason_code")
+        portfolio = build_paper_portfolio_snapshot_after_sell_fill(
+            current_snapshot=current_portfolio,
+            session_id=session_id,
+            symbol=selected_symbol,
+            quantity=sell_quantity,
+            fill_price=fill_price,
+            fee_amount=fee_amount,
+            source_runtime_cycle_id=cycle_id,
+            source_paper_ledger_head_hash=ledger_head_hash,
+        )
     else:
-        portfolio = build_initial_paper_portfolio_snapshot(
+        portfolio = current_portfolio or build_initial_paper_portfolio_snapshot(
             exchange="UPBIT",
             market_type="KRW_SPOT",
             session_id=session_id,
@@ -1007,6 +2405,10 @@ def build_upbit_paper_runtime_cycle_report(
         "requested_symbol": symbol,
         "symbol_universe": [item["symbol"] for item in symbol_selection_universe],
         "symbol_selection_universe": symbol_selection_universe,
+        "symbol_selection_policy": symbol_selection_policy,
+        "symbol_evidence_scorecards": symbol_evidence_scorecards,
+        "symbol_evidence_scorecard_count": len(symbol_evidence_scorecards),
+        "selected_symbol_evidence_scorecard": selected_symbol_evidence_scorecard,
         "selected_symbol": selected_symbol,
         "runtime_input_role": runtime_input_role,
         "source_collection_report_hash": source_collection_report_hash,
@@ -1028,6 +2430,7 @@ def build_upbit_paper_runtime_cycle_report(
         "sizing_decision": sizing,
         "exit_plan": exit_plan,
         "position_management_decision": position_management_decision,
+        "paper_broker_execution": broker_execution,
         "paper_fill": fill,
         "paper_ledger_events": ledger_events,
         "paper_ledger_head_hash": ledger_head_hash,
@@ -1057,6 +2460,11 @@ def validate_upbit_paper_runtime_cycle_report(
     *,
     require_quantitative_policy_summary: bool = True,
     require_current_sizing_caps: bool = True,
+    require_symbol_evidence_scorecard_fields: bool = True,
+    require_adaptive_candidate_cost_model: bool = True,
+    require_position_rotation_fields: bool = True,
+    require_current_symbol_selection_policy: bool = True,
+    require_current_feature_snapshot_projection: bool = True,
 ) -> UpbitPaperRuntimeCycleValidationResult:
     required = {
         "schema_id",
@@ -1068,14 +2476,21 @@ def validate_upbit_paper_runtime_cycle_report(
         "mode",
         "session_id",
         "symbol",
+        "requested_symbol",
+        "symbol_universe",
+        "symbol_selection_universe",
+        "selected_symbol",
         "runtime_input_role",
         "source_collection_report_hash",
         "source_public_market_data_hash",
+        "source_collection_hashes_by_symbol",
         "canonical_event_count",
         "runtime_public_market_data_hash",
         "market_data_source",
         "public_market_data",
+        "public_market_data_by_symbol",
         "feature_snapshot",
+        "feature_snapshots_by_symbol",
         "feature_snapshot_hash",
         "regime",
         "strategy_candidates",
@@ -1105,6 +2520,15 @@ def validate_upbit_paper_runtime_cycle_report(
         "blockers",
         "cycle_hash",
     }
+    if require_symbol_evidence_scorecard_fields:
+        required.update(
+            {
+                "symbol_selection_policy",
+                "symbol_evidence_scorecards",
+                "symbol_evidence_scorecard_count",
+                "selected_symbol_evidence_scorecard",
+            }
+        )
     missing = sorted(required - set(report))
     if missing:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", f"paper runtime cycle missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH")
@@ -1149,6 +2573,45 @@ def validate_upbit_paper_runtime_cycle_report(
             or report.get("canonical_event_count") != 0
         ):
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "static fixture runtime cannot carry collection hash", "SCHEMA_IDENTITY_MISMATCH")
+    symbol_universe = report.get("symbol_universe")
+    symbol_selection_universe = report.get("symbol_selection_universe")
+    if not isinstance(symbol_universe, list) or not all(isinstance(item, str) and item for item in symbol_universe):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper runtime requires a string symbol universe", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(symbol_selection_universe, list) or len(symbol_selection_universe) != len(symbol_universe):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol selection universe must match symbol universe", "SCHEMA_IDENTITY_MISMATCH")
+    if [str(item.get("symbol")) for item in symbol_selection_universe if isinstance(item, dict)] != symbol_universe:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol selection universe order must bind to symbol universe", "SCHEMA_IDENTITY_MISMATCH")
+    expected_policy = _symbol_selection_policy(
+        runtime_input_role=str(report.get("runtime_input_role")),
+        symbol_count=len(symbol_universe),
+    )
+    if require_symbol_evidence_scorecard_fields:
+        reported_policy = report.get("symbol_selection_policy")
+        if reported_policy != expected_policy:
+            if require_current_symbol_selection_policy:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol selection policy does not match runtime formula", "SCHEMA_IDENTITY_MISMATCH")
+            if not isinstance(reported_policy, dict):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol selection policy must be an object", "SCHEMA_IDENTITY_MISMATCH")
+            if (
+                reported_policy.get("symbol_scope") != expected_policy.get("symbol_scope")
+                or reported_policy.get("evaluated_symbol_count") != expected_policy.get("evaluated_symbol_count")
+                or reported_policy.get("runtime_input_role") != expected_policy.get("runtime_input_role")
+            ):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "legacy symbol selection policy scope mismatch", "SCHEMA_IDENTITY_MISMATCH")
+            if (
+                reported_policy.get("live_order_ready")
+                or reported_policy.get("live_order_allowed")
+                or reported_policy.get("can_live_trade")
+                or reported_policy.get("scale_up_allowed")
+            ):
+                return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "legacy symbol selection policy attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
+        if (
+            expected_policy.get("live_order_ready")
+            or expected_policy.get("live_order_allowed")
+            or expected_policy.get("can_live_trade")
+            or expected_policy.get("scale_up_allowed")
+        ):
+            return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "symbol selection policy attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
 
     data_status, data_blocker, data_message = validate_upbit_public_candle_data(
         report["public_market_data"],
@@ -1163,11 +2626,19 @@ def validate_upbit_paper_runtime_cycle_report(
     if report.get("runtime_input_role") == "PUBLIC_MARKET_DATA_COLLECTION" and report.get("source_public_market_data_hash") != expected_market_data_hash:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "runtime source market data hash does not match payload hash", "SCHEMA_IDENTITY_MISMATCH")
     expected_features = _feature_snapshot(report["public_market_data"])
-    if report.get("feature_snapshot") != expected_features:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "feature snapshot does not match public market data", "SCHEMA_IDENTITY_MISMATCH")
-    expected_feature_hash = _hash_payload(expected_features)
-    if report.get("feature_snapshot_hash") != expected_feature_hash:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "feature snapshot hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    reported_features = report.get("feature_snapshot")
+    if require_current_feature_snapshot_projection:
+        if reported_features != expected_features:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "feature snapshot does not match public market data", "SCHEMA_IDENTITY_MISMATCH")
+        expected_feature_hash = _hash_payload(expected_features)
+        if report.get("feature_snapshot_hash") != expected_feature_hash:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "feature snapshot hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    else:
+        if not _matches_legacy_feature_snapshot_projection(reported_features, expected_features):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "legacy feature snapshot projection scope mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        expected_feature_hash = _hash_payload(reported_features)
+        if report.get("feature_snapshot_hash") != expected_feature_hash:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "legacy feature snapshot hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("regime") != expected_features.get("regime"):
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "runtime regime does not match computed feature regime", "REGIME_MISMATCH")
     feature_snapshots_by_symbol = report.get("feature_snapshots_by_symbol")
@@ -1191,8 +2662,13 @@ def validate_upbit_paper_runtime_cycle_report(
             )
             if data_status != "PASS":
                 return UpbitPaperRuntimeCycleValidationResult(data_status, data_message, data_blocker)
-            if feature_snapshots_by_symbol.get(universe_symbol) != _feature_snapshot(universe_data):
-                return UpbitPaperRuntimeCycleValidationResult("FAIL", "multi-symbol feature snapshot mismatch", "SCHEMA_IDENTITY_MISMATCH")
+            expected_universe_features = _feature_snapshot(universe_data)
+            reported_universe_features = feature_snapshots_by_symbol.get(universe_symbol)
+            if require_current_feature_snapshot_projection:
+                if reported_universe_features != expected_universe_features:
+                    return UpbitPaperRuntimeCycleValidationResult("FAIL", "multi-symbol feature snapshot mismatch", "SCHEMA_IDENTITY_MISMATCH")
+            elif not _matches_legacy_feature_snapshot_projection(reported_universe_features, expected_universe_features):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "legacy multi-symbol feature snapshot scope mismatch", "SCHEMA_IDENTITY_MISMATCH")
     sizing_result = validate_position_sizing_decision(
         report["sizing_decision"],
         require_exposure_cap=require_current_sizing_caps,
@@ -1239,9 +2715,6 @@ def validate_upbit_paper_runtime_cycle_report(
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy candidate missing candidate_id", "SCHEMA_IDENTITY_MISMATCH")
         if candidate_id in candidates_by_id:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "duplicate strategy candidate id", "SCHEMA_IDENTITY_MISMATCH")
-        cost_result = _validate_candidate_costs(candidate)
-        if cost_result.status != "PASS":
-            return cost_result
         candidate_symbol = candidate.get("symbol")
         if not isinstance(candidate_symbol, str) or not candidate_symbol:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy candidate symbol is invalid", "SCHEMA_IDENTITY_MISMATCH")
@@ -1252,17 +2725,91 @@ def validate_upbit_paper_runtime_cycle_report(
             candidate_features = feature_snapshots_by_symbol[candidate_symbol]
         elif candidate_symbol != report.get("symbol"):
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy candidate symbol does not match runtime symbol", "SCHEMA_IDENTITY_MISMATCH")
+        cost_result = _validate_candidate_costs(
+            candidate,
+            features=candidate_features,
+            require_adaptive_cost_model=require_adaptive_candidate_cost_model,
+        )
+        if cost_result.status != "PASS":
+            return cost_result
         if candidate.get("regime") != candidate_features.get("regime"):
             return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "strategy candidate regime does not match runtime regime", "REGIME_MISMATCH")
         if _decimal(candidate.get("cost_breakdown_bps", {}).get("spread_bps")) != _decimal(candidate_features.get("spread_bps")):
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy candidate spread cost is not bound to feature spread", "SCHEMA_IDENTITY_MISMATCH")
         candidates_by_id[candidate_id] = candidate
+    source_by_symbol = report.get("source_collection_hashes_by_symbol")
+    if not isinstance(source_by_symbol, dict):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "source collection hashes by symbol must be an object", "SCHEMA_IDENTITY_MISMATCH")
+    if require_symbol_evidence_scorecard_fields:
+        raw_scorecards = report.get("symbol_evidence_scorecards")
+        if not isinstance(raw_scorecards, list):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol evidence scorecards must be a list", "SCHEMA_IDENTITY_MISMATCH")
+        if report.get("symbol_evidence_scorecard_count") != len(raw_scorecards):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol evidence scorecard count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if len(raw_scorecards) != len(symbol_universe):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "each symbol requires one symbol evidence scorecard", "SCHEMA_IDENTITY_MISMATCH")
+        scorecards_by_symbol: dict[str, dict[str, Any]] = {}
+        for scorecard in raw_scorecards:
+            if not isinstance(scorecard, dict):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol evidence scorecard must be an object", "SCHEMA_IDENTITY_MISMATCH")
+            scorecard_symbol = scorecard.get("symbol")
+            if not isinstance(scorecard_symbol, str) or scorecard_symbol not in symbol_universe:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol evidence scorecard symbol is outside universe", "SCHEMA_IDENTITY_MISMATCH")
+            if scorecard_symbol in scorecards_by_symbol:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "duplicate symbol evidence scorecard", "SCHEMA_IDENTITY_MISMATCH")
+            if (
+                scorecard.get("live_order_ready")
+                or scorecard.get("live_order_allowed")
+                or scorecard.get("can_live_trade")
+                or scorecard.get("scale_up_allowed")
+            ):
+                return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "symbol evidence scorecard attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
+            scorecards_by_symbol[scorecard_symbol] = scorecard
+        selection_by_symbol = {
+            str(item.get("symbol")): item
+            for item in symbol_selection_universe
+            if isinstance(item, dict) and isinstance(item.get("symbol"), str)
+        }
+        for universe_symbol in symbol_universe:
+            symbol_candidates = [candidate for candidate in candidates if candidate.get("symbol") == universe_symbol]
+            if not symbol_candidates:
+                return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "symbol evidence scorecard missing strategy candidates", "MEASUREMENT_MISSING")
+            symbol_features = feature_snapshots_by_symbol[universe_symbol]
+            try:
+                rank_input_order = int(selection_by_symbol[universe_symbol].get("rank_input_order"))
+            except (KeyError, TypeError, ValueError):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol selection rank input order is invalid", "SCHEMA_IDENTITY_MISMATCH")
+            expected_scorecard = _build_symbol_evidence_scorecard(
+                cycle_id=str(report["cycle_id"]),
+                rank_input_order=rank_input_order,
+                symbol=universe_symbol,
+                features=symbol_features,
+                symbol_selection=_symbol_selection_score(symbol_features),
+                symbol_candidates=symbol_candidates,
+                source_binding=source_by_symbol.get(universe_symbol) if isinstance(source_by_symbol.get(universe_symbol), dict) else None,
+            )
+            if scorecards_by_symbol.get(universe_symbol) != expected_scorecard:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "symbol evidence scorecard does not match runtime symbol candidates", "SCHEMA_IDENTITY_MISMATCH")
+        selected_symbol_scorecard = report.get("selected_symbol_evidence_scorecard")
+        if not isinstance(selected_symbol_scorecard, dict) or selected_symbol_scorecard != scorecards_by_symbol.get(report.get("symbol")):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "selected symbol evidence scorecard must match selected runtime symbol", "SCHEMA_IDENTITY_MISMATCH")
     selected_id = selected.get("candidate_id")
     if selected_id not in candidates_by_id:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "selected candidate is not present in strategy candidates", "SCHEMA_IDENTITY_MISMATCH")
     if selected != candidates_by_id[selected_id]:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "selected candidate diverges from candidate list", "SCHEMA_IDENTITY_MISMATCH")
-    expected_top_candidate = max(candidates_by_id.values(), key=_candidate_rank_key)
+    expected_candidate_pool = list(candidates_by_id.values())
+    lifecycle_preview = report.get("position_management_decision")
+    managed_position_symbol = (
+        lifecycle_preview.get("managed_position_symbol")
+        if isinstance(lifecycle_preview, dict) and isinstance(lifecycle_preview.get("managed_position_symbol"), str)
+        else None
+    )
+    if final_decision in {"EXIT_POSITION", "REDUCE_POSITION", "HOLD_POSITION"} and managed_position_symbol:
+        managed_pool = [candidate for candidate in expected_candidate_pool if candidate.get("symbol") == managed_position_symbol]
+        if managed_pool:
+            expected_candidate_pool = managed_pool
+    expected_top_candidate = max(expected_candidate_pool, key=_candidate_rank_key)
     net_ev = _decimal(selected.get("net_ev_after_cost_bps"))
     if selected_id != expected_top_candidate.get("candidate_id"):
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "selected candidate is not the highest scored candidate", "MIN_EDGE_FAIL")
@@ -1316,9 +2863,16 @@ def validate_upbit_paper_runtime_cycle_report(
     lifecycle = report.get("position_management_decision")
     if not isinstance(lifecycle, dict):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "position_management_decision must be an object", "SCHEMA_IDENTITY_MISMATCH")
+    open_position_count = int(report["paper_portfolio_snapshot"].get("open_position_count", 0) or 0)
     expected_lifecycle_decision = (
         "ENTER_LONG_WITH_ATTACHED_EXIT_PLAN"
         if final_decision == "ENTER_LONG"
+        else "EXIT_POSITION_WITH_PAPER_SELL_FILL"
+        if final_decision == "EXIT_POSITION"
+        else "REDUCE_POSITION_WITH_PAPER_SELL_FILL"
+        if final_decision == "REDUCE_POSITION"
+        else "HOLD_EXISTING_POSITION_NO_NEW_ENTRY"
+        if final_decision == "HOLD_POSITION" or open_position_count > 0
         else "ENTRY_BLOCKED_NO_POSITION"
         if final_decision == "BLOCKED"
         else "NO_ENTRY_NO_POSITION"
@@ -1327,6 +2881,15 @@ def validate_upbit_paper_runtime_cycle_report(
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle decision does not match final decision", "SCHEMA_IDENTITY_MISMATCH")
     if lifecycle.get("live_order_ready") or lifecycle.get("live_order_allowed") or lifecycle.get("can_live_trade") or lifecycle.get("scale_up_allowed") or lifecycle.get("can_submit_order"):
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "position lifecycle attempted live/order permission", "LIVE_FINAL_GUARD_FAILED")
+    if require_position_rotation_fields:
+        rotation_result = _validate_position_rotation_context(
+            lifecycle,
+            selected=selected,
+            candidates_by_id=candidates_by_id,
+            final_decision=str(final_decision),
+        )
+        if rotation_result.status != "PASS":
+            return rotation_result
     if final_decision == "ENTER_LONG":
         if selected.get("decision") != "PAPER_ENTRY_REVIEW":
             return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper entry requires selected candidate entry review decision", "MIN_EDGE_FAIL")
@@ -1339,10 +2902,28 @@ def validate_upbit_paper_runtime_cycle_report(
             return UpbitPaperRuntimeCycleValidationResult(ledger_status, ledger_message, ledger_blocker)
         if report.get("paper_ledger_head_hash") != report["paper_ledger_events"][-1]["event_hash"]:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper runtime ledger head hash mismatch", "LEDGER_INTEGRITY_FAIL")
-        if report["paper_fill"].get("order_lifecycle_state") != "FILLED":
-            return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper entry requires FILLED lifecycle state", "RECONCILIATION_REQUIRED")
+        fill_result = _validate_paper_broker_fill(report["paper_fill"], features=expected_features, expected_side="BUY")
+        if fill_result.status != "PASS":
+            return fill_result
         if report["paper_portfolio_snapshot"].get("open_position_count") < 1:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill did not update open positions", "SCHEMA_IDENTITY_MISMATCH")
+    elif final_decision in {"EXIT_POSITION", "REDUCE_POSITION"}:
+        if not report.get("paper_fill") or not report.get("paper_ledger_events"):
+            return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper exit/reduce requires simulated sell fill and ledger events", "LEDGER_UNAVAILABLE")
+        ledger_status, ledger_blocker, ledger_message = validate_upbit_paper_ledger(report["paper_ledger_events"])
+        if ledger_status != "PASS":
+            return UpbitPaperRuntimeCycleValidationResult(ledger_status, ledger_message, ledger_blocker)
+        if report.get("paper_ledger_head_hash") != report["paper_ledger_events"][-1]["event_hash"]:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper runtime sell ledger head hash mismatch", "LEDGER_INTEGRITY_FAIL")
+        fill_result = _validate_paper_broker_fill(report["paper_fill"], features=expected_features, expected_side="SELL")
+        if fill_result.status != "PASS":
+            return fill_result
+        if lifecycle.get("managed_position_symbol") != report["paper_fill"].get("symbol"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper exit/reduce fill symbol does not match managed position", "SCHEMA_IDENTITY_MISMATCH")
+        if final_decision == "EXIT_POSITION" and report["paper_portfolio_snapshot"].get("open_position_count") != 0:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper exit did not close the managed position", "SCHEMA_IDENTITY_MISMATCH")
+        if final_decision == "REDUCE_POSITION" and report["paper_portfolio_snapshot"].get("open_position_count") < 1:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper reduce unexpectedly closed all positions", "SCHEMA_IDENTITY_MISMATCH")
     else:
         if report.get("paper_fill") is not None or report.get("paper_ledger_events"):
             return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "no-trade paper cycle cannot write fill ledger events", "LIVE_FINAL_GUARD_FAILED")

@@ -1,5 +1,6 @@
 import json
 import unittest
+from decimal import Decimal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -23,7 +24,17 @@ from trader1.validation.mvp0_validators import run_validators
 
 
 class PaperLedgerRollupTest(unittest.TestCase):
-    def _write_cycle_ledger(self, root: Path, cycle_id: str, client_order_id: str, price: str) -> tuple[Path, list[dict]]:
+    def _write_cycle_ledger(
+        self,
+        root: Path,
+        cycle_id: str,
+        client_order_id: str,
+        price: str,
+        *,
+        side: str = "BUY",
+        quantity: str = "0.001",
+        fee_amount: str = "1",
+    ) -> tuple[Path, list[dict]]:
         ledger_dir = (
             root
             / "system"
@@ -41,10 +52,10 @@ class PaperLedgerRollupTest(unittest.TestCase):
             symbol="KRW-BTC",
             intent_id=f"{cycle_id}-intent",
             client_order_id=client_order_id,
-            side="BUY",
-            quantity="0.001",
+            side=side,
+            quantity=quantity,
             price=price,
-            fee_amount="1",
+            fee_amount=fee_amount,
         )
         ledger_path = ledger_dir / f"{cycle_id}.paper_ledger_events.jsonl"
         ledger_path.write_text("\n".join(json.dumps(event, sort_keys=True) for event in events) + "\n", encoding="utf-8")
@@ -86,9 +97,13 @@ class PaperLedgerRollupTest(unittest.TestCase):
             result = validate_paper_ledger_rollup_report(rollup)
 
             self.assertEqual(result.status, "PASS")
-            self.assertEqual(rollup["ledger_input_scope"], "SESSION_CYCLE_GLOB")
-            self.assertEqual(rollup["ledger_jsonl_count"], 2)
-            self.assertEqual(rollup["filled_order_count"], 2)
+            self.assertEqual(rollup["ledger_input_scope"], "SESSION_REPAIR_MANIFEST")
+            self.assertIn(
+                "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/ledger/paper_ledger_input_manifest.json",
+                rollup["artifact_paths"],
+            )
+            self.assertEqual(rollup["ledger_jsonl_count"], 1)
+            self.assertEqual(rollup["filled_order_count"], 1)
             self.assertEqual(rollup["duplicate_ledger_path_count"], 0)
             self.assertEqual(rollup["duplicate_event_count"], 0)
             self.assertEqual(rollup["duplicate_order_count"], 0)
@@ -97,12 +112,12 @@ class PaperLedgerRollupTest(unittest.TestCase):
             self.assertEqual(rollup["ledger_head_mismatch_count"], 0)
             self.assertEqual(
                 rollup["ledger_head_cycle_id"],
-                "test-paper-ledger-rollup-cycle-2",
+                "test-paper-ledger-rollup-cycle-1",
             )
             self.assertEqual(rollup["portfolio_snapshot"]["source"], "PAPER_LEDGER_ROLLUP")
             self.assertEqual(
                 rollup["portfolio_snapshot"]["source_runtime_cycle_id"],
-                "test-paper-ledger-rollup-cycle-2",
+                "test-paper-ledger-rollup-cycle-1",
             )
             self.assertEqual(
                 rollup["portfolio_snapshot"]["source_paper_ledger_head_hash"],
@@ -138,6 +153,136 @@ class PaperLedgerRollupTest(unittest.TestCase):
             self.assertLess(rollup["filled_order_count"], 80)
             self.assertGreaterEqual(float(rollup["portfolio_snapshot"]["cash_available"]), 0.0)
             self.assertFalse(rollup["live_order_allowed"])
+
+    def test_rollup_applies_sell_fills_to_cash_realized_pnl_and_open_quantity(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_cycle_ledger(
+                root,
+                "paper-rollup-buy-cycle",
+                "paper-rollup-buy-client",
+                "1000000",
+                quantity="0.01",
+                fee_amount="5",
+            )
+            sell_path, sell_events = self._write_cycle_ledger(
+                root,
+                "paper-rollup-sell-cycle",
+                "paper-rollup-sell-client",
+                "1100000",
+                side="SELL",
+                quantity="0.004",
+                fee_amount="2",
+            )
+            self._write_latest_head(root, "paper-rollup-sell-cycle", sell_path, sell_events)
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-sell",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(rollup["filled_order_count"], 2)
+            portfolio = rollup["portfolio_snapshot"]
+            self.assertEqual(portfolio["cash_available"], "994393")
+            self.assertEqual(portfolio["realized_pnl"], "396")
+            self.assertEqual(portfolio["unrealized_pnl"], "597")
+            self.assertEqual(portfolio["total_pnl"], "993")
+            self.assertEqual(portfolio["open_position_count"], 1)
+            self.assertEqual(portfolio["positions"][0]["quantity"], "0.006")
+            self.assertEqual(portfolio["positions"][0]["mark_price"], "1100000")
+            self.assertFalse(rollup["live_order_allowed"])
+
+    def test_rollup_repairs_legacy_fixture_price_basis_before_public_price_sell(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_quantity = "0.3463095211056538627341496479"
+            legacy_price = "1000550.025"
+            public_sell_price = "118597831.4746155513075135494"
+            sold_quantity = "0.001150372728159621253407039209"
+            self._write_cycle_ledger(
+                root,
+                "paper-rollup-legacy-buy-cycle",
+                "paper-rollup-legacy-buy-client",
+                legacy_price,
+                quantity=legacy_quantity,
+                fee_amount="173.25",
+            )
+            sell_path, sell_events = self._write_cycle_ledger(
+                root,
+                "paper-rollup-public-sell-cycle",
+                "paper-rollup-public-sell-client",
+                public_sell_price,
+                side="SELL",
+                quantity=sold_quantity,
+                fee_amount="68.21585544636981194186223329",
+            )
+            self._write_latest_head(root, "paper-rollup-public-sell-cycle", sell_path, sell_events)
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-legacy-public-sell",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "PASS")
+            portfolio = rollup["portfolio_snapshot"]
+            self.assertEqual(portfolio["open_position_count"], 1)
+            position = portfolio["positions"][0]
+            self.assertEqual(position["symbol"], "KRW-BTC")
+            self.assertEqual(
+                position["price_basis_repair_status"],
+                "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION",
+            )
+            self.assertEqual(
+                position["price_basis_repair_source"],
+                "LEGACY_STATIC_FIXTURE_PRICE_BASIS_TO_UPBIT_KRW_BTC_PUBLIC_MARK",
+            )
+            original_cost = Decimal(legacy_quantity) * Decimal(legacy_price)
+            normalized_quantity = original_cost / Decimal(public_sell_price)
+            expected_remaining_quantity = normalized_quantity - Decimal(sold_quantity)
+            remaining_quantity = Decimal(position["quantity"])
+            average_entry = Decimal(position["average_entry_price"])
+            market_value = Decimal(position["market_value"])
+
+            self.assertGreater(remaining_quantity, Decimal("0"))
+            self.assertLess(remaining_quantity, Decimal("0.01"))
+            self.assertLess(abs(remaining_quantity - expected_remaining_quantity), Decimal("0.00000000000000000000000001"))
+            self.assertLess(abs(average_entry - Decimal(public_sell_price)), Decimal("0.00000001"))
+            self.assertLess(market_value, Decimal("250000"))
+            self.assertEqual(position["price_basis_original_quantity"], legacy_quantity)
+            self.assertFalse(rollup["live_order_ready"])
+            self.assertFalse(rollup["live_order_allowed"])
+            self.assertFalse(rollup["can_live_trade"])
+            self.assertFalse(rollup["scale_up_allowed"])
+
+            manifest = build_paper_ledger_input_manifest(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                manifest_id="test-paper-ledger-manifest-legacy-public-sell",
+            )
+            manifest_result = validate_paper_ledger_input_manifest(manifest)
+            self.assertEqual(manifest_result.status, "PASS")
+            self.assertEqual(manifest["accepted_ledger_path_count_at_manifest"], 2)
+            self.assertEqual(manifest["excluded_ledger_path_count"], 0)
+            write_paper_ledger_input_manifest(root=root, manifest=manifest)
+
+            manifest_rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-manifest-rollup-legacy-public-sell",
+            )
+            manifest_rollup_result = validate_paper_ledger_rollup_report(manifest_rollup)
+            self.assertEqual(manifest_rollup_result.status, "PASS")
+            self.assertEqual(manifest_rollup["ledger_input_scope"], "SESSION_REPAIR_MANIFEST")
+            self.assertEqual(manifest_rollup["ledger_jsonl_count"], 2)
+            self.assertEqual(
+                manifest_rollup["portfolio_snapshot"]["positions"][0]["price_basis_repair_status"],
+                "APPLIED_PUBLIC_MARK_PRICE_BASIS_NORMALIZATION",
+            )
 
     def test_input_manifest_filters_cash_overrun_ledgers_from_default_rollup(self):
         with TemporaryDirectory() as tmp:
@@ -202,6 +347,55 @@ class PaperLedgerRollupTest(unittest.TestCase):
                 repaired_rollup["artifact_paths"],
             )
             self.assertFalse(repaired_rollup["live_order_allowed"])
+
+    def test_input_manifest_accounts_for_sell_fills_before_exposure_filtering(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._write_cycle_ledger(
+                root,
+                "manifest-buy-cycle",
+                "manifest-buy-client",
+                "1000000",
+                quantity="0.005",
+                fee_amount="1",
+            )
+            sell_path, sell_events = self._write_cycle_ledger(
+                root,
+                "manifest-sell-cycle",
+                "manifest-sell-client",
+                "1010000",
+                side="SELL",
+                quantity="0.005",
+                fee_amount="1",
+            )
+            self._write_latest_head(root, "manifest-sell-cycle", sell_path, sell_events)
+
+            manifest = build_paper_ledger_input_manifest(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                manifest_id="test-paper-ledger-input-manifest-sell-aware",
+            )
+            manifest_result = validate_paper_ledger_input_manifest(manifest)
+            self.assertEqual(manifest_result.status, "PASS")
+            self.assertEqual(manifest["accepted_ledger_path_count_at_manifest"], 2)
+            self.assertEqual(manifest["excluded_ledger_path_count"], 0)
+            self.assertEqual(manifest["final_position_market_value_after_accepted"], "0")
+            self.assertEqual(manifest["final_cash_available_after_accepted"], "1000048")
+            write_paper_ledger_input_manifest(root=root, manifest=manifest)
+
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-rollup-sell-aware-manifest",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "PASS")
+            self.assertEqual(rollup["ledger_input_scope"], "SESSION_REPAIR_MANIFEST")
+            self.assertEqual(rollup["portfolio_snapshot"]["open_position_count"], 0)
+            self.assertEqual(rollup["portfolio_snapshot"]["position_market_value"], "0")
+            self.assertEqual(rollup["portfolio_snapshot"]["cash_available"], "1000048")
+            self.assertFalse(rollup["live_order_allowed"])
 
     def test_input_manifest_blocks_live_permission_mutation(self):
         with TemporaryDirectory() as tmp:
