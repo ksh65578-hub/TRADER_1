@@ -78,6 +78,15 @@ DEFAULT_SESSION_ID = "mvp1_upbit_paper_launcher"
 DEFAULT_CYCLE_INTERVAL_SECONDS = 30.0
 DEFAULT_LOCK_STALE_AFTER_SECONDS = 15 * 60
 DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_PER_GROUP = 500
+DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_BY_GROUP = {
+    "paper_runtime_cycles": 240,
+    "persistent_loop_reports": 120,
+    "recovery_guard_reports": 120,
+    "ledger_rollups": 120,
+    "public_raw_candles": 40,
+    "public_canonical_events": 40,
+    "public_collection_reports": 80,
+}
 DEFAULT_RETENTION_MAX_UNCOMPACTED_ARCHIVE_BATCHES = 3
 DEFAULT_RUNNER_LOG_MAX_BYTES = 2_000_000
 DEFAULT_RUNTIME_DISK_PRESSURE_MAX_BYTES = 5_000_000_000
@@ -1507,6 +1516,85 @@ def _retention_group_patterns() -> dict[str, tuple[str, ...]]:
     }
 
 
+def _unique_retention_group_paths(runtime_base: Path, patterns: tuple[str, ...]) -> list[Path]:
+    group_paths: list[Path] = []
+    for pattern in patterns:
+        group_paths.extend(path for path in runtime_base.glob(pattern) if path.is_file())
+    return sorted(set(group_paths), key=lambda path: (path.stat().st_mtime_ns, path.name), reverse=True)
+
+
+def _retention_group_limit(group: str, max_active_artifacts_per_group: int) -> int:
+    return min(
+        max_active_artifacts_per_group,
+        DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_BY_GROUP.get(group, max_active_artifacts_per_group),
+    )
+
+
+def _retention_active_artifact_paths(root: Path, session_id: str) -> set[Path]:
+    runtime_base = runner_runtime_base(root, session_id)
+    paths: set[Path] = set()
+    for patterns in _retention_group_patterns().values():
+        paths.update(_unique_retention_group_paths(runtime_base, patterns))
+    log_path = runner_log_path(root, session_id)
+    if log_path.exists() and log_path.is_file():
+        paths.add(log_path)
+    return paths
+
+
+def _managed_runtime_artifact_stats(root: Path, session_id: str) -> dict[str, int]:
+    count = 0
+    total_bytes = 0
+    for path in _retention_active_artifact_paths(root, session_id):
+        if not path.exists() or not path.is_file():
+            continue
+        count += 1
+        try:
+            total_bytes += path.stat().st_size
+        except OSError:
+            continue
+    return {"runtime_artifact_count": count, "runtime_artifact_bytes": total_bytes}
+
+
+def _latest_public_collection_protected_paths(*, root: Path, session_id: str) -> set[Path]:
+    runtime_base = runner_runtime_base(root, session_id)
+    public_base = runtime_base / "market_data" / "public"
+    latest_path = public_base / "latest_collection_report.json"
+    if not latest_path.exists() or not latest_path.is_file():
+        return set()
+    protected = {latest_path}
+    latest = _read_json(latest_path)
+    if not isinstance(latest, dict):
+        return protected
+    report_path = latest.get("report_path")
+    if isinstance(report_path, str):
+        candidate = root / report_path
+        if candidate.exists() and _is_relative_to(candidate, runtime_base):
+            protected.add(candidate)
+            report = _read_json(candidate)
+            if isinstance(report, dict):
+                collector_id = str(report.get("collector_id") or "")
+                if collector_id:
+                    protected.update(
+                        path
+                        for path in (
+                            public_base / "raw" / f"{collector_id}.raw_candles.json",
+                            public_base / "canonical" / f"{collector_id}.canonical_events.jsonl",
+                            public_base / "collection" / f"{collector_id}.collection_report.json",
+                            public_base / "collection" / f"{collector_id}.writer_report.json",
+                        )
+                        if path.exists() and _is_relative_to(path, runtime_base)
+                    )
+    return protected
+
+
+def _active_retention_group_counts(root: Path, session_id: str) -> dict[str, int]:
+    runtime_base = runner_runtime_base(root, session_id)
+    return {
+        group: len(_unique_retention_group_paths(runtime_base, patterns))
+        for group, patterns in _retention_group_patterns().items()
+    }
+
+
 def _safe_archive_relative_path(relative_path: str) -> str:
     return relative_path.replace("\\", "/").replace("/", "__").replace(":", "_")
 
@@ -1632,30 +1720,38 @@ def apply_runner_artifact_retention(
     runner = runner_dir(root, session_id)
     retention_id = datetime.now(timezone.utc).strftime("runner-retention-%Y%m%dT%H%M%SZ")
     archive_dir = runner / "archive" / retention_id
-    before_stats = _runtime_tree_stats(root, session_id)
+    before_tree_stats = _runtime_tree_stats(root, session_id)
+    before_stats = _managed_runtime_artifact_stats(root, session_id)
     total_before_stats = _runtime_tree_stats(root, session_id, include_archive=True)
     archive_before_stats = _archive_tree_stats(root, session_id)
     archived: list[dict[str, Any]] = []
     compacted_archives: list[dict[str, Any]] = []
     active_group_counts: dict[str, int] = {}
+    effective_active_group_limits = {
+        group: _retention_group_limit(group, max_active_artifacts_per_group)
+        for group in _retention_group_patterns()
+    }
+    protected_paths = {path.resolve() for path in _latest_public_collection_protected_paths(root=root, session_id=session_id)}
 
     archived.extend(_rotate_runner_log(root=root, session_id=session_id, archive_dir=archive_dir, log_max_bytes=log_max_bytes))
     for group, patterns in _retention_group_patterns().items():
-        group_paths: list[Path] = []
-        for pattern in patterns:
-            group_paths.extend(path for path in runtime_base.glob(pattern) if path.is_file())
-        unique_paths = sorted(set(group_paths), key=lambda path: (path.stat().st_mtime_ns, path.name), reverse=True)
-        active_group_counts[group] = min(len(unique_paths), max_active_artifacts_per_group)
-        for source in unique_paths[max_active_artifacts_per_group:]:
+        unique_paths = _unique_retention_group_paths(runtime_base, patterns)
+        protected_in_group = [path for path in unique_paths if path.resolve() in protected_paths]
+        archiveable_paths = [path for path in unique_paths if path.resolve() not in protected_paths]
+        active_limit = effective_active_group_limits[group]
+        archive_start_index = max(0, active_limit - len(protected_in_group))
+        for source in archiveable_paths[archive_start_index:]:
             archived.append(_archive_file(root=root, session_id=session_id, source=source, archive_dir=archive_dir, group=group))
     compacted_archives = _compact_old_archive_batches(
         root=root,
         session_id=session_id,
         max_uncompacted_archive_batches=max_uncompacted_archive_batches,
     )
-    after_stats = _runtime_tree_stats(root, session_id)
+    after_tree_stats = _runtime_tree_stats(root, session_id)
+    after_stats = _managed_runtime_artifact_stats(root, session_id)
     total_after_stats = _runtime_tree_stats(root, session_id, include_archive=True)
     archive_after_stats = _archive_tree_stats(root, session_id)
+    active_group_counts = _active_retention_group_counts(root, session_id)
     disk_pressure_status = "PASS" if total_after_stats["runtime_artifact_bytes"] <= disk_pressure_max_runtime_bytes else "BLOCKED"
     report = {
         "schema_id": UPBIT_PAPER_LONG_RUNNER_RETENTION_SCHEMA_ID,
@@ -1669,6 +1765,8 @@ def apply_runner_artifact_retention(
         "retention_status": "PASS" if disk_pressure_status == "PASS" else "BLOCKED",
         "primary_blocker_code": None if disk_pressure_status == "PASS" else DISK_PRESSURE_BLOCKER_CODE,
         "max_active_artifacts_per_group": max_active_artifacts_per_group,
+        "max_active_artifacts_by_group": dict(DEFAULT_RETENTION_MAX_ACTIVE_ARTIFACTS_BY_GROUP),
+        "effective_active_group_limits": effective_active_group_limits,
         "log_max_bytes": log_max_bytes,
         "disk_pressure_max_runtime_bytes": disk_pressure_max_runtime_bytes,
         "disk_pressure_status": disk_pressure_status,
@@ -1676,6 +1774,22 @@ def apply_runner_artifact_retention(
         "runtime_artifact_bytes_before": before_stats["runtime_artifact_bytes"],
         "runtime_artifact_count_after": after_stats["runtime_artifact_count"],
         "runtime_artifact_bytes_after": after_stats["runtime_artifact_bytes"],
+        "active_runtime_tree_artifact_count_before": before_tree_stats["runtime_artifact_count"],
+        "active_runtime_tree_artifact_bytes_before": before_tree_stats["runtime_artifact_bytes"],
+        "active_runtime_tree_artifact_count_after": after_tree_stats["runtime_artifact_count"],
+        "active_runtime_tree_artifact_bytes_after": after_tree_stats["runtime_artifact_bytes"],
+        "unmanaged_runtime_artifact_count_before": max(
+            0, before_tree_stats["runtime_artifact_count"] - before_stats["runtime_artifact_count"]
+        ),
+        "unmanaged_runtime_artifact_bytes_before": max(
+            0, before_tree_stats["runtime_artifact_bytes"] - before_stats["runtime_artifact_bytes"]
+        ),
+        "unmanaged_runtime_artifact_count_after": max(
+            0, after_tree_stats["runtime_artifact_count"] - after_stats["runtime_artifact_count"]
+        ),
+        "unmanaged_runtime_artifact_bytes_after": max(
+            0, after_tree_stats["runtime_artifact_bytes"] - after_stats["runtime_artifact_bytes"]
+        ),
         "total_runtime_artifact_count_before": total_before_stats["runtime_artifact_count"],
         "total_runtime_artifact_bytes_before": total_before_stats["runtime_artifact_bytes"],
         "total_runtime_artifact_count_after": total_after_stats["runtime_artifact_count"],
