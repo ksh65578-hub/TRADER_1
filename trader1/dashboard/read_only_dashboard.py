@@ -1584,7 +1584,7 @@ def _validate_audited_writer_readiness_ladder(portfolio: dict[str, Any]) -> Dash
     elif lifecycle_status == "AUDITED_SNAPSHOT_WRITTEN_CONTINUOUS_WRITER_BLOCKED":
         expected_status = (
             "STALE_SINGLE_RUN_SNAPSHOT"
-            if portfolio.get("paper_value_truth_status") == "PAPER_LEDGER_LAST_VERIFIED_VALUES_STALE"
+            if portfolio.get("paper_value_truth_status") in PAPER_VALUE_TRUTH_STALE_STATUSES
             else "BLOCKED_CONTINUOUS_WRITER"
         )
         expected_snapshot_status = "STALE" if expected_status == "STALE_SINGLE_RUN_SNAPSHOT" else "PASS"
