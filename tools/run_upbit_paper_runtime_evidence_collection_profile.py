@@ -34,6 +34,10 @@ from trader1.research.shadow.shadow_observation_scheduler import build_shadow_ob
 from trader1.research.shadow.shadow_observation_stream import build_shadow_observation_stream_report
 from trader1.runtime.ledger.paper_ledger_rollup import build_paper_ledger_rollup_report, write_paper_ledger_rollup_report
 from trader1.runtime.paper.operational_cycle import build_upbit_operational_paper_cycle
+from trader1.runtime.paper.upbit_paper_runtime import (
+    upbit_paper_runtime_cycle_hash,
+    validate_upbit_paper_runtime_cycle_report,
+)
 from trader1.runtime.paper.upbit_paper_ledger_idempotency_runtime_evidence import (
     build_upbit_paper_ledger_idempotency_runtime_evidence_report,
     validate_upbit_paper_ledger_idempotency_runtime_evidence_report,
@@ -826,6 +830,206 @@ def _load_existing_shadow_runtime_orchestration_source(
     return value, result
 
 
+def _is_sha256_hex(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdefABCDEF" for char in value)
+
+
+def _slug(value: Any, *, fallback: str) -> str:
+    text = str(value or "").strip().lower()
+    chars = [char if char.isalnum() else "-" for char in text]
+    slug = "-".join(part for part in "".join(chars).split("-") if part)
+    return slug or fallback
+
+
+def _runtime_cycle_path(root: Path, cycle_result: dict[str, Any]) -> Path | None:
+    artifact_paths = cycle_result.get("artifact_paths") if isinstance(cycle_result.get("artifact_paths"), list) else []
+    for artifact_path in artifact_paths:
+        artifact_text = str(artifact_path)
+        if artifact_text.endswith(".runtime_cycle.json"):
+            return root / artifact_text
+    return None
+
+
+def _load_actual_loop_runtime_cycles(*, root: Path, loop: dict[str, Any]) -> list[dict[str, Any]]:
+    cycles: list[dict[str, Any]] = []
+    cycle_results = loop.get("cycle_results") if isinstance(loop.get("cycle_results"), list) else []
+    for cycle_result in cycle_results:
+        if not isinstance(cycle_result, dict) or cycle_result.get("runtime_status") != "PASS":
+            continue
+        cycle_path = _runtime_cycle_path(root, cycle_result)
+        if cycle_path is None:
+            continue
+        try:
+            cycle = json.loads(cycle_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(cycle, dict):
+            continue
+        if cycle.get("cycle_hash") != cycle_result.get("runtime_cycle_hash"):
+            continue
+        if cycle.get("cycle_hash") != upbit_paper_runtime_cycle_hash(cycle):
+            continue
+        if validate_upbit_paper_runtime_cycle_report(cycle).status != "PASS":
+            continue
+        if any(
+            cycle.get(field)
+            for field in (
+                "live_order_ready",
+                "live_order_allowed",
+                "can_live_trade",
+                "scale_up_allowed",
+                "can_submit_order",
+                "order_adapter_called",
+                "live_key_loaded",
+            )
+        ):
+            continue
+        cycles.append(cycle)
+    return cycles
+
+
+def _runtime_cycle_shadow_identity(cycle: dict[str, Any]) -> dict[str, str]:
+    selected = cycle.get("selected_candidate") if isinstance(cycle.get("selected_candidate"), dict) else {}
+    symbol = str(selected.get("symbol") or cycle.get("selected_symbol") or "KRW-BTC")
+    candidate_id = str(selected.get("candidate_id") or f"{symbol}-paper-runtime-candidate")
+    strategy_id = str(selected.get("strategy_family") or "PAPER_RUNTIME_SELECTED_CANDIDATE")
+    regime = str(selected.get("regime") or cycle.get("regime") or "UNKNOWN")
+    strategy_build_id = f"paper-runtime-{_slug(strategy_id, fallback='strategy')}-{_slug(regime, fallback='regime')}"
+    parameter_hash = str(selected.get("parameter_hash") or "").upper()
+    if not _is_sha256_hex(parameter_hash):
+        parameter_hash = _sha256_json(
+            {
+                "candidate_id": candidate_id,
+                "strategy_id": strategy_id,
+                "strategy_build_id": strategy_build_id,
+                "symbol": symbol,
+                "regime": regime,
+                "cost_model_source": selected.get("cost_model_source"),
+                "candidate_selection_formula": selected.get("candidate_selection_formula"),
+            }
+        )
+    return {
+        "candidate_id": candidate_id,
+        "strategy_id": strategy_id,
+        "strategy_build_id": strategy_build_id,
+        "parameter_hash": parameter_hash,
+    }
+
+
+def _runtime_cycle_source_ids(cycle: dict[str, Any]) -> list[str]:
+    source_ids = []
+    for field in (
+        "cycle_hash",
+        "source_collection_report_hash",
+        "source_public_market_data_hash",
+        "runtime_public_market_data_hash",
+        "feature_snapshot_hash",
+    ):
+        value = cycle.get(field)
+        if _is_sha256_hex(value):
+            source_ids.append(f"paper-runtime-cycle:{cycle.get('cycle_id')}:{field}:{str(value).upper()}")
+    return source_ids
+
+
+def _runtime_cycle_cost_evidence_count(cycle: dict[str, Any]) -> int:
+    selected = cycle.get("selected_candidate") if isinstance(cycle.get("selected_candidate"), dict) else {}
+    costs = selected.get("cost_breakdown_bps") if isinstance(selected.get("cost_breakdown_bps"), dict) else {}
+    return sum(1 for value in costs.values() if value is not None and str(value) != "")
+
+
+def _runtime_cycle_paper_session_id(*, fallback_session_id: str, cycle: dict[str, Any]) -> str:
+    market_data = cycle.get("public_market_data") if isinstance(cycle.get("public_market_data"), dict) else {}
+    return str(market_data.get("session_id") or cycle.get("session_id") or fallback_session_id)
+
+
+def _build_shadow_observations_from_actual_loop_cycles(
+    *,
+    root: Path,
+    loop: dict[str, Any],
+    session_id: str,
+    seed: str,
+) -> list[dict[str, Any]]:
+    actual_cycles = _load_actual_loop_runtime_cycles(root=root, loop=loop)
+    if not actual_cycles:
+        return []
+    anchor_identity = _runtime_cycle_shadow_identity(actual_cycles[-1])
+    scoped_cycles = [
+        cycle for cycle in actual_cycles if _runtime_cycle_shadow_identity(cycle) == anchor_identity
+    ]
+    observations: list[dict[str, Any]] = []
+    for index, cycle in enumerate(scoped_cycles, start=1):
+        selected = cycle.get("selected_candidate") if isinstance(cycle.get("selected_candidate"), dict) else {}
+        identity = _runtime_cycle_shadow_identity(cycle)
+        symbol = str(selected.get("symbol") or cycle.get("selected_symbol") or "KRW-BTC")
+        final_decision = str(cycle.get("final_decision") or "NO_TRADE")
+        public_market_data = cycle.get("public_market_data") if isinstance(cycle.get("public_market_data"), dict) else None
+        entry_reasons = cycle.get("entry_reasons") if isinstance(cycle.get("entry_reasons"), list) else []
+        no_trade_reasons = cycle.get("no_trade_reasons") if isinstance(cycle.get("no_trade_reasons"), list) else []
+        paper_session_id = _runtime_cycle_paper_session_id(fallback_session_id=session_id, cycle=cycle)
+        cycle_id = str(cycle.get("cycle_id") or f"{seed}-cycle-{index}")
+        paper_gate = build_upbit_operational_paper_cycle(
+            operation_gate_id=f"{seed}-{cycle_id}-paper-gate",
+            session_id=paper_session_id,
+            requested_entry=final_decision == "ENTER_LONG",
+            symbol=symbol,
+            public_market_data=public_market_data,
+            strategy_unit_id=identity["candidate_id"],
+            strategy_id=identity["strategy_id"],
+            strategy_build_id=identity["strategy_build_id"],
+            parameter_hash=identity["parameter_hash"],
+            regime_scope=str(selected.get("regime") or cycle.get("regime") or "UNKNOWN"),
+            signal_strength=str(selected.get("signal_strength") or "0.50"),
+            strategy_confidence=str(selected.get("symbol_selection_score") or selected.get("signal_strength") or "0.50"),
+            regime_confidence="0.50",
+            source_evidence_ids=_runtime_cycle_source_ids(cycle),
+            paper_sample_count=max(1, int(cycle.get("canonical_event_count") or 0), len(cycle.get("paper_ledger_events") or [])),
+            shadow_sample_count=1,
+            evidence_window_count=1,
+            evidence_span_hours=0,
+            entry_reason_count=len(entry_reasons),
+            no_trade_reason_count=len(no_trade_reasons),
+            cost_evidence_count=_runtime_cycle_cost_evidence_count(cycle),
+        )
+        observations.append(
+            build_shadow_observation_report(
+                observation_id=f"{seed}-{cycle_id}-observation",
+                paper_operation_gate_report=paper_gate,
+                shadow_session_id=f"{session_id}-{seed}-{cycle_id}-shadow",
+                shadow_sample_count=1,
+            )
+        )
+    return observations
+
+
+def _build_blocked_shadow_scheduler_guard_without_actual_cycles(*, loop_id: str, session_id: str) -> dict[str, Any]:
+    seed = f"{loop_id}-shadow-current-missing-actual-cycle"
+    paper_gate = build_upbit_operational_paper_cycle(
+        operation_gate_id=f"{seed}-paper-gate",
+        session_id=session_id,
+        requested_entry=False,
+        risk_block=True,
+    )
+    observation = build_shadow_observation_report(
+        observation_id=f"{seed}-observation",
+        paper_operation_gate_report=paper_gate,
+        shadow_session_id=f"{session_id}-{seed}-shadow",
+        shadow_sample_count=1,
+    )
+    stream = build_shadow_observation_stream_report(
+        stream_id=f"{seed}-stream",
+        observations=[observation],
+        min_required_observation_count=1,
+        min_required_evidence_span_hours=1,
+        evidence_span_hours=0,
+    )
+    return build_shadow_observation_scheduler_guard_report(
+        scheduler_id=f"{seed}-scheduler",
+        stream_report=stream,
+        writer_id=f"{seed}-writer",
+        active_writer_id=f"{seed}-writer",
+    )
+
+
 def _build_shadow_runtime_orchestration_source(*, loop_id: str, requested_cycle_count: int) -> tuple[dict[str, Any], Any]:
     seed = f"{loop_id}-shadow-depth"
     shadow_cycle_count = max(3, min(3, int(requested_cycle_count or 1)))
@@ -887,33 +1091,27 @@ def _build_shadow_runtime_orchestration_source(*, loop_id: str, requested_cycle_
 
 def _build_shadow_scheduler_guard_for_loop(
     *,
+    root: Path,
+    loop: dict[str, Any],
     loop_id: str,
     session_id: str,
-    requested_cycle_count: int,
 ) -> dict[str, Any]:
     seed = f"{loop_id}-shadow-current"
-    observation_count = max(3, min(3, int(requested_cycle_count or 1)))
-    observations = []
-    for index in range(observation_count):
-        paper_gate = build_upbit_operational_paper_cycle(
-            operation_gate_id=f"{seed}-paper-gate",
-            session_id=f"{session_id}-{seed}-paper-{index}",
-            requested_entry=True,
-        )
-        observations.append(
-            build_shadow_observation_report(
-                observation_id=f"{seed}-observation-{index}",
-                paper_operation_gate_report=paper_gate,
-                shadow_session_id=f"{session_id}-{seed}-shadow-{index}",
-                shadow_sample_count=30,
-            )
-        )
+    observations = _build_shadow_observations_from_actual_loop_cycles(
+        root=root,
+        loop=loop,
+        session_id=session_id,
+        seed=seed,
+    )
+    if not observations:
+        return _build_blocked_shadow_scheduler_guard_without_actual_cycles(loop_id=loop_id, session_id=session_id)
+    observation_count = len(observations)
     stream = build_shadow_observation_stream_report(
         stream_id=f"{seed}-stream",
         observations=observations,
-        min_required_observation_count=3,
-        min_required_evidence_span_hours=24,
-        evidence_span_hours=24,
+        min_required_observation_count=observation_count,
+        min_required_evidence_span_hours=0,
+        evidence_span_hours=0,
     )
     return build_shadow_observation_scheduler_guard_report(
         scheduler_id=f"{seed}-scheduler",
@@ -939,9 +1137,10 @@ def _build_current_shadow_runtime_orchestration_source(
     loop_id = str(loop.get("loop_id") or "upbit-paper-runtime-evidence-profile")
     completed = int(loop.get("completed_cycle_count") or 0)
     scheduler = _build_shadow_scheduler_guard_for_loop(
+        root=root,
+        loop=loop,
         loop_id=loop_id,
         session_id=session_id,
-        requested_cycle_count=max(1, completed),
     )
     persistent = build_shadow_observation_persistent_runtime_report_from_paper_loop(
         runtime_id=session_id,

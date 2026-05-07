@@ -78,7 +78,7 @@
     "min_required_observation_count": {"type": "integer", "minimum": 1},
     "evidence_window_count": {"type": "integer", "minimum": 0},
     "evidence_span_hours": {"type": "integer", "minimum": 0},
-    "min_required_evidence_span_hours": {"type": "integer", "minimum": 1},
+    "min_required_evidence_span_hours": {"type": "integer", "minimum": 0},
     "max_artifact_age_seconds": {"type": "integer", "minimum": 1},
     "observation_hashes": {
       "type": "array",

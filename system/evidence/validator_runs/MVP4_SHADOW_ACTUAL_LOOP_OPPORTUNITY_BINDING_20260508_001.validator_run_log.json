@@ -1,0 +1,70 @@
+{
+  "schema_id": "trader1.validator_run_log.v1",
+  "patch_id": "MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001",
+  "created_at_utc": "2026-05-07T20:08:12Z",
+  "status": "PASS_TARGETED_VALIDATORS_AND_RUNTIME_SMOKE",
+  "commands": [
+    {
+      "command": "python -B -m pytest tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_primary_status_separates_current_profile_from_unproven_runner -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "1 passed"
+    },
+    {
+      "command": "python -B -m pytest tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "19 passed"
+    },
+    {
+      "command": "python -B -m pytest tests/integration/test_upbit_public_collection_persistent_loop.py::UpbitPublicCollectionPersistentLoopTest::test_bounded_paper_loop_allows_paper_only_resume_from_legacy_scope_continuity_cycle -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "1 passed"
+    },
+    {
+      "command": "python -B -m pytest tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_first_screen_prioritizes_operator_questions tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_primary_status_separates_current_profile_from_unproven_runner -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "2 passed"
+    },
+    {
+      "command": "python -B tools/run_upbit_paper_runtime_evidence_collection_profile.py --requested-cycle-count 2 --loop-id codex-shadow-actual-loop-smoke-20260508-002",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "completed_cycle_count=2, accepted_cycle_sample_count=2, component_pass_count=6/6, reconciliation_status=PASS, idempotency_status=PASS, live flags false"
+    },
+    {
+      "command": "python -B tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_read_only_dashboard_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_live_final_guard_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "files_checked=845"
+    },
+    {
+      "command": "python -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "post-patch-result/current-state/ledger validation passed"
+    }
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false,
+  "scale_up_allowed": false,
+  "updated_at_utc": "2026-05-07T20:08:46Z"
+}

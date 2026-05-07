@@ -4,7 +4,11 @@ from unittest.mock import patch
 
 from tools.run_upbit_paper_runtime_evidence_collection_profile import (
     DEFAULT_REPORT_PATH,
+    _build_shadow_observations_from_actual_loop_cycles,
+    _build_shadow_scheduler_guard_for_loop,
     _refresh_dashboard_after_profile_write,
+    _load_actual_loop_runtime_cycles,
+    _runtime_cycle_shadow_identity,
     build_upbit_paper_runtime_evidence_collection_profile_report,
     run_upbit_paper_runtime_evidence_collection_profile,
     upbit_paper_runtime_evidence_collection_profile_hash,
@@ -374,6 +378,67 @@ class UpbitPaperRuntimeEvidenceCollectionProfileTest(unittest.TestCase):
         self.assertEqual(shadow_depth["missing_cycle_count"], second["min_actual_long_run_cycle_count"] - 5)
         self.assertFalse(history["live_order_allowed"])
         self.assertFalse(second["live_order_allowed"])
+
+    def test_profile_shadow_observations_bind_to_actual_paper_loop_candidate_scope(self):
+        from tempfile import TemporaryDirectory
+        import json
+
+        session_id = "mvp1_upbit_paper_launcher"
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report = build_upbit_paper_runtime_evidence_collection_profile_report(
+                root=root,
+                loop_id="profile-shadow-actual-loop-binding",
+                requested_cycle_count=2,
+            )
+            loop_path = (
+                root
+                / "system/runtime/upbit/krw_spot/paper"
+                / session_id
+                / "paper_runtime/profile-shadow-actual-loop-binding.persistent_loop_report.json"
+            )
+            loop = json.loads(loop_path.read_text(encoding="utf-8"))
+            actual_cycles = _load_actual_loop_runtime_cycles(root=root, loop=loop)
+            observations = _build_shadow_observations_from_actual_loop_cycles(
+                root=root,
+                loop=loop,
+                session_id=session_id,
+                seed="profile-shadow-actual-loop-binding-shadow-current",
+            )
+            scheduler = _build_shadow_scheduler_guard_for_loop(
+                root=root,
+                loop=loop,
+                loop_id="profile-shadow-actual-loop-binding",
+                session_id=session_id,
+            )
+
+        result = validate_upbit_paper_runtime_evidence_collection_profile_report(report)
+        anchor_identity = _runtime_cycle_shadow_identity(actual_cycles[-1])
+        expected_cycles = [
+            cycle for cycle in actual_cycles if _runtime_cycle_shadow_identity(cycle) == anchor_identity
+        ]
+
+        self.assertEqual(result.status, "PASS")
+        self.assertGreaterEqual(len(actual_cycles), 1)
+        self.assertEqual(len(observations), len(expected_cycles))
+        self.assertGreaterEqual(len(observations), 1)
+        self.assertLessEqual(len(observations), loop["completed_cycle_count"])
+        self.assertEqual(scheduler["scheduler_status"], "PASS")
+        self.assertEqual(scheduler["source_stream_validation_status"], "PASS")
+        self.assertEqual(scheduler["observation_count"], len(observations))
+        self.assertFalse(scheduler["live_order_allowed"])
+        for observation, cycle in zip(observations, expected_cycles):
+            selected = cycle["selected_candidate"]
+            self.assertEqual(observation["candidate_id"], selected["candidate_id"])
+            self.assertEqual(observation["strategy_id"], selected["strategy_family"])
+            self.assertIn(cycle["cycle_id"], observation["paper_operation_gate_id"])
+            self.assertEqual(observation["entry_reason_count"], len(cycle.get("entry_reasons") or []))
+            self.assertEqual(observation["no_trade_reason_count"], len(cycle.get("no_trade_reasons") or []))
+            self.assertEqual(observation["shadow_sample_count"], 1)
+            self.assertFalse(observation["live_order_ready"])
+            self.assertFalse(observation["live_order_allowed"])
+            self.assertFalse(observation["can_live_trade"])
+            self.assertFalse(observation["scale_up_allowed"])
 
     def test_profile_uses_existing_short_window_shadow_runtime_orchestration_without_live_permission(self):
         from tempfile import TemporaryDirectory

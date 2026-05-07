@@ -11187,9 +11187,73 @@
           "type": "integer",
           "minimum": 0
         },
+        "paper_scope_progress_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_scope_candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paper_scope_strategy_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paper_scope_parameter_hash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paper_scope_symbol": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paper_scope_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_scope_min_required_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_scope_sample_deficit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_scope_next_collection_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_scope_next_operator_action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_scope_latest_sample_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paper_scope_summary_count": {
+          "type": "integer",
+          "minimum": 0
+        },
         "candidate_scorecard_status": {
           "type": "string",
           "minLength": 1
+        },
+        "candidate_scorecard_candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "candidate_scorecard_ranking_eligible": {
           "type": "boolean"

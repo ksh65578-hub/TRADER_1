@@ -128,6 +128,7 @@ FEATURE_SNAPSHOT_PROJECTION_UPGRADE_MESSAGES = frozenset(
 SYMBOL_EVIDENCE_SCORECARD_PROJECTION_UPGRADE_MESSAGE = (
     "symbol evidence scorecard does not match runtime symbol candidates"
 )
+PAPER_SCOPE_CONTINUITY_SCHEMA_UPGRADE_FIELDS = frozenset({"paper_scope_continuity_decision"})
 
 
 @dataclass(frozen=True)
@@ -914,6 +915,37 @@ def _requires_symbol_selection_policy_formula_upgrade_recheck(
     return True
 
 
+def _requires_paper_scope_continuity_schema_upgrade_recheck(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if not isinstance(cycle, dict):
+        return False
+    missing = _missing_runtime_fields(runtime_result)
+    if missing != PAPER_SCOPE_CONTINUITY_SCHEMA_UPGRADE_FIELDS:
+        return False
+    if cycle.get("exchange") != "UPBIT" or cycle.get("market_type") != "KRW_SPOT" or cycle.get("mode") != "PAPER":
+        return False
+    if cycle.get("live_order_ready") or cycle.get("live_order_allowed") or cycle.get("can_live_trade") or cycle.get("scale_up_allowed"):
+        return False
+    if cycle.get("order_adapter_called") or cycle.get("live_key_loaded") or cycle.get("can_submit_order"):
+        return False
+    if cycle.get("paper_order_adapter") != "SIMULATED_PAPER_BROKER_ONLY":
+        return False
+    if cycle.get("cycle_hash") != upbit_paper_runtime_cycle_hash(cycle):
+        return False
+    selected = cycle.get("selected_candidate")
+    candidates = cycle.get("strategy_candidates")
+    if not isinstance(selected, dict) or not isinstance(candidates, list) or not candidates:
+        return False
+    selected_id = selected.get("candidate_id")
+    if not isinstance(selected_id, str) or not selected_id:
+        return False
+    if any(not isinstance(candidate, dict) for candidate in candidates):
+        return False
+    return any(candidate.get("candidate_id") == selected_id for candidate in candidates)
+
+
 def build_upbit_paper_runtime_recovery_guard_report(
     *,
     root: Path,
@@ -1030,6 +1062,10 @@ def build_upbit_paper_runtime_recovery_guard_report(
             latest_cycle,
             runtime_result,
         )
+        paper_scope_continuity_schema_upgrade_recheck = _requires_paper_scope_continuity_schema_upgrade_recheck(
+            latest_cycle,
+            runtime_result,
+        )
         feature_snapshot_projection_upgrade_recheck = _requires_feature_snapshot_projection_upgrade_recheck(
             latest_cycle,
             runtime_result,
@@ -1046,6 +1082,7 @@ def build_upbit_paper_runtime_recovery_guard_report(
             or candidate_cost_model_schema_upgrade_recheck
             or position_rotation_schema_upgrade_recheck
             or symbol_selection_policy_formula_upgrade_recheck
+            or paper_scope_continuity_schema_upgrade_recheck
             or feature_snapshot_projection_upgrade_recheck
             or symbol_evidence_scorecard_projection_upgrade_recheck
         ):
@@ -1061,6 +1098,7 @@ def build_upbit_paper_runtime_recovery_guard_report(
                 require_position_rotation_fields=not position_rotation_schema_upgrade_recheck,
                 require_current_symbol_selection_policy=not symbol_selection_policy_formula_upgrade_recheck,
                 require_current_feature_snapshot_projection=not feature_snapshot_projection_upgrade_recheck,
+                require_paper_scope_continuity_decision=not paper_scope_continuity_schema_upgrade_recheck,
             )
             if _requires_feature_snapshot_projection_upgrade_recheck(latest_cycle, legacy_result):
                 feature_snapshot_projection_upgrade_recheck = True
@@ -1076,6 +1114,7 @@ def build_upbit_paper_runtime_recovery_guard_report(
                     require_position_rotation_fields=not position_rotation_schema_upgrade_recheck,
                     require_current_symbol_selection_policy=not symbol_selection_policy_formula_upgrade_recheck,
                     require_current_feature_snapshot_projection=False,
+                    require_paper_scope_continuity_decision=not paper_scope_continuity_schema_upgrade_recheck,
                 )
             if _requires_symbol_evidence_scorecard_projection_upgrade_recheck(latest_cycle, legacy_result):
                 symbol_evidence_scorecard_projection_upgrade_recheck = True
@@ -1088,6 +1127,7 @@ def build_upbit_paper_runtime_recovery_guard_report(
                     require_position_rotation_fields=not position_rotation_schema_upgrade_recheck,
                     require_current_symbol_selection_policy=not symbol_selection_policy_formula_upgrade_recheck,
                     require_current_feature_snapshot_projection=not feature_snapshot_projection_upgrade_recheck,
+                    require_paper_scope_continuity_decision=not paper_scope_continuity_schema_upgrade_recheck,
                 )
             if _requires_position_rotation_schema_upgrade_recheck(latest_cycle, legacy_result):
                 position_rotation_schema_upgrade_recheck = True
@@ -1103,6 +1143,7 @@ def build_upbit_paper_runtime_recovery_guard_report(
                     require_position_rotation_fields=False,
                     require_current_symbol_selection_policy=not symbol_selection_policy_formula_upgrade_recheck,
                     require_current_feature_snapshot_projection=not feature_snapshot_projection_upgrade_recheck,
+                    require_paper_scope_continuity_decision=not paper_scope_continuity_schema_upgrade_recheck,
                 )
             if legacy_runtime_risk_exit_lifecycle_recheck and legacy_result.status != "PASS":
                 legacy_result = UpbitPaperRuntimeCycleValidationResult(
@@ -1130,6 +1171,8 @@ def build_upbit_paper_runtime_recovery_guard_report(
                     legacy_modes.append("POSITION_ROTATION_FIELDS")
                 if symbol_selection_policy_formula_upgrade_recheck:
                     legacy_modes.append("SYMBOL_SELECTION_POLICY_FORMULA")
+                if paper_scope_continuity_schema_upgrade_recheck:
+                    legacy_modes.append("PAPER_SCOPE_CONTINUITY_DECISION")
                 if feature_snapshot_projection_upgrade_recheck:
                     legacy_modes.append("FEATURE_SNAPSHOT_PROJECTION")
                 if symbol_evidence_scorecard_projection_upgrade_recheck:
@@ -2279,6 +2322,7 @@ def validate_upbit_paper_runtime_recovery_guard_report(report: dict[str, Any]) -
         "ADAPTIVE_CANDIDATE_COST_MODEL",
         "POSITION_ROTATION_FIELDS",
         "SYMBOL_SELECTION_POLICY_FORMULA",
+        "PAPER_SCOPE_CONTINUITY_DECISION",
         "FEATURE_SNAPSHOT_PROJECTION",
         "SYMBOL_EVIDENCE_SCORECARD_PROJECTION",
     )
