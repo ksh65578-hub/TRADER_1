@@ -12,6 +12,7 @@ from trader1.runtime.ledger.paper_ledger_rollup import validate_paper_ledger_rol
 from trader1.runtime.paper.upbit_paper_persistent_loop import validate_upbit_paper_persistent_loop_report
 from trader1.runtime.paper.upbit_paper_long_runner import (
     RUNNER_STATUS_RUNNING,
+    runner_lock_liveness_from_status_report,
     validate_upbit_paper_long_runner_status_report,
 )
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -205,15 +206,34 @@ def build_paper_runtime_truth_state_report(
         and runner_result is not None
         and runner_result.get("status") in {"PASS", "BLOCKED"}
     )
-    runner_running = bool(
+    runner_status_claims_running = bool(
         runner_status_loaded
         and runner_fresh
         and runner_status_value == RUNNER_STATUS_RUNNING
         and upbit_paper_long_runner_status_report.get("running") is True
     )
+    runner_lock_liveness = (
+        runner_lock_liveness_from_status_report(
+            upbit_paper_long_runner_status_report,
+            now=now_dt,
+            fresh_after_seconds=PAPER_RUNTIME_SOURCE_FRESH_SECONDS,
+        )
+        if runner_status_loaded
+        else runner_lock_liveness_from_status_report(None)
+    )
+    runner_lock_loaded = bool(runner_lock_liveness.get("runner_lock_loaded"))
+    runner_lock_session_match = bool(runner_lock_liveness.get("runner_lock_session_match"))
+    runner_lock_fresh = bool(runner_lock_liveness.get("runner_lock_fresh"))
+    runner_lock_pid_alive = bool(runner_lock_liveness.get("runner_lock_pid_alive"))
+    runner_liveness_proven = bool(runner_lock_liveness.get("runner_liveness_proven"))
+    runner_lock_pid = runner_lock_liveness.get("runner_lock_pid")
+    runner_lock_heartbeat_at = runner_lock_liveness.get("runner_lock_heartbeat_at_utc")
+    runner_running = bool(runner_status_claims_running and runner_liveness_proven)
     paper_runner_advancing = bool(runner_running and runner_completed_cycle_count > 0)
     if paper_scope and not paper_runner_advancing:
         runner_was_valid_but_stale = bool(runner_status_loaded and not runner_fresh)
+        runner_liveness_blocker_code = runner_lock_liveness.get("runner_liveness_blocker_code")
+        runner_liveness_blocker_message = runner_lock_liveness.get("runner_liveness_blocker_message")
         runner_report_blocker = (
             upbit_paper_long_runner_status_report.get("primary_blocker_code")
             if isinstance(upbit_paper_long_runner_status_report, dict)
@@ -229,6 +249,8 @@ def build_paper_runtime_truth_state_report(
             else "DATA_QUALITY_INSUFFICIENT"
             if runner_status_loaded
             and (runner_status_value != RUNNER_STATUS_RUNNING or upbit_paper_long_runner_status_report.get("running") is not True)
+            else runner_liveness_blocker_code
+            if runner_status_claims_running and runner_liveness_blocker_code
             else runner_result.get("blocker_code")
             if isinstance(runner_result, dict) and runner_result.get("blocker_code")
             else "DATA_QUALITY_INSUFFICIENT"
@@ -237,8 +259,13 @@ def build_paper_runtime_truth_state_report(
             runner_message = "PAPER runner status is not loaded, scoped, or structurally valid for current truth."
         elif runner_was_valid_but_stale:
             runner_message = "PAPER runner status is stale and no longer proves a running PAPER process."
-        elif not runner_running:
+        elif not runner_status_claims_running:
             runner_message = f"PAPER runner is not currently running: runner_status={runner_status_value}."
+        elif not runner_liveness_proven:
+            runner_message = str(
+                runner_liveness_blocker_message
+                or "PAPER runner status says RUNNING but session lock liveness is not proven."
+            )
         else:
             runner_message = "PAPER runner is running but has not completed a cycle for this session."
         blockers.append(_blocker(str(runner_blocker), runner_message))
@@ -483,6 +510,13 @@ def build_paper_runtime_truth_state_report(
         "runner_status_fresh": runner_fresh,
         "runner_status": runner_status_value,
         "runner_running": runner_running,
+        "runner_lock_loaded": runner_lock_loaded,
+        "runner_lock_session_match": runner_lock_session_match,
+        "runner_lock_fresh": runner_lock_fresh,
+        "runner_lock_pid_alive": runner_lock_pid_alive,
+        "runner_liveness_proven": runner_liveness_proven,
+        "runner_lock_pid": runner_lock_pid if isinstance(runner_lock_pid, int) else None,
+        "runner_lock_heartbeat_at_utc": runner_lock_heartbeat_at if isinstance(runner_lock_heartbeat_at, str) else None,
         "runner_completed_cycle_count": runner_completed_cycle_count,
         "paper_loop_advancing": paper_loop_advancing,
         "market_data_advancing": market_data_advancing,
@@ -492,6 +526,9 @@ def build_paper_runtime_truth_state_report(
         "validated_paper_ledger_event_count": ledger_event_count,
         "source_heartbeat_hash": _hash_from(heartbeat, "heartbeat_hash"),
         "source_runner_status_hash": _hash_from(upbit_paper_long_runner_status_report, "status_hash"),
+        "source_runner_lock_hash": runner_lock_liveness.get("source_runner_lock_hash")
+        if isinstance(runner_lock_liveness.get("source_runner_lock_hash"), str)
+        else None,
         "source_persistent_loop_hash": _hash_from(upbit_paper_persistent_loop_report, "loop_hash"),
         "source_market_continuity_history_hash": _hash_from(upbit_public_rest_continuity_history, "history_hash"),
         "source_paper_ledger_rollup_hash": _hash_from(paper_ledger_rollup_report, "rollup_hash"),
@@ -544,6 +581,13 @@ def validate_paper_runtime_truth_state_report(
         "runner_status_fresh",
         "runner_status",
         "runner_running",
+        "runner_lock_loaded",
+        "runner_lock_session_match",
+        "runner_lock_fresh",
+        "runner_lock_pid_alive",
+        "runner_liveness_proven",
+        "runner_lock_pid",
+        "runner_lock_heartbeat_at_utc",
         "runner_completed_cycle_count",
         "paper_loop_advancing",
         "market_data_advancing",
@@ -553,6 +597,7 @@ def validate_paper_runtime_truth_state_report(
         "validated_paper_ledger_event_count",
         "source_heartbeat_hash",
         "source_runner_status_hash",
+        "source_runner_lock_hash",
         "source_persistent_loop_hash",
         "source_market_continuity_history_hash",
         "source_paper_ledger_rollup_hash",
@@ -631,6 +676,11 @@ def validate_paper_runtime_truth_state_report(
         "runner_status_loaded",
         "runner_status_fresh",
         "runner_running",
+        "runner_lock_loaded",
+        "runner_lock_session_match",
+        "runner_lock_fresh",
+        "runner_lock_pid_alive",
+        "runner_liveness_proven",
         "paper_loop_advancing",
         "market_data_advancing",
         "ledger_advancing",
@@ -638,6 +688,10 @@ def validate_paper_runtime_truth_state_report(
     ):
         if not isinstance(report.get(field), bool):
             return PaperRuntimeTruthStateValidationResult("FAIL", f"runtime truth field must be boolean: {field}", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("runner_lock_pid") is not None and not isinstance(report.get("runner_lock_pid"), int):
+        return PaperRuntimeTruthStateValidationResult("FAIL", "runtime truth runner_lock_pid must be integer or null", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("runner_lock_heartbeat_at_utc") is not None and not isinstance(report.get("runner_lock_heartbeat_at_utc"), str):
+        return PaperRuntimeTruthStateValidationResult("FAIL", "runtime truth runner lock heartbeat must be string or null", "SCHEMA_IDENTITY_MISMATCH")
     if not isinstance(report.get("runner_status"), str) or not report.get("runner_status"):
         return PaperRuntimeTruthStateValidationResult("FAIL", "runtime truth runner_status must be a non-empty string", "SCHEMA_IDENTITY_MISMATCH")
     if not isinstance(report.get("runner_completed_cycle_count"), int) or report["runner_completed_cycle_count"] < 0:
@@ -650,6 +704,11 @@ def validate_paper_runtime_truth_state_report(
                 "runner_status_loaded",
                 "runner_status_fresh",
                 "runner_running",
+                "runner_lock_loaded",
+                "runner_lock_session_match",
+                "runner_lock_fresh",
+                "runner_lock_pid_alive",
+                "runner_liveness_proven",
                 "paper_loop_advancing",
                 "market_data_advancing",
                 "ledger_advancing",
@@ -663,6 +722,8 @@ def validate_paper_runtime_truth_state_report(
             return PaperRuntimeTruthStateValidationResult("FAIL", "active PAPER runtime truth requires a fresh running runner with completed cycles", "SCHEMA_IDENTITY_MISMATCH")
         if not isinstance(report.get("source_runner_status_hash"), str):
             return PaperRuntimeTruthStateValidationResult("FAIL", "active PAPER runtime truth requires source runner status hash", "SCHEMA_IDENTITY_MISMATCH")
+        if not isinstance(report.get("source_runner_lock_hash"), str):
+            return PaperRuntimeTruthStateValidationResult("FAIL", "active PAPER runtime truth requires source runner lock hash", "SCHEMA_IDENTITY_MISMATCH")
         return PaperRuntimeTruthStateValidationResult("PASS", "PAPER runtime truth is active and PAPER-only", None)
     if report.get("runtime_truth_status") == MONITOR_ALIVE_ENGINE_NOT_PROVEN_STATUS:
         if report.get("monitor_alive") is not True or report.get("paper_loop_advancing") is not False:

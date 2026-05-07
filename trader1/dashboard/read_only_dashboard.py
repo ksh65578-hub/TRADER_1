@@ -21,6 +21,8 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import (
 )
 from trader1.runtime.paper.upbit_paper_long_runner import (
     DISK_PRESSURE_BLOCKER_CODE,
+    RUNNER_STATUS_RUNNING,
+    runner_lock_liveness_from_status_report,
     validate_upbit_paper_long_runner_retention_manifest,
     validate_upbit_paper_long_runner_status_report,
 )
@@ -3629,6 +3631,11 @@ def _active_paper_current_truth_dashboard_blocker(
             "runner_status_loaded",
             "runner_status_fresh",
             "runner_running",
+            "runner_lock_loaded",
+            "runner_lock_session_match",
+            "runner_lock_fresh",
+            "runner_lock_pid_alive",
+            "runner_liveness_proven",
             "paper_loop_advancing",
             "market_data_advancing",
             "ledger_advancing",
@@ -6270,6 +6277,8 @@ def _paper_runner_operations_status(
     )
 
     runner_state = str(runner_status_report.get("runner_status") or "UNKNOWN")
+    runner_liveness = runner_lock_liveness_from_status_report(runner_status_report)
+    runner_liveness_required = runner_state == RUNNER_STATUS_RUNNING and runner_status_report.get("running") is True
     artifact_retention_status = str(
         (
             retention_manifest.get("retention_status")
@@ -6349,6 +6358,13 @@ def _paper_runner_operations_status(
         primary_blocker = "LATENCY_TTL_EXPIRED"
         summary = "PAPER runner operations are stale and cannot prove current runtime status."
         next_action = "Rerun PAPER or wait for the next runner cycle to refresh status."
+    elif runner_liveness_required and runner_liveness.get("runner_liveness_proven") is not True:
+        status = "STALE"
+        severity = "WARNING"
+        color_token = "yellow"
+        primary_blocker = str(runner_liveness.get("runner_liveness_blocker_code") or "LATENCY_TTL_EXPIRED")
+        summary = "PAPER runner status says RUNNING, but the runner process lock is not currently proven alive."
+        next_action = "Start PAPER again; stale RUNNING status alone cannot prove current runtime execution."
 
     base.update(
         {
@@ -6358,6 +6374,13 @@ def _paper_runner_operations_status(
             "source": "runner_status.json",
             "runner_status": runner_state,
             "running": runner_status_report.get("running") is True and status == "RUNNING_NOW",
+            "runner_lock_loaded": runner_liveness.get("runner_lock_loaded") is True,
+            "runner_lock_session_match": runner_liveness.get("runner_lock_session_match") is True,
+            "runner_lock_fresh": runner_liveness.get("runner_lock_fresh") is True,
+            "runner_lock_pid_alive": runner_liveness.get("runner_lock_pid_alive") is True,
+            "runner_liveness_proven": runner_liveness.get("runner_liveness_proven") is True,
+            "runner_lock_pid": safe_value(runner_liveness.get("runner_lock_pid")),
+            "runner_lock_heartbeat_at_utc": safe_value(runner_liveness.get("runner_lock_heartbeat_at_utc")),
             "completed_cycle_count": safe_count(runner_status_report.get("completed_cycle_count")),
             "failed_cycle_count": safe_count(runner_status_report.get("failed_cycle_count")),
             "last_cycle_time": safe_value(runner_status_report.get("last_cycle_time")),

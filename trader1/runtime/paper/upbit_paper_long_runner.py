@@ -70,6 +70,7 @@ ROOT = Path(__file__).resolve().parents[3]
 UPBIT_PAPER_LONG_RUNNER_STATUS_SCHEMA_ID = "trader1.upbit_paper_long_runner_status.v1"
 UPBIT_PAPER_LONG_RUNNER_RETENTION_SCHEMA_ID = "trader1.upbit_paper_long_runner_retention_manifest.v1"
 UPBIT_PAPER_RUNNER_START_RECONCILIATION_SCHEMA_ID = "trader1.upbit_paper_runner_start_reconciliation.v1"
+UPBIT_PAPER_LONG_RUNNER_LOCK_SCHEMA_ID = "trader1.upbit_paper_long_runner_lock.v1"
 
 DEFAULT_SESSION_ID = "mvp1_upbit_paper_launcher"
 DEFAULT_CYCLE_INTERVAL_SECONDS = 30.0
@@ -931,6 +932,119 @@ def _lock_is_stale(lock: dict[str, Any], now: datetime, stale_after_seconds: int
     return (now - heartbeat_at).total_seconds() >= stale_after_seconds
 
 
+def runner_lock_liveness_from_status_report(
+    report: dict[str, Any] | None,
+    *,
+    now: datetime | None = None,
+    fresh_after_seconds: float = 300.0,
+) -> dict[str, Any]:
+    generated_at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc).replace(microsecond=0)
+    base: dict[str, Any] = {
+        "runner_lock_loaded": False,
+        "runner_lock_session_match": False,
+        "runner_lock_fresh": False,
+        "runner_lock_pid_alive": False,
+        "runner_liveness_proven": False,
+        "runner_lock_pid": None,
+        "runner_lock_heartbeat_at_utc": None,
+        "source_runner_lock_hash": None,
+        "runner_liveness_blocker_code": "DATA_QUALITY_INSUFFICIENT",
+        "runner_liveness_blocker_message": "PAPER runner lock is not loaded.",
+    }
+    if not isinstance(report, dict):
+        return base
+    if report.get("runner_status") != RUNNER_STATUS_RUNNING or report.get("running") is not True:
+        base.update(
+            {
+                "runner_liveness_blocker_code": "DATA_QUALITY_INSUFFICIENT",
+                "runner_liveness_blocker_message": "PAPER runner status does not claim a running process.",
+            }
+        )
+        return base
+
+    raw_lock_path = report.get("lock_path")
+    if not isinstance(raw_lock_path, str) or not raw_lock_path.strip():
+        base.update(
+            {
+                "runner_liveness_blocker_code": "LATENCY_TTL_EXPIRED",
+                "runner_liveness_blocker_message": "PAPER runner status has no session lock path.",
+            }
+        )
+        return base
+    lock = _read_json(Path(raw_lock_path))
+    if not isinstance(lock, dict):
+        base.update(
+            {
+                "runner_liveness_blocker_code": "LATENCY_TTL_EXPIRED",
+                "runner_liveness_blocker_message": "PAPER runner session lock is missing or unreadable.",
+            }
+        )
+        return base
+
+    pid = lock.get("pid")
+    pid_int = pid if isinstance(pid, int) else None
+    heartbeat_at = _parse_utc(lock.get("heartbeat_at")) or _parse_utc(lock.get("acquired_at"))
+    heartbeat_text = (
+        heartbeat_at.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        if heartbeat_at is not None
+        else None
+    )
+    session_match = bool(lock.get("session_id") == report.get("session_id"))
+    schema_match = lock.get("schema_id") == UPBIT_PAPER_LONG_RUNNER_LOCK_SCHEMA_ID
+    pid_alive = _pid_is_running(pid_int)
+    lock_fresh = bool(
+        heartbeat_at is not None and max(0.0, (generated_at - heartbeat_at).total_seconds()) <= fresh_after_seconds
+    )
+    base.update(
+        {
+            "runner_lock_loaded": True,
+            "runner_lock_session_match": session_match,
+            "runner_lock_fresh": lock_fresh,
+            "runner_lock_pid_alive": pid_alive,
+            "runner_lock_pid": pid_int,
+            "runner_lock_heartbeat_at_utc": heartbeat_text,
+            "source_runner_lock_hash": _json_hash(lock),
+        }
+    )
+    if not schema_match:
+        base.update(
+            {
+                "runner_liveness_blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+                "runner_liveness_blocker_message": "PAPER runner session lock schema is invalid.",
+            }
+        )
+    elif not session_match:
+        base.update(
+            {
+                "runner_liveness_blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+                "runner_liveness_blocker_message": "PAPER runner session lock is scoped to another session.",
+            }
+        )
+    elif not pid_alive:
+        base.update(
+            {
+                "runner_liveness_blocker_code": "LATENCY_TTL_EXPIRED",
+                "runner_liveness_blocker_message": "PAPER runner status says RUNNING but the session lock owner PID is not alive.",
+            }
+        )
+    elif not lock_fresh:
+        base.update(
+            {
+                "runner_liveness_blocker_code": "LATENCY_TTL_EXPIRED",
+                "runner_liveness_blocker_message": "PAPER runner session lock heartbeat is stale.",
+            }
+        )
+    else:
+        base.update(
+            {
+                "runner_liveness_proven": True,
+                "runner_liveness_blocker_code": None,
+                "runner_liveness_blocker_message": None,
+            }
+        )
+    return base
+
+
 @dataclass(frozen=True)
 class RunnerLock:
     acquired: bool
@@ -960,7 +1074,7 @@ def acquire_runner_lock(
     now = datetime.now(timezone.utc).replace(microsecond=0)
     owner_token = f"{os.getpid()}-{int(time.time() * 1000)}"
     payload = {
-        "schema_id": "trader1.upbit_paper_long_runner_lock.v1",
+        "schema_id": UPBIT_PAPER_LONG_RUNNER_LOCK_SCHEMA_ID,
         "owner_token": owner_token,
         "pid": os.getpid(),
         "session_id": session_id,
@@ -1569,6 +1683,7 @@ def build_runner_status_report(
         **symbol_scorecard_fields,
         **portfolio_fields,
     }
+    report.update(runner_lock_liveness_from_status_report(report))
     for flag in LIVE_FALSE_FLAGS:
         report[flag] = False
     report["status_hash"] = upbit_paper_long_runner_status_hash(report)
@@ -2455,7 +2570,12 @@ def _canonical_runner_already_running(root: Path, session_id: str = DEFAULT_SESS
         return False
     if validate_upbit_paper_long_runner_status_report(canonical).get("status") != "PASS":
         return False
-    return canonical.get("runner_status") == RUNNER_STATUS_RUNNING and canonical.get("running") is True
+    liveness = runner_lock_liveness_from_status_report(canonical)
+    return (
+        canonical.get("runner_status") == RUNNER_STATUS_RUNNING
+        and canonical.get("running") is True
+        and liveness.get("runner_liveness_proven") is True
+    )
 
 
 def root_upbit_paper_long_runner_main(root: Path = ROOT) -> int:
