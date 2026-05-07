@@ -2654,6 +2654,26 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(runner["runner_status"], "STOPPED")
         self.assertFalse(runner["running"])
 
+    def test_dashboard_primary_status_separates_current_profile_from_unproven_runner(self):
+        dashboard = build_dashboard_with_paper_runtime_evidence_collection_profile()
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(
+            dashboard["primary_status_text"],
+            "PAPER PROFILE CURRENT - RUNNER NOT PROVEN - LIVE ORDERS BLOCKED",
+        )
+        self.assertEqual(dashboard["paper_runner_operations_status"]["status"], "NOT_LOADED")
+        profile = dashboard["paper_runtime_evidence_collection_profile_status"]
+        self.assertEqual(profile["status"], "PASS")
+        self.assertEqual(profile["collection_plan_recommended_next_paper_batch_cycle_count"], 20)
+        self.assertIn("Continue non-live PAPER collection", dashboard["next_action"])
+        self.assertFalse(dashboard["live_order_ready"])
+        self.assertFalse(dashboard["live_order_allowed"])
+        self.assertFalse(dashboard["can_live_trade"])
+        self.assertFalse(dashboard["scale_up_allowed"])
+
     def test_dashboard_blocks_paper_runner_disk_pressure(self):
         dashboard = build_dashboard_with_runner_operations(blocked=True)
 
