@@ -2504,6 +2504,9 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(runner["paper_scope_sample_count"], 3)
         self.assertEqual(runner["paper_scope_min_required_sample_count"], 30)
         self.assertEqual(runner["paper_scope_sample_deficit"], 27)
+        self.assertEqual(runner["paper_scope_continuity_status"], "NOT_REQUESTED")
+        self.assertFalse(runner["paper_scope_continuity_requested"])
+        self.assertFalse(runner["paper_scope_continuity_selected"])
         self.assertEqual(runner["candidate_scorecard_status"], "PASS")
         self.assertEqual(runner["candidate_scorecard_candidate_id"], "KRW-BTC-pullback-trend-long")
         self.assertFalse(runner["candidate_scorecard_ranking_eligible"])
@@ -2536,6 +2539,8 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("PAPER samples", html)
         self.assertIn("Scope samples", html)
         self.assertIn("3 / 30; deficit=27", html)
+        self.assertIn("Scope continuity", html)
+        self.assertIn("NOT_REQUESTED", html)
         self.assertIn("Early robustness", html)
         self.assertIn("Quality feedback", html)
         self.assertIn("KRW-WLFI-pullback-trend-long", html)
@@ -2572,6 +2577,71 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn('data-ticker-field="trade_price"', html)
         self.assertIn("querySelectorAll('[data-public-ticker-symbol=", html)
         self.assertIn("wss://api.upbit.com/websocket/v1", html)
+
+    def test_dashboard_surfaces_paper_scope_continuity_status(self):
+        session_id = "test_read_only_dashboard_runner_scope_continuity"
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+        runner_status = runner_status_fixture(session_id=session_id)
+        runner_status.update(
+            {
+                "paper_scope_continuity_status": "SELECTED",
+                "paper_scope_continuity_requested": True,
+                "paper_scope_continuity_selected": True,
+                "paper_scope_continuity_requested_candidate_id": "KRW-BTC-pullback-trend-long",
+                "paper_scope_continuity_selected_candidate_id": "KRW-BTC-pullback-trend-long",
+                "paper_scope_continuity_best_candidate_id": "KRW-ETH-breakout-retest-long",
+                "paper_scope_continuity_score_gap": "0.0100",
+                "paper_scope_continuity_net_ev_gap_bps": "3.00",
+            }
+        )
+        runner_status["status_hash"] = upbit_paper_long_runner_status_hash(runner_status)
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_long_runner_status_report=runner_status,
+            upbit_paper_long_runner_retention_manifest=runner_retention_manifest_fixture(
+                session_id=session_id
+            ),
+        )
+
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["paper_scope_continuity_status"], "SELECTED")
+        self.assertTrue(runner["paper_scope_continuity_requested"])
+        self.assertTrue(runner["paper_scope_continuity_selected"])
+        self.assertEqual(
+            runner["paper_scope_continuity_requested_candidate_id"],
+            "KRW-BTC-pullback-trend-long",
+        )
+        self.assertEqual(
+            runner["paper_scope_continuity_selected_candidate_id"],
+            "KRW-BTC-pullback-trend-long",
+        )
+        self.assertEqual(
+            runner["paper_scope_continuity_best_candidate_id"],
+            "KRW-ETH-breakout-retest-long",
+        )
+        self.assertEqual(runner["paper_scope_continuity_score_gap"], "0.0100")
+        self.assertEqual(runner["paper_scope_continuity_net_ev_gap_bps"], "3.00")
+        self.assertFalse(runner["live_order_allowed"])
+
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Scope continuity", html)
+        self.assertIn("SELECTED", html)
+        self.assertIn("requested=yes; selected=yes", html)
+        self.assertIn("requested=KRW-BTC-pullback-trend-long", html)
+        self.assertIn("selected=KRW-BTC-pullback-trend-long", html)
+        self.assertIn("best=KRW-ETH-breakout-retest-long", html)
+        self.assertIn("score_gap=0.0100; netEV_gap_bps=3.00", html)
+        self.assertIn("LIVE ORDERS BLOCKED", html)
 
     def test_dashboard_demotes_runner_when_sample_history_companion_mismatches(self):
         session_id = "test_read_only_dashboard_runner_ops_sample_history_mismatch"

@@ -11245,6 +11245,48 @@
           "type": "integer",
           "minimum": 0
         },
+        "paper_scope_continuity_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paper_scope_continuity_requested": {
+          "type": "boolean"
+        },
+        "paper_scope_continuity_selected": {
+          "type": "boolean"
+        },
+        "paper_scope_continuity_requested_candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paper_scope_continuity_selected_candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paper_scope_continuity_best_candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paper_scope_continuity_score_gap": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
+        "paper_scope_continuity_net_ev_gap_bps": {
+          "type": [
+            "string",
+            "number",
+            "null"
+          ]
+        },
         "candidate_scorecard_status": {
           "type": "string",
           "minLength": 1
