@@ -27,7 +27,7 @@ from trader1.runtime.paper.upbit_paper_runtime import (
     upbit_paper_runtime_cycle_hash,
     validate_upbit_paper_runtime_cycle_report,
 )
-from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
+from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json, public_market_data_hash
 
 
 UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_SCHEMA_ID = (
@@ -36,6 +36,17 @@ UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_SCHEMA_ID = (
 UPBIT_PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_ROLE = (
     "PAPER_LEDGER_IDEMPOTENCY_RUNTIME_EVIDENCE_CURRENT_ROLLUP_ONLY"
 )
+LEGACY_SINGLE_SYMBOL_RUNTIME_DEPTH_CONTRACT_MODE = "LEGACY_SINGLE_SYMBOL_RUNTIME_DEPTH_RECHECK"
+_SAFE_LEGACY_RUNTIME_DECISIONS = {
+    "ENTER_LONG",
+    "EXIT_POSITION",
+    "REDUCE_POSITION",
+    "HOLD_POSITION",
+    "NO_TRADE",
+    "BLOCKED",
+    "SAFE_MODE",
+    "RECONCILE_REQUIRED",
+}
 
 
 @dataclass(frozen=True)
@@ -205,6 +216,87 @@ def _runtime_depth_blocker(cycle: dict[str, Any] | None, cycle_id: Any) -> str |
     return None
 
 
+def _legacy_single_symbol_runtime_depth_summary(cycle: dict[str, Any], cycle_id: str) -> tuple[dict[str, Any] | None, str]:
+    if (
+        cycle.get("schema_id") != "trader1.upbit_paper_runtime_cycle_report.v1"
+        or cycle.get("project_id") != "TRADER_1"
+        or cycle.get("exchange") != "UPBIT"
+        or cycle.get("market_type") != "KRW_SPOT"
+        or cycle.get("mode") != "PAPER"
+        or cycle.get("cycle_id") != cycle_id
+    ):
+        return None, "legacy PAPER runtime cycle identity mismatch"
+    forbidden_flags = (
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "order_adapter_called",
+        "private_endpoint_called",
+        "order_endpoint_called",
+        "credential_load_attempted",
+        "live_key_loaded",
+    )
+    if any(cycle.get(field) for field in forbidden_flags):
+        return None, "legacy PAPER runtime cycle attempted live/private/order behavior"
+    if cycle.get("final_decision") not in _SAFE_LEGACY_RUNTIME_DECISIONS:
+        return None, "legacy PAPER runtime cycle final decision is unknown"
+    if cycle.get("runtime_input_role") not in {"PUBLIC_MARKET_DATA_COLLECTION", "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION"}:
+        return None, "legacy PAPER runtime cycle is not public-market-data bound"
+    canonical_event_count = cycle.get("canonical_event_count")
+    if not isinstance(canonical_event_count, int) or canonical_event_count < 5:
+        return None, "legacy PAPER runtime cycle lacks public canonical event depth"
+    public_market_data = cycle.get("public_market_data")
+    feature_snapshot = cycle.get("feature_snapshot")
+    selected = cycle.get("selected_candidate")
+    sizing = cycle.get("sizing_decision")
+    linkage = cycle.get("strategy_regime_cost_linkage")
+    if not all(isinstance(item, dict) for item in (public_market_data, feature_snapshot, selected, sizing, linkage)):
+        return None, "legacy PAPER runtime cycle missing legacy market/feature/strategy components"
+    if public_market_data.get("private_account_fields_present") is not False or public_market_data.get("is_public") is not True:
+        return None, "legacy PAPER runtime cycle public market data scope is unsafe"
+    source_public_hash = cycle.get("source_public_market_data_hash")
+    if not _is_sha256(source_public_hash):
+        source_public_hash = public_market_data_hash(public_market_data)
+    runtime_public_hash = cycle.get("runtime_public_market_data_hash")
+    if not _is_sha256(runtime_public_hash):
+        runtime_public_hash = source_public_hash
+    feature_snapshot_hash = cycle.get("feature_snapshot_hash")
+    if not _is_sha256(feature_snapshot_hash):
+        feature_snapshot_hash = _sha256_json(feature_snapshot)
+    normalized_cycle = dict(cycle)
+    normalized_cycle["runtime_status"] = "PASS"
+    normalized_cycle["runtime_writer_status"] = "PASS"
+    normalized_cycle["runtime_cycle_hash"] = cycle.get("cycle_hash")
+    normalized_cycle["source_public_market_data_hash"] = source_public_hash
+    normalized_cycle["runtime_public_market_data_hash"] = runtime_public_hash
+    normalized_cycle["feature_snapshot_hash"] = feature_snapshot_hash
+    normalized_cycle["selected_candidate_id"] = selected.get("candidate_id")
+    normalized_cycle["selected_candidate_net_ev_after_cost_bps"] = selected.get("net_ev_after_cost_bps")
+    if _runtime_depth_blocker(normalized_cycle, cycle_id) is not None:
+        return None, "legacy PAPER runtime cycle strategy/regime/cost linkage mismatch"
+    return (
+        {
+            "cycle_id": cycle.get("cycle_id"),
+            "runtime_status": "PASS",
+            "runtime_writer_status": "PASS",
+            "runtime_input_role": cycle.get("runtime_input_role"),
+            "runtime_cycle_hash": cycle.get("cycle_hash"),
+            "runtime_cycle_contract_mode": LEGACY_SINGLE_SYMBOL_RUNTIME_DEPTH_CONTRACT_MODE,
+            "source_collection_report_hash": cycle.get("source_collection_report_hash"),
+            "source_public_market_data_hash": source_public_hash,
+            "runtime_public_market_data_hash": runtime_public_hash,
+            "feature_snapshot_hash": feature_snapshot_hash,
+            "canonical_event_count": canonical_event_count,
+            "strategy_regime_cost_linkage": normalized_cycle.get("strategy_regime_cost_linkage"),
+            "regime": cycle.get("regime"),
+            "selected_candidate_id": selected.get("candidate_id"),
+            "selected_candidate_net_ev_after_cost_bps": selected.get("net_ev_after_cost_bps"),
+        },
+        "PASS",
+    )
+
+
 def _runtime_cycle_summary_from_artifact(
     *,
     root: Path,
@@ -239,10 +331,13 @@ def _runtime_cycle_summary_from_artifact(
             runtime_cycle_contract_mode = "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP"
             cycle_result = legacy_cycle_result
     if cycle_result.status != "PASS":
+        legacy_summary, legacy_message = _legacy_single_symbol_runtime_depth_summary(cycle, cycle_id)
+        if legacy_summary is not None:
+            return legacy_summary, cycle_path_text
         blockers.append(
             _blocker(
                 cycle_result.blocker_code or "RECONCILIATION_REQUIRED",
-                f"PAPER runtime cycle artifact did not validate PASS: {cycle_result.message}",
+                f"PAPER runtime cycle artifact did not validate PASS: {cycle_result.message}; legacy_runtime_depth={legacy_message}",
             )
         )
         return None, cycle_path_text
@@ -1014,6 +1109,7 @@ def validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
         "PERSISTENT_LOOP_SUMMARY",
         "CURRENT",
         "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP",
+        LEGACY_SINGLE_SYMBOL_RUNTIME_DEPTH_CONTRACT_MODE,
         "NOT_BOUND",
     }:
         return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "runtime cycle contract mode is unknown", "SCHEMA_IDENTITY_MISMATCH")
@@ -1030,6 +1126,7 @@ def validate_upbit_paper_ledger_idempotency_runtime_evidence_report(
         if report.get("source_runtime_cycle_contract_mode") not in {
             "CURRENT",
             "LEGACY_RECHECK_WITHOUT_CURRENT_SIZING_EXPOSURE_CAP",
+            LEGACY_SINGLE_SYMBOL_RUNTIME_DEPTH_CONTRACT_MODE,
         }:
             return UpbitPaperLedgerIdempotencyRuntimeEvidenceValidationResult("FAIL", "artifact binding must expose current or legacy runtime cycle contract mode", "SCHEMA_IDENTITY_MISMATCH")
     elif report.get("source_runtime_cycle_contract_mode") != "NOT_BOUND":
