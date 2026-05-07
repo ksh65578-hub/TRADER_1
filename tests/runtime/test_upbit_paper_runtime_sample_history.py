@@ -258,6 +258,75 @@ class UpbitPaperRuntimeSampleHistoryTest(unittest.TestCase):
         self.assertEqual(source_result.blocker_code, "RECONCILIATION_REQUIRED")
         self.assertIn("source cycle is missing", source_result.message)
 
+    def test_runtime_sample_history_reads_retained_archive_and_compacted_sources(self):
+        from trader1.runtime.paper.upbit_paper_long_runner import apply_runner_artifact_retention
+
+        tmp = TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        session_id = "archive_bound_history"
+
+        for index in range(3):
+            run_upbit_paper_persistent_loop(
+                root=root,
+                session_id=session_id,
+                loop_id=f"upbit-paper-runner-archive-bound-{index + 1:06d}",
+                requested_cycle_count=1,
+            )
+
+        apply_runner_artifact_retention(
+            root=root,
+            session_id=session_id,
+            max_active_artifacts_per_group=1,
+            max_uncompacted_archive_batches=1,
+            log_max_bytes=128,
+            disk_pressure_max_runtime_bytes=1_000_000,
+        )
+
+        archived_history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
+        archived_source_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=archived_history)
+        archived_paths = [
+            item
+            for sample in archived_history["samples"]
+            for item in (sample["source_loop_report_path"], sample["source_runtime_cycle_path"])
+            if "/paper_runtime/runner/archive/" in item
+        ]
+
+        self.assertEqual(archived_source_result.status, "PASS")
+        self.assertEqual(archived_history["accepted_cycle_sample_count"], 3)
+        self.assertTrue(archived_paths)
+
+        time.sleep(1.1)
+        run_upbit_paper_persistent_loop(
+            root=root,
+            session_id=session_id,
+            loop_id="upbit-paper-runner-archive-bound-000004",
+            requested_cycle_count=1,
+        )
+        apply_runner_artifact_retention(
+            root=root,
+            session_id=session_id,
+            max_active_artifacts_per_group=1,
+            max_uncompacted_archive_batches=1,
+            log_max_bytes=128,
+            disk_pressure_max_runtime_bytes=1_000_000,
+        )
+
+        compacted_history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
+        compacted_source_result = validate_upbit_paper_runtime_sample_history_sources(root=root, history=compacted_history)
+        compacted_paths = [
+            item
+            for sample in compacted_history["samples"]
+            for item in (sample["source_loop_report_path"], sample["source_runtime_cycle_path"])
+            if ".zip#" in item
+        ]
+
+        self.assertEqual(compacted_source_result.status, "PASS")
+        self.assertEqual(compacted_history["accepted_cycle_sample_count"], 4)
+        self.assertTrue(compacted_paths)
+        self.assertFalse(compacted_history["live_order_allowed"])
+        self.assertFalse(compacted_history["can_live_trade"])
+
     def test_runtime_sample_history_detects_floor_flag_drift(self):
         history, _ = self._history()
         history["span_floor_met"] = True
