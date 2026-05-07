@@ -104,6 +104,10 @@ RECENT_FAILURE_SYMBOL_SIGNAL_PENALTY = Decimal("0.18")
 RECENT_FAILURE_STRATEGY_SIGNAL_PENALTY = Decimal("0.12")
 RECENT_FAILURE_MAX_EDGE_PENALTY_BPS = Decimal("80")
 RECENT_FAILURE_MAX_SIGNAL_PENALTY = Decimal("0.50")
+RUNTIME_QUALITY_FEEDBACK_SYMBOL_EDGE_PENALTY_BPS = Decimal("18")
+RUNTIME_QUALITY_FEEDBACK_CANDIDATE_EDGE_PENALTY_BPS = Decimal("55")
+RUNTIME_QUALITY_FEEDBACK_SYMBOL_SIGNAL_PENALTY = Decimal("0.08")
+RUNTIME_QUALITY_FEEDBACK_CANDIDATE_SIGNAL_PENALTY = Decimal("0.28")
 RECENT_FAILURE_COOLDOWN_EXIT_REASONS = {
     "REGIME_REVERSAL",
     "HARD_STOP",
@@ -113,8 +117,12 @@ RECENT_FAILURE_COOLDOWN_EXIT_REASONS = {
 }
 RECENT_FAILURE_FEEDBACK_FORMULA = (
     "active when recent PAPER closed loss has same symbol and cooldown_cycles_remaining>0; "
-    "edge_penalty=min(80,32bps_symbol+18bps_same_strategy+12bps_regime_reversal); "
-    "signal_penalty=min(0.50,0.18_symbol+0.12_same_strategy); active cooldown blocks PAPER_ENTRY_REVIEW"
+    "or when preliminary PAPER robustness/OOS feedback marks the same symbol/candidate as unfavorable; "
+    "closed_loss_edge_penalty=min(80,32bps_symbol+18bps_same_strategy+12bps_regime_reversal); "
+    "quality_edge_penalty=min(80,18bps_symbol+55bps_same_candidate_or_strategy); "
+    "closed_loss_signal_penalty=min(0.50,0.18_symbol+0.12_same_strategy); "
+    "quality_signal_penalty=min(0.50,0.08_symbol+0.28_same_candidate_or_strategy); "
+    "active cooldown blocks PAPER_ENTRY_REVIEW"
 )
 POSITION_ROTATION_EXIT_FIELDS = frozenset(
     {
@@ -324,6 +332,7 @@ def _candidate_rank_key(candidate: dict[str, Any]) -> tuple[Decimal, Decimal, in
 def _recent_failure_clear_feedback() -> dict[str, Any]:
     return {
         "recent_failure_cooldown_status": "CLEAR",
+        "recent_failure_feedback_kind": "NONE",
         "recent_failure_cooldown_cycles_remaining": 0,
         "recent_failure_penalty_bps": "0",
         "recent_failure_signal_penalty": "0",
@@ -366,6 +375,10 @@ def _recent_failure_feedback_for_candidate(
             continue
         if remaining <= 0:
             continue
+        kind = str(feedback.get("feedback_kind") or "RECENT_NEGATIVE_EXIT")
+        if kind == "PRELIMINARY_ROBUSTNESS_FAIL":
+            matched.append(feedback)
+            continue
         if _decimal(feedback.get("realized_pnl_delta", feedback.get("realized_pnl", "0"))) >= 0:
             continue
         reason = str(feedback.get("exit_reason_code") or feedback.get("failure_reason_code") or "")
@@ -386,17 +399,25 @@ def _recent_failure_feedback_for_candidate(
     selected = matched[0]
     same_strategy = selected.get("strategy_family") == strategy_family or selected.get("candidate_id") == candidate_id
     reason = str(selected.get("exit_reason_code") or selected.get("failure_reason_code") or "RECENT_PAPER_CLOSED_LOSS")
-    edge_penalty = RECENT_FAILURE_SYMBOL_EDGE_PENALTY_BPS
-    signal_penalty = RECENT_FAILURE_SYMBOL_SIGNAL_PENALTY
-    if same_strategy:
-        edge_penalty += RECENT_FAILURE_STRATEGY_EDGE_PENALTY_BPS
-        signal_penalty += RECENT_FAILURE_STRATEGY_SIGNAL_PENALTY
-    if reason == "REGIME_REVERSAL":
-        edge_penalty += RECENT_FAILURE_REGIME_REVERSAL_EDGE_PENALTY_BPS
+    if str(selected.get("feedback_kind") or "") == "PRELIMINARY_ROBUSTNESS_FAIL":
+        edge_penalty = RUNTIME_QUALITY_FEEDBACK_SYMBOL_EDGE_PENALTY_BPS
+        signal_penalty = RUNTIME_QUALITY_FEEDBACK_SYMBOL_SIGNAL_PENALTY
+        if same_strategy:
+            edge_penalty += RUNTIME_QUALITY_FEEDBACK_CANDIDATE_EDGE_PENALTY_BPS
+            signal_penalty += RUNTIME_QUALITY_FEEDBACK_CANDIDATE_SIGNAL_PENALTY
+    else:
+        edge_penalty = RECENT_FAILURE_SYMBOL_EDGE_PENALTY_BPS
+        signal_penalty = RECENT_FAILURE_SYMBOL_SIGNAL_PENALTY
+        if same_strategy:
+            edge_penalty += RECENT_FAILURE_STRATEGY_EDGE_PENALTY_BPS
+            signal_penalty += RECENT_FAILURE_STRATEGY_SIGNAL_PENALTY
+        if reason == "REGIME_REVERSAL":
+            edge_penalty += RECENT_FAILURE_REGIME_REVERSAL_EDGE_PENALTY_BPS
     edge_penalty = min(edge_penalty, RECENT_FAILURE_MAX_EDGE_PENALTY_BPS)
     signal_penalty = min(signal_penalty, RECENT_FAILURE_MAX_SIGNAL_PENALTY)
     return {
         "recent_failure_cooldown_status": "ACTIVE",
+        "recent_failure_feedback_kind": str(selected.get("feedback_kind") or "RECENT_NEGATIVE_EXIT"),
         "recent_failure_cooldown_cycles_remaining": int(selected.get("cooldown_cycles_remaining", 0) or 0),
         "recent_failure_penalty_bps": _decimal_text(edge_penalty),
         "recent_failure_signal_penalty": _decimal_text(signal_penalty),
@@ -1319,7 +1340,8 @@ def _symbol_selection_policy(*, runtime_input_role: str, symbol_count: int) -> d
             "setup confirmation thresholds volume>=1.05 or momentum>=1.50 for pullback, "
             "volume>=1.20 and range_breakout>=0.03 for breakout, RANGE and VWAP distance>=0.35 for mean reversion; "
             "trend exhaustion guard volatility>=3.00pct and momentum>=3.00pct and volume>=1.50 applies -42bps edge; "
-            "recent negative PAPER closed loss applies 3-cycle symbol cooldown and ranking penalty"
+            "recent negative PAPER closed loss applies 3-cycle symbol cooldown and ranking penalty; "
+            "preliminary robustness/OOS failure applies evidence-backed candidate/symbol cooldown before more PAPER entry review"
         ),
         "fallback_behavior": "Use configured single symbol when no universe is supplied; block with RISK_OFF/MEASUREMENT_MISSING when no valid public candle source exists.",
         "acceptance_condition": "Every evaluated symbol must have one PAPER_SYMBOL_EVIDENCE_ONLY scorecard and all live/order flags false.",
@@ -1382,6 +1404,7 @@ def _build_symbol_evidence_scorecard(
         "best_decision": best_candidate.get("decision"),
         "best_no_trade_reason": best_candidate.get("no_trade_reason"),
         "best_recent_failure_cooldown_status": best_candidate.get("recent_failure_cooldown_status", "CLEAR"),
+        "best_recent_failure_feedback_kind": best_candidate.get("recent_failure_feedback_kind", "NONE"),
         "best_recent_failure_cooldown_cycles_remaining": int(
             best_candidate.get("recent_failure_cooldown_cycles_remaining", 0) or 0
         ),

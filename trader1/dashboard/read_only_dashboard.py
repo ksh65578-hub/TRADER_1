@@ -6210,6 +6210,9 @@ def _paper_runner_operations_status(
         "runtime_sample_count": 0,
         "candidate_scorecard_status": "NOT_LOADED",
         "candidate_scorecard_ranking_eligible": False,
+        "runtime_quality_feedback_count": 0,
+        "runtime_quality_feedback_candidate_ids": [],
+        "selected_candidate_recent_failure_feedback_kind": "NONE",
         "symbol_evidence_scorecard_count": 0,
         "selected_symbol_evidence_scorecard": None,
         "symbol_evidence_scorecards_top": [],
@@ -6409,6 +6412,18 @@ def _paper_runner_operations_status(
                 "candidate_scorecard_ranking_eligible"
             )
             is True,
+            "runtime_quality_feedback_count": safe_count(
+                runner_status_report.get("runtime_quality_feedback_count")
+            ),
+            "runtime_quality_feedback_candidate_ids": (
+                runner_status_report.get("runtime_quality_feedback_candidate_ids")
+                if isinstance(runner_status_report.get("runtime_quality_feedback_candidate_ids"), list)
+                and all(isinstance(item, str) and item for item in runner_status_report.get("runtime_quality_feedback_candidate_ids", []))
+                else []
+            ),
+            "selected_candidate_recent_failure_feedback_kind": str(
+                runner_status_report.get("selected_candidate_recent_failure_feedback_kind") or "NONE"
+            ),
             "symbol_evidence_scorecard_count": safe_count(
                 runner_status_report.get("symbol_evidence_scorecard_count")
             ),
@@ -19013,6 +19028,8 @@ def _display_text(shell: dict[str, Any]) -> list[str]:
                 "runner_status",
                 "artifact_retention_status",
                 "disk_pressure_status",
+                "runtime_quality_feedback_count",
+                "selected_candidate_recent_failure_feedback_kind",
                 "primary_blocker_code",
                 "one_line_summary",
                 "next_operator_action",
@@ -20004,6 +20021,24 @@ def validate_read_only_dashboard_shell(
                 "paper runner disk pressure must surface fail-closed blocker",
                 DISK_PRESSURE_BLOCKER_CODE,
             )
+    if (
+        not isinstance(runner_operations.get("runtime_quality_feedback_count"), int)
+        or runner_operations.get("runtime_quality_feedback_count", 0) < 0
+    ):
+        return DashboardValidationResult("FAIL", "paper runner quality feedback count is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(runner_operations.get("runtime_quality_feedback_candidate_ids"), list) or any(
+        not isinstance(item, str) or not item for item in runner_operations.get("runtime_quality_feedback_candidate_ids", [])
+    ):
+        return DashboardValidationResult(
+            "FAIL",
+            "paper runner quality feedback candidate list is invalid",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
+    if (
+        not isinstance(runner_operations.get("selected_candidate_recent_failure_feedback_kind"), str)
+        or not runner_operations.get("selected_candidate_recent_failure_feedback_kind", "").strip()
+    ):
+        return DashboardValidationResult("FAIL", "paper runner selected feedback kind is invalid", "SCHEMA_IDENTITY_MISMATCH")
     if not isinstance(runner_operations.get("next_operator_action"), str) or not runner_operations.get("next_operator_action", "").strip():
         return DashboardValidationResult("FAIL", "paper runner operations must expose next action", "SCHEMA_IDENTITY_MISMATCH")
     portfolio = shell.get("portfolio_snapshot")
@@ -25386,6 +25421,16 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         if isinstance(paper_runner_operations.get("selected_symbol_evidence_scorecard"), dict)
         else {}
     )
+    paper_runner_quality_feedback_ids = (
+        paper_runner_operations.get("runtime_quality_feedback_candidate_ids")
+        if isinstance(paper_runner_operations.get("runtime_quality_feedback_candidate_ids"), list)
+        else []
+    )
+    paper_runner_quality_feedback_text = (
+        ", ".join(str(item) for item in paper_runner_quality_feedback_ids[:3])
+        if paper_runner_quality_feedback_ids
+        else "none"
+    )
     paper_runner_symbol_scorecard_preview = []
     for scorecard in paper_runner_symbol_scorecards[:3]:
         if not isinstance(scorecard, dict):
@@ -25393,7 +25438,8 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         paper_runner_symbol_scorecard_preview.append(
             f"{scorecard.get('symbol', 'UNKNOWN')}: {scorecard.get('best_strategy_family', 'UNKNOWN')} "
             f"netEV={scorecard.get('best_net_ev_after_cost_bps', 'n/a')} "
-            f"decision={scorecard.get('best_decision', 'UNKNOWN')}"
+            f"decision={scorecard.get('best_decision', 'UNKNOWN')} "
+            f"feedback={scorecard.get('best_recent_failure_feedback_kind', 'NONE')}"
         )
     if not paper_runner_symbol_scorecard_preview:
         paper_runner_symbol_scorecard_preview = ["No symbol scorecards loaded"]
@@ -25454,7 +25500,11 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"OOS={safe_text(paper_runner_operations.get('overfit_preliminary_oos_status', 'UNTESTED'))}, "
         f"WF={safe_text(paper_runner_operations.get('overfit_preliminary_walk_forward_status', 'UNTESTED'))}, "
         f"bootstrap={safe_text(paper_runner_operations.get('overfit_preliminary_bootstrap_status', 'UNTESTED'))}</dd></div>"
-        f"<div><dt>Selected scorecard</dt><dd>{safe_text(paper_runner_selected_symbol_scorecard.get('symbol', paper_runner_operations.get('current_symbol', 'UNKNOWN')))} / netEV={safe_text(paper_runner_selected_symbol_scorecard.get('best_net_ev_after_cost_bps', 'n/a'))}</dd></div>"
+        f"<div><dt>Quality feedback</dt><dd>{safe_text(paper_runner_operations.get('runtime_quality_feedback_count', 0))} active<br>"
+        f"{safe_text(paper_runner_quality_feedback_text)}<br>"
+        f"selected={safe_text(paper_runner_operations.get('selected_candidate_recent_failure_feedback_kind', 'NONE'))}</dd></div>"
+        f"<div><dt>Selected scorecard</dt><dd>{safe_text(paper_runner_selected_symbol_scorecard.get('symbol', paper_runner_operations.get('current_symbol', 'UNKNOWN')))} / netEV={safe_text(paper_runner_selected_symbol_scorecard.get('best_net_ev_after_cost_bps', 'n/a'))}<br>"
+        f"feedback={safe_text(paper_runner_selected_symbol_scorecard.get('best_recent_failure_feedback_kind', 'NONE'))}</dd></div>"
         f"<div><dt>Symbol scorecards</dt><dd>{paper_runner_symbol_scorecard_html}</dd></div>"
         f"<div><dt>PAPER/SHADOW evidence</dt><dd>{safe_text(paper_runner_operations.get('paper_shadow_evidence_validation_status', 'NOT_LOADED'))} / {safe_text(paper_runner_operations.get('paper_shadow_evidence_actionability_status', 'NOT_LOADED'))}</dd></div>"
         f"<div><dt>Retention</dt><dd class=\"pill {status_class(paper_runner_operations.get('artifact_retention_status'))}\">{safe_text(paper_runner_retention_display)}</dd></div>"

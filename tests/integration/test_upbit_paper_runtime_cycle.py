@@ -196,6 +196,59 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         )
         self.assertFalse(report["live_order_allowed"])
 
+    def test_preliminary_robustness_feedback_rotates_away_from_unfavorable_candidate(self):
+        repeated_wlfi = build_upbit_public_candle_fixture(
+            symbol="KRW-WLFI",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(repeated_wlfi["candles"], start=1):
+            candle["volume"] = str(10 + index * 3)
+        strong_eth = build_upbit_public_candle_fixture(
+            symbol="KRW-ETH",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        for index, candle in enumerate(strong_eth["candles"], start=1):
+            candle["volume"] = str(8 + index * 2)
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-preliminary-robustness-feedback-rotation",
+            symbol="KRW-WLFI",
+            market_data_universe=[repeated_wlfi, strong_eth],
+            recent_failure_feedback=[
+                {
+                    "source": "PAPER_RUNTIME_PRELIMINARY_ROBUSTNESS_FEEDBACK",
+                    "feedback_kind": "PRELIMINARY_ROBUSTNESS_FAIL",
+                    "symbol": "KRW-WLFI",
+                    "candidate_id": "KRW-WLFI-pullback-trend-long",
+                    "strategy_family": "PULLBACK_TREND_LONG",
+                    "failure_reason_code": "PRELIMINARY_OOS_BELOW_THRESHOLD",
+                    "exit_reason_code": "PRELIMINARY_OOS_BELOW_THRESHOLD",
+                    "realized_pnl_delta": "0",
+                    "cooldown_cycles_remaining": 5,
+                }
+            ],
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["selected_symbol"], "KRW-ETH")
+        wlfi_pullback = next(
+            candidate
+            for candidate in report["strategy_candidates"]
+            if candidate["candidate_id"] == "KRW-WLFI-pullback-trend-long"
+        )
+        self.assertEqual(wlfi_pullback["decision"], "NO_TRADE")
+        self.assertEqual(wlfi_pullback["no_trade_reason"], "COOLDOWN")
+        self.assertEqual(wlfi_pullback["recent_failure_feedback_kind"], "PRELIMINARY_ROBUSTNESS_FAIL")
+        self.assertEqual(wlfi_pullback["recent_failure_reason_code"], "PRELIMINARY_OOS_BELOW_THRESHOLD")
+        self.assertGreater(float(wlfi_pullback["recent_failure_penalty_bps"]), 50)
+        scorecards_by_symbol = {item["symbol"]: item for item in report["symbol_evidence_scorecards"]}
+        self.assertEqual(scorecards_by_symbol["KRW-WLFI"]["best_recent_failure_feedback_kind"], "PRELIMINARY_ROBUSTNESS_FAIL")
+        self.assertEqual(report["selected_candidate"]["recent_failure_feedback_kind"], "NONE")
+        self.assertFalse(report["live_order_allowed"])
+
     def test_symbol_evidence_scorecard_tamper_is_rejected(self):
         weak_btc = build_upbit_public_candle_fixture(
             symbol="KRW-BTC",

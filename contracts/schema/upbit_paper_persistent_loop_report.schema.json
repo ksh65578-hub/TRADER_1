@@ -190,6 +190,18 @@
           "selected_symbol": {"type": ["string", "null"], "minLength": 1},
           "selected_candidate_id": {"type": ["string", "null"], "minLength": 1},
           "selected_candidate_net_ev_after_cost_bps": {"type": ["string", "null"]},
+          "selected_candidate_recent_failure_cooldown_status": {"type": ["string", "null"]},
+          "selected_candidate_recent_failure_cooldown_cycles_remaining": {
+            "type": ["integer", "string", "null"],
+            "minimum": 0
+          },
+          "selected_candidate_recent_failure_reason_code": {"type": ["string", "null"]},
+          "selected_candidate_recent_failure_feedback_kind": {"type": ["string", "null"]},
+          "runtime_quality_feedback_count": {"type": "integer", "minimum": 0},
+          "runtime_quality_feedback_candidate_ids": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          },
           "strategy_regime_cost_linkage": {
             "oneOf": [
               {"type": "null"},
