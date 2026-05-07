@@ -20958,6 +20958,53 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
     if not ranking_eligible and scorecard.get("scorecard_scope") == "PAPER_SCORECARD_INPUT_ONLY":
         errors.append("PAPER_SCORECARD_INPUT_ONLY scorecard must be ranking_eligible")
 
+    evaluated_symbol_count = scorecard.get("evaluated_symbol_count")
+    paper_entry_review_symbol_count = scorecard.get("paper_entry_review_symbol_count")
+    top_symbol_scorecards = scorecard.get("top_symbol_evidence_scorecards")
+    if evaluated_symbol_count is not None:
+        if not isinstance(evaluated_symbol_count, int) or evaluated_symbol_count < 0:
+            errors.append("evaluated_symbol_count must be a non-negative integer when present")
+        if isinstance(top_symbol_scorecards, list) and isinstance(evaluated_symbol_count, int):
+            if len(top_symbol_scorecards) > min(evaluated_symbol_count, 5):
+                errors.append("top_symbol_evidence_scorecards cannot exceed evaluated symbol count or top-5 cap")
+    if paper_entry_review_symbol_count is not None:
+        if not isinstance(paper_entry_review_symbol_count, int) or paper_entry_review_symbol_count < 0:
+            errors.append("paper_entry_review_symbol_count must be a non-negative integer when present")
+        if isinstance(evaluated_symbol_count, int) and isinstance(paper_entry_review_symbol_count, int):
+            if paper_entry_review_symbol_count > evaluated_symbol_count:
+                errors.append("paper_entry_review_symbol_count cannot exceed evaluated_symbol_count")
+    if top_symbol_scorecards is not None:
+        if not isinstance(top_symbol_scorecards, list):
+            errors.append("top_symbol_evidence_scorecards must be a list when present")
+        else:
+            for index, symbol_scorecard in enumerate(top_symbol_scorecards):
+                if not isinstance(symbol_scorecard, dict):
+                    errors.append("top_symbol_evidence_scorecards entries must be objects")
+                    continue
+                if any(_live_flag_is_true(symbol_scorecard.get(flag)) for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+                    errors.append(f"top_symbol_evidence_scorecards[{index}] has forbidden live or scale flag")
+    alternative_count = scorecard.get("alternative_candidate_count")
+    if alternative_count is not None and (not isinstance(alternative_count, int) or alternative_count < 0):
+        errors.append("alternative_candidate_count must be a non-negative integer when present")
+    rotation_required = scorecard.get("rotation_review_required")
+    rotation_reason = scorecard.get("rotation_review_reason_code")
+    if rotation_required is not None:
+        if not isinstance(rotation_required, bool):
+            errors.append("rotation_review_required must be boolean when present")
+        elif rotation_required:
+            if ranking_eligible:
+                errors.append("rotation_review_required cannot be true for ranking_eligible scorecard")
+            if rotation_reason in {None, "NONE"}:
+                errors.append("rotation_review_required requires a non-NONE reason code")
+            if not scorecard.get("best_alternative_candidate_id") or not scorecard.get("best_alternative_symbol"):
+                errors.append("rotation_review_required requires best alternative candidate and symbol")
+            if scorecard.get("best_alternative_candidate_id") == scorecard.get("candidate_id"):
+                errors.append("best_alternative_candidate_id must differ from selected candidate_id")
+            if scorecard.get("best_alternative_net_ev_after_cost_bps") is None:
+                errors.append("rotation_review_required requires best alternative net EV after cost")
+        elif rotation_reason not in {None, "NONE"}:
+            errors.append("rotation_review_reason_code must be NONE when rotation_review_required=false")
+
     if ranking_eligible:
         min_required = float(scorecard["min_required_edge_bps"])
         if actual_net < min_required:

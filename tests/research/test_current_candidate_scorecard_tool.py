@@ -77,6 +77,11 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertFalse(scorecard["live_order_allowed"])
         self.assertFalse(scorecard["can_live_trade"])
         self.assertFalse(scorecard["scale_up_allowed"])
+        self.assertGreaterEqual(scorecard["evaluated_symbol_count"], 1)
+        self.assertGreaterEqual(scorecard["paper_entry_review_symbol_count"], 0)
+        self.assertIn("top_symbol_evidence_scorecards", scorecard)
+        self.assertIn("rotation_review_required", scorecard)
+        self.assertIn("rotation_review_reason_code", scorecard)
         self.assertFalse(result["live_order_allowed"])
         blocker_codes = {blocker["code"] for blocker in scorecard["blockers"]}
         self.assertTrue({"OOS_MISSING", "WALK_FORWARD_MISSING", "BOOTSTRAP_UNSTABLE", "OVERFIT_RISK_HIGH"}.issubset(blocker_codes))

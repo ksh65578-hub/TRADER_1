@@ -112,6 +112,44 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(scorecard["can_live_trade"])
         self.assertFalse(scorecard["scale_up_allowed"])
 
+    def test_multisymbol_runtime_persists_rotation_context_without_live_permission(self):
+        market_data_universe = [
+            build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id="mvp4_upbit_paper_runtime",
+                profile="UPTREND_PULLBACK",
+            )
+            for symbol in ("KRW-BTC", "KRW-ETH")
+        ]
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-runtime-multisymbol-rotation-context",
+            session_id="mvp4_upbit_paper_runtime",
+            market_data_universe=market_data_universe,
+        )
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(scorecard["evaluated_symbol_count"], 2)
+        self.assertEqual(scorecard["paper_entry_review_symbol_count"], 2)
+        self.assertEqual(len(scorecard["top_symbol_evidence_scorecards"]), 2)
+        self.assertGreaterEqual(scorecard["alternative_candidate_count"], 1)
+        self.assertNotEqual(scorecard["best_alternative_candidate_id"], scorecard["candidate_id"])
+        self.assertIn(scorecard["best_alternative_symbol"], {"KRW-BTC", "KRW-ETH"})
+        self.assertIsInstance(scorecard["best_alternative_net_ev_after_cost_bps"], float)
+        self.assertTrue(scorecard["rotation_review_required"])
+        self.assertEqual(
+            scorecard["rotation_review_reason_code"],
+            "SELECTED_CANDIDATE_ROBUSTNESS_BLOCKED_WITH_ALTERNATIVE",
+        )
+        for symbol_scorecard in scorecard["top_symbol_evidence_scorecards"]:
+            self.assertFalse(symbol_scorecard["live_order_ready"])
+            self.assertFalse(symbol_scorecard["live_order_allowed"])
+            self.assertFalse(symbol_scorecard["can_live_trade"])
+            self.assertFalse(symbol_scorecard["scale_up_allowed"])
+        self.assertFalse(scorecard["live_order_allowed"])
+
     def test_robustness_pass_requires_source_evidence_before_paper_ranking(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-no-source")
 

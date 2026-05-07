@@ -3510,6 +3510,19 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["candidate_scorecard_net_ev_after_cost_bps"], scorecard["net_ev_after_cost_bps"])
         self.assertEqual(maturity["candidate_scorecard_candidate_id"], scorecard["candidate_id"])
         self.assertFalse(maturity["candidate_scorecard_ranking_eligible"])
+        self.assertEqual(maturity["candidate_scorecard_evaluated_symbol_count"], scorecard["evaluated_symbol_count"])
+        self.assertEqual(
+            maturity["candidate_scorecard_paper_entry_review_symbol_count"],
+            scorecard["paper_entry_review_symbol_count"],
+        )
+        self.assertEqual(
+            maturity["candidate_scorecard_rotation_review_required"],
+            scorecard["rotation_review_required"],
+        )
+        self.assertEqual(
+            maturity["candidate_scorecard_rotation_review_reason_code"],
+            scorecard["rotation_review_reason_code"],
+        )
         self.assertFalse(maturity["scorecard_input_eligible"])
         self.assertFalse(maturity["live_order_allowed"])
         sources = [source for source in dashboard["source_artifacts"] if source["artifact_id"] == "CANDIDATE_SCORECARD"]
