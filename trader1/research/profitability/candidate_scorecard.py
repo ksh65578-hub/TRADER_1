@@ -42,6 +42,17 @@ def stable_hash(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest().upper()
 
 
+def safe_candidate_scorecard_filename(candidate_id: Any) -> str:
+    text = str(candidate_id or "unknown-candidate")
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.")
+    safe = "".join(character if character in allowed else "_" for character in text).strip("._")
+    if not safe:
+        safe = "unknown-candidate"
+    if len(safe) > 96:
+        safe = f"{safe[:80]}-{stable_hash(text)[:16]}"
+    return safe
+
+
 def current_authority_hashes() -> dict[str, str]:
     return {
         "trader1_sha256": sha256_file(ROOT / "TRADER_1.md"),
@@ -418,5 +429,11 @@ def write_upbit_paper_candidate_scorecard(*, root: Path, scorecard: dict[str, An
         / "profitability"
         / "candidate_scorecard.json"
     )
+    snapshot_path = (
+        path.parent
+        / "candidate_scorecards"
+        / f"{safe_candidate_scorecard_filename(scorecard.get('candidate_id'))}.candidate_scorecard.json"
+    )
     durable_atomic_write_json(path, scorecard)
+    durable_atomic_write_json(snapshot_path, scorecard)
     return path

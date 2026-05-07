@@ -1,5 +1,8 @@
 import copy
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import (
@@ -7,6 +10,8 @@ from trader1.research.profitability.candidate_scorecard import (
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     has_required_robustness_source_ids,
     robustness_source_evidence_id,
+    safe_candidate_scorecard_filename,
+    write_upbit_paper_candidate_scorecard,
 )
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report, upbit_paper_runtime_cycle_hash
 from trader1.runtime.portfolio.paper_portfolio import build_paper_portfolio_snapshot_from_fill
@@ -221,6 +226,48 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(scorecard["blockers"], [])
         self.assertEqual(scorecard["live_readiness_status"], "NOT_LIVE_READY")
         self.assertFalse(scorecard["live_order_allowed"])
+
+    def test_scorecard_writer_preserves_candidate_scoped_snapshots_without_live_permission(self):
+        btc_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-writer-btc-snapshot",
+            symbol="KRW-BTC",
+        )
+        eth_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-writer-eth-snapshot",
+            symbol="KRW-ETH",
+        )
+        btc_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(btc_runtime)
+        eth_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(eth_runtime)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            canonical_path = write_upbit_paper_candidate_scorecard(root=root, scorecard=btc_scorecard)
+            btc_snapshot_path = (
+                canonical_path.parent
+                / "candidate_scorecards"
+                / f"{safe_candidate_scorecard_filename(btc_scorecard['candidate_id'])}.candidate_scorecard.json"
+            )
+
+            second_canonical_path = write_upbit_paper_candidate_scorecard(root=root, scorecard=eth_scorecard)
+            eth_snapshot_path = (
+                canonical_path.parent
+                / "candidate_scorecards"
+                / f"{safe_candidate_scorecard_filename(eth_scorecard['candidate_id'])}.candidate_scorecard.json"
+            )
+            canonical = json.loads(second_canonical_path.read_text(encoding="utf-8"))
+            btc_snapshot = json.loads(btc_snapshot_path.read_text(encoding="utf-8"))
+            eth_snapshot = json.loads(eth_snapshot_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(canonical["candidate_id"], eth_scorecard["candidate_id"])
+        self.assertEqual(btc_snapshot["candidate_id"], btc_scorecard["candidate_id"])
+        self.assertEqual(eth_snapshot["candidate_id"], eth_scorecard["candidate_id"])
+        self.assertEqual(_candidate_scorecard_net_ev_errors(btc_snapshot), [])
+        self.assertEqual(_candidate_scorecard_net_ev_errors(eth_snapshot), [])
+        self.assertFalse(btc_snapshot["live_order_ready"])
+        self.assertFalse(btc_snapshot["live_order_allowed"])
+        self.assertFalse(btc_snapshot["can_live_trade"])
+        self.assertFalse(btc_snapshot["scale_up_allowed"])
+        self.assertFalse(eth_snapshot["live_order_allowed"])
 
     def test_scorecard_live_flag_mutation_is_rejected(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-live-mutation")
