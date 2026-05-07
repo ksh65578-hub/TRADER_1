@@ -18973,6 +18973,52 @@ def build_read_only_dashboard_shell(
         execution_feedback_snapshot=execution_feedback_snapshot,
         decision_trace=decision_trace,
     )
+    if (
+        runner_operations_status.get("status") == "NOT_LOADED"
+        and paper_runtime_evidence_collection_profile_status.get("status") == "PASS"
+        and paper_runtime_evidence_collection_profile_status.get("collection_plan_status")
+        == "READY_TO_CONTINUE_NON_LIVE_COLLECTION"
+    ):
+        profile_paper_remaining = _safe_count(
+            paper_runtime_evidence_collection_profile_status.get("paper_mode_missing_cycle_count")
+        )
+        profile_shadow_remaining = _safe_count(
+            paper_runtime_evidence_collection_profile_status.get("shadow_mode_missing_cycle_count")
+        )
+        profile_batch_count = _safe_count(
+            paper_runtime_evidence_collection_profile_status.get(
+                "collection_plan_recommended_next_paper_batch_cycle_count"
+            )
+        )
+        operator_action_summary = {
+            **operator_action_summary,
+            "status": "ACTION_REQUIRED",
+            "severity": "WARNING",
+            "color_token": "yellow",
+            "workflow_step": "COLLECT_EVIDENCE",
+            "primary_action": "CONTINUE_PAPER",
+            "primary_action_label": "Continue PAPER/SHADOW collection",
+            "primary_blocker_code": dashboard_primary_blocker,
+            "one_line_blocker": (
+                "Long-run PAPER/SHADOW evidence is still missing; "
+                f"PAPER cycles remaining={profile_paper_remaining}, SHADOW cycles remaining={profile_shadow_remaining}. "
+                "LIVE and scale-up remain blocked."
+            ),
+            "next_operator_action": str(
+                paper_runtime_evidence_collection_profile_status.get("collection_plan_next_operator_action")
+                or (
+                    f"Continue non-live PAPER in bounded batches of up to {profile_batch_count} cycle(s), "
+                    "then recheck the dashboard. Do not use LIVE."
+                )
+            ),
+            "safe_to_continue_paper": False,
+            "paper_review_only": True,
+            "live_review_blocked": True,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
     operator_workflow_summary = _operator_workflow_summary(
         operator_action_summary=operator_action_summary,
         long_run_operator_summary=long_run_operator_summary,
@@ -27177,6 +27223,25 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         blocker_label,
         residual_blocker_summary,
     )
+    if (
+        paper_runner_operations.get("status") == "NOT_LOADED"
+        and paper_runtime_profile.get("status") == "PASS"
+        and paper_runtime_profile.get("collection_plan_status") == "READY_TO_CONTINUE_NON_LIVE_COLLECTION"
+    ):
+        profile_paper_remaining = _safe_count(paper_runtime_profile.get("paper_mode_missing_cycle_count"))
+        profile_shadow_remaining = _safe_count(paper_runtime_profile.get("shadow_mode_missing_cycle_count"))
+        live_quick_reason = (
+            "PAPER profile is current; LIVE_READY is blocked until long-run PAPER/SHADOW evidence matures"
+        )
+        live_quick_next_action = str(
+            paper_runtime_profile.get("collection_plan_next_operator_action")
+            or "Continue non-live PAPER/SHADOW collection in bounded batches; do not use LIVE."
+        )
+        if profile_paper_remaining or profile_shadow_remaining:
+            live_quick_next_action = (
+                f"{live_quick_next_action} Remaining: PAPER cycles={profile_paper_remaining}, "
+                f"SHADOW cycles={profile_shadow_remaining}."
+            )
     if residual_action_items:
         residual_count_by_class = {
             str(item.get("action_class")): item.get("gap_count", 0)

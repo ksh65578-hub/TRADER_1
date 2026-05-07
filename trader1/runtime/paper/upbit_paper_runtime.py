@@ -2713,6 +2713,7 @@ def validate_upbit_paper_runtime_cycle_report(
     require_position_rotation_fields: bool = True,
     require_current_symbol_selection_policy: bool = True,
     require_current_feature_snapshot_projection: bool = True,
+    require_paper_scope_continuity_decision: bool = True,
 ) -> UpbitPaperRuntimeCycleValidationResult:
     required = {
         "schema_id",
@@ -2743,7 +2744,6 @@ def validate_upbit_paper_runtime_cycle_report(
         "regime",
         "strategy_candidates",
         "selected_candidate",
-        "paper_scope_continuity_decision",
         "strategy_regime_cost_linkage",
         "risk_state",
         "sizing_decision",
@@ -2769,6 +2769,8 @@ def validate_upbit_paper_runtime_cycle_report(
         "blockers",
         "cycle_hash",
     }
+    if require_paper_scope_continuity_decision:
+        required.add("paper_scope_continuity_decision")
     if require_symbol_evidence_scorecard_fields:
         required.update(
             {
@@ -3058,35 +3060,43 @@ def validate_upbit_paper_runtime_cycle_report(
         managed_pool = [candidate for candidate in expected_candidate_pool if candidate.get("symbol") == managed_position_symbol]
         if managed_pool:
             expected_candidate_pool = managed_pool
+    expected_focus = None
     continuity = report.get("paper_scope_continuity_decision")
-    if not isinstance(continuity, dict):
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper scope continuity decision must be an object", "SCHEMA_IDENTITY_MISMATCH")
-    if (
+    if require_paper_scope_continuity_decision:
+        if not isinstance(continuity, dict):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper scope continuity decision must be an object", "SCHEMA_IDENTITY_MISMATCH")
+        if (
+            continuity.get("live_order_ready")
+            or continuity.get("live_order_allowed")
+            or continuity.get("can_live_trade")
+            or continuity.get("scale_up_allowed")
+        ):
+            return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper scope continuity attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
+        if continuity.get("requested") is True:
+            expected_focus = {
+                "candidate_id": continuity.get("requested_candidate_id"),
+                "symbol": continuity.get("requested_symbol"),
+                "strategy_id": continuity.get("requested_strategy_id"),
+                "parameter_hash": continuity.get("requested_parameter_hash"),
+                "sample_deficit": 1,
+                "live_order_ready": False,
+                "live_order_allowed": False,
+                "can_live_trade": False,
+                "scale_up_allowed": False,
+            }
+    elif isinstance(continuity, dict) and (
         continuity.get("live_order_ready")
         or continuity.get("live_order_allowed")
         or continuity.get("can_live_trade")
         or continuity.get("scale_up_allowed")
     ):
-        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper scope continuity attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
-    expected_focus = None
-    if continuity.get("requested") is True:
-        expected_focus = {
-            "candidate_id": continuity.get("requested_candidate_id"),
-            "symbol": continuity.get("requested_symbol"),
-            "strategy_id": continuity.get("requested_strategy_id"),
-            "parameter_hash": continuity.get("requested_parameter_hash"),
-            "sample_deficit": 1,
-            "live_order_ready": False,
-            "live_order_allowed": False,
-            "can_live_trade": False,
-            "scale_up_allowed": False,
-        }
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "legacy paper scope continuity attempted live or scale permission", "LIVE_FINAL_GUARD_FAILED")
     expected_selected_candidate, expected_continuity = _paper_scope_continuity_decision(
         candidates=expected_candidate_pool,
         paper_scope_focus=expected_focus,
         managed_position_symbol=managed_position_symbol,
     )
-    if continuity != expected_continuity:
+    if require_paper_scope_continuity_decision and continuity != expected_continuity:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper scope continuity decision mismatch", "SCHEMA_IDENTITY_MISMATCH")
     net_ev = _decimal(selected.get("net_ev_after_cost_bps"))
     if selected_id != expected_selected_candidate.get("candidate_id"):

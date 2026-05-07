@@ -1,0 +1,25 @@
+{
+  "schema_id": "trader1.evidence_manifest.v1",
+  "generated_at_utc": "2026-05-07T20:08:12Z",
+  "project_id": "TRADER_1",
+  "authority": {
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D"
+  },
+  "exchange": "UPBIT",
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "status": "PASS_NON_LIVE_ACTUAL_LOOP_BOUND_SHADOW_OPPORTUNITY_COLLECTION",
+  "blockers": [],
+  "notes": "Actual root PAPER profile completed 2 non-live cycles and is captured in a dedicated smoke report so existing cumulative runtime profile evidence is not downgraded. SHADOW scheduler observations are bound to actual PAPER runtime cycle identity and source hashes. Long-run maturity and all live permissions remain blocked.",
+  "evidence_manifest_id": "MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001",
+  "artifact_paths": [
+    "system/evidence/patch_results/MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001.patch_result.json",
+    "system/evidence/validator_runs/MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001.validator_run_log.json",
+    "system/evidence/stage_gates/MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001.stage_gate_result.json",
+    "system/evidence/runtime_checks/MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001.runtime_smoke_report.json"
+  ],
+  "live_order_ready": false,
+  "live_order_allowed": false,
+  "can_live_trade": false
+}

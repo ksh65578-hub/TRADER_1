@@ -1,0 +1,293 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001",
+  "created_at_utc": "2026-05-07T20:08:12Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md"
+  ],
+  "input_authority_hash_status": "PASS",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-PAPER-SHADOW-RUNTIME-SHADOW-OBSERVATION-GAP-IMPLEMENTATION-DEPTH-RECHECK",
+    "REQ-MVP4-PAPER-SHADOW-ACTUAL-RUNTIME-SOURCE-GUARD",
+    "REQ-MVP4-SHADOW-OBSERVATION-LONG-RUN-STREAM-GUARD",
+    "REQ-MVP4-SHADOW-STREAM-SCHEDULER-SEMANTIC-RECHECK",
+    "REQ-MVP4-UPBIT-PAPER-PERSISTENT-RUNTIME-RECOVERY-PREFLIGHT",
+    "REQ-MVP4-DASHBOARD-PAPER-SHADOW-ACTIONABILITY-VISIBILITY",
+    "REQ-MVP4-LIVE-FINAL-GUARD"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER,SHADOW",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [],
+  "new_or_changed_schema_ids": [
+    "trader1.shadow_observation_stream_report.v1",
+    "trader1.upbit_paper_runtime_recovery_guard_report.v1",
+    "trader1.read_only_dashboard_shell.v1"
+  ],
+  "validators_required": [
+    "schema_validator",
+    "upbit_paper_runtime_recovery_guard_validator",
+    "upbit_paper_persistent_loop_validator",
+    "upbit_paper_runtime_cycle_validator",
+    "shadow_observation_stream_validator",
+    "shadow_observation_scheduler_guard_validator",
+    "shadow_observation_runtime_orchestration_validator",
+    "read_only_dashboard_validator",
+    "runtime_schema_instance_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "bytecode_free_syntax_validator",
+    "live_final_guard_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_runtime_recovery_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_persistent_loop_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_runtime_cycle_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shadow_observation_stream_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shadow_observation_scheduler_guard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "shadow_observation_runtime_orchestration_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "read_only_dashboard_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "bytecode_free_syntax_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -B -m pytest tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_primary_status_separates_current_profile_from_unproven_runner -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "1 passed"
+    },
+    {
+      "command": "python -B -m pytest tests/runtime/test_upbit_paper_runtime_evidence_collection_profile.py -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "19 passed"
+    },
+    {
+      "command": "python -B -m pytest tests/integration/test_upbit_public_collection_persistent_loop.py::UpbitPublicCollectionPersistentLoopTest::test_bounded_paper_loop_allows_paper_only_resume_from_legacy_scope_continuity_cycle -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "1 passed"
+    },
+    {
+      "command": "python -B -m pytest tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_first_screen_prioritizes_operator_questions tests/dashboard/test_read_only_dashboard.py::ReadOnlyDashboardTest::test_dashboard_primary_status_separates_current_profile_from_unproven_runner -q",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "2 passed"
+    },
+    {
+      "command": "python -B tools/run_upbit_paper_runtime_evidence_collection_profile.py --requested-cycle-count 2 --loop-id codex-shadow-actual-loop-smoke-20260508-002",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "completed_cycle_count=2, accepted_cycle_sample_count=2, component_pass_count=6/6, reconciliation_status=PASS, idempotency_status=PASS, live flags false"
+    },
+    {
+      "command": "python -B tools/run_runtime_schema_instance_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_read_only_dashboard_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_live_final_guard_validators.py",
+      "status": "PASS",
+      "returncode": 0
+    },
+    {
+      "command": "python -B tools/run_bytecode_free_syntax_check.py",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "files_checked=845"
+    },
+    {
+      "command": "python -B tools/run_patch_result_runtime_schema_validators.py",
+      "status": "PASS",
+      "returncode": 0,
+      "summary": "post-patch-result/current-state/ledger validation passed"
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "UNCHANGED_PASS",
+  "registry_yaml_parse_status": "PASS",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED",
+  "read_cache_update_required": false,
+  "context_pack_update_required": false,
+  "current_implementation_state_updated": true,
+  "next_task_class": "MVP4_LONG_RUN_PAPER_SHADOW_RUNTIME_CONTINUATION",
+  "next_required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_STRATEGY_PROFITABILITY",
+    "SECTION_RUNTIME_RECOVERY_RTO_ACTIVE",
+    "SECTION_WATCHDOG_OPERATIONS"
+  ],
+  "next_forbidden_default_sections": [
+    "RETAINED_ARCHIVE",
+    "LIVE_ENABLING_PATCH",
+    "BINANCE_FUTURES_LIVE"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "BLOCKED_REPAIR_PLAN_REQUIRES_OPERATOR_RECONCILIATION",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "MISSING_CYCLE_LEDGER_RERUN_REQUIRED",
+    "PATCH_RESULT_VALIDATOR_RUN_GAP",
+    "POST_REPAIR_RECONCILIATION_REQUIRED",
+    "POST_RERUN_CURRENT_EVIDENCE_WRITE_BLOCKED",
+    "POST_RERUN_RECONCILIATION_REQUIRED",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "REGENERATED_CURRENT_BLOCKED_REPAIRS_REQUIRE_LEDGER_RECOVERY_RECONCILIATION",
+    "REPAIR_CANDIDATE_HASH_MISMATCH_RECONCILIATION_REQUIRED",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING_20260508_001.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "current_implementation_state",
+    "PAPER/SHADOW runtime evidence collection profile",
+    "UPBIT paper persistent loop recovery guard",
+    "shadow observation stream scheduler",
+    "read-only dashboard operator summary",
+    "live final guard"
+  ],
+  "task_class": "MVP4_SHADOW_ACTUAL_LOOP_OPPORTUNITY_BINDING",
+  "required_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "SECTION_PAPER_SHADOW_EVIDENCE",
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "CURRENT",
+  "requirement_index_status": "UNCHANGED",
+  "requirement_artifact_matrix_status": "UNCHANGED",
+  "read_cache_manifest_status": "UNCHANGED",
+  "context_pack_status": "UNCHANGED",
+  "current_implementation_state_status": "UPDATED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "optimizer_patch": "false",
+  "optimizer_stage": "NOT_CHANGED_WAITING_FOR_LONG_RUN_EVIDENCE",
+  "optimizer_status_before": "WAITING_FOR_REAL_RUNTIME_OR_REPLAY_EVIDENCE",
+  "optimizer_status_after": "WAITING_FOR_LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE",
+  "optimizer_maturity_level_before": "PAPER_SCORECARD_INPUT_ONLY_LIVE_GAP_OPEN",
+  "optimizer_maturity_level_after": "ACTUAL_LOOP_BOUND_SHORT_WINDOW_ONLY_NOT_LONG_RUN",
+  "optimizer_output_type": "NO_OPTIMIZER_OUTPUT_CREATED",
+  "optimizer_validators_required": [
+    "read_only_dashboard_validator",
+    "live_final_guard_validator"
+  ],
+  "optimizer_validators_run": [
+    "read_only_dashboard_validator:PASS",
+    "live_final_guard_validator:PASS"
+  ],
+  "optimizer_guardrail_result": "PASS_NO_LIVE_MUTATION_NO_SCORE_PROMOTION",
+  "optimizer_live_mutation_detected": false,
+  "optimizer_live_order_allowed_after": false,
+  "profit_convergence_patch": "false",
+  "convergence_layer_changed": false,
+  "convergence_state_before": "WAITING_FOR_REAL_RUNTIME_OR_REPLAY_EVIDENCE",
+  "convergence_state_after": "ACTUAL_LOOP_BOUND_SHORT_WINDOW_ONLY_NOT_LONG_RUN",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_CHANGED",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": false,
+  "risk_scaling_policy_changed": false,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "read_only_dashboard_validator",
+    "live_final_guard_validator"
+  ],
+  "convergence_validators_run": [
+    "read_only_dashboard_validator:PASS",
+    "live_final_guard_validator:PASS"
+  ],
+  "convergence_guardrail_result": "PASS_NO_SCALE_UP_ACTUAL_LOOP_BINDING_ONLY",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "upbit_paper_runtime_evidence_profile_status": "PASS",
+  "upbit_paper_runtime_evidence_profile_component_count": 6,
+  "upbit_paper_runtime_evidence_profile_component_pass_count": 6,
+  "upbit_paper_runtime_evidence_profile_accepted_cycle_sample_count": 2,
+  "upbit_paper_runtime_evidence_profile_ledger_status": "PASS",
+  "upbit_paper_runtime_evidence_profile_mismatch_count": 0,
+  "result_hash": "2C2E818023B6E3A097DAD31D53F382ACCDEFD4622C3AEB94409539EA555C690A"
+}

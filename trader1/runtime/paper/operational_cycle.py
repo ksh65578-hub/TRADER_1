@@ -73,11 +73,39 @@ def build_upbit_operational_paper_cycle(
     session_id: str = "mvp3_operational_paper",
     requested_entry: bool = True,
     risk_block: bool = False,
+    symbol: str = "KRW-BTC",
+    public_market_data: dict[str, Any] | None = None,
+    strategy_unit_id: str | None = None,
+    strategy_id: str = "basic_momentum_fixture",
+    strategy_build_id: str = "mvp3_fixture_001",
+    parameter_hash: str | None = None,
+    timeframe_scope: str = "15m",
+    regime_scope: str = "RANGE",
+    signal_strength: str = "0.60",
+    strategy_confidence: str = "0.55",
+    regime_confidence: str = "0.55",
+    source_evidence_ids: list[str] | None = None,
+    paper_sample_count: int | None = None,
+    shadow_sample_count: int = 0,
+    evidence_window_count: int = 1,
+    evidence_span_hours: int = 0,
+    entry_reason_count: int | None = None,
+    no_trade_reason_count: int | None = None,
+    cost_evidence_count: int | None = None,
 ) -> dict[str, Any]:
     strategy_unit = build_basic_strategy_unit(
-        strategy_unit_id=f"{operation_gate_id}-strategy-unit",
+        strategy_unit_id=strategy_unit_id or f"{operation_gate_id}-strategy-unit",
+        strategy_id=strategy_id,
+        strategy_build_id=strategy_build_id,
+        parameter_hash=parameter_hash,
         session_id=session_id,
+        timeframe_scope=timeframe_scope,
+        regime_scope=regime_scope,
         signal_intent="ENTER_LONG" if requested_entry else "NO_TRADE",
+        signal_strength=signal_strength,
+        strategy_confidence=strategy_confidence,
+        regime_confidence=regime_confidence,
+        source_evidence_ids=source_evidence_ids,
     )
     sizing_decision = build_position_sizing_decision(
         sizing_decision_id=f"{operation_gate_id}-sizing",
@@ -98,8 +126,10 @@ def build_upbit_operational_paper_cycle(
     paper_report = build_upbit_paper_dry_run_report(
         paper_run_id=f"{operation_gate_id}-paper",
         session_id=session_id,
+        symbol=symbol,
         requested_entry=final_decision == "ENTER_LONG",
         risk_block=risk_block,
+        public_market_data=public_market_data,
     )
     restart_report = build_restart_recovery_report(restart_id=f"{operation_gate_id}-restart", session_id=session_id)
     replay_report = build_replay_consistency_report(
@@ -114,8 +144,24 @@ def build_upbit_operational_paper_cycle(
         paper_session_id=session_id,
         shadow_session_id=f"{session_id}_shadow",
     )
-    paper_sample_count = _paper_evidence_sample_count(paper_report)
-    shadow_sample_count = 0
+    measured_paper_sample_count = paper_sample_count
+    if measured_paper_sample_count is None:
+        measured_paper_sample_count = _paper_evidence_sample_count(paper_report)
+    measured_entry_reason_count = (
+        int(entry_reason_count)
+        if entry_reason_count is not None
+        else len(paper_report.get("entry_reasons") or [])
+    )
+    measured_no_trade_reason_count = (
+        int(no_trade_reason_count)
+        if no_trade_reason_count is not None
+        else len(paper_report.get("no_trade_reasons") or [])
+    )
+    measured_cost_evidence_count = (
+        int(cost_evidence_count)
+        if cost_evidence_count is not None
+        else _cost_evidence_count(paper_report)
+    )
     paper_artifact_hash = paper_report["dry_run_hash"]
     shadow_artifact_hash = _sha256_text(f"{operation_gate_id}:{session_id}:shadow-observation-missing")
     paper_shadow_evidence_report = build_paper_shadow_evidence_accumulation_report(
@@ -128,17 +174,18 @@ def build_upbit_operational_paper_cycle(
         shadow_session_id=f"{session_id}_shadow",
         paper_artifact_hash=paper_artifact_hash,
         shadow_artifact_hash=shadow_artifact_hash,
-        paper_sample_count=paper_sample_count,
+        paper_sample_count=max(1, int(measured_paper_sample_count)),
         shadow_sample_count=shadow_sample_count,
-        evidence_window_count=1,
-        evidence_span_hours=0,
-        entry_reason_count=len(paper_report.get("entry_reasons") or []),
-        no_trade_reason_count=len(paper_report.get("no_trade_reasons") or []),
-        cost_evidence_count=_cost_evidence_count(paper_report),
+        evidence_window_count=max(1, int(evidence_window_count)),
+        evidence_span_hours=max(0, int(evidence_span_hours)),
+        entry_reason_count=max(0, measured_entry_reason_count),
+        no_trade_reason_count=max(0, measured_no_trade_reason_count),
+        cost_evidence_count=max(0, measured_cost_evidence_count),
         source_evidence_ids=[
             paper_report["paper_run_id"],
             replay_report["replay_id"],
             separation_report["separation_report_id"],
+            *(source_evidence_ids or []),
         ],
     )
     for result, label in [
