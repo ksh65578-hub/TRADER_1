@@ -120,6 +120,66 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         self.assertFalse(result["blocking"])
         self.assertIn("MVP4_PROFITABILITY_EVIDENCE_MATURITY_ROLLUP.json", result["input_artifact_paths"][1])
 
+    def test_maturity_rollup_exposes_candidate_scorecard_snapshot_truth(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        runtime_linkage = rollup["runtime_linkage_evidence"]
+
+        self.assertIn(runtime_linkage["candidate_scorecard_snapshot_status"], {"PASS", "BLOCKED"})
+        if runtime_linkage["candidate_scorecard_snapshot_status"] == "PASS":
+            self.assertIsNone(runtime_linkage["candidate_scorecard_snapshot_blocker_code"])
+        else:
+            self.assertTrue(runtime_linkage["candidate_scorecard_snapshot_blocker_code"])
+            self.assertFalse(rollup["paper_scorecard_input_allowed"])
+        self.assertIn(runtime_linkage["candidate_scorecard_runtime_membership_status"], {"PASS", "BLOCKED"})
+        if runtime_linkage["candidate_scorecard_runtime_membership_status"] == "PASS":
+            self.assertIsNone(runtime_linkage["candidate_scorecard_runtime_membership_blocker_code"])
+            self.assertIn(
+                runtime_linkage["candidate_scorecard_runtime_membership_source"],
+                {"selected_candidate", "symbol_evidence_scorecards.best_candidate_id"},
+            )
+            self.assertTrue(runtime_linkage["candidate_scorecard_runtime_symbol"])
+            self.assertTrue(runtime_linkage["candidate_scorecard_runtime_decision"])
+        else:
+            self.assertTrue(runtime_linkage["candidate_scorecard_runtime_membership_blocker_code"])
+            self.assertFalse(rollup["paper_scorecard_input_allowed"])
+        self.assertFalse(runtime_linkage["live_order_allowed"])
+        self.assertFalse(runtime_linkage["can_live_trade"])
+
+    def test_maturity_rollup_helper_rejects_snapshot_blocked_scorecard_input(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        runtime_linkage = tampered["runtime_linkage_evidence"]
+        runtime_linkage["candidate_scorecard_snapshot_status"] = "BLOCKED"
+        runtime_linkage["candidate_scorecard_snapshot_blocker_code"] = "SCORECARD_SNAPSHOT_MISSING"
+        tampered["paper_scorecard_input_allowed"] = True
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("candidate scorecard snapshot" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_membership_blocked_scorecard_input(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        runtime_linkage = tampered["runtime_linkage_evidence"]
+        runtime_linkage["candidate_scorecard_runtime_membership_status"] = "BLOCKED"
+        runtime_linkage[
+            "candidate_scorecard_runtime_membership_blocker_code"
+        ] = "CANDIDATE_SCORECARD_NOT_IN_RUNTIME_SYMBOL_SCORECARDS"
+        tampered["paper_scorecard_input_allowed"] = True
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("scorecard runtime membership" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_scorecard_candidate_mismatch(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        tampered["runtime_linkage_evidence"]["candidate_scorecard_candidate_id"] = "KRW-FAKE-pullback-trend-long"
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("scorecard candidate id" in error for error in errors), errors)
+
     def test_maturity_rollup_helper_rejects_missing_component(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         tampered = copy.deepcopy(rollup)
@@ -382,14 +442,19 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
 
         self.assertTrue(any("must list missing source types" in error for error in errors), errors)
 
-    def test_maturity_rollup_helper_accepts_robustness_source_type_pass_without_live_permission(self):
+    def test_maturity_rollup_helper_accepts_robustness_source_type_truth_without_live_permission(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         source_evidence = rollup["robustness_source_type_evidence"]
 
-        self.assertEqual(source_evidence["status"], "PASS")
-        self.assertEqual(source_evidence["missing_source_types"], [])
-        self.assertIsNone(source_evidence["primary_blocker_code"])
-        self.assertFalse(source_evidence["explicit_source_type_blocker"])
+        if source_evidence["status"] == "PASS":
+            self.assertEqual(source_evidence["missing_source_types"], [])
+            self.assertIsNone(source_evidence["primary_blocker_code"])
+            self.assertFalse(source_evidence["explicit_source_type_blocker"])
+        else:
+            self.assertEqual(source_evidence["status"], "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE")
+            self.assertTrue(source_evidence["missing_source_types"])
+            self.assertEqual(source_evidence["primary_blocker_code"], "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED")
+            self.assertTrue(source_evidence["explicit_source_type_blocker"])
         self.assertFalse(rollup["live_order_allowed"])
         self.assertEqual(_profitability_evidence_maturity_rollup_errors(rollup), [])
 

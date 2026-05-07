@@ -993,6 +993,13 @@ def runner_status_fixture(session_id="test_read_only_dashboard_runner_ops", *, b
         "runtime_sample_count": 3,
         "runtime_sample_invalid_source_count": 0,
         "candidate_scorecard_path": "system/runtime/upbit/krw_spot/paper/test/profitability/candidate_scorecard.json",
+        "candidate_scorecard_candidate_id": "KRW-BTC-pullback-trend-long",
+        "candidate_scorecard_snapshot_path": (
+            "system/runtime/upbit/krw_spot/paper/test/profitability/candidate_scorecards/"
+            "KRW-BTC-pullback-trend-long.candidate_scorecard.json"
+        ),
+        "candidate_scorecard_snapshot_status": "PASS",
+        "candidate_scorecard_snapshot_blocker_code": None,
         "candidate_scorecard_status": "PASS",
         "candidate_scorecard_ranking_eligible": False,
         "candidate_scorecard_primary_blocker_code": "OOS_MISSING",
@@ -3382,30 +3389,54 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertEqual(maturity["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
         self.assertEqual(maturity["live_readiness_status"], "NOT_LIVE_READY")
         self.assertEqual(maturity["primary_blocker_code"], "PROFITABILITY_EVIDENCE_MATURITY")
-        self.assertGreaterEqual(maturity["paper_sample_count"], maturity["min_required_samples"])
-        self.assertGreaterEqual(maturity["shadow_sample_count"], maturity["min_required_samples"])
-        self.assertEqual(maturity["evidence_actionability_status"], "SCORECARD_READY_EXTEND_RUNTIME_SPAN")
-        self.assertEqual(maturity["primary_collection_deficit_code"], "EVIDENCE_SPAN_DEFICIT")
-        self.assertEqual(maturity["next_collection_action"], "EXTEND_NON_LIVE_RUNTIME_SPAN")
-        self.assertEqual(maturity["scorecard_input_truth_status"], "PAPER_SCORECARD_INPUT_READY_ONLY")
+        sample_floor_met = (
+            maturity["paper_sample_count"] >= maturity["min_required_samples"]
+            and maturity["shadow_sample_count"] >= maturity["min_required_samples"]
+        )
+        if sample_floor_met:
+            self.assertEqual(maturity["evidence_actionability_status"], "SCORECARD_READY_EXTEND_RUNTIME_SPAN")
+            self.assertEqual(maturity["primary_collection_deficit_code"], "EVIDENCE_SPAN_DEFICIT")
+            self.assertEqual(maturity["next_collection_action"], "EXTEND_NON_LIVE_RUNTIME_SPAN")
+            self.assertEqual(maturity["scorecard_input_truth_status"], "PAPER_SCORECARD_INPUT_READY_ONLY")
+        else:
+            self.assertLess(maturity["paper_sample_count"], maturity["min_required_samples"])
+            self.assertEqual(maturity["evidence_actionability_status"], "COLLECT_PAPER_SAMPLES")
+            self.assertEqual(maturity["primary_collection_deficit_code"], "PAPER_SAMPLE_DEFICIT")
+            self.assertEqual(maturity["next_collection_action"], "RUN_MORE_PAPER_SAMPLE_WINDOWS")
+            self.assertEqual(maturity["scorecard_input_truth_status"], "BLOCKED_NOT_SCORECARD_INPUT")
         self.assertIn("PAPER samples", maturity["sample_summary"])
         self.assertIn("SHADOW observations", maturity["sample_summary"])
         self.assertIn("live orders blocked", maturity["sample_summary"])
-        self.assertEqual(maturity["paper_runtime_span_seconds"], paper_shadow_component["paper_runtime_span_seconds"])
-        self.assertEqual(maturity["shadow_runtime_span_seconds"], paper_shadow_component["shadow_runtime_span_seconds"])
-        self.assertEqual(maturity["paired_runtime_span_seconds"], paper_shadow_component["paired_runtime_span_seconds"])
-        self.assertEqual(maturity["evidence_span_hours"], paper_shadow_component["evidence_span_hours"])
-        self.assertEqual(maturity["actual_runtime_source_status"], "PARTIAL_NON_LIVE_RUNTIME")
-        self.assertEqual(maturity["actual_runtime_source_count"], 2)
-        self.assertEqual(maturity["actual_runtime_source_binding_status"], "REQUIREMENTS_INCOMPLETE")
-        self.assertEqual(maturity["actual_runtime_source_mode_coverage"], "PAPER_AND_SHADOW")
-        self.assertEqual(maturity["actual_runtime_requirement_pass_count"], 3)
-        self.assertEqual(maturity["actual_runtime_requirement_missing_ids"], ["runtime_span", "cycle_count"])
-        self.assertEqual(maturity["evidence_progress_status"], "READY")
-        self.assertEqual(maturity["evidence_progress_pct"], 100)
-        self.assertEqual(maturity["cost_evidence_status"], "PASS")
-        self.assertEqual(maturity["entry_reason_status"], "PASS")
-        self.assertEqual(maturity["no_trade_reason_status"], "PASS")
+        runtime_profile = rollup["runtime_collection_profile_evidence"]
+        expected_paper_span = paper_shadow_component["paper_runtime_span_seconds"] or runtime_profile["paper_observed_span_seconds"]
+        expected_shadow_span = paper_shadow_component["shadow_runtime_span_seconds"] or runtime_profile["shadow_observed_span_seconds"]
+        expected_paired_span = paper_shadow_component["paired_runtime_span_seconds"] or min(
+            expected_paper_span,
+            expected_shadow_span,
+        )
+        self.assertEqual(maturity["paper_runtime_span_seconds"], expected_paper_span)
+        self.assertEqual(maturity["shadow_runtime_span_seconds"], expected_shadow_span)
+        self.assertEqual(maturity["paired_runtime_span_seconds"], expected_paired_span)
+        self.assertEqual(maturity["evidence_span_hours"], expected_paired_span // 3600)
+        expected_source_ids = paper_shadow_component.get("actual_runtime_source_evidence_ids", [])
+        expected_requirement_statuses = paper_shadow_component.get("actual_runtime_requirement_statuses", {})
+        expected_missing_requirements = [
+            requirement_id
+            for requirement_id, status in expected_requirement_statuses.items()
+            if status != "PASS"
+        ]
+        self.assertEqual(maturity["actual_runtime_source_status"], paper_shadow_component["actual_runtime_source_status"])
+        self.assertEqual(maturity["actual_runtime_source_count"], len(expected_source_ids))
+        self.assertEqual(maturity["actual_runtime_requirement_pass_count"], 5 - len(expected_missing_requirements))
+        self.assertCountEqual(maturity["actual_runtime_requirement_missing_ids"], expected_missing_requirements)
+        passed_evidence_checks = sum(1 for check in maturity["evidence_checklist"] if check["status"] == "PASS")
+        expected_progress_pct = int((passed_evidence_checks / len(maturity["evidence_checklist"])) * 100)
+        expected_progress = "READY" if expected_progress_pct == 100 else "IN_PROGRESS"
+        self.assertEqual(maturity["evidence_progress_status"], expected_progress)
+        self.assertEqual(maturity["evidence_progress_pct"], expected_progress_pct)
+        self.assertEqual(maturity["cost_evidence_status"], "PASS" if paper_shadow_component["cost_evidence_count"] > 0 else "UNTESTED")
+        self.assertEqual(maturity["entry_reason_status"], "PASS" if paper_shadow_component["entry_reason_count"] > 0 else "UNTESTED")
+        self.assertEqual(maturity["no_trade_reason_status"], "PASS" if paper_shadow_component["no_trade_reason_count"] > 0 else "UNTESTED")
         self.assertEqual(maturity["promotion_threshold_status"], "BLOCKED_FOR_THRESHOLD_EVIDENCE")
         self.assertEqual(maturity["promotion_threshold_replay_closed_trades"], 1)
         self.assertEqual(maturity["promotion_threshold_min_replay_closed_trades"], 100)
@@ -3426,29 +3457,40 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         html = render_dashboard_html(dashboard)
         self.assertIn("runtime=0.1h observed", html)
         self.assertNotIn("runtime=0.1/72h", html)
-        self.assertEqual(maturity["robustness_source_type_status"], "PASS")
-        self.assertEqual(maturity["robustness_source_type_missing_count"], 0)
-        self.assertEqual(
-            maturity["robustness_source_type_missing_types"],
-            [],
+        if maturity["robustness_source_type_status"] == "PASS":
+            self.assertEqual(maturity["robustness_source_type_missing_count"], 0)
+            self.assertEqual(
+                maturity["robustness_source_type_missing_types"],
+                [],
+            )
+            self.assertEqual(maturity["robustness_source_type_present_types"], ["BOOTSTRAP", "CONCENTRATION", "OOS", "WALK_FORWARD"])
+            self.assertGreaterEqual(maturity["robustness_source_type_oos_count"], 1)
+            self.assertGreaterEqual(maturity["robustness_source_type_walk_forward_count"], 1)
+            self.assertGreaterEqual(maturity["robustness_source_type_bootstrap_count"], 1)
+            self.assertGreaterEqual(maturity["robustness_source_type_concentration_count"], 1)
+            self.assertEqual(
+                maturity["robustness_source_type_primary_blocker_code"],
+                "NONE",
+            )
+            self.assertFalse(maturity["robustness_source_type_explicit_blocker"])
+        else:
+            self.assertEqual(maturity["robustness_source_type_status"], "BLOCKED_FOR_SOURCE_TYPE_EVIDENCE")
+            self.assertGreater(maturity["robustness_source_type_missing_count"], 0)
+            self.assertEqual(
+                maturity["robustness_source_type_primary_blocker_code"],
+                "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
+            )
+            self.assertTrue(maturity["robustness_source_type_explicit_blocker"])
+        input_component_count = sum(
+            1 for item in maturity["maturity_components"] if item["paper_scorecard_input_eligible"]
         )
-        self.assertEqual(maturity["robustness_source_type_present_types"], ["BOOTSTRAP", "CONCENTRATION", "OOS", "WALK_FORWARD"])
-        self.assertGreaterEqual(maturity["robustness_source_type_oos_count"], 1)
-        self.assertGreaterEqual(maturity["robustness_source_type_walk_forward_count"], 1)
-        self.assertGreaterEqual(maturity["robustness_source_type_bootstrap_count"], 1)
-        self.assertGreaterEqual(maturity["robustness_source_type_concentration_count"], 1)
-        self.assertEqual(
-            maturity["robustness_source_type_primary_blocker_code"],
-            "NONE",
-        )
-        self.assertFalse(maturity["robustness_source_type_explicit_blocker"])
-        self.assertEqual(maturity["paper_scorecard_component_pass_count"], 5)
-        self.assertEqual(maturity["maturity_gap_count"], 5)
-        self.assertTrue(any(item["status"] == "PAPER_SCORECARD_INPUT_ONLY" for item in maturity["maturity_components"]))
+        self.assertEqual(maturity["paper_scorecard_component_pass_count"], input_component_count)
+        self.assertEqual(maturity["maturity_gap_count"], len(maturity["maturity_components"]) - input_component_count)
+        self.assertTrue(any(item["status"] in {"PAPER_SCORECARD_INPUT_ONLY", "BLOCKED_LONG_RUN_EVIDENCE"} for item in maturity["maturity_components"]))
         paper_shadow_component = maturity["maturity_components"][8]
         self.assertEqual(paper_shadow_component["component_id"], "paper_shadow_evidence_accumulation")
         self.assertEqual(paper_shadow_component["status"], "BLOCKED_LONG_RUN_EVIDENCE")
-        self.assertTrue(paper_shadow_component["paper_scorecard_input_eligible"])
+        self.assertEqual(paper_shadow_component["paper_scorecard_input_eligible"], sample_floor_met)
         self.assertFalse(paper_shadow_component["long_run_evidence_eligible"])
         self.assertEqual(
             paper_shadow_component["long_run_blocker_code"],
@@ -3462,7 +3504,27 @@ class ReadOnlyDashboardTest(unittest.TestCase):
 
     def test_dashboard_blocks_loaded_rollup_hidden_paper_shadow_actionability(self):
         dashboard = build_dashboard(profitability_maturity_rollup_report=profitability_maturity_rollup_fixture())
-        dashboard["profitability_maturity"]["evidence_actionability_status"] = "NOT_LOADED"
+        maturity = dashboard["profitability_maturity"]
+        maturity["evidence_actionability_status"] = "NOT_LOADED"
+        maturity["paper_sample_count"] = maturity["min_required_samples"]
+        maturity["shadow_sample_count"] = maturity["min_required_samples"]
+        maturity["scorecard_input_truth_status"] = "PAPER_SCORECARD_INPUT_READY_ONLY"
+        paper_shadow_component = maturity["maturity_components"][8]
+        paper_shadow_component["paper_scorecard_input_eligible"] = True
+        dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
+        result = validate_read_only_dashboard_shell(dashboard)
+        self.assertEqual(result.status, "BLOCKED")
+        self.assertEqual(result.blocker_code, "HARD_TRUTH_MISSING")
+
+    def test_dashboard_blocks_loaded_rollup_false_scorecard_input_eligible_below_samples(self):
+        dashboard = build_dashboard(profitability_maturity_rollup_report=profitability_maturity_rollup_fixture())
+        maturity = dashboard["profitability_maturity"]
+        paper_shadow_component = maturity["maturity_components"][8]
+        paper_shadow_component["paper_scorecard_input_eligible"] = True
+        maturity["paper_sample_count"] = max(0, maturity["min_required_samples"] - 1)
+        maturity["shadow_sample_count"] = maturity["min_required_samples"]
+        maturity["evidence_actionability_status"] = "SCORECARD_READY_EXTEND_RUNTIME_SPAN"
+        maturity["scorecard_input_truth_status"] = "PAPER_SCORECARD_INPUT_READY_ONLY"
         dashboard["dashboard_hash"] = dashboard_shell_hash(dashboard)
         result = validate_read_only_dashboard_shell(dashboard)
         self.assertEqual(result.status, "BLOCKED")

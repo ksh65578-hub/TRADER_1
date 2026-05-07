@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.shadow_observation_actual_runtime_harness_report.v1",
-  "generated_at_utc": "2026-05-07T10:11:37Z",
+  "generated_at_utc": "2026-05-07T16:21:25Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -16,10 +16,10 @@
   "data_source_role": "UPBIT_PAPER_RUNTIME_LOOP_NO_CREDENTIALS",
   "runtime_artifact_path": "system/runtime/upbit/krw_spot/shadow/mvp1_upbit_paper_launcher/actual_runtime_harness_report.json",
   "source_runtime_id": "mvp1_upbit_paper_launcher",
-  "source_runtime_report_hash": "BABA6DE2B735A474E04D0C992E163C283DB297E71CC140E96D06E994085B31CF",
+  "source_runtime_report_hash": "3D3C199CEAE53DA572466FB51F02EC45AAFE84433471D730CAD77F0E27F3DD39",
   "source_runtime_hash_verified": true,
   "source_runtime_validation_status": "PASS",
-  "source_actual_blocker_report_hash": "AC78921E779356D250398445C980965D8F843255E614F2FC2C8F7A53D5B6F9D8",
+  "source_actual_blocker_report_hash": "C3EBCAE7F3470CEDA71E19665EC05D000DFCFE8EFBCE5E3E3E4BDF10FEDF855E",
   "source_actual_blocker_hash_verified": true,
   "source_actual_blocker_validation_status": "PASS",
   "requested_cycle_count": 1,
@@ -27,7 +27,7 @@
   "observations_per_cycle": 2,
   "observation_count": 2,
   "heartbeat_count": 1,
-  "measured_runtime_seconds": 5,
+  "measured_runtime_seconds": 2,
   "runtime_measurement_source": "PAPER_LOOP_TIMESTAMP_SPAN_VERIFIED",
   "monotonic_timer_started": false,
   "monotonic_timer_stopped": false,
@@ -72,5 +72,5 @@
   ],
   "operator_message": "Non-live PAPER/SHADOW harness execution is working as a short-window operational check. It is not long-run evidence, not LIVE_READY evidence, and live orders remain blocked.",
   "next_operator_action": "Use this harness for safe monitoring readiness, then run a real non-live long-window PAPER/SHADOW session with validated duration, cycle, heartbeat, and recovery evidence before any live review.",
-  "harness_report_hash": "8549FCEB4F9BA09C0FF2E55254C85E198E91AEEBB84FB4BD72589F21785599E9"
+  "harness_report_hash": "AE9EC46BC0DDBE19B589CA4EDE6A9AB6DA4A8327408295D0C583C46D17558A65"
 }

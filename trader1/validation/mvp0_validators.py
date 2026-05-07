@@ -19826,9 +19826,15 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
             if _live_flag_is_true(runtime_linkage.get(field)):
                 errors.append(f"rollup runtime linkage has forbidden true field: {field}")
-        if runtime_linkage.get("status") != "PASS":
-            errors.append("rollup runtime linkage evidence must be PASS before PAPER scorecard input remains allowed")
-        if runtime_linkage.get("strategy_regime_cost_linkage_status") != "PASS":
+        linkage_status = runtime_linkage.get("status")
+        linkage_blocker_code = runtime_linkage.get("runtime_linkage_blocker_code")
+        if linkage_status == "PASS" and linkage_blocker_code is not None:
+            errors.append("rollup runtime linkage PASS must not carry a blocker code")
+        if linkage_status == "BLOCKED" and not linkage_blocker_code:
+            errors.append("rollup blocked runtime linkage requires a blocker code")
+        if rollup.get("paper_scorecard_input_allowed") is True and linkage_status != "PASS":
+            errors.append("rollup allows PAPER scorecard input while runtime linkage is blocked")
+        if linkage_status == "PASS" and runtime_linkage.get("strategy_regime_cost_linkage_status") != "PASS":
             errors.append("rollup runtime strategy/regime/cost linkage status must be PASS")
         try:
             sample_count = int(runtime_linkage.get("sample_count", 0))
@@ -19837,12 +19843,119 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
             sample_count = 0
             min_required_sample_count = 1
             errors.append("rollup runtime linkage sample counts must be integers")
-        if sample_count < 1:
+        if linkage_status == "PASS" and sample_count < 1:
             errors.append("rollup runtime linkage evidence requires at least one PAPER runtime sample")
-        if sample_count < min_required_sample_count:
+        if linkage_status == "PASS" and sample_count < min_required_sample_count:
             errors.append("rollup runtime linkage sample_count is below min_required_sample_count")
         if runtime_linkage.get("primary_blocker_code") != "PROFITABILITY_EVIDENCE_MATURITY":
             errors.append("rollup runtime linkage must preserve PROFITABILITY_EVIDENCE_MATURITY blocker")
+
+        snapshot_status = runtime_linkage.get("candidate_scorecard_snapshot_status")
+        snapshot_blocker_code = runtime_linkage.get("candidate_scorecard_snapshot_blocker_code")
+        if snapshot_status == "PASS" and snapshot_blocker_code is not None:
+            errors.append("rollup runtime linkage scorecard snapshot PASS must not carry a blocker code")
+        if snapshot_status == "BLOCKED" and not snapshot_blocker_code:
+            errors.append("rollup runtime linkage blocked scorecard snapshot requires a blocker code")
+        if rollup.get("paper_scorecard_input_allowed") is True and snapshot_status != "PASS":
+            errors.append("rollup allows PAPER scorecard input without a PASS candidate scorecard snapshot")
+
+        membership_status = runtime_linkage.get("candidate_scorecard_runtime_membership_status")
+        membership_blocker_code = runtime_linkage.get("candidate_scorecard_runtime_membership_blocker_code")
+        if membership_status not in {"PASS", "BLOCKED"}:
+            errors.append("rollup runtime linkage scorecard runtime membership status must be PASS or BLOCKED")
+        if membership_status == "PASS" and membership_blocker_code is not None:
+            errors.append("rollup runtime linkage scorecard runtime membership PASS must not carry a blocker code")
+        if membership_status == "BLOCKED" and not membership_blocker_code:
+            errors.append("rollup runtime linkage blocked scorecard runtime membership requires a blocker code")
+        if linkage_status == "PASS" and membership_status != "PASS":
+            errors.append("rollup runtime linkage PASS requires scorecard runtime membership PASS")
+        if rollup.get("paper_scorecard_input_allowed") is True and membership_status != "PASS":
+            errors.append("rollup allows PAPER scorecard input without PASS scorecard runtime membership")
+        if (
+            runtime_linkage.get("candidate_scorecard_source_runtime_cycle_id")
+            != runtime_linkage.get("source_runtime_cycle_id")
+        ):
+            errors.append("rollup runtime linkage scorecard source cycle id does not match source runtime cycle")
+        if (
+            runtime_linkage.get("candidate_scorecard_source_runtime_cycle_hash")
+            != runtime_linkage.get("source_runtime_cycle_hash")
+        ):
+            errors.append("rollup runtime linkage scorecard source cycle hash does not match source runtime cycle")
+
+        root = ROOT.resolve()
+
+        def resolve_runtime_linkage_path(field: str, label: str, *, require_file: bool) -> Path | None:
+            path_text = runtime_linkage.get(field)
+            if not isinstance(path_text, str) or not path_text:
+                errors.append(f"rollup runtime linkage {label} path must be a non-empty string")
+                return None
+            path = Path(path_text)
+            if path.is_absolute():
+                errors.append(f"rollup runtime linkage {label} path must be repo-relative")
+                return None
+            resolved = (ROOT / path).resolve()
+            if resolved != root and root not in resolved.parents:
+                errors.append(f"rollup runtime linkage {label} path escapes repository root")
+                return None
+            if require_file and not resolved.is_file():
+                errors.append(f"rollup runtime linkage {label} path is missing")
+                return None
+            return resolved
+
+        def load_linked_object(path: Path, label: str) -> dict[str, Any] | None:
+            try:
+                payload = load_json(path)
+            except Exception as exc:
+                errors.append(f"rollup runtime linkage {label} could not be read: {exc}")
+                return None
+            if not isinstance(payload, dict):
+                errors.append(f"rollup runtime linkage {label} must contain a JSON object")
+                return None
+            return payload
+
+        scorecard_path = resolve_runtime_linkage_path(
+            "candidate_scorecard_path",
+            "candidate scorecard",
+            require_file=True,
+        )
+        scorecard_report = load_linked_object(scorecard_path, "candidate scorecard") if scorecard_path else None
+        if scorecard_report is not None:
+            for scorecard_field, linkage_field in (
+                ("candidate_id", "candidate_scorecard_candidate_id"),
+                ("scorecard_id", "candidate_scorecard_scorecard_id"),
+                ("source_runtime_cycle_id", "candidate_scorecard_source_runtime_cycle_id"),
+                ("source_runtime_cycle_hash", "candidate_scorecard_source_runtime_cycle_hash"),
+            ):
+                if runtime_linkage.get(linkage_field) != scorecard_report.get(scorecard_field):
+                    errors.append(f"rollup runtime linkage candidate scorecard {scorecard_field} mismatch")
+            for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+                if _live_flag_is_true(scorecard_report.get(field)):
+                    errors.append(f"rollup runtime linkage candidate scorecard has forbidden true field: {field}")
+
+        snapshot_path = resolve_runtime_linkage_path(
+            "candidate_scorecard_snapshot_path",
+            "candidate scorecard snapshot",
+            require_file=snapshot_status == "PASS",
+        )
+        if snapshot_path is not None and snapshot_path.is_file():
+            snapshot_report = load_linked_object(snapshot_path, "candidate scorecard snapshot")
+            if snapshot_report is not None:
+                for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+                    if _live_flag_is_true(snapshot_report.get(field)):
+                        errors.append(
+                            f"rollup runtime linkage candidate scorecard snapshot has forbidden true field: {field}"
+                        )
+                if scorecard_report is not None:
+                    for scorecard_field in (
+                        "candidate_id",
+                        "scorecard_id",
+                        "source_runtime_cycle_id",
+                        "source_runtime_cycle_hash",
+                    ):
+                        if snapshot_report.get(scorecard_field) != scorecard_report.get(scorecard_field):
+                            errors.append(
+                                f"rollup runtime linkage candidate scorecard snapshot {scorecard_field} mismatch"
+                            )
 
         source_path_text = runtime_linkage.get("source_runtime_cycle_path")
         if isinstance(source_path_text, str) and source_path_text:
@@ -19862,7 +19975,10 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                     require_quantitative_policy_summary=False,
                 )
                 if runtime_result.status != "PASS":
-                    errors.append(f"rollup runtime linkage source cycle failed validation: {runtime_result.message}")
+                    if linkage_status == "PASS" or rollup.get("paper_scorecard_input_allowed") is True:
+                        errors.append(f"rollup runtime linkage source cycle failed validation: {runtime_result.message}")
+                    if linkage_blocker_code != "RUNTIME_CYCLE_VALIDATION_FAILED":
+                        errors.append("rollup blocked runtime linkage must expose runtime validation failure blocker")
                 if runtime_linkage.get("source_runtime_cycle_id") != runtime_report.get("cycle_id"):
                     errors.append("rollup runtime linkage cycle id does not match source runtime cycle")
                 if runtime_linkage.get("source_runtime_cycle_hash") != runtime_report.get("cycle_hash"):
@@ -19883,6 +19999,59 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 strategy_linkage = runtime_report.get("strategy_regime_cost_linkage", {})
                 if strategy_linkage.get("selected_candidate_id") != runtime_linkage.get("selected_candidate_id"):
                     errors.append("rollup runtime linkage does not match source strategy_regime_cost_linkage")
+                if membership_status == "PASS":
+                    scorecard_candidate_id = runtime_linkage.get("candidate_scorecard_candidate_id")
+                    membership_source = runtime_linkage.get("candidate_scorecard_runtime_membership_source")
+                    if scorecard_candidate_id == selected.get("candidate_id"):
+                        if membership_source != "selected_candidate":
+                            errors.append("rollup runtime linkage selected scorecard candidate membership source mismatch")
+                        if runtime_linkage.get("candidate_scorecard_runtime_symbol") != selected.get("symbol"):
+                            errors.append("rollup runtime linkage selected scorecard candidate symbol mismatch")
+                        if runtime_linkage.get("candidate_scorecard_runtime_decision") != selected.get("decision"):
+                            errors.append("rollup runtime linkage selected scorecard candidate decision mismatch")
+                        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+                            if _live_flag_is_true(selected.get(field)):
+                                errors.append(
+                                    f"rollup runtime linkage selected scorecard candidate has forbidden true field: {field}"
+                                )
+                    else:
+                        symbol_scorecards = runtime_report.get("symbol_evidence_scorecards", [])
+                        if not isinstance(symbol_scorecards, list):
+                            errors.append("rollup runtime linkage source symbol evidence scorecards must be a list")
+                            symbol_matches = []
+                        else:
+                            symbol_matches = [
+                                item
+                                for item in symbol_scorecards
+                                if isinstance(item, dict) and item.get("best_candidate_id") == scorecard_candidate_id
+                            ]
+                        if len(symbol_matches) != 1:
+                            errors.append(
+                                "rollup runtime linkage scorecard candidate id is not present in source runtime symbol evidence"
+                            )
+                        else:
+                            symbol_match = symbol_matches[0]
+                            if membership_source != "symbol_evidence_scorecards.best_candidate_id":
+                                errors.append("rollup runtime linkage symbol scorecard membership source mismatch")
+                            if symbol_match.get("cycle_id") != runtime_report.get("cycle_id"):
+                                errors.append("rollup runtime linkage symbol scorecard cycle id mismatch")
+                            if runtime_linkage.get("candidate_scorecard_runtime_symbol") != symbol_match.get("symbol"):
+                                errors.append("rollup runtime linkage symbol scorecard candidate symbol mismatch")
+                            if (
+                                runtime_linkage.get("candidate_scorecard_runtime_decision")
+                                != symbol_match.get("best_decision")
+                            ):
+                                errors.append("rollup runtime linkage symbol scorecard candidate decision mismatch")
+                            for field in (
+                                "live_order_ready",
+                                "live_order_allowed",
+                                "can_live_trade",
+                                "scale_up_allowed",
+                            ):
+                                if _live_flag_is_true(symbol_match.get(field)):
+                                    errors.append(
+                                        f"rollup runtime linkage symbol scorecard candidate has forbidden true field: {field}"
+                                    )
 
     promotion_thresholds = rollup.get("promotion_threshold_evidence", {})
     if not isinstance(promotion_thresholds, dict):
@@ -20214,6 +20383,16 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         paper_scorecard_input = component.get("paper_scorecard_input_eligible") is True
         long_run_eligible = component.get("long_run_evidence_eligible") is True
         long_run_blocker = component.get("long_run_blocker_code")
+        if component_id == "paper_shadow_evidence_accumulation":
+            paper_sample_count = int(component.get("paper_sample_count", 0) or 0)
+            shadow_sample_count = int(component.get("shadow_sample_count", 0) or 0)
+            min_required_sample_count = int(component.get("min_required_sample_count", 0) or 0)
+            if paper_scorecard_input and (
+                paper_sample_count < min_required_sample_count
+                or shadow_sample_count < min_required_sample_count
+                or component.get("scorecard_input_truth_status") == "BLOCKED_NOT_SCORECARD_INPUT"
+            ):
+                errors.append("rollup paper/shadow component marks scorecard input eligible while sample truth is blocked")
         if component.get("maturity_status") == "PAPER_SCORECARD_INPUT_ONLY" and not paper_scorecard_input:
             errors.append(f"rollup component {component_id} marks PAPER scorecard input without eligibility flag")
         if paper_scorecard_input and component.get("maturity_status") not in {

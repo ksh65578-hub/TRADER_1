@@ -14,10 +14,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
+from trader1.research.profitability.candidate_scorecard import safe_candidate_scorecard_filename
 
 
 SESSION_ROOT = ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp1_upbit_paper_launcher"
 SCORECARD_PATH = SESSION_ROOT / "profitability" / "candidate_scorecard.json"
+SCORECARD_SNAPSHOT_DIR = SCORECARD_PATH.parent / "candidate_scorecards"
 OVERFIT_PATH = SESSION_ROOT / "profitability" / "overfit_diagnostic_report.json"
 SAMPLE_HISTORY_PATH = SESSION_ROOT / "paper_runtime" / "upbit_paper_runtime_sample_history.json"
 RUNTIME_CYCLE_DIR = SESSION_ROOT / "paper_runtime" / "cycles"
@@ -107,12 +109,127 @@ def runtime_path_from_scorecard(scorecard: dict[str, Any]) -> Path:
     return SESSION_ROOT / "upbit_paper_runtime_cycle_report.json"
 
 
-def runtime_linkage_evidence(runtime_path: Path) -> dict[str, Any]:
+def scorecard_snapshot_path(scorecard: dict[str, Any]) -> Path:
+    return SCORECARD_SNAPSHOT_DIR / (
+        f"{safe_candidate_scorecard_filename(scorecard.get('candidate_id'))}.candidate_scorecard.json"
+    )
+
+
+def candidate_scorecard_snapshot_evidence(scorecard: dict[str, Any]) -> dict[str, Any]:
+    snapshot_path = scorecard_snapshot_path(scorecard)
+    blocker_code: str | None = None
+    if not snapshot_path.is_file():
+        blocker_code = "SCORECARD_SNAPSHOT_MISSING"
+    else:
+        try:
+            snapshot = load_json(snapshot_path)
+        except (OSError, json.JSONDecodeError):
+            snapshot = None
+            blocker_code = "SCORECARD_SNAPSHOT_INVALID"
+        if isinstance(snapshot, dict):
+            for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+                if snapshot.get(field) is True:
+                    blocker_code = "SCORECARD_SNAPSHOT_LIVE_FLAG_MUTATED"
+                    break
+            if blocker_code is None and snapshot.get("candidate_id") != scorecard.get("candidate_id"):
+                blocker_code = "SCORECARD_SNAPSHOT_CANDIDATE_MISMATCH"
+            if blocker_code is None and snapshot.get("scorecard_id") != scorecard.get("scorecard_id"):
+                blocker_code = "SCORECARD_SNAPSHOT_ID_MISMATCH"
+            if blocker_code is None and (
+                snapshot.get("source_runtime_cycle_id") != scorecard.get("source_runtime_cycle_id")
+                or snapshot.get("source_runtime_cycle_hash") != scorecard.get("source_runtime_cycle_hash")
+            ):
+                blocker_code = "SCORECARD_SNAPSHOT_SOURCE_MISMATCH"
+    return {
+        "candidate_scorecard_path": rel(SCORECARD_PATH),
+        "candidate_scorecard_candidate_id": str(scorecard.get("candidate_id") or ""),
+        "candidate_scorecard_scorecard_id": str(scorecard.get("scorecard_id") or ""),
+        "candidate_scorecard_source_runtime_cycle_id": str(scorecard.get("source_runtime_cycle_id") or ""),
+        "candidate_scorecard_source_runtime_cycle_hash": str(scorecard.get("source_runtime_cycle_hash") or ""),
+        "candidate_scorecard_snapshot_path": rel(snapshot_path),
+        "candidate_scorecard_snapshot_status": "PASS" if blocker_code is None else "BLOCKED",
+        "candidate_scorecard_snapshot_blocker_code": blocker_code,
+    }
+
+
+def candidate_scorecard_runtime_membership_evidence(
+    report: dict[str, Any],
+    scorecard: dict[str, Any],
+) -> dict[str, Any]:
+    candidate_id = str(scorecard.get("candidate_id") or "")
+    selected = report.get("selected_candidate", {})
+    blocker_code: str | None = None
+    source: str | None = None
+    runtime_symbol: str | None = None
+    runtime_decision: str | None = None
+
+    if not candidate_id:
+        blocker_code = "CANDIDATE_SCORECARD_RUNTIME_CANDIDATE_ID_MISSING"
+    elif selected.get("candidate_id") == candidate_id:
+        source = "selected_candidate"
+        runtime_symbol = selected.get("symbol")
+        runtime_decision = selected.get("decision")
+        for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+            if selected.get(field) is True:
+                blocker_code = "CANDIDATE_SCORECARD_RUNTIME_LIVE_FLAG_MUTATED"
+                break
+    else:
+        matches = [
+            item
+            for item in report.get("symbol_evidence_scorecards", [])
+            if item.get("best_candidate_id") == candidate_id
+        ]
+        if not matches:
+            blocker_code = "CANDIDATE_SCORECARD_NOT_IN_RUNTIME_SYMBOL_SCORECARDS"
+        elif len(matches) > 1:
+            blocker_code = "CANDIDATE_SCORECARD_RUNTIME_DUPLICATE"
+        else:
+            match = matches[0]
+            source = "symbol_evidence_scorecards.best_candidate_id"
+            runtime_symbol = match.get("symbol")
+            runtime_decision = match.get("best_decision")
+            if match.get("cycle_id") != report.get("cycle_id"):
+                blocker_code = "CANDIDATE_SCORECARD_RUNTIME_CYCLE_MISMATCH"
+            else:
+                for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+                    if match.get(field) is True:
+                        blocker_code = "CANDIDATE_SCORECARD_RUNTIME_LIVE_FLAG_MUTATED"
+                        break
+
+    return {
+        "candidate_scorecard_runtime_membership_status": "PASS" if blocker_code is None else "BLOCKED",
+        "candidate_scorecard_runtime_membership_blocker_code": blocker_code,
+        "candidate_scorecard_runtime_membership_source": source,
+        "candidate_scorecard_runtime_symbol": runtime_symbol,
+        "candidate_scorecard_runtime_decision": runtime_decision,
+    }
+
+
+def runtime_linkage_evidence(runtime_path: Path, scorecard: dict[str, Any]) -> dict[str, Any]:
     report = load_json(runtime_path)
     result = validate_upbit_paper_runtime_cycle_report(report, require_quantitative_policy_summary=False)
     selected = report.get("selected_candidate", {})
+    snapshot_evidence = candidate_scorecard_snapshot_evidence(scorecard)
+    membership_evidence = candidate_scorecard_runtime_membership_evidence(report, scorecard)
+    runtime_validation_passed = result.status == "PASS"
+    strategy_linkage_passed = runtime_validation_passed and bool(report.get("strategy_regime_cost_linkage"))
+    snapshot_passed = snapshot_evidence["candidate_scorecard_snapshot_status"] == "PASS"
+    membership_passed = membership_evidence["candidate_scorecard_runtime_membership_status"] == "PASS"
+    if not runtime_validation_passed:
+        blocker_code = "RUNTIME_CYCLE_VALIDATION_FAILED"
+    elif not strategy_linkage_passed:
+        blocker_code = "STRATEGY_REGIME_COST_LINKAGE_MISSING"
+    elif not snapshot_passed:
+        blocker_code = snapshot_evidence["candidate_scorecard_snapshot_blocker_code"]
+    elif not membership_passed:
+        blocker_code = membership_evidence["candidate_scorecard_runtime_membership_blocker_code"]
+    else:
+        blocker_code = None
+    linkage_passed = runtime_validation_passed and strategy_linkage_passed and snapshot_passed and membership_passed
     return {
-        "status": "PASS" if result.status == "PASS" else "BLOCKED",
+        "status": "PASS" if linkage_passed else "BLOCKED",
+        "runtime_linkage_blocker_code": blocker_code,
+        "runtime_linkage_validator_message": result.message,
         "source_runtime_cycle_path": rel(runtime_path),
         "source_runtime_cycle_id": report.get("cycle_id"),
         "source_runtime_cycle_hash": report.get("cycle_hash"),
@@ -120,18 +237,20 @@ def runtime_linkage_evidence(runtime_path: Path) -> dict[str, Any]:
         "runtime_public_market_data_hash": report.get("runtime_public_market_data_hash"),
         "feature_snapshot_hash": report.get("feature_snapshot_hash"),
         "strategy_regime_cost_linkage_status": "PASS"
-        if result.status == "PASS" and report.get("strategy_regime_cost_linkage")
+        if strategy_linkage_passed
         else "BLOCKED",
         "selected_candidate_id": selected.get("candidate_id"),
         "selected_candidate_net_ev_after_cost_bps": selected.get("net_ev_after_cost_bps"),
         "cost_model_source": selected.get("cost_model_source"),
-        "sample_count": 1 if result.status == "PASS" else 0,
+        "sample_count": 1 if runtime_validation_passed else 0,
         "min_required_sample_count": 1,
         "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
         "live_order_ready": False,
         "live_order_allowed": False,
         "can_live_trade": False,
         "scale_up_allowed": False,
+        **snapshot_evidence,
+        **membership_evidence,
     }
 
 
@@ -323,7 +442,7 @@ def update_paper_shadow_component(
         component["maturity_status"] = "BLOCKED_LONG_RUN_EVIDENCE"
         component["evidence_status"] = "PARTIAL"
         component["min_required_sample_count"] = 30
-        component["paper_scorecard_input_eligible"] = True
+        component["paper_scorecard_input_eligible"] = False
         component["long_run_evidence_eligible"] = False
         component["long_run_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
         component["live_review_eligible"] = False
@@ -344,6 +463,7 @@ def update_paper_shadow_component(
         shadow_count = safe_int(paper_shadow_evidence.get("shadow_sample_count"))
         min_samples = safe_int(paper_shadow_evidence.get("min_required_sample_count"), 30)
         paired_sample_count = min(paper_count, shadow_count)
+        sample_floor_met = min_samples > 0 and paper_count >= min_samples and shadow_count >= min_samples
         component["sample_count"] = paired_sample_count
         component["min_required_sample_count"] = min_samples
         for field in (
@@ -399,6 +519,11 @@ def update_paper_shadow_component(
             paper_shadow_evidence,
             runtime_profile_evidence=runtime_profile_evidence,
         )
+        scorecard_truth_status = str(component.get("scorecard_input_truth_status") or "")
+        component["paper_scorecard_input_eligible"] = sample_floor_met and scorecard_truth_status in {
+            "PAPER_SCORECARD_INPUT_READY_ONLY",
+            "LONG_RUN_REVIEW_READY_NON_LIVE",
+        }
 
 
 def paper_shadow_next_required_evidence(
@@ -477,7 +602,7 @@ def refresh_rollup(
     runtime_path = runtime_path_from_scorecard(scorecard)
     rollup["generated_at_utc"] = now
     rollup["authority"] = authority
-    rollup["runtime_linkage_evidence"] = runtime_linkage_evidence(runtime_path)
+    rollup["runtime_linkage_evidence"] = runtime_linkage_evidence(runtime_path, scorecard)
     rollup["robustness_source_type_evidence"] = robustness_source_type_evidence(scorecard, overfit)
     rollup["runtime_collection_profile_evidence"] = runtime_collection_profile_evidence(runtime_profile)
     update_promotion_thresholds(rollup, scorecard, overfit)
@@ -487,15 +612,36 @@ def refresh_rollup(
     rollup["all_validators_passed"] = all(
         component.get("validator_status") == "PASS" for component in rollup.get("components", [])
     )
-    rollup["paper_scorecard_input_allowed"] = True
+    rollup["paper_scorecard_input_allowed"] = (
+        rollup["runtime_linkage_evidence"]["status"] == "PASS"
+        and rollup["robustness_source_type_evidence"]["status"] == "PASS"
+    )
     rollup["live_review_eligible"] = False
     rollup["scale_up_eligible"] = False
     rollup["primary_blocker_code"] = "PROFITABILITY_EVIDENCE_MATURITY"
-    rollup["next_operator_action"] = (
-        "Use the 300-sample PAPER scorecard and robustness pass for PAPER ranking review only; "
-        "live remains blocked until long-run PAPER/SHADOW evidence, replay coverage, read-only burn-in, "
-        "manual order evidence, live safety proof, and operator approval are complete."
-    )
+    if rollup["paper_scorecard_input_allowed"]:
+        rollup["next_operator_action"] = (
+            "Use the 300-sample PAPER scorecard and robustness pass for PAPER ranking review only; "
+            "live remains blocked until long-run PAPER/SHADOW evidence, replay coverage, read-only burn-in, "
+            "manual order evidence, live safety proof, and operator approval are complete."
+        )
+    elif rollup["runtime_linkage_evidence"]["status"] != "PASS":
+        rollup["next_operator_action"] = (
+            "Resolve the blocked PAPER scorecard runtime linkage reason, then continue PAPER/SHADOW evidence "
+            "collection; live remains blocked until long-run PAPER/SHADOW evidence, replay coverage, read-only burn-in, "
+            "manual order evidence, live safety proof, and operator approval are complete."
+        )
+    elif rollup["robustness_source_type_evidence"]["status"] != "PASS":
+        rollup["next_operator_action"] = (
+            "Collect OOS, walk-forward, bootstrap, and concentration robustness evidence for the PAPER scorecard, "
+            "then continue PAPER/SHADOW long-run collection; live remains blocked until replay coverage, read-only "
+            "burn-in, manual order evidence, live safety proof, and operator approval are complete."
+        )
+    else:
+        rollup["next_operator_action"] = (
+            "Continue PAPER/SHADOW evidence collection; live remains blocked until long-run PAPER/SHADOW evidence, "
+            "replay coverage, read-only burn-in, manual order evidence, live safety proof, and operator approval are complete."
+        )
     for field in (
         "live_order_ready",
         "live_order_allowed",
@@ -585,6 +731,12 @@ def main() -> int:
         "sample_count": overfit.get("sample_count"),
         "robustness_source_type_status": refreshed_rollup["robustness_source_type_evidence"]["status"],
         "runtime_collection_profile_status": runtime_profile_evidence["status"],
+        "runtime_linkage_status": refreshed_rollup["runtime_linkage_evidence"]["status"],
+        "runtime_linkage_blocker_code": refreshed_rollup["runtime_linkage_evidence"]["runtime_linkage_blocker_code"],
+        "candidate_scorecard_snapshot_status": refreshed_rollup["runtime_linkage_evidence"][
+            "candidate_scorecard_snapshot_status"
+        ],
+        "paper_scorecard_input_allowed": refreshed_rollup["paper_scorecard_input_allowed"],
         "paper_remaining_cycle_count": runtime_profile_evidence["paper_remaining_cycle_count"],
         "paper_remaining_span_seconds": runtime_profile_evidence["paper_remaining_span_seconds"],
         "shadow_remaining_cycle_count": runtime_profile_evidence["shadow_remaining_cycle_count"],
