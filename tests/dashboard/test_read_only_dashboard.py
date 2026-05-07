@@ -2571,6 +2571,79 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertIn("querySelectorAll('[data-public-ticker-symbol=", html)
         self.assertIn("wss://api.upbit.com/websocket/v1", html)
 
+    def test_dashboard_demotes_runner_when_sample_history_companion_mismatches(self):
+        session_id = "test_read_only_dashboard_runner_ops_sample_history_mismatch"
+        summary, heartbeat, startup_probe = build_inputs(session_id=session_id)
+        runner_status = runner_status_fixture(session_id=session_id)
+        runner_status.update(
+            {
+                "runtime_sample_history_status": "STALE",
+                "runtime_sample_history_source_consistency_status": "MISMATCH",
+                "runtime_sample_history_source_consistency_issues": [
+                    "accepted_cycle_sample_count",
+                    "active_candidate_scope",
+                ],
+                "runtime_sample_history_source_consistency_blocker_code": (
+                    "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH"
+                ),
+                "runtime_sample_history_companion_path": (
+                    "system/runtime/upbit/krw_spot/paper/test/paper_runtime/"
+                    "upbit_paper_runtime_sample_history.json"
+                ),
+                "runtime_sample_history_companion_generated_at_utc": runner_status["generated_at_utc"],
+                "runtime_sample_history_companion_accepted_cycle_sample_count": 2,
+                "runtime_sample_history_companion_active_candidate_id": "KRW-ETH-breakout-retest-long",
+                "runtime_sample_history_companion_active_sample_count": 2,
+                "runtime_sample_count": 2,
+                "paper_scope_candidate_id": "KRW-ETH-breakout-retest-long",
+                "paper_scope_strategy_id": "breakout_retest",
+                "paper_scope_sample_count": 2,
+                "paper_scope_sample_deficit": 28,
+                "paper_scope_progress_status": "STALE_SAMPLE_HISTORY_MISMATCH",
+                "paper_scope_next_operator_action": (
+                    "Start PAPER again so runner status, sample history, and PAPER/SHADOW evidence "
+                    "refresh together."
+                ),
+                "primary_blocker_code": "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH",
+                "profitability_evidence_primary_blocker_code": "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH",
+            }
+        )
+        runner_status["status_hash"] = upbit_paper_long_runner_status_hash(runner_status)
+
+        dashboard = build_read_only_dashboard_shell(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            mode="PAPER",
+            session_id=session_id,
+            summary=summary,
+            heartbeat=heartbeat,
+            startup_probe=startup_probe,
+            upbit_paper_long_runner_status_report=runner_status,
+            upbit_paper_long_runner_retention_manifest=runner_retention_manifest_fixture(
+                session_id=session_id,
+            ),
+        )
+        result = validate_read_only_dashboard_shell(dashboard)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        runner = dashboard["paper_runner_operations_status"]
+        self.assertEqual(runner["status"], "STALE")
+        self.assertEqual(runner["severity"], "WARNING")
+        self.assertEqual(runner["runtime_sample_history_source_consistency_status"], "MISMATCH")
+        self.assertEqual(
+            runner["primary_blocker_code"],
+            "RUNTIME_SAMPLE_HISTORY_COMPANION_MISMATCH",
+        )
+        self.assertEqual(runner["runtime_sample_count"], 2)
+        self.assertEqual(runner["paper_scope_candidate_id"], "KRW-ETH-breakout-retest-long")
+        source_by_id = {source["artifact_id"]: source for source in dashboard["source_artifacts"]}
+        self.assertEqual(source_by_id["PAPER_LONG_RUNNER_STATUS"]["freshness_status"], "STALE")
+        html = render_dashboard_html(dashboard)
+        self.assertIn("Sample history", html)
+        self.assertIn("Mismatch", html)
+        self.assertIn("accepted_cycle_sample_count", html)
+        self.assertIn("Start PAPER again so runner status, sample history", html)
+
     def test_dashboard_live_answer_prefers_current_runner_scope_deficit_over_rollup(self):
         rollup = profitability_maturity_rollup_fixture()
         dashboard = build_dashboard_with_runner_operations(profitability_maturity_rollup_report=rollup)
