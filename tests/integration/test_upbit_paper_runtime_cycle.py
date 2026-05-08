@@ -1240,6 +1240,87 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertFalse(report["paper_fill"]["private_endpoint_called"])
         self.assertFalse(report["live_order_allowed"])
 
+    def test_panic_existing_position_forces_paper_only_full_exit_even_when_in_profit(self):
+        data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="PANIC",
+        )
+        mark_price = data["candles"][-1]["close"]
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.02",
+            fill_price="850000",
+            mark_price=mark_price,
+            fee_amount="8.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-panic-profit",
+            source_paper_ledger_head_hash="F" * 64,
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-panic-existing-position-exit",
+            market_data=data,
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["final_decision"], "EXIT_POSITION")
+        self.assertIn("PANIC_SPOT_LONG_EXIT", report["no_trade_reasons"])
+        evaluation = report["position_management_decision"]["position_exit_evaluation"]
+        self.assertEqual(evaluation["spot_long_market_state"], "PANIC")
+        self.assertEqual(evaluation["spot_long_existing_position_action"], "FULL_EXIT")
+        self.assertEqual(evaluation["spot_long_existing_position_reason_code"], "PANIC_SPOT_LONG_EXIT")
+        self.assertEqual(report["position_management_decision"]["requested_position_decision"], "EXIT_POSITION")
+        self.assertEqual(report["paper_fill"]["side"], "SELL")
+        self.assertFalse(report["paper_fill"]["order_adapter_called"])
+        self.assertFalse(report["paper_fill"]["private_endpoint_called"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_profitable_downtrend_existing_position_reduces_exposure_without_new_entry(self):
+        candidate = {
+            "candidate_id": "KRW-BTC-pullback-trend-long",
+            "symbol": "KRW-BTC",
+            "strategy_family": "PULLBACK_TREND_LONG",
+        }
+        features = {
+            "last_price": "101",
+            "previous_high": "101.2",
+            "vwap": "100",
+            "volatility_pct": "1.0",
+            "range_breakout_pct": "-0.1",
+            "regime": "RISK_OFF",
+            "market_state": "DOWNTREND",
+            "trend_exhaustion_status": "PASS",
+            "trend_exhaustion_score": "0",
+        }
+        exit_plan = _build_runtime_exit_plan(
+            selected_candidate=candidate,
+            features=features,
+            entry_price_override="100",
+        )
+        evaluation = _evaluate_existing_position_exit(
+            position={"symbol": "KRW-BTC", "quantity": "200", "average_entry_price": "100"},
+            features=features,
+            exit_plan=exit_plan,
+            managed_candidate=candidate,
+        )
+
+        self.assertEqual(evaluation["final_decision"], "REDUCE_POSITION")
+        self.assertEqual(evaluation["reason_code"], "DOWNTREND_SPOT_LONG_REDUCE")
+        self.assertEqual(evaluation["sell_quantity"], "80")
+        self.assertEqual(evaluation["spot_long_market_state"], "DOWNTREND")
+        self.assertEqual(evaluation["spot_long_existing_position_action"], "REDUCE_POSITION")
+        self.assertEqual(evaluation["spot_long_existing_position_reason_code"], "DOWNTREND_SPOT_LONG_REDUCE")
+        self.assertEqual(evaluation["spot_long_existing_position_full_exit_max_return_pct"], "0.75")
+
     def test_existing_position_rotation_stays_hold_when_advantage_is_below_threshold(self):
         btc = build_upbit_public_candle_fixture(
             symbol="KRW-BTC",

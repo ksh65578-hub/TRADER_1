@@ -112,6 +112,8 @@ ROTATION_EXIT_WEAK_NO_TRADE_REASONS = {
 ROTATION_SUPERSEDED_BY_HIGHER_PRIORITY_EXIT_REASONS = {
     "HARD_STOP",
     "REGIME_REVERSAL",
+    "PANIC_SPOT_LONG_EXIT",
+    "DOWNTREND_SPOT_LONG_EXIT",
     "TREND_INVALIDATED",
     "VWAP_REVERSION_COMPLETE",
     "RANGE_BREAK_INVALIDATED",
@@ -143,6 +145,8 @@ RUNTIME_QUALITY_FEEDBACK_SYMBOL_SIGNAL_PENALTY = Decimal("0.08")
 RUNTIME_QUALITY_FEEDBACK_CANDIDATE_SIGNAL_PENALTY = Decimal("0.28")
 RECENT_FAILURE_COOLDOWN_EXIT_REASONS = {
     "REGIME_REVERSAL",
+    "PANIC_SPOT_LONG_EXIT",
+    "DOWNTREND_SPOT_LONG_EXIT",
     "HARD_STOP",
     "TRAILING_STOP",
     "REGIME_ROTATION_EXIT",
@@ -171,6 +175,19 @@ STRATEGY_EXIT_REASON_VWAP_FIXED_TP = "VWAP_FIXED_TP"
 STRATEGY_EXIT_REASON_BREAKOUT_LEVEL_LOST = "BREAKOUT_LEVEL_LOST"
 STRATEGY_EXIT_REASON_FALSE_BREAKOUT_INVALIDATED = "FALSE_BREAKOUT_INVALIDATED"
 STRATEGY_EXIT_REASON_VOLATILITY_INVALIDATED = "VOLATILITY_INVALIDATED"
+SPOT_LONG_EXISTING_POSITION_POLICY_ID = "UPBIT_KRW_SPOT_EXISTING_LONG_MARKET_STATE_POLICY_V1"
+SPOT_LONG_EXISTING_POSITION_POLICY_FORMULA = (
+    "PANIC -> FULL_EXIT; DOWNTREND/RISK_OFF with return_pct<0 -> FULL_EXIT as REGIME_REVERSAL; "
+    "DOWNTREND/RISK_OFF with 0<=return_pct<=0.75 -> FULL_EXIT; "
+    "DOWNTREND/RISK_OFF with return_pct>0.75 -> REDUCE_POSITION using partial_take_profit_ratio; "
+    "DATA_BAD/UNCERTAIN -> HOLD_ONLY after hard-stop/strategy/quality checks; otherwise NONE"
+)
+SPOT_LONG_PANIC_EXIT_REASON = "PANIC_SPOT_LONG_EXIT"
+SPOT_LONG_DOWNTREND_EXIT_REASON = "DOWNTREND_SPOT_LONG_EXIT"
+SPOT_LONG_DOWNTREND_REDUCE_REASON = "DOWNTREND_SPOT_LONG_REDUCE"
+SPOT_LONG_DATA_BAD_HOLD_REASON = "DATA_BAD_HOLD_ONLY"
+SPOT_LONG_UNCERTAIN_HOLD_REASON = "UNCERTAIN_HOLD_ONLY"
+DOWNTREND_SPOT_LONG_FULL_EXIT_MAX_RETURN_PCT = Decimal("0.75")
 BREAKOUT_INVALIDATION_BUFFER_ATR = Decimal("0.20")
 VWAP_REVERSION_FIXED_TP_ATR_MULTIPLIER = Decimal("0.80")
 QUIET_MAX_VOLATILITY_PCT = Decimal("0.35")
@@ -226,6 +243,14 @@ POSITION_ROTATION_EXIT_FIELDS = frozenset(
         "vwap_reversion_target",
         "breakout_invalidation_level",
         "trend_invalidation_regime",
+        "spot_long_existing_position_policy_id",
+        "spot_long_existing_position_policy_formula",
+        "spot_long_market_state",
+        "spot_long_regime",
+        "spot_long_existing_position_action",
+        "spot_long_existing_position_reason_code",
+        "spot_long_existing_position_condition_passed",
+        "spot_long_existing_position_full_exit_max_return_pct",
     }
 )
 STRATEGY_EXIT_POLICY_EVALUATION_FIELDS = frozenset(
@@ -1005,6 +1030,47 @@ def _position_entry_strategy_candidate(
     }
 
 
+def _spot_long_existing_position_market_state_policy(
+    *,
+    market_state: str,
+    regime: str,
+    return_pct: Decimal,
+) -> dict[str, Any]:
+    normalized_market_state = str(market_state or regime).upper()
+    normalized_regime = str(regime or "").upper()
+    action = "NONE"
+    reason_code: str | None = None
+    if normalized_market_state == "PANIC":
+        action = "FULL_EXIT"
+        reason_code = SPOT_LONG_PANIC_EXIT_REASON
+    elif normalized_market_state in {"DOWNTREND", "RISK_OFF"} or normalized_regime == "RISK_OFF":
+        if return_pct < Decimal("0"):
+            action = "FULL_EXIT"
+            reason_code = "REGIME_REVERSAL"
+        elif return_pct <= DOWNTREND_SPOT_LONG_FULL_EXIT_MAX_RETURN_PCT:
+            action = "FULL_EXIT"
+            reason_code = SPOT_LONG_DOWNTREND_EXIT_REASON
+        else:
+            action = "REDUCE_POSITION"
+            reason_code = SPOT_LONG_DOWNTREND_REDUCE_REASON
+    elif normalized_market_state == "DATA_BAD":
+        action = "HOLD_ONLY"
+        reason_code = SPOT_LONG_DATA_BAD_HOLD_REASON
+    elif normalized_market_state == "UNCERTAIN":
+        action = "HOLD_ONLY"
+        reason_code = SPOT_LONG_UNCERTAIN_HOLD_REASON
+    return {
+        "spot_long_existing_position_policy_id": SPOT_LONG_EXISTING_POSITION_POLICY_ID,
+        "spot_long_existing_position_policy_formula": SPOT_LONG_EXISTING_POSITION_POLICY_FORMULA,
+        "spot_long_market_state": normalized_market_state,
+        "spot_long_regime": normalized_regime,
+        "spot_long_existing_position_action": action,
+        "spot_long_existing_position_reason_code": reason_code,
+        "spot_long_existing_position_condition_passed": action != "NONE",
+        "spot_long_existing_position_full_exit_max_return_pct": _decimal_text(DOWNTREND_SPOT_LONG_FULL_EXIT_MAX_RETURN_PCT),
+    }
+
+
 def _evaluate_existing_position_exit(
     *,
     position: dict[str, Any] | None,
@@ -1053,6 +1119,14 @@ def _evaluate_existing_position_exit(
         "vwap_reversion_target": exit_plan.get("vwap_reversion_target"),
         "breakout_invalidation_level": exit_plan.get("breakout_invalidation_level"),
         "trend_invalidation_regime": None,
+        "spot_long_existing_position_policy_id": SPOT_LONG_EXISTING_POSITION_POLICY_ID,
+        "spot_long_existing_position_policy_formula": SPOT_LONG_EXISTING_POSITION_POLICY_FORMULA,
+        "spot_long_market_state": None,
+        "spot_long_regime": None,
+        "spot_long_existing_position_action": "NONE",
+        "spot_long_existing_position_reason_code": None,
+        "spot_long_existing_position_condition_passed": False,
+        "spot_long_existing_position_full_exit_max_return_pct": _decimal_text(DOWNTREND_SPOT_LONG_FULL_EXIT_MAX_RETURN_PCT),
     }
     if isinstance(rotation_candidate, dict):
         rotation_context.update(
@@ -1090,6 +1164,8 @@ def _evaluate_existing_position_exit(
     trailing_distance = _decimal(exit_plan.get("trailing_distance"))
     previous_high = _decimal(features.get("previous_high"))
     partial_ratio = _decimal(exit_plan.get("partial_take_profit_ratio"))
+    regime = str(features.get("regime") or "")
+    market_state = str(features.get("market_state") or regime)
     if min(mark_price, quantity, average_entry, hard_stop, tp1, tp2, trailing_start, trailing_distance, partial_ratio) <= 0:
         return {
             "final_decision": "HOLD_POSITION",
@@ -1103,6 +1179,13 @@ def _evaluate_existing_position_exit(
     decision = "HOLD_POSITION"
     reason = "EXIT_CONDITION_NOT_MET"
     return_pct = Decimal("0") if average_entry <= 0 else ((mark_price - average_entry) / average_entry * Decimal("100"))
+    rotation_context.update(
+        _spot_long_existing_position_market_state_policy(
+            market_state=market_state,
+            regime=regime,
+            return_pct=return_pct,
+        )
+    )
     quality_feedback_exit_condition_passed = (
         isinstance(managed_candidate, dict)
         and managed_candidate.get("recent_failure_feedback_kind") == "PRELIMINARY_ROBUSTNESS_FAIL"
@@ -1143,7 +1226,6 @@ def _evaluate_existing_position_exit(
             )
             rotation_context["rotation_action"] = "FULL_EXIT"
     strategy_family = str(exit_plan.get("strategy_family") or "")
-    regime = str(features.get("regime") or "")
     vwap_reversion_target = _decimal(exit_plan.get("vwap_reversion_target"))
     breakout_invalidation_level = _decimal(exit_plan.get("breakout_invalidation_level"))
     range_breakout_pct = _decimal(features.get("range_breakout_pct"))
@@ -1166,10 +1248,15 @@ def _evaluate_existing_position_exit(
             strategy_exit_reason = STRATEGY_EXIT_REASON_FALSE_BREAKOUT_INVALIDATED
         elif trend_exhaustion_status == "WARN" and return_pct <= ROTATION_EXIT_MAX_POSITIVE_RETURN_PCT:
             strategy_exit_reason = STRATEGY_EXIT_REASON_VOLATILITY_INVALIDATED
+    market_state_action = str(rotation_context.get("spot_long_existing_position_action") or "NONE")
+    market_state_reason = str(rotation_context.get("spot_long_existing_position_reason_code") or "")
     if mark_price <= hard_stop:
         decision = "EXIT_POSITION"
         reason = "HARD_STOP"
-    elif str(features.get("regime")) == "RISK_OFF" and mark_price < average_entry:
+    elif market_state_action == "FULL_EXIT" and market_state_reason == SPOT_LONG_PANIC_EXIT_REASON:
+        decision = "EXIT_POSITION"
+        reason = market_state_reason
+    elif market_state_action == "FULL_EXIT" and market_state_reason == "REGIME_REVERSAL":
         decision = "EXIT_POSITION"
         reason = "REGIME_REVERSAL"
     elif strategy_exit_reason is not None:
@@ -1194,6 +1281,15 @@ def _evaluate_existing_position_exit(
     elif rotation_context["rotation_condition_passed"]:
         decision = "EXIT_POSITION"
         reason = str(rotation_context["rotation_reason_code"] or "ROTATION_OPPORTUNITY_COST")
+    elif market_state_action == "FULL_EXIT":
+        decision = "EXIT_POSITION"
+        reason = market_state_reason or SPOT_LONG_DOWNTREND_EXIT_REASON
+    elif market_state_action == "REDUCE_POSITION":
+        decision = "REDUCE_POSITION"
+        reason = market_state_reason or SPOT_LONG_DOWNTREND_REDUCE_REASON
+    elif market_state_action == "HOLD_ONLY":
+        decision = "HOLD_POSITION"
+        reason = market_state_reason or "MARKET_STATE_HOLD_ONLY"
     elif mark_price >= tp1:
         decision = "REDUCE_POSITION"
         reason = "TAKE_PROFIT_1"
@@ -2668,6 +2764,34 @@ def _validate_position_rotation_context(
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit weak-return threshold drifted", "SCHEMA_IDENTITY_MISMATCH")
     if evaluation.get("quality_feedback_exit_formula") != QUALITY_FEEDBACK_EXIT_FORMULA:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "quality feedback exit formula mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if evaluation.get("spot_long_existing_position_policy_id") != SPOT_LONG_EXISTING_POSITION_POLICY_ID:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "spot long existing-position policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if evaluation.get("spot_long_existing_position_policy_formula") != SPOT_LONG_EXISTING_POSITION_POLICY_FORMULA:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "spot long existing-position policy formula mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if (
+        _decimal(evaluation.get("spot_long_existing_position_full_exit_max_return_pct"))
+        != DOWNTREND_SPOT_LONG_FULL_EXIT_MAX_RETURN_PCT
+    ):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "spot long downtrend risk-reduction threshold drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if lifecycle.get("managed_position_symbol") is not None:
+        expected_market_state_policy = _spot_long_existing_position_market_state_policy(
+            market_state=str(evaluation.get("spot_long_market_state") or selected.get("market_state") or selected.get("regime") or ""),
+            regime=str(evaluation.get("spot_long_regime") or selected.get("regime") or ""),
+            return_pct=_decimal(evaluation.get("return_pct")),
+        )
+        for field in (
+            "spot_long_market_state",
+            "spot_long_regime",
+            "spot_long_existing_position_action",
+            "spot_long_existing_position_reason_code",
+            "spot_long_existing_position_condition_passed",
+        ):
+            if evaluation.get(field) != expected_market_state_policy.get(field):
+                return UpbitPaperRuntimeCycleValidationResult(
+                    "FAIL",
+                    f"spot long existing-position market-state policy field drifted: {field}",
+                    "SCHEMA_IDENTITY_MISMATCH",
+                )
     if require_current_strategy_exit_policy:
         if evaluation.get("strategy_exit_policy_id") != STRATEGY_EXIT_POLICY_ID:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "strategy exit policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
