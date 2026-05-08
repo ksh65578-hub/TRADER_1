@@ -64,7 +64,8 @@ class StrategyPerformanceMemoryValidatorTest(unittest.TestCase):
         self.assertTrue(any("LIVE" in error for error in errors), errors)
 
     def test_scope_separation_is_required(self):
-        report = load_json(FIXTURE_DIR / "strategy_performance_memory_unscoped_fail.json")
+        report = load_json(FIXTURE_DIR / "strategy_performance_memory_pass.json")
+        report["paper_shadow_separated"] = False
 
         errors = _strategy_performance_memory_errors(report)
 
@@ -72,6 +73,13 @@ class StrategyPerformanceMemoryValidatorTest(unittest.TestCase):
             any("PAPER_SHADOW_RESEARCH_ONLY requires paper_shadow_separated=true" in error for error in errors),
             errors,
         )
+
+    def test_candidate_scoped_performance_source_binding_is_required(self):
+        report = load_json(FIXTURE_DIR / "strategy_performance_memory_unscoped_fail.json")
+
+        errors = _strategy_performance_memory_errors(report)
+
+        self.assertIn("IMPROVING_AFTER_COST requires candidate-scoped performance source artifact ids", errors)
 
     def test_net_ev_cannot_exceed_gross_after_costs(self):
         report = load_json(FIXTURE_DIR / "strategy_performance_memory_pass.json")
