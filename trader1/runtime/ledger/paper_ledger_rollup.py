@@ -555,9 +555,6 @@ def build_paper_ledger_rollup_report(
     latest_source_ledger_path: Path | None = None
     latest_source_ledger_event_count = 0
 
-    if not ledger_paths:
-        blockers.append(_blocker("LEDGER_UNAVAILABLE", "no PAPER ledger JSONL files are available for rollup"))
-
     for path in ledger_paths:
         artifact_paths.append(_relative_posix(path, root))
         source_runtime_cycle_id = path.name[: -len(".paper_ledger_events.jsonl")]
@@ -779,7 +776,10 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
     if report.get("rollup_status") == "PASS" and blockers:
         return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup cannot carry blockers", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("rollup_status") == "PASS" and report.get("ledger_jsonl_count") < 1:
-        return PaperLedgerRollupValidationResult("BLOCKED", "PASS paper ledger rollup requires ledger JSONL input", "LEDGER_UNAVAILABLE")
+        if report.get("ledger_event_count") != 0 or report.get("filled_order_count") != 0:
+            return PaperLedgerRollupValidationResult("FAIL", "empty paper ledger rollup cannot report ledger events", "SCHEMA_IDENTITY_MISMATCH")
+        if report.get("latest_ledger_head_hash") is not None or report.get("ledger_head_match_status") != "NOT_APPLICABLE":
+            return PaperLedgerRollupValidationResult("FAIL", "empty paper ledger rollup cannot claim ledger head binding", "LEDGER_INTEGRITY_FAIL")
     if report.get("ledger_event_count") < report.get("filled_order_count"):
         return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup event counts are inconsistent", "SCHEMA_IDENTITY_MISMATCH")
     if report.get("ledger_head_match_status") not in {"PASS", "MISSING", "MISMATCH", "NOT_APPLICABLE"}:
@@ -851,7 +851,10 @@ def validate_paper_ledger_rollup_report(report: dict[str, Any]) -> PaperLedgerRo
     if portfolio.get("source") != "PAPER_LEDGER_ROLLUP":
         return PaperLedgerRollupValidationResult("BLOCKED", "paper ledger rollup portfolio source mismatch", "LIVE_FINAL_GUARD_FAILED")
     if report.get("rollup_status") == "PASS":
-        if not isinstance(portfolio.get("source_runtime_cycle_id"), str) or not portfolio.get("source_runtime_cycle_id"):
+        if report.get("ledger_jsonl_count") < 1:
+            if portfolio.get("source_runtime_cycle_id") is not None or portfolio.get("source_paper_ledger_head_hash") is not None:
+                return PaperLedgerRollupValidationResult("FAIL", "empty paper ledger rollup cannot claim portfolio ledger provenance", "LEDGER_INTEGRITY_FAIL")
+        elif not isinstance(portfolio.get("source_runtime_cycle_id"), str) or not portfolio.get("source_runtime_cycle_id"):
             return PaperLedgerRollupValidationResult("FAIL", "PASS paper ledger rollup portfolio missing source runtime cycle id", "SCHEMA_IDENTITY_MISMATCH")
         if portfolio.get("source_paper_ledger_head_hash") != report.get("latest_ledger_head_hash"):
             return PaperLedgerRollupValidationResult("FAIL", "paper ledger rollup portfolio ledger head provenance mismatch", "LEDGER_INTEGRITY_FAIL")

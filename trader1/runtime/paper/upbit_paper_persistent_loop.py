@@ -16,6 +16,7 @@ from trader1.adapters.upbit.market_data import (
     rank_upbit_krw_symbols_by_public_ticker,
 )
 
+from trader1.core.sizing.position_sizing import sizing_decision_hash
 from trader1.core.ledger.paper_ledger import validate_upbit_paper_ledger
 from trader1.runtime.ledger.paper_ledger_input_manifest import (
     build_paper_ledger_input_manifest,
@@ -116,6 +117,36 @@ SYMBOL_EVIDENCE_SCORECARD_SCHEMA_UPGRADE_CONTRACT_MODE = (
     "LEGACY_RECHECK_WITHOUT_SYMBOL_EVIDENCE_SCORECARD"
 )
 CANDIDATE_COST_MODEL_SCHEMA_UPGRADE_FIELDS = frozenset({"cost_model_formula"})
+LEGACY_PAPER_BROKER_EXECUTION_MODEL_FIELDS = frozenset(
+    {"effective_spread_bps", "fee_model_reason", "maker_taker_decision_formula", "queue_wait_ms"}
+)
+LEGACY_SIZING_MODEL_REQUIRED_INPUT_FIELDS = frozenset(
+    {
+        "equity",
+        "cash",
+        "locked_cash",
+        "open_risk",
+        "unrealized_pnl",
+        "realized_pnl",
+        "volatility",
+        "liquidity",
+        "spread",
+        "orderbook_depth",
+        "signal_strength",
+        "strategy_confidence",
+        "regime_confidence",
+        "loss_streak",
+        "current_exposure",
+        "strategy_score",
+        "exchange",
+        "market_type",
+        "symbol_rules",
+        "fee",
+        "slippage",
+        "market_impact",
+    }
+)
+LEGACY_SIZING_MODEL_REQUIRED_CAP_FIELDS = frozenset({"equity_cap", "cash_cap", "risk_cap", "liquidity_cap"})
 POSITION_ROTATION_SCHEMA_UPGRADE_CONTRACT_MODE = "LEGACY_RECHECK_WITHOUT_POSITION_ROTATION_FIELDS"
 FEATURE_SNAPSHOT_PROJECTION_UPGRADE_MESSAGES = frozenset(
     {
@@ -131,6 +162,15 @@ SYMBOL_EVIDENCE_SCORECARD_PROJECTION_UPGRADE_MESSAGE = (
     "symbol evidence scorecard does not match runtime symbol candidates"
 )
 PAPER_SCOPE_CONTINUITY_SCHEMA_UPGRADE_FIELDS = frozenset({"paper_scope_continuity_decision"})
+SAFE_PAPER_ONLY_RUNTIME_SCHEMA_REGENERATION_MESSAGES = frozenset(
+    {
+        "symbol selection policy does not match runtime formula",
+        "feature snapshot does not match public market data",
+        "candidate strategy entry policy id mismatch",
+        "symbol evidence scorecard does not match runtime symbol candidates",
+        "exit_plan missing exit_variation",
+    }
+)
 STRATEGY_ENTRY_POLICY_SCHEMA_UPGRADE_MESSAGES = frozenset(
     {
         "candidate strategy entry policy id mismatch",
@@ -731,6 +771,82 @@ def _requires_legacy_sizing_cap_recheck(cycle: dict[str, Any] | None) -> bool:
     return isinstance(caps, dict) and "exposure_cap" not in caps
 
 
+def _requires_legacy_sizing_model_recheck(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if not _safe_paper_only_cycle_for_projection_upgrade(cycle):
+        return False
+    if runtime_result.status not in {"FAIL", "BLOCKED"}:
+        return False
+    if runtime_result.blocker_code not in {"SCHEMA_IDENTITY_MISMATCH", "MEASUREMENT_MISSING"}:
+        return False
+    message = str(runtime_result.message or "")
+    if not (
+        message.startswith("sizing inputs missing:")
+        or message.startswith("sizing cap missing:")
+    ):
+        return False
+    if message.startswith("sizing cap missing:"):
+        missing_cap = message.removeprefix("sizing cap missing: ").strip()
+        if missing_cap == "exposure_cap" or missing_cap in LEGACY_SIZING_MODEL_REQUIRED_CAP_FIELDS:
+            return False
+    sizing = cycle.get("sizing_decision") if isinstance(cycle, dict) else None
+    if not isinstance(sizing, dict):
+        return False
+    if sizing.get("live_order_ready") or sizing.get("live_order_allowed") or sizing.get("can_live_trade") or sizing.get("can_submit_order"):
+        return False
+    if sizing.get("order_adapter_called"):
+        return False
+    if sizing.get("sizing_decision_hash") != sizing_decision_hash(sizing):
+        return False
+    inputs = sizing.get("inputs")
+    caps = sizing.get("caps")
+    if not isinstance(inputs, dict) or not isinstance(caps, dict):
+        return False
+    if not LEGACY_SIZING_MODEL_REQUIRED_INPUT_FIELDS.issubset(inputs):
+        return False
+    if not LEGACY_SIZING_MODEL_REQUIRED_CAP_FIELDS.issubset(caps):
+        return False
+    return inputs.get("exchange") == "UPBIT" and inputs.get("market_type") == "KRW_SPOT"
+
+
+def _legacy_paper_broker_execution_missing_fields(
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> set[str]:
+    prefix = "paper broker attempt missing fields: "
+    if runtime_result.status != "FAIL" or runtime_result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
+        return set()
+    if not str(runtime_result.message or "").startswith(prefix):
+        return set()
+    try:
+        parsed = ast.literal_eval(str(runtime_result.message)[len(prefix) :])
+    except (SyntaxError, ValueError):
+        return set()
+    if not isinstance(parsed, list):
+        return set()
+    return {str(item) for item in parsed}
+
+
+def _requires_safe_paper_only_runtime_schema_regeneration(
+    cycle: dict[str, Any] | None,
+    runtime_result: UpbitPaperRuntimeCycleValidationResult,
+) -> bool:
+    if not _safe_paper_only_cycle_for_projection_upgrade(cycle):
+        return False
+    if runtime_result.blocker_code not in {"SCHEMA_IDENTITY_MISMATCH", "MEASUREMENT_MISSING"}:
+        return False
+    message = str(runtime_result.message or "")
+    if message in SAFE_PAPER_ONLY_RUNTIME_SCHEMA_REGENERATION_MESSAGES:
+        return True
+    if message.startswith("sizing inputs missing:"):
+        return _requires_legacy_sizing_model_recheck(cycle, runtime_result)
+    if message.startswith("position exit evaluation missing executable exit fields:"):
+        return True
+    broker_missing = _legacy_paper_broker_execution_missing_fields(runtime_result)
+    return bool(broker_missing) and broker_missing.issubset(LEGACY_PAPER_BROKER_EXECUTION_MODEL_FIELDS)
+
+
 def _missing_runtime_fields(result: UpbitPaperRuntimeCycleValidationResult) -> set[str]:
     prefix = "paper runtime cycle missing fields: "
     if result.status != "FAIL" or result.blocker_code != "SCHEMA_IDENTITY_MISMATCH":
@@ -1145,6 +1261,12 @@ def build_upbit_paper_runtime_recovery_guard_report(
         runtime_result = validate_upbit_paper_runtime_cycle_report(latest_cycle or {})
         legacy_quantitative_recheck = _requires_legacy_quantitative_policy_recheck(latest_cycle)
         legacy_sizing_cap_recheck = _requires_legacy_sizing_cap_recheck(latest_cycle)
+        legacy_sizing_model_recheck = _requires_legacy_sizing_model_recheck(latest_cycle, runtime_result)
+        safe_paper_only_runtime_schema_regeneration = False
+        safe_paper_only_runtime_schema_regeneration_candidate = _requires_safe_paper_only_runtime_schema_regeneration(
+            latest_cycle,
+            runtime_result,
+        )
         legacy_runtime_risk_exit_lifecycle_recheck = _requires_legacy_runtime_risk_exit_lifecycle_recheck(
             latest_cycle,
             runtime_result,
@@ -1188,6 +1310,8 @@ def build_upbit_paper_runtime_recovery_guard_report(
         if runtime_result.status != "PASS" and (
             legacy_quantitative_recheck
             or legacy_sizing_cap_recheck
+            or legacy_sizing_model_recheck
+            or safe_paper_only_runtime_schema_regeneration_candidate
             or legacy_runtime_risk_exit_lifecycle_recheck
             or symbol_evidence_scorecard_schema_upgrade_recheck
             or candidate_cost_model_schema_upgrade_recheck
@@ -1203,7 +1327,8 @@ def build_upbit_paper_runtime_recovery_guard_report(
                 return validate_upbit_paper_runtime_cycle_report(
                     latest_cycle or {},
                     require_quantitative_policy_summary=not legacy_quantitative_recheck,
-                    require_current_sizing_caps=not legacy_sizing_cap_recheck,
+                    require_current_sizing_caps=not (legacy_sizing_cap_recheck or legacy_sizing_model_recheck),
+                    require_current_sizing_model=not legacy_sizing_model_recheck,
                     require_symbol_evidence_scorecard_fields=not (
                         symbol_evidence_scorecard_schema_upgrade_recheck
                         or symbol_evidence_scorecard_projection_upgrade_recheck
@@ -1220,6 +1345,12 @@ def build_upbit_paper_runtime_recovery_guard_report(
             legacy_result = _legacy_validation()
             for _ in range(8):
                 legacy_recheck_changed = False
+                if (
+                    _requires_legacy_sizing_model_recheck(latest_cycle, legacy_result)
+                    and not legacy_sizing_model_recheck
+                ):
+                    legacy_sizing_model_recheck = True
+                    legacy_recheck_changed = True
                 if (
                     _requires_symbol_selection_policy_formula_upgrade_recheck(latest_cycle, legacy_result)
                     and not symbol_selection_policy_formula_upgrade_recheck
@@ -1268,6 +1399,19 @@ def build_upbit_paper_runtime_recovery_guard_report(
                     ),
                     None,
                 )
+            if legacy_result.status != "PASS" and _requires_safe_paper_only_runtime_schema_regeneration(
+                latest_cycle,
+                legacy_result,
+            ):
+                safe_paper_only_runtime_schema_regeneration = True
+                legacy_result = UpbitPaperRuntimeCycleValidationResult(
+                    "PASS",
+                    (
+                        "legacy PAPER-only cycle is safe to supersede; "
+                        "current runtime schema fields will be regenerated without creating live permission"
+                    ),
+                    None,
+                )
             if legacy_result.status == "PASS":
                 runtime_result = legacy_result
                 legacy_modes = []
@@ -1275,6 +1419,10 @@ def build_upbit_paper_runtime_recovery_guard_report(
                     legacy_modes.append("QUANTITATIVE_POLICY_SUMMARY")
                 if legacy_sizing_cap_recheck:
                     legacy_modes.append("CURRENT_SIZING_EXPOSURE_CAP")
+                if legacy_sizing_model_recheck:
+                    legacy_modes.append("CURRENT_SIZING_MODEL")
+                if safe_paper_only_runtime_schema_regeneration:
+                    legacy_modes.append("SAFE_PAPER_ONLY_RUNTIME_SCHEMA_REGENERATION")
                 if legacy_runtime_risk_exit_lifecycle_recheck:
                     legacy_modes.append("RUNTIME_RISK_EXIT_LIFECYCLE")
                 if symbol_evidence_scorecard_schema_upgrade_recheck:
@@ -2435,6 +2583,8 @@ def validate_upbit_paper_runtime_recovery_guard_report(report: dict[str, Any]) -
     legacy_components = (
         "QUANTITATIVE_POLICY_SUMMARY",
         "CURRENT_SIZING_EXPOSURE_CAP",
+        "CURRENT_SIZING_MODEL",
+        "SAFE_PAPER_ONLY_RUNTIME_SCHEMA_REGENERATION",
         "RUNTIME_RISK_EXIT_LIFECYCLE",
         "SYMBOL_EVIDENCE_SCORECARD",
         "ADAPTIVE_CANDIDATE_COST_MODEL",

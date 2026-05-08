@@ -324,6 +324,7 @@ def validate_position_sizing_decision(
     decision: dict[str, Any],
     *,
     require_exposure_cap: bool = True,
+    require_current_sizing_model: bool = True,
 ) -> PositionSizingValidationResult:
     required = {
         "schema_id",
@@ -363,26 +364,29 @@ def validate_position_sizing_decision(
         return PositionSizingValidationResult("BLOCKED", "sizing cannot call an order adapter", "LIVE_FINAL_GUARD_FAILED")
     inputs = decision.get("inputs", {})
     missing_inputs = sorted(SIZING_REQUIRED_INPUTS - set(inputs))
-    if missing_inputs:
+    if missing_inputs and require_current_sizing_model:
         return PositionSizingValidationResult("BLOCKED", f"sizing inputs missing: {missing_inputs}", "MEASUREMENT_MISSING")
     selected = _decimal(decision.get("selected_notional", "0"))
     caps = {key: _decimal(value) for key, value in decision.get("caps", {}).items()}
-    required_cap_keys = [
-        "equity_cap",
-        "cash_cap",
-        "risk_cap",
-        "liquidity_cap",
-        "atr_risk_cap",
-        "volatility_cap",
-        "stop_distance_rate",
-        "volatility_multiplier",
-        "drawdown_multiplier",
-        "regime_multiplier",
-        "correlation_multiplier",
-        "realized_performance_multiplier",
-        "combined_sizing_multiplier",
-        "sizing_formula",
-    ]
+    if require_current_sizing_model:
+        required_cap_keys = [
+            "equity_cap",
+            "cash_cap",
+            "risk_cap",
+            "liquidity_cap",
+            "atr_risk_cap",
+            "volatility_cap",
+            "stop_distance_rate",
+            "volatility_multiplier",
+            "drawdown_multiplier",
+            "regime_multiplier",
+            "correlation_multiplier",
+            "realized_performance_multiplier",
+            "combined_sizing_multiplier",
+            "sizing_formula",
+        ]
+    else:
+        required_cap_keys = ["equity_cap", "cash_cap", "risk_cap", "liquidity_cap"]
     if require_exposure_cap:
         required_cap_keys.append("exposure_cap")
     for key in required_cap_keys:
@@ -400,6 +404,8 @@ def validate_position_sizing_decision(
         "realized_performance_multiplier",
         "combined_sizing_multiplier",
     ):
+        if key not in caps and not require_current_sizing_model:
+            continue
         value = _decimal(caps[key])
         if value < 0 or value > 1:
             return PositionSizingValidationResult("FAIL", f"sizing multiplier out of range: {key}", "SCHEMA_IDENTITY_MISMATCH")

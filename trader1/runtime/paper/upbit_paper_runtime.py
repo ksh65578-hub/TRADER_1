@@ -4139,6 +4139,7 @@ def validate_upbit_paper_runtime_cycle_report(
     *,
     require_quantitative_policy_summary: bool = True,
     require_current_sizing_caps: bool = True,
+    require_current_sizing_model: bool = True,
     require_symbol_evidence_scorecard_fields: bool = True,
     require_adaptive_candidate_cost_model: bool = True,
     require_position_rotation_fields: bool = True,
@@ -4357,6 +4358,7 @@ def validate_upbit_paper_runtime_cycle_report(
     sizing_result = validate_position_sizing_decision(
         report["sizing_decision"],
         require_exposure_cap=require_current_sizing_caps,
+        require_current_sizing_model=require_current_sizing_model,
     )
     if sizing_result.status != "PASS":
         return UpbitPaperRuntimeCycleValidationResult(sizing_result.status, sizing_result.message, sizing_result.blocker_code)

@@ -3808,8 +3808,21 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
             rollup_id="validator-paper-ledger-rollup-empty",
         )
         empty_result = validate_paper_ledger_rollup_report(empty_rollup)
-        if empty_result.status != "BLOCKED" or empty_result.blocker_code != "LEDGER_UNAVAILABLE":
-            return fail_result("paper_ledger_rollup_validator", "empty paper ledger rollup was not blocked", paths, "LEDGER_UNAVAILABLE")
+        if (
+            empty_result.status != "PASS"
+            or empty_rollup.get("ledger_jsonl_count") != 0
+            or empty_rollup.get("filled_order_count") != 0
+            or empty_rollup.get("ledger_head_match_status") != "NOT_APPLICABLE"
+            or empty_rollup.get("portfolio_snapshot", {}).get("source_runtime_cycle_id") is not None
+            or empty_rollup.get("portfolio_snapshot", {}).get("source_paper_ledger_head_hash") is not None
+        ):
+            return fail_result("paper_ledger_rollup_validator", "empty no-trade paper ledger rollup did not pass as flat PAPER truth", paths, "SCHEMA_IDENTITY_MISMATCH")
+        empty_head_mutation = json.loads(json.dumps(empty_rollup))
+        empty_head_mutation["latest_ledger_head_hash"] = "A" * 64
+        empty_head_mutation["rollup_hash"] = paper_ledger_rollup_hash(empty_head_mutation)
+        empty_head_result = validate_paper_ledger_rollup_report(empty_head_mutation)
+        if empty_head_result.status != "FAIL" or empty_head_result.blocker_code != "LEDGER_INTEGRITY_FAIL":
+            return fail_result("paper_ledger_rollup_validator", "empty paper ledger rollup head mutation was not failed closed", paths, "LEDGER_INTEGRITY_FAIL")
 
     live_mutation = dict(rollup)
     live_mutation["live_order_allowed"] = True
