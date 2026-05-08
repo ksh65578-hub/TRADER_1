@@ -125,6 +125,80 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(evaluation["reason_code"], "BREAKOUT_LEVEL_LOST")
         self.assertTrue(evaluation["strategy_exit_condition_passed"])
 
+    def test_vwap_exit_policy_survives_trend_exhaustion_tightening(self):
+        candidate = {
+            "candidate_id": "KRW-BTC-vwap-mean-reversion",
+            "symbol": "KRW-BTC",
+            "strategy_family": "VWAP_MEAN_REVERSION",
+        }
+        features = {
+            "last_price": "101",
+            "previous_high": "103",
+            "vwap": "101",
+            "volatility_pct": "1.0",
+            "range_breakout_pct": "-0.1",
+            "regime": "RANGE",
+            "trend_exhaustion_status": "WARN",
+            "trend_exhaustion_score": "0.8",
+        }
+        exit_plan = _build_runtime_exit_plan(
+            selected_candidate=candidate,
+            features=features,
+            entry_price_override="100",
+        )
+        evaluation = _evaluate_existing_position_exit(
+            position={"symbol": "KRW-BTC", "quantity": "1", "average_entry_price": "100"},
+            features=features,
+            exit_plan=exit_plan,
+            managed_candidate=candidate,
+        )
+
+        self.assertEqual(exit_plan["strategy_exit_policy_id"], "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1")
+        self.assertEqual(exit_plan["exit_variation"], "fixed_tp")
+        self.assertEqual(exit_plan["vwap_reversion_target"], "101")
+        self.assertEqual(exit_plan["time_stop_candles"], 4)
+        self.assertEqual(exit_plan["trend_exhaustion_exit_adjustment"], "TIGHTENED_TRAILING_AND_TIME_STOP")
+        self.assertEqual(evaluation["final_decision"], "EXIT_POSITION")
+        self.assertEqual(evaluation["reason_code"], "VWAP_REVERSION_COMPLETE")
+        self.assertEqual(evaluation["strategy_exit_action"], "FULL_EXIT")
+
+    def test_breakout_exit_policy_survives_trend_exhaustion_tightening(self):
+        candidate = {
+            "candidate_id": "KRW-BTC-breakout-retest-long",
+            "symbol": "KRW-BTC",
+            "strategy_family": "BREAKOUT_RETEST_LONG",
+        }
+        features = {
+            "last_price": "99.7",
+            "previous_high": "100.5",
+            "vwap": "99",
+            "volatility_pct": "1.0",
+            "range_breakout_pct": "-0.8",
+            "regime": "UPTREND",
+            "trend_exhaustion_status": "WARN",
+            "trend_exhaustion_score": "0.8",
+        }
+        exit_plan = _build_runtime_exit_plan(
+            selected_candidate=candidate,
+            features=features,
+            entry_price_override="100",
+        )
+        evaluation = _evaluate_existing_position_exit(
+            position={"symbol": "KRW-BTC", "quantity": "1", "average_entry_price": "100"},
+            features=features,
+            exit_plan=exit_plan,
+            managed_candidate=candidate,
+        )
+
+        self.assertEqual(exit_plan["strategy_exit_policy_id"], "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1")
+        self.assertEqual(exit_plan["exit_variation"], "invalidation_exit")
+        self.assertEqual(exit_plan["breakout_invalidation_level"], "99.8")
+        self.assertEqual(exit_plan["time_stop_candles"], 4)
+        self.assertEqual(exit_plan["trend_exhaustion_exit_adjustment"], "TIGHTENED_TRAILING_AND_TIME_STOP")
+        self.assertEqual(evaluation["final_decision"], "EXIT_POSITION")
+        self.assertEqual(evaluation["reason_code"], "BREAKOUT_LEVEL_LOST")
+        self.assertEqual(evaluation["strategy_exit_action"], "FULL_EXIT")
+
     def test_existing_position_uses_entry_strategy_context_for_exit_router(self):
         market_data = build_upbit_public_candle_fixture(
             symbol="KRW-BTC",
@@ -1109,8 +1183,11 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertIsNone(report["paper_fill"])
         self.assertEqual(report["paper_ledger_events"], [])
         self.assertEqual(report["exit_plan"]["trend_exhaustion_exit_adjustment"], "TIGHTENED_TRAILING_AND_TIME_STOP")
-        self.assertEqual(report["exit_plan"]["time_stop_candles"], 5)
-        self.assertEqual(report["exit_plan"]["trailing_formula"], "start_after_0.8*atr_proxy_then_distance_0.55*atr_proxy")
+        self.assertEqual(report["selected_candidate"]["strategy_family"], "BREAKOUT_RETEST_LONG")
+        self.assertEqual(report["exit_plan"]["strategy_family"], report["selected_candidate"]["strategy_family"])
+        self.assertEqual(report["exit_plan"]["exit_variation"], "invalidation_exit")
+        self.assertEqual(report["exit_plan"]["time_stop_candles"], 4)
+        self.assertEqual(report["exit_plan"]["trailing_formula"], "start_after_0.9*atr_proxy_then_distance_0.55*atr_proxy")
         self.assertFalse(report["live_order_allowed"])
 
     def test_ledger_backed_cash_guard_blocks_entry_before_fill(self):
