@@ -406,6 +406,48 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         self.assertFalse(thresholds["live_order_allowed"])
         self.assertFalse(thresholds["scale_up_allowed"])
 
+    def test_maturity_rollup_binds_scorecard_closed_trade_performance_thresholds(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        thresholds = rollup["promotion_threshold_evidence"]
+        expected_missing = {
+            "PAPER_CLOSED_TRADES_BELOW_MIN",
+            "PROFIT_FACTOR_NOT_PASS",
+            "MAX_DRAWDOWN_NOT_PASS",
+            "FILL_QUALITY_NOT_PASS",
+        }
+        self.assertTrue(expected_missing.issubset(set(thresholds["missing_threshold_codes"])))
+
+        update_promotion_thresholds(
+            rollup,
+            {
+                "net_ev_after_cost_bps": 12.5,
+                "min_required_edge_bps": 10.0,
+                "cost_model_status": "VALIDATED",
+                "closed_trade_status": "PASS",
+                "closed_trade_sample_count": 42,
+                "min_closed_trade_sample_count": 30,
+                "profit_factor_status": "PASS",
+                "profit_factor": 1.42,
+                "min_profit_factor": 1.25,
+                "max_drawdown_status": "PASS",
+                "max_drawdown_pct": 4.8,
+                "max_allowed_drawdown_pct": 8.0,
+                "fill_quality_status": "PASS",
+                "fill_quality_score": 0.91,
+                "min_fill_quality_score": 0.80,
+            },
+            {"oos_status": "PASS", "walk_forward_status": "PASS"},
+        )
+
+        self.assertEqual(thresholds["paper_closed_trades"], 42)
+        self.assertEqual(thresholds["profit_factor_status"], "PASS")
+        self.assertEqual(thresholds["max_drawdown_status"], "PASS")
+        self.assertEqual(thresholds["fill_quality_status"], "PASS")
+        self.assertFalse(expected_missing.intersection(set(thresholds["missing_threshold_codes"])))
+        self.assertEqual(thresholds["status"], "BLOCKED_FOR_THRESHOLD_EVIDENCE")
+        self.assertFalse(thresholds["live_order_allowed"])
+        self.assertFalse(thresholds["scale_up_allowed"])
+
     def test_maturity_rollup_active_text_has_no_fixed_runtime_hour_floor(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         text = json.dumps(rollup, sort_keys=True).lower()

@@ -89,6 +89,13 @@ def safe_int(value: Any, default: int = 0) -> int:
         return default
 
 
+def safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def join_action_items(items: list[str]) -> str:
     if not items:
         return "remaining required non-live evidence"
@@ -368,6 +375,34 @@ def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any
     if net_ev >= min_edge and scorecard.get("cost_model_status") == "VALIDATED":
         thresholds["net_ev_after_cost_status"] = "PASS"
         missing_codes.discard("NET_EV_AFTER_COST_NOT_PASS")
+
+    paper_closed_trades = safe_int(scorecard.get("closed_trade_sample_count"))
+    min_paper_closed_trades = safe_int(
+        scorecard.get("min_closed_trade_sample_count"),
+        default=safe_int(thresholds.get("min_paper_closed_trades"), 1),
+    )
+    thresholds["paper_closed_trades"] = max(safe_int(thresholds.get("paper_closed_trades")), paper_closed_trades)
+    if scorecard.get("closed_trade_status") == "PASS" and paper_closed_trades >= min_paper_closed_trades:
+        missing_codes.discard("PAPER_CLOSED_TRADES_BELOW_MIN")
+
+    profit_factor = safe_float(scorecard.get("profit_factor"))
+    min_profit_factor = safe_float(scorecard.get("min_profit_factor"), 1.0)
+    if scorecard.get("profit_factor_status") == "PASS" and profit_factor >= min_profit_factor:
+        thresholds["profit_factor_status"] = "PASS"
+        missing_codes.discard("PROFIT_FACTOR_NOT_PASS")
+
+    max_drawdown = safe_float(scorecard.get("max_drawdown_pct"), 100.0)
+    max_allowed_drawdown = safe_float(scorecard.get("max_allowed_drawdown_pct"))
+    if scorecard.get("max_drawdown_status") == "PASS" and max_drawdown <= max_allowed_drawdown:
+        thresholds["max_drawdown_status"] = "PASS"
+        missing_codes.discard("MAX_DRAWDOWN_NOT_PASS")
+
+    fill_quality = safe_float(scorecard.get("fill_quality_score"))
+    min_fill_quality = safe_float(scorecard.get("min_fill_quality_score"), 1.0)
+    if scorecard.get("fill_quality_status") == "PASS" and fill_quality >= min_fill_quality:
+        thresholds["fill_quality_status"] = "PASS"
+        missing_codes.discard("FILL_QUALITY_NOT_PASS")
+
     thresholds["missing_threshold_codes"] = sorted(missing_codes)
     thresholds["status"] = "BLOCKED_FOR_THRESHOLD_EVIDENCE"
     thresholds["paper_runtime_hours_gate_role"] = "OBSERVED_CONTEXT_ONLY_NO_FIXED_RUNTIME_FLOOR"
