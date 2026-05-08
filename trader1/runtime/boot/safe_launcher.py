@@ -1329,6 +1329,11 @@ def _audited_portfolio_binds_current_rollup(
 ) -> bool:
     if not isinstance(portfolio, dict) or not isinstance(ledger_rollup, dict):
         return False
+    if ledger_rollup.get("rollup_status") != "PASS":
+        return False
+    latest_ledger_head_hash = ledger_rollup.get("latest_ledger_head_hash")
+    if not isinstance(latest_ledger_head_hash, str) or len(latest_ledger_head_hash) != 64:
+        return False
     rollup_portfolio = ledger_rollup.get("portfolio_snapshot")
     if not isinstance(rollup_portfolio, dict):
         return False
@@ -2381,6 +2386,18 @@ def build_launcher_dashboard_artifacts(
             runtime_cycle_portfolio,
             paper_runtime_cycle_report,
             paper_ledger_rollup_report,
+        ):
+            paper_portfolio = runtime_cycle_portfolio
+        elif (
+            isinstance(runtime_cycle_portfolio, dict)
+            and validate_paper_portfolio_snapshot(runtime_cycle_portfolio).status == "PASS"
+            and runtime_cycle_portfolio.get("source_runtime_cycle_id") == paper_runtime_cycle_report.get("cycle_id")
+            and runtime_cycle_portfolio.get("source_paper_ledger_head_hash") == paper_runtime_cycle_report.get("paper_ledger_head_hash")
+            and isinstance(runtime_cycle_portfolio.get("source_paper_ledger_head_hash"), str)
+            and (
+                not isinstance(paper_ledger_rollup_report, dict)
+                or not isinstance(paper_ledger_rollup_report.get("latest_ledger_head_hash"), str)
+            )
         ):
             paper_portfolio = runtime_cycle_portfolio
         elif paper_portfolio is None:
