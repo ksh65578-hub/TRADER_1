@@ -146,6 +146,10 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
             convergence_memory["convergence_objective_profile_path"],
             root,
         ),
+        "exploration_exploitation_policy_path": _relative_path(
+            convergence_memory["exploration_exploitation_policy_path"],
+            root,
+        ),
         "optimizer_memory_state_path": _relative_path(convergence_memory["optimizer_memory_state_path"], root),
         "failure_analysis_path": (
             _relative_path(convergence_memory["failure_analysis_path"], root)
@@ -176,6 +180,11 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         "strategy_performance_memory_status": convergence_memory["strategy_performance_memory"]["performance_status"],
         "strategy_performance_memory_scope": convergence_memory["strategy_performance_memory"]["performance_scope"],
         "convergence_objective_profile_status": convergence_memory["convergence_objective_profile"]["objective_status"],
+        "exploration_exploitation_policy_status": convergence_memory["exploration_exploitation_policy"]["policy_status"],
+        "exploration_exploitation_transition_decision": convergence_memory["exploration_exploitation_policy"]["transition_decision"],
+        "exploration_exploitation_policy_blocker_codes": [
+            blocker["code"] for blocker in convergence_memory["exploration_exploitation_policy"]["blockers"]
+        ],
         "optimizer_memory_sequence_number": convergence_memory["optimizer_memory_state"]["memory_sequence_number"],
         "failure_analysis_status": (
             convergence_memory["failure_analysis"]["failure_status"]

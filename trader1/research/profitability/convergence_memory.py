@@ -15,9 +15,37 @@ from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_js
 ROOT = Path(__file__).resolve().parents[3]
 STRATEGY_PERFORMANCE_MEMORY_SCHEMA_ID = "trader1.strategy_performance_memory.v1"
 CONVERGENCE_OBJECTIVE_PROFILE_SCHEMA_ID = "trader1.convergence_objective_profile.v1"
+EXPLORATION_POLICY_SCHEMA_ID = "trader1.exploration_exploitation_policy.v1"
 OPTIMIZER_MEMORY_STATE_SCHEMA_ID = "trader1.optimizer_memory_state.v1"
 FAILURE_ANALYSIS_SCHEMA_ID = "trader1.failure_analysis_report.v1"
 PROFIT_CONVERGENCE_CYCLE_SCHEMA_ID = "trader1.profit_convergence_cycle_report.v1"
+
+EXPLORATION_POLICY_DEPENDENCY_FIELDS = (
+    "ranking_stability_validator_status",
+    "optimizer_resource_budget_validator_status",
+    "overfit_diagnostic_validator_status",
+    "convergence_assessment_validator_status",
+    "exploration_resource_validator_status",
+    "model_drift_validator_status",
+)
+
+DEFAULT_EXPLORATION_POLICY_DEPENDENCY_STATUSES = {
+    "ranking_stability_validator_status": "UNTESTED",
+    "optimizer_resource_budget_validator_status": "UNTESTED",
+    "overfit_diagnostic_validator_status": "UNTESTED",
+    "convergence_assessment_validator_status": "UNTESTED",
+    "exploration_resource_validator_status": "UNTESTED",
+    "model_drift_validator_status": "UNTESTED",
+}
+
+EXPLORATION_POLICY_DEPENDENCY_BLOCKER_BY_FIELD = {
+    "ranking_stability_validator_status": "RANKING_UNSTABLE",
+    "optimizer_resource_budget_validator_status": "OPTIMIZER_RESOURCE_LIMIT",
+    "overfit_diagnostic_validator_status": "OVERFIT_RISK_HIGH",
+    "convergence_assessment_validator_status": "CONVERGENCE_STATE_UNTESTED",
+    "exploration_resource_validator_status": "EXPLORATION_RESOURCE_LIMIT",
+    "model_drift_validator_status": "CONVERGENCE_CLAIM_UNVERIFIED",
+}
 
 PROFIT_CONVERGENCE_CYCLE_DEPENDENCY_FIELDS = (
     "convergence_objective_profile_validator_status",
@@ -273,6 +301,7 @@ def _normalized_dependency_statuses(
     objective_profile: dict[str, Any] | None,
     strategy_memory: dict[str, Any] | None,
     optimizer_memory: dict[str, Any] | None,
+    exploration_policy: dict[str, Any] | None,
     failure_analysis: dict[str, Any] | None,
 ) -> dict[str, str]:
     statuses = dict(DEFAULT_PROFIT_CYCLE_DEPENDENCY_STATUSES)
@@ -282,6 +311,8 @@ def _normalized_dependency_statuses(
         statuses["strategy_performance_memory_validator_status"] = "PASS"
     if optimizer_memory is not None:
         statuses["optimizer_memory_state_validator_status"] = "PASS"
+    if exploration_policy is not None:
+        statuses["exploration_exploitation_policy_validator_status"] = "PASS"
     if failure_analysis is not None:
         statuses["failure_analysis_validator_status"] = "PASS"
     else:
@@ -314,6 +345,7 @@ def _source_ids_for_cycle(
     objective_profile: dict[str, Any] | None,
     strategy_memory: dict[str, Any] | None,
     optimizer_memory: dict[str, Any] | None,
+    exploration_policy: dict[str, Any] | None,
     failure_analysis: dict[str, Any] | None,
 ) -> list[str]:
     source_ids = [scorecard_artifact_id(scorecard), *[str(item) for item in scorecard.get("source_evidence_ids", [])]]
@@ -327,10 +359,255 @@ def _source_ids_for_cycle(
     if optimizer_memory is not None:
         source_ids.append(f"optimizer_memory_state:{optimizer_memory.get('optimizer_memory_state_id')}:{sha256_json(optimizer_memory)}")
         source_ids.extend(str(item) for item in optimizer_memory.get("source_artifact_ids", []))
+    if exploration_policy is not None:
+        source_ids.append(f"exploration_exploitation_policy:{exploration_policy.get('policy_id')}:{sha256_json(exploration_policy)}")
+        source_ids.extend(str(item) for item in exploration_policy.get("source_evidence_ids", []))
     if failure_analysis is not None:
         source_ids.append(f"failure_analysis:{failure_analysis.get('failure_analysis_id')}:{failure_analysis.get('audit_hash')}")
         source_ids.extend(str(item) for item in failure_analysis.get("source_evidence_ids", []))
     return sorted(set(source_ids))
+
+
+def _scorecard_robustness_passes(scorecard: dict[str, Any]) -> bool:
+    return (
+        scorecard.get("robustness_ready") is True
+        and scorecard.get("oos_status") == "PASS"
+        and scorecard.get("walk_forward_status") == "PASS"
+        and scorecard.get("bootstrap_status") == "PASS"
+        and scorecard.get("overfit_status") == "LOW"
+    )
+
+
+def _exploration_candidate_count(scorecard: dict[str, Any]) -> int:
+    evaluated = _int_value(scorecard.get("evaluated_symbol_count"), 0)
+    paper_review = _int_value(scorecard.get("paper_entry_review_symbol_count"), 0)
+    alternatives = _int_value(scorecard.get("alternative_candidate_count"), 0)
+    return max(1, evaluated, paper_review + alternatives + 1)
+
+
+def _exploration_policy_dependency_statuses(
+    scorecard: dict[str, Any],
+    *,
+    candidate_count: int,
+    candidate_budget: int,
+    dependency_statuses: dict[str, str] | None = None,
+) -> dict[str, str]:
+    statuses = dict(DEFAULT_EXPLORATION_POLICY_DEPENDENCY_STATUSES)
+    statuses["ranking_stability_validator_status"] = "PASS" if _scorecard_robustness_passes(scorecard) else "BLOCKED"
+    statuses["optimizer_resource_budget_validator_status"] = "PASS" if candidate_count <= candidate_budget else "BLOCKED"
+    statuses["overfit_diagnostic_validator_status"] = "PASS" if _scorecard_robustness_passes(scorecard) else "BLOCKED"
+    statuses["exploration_resource_validator_status"] = "PASS" if 0 < candidate_count <= candidate_budget else "BLOCKED"
+    for field, status in (dependency_statuses or {}).items():
+        if field not in statuses:
+            continue
+        statuses[field] = status if status in VALIDATOR_STATUSES else "UNTESTED"
+    return statuses
+
+
+def _exploration_policy_dependency_blockers(statuses: dict[str, str]) -> list[dict[str, str]]:
+    blockers: list[dict[str, str]] = []
+    for field in EXPLORATION_POLICY_DEPENDENCY_FIELDS:
+        status = statuses[field]
+        if status == "PASS":
+            continue
+        blockers.append(
+            blocker(
+                EXPLORATION_POLICY_DEPENDENCY_BLOCKER_BY_FIELD[field],
+                f"{field} is {status}; exploration-to-exploitation transition remains analysis-only.",
+                "MEDIUM",
+            )
+        )
+    return blockers
+
+
+def exploration_exploitation_policy_from_scorecard(
+    scorecard: dict[str, Any],
+    *,
+    objective_profile: dict[str, Any] | None = None,
+    strategy_memory: dict[str, Any] | None = None,
+    optimizer_memory: dict[str, Any] | None = None,
+    failure_analysis: dict[str, Any] | None = None,
+    dependency_statuses: dict[str, str] | None = None,
+    authority: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    if any(scorecard.get(field) is True for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+        raise ValueError("exploration/exploitation policy refuses scorecard live or scale-up permission")
+
+    source_modes = sorted(
+        set(str(item) for item in (strategy_memory or {}).get("source_modes", [scorecard.get("mode", "PAPER")]) if item != "LIVE")
+    )
+    source_modes = source_modes or ["PAPER"]
+    source_mode_set = set(source_modes)
+    candidate_count = _exploration_candidate_count(scorecard)
+    candidate_budget = 20
+    statuses = _exploration_policy_dependency_statuses(
+        scorecard,
+        candidate_count=candidate_count,
+        candidate_budget=candidate_budget,
+        dependency_statuses=dependency_statuses,
+    )
+    pass_count = sum(1 for status in statuses.values() if status == "PASS")
+    all_dependencies_pass = pass_count == len(EXPLORATION_POLICY_DEPENDENCY_FIELDS)
+    candidate_budget_status = "PASS" if candidate_count <= candidate_budget else "BLOCKED"
+    net_ev = min(
+        _bounded_float(scorecard.get("net_ev_after_cost_bps")),
+        _bounded_float((strategy_memory or {}).get("net_ev_after_cost"), default=_bounded_float(scorecard.get("net_ev_after_cost_bps"))),
+    )
+    objective_valid = (
+        net_ev > 0
+        and (objective_profile or {}).get("objective_status") != "BLOCKED"
+        and not any(item.get("code") in {"COST_AFTER_EDGE_UNVERIFIED", "FEE_EXCEEDS_EDGE"} for item in scorecard.get("blockers", []))
+    )
+    cooldown_cycles = min(5, max(1, _int_value((failure_analysis or {}).get("repeated_failure_count"), 0))) if failure_analysis else 0
+    blockers = _dedupe_blockers(
+        [
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in scorecard.get("blockers", [])],
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in (strategy_memory or {}).get("blockers", [])],
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in (objective_profile or {}).get("blockers", [])],
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in (failure_analysis or {}).get("blockers", [])],
+            *_exploration_policy_dependency_blockers(statuses),
+        ]
+    )
+    if "SHADOW" not in source_mode_set and not any(item["code"] == "MEASUREMENT_MISSING" for item in blockers):
+        blockers.append(
+            blocker(
+                "MEASUREMENT_MISSING",
+                "Exploration policy requires SHADOW evidence before limited PAPER ranking exploitation review.",
+                "MEDIUM",
+            )
+        )
+    if candidate_budget_status != "PASS":
+        blockers.append(
+            blocker(
+                "CANDIDATE_BUDGET_EXCEEDED",
+                f"Exploration candidate count {candidate_count} exceeds budget {candidate_budget}; transition is blocked.",
+            )
+        )
+    if cooldown_cycles > 0 and not any(item["code"] == "COOLDOWN" for item in blockers):
+        blockers.append(
+            blocker(
+                "COOLDOWN",
+                f"Candidate remains in cooldown for {cooldown_cycles} convergence cycle(s) after blocked scorecard evidence.",
+                "MEDIUM",
+            )
+        )
+
+    limited_exploitation_allowed = (
+        all_dependencies_pass
+        and candidate_budget_status == "PASS"
+        and objective_valid
+        and scorecard.get("ranking_eligible") is True
+        and {"PAPER", "SHADOW"}.issubset(source_mode_set)
+        and cooldown_cycles == 0
+        and not blockers
+    )
+    if limited_exploitation_allowed:
+        policy_scope = "PAPER_RANKING_REVIEW_ONLY"
+        policy_status = "PAPER_RANKING_REVIEW_ELIGIBLE"
+        controller_state = "EXPLOITING_PAPER_ONLY"
+        transition_decision = "LIMITED_EXPLOITATION_REVIEW"
+        recommendation_scope = "PAPER_RANKING_REVIEW_ONLY"
+        objective_basis = "NET_EV_AFTER_COST"
+        exploration_rate_pct = 40.0
+        exploitation_rate_pct = 60.0
+        exploitation_candidate_id = str(scorecard["candidate_id"])
+        status = "PASS"
+        blocks_promotion = False
+    elif not objective_valid or failure_analysis is not None or cooldown_cycles > 0 or candidate_budget_status != "PASS":
+        policy_scope = "RESEARCH_BLOCKED"
+        policy_status = "BLOCKED"
+        controller_state = "BLOCKED"
+        transition_decision = "BLOCK_TRANSITION"
+        recommendation_scope = "BLOCKED"
+        objective_basis = "BLOCKED_NO_VALID_OBJECTIVE" if not objective_valid else "NET_EV_AFTER_COST"
+        exploration_rate_pct = 100.0
+        exploitation_rate_pct = 0.0
+        exploitation_candidate_id = None
+        status = "BLOCKED"
+        blocks_promotion = True
+    else:
+        policy_scope = "REPLAY_PAPER_SHADOW_READ_ONLY_ONLY"
+        policy_status = "ACTIVE_ANALYSIS_ONLY"
+        controller_state = "EXPLORING"
+        transition_decision = "KEEP_EXPLORING"
+        recommendation_scope = "ANALYSIS_ONLY"
+        objective_basis = "NET_EV_AFTER_COST"
+        exploration_rate_pct = 100.0
+        exploitation_rate_pct = 0.0
+        exploitation_candidate_id = None
+        status = "BLOCKED"
+        blocks_promotion = True
+
+    dependency_summary_status = "PASS" if all_dependencies_pass else "BLOCKED" if "BLOCKED" in set(statuses.values()) else "UNTESTED"
+    source_ids = [
+        scorecard_artifact_id(scorecard),
+        *[str(item) for item in scorecard.get("source_evidence_ids", [])],
+    ]
+    for artifact in (objective_profile, strategy_memory, optimizer_memory, failure_analysis):
+        if artifact is None:
+            continue
+        source_ids.append(sha256_json(artifact))
+        source_ids.extend(str(item) for item in artifact.get("source_evidence_ids", []))
+        source_ids.extend(str(item) for item in artifact.get("source_artifact_ids", []))
+
+    return {
+        "schema_id": EXPLORATION_POLICY_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "project_id": "TRADER_1",
+        "authority": authority or current_authority_hashes(),
+        "policy_id": f"exploration_exploitation_policy:{scorecard.get('scorecard_id')}",
+        "exchange": scorecard["exchange"],
+        "market_type": scorecard["market_type"],
+        "mode": scorecard["mode"],
+        "session_id": scorecard["session_id"],
+        "strategy_id": scorecard["strategy_id"],
+        "parameter_hash": scorecard["parameter_hash"],
+        "timeframe_scope": scorecard["timeframe_scope"],
+        "regime_scope": scorecard["regime_scope"],
+        "policy_scope": policy_scope,
+        "policy_status": policy_status,
+        "controller_state": controller_state,
+        "transition_decision": transition_decision,
+        "recommendation_scope": recommendation_scope,
+        "objective_basis": objective_basis,
+        "source_modes": source_modes,
+        "source_evidence_ids": sorted(set(source_ids)),
+        "dependency_summary_status": dependency_summary_status,
+        **statuses,
+        "required_dependency_count": len(EXPLORATION_POLICY_DEPENDENCY_FIELDS),
+        "dependency_pass_count": pass_count,
+        "exploration_candidate_budget": candidate_budget,
+        "candidate_count": candidate_count,
+        "candidate_budget_status": candidate_budget_status,
+        "exploitation_candidate_id": exploitation_candidate_id,
+        "exploitation_allowed_for_paper_ranking": limited_exploitation_allowed,
+        "exploration_rate_pct": exploration_rate_pct,
+        "exploitation_rate_pct": exploitation_rate_pct,
+        "min_exploration_rate_pct": 20.0,
+        "max_exploitation_rate_pct": 70.0,
+        "cooldown_cycles_remaining": cooldown_cycles,
+        "blocks_promotion": blocks_promotion,
+        "blocks_live_order": True,
+        "live_readiness_status": "NOT_LIVE_READY",
+        "operator_warning": "exploration/exploitation policy is not LIVE_READY; live orders blocked and scale-up blocked",
+        "status": status,
+        "blockers": blockers,
+        "notes": "Generated from non-live Upbit PAPER scorecard and convergence memory; policy cannot mutate live config or submit orders.",
+        "dashboard_display_truth_only": True,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "live_permission_created": False,
+        "live_config_mutation_allowed": False,
+        "writes_live_ready_snapshot": False,
+        "active_snapshot_mutation_allowed": False,
+        "optimizer_winner_live_config_allowed": False,
+        "paper_winner_live_config_allowed": False,
+        "order_submission_allowed": False,
+        "exchange_account_call_allowed": False,
+        "scale_up_recommendation_allowed": False,
+    }
 
 
 def profit_convergence_cycle_from_scorecard(
@@ -339,6 +616,7 @@ def profit_convergence_cycle_from_scorecard(
     objective_profile: dict[str, Any] | None = None,
     strategy_memory: dict[str, Any] | None,
     optimizer_memory: dict[str, Any] | None,
+    exploration_policy: dict[str, Any] | None = None,
     failure_analysis: dict[str, Any] | None = None,
     dependency_statuses: dict[str, str] | None = None,
     previous_cycle_report: dict[str, Any] | None = None,
@@ -353,6 +631,7 @@ def profit_convergence_cycle_from_scorecard(
         objective_profile=objective_profile,
         strategy_memory=strategy_memory,
         optimizer_memory=optimizer_memory,
+        exploration_policy=exploration_policy,
         failure_analysis=failure_analysis,
     )
     source_modes = sorted(set(str(item) for item in (strategy_memory or {}).get("source_modes", [scorecard.get("mode", "PAPER")]) if item != "LIVE"))
@@ -379,6 +658,7 @@ def profit_convergence_cycle_from_scorecard(
         [
             *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in scorecard.get("blockers", [])],
             *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in (strategy_memory or {}).get("blockers", [])],
+            *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in (exploration_policy or {}).get("blockers", [])],
             *[blocker(str(item.get("code")), str(item.get("message")), str(item.get("severity") or "HIGH")) for item in (failure_analysis or {}).get("blockers", [])],
             *_dependency_blockers(statuses),
         ]
@@ -438,7 +718,7 @@ def profit_convergence_cycle_from_scorecard(
         "timeframe_scope": scorecard["timeframe_scope"],
         "regime_scope": scorecard["regime_scope"],
         "source_modes": source_modes,
-        "source_evidence_ids": _source_ids_for_cycle(scorecard, objective_profile, strategy_memory, optimizer_memory, failure_analysis),
+        "source_evidence_ids": _source_ids_for_cycle(scorecard, objective_profile, strategy_memory, optimizer_memory, exploration_policy, failure_analysis),
         **statuses,
         "required_dependency_count": len(PROFIT_CONVERGENCE_CYCLE_DEPENDENCY_FIELDS),
         "dependency_pass_count": pass_count,
@@ -823,11 +1103,19 @@ def write_upbit_paper_convergence_memory_artifacts(
         previous_memory_state=previous_memory_state,
         failure_analysis=failure,
     )
+    exploration_policy = exploration_exploitation_policy_from_scorecard(
+        scorecard,
+        objective_profile=objective_profile,
+        strategy_memory=memory,
+        optimizer_memory=optimizer_memory,
+        failure_analysis=failure,
+    )
     profit_cycle = profit_convergence_cycle_from_scorecard(
         scorecard,
         objective_profile=objective_profile,
         strategy_memory=memory,
         optimizer_memory=optimizer_memory,
+        exploration_policy=exploration_policy,
         failure_analysis=failure,
     )
     base = (
@@ -842,10 +1130,12 @@ def write_upbit_paper_convergence_memory_artifacts(
     )
     strategy_memory_path = base / "strategy_performance_memory.json"
     objective_profile_path = base / "convergence_objective_profile.json"
+    exploration_policy_path = base / "exploration_exploitation_policy.json"
     optimizer_memory_path = base / "optimizer_memory_state.json"
     profit_cycle_path = base / "profit_convergence_cycle_report.json"
     durable_atomic_write_json(strategy_memory_path, memory)
     durable_atomic_write_json(objective_profile_path, objective_profile)
+    durable_atomic_write_json(exploration_policy_path, exploration_policy)
     durable_atomic_write_json(optimizer_memory_path, optimizer_memory)
     durable_atomic_write_json(profit_cycle_path, profit_cycle)
     failure_path = None
@@ -859,11 +1149,13 @@ def write_upbit_paper_convergence_memory_artifacts(
     return {
         "strategy_performance_memory": memory,
         "convergence_objective_profile": objective_profile,
+        "exploration_exploitation_policy": exploration_policy,
         "optimizer_memory_state": optimizer_memory,
         "failure_analysis": failure,
         "profit_convergence_cycle_report": profit_cycle,
         "strategy_performance_memory_path": strategy_memory_path,
         "convergence_objective_profile_path": objective_profile_path,
+        "exploration_exploitation_policy_path": exploration_policy_path,
         "optimizer_memory_state_path": optimizer_memory_path,
         "failure_analysis_path": failure_path,
         "profit_convergence_cycle_report_path": profit_cycle_path,

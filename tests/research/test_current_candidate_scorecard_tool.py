@@ -20,6 +20,7 @@ from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_pe
 from trader1.validation.mvp0_validators import (
     _candidate_scorecard_net_ev_errors,
     _convergence_objective_profile_errors,
+    _exploration_exploitation_policy_errors,
     _failure_analysis_errors,
     _optimizer_memory_state_errors,
     _overfit_diagnostic_errors,
@@ -79,6 +80,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
             history = _load_written(root, result, "runtime_sample_history_path")
             strategy_memory = _load_written(root, result, "strategy_performance_memory_path")
             objective_profile = _load_written(root, result, "convergence_objective_profile_path")
+            exploration_policy = _load_written(root, result, "exploration_exploitation_policy_path")
             optimizer_memory = _load_written(root, result, "optimizer_memory_state_path")
             failure_analysis = _load_written(root, result, "failure_analysis_path")
             profit_cycle = _load_written(root, result, "profit_convergence_cycle_report_path")
@@ -96,18 +98,24 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(diagnostic["sample_count"], 2)
         self.assertEqual(_strategy_performance_memory_errors(strategy_memory), [])
         self.assertEqual(_convergence_objective_profile_errors(objective_profile), [])
+        self.assertEqual(_exploration_exploitation_policy_errors(exploration_policy), [])
         self.assertEqual(_optimizer_memory_state_errors(optimizer_memory), [])
         self.assertEqual(_failure_analysis_errors(failure_analysis), [])
         self.assertEqual(_profit_convergence_cycle_errors(profit_cycle), [])
         self.assertEqual(strategy_memory["performance_scope"], "PAPER_RUNTIME_SCORECARD_ONLY")
         self.assertEqual(objective_profile["objective_status"], "BLOCKED")
+        self.assertEqual(exploration_policy["policy_status"], "BLOCKED")
+        self.assertEqual(exploration_policy["transition_decision"], "BLOCK_TRANSITION")
+        self.assertFalse(exploration_policy["exploitation_allowed_for_paper_ranking"])
         self.assertFalse(strategy_memory["paper_shadow_separated"])
         self.assertEqual(optimizer_memory["blocked_candidate_count"], 1)
         self.assertEqual(failure_analysis["optimizer_ranking_action"], "BLOCK_RANKING")
         self.assertEqual(profit_cycle["cycle_status"], "BLOCKED")
+        self.assertEqual(profit_cycle["exploration_exploitation_policy_validator_status"], "PASS")
         self.assertEqual(profit_cycle["convergence_claim"], "BLOCKED")
         self.assertFalse(profit_cycle["candidate_ranking_allowed_for_paper"])
         self.assertNotIn("CONVERGENCE_OBJECTIVE_MISSING", result["profit_convergence_cycle_blocker_codes"])
+        self.assertNotIn("EXPLORATION_EXPLOITATION_TRANSITION_UNTESTED", result["profit_convergence_cycle_blocker_codes"])
         self.assertIn("MEASUREMENT_MISSING", result["profit_convergence_cycle_blocker_codes"])
         self.assertEqual(diagnostic["diagnostic_status"], "BLOCKED_FOR_ROBUSTNESS")
         self.assertFalse(diagnostic["robustness_eligible"])
@@ -128,6 +136,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertIn("rotation_review_reason_code", scorecard)
         self.assertFalse(result["live_order_allowed"])
         self.assertFalse(strategy_memory["live_order_allowed"])
+        self.assertFalse(exploration_policy["live_order_allowed"])
         self.assertFalse(optimizer_memory["live_order_allowed"])
         self.assertFalse(failure_analysis["live_order_allowed"])
         self.assertFalse(profit_cycle["live_order_allowed"])
@@ -357,6 +366,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
             scorecard = _load_written(root, result, "candidate_scorecard_path")
             strategy_memory = _load_written(root, result, "strategy_performance_memory_path")
             objective_profile = _load_written(root, result, "convergence_objective_profile_path")
+            exploration_policy = _load_written(root, result, "exploration_exploitation_policy_path")
             optimizer_memory = _load_written(root, result, "optimizer_memory_state_path")
             profit_cycle = _load_written(root, result, "profit_convergence_cycle_report_path")
 
@@ -364,6 +374,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(_candidate_scorecard_net_ev_errors(scorecard), [])
         self.assertEqual(_strategy_performance_memory_errors(strategy_memory), [])
         self.assertEqual(_convergence_objective_profile_errors(objective_profile), [])
+        self.assertEqual(_exploration_exploitation_policy_errors(exploration_policy), [])
         self.assertEqual(_optimizer_memory_state_errors(optimizer_memory), [])
         self.assertEqual(_profit_convergence_cycle_errors(profit_cycle), [])
         self.assertTrue(scorecard["ranking_eligible"])
@@ -371,7 +382,11 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(strategy_memory["performance_scope"], "PAPER_RUNTIME_SCORECARD_ONLY")
         self.assertEqual(strategy_memory["performance_status"], "COLLECTING")
         self.assertEqual(objective_profile["objective_status"], "EVALUATION_ONLY")
+        self.assertEqual(exploration_policy["policy_status"], "ACTIVE_ANALYSIS_ONLY")
+        self.assertEqual(exploration_policy["transition_decision"], "KEEP_EXPLORING")
+        self.assertIn("MEASUREMENT_MISSING", {blocker["code"] for blocker in exploration_policy["blockers"]})
         self.assertEqual(profit_cycle["cycle_status"], "COLLECTING")
+        self.assertEqual(profit_cycle["exploration_exploitation_policy_validator_status"], "PASS")
         self.assertEqual(profit_cycle["convergence_claim"], "NO_CLAIM")
         self.assertFalse(profit_cycle["candidate_ranking_allowed_for_paper"])
         self.assertIsNone(result["failure_analysis_path"])
