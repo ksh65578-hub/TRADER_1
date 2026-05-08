@@ -1,6 +1,7 @@
 import unittest
 
 from trader1.core.strategy.quantitative_policy import (
+    build_exit_plan,
     build_quantitative_policy_report,
     classify_regime,
     compute_net_expected_edge,
@@ -187,6 +188,29 @@ class QuantitativePolicyClosureTest(unittest.TestCase):
         self.assertEqual(result["risk_state"], "cooling")
         self.assertFalse(result["new_entry_allowed"])
         self.assertEqual(result["primary_blocker_code"], "COOLDOWN")
+
+    def test_exit_plan_preserves_strategy_tight_atr_multipliers(self):
+        result = build_exit_plan(
+            {
+                "entry_price": 100,
+                "atr": 2,
+                "side": "LONG",
+                "hard_stop_atr": 0.75,
+                "tp1_atr": 0.65,
+                "tp2_atr": 1.0,
+                "trailing_start_atr": 0.9,
+                "trailing_distance_atr": 0.5,
+                "partial_take_profit_ratio": 0.50,
+                "time_stop_candles": 4,
+            }
+        )
+
+        self.assertAlmostEqual(result["hard_stop"], 98.5)
+        self.assertAlmostEqual(result["tp1"], 101.3)
+        self.assertAlmostEqual(result["tp2"], 102.0)
+        self.assertAlmostEqual(result["trailing_start"], 101.8)
+        self.assertAlmostEqual(result["trailing_distance"], 1.0)
+        self.assertEqual(result["time_stop_candles"], 4)
 
     def test_duplicate_event_not_double_counted(self):
         result = deduplicate_events(
