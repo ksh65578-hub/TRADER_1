@@ -3,7 +3,11 @@ import json
 import unittest
 from pathlib import Path
 
-from tools.run_profitability_maturity_rollup_refresh import paper_shadow_next_required_evidence, update_promotion_thresholds
+from tools.run_profitability_maturity_rollup_refresh import (
+    paper_shadow_next_required_evidence,
+    update_promotion_thresholds,
+    update_strategy_scorecard_components,
+)
 from trader1.validation.mvp0_validators import (
     PROFITABILITY_EVIDENCE_REQUIRED_COMPONENTS,
     _profitability_evidence_audit_errors,
@@ -144,6 +148,115 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             self.assertFalse(rollup["paper_scorecard_input_allowed"])
         self.assertFalse(runtime_linkage["live_order_allowed"])
         self.assertFalse(runtime_linkage["can_live_trade"])
+
+    def test_maturity_rollup_binds_strategy_and_regime_components_from_scorecard(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        scorecard = {
+            "source_evidence_ids": ["scorecard:strategy-regime-pass"],
+            "strategy_exit_policy_status": "PASS",
+            "strategy_exit_policy_sample_count": 30,
+            "min_strategy_exit_policy_sample_count": 30,
+            "strategy_exit_policy_match_count": 30,
+            "strategy_exit_policy_mismatch_count": 0,
+            "strategy_exit_reason_count": 30,
+            "expected_strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+            "expected_strategy_exit_variation": "invalidation_exit",
+            "regime_outcome_status": "PASS",
+            "regime_outcome_sample_count": 4,
+            "min_regime_outcome_sample_count": 4,
+            "regime_outcome_covered_count": 4,
+            "min_regime_outcome_covered_count": 4,
+            "regime_outcome_trade_count": 2,
+            "regime_outcome_no_trade_count": 2,
+            "regime_outcome_mismatch_count": 0,
+            "regime_outcome_counts": [
+                {
+                    "regime": "UPTREND",
+                    "sample_count": 1,
+                    "trade_count": 1,
+                    "no_trade_count": 0,
+                    "mismatch_count": 0,
+                    "trade_allowed": True,
+                    "primary_blocker_code": None,
+                },
+                {
+                    "regime": "RANGE",
+                    "sample_count": 1,
+                    "trade_count": 1,
+                    "no_trade_count": 0,
+                    "mismatch_count": 0,
+                    "trade_allowed": True,
+                    "primary_blocker_code": None,
+                },
+                {
+                    "regime": "DOWNTREND",
+                    "sample_count": 1,
+                    "trade_count": 0,
+                    "no_trade_count": 1,
+                    "mismatch_count": 0,
+                    "trade_allowed": False,
+                    "primary_blocker_code": "RISK_VETO",
+                },
+                {
+                    "regime": "RISK_OFF",
+                    "sample_count": 1,
+                    "trade_count": 0,
+                    "no_trade_count": 1,
+                    "mismatch_count": 0,
+                    "trade_allowed": False,
+                    "primary_blocker_code": "RISK_VETO",
+                },
+            ],
+            "evaluated_symbol_count": 20,
+            "paper_entry_review_symbol_count": 3,
+            "top_symbol_evidence_scorecards": [
+                {"best_strategy_family": "VWAP_MEAN_REVERSION", "best_decision": "PAPER_ENTRY_REVIEW"},
+                {"best_strategy_family": "PULLBACK_TREND_LONG", "best_decision": "PAPER_ENTRY_REVIEW"},
+                {"best_strategy_family": "BREAKOUT_RETEST_LONG", "best_decision": "PAPER_ENTRY_REVIEW"},
+            ],
+        }
+
+        update_strategy_scorecard_components(
+            rollup,
+            scorecard,
+            {"entry_reason_count": 3, "no_trade_reason_count": 3},
+        )
+        by_id = {component["component_id"]: component for component in rollup["components"]}
+
+        for component_id in ("strategy_entry_exit_no_trade", "symbol_selection_regime", "vwap_trend_breakout"):
+            self.assertEqual(by_id[component_id]["maturity_status"], "PAPER_SCORECARD_INPUT_ONLY")
+            self.assertEqual(by_id[component_id]["evidence_status"], "PASS")
+            self.assertTrue(by_id[component_id]["paper_scorecard_input_eligible"])
+            self.assertFalse(by_id[component_id]["live_order_allowed"])
+        self.assertEqual(by_id["strategy_entry_exit_no_trade"]["strategy_exit_policy_match_count"], 30)
+        self.assertEqual(by_id["symbol_selection_regime"]["regime_outcome_covered_count"], 4)
+        self.assertEqual(by_id["vwap_trend_breakout"]["strategy_family_covered_count"], 3)
+        self.assertEqual(_profitability_evidence_maturity_rollup_errors(rollup), [])
+
+    def test_maturity_rollup_rejects_strategy_component_false_eligibility(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        component = next(
+            item for item in rollup["components"] if item["component_id"] == "strategy_entry_exit_no_trade"
+        )
+        component.update(
+            {
+                "maturity_status": "PAPER_SCORECARD_INPUT_ONLY",
+                "evidence_status": "PASS",
+                "paper_scorecard_input_eligible": True,
+                "strategy_exit_policy_status": "UNTESTED",
+                "strategy_exit_policy_sample_count": 30,
+                "min_strategy_exit_policy_sample_count": 30,
+                "strategy_exit_policy_match_count": 30,
+                "strategy_exit_policy_mismatch_count": 0,
+                "strategy_exit_reason_count": 30,
+                "entry_reason_count": 1,
+                "no_trade_reason_count": 1,
+            }
+        )
+
+        errors = _profitability_evidence_maturity_rollup_errors(rollup)
+
+        self.assertTrue(any("strategy entry/exit" in error for error in errors), errors)
 
     def test_maturity_rollup_helper_rejects_snapshot_blocked_scorecard_input(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
@@ -388,7 +501,9 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
     def test_maturity_rollup_accepts_validated_scorecard_cost_model_for_net_ev_threshold(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         thresholds = rollup["promotion_threshold_evidence"]
-        self.assertIn("NET_EV_AFTER_COST_NOT_PASS", thresholds["missing_threshold_codes"])
+        if "NET_EV_AFTER_COST_NOT_PASS" not in thresholds["missing_threshold_codes"]:
+            thresholds["missing_threshold_codes"].append("NET_EV_AFTER_COST_NOT_PASS")
+        thresholds["net_ev_after_cost_status"] = "FAIL"
 
         update_promotion_thresholds(
             rollup,

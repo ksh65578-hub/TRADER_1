@@ -554,6 +554,68 @@
           "paired_runtime_span_seconds": {"type": "integer", "minimum": 0},
           "entry_reason_count": {"type": "integer", "minimum": 0},
           "no_trade_reason_count": {"type": "integer", "minimum": 0},
+          "strategy_exit_policy_status": {"enum": ["PASS", "FAIL", "PARTIAL", "MISSING", "UNTESTED", "BLOCKED"]},
+          "strategy_exit_policy_sample_count": {"type": "integer", "minimum": 0},
+          "min_strategy_exit_policy_sample_count": {"type": "integer", "minimum": 0},
+          "strategy_exit_policy_match_count": {"type": "integer", "minimum": 0},
+          "strategy_exit_policy_mismatch_count": {"type": "integer", "minimum": 0},
+          "strategy_exit_reason_count": {"type": "integer", "minimum": 0},
+          "expected_strategy_exit_policy_id": {"type": "string"},
+          "expected_strategy_exit_variation": {"type": ["string", "null"]},
+          "regime_outcome_status": {"enum": ["PASS", "FAIL", "PARTIAL", "MISSING", "UNTESTED", "BLOCKED"]},
+          "regime_outcome_sample_count": {"type": "integer", "minimum": 0},
+          "min_regime_outcome_sample_count": {"type": "integer", "minimum": 0},
+          "regime_outcome_covered_count": {"type": "integer", "minimum": 0},
+          "min_regime_outcome_covered_count": {"type": "integer", "minimum": 0},
+          "regime_outcome_trade_count": {"type": "integer", "minimum": 0},
+          "regime_outcome_no_trade_count": {"type": "integer", "minimum": 0},
+          "regime_outcome_mismatch_count": {"type": "integer", "minimum": 0},
+          "regime_outcome_counts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "regime",
+                "sample_count",
+                "trade_count",
+                "no_trade_count",
+                "mismatch_count",
+                "trade_allowed",
+                "primary_blocker_code"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "regime": {"enum": ["UPTREND", "RANGE", "DOWNTREND", "RISK_OFF"]},
+                "sample_count": {"type": "integer", "minimum": 0},
+                "trade_count": {"type": "integer", "minimum": 0},
+                "no_trade_count": {"type": "integer", "minimum": 0},
+                "mismatch_count": {"type": "integer", "minimum": 0},
+                "trade_allowed": {"type": "boolean"},
+                "primary_blocker_code": {"type": ["string", "null"]}
+              }
+            }
+          },
+          "evaluated_symbol_count": {"type": "integer", "minimum": 0},
+          "paper_entry_review_symbol_count": {"type": "integer", "minimum": 0},
+          "strategy_family_covered_count": {"type": "integer", "minimum": 0},
+          "min_strategy_family_covered_count": {"type": "integer", "minimum": 0},
+          "strategy_family_counts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "strategy_family",
+                "sample_count",
+                "paper_entry_review_count"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "strategy_family": {"enum": ["VWAP_REVERSION", "TREND_PULLBACK", "BREAKOUT_RETEST"]},
+                "sample_count": {"type": "integer", "minimum": 0},
+                "paper_entry_review_count": {"type": "integer", "minimum": 0}
+              }
+            }
+          },
           "cost_evidence_count": {"type": "integer", "minimum": 0},
           "reason_coverage_deficit_count": {"type": "integer", "minimum": 0},
           "stale_artifact_count": {"type": "integer", "minimum": 0},

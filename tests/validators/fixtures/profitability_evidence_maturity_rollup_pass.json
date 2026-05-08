@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-08T00:40:29Z",
+  "generated_at_utc": "2026-05-08T06:28:04Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -32,22 +32,38 @@
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
         "contracts/schema/strategy_condition_matrix.schema.json",
-        "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json"
+        "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_sample_history.json"
       ],
       "source_evidence_ids": [
-        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE"
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE",
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5"
       ],
-      "sample_count": 1,
-      "min_required_sample_count": 20,
+      "sample_count": 0,
+      "min_required_sample_count": 30,
       "freshness_status": "PASS",
       "dependency_status": "PASS",
-      "next_required_evidence": "Collect PAPER entry, exit, and no-trade traces.",
+      "next_required_evidence": "Collect strategy-exit policy samples 0/30 with zero mismatches; current status=UNTESTED, matches=0, mismatches=0, exit reasons=0.",
       "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
       "live_review_eligible": false,
       "scale_up_allowed": false,
       "paper_scorecard_input_eligible": false,
       "long_run_evidence_eligible": false,
-      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "strategy_exit_policy_status": "UNTESTED",
+      "strategy_exit_policy_sample_count": 0,
+      "min_strategy_exit_policy_sample_count": 30,
+      "strategy_exit_policy_match_count": 0,
+      "strategy_exit_policy_mismatch_count": 0,
+      "strategy_exit_reason_count": 0,
+      "expected_strategy_exit_policy_id": "",
+      "expected_strategy_exit_variation": null,
+      "entry_reason_count": 2,
+      "no_trade_reason_count": 2
     },
     {
       "component_id": "symbol_selection_regime",
@@ -56,22 +72,76 @@
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
         "contracts/schema/symbol_strategy_regime_fit_report.schema.json",
-        "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json"
+        "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_sample_history.json"
       ],
       "source_evidence_ids": [
-        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE"
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE",
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5"
       ],
-      "sample_count": 1,
-      "min_required_sample_count": 20,
+      "sample_count": 0,
+      "min_required_sample_count": 4,
       "freshness_status": "PASS",
       "dependency_status": "PASS",
-      "next_required_evidence": "Collect PAPER symbol liquidity, spread, depth, and regime evidence.",
+      "next_required_evidence": "Collect regime-labeled symbol outcome samples 0/4, coverage 0/4, mismatches=0; evaluated symbols=20, entry-review symbols=1.",
       "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
       "live_review_eligible": false,
       "scale_up_allowed": false,
       "paper_scorecard_input_eligible": false,
       "long_run_evidence_eligible": false,
-      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "regime_outcome_status": "UNTESTED",
+      "regime_outcome_sample_count": 0,
+      "min_regime_outcome_sample_count": 4,
+      "regime_outcome_covered_count": 0,
+      "min_regime_outcome_covered_count": 4,
+      "regime_outcome_trade_count": 0,
+      "regime_outcome_no_trade_count": 0,
+      "regime_outcome_mismatch_count": 0,
+      "regime_outcome_counts": [
+        {
+          "regime": "UPTREND",
+          "sample_count": 0,
+          "trade_count": 0,
+          "no_trade_count": 0,
+          "mismatch_count": 0,
+          "trade_allowed": true,
+          "primary_blocker_code": null
+        },
+        {
+          "regime": "RANGE",
+          "sample_count": 0,
+          "trade_count": 0,
+          "no_trade_count": 0,
+          "mismatch_count": 0,
+          "trade_allowed": true,
+          "primary_blocker_code": null
+        },
+        {
+          "regime": "DOWNTREND",
+          "sample_count": 0,
+          "trade_count": 0,
+          "no_trade_count": 0,
+          "mismatch_count": 0,
+          "trade_allowed": false,
+          "primary_blocker_code": "RISK_VETO"
+        },
+        {
+          "regime": "RISK_OFF",
+          "sample_count": 0,
+          "trade_count": 0,
+          "no_trade_count": 0,
+          "mismatch_count": 0,
+          "trade_allowed": false,
+          "primary_blocker_code": "RISK_VETO"
+        }
+      ],
+      "evaluated_symbol_count": 20,
+      "paper_entry_review_symbol_count": 1
     },
     {
       "component_id": "vwap_trend_breakout",
@@ -80,22 +150,53 @@
       "evidence_status": "PARTIAL",
       "source_artifact_paths": [
         "contracts/schema/strategy_condition_matrix.schema.json",
-        "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json"
+        "tests/validators/fixtures/profitability_runtime_cycle_linkage_pass.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
+        "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_sample_history.json"
       ],
       "source_evidence_ids": [
-        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE"
+        "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE",
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5"
       ],
-      "sample_count": 1,
-      "min_required_sample_count": 20,
+      "sample_count": 0,
+      "min_required_sample_count": 4,
       "freshness_status": "PASS",
       "dependency_status": "PASS",
-      "next_required_evidence": "Collect PAPER VWAP, trend, and breakout/retest evidence.",
+      "next_required_evidence": "Collect regime-labeled outcomes for VWAP, trend pullback, and breakout/retest; family coverage 2/3, regime coverage 0/4, status=UNTESTED.",
       "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
       "live_review_eligible": false,
       "scale_up_allowed": false,
       "paper_scorecard_input_eligible": false,
       "long_run_evidence_eligible": false,
-      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY"
+      "long_run_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
+      "live_order_ready": false,
+      "live_order_allowed": false,
+      "can_live_trade": false,
+      "regime_outcome_status": "UNTESTED",
+      "regime_outcome_sample_count": 0,
+      "min_regime_outcome_sample_count": 4,
+      "regime_outcome_covered_count": 0,
+      "min_regime_outcome_covered_count": 4,
+      "regime_outcome_mismatch_count": 0,
+      "strategy_family_covered_count": 2,
+      "min_strategy_family_covered_count": 3,
+      "strategy_family_counts": [
+        {
+          "strategy_family": "VWAP_REVERSION",
+          "sample_count": 2,
+          "paper_entry_review_count": 0
+        },
+        {
+          "strategy_family": "TREND_PULLBACK",
+          "sample_count": 0,
+          "paper_entry_review_count": 0
+        },
+        {
+          "strategy_family": "BREAKOUT_RETEST",
+          "sample_count": 3,
+          "paper_entry_review_count": 1
+        }
+      ]
     },
     {
       "component_id": "risk_sizing_exposure",
@@ -453,7 +554,7 @@
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
   "next_operator_action": "Resolve the blocked PAPER scorecard runtime linkage reason, then continue PAPER/SHADOW evidence collection; live remains blocked until long-run PAPER/SHADOW evidence, replay coverage, read-only burn-in, manual order evidence, live safety proof, and operator approval are complete.",
-  "rollup_hash": "E506C54FA47AD0A328143CF4AE131BD69DE337B8765D1EC1E0790B809B2383BD",
+  "rollup_hash": "EF49DE956F93FE177DF2F33E5D9E1BB8153561F358BC8300377D68D960A0810B",
   "runtime_linkage_evidence": {
     "status": "BLOCKED",
     "runtime_linkage_blocker_code": "RUNTIME_CYCLE_VALIDATION_FAILED",
@@ -501,7 +602,7 @@
     "min_paper_runtime_hours": 0,
     "shadow_signal_opportunities": 2,
     "min_shadow_signal_opportunities": 50,
-    "net_ev_after_cost_status": "PARTIAL",
+    "net_ev_after_cost_status": "PASS",
     "profit_factor_status": "UNTESTED",
     "max_drawdown_status": "UNTESTED",
     "fill_quality_status": "UNTESTED",
@@ -510,18 +611,17 @@
     "high_or_critical_contract_gap_count": 1,
     "blocking_validator_fail_count": 0,
     "missing_threshold_codes": [
-      "FILL_QUALITY_NOT_PASS",
       "EXECUTION_COST_COMPARISON_NOT_PASS",
+      "FILL_QUALITY_NOT_PASS",
       "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
       "MAX_DRAWDOWN_NOT_PASS",
-      "NET_EV_AFTER_COST_NOT_PASS",
-      "STRATEGY_EXIT_POLICY_NOT_PASS",
-      "REGIME_OUTCOME_NOT_PASS",
       "PAPER_CLOSED_TRADES_BELOW_MIN",
       "PAPER_LIVE_GAP_NOT_AVAILABLE",
       "PROFIT_FACTOR_NOT_PASS",
+      "REGIME_OUTCOME_NOT_PASS",
       "REPLAY_CLOSED_TRADES_BELOW_MIN",
-      "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN"
+      "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
+      "STRATEGY_EXIT_POLICY_NOT_PASS"
     ],
     "explicit_insufficient_sample_blocker": true,
     "live_order_ready": false,

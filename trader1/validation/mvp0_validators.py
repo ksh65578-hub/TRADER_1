@@ -843,6 +843,17 @@ PROFITABILITY_EVIDENCE_REQUIRED_COMPONENTS = {
     "paper_shadow_evidence_accumulation",
     "dashboard_operator_profitability_visibility",
 }
+PROFITABILITY_STRATEGY_COMPONENT_IDS = {
+    "strategy_entry_exit_no_trade",
+    "symbol_selection_regime",
+    "vwap_trend_breakout",
+}
+PROFITABILITY_REGIME_OUTCOME_REGIMES = {"UPTREND", "RANGE", "DOWNTREND", "RISK_OFF"}
+PROFITABILITY_REQUIRED_STRATEGY_FAMILY_BUCKETS = {
+    "VWAP_REVERSION",
+    "TREND_PULLBACK",
+    "BREAKOUT_RETEST",
+}
 PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "REPLAY_CLOSED_TRADES_BELOW_MIN",
     "WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN",
@@ -20436,6 +20447,18 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
     if rollup.get("all_component_ids_present") is not True or rollup.get("coverage_complete") is not True:
         errors.append("rollup must explicitly mark component coverage complete")
 
+    def component_int(component: dict[str, Any], field: str, default: int = 0) -> int:
+        try:
+            return int(component.get(field, default) or default)
+        except (TypeError, ValueError):
+            errors.append(f"rollup component {component.get('component_id')} {field} must be an integer")
+            return default
+
+    def require_component_fields(component: dict[str, Any], fields: tuple[str, ...]) -> None:
+        missing = [field for field in fields if field not in component]
+        if missing:
+            errors.append(f"rollup component {component.get('component_id')} missing scorecard fields: {missing}")
+
     for index, component in enumerate(components):
         if not isinstance(component, dict):
             errors.append(f"rollup component #{index} is not an object")
@@ -20489,6 +20512,139 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 or component.get("scorecard_input_truth_status") == "BLOCKED_NOT_SCORECARD_INPUT"
             ):
                 errors.append("rollup paper/shadow component marks scorecard input eligible while sample truth is blocked")
+        if component_id == "strategy_entry_exit_no_trade":
+            require_component_fields(
+                component,
+                (
+                    "strategy_exit_policy_status",
+                    "strategy_exit_policy_sample_count",
+                    "min_strategy_exit_policy_sample_count",
+                    "strategy_exit_policy_match_count",
+                    "strategy_exit_policy_mismatch_count",
+                    "strategy_exit_reason_count",
+                    "entry_reason_count",
+                    "no_trade_reason_count",
+                ),
+            )
+            exit_status = str(component.get("strategy_exit_policy_status") or "UNTESTED")
+            exit_samples = component_int(component, "strategy_exit_policy_sample_count")
+            min_exit_samples = component_int(component, "min_strategy_exit_policy_sample_count")
+            exit_matches = component_int(component, "strategy_exit_policy_match_count")
+            exit_mismatches = component_int(component, "strategy_exit_policy_mismatch_count")
+            exit_reason_count = component_int(component, "strategy_exit_reason_count")
+            if component.get("sample_count") != exit_samples:
+                errors.append("rollup strategy entry/exit component sample_count must match strategy exit samples")
+            if component.get("min_required_sample_count") != min_exit_samples:
+                errors.append("rollup strategy entry/exit component minimum must match strategy exit minimum")
+            if paper_scorecard_input and (
+                exit_status != "PASS"
+                or exit_samples < min_exit_samples
+                or exit_matches < min_exit_samples
+                or exit_mismatches != 0
+                or exit_reason_count < exit_samples
+            ):
+                errors.append("rollup strategy entry/exit component is eligible without PASS strategy exit evidence")
+            if component.get("evidence_status") == "PASS" and exit_status != "PASS":
+                errors.append("rollup strategy entry/exit component claims PASS while exit policy is not PASS")
+        if component_id == "symbol_selection_regime":
+            require_component_fields(
+                component,
+                (
+                    "regime_outcome_status",
+                    "regime_outcome_sample_count",
+                    "min_regime_outcome_sample_count",
+                    "regime_outcome_covered_count",
+                    "min_regime_outcome_covered_count",
+                    "regime_outcome_trade_count",
+                    "regime_outcome_no_trade_count",
+                    "regime_outcome_mismatch_count",
+                    "regime_outcome_counts",
+                    "evaluated_symbol_count",
+                    "paper_entry_review_symbol_count",
+                ),
+            )
+            regime_status = str(component.get("regime_outcome_status") or "UNTESTED")
+            regime_samples = component_int(component, "regime_outcome_sample_count")
+            min_regime_samples = component_int(component, "min_regime_outcome_sample_count")
+            regime_covered = component_int(component, "regime_outcome_covered_count")
+            min_regime_covered = component_int(component, "min_regime_outcome_covered_count")
+            regime_mismatches = component_int(component, "regime_outcome_mismatch_count")
+            if component.get("sample_count") != regime_samples:
+                errors.append("rollup symbol/regime component sample_count must match regime outcome samples")
+            if component.get("min_required_sample_count") != min_regime_samples:
+                errors.append("rollup symbol/regime component minimum must match regime outcome minimum")
+            regime_counts = component.get("regime_outcome_counts", [])
+            if not isinstance(regime_counts, list):
+                errors.append("rollup symbol/regime component regime_outcome_counts must be a list")
+                regime_counts = []
+            present_regimes = {
+                item.get("regime")
+                for item in regime_counts
+                if isinstance(item, dict)
+            }
+            if present_regimes != PROFITABILITY_REGIME_OUTCOME_REGIMES:
+                errors.append("rollup symbol/regime component must expose all required regime outcomes")
+            for item in regime_counts:
+                if not isinstance(item, dict):
+                    errors.append("rollup symbol/regime outcome row must be an object")
+                    continue
+                regime = item.get("regime")
+                if regime in {"DOWNTREND", "RISK_OFF"}:
+                    trade_count = component_int(item, "trade_count")
+                    mismatch_count = component_int(item, "mismatch_count")
+                    if item.get("trade_allowed") is True:
+                        errors.append(f"rollup {regime} regime outcome must not allow Upbit spot long entry")
+                    if trade_count > 0 and mismatch_count == 0:
+                        errors.append(f"rollup {regime} trade evidence must carry a mismatch blocker")
+                    if paper_scorecard_input and trade_count > 0:
+                        errors.append(f"rollup {regime} trade evidence cannot be PAPER scorecard eligible")
+            if paper_scorecard_input and (
+                regime_status != "PASS"
+                or regime_samples < min_regime_samples
+                or regime_covered < min_regime_covered
+                or regime_mismatches != 0
+            ):
+                errors.append("rollup symbol/regime component is eligible without PASS regime outcome evidence")
+            if component.get("evidence_status") == "PASS" and regime_status != "PASS":
+                errors.append("rollup symbol/regime component claims PASS while regime outcome is not PASS")
+        if component_id == "vwap_trend_breakout":
+            require_component_fields(
+                component,
+                (
+                    "regime_outcome_status",
+                    "regime_outcome_sample_count",
+                    "min_regime_outcome_sample_count",
+                    "regime_outcome_covered_count",
+                    "min_regime_outcome_covered_count",
+                    "regime_outcome_mismatch_count",
+                    "strategy_family_covered_count",
+                    "min_strategy_family_covered_count",
+                    "strategy_family_counts",
+                ),
+            )
+            family_covered = component_int(component, "strategy_family_covered_count")
+            min_family_covered = component_int(component, "min_strategy_family_covered_count")
+            regime_status = str(component.get("regime_outcome_status") or "UNTESTED")
+            regime_mismatches = component_int(component, "regime_outcome_mismatch_count")
+            family_counts = component.get("strategy_family_counts", [])
+            if not isinstance(family_counts, list):
+                errors.append("rollup strategy-family component strategy_family_counts must be a list")
+                family_counts = []
+            present_families = {
+                item.get("strategy_family")
+                for item in family_counts
+                if isinstance(item, dict)
+            }
+            if present_families != PROFITABILITY_REQUIRED_STRATEGY_FAMILY_BUCKETS:
+                errors.append("rollup strategy-family component must expose VWAP, trend pullback, and breakout buckets")
+            if paper_scorecard_input and (
+                regime_status != "PASS"
+                or regime_mismatches != 0
+                or family_covered < min_family_covered
+            ):
+                errors.append("rollup strategy-family component is eligible without full family/regime evidence")
+            if component.get("evidence_status") == "PASS" and family_covered < min_family_covered:
+                errors.append("rollup strategy-family component claims PASS below required family coverage")
         if component.get("maturity_status") == "PAPER_SCORECARD_INPUT_ONLY" and not paper_scorecard_input:
             errors.append(f"rollup component {component_id} marks PAPER scorecard input without eligibility flag")
         if paper_scorecard_input and component.get("maturity_status") not in {
@@ -20510,6 +20666,18 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         for component in components
     ):
         errors.append("rollup allows PAPER scorecard input without any component-level eligibility")
+    if rollup.get("paper_scorecard_input_allowed") is True:
+        strategy_component_map = {
+            component.get("component_id"): component
+            for component in components
+            if isinstance(component, dict) and component.get("component_id") in PROFITABILITY_STRATEGY_COMPONENT_IDS
+        }
+        strategy_components_ready = set(strategy_component_map) == PROFITABILITY_STRATEGY_COMPONENT_IDS and all(
+            component.get("paper_scorecard_input_eligible") is True
+            for component in strategy_component_map.values()
+        )
+        if not strategy_components_ready:
+            errors.append("rollup allows PAPER scorecard input without all strategy/regime components eligible")
 
     action = str(rollup.get("next_operator_action", "")).lower()
     if ("paper" not in action and "shadow" not in action) or "live" not in action or "blocked" not in action:
