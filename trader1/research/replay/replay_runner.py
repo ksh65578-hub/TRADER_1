@@ -17,6 +17,7 @@ REPLAY_CONSISTENCY_SCHEMA_ID = "trader1.replay_consistency_report.v1"
 PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID = "trader1.public_replay_robustness_report.v1"
 PUBLIC_REPLAY_VALUE_SOURCE = "PUBLIC_REST_REPLAY_DECISION_ADJUSTED_NET_EV_AFTER_COST_BPS"
 PUBLIC_REPLAY_LEGACY_VALUE_SOURCE = "PUBLIC_REST_REPLAY_EXPECTED_NET_EV_AFTER_COST_BPS"
+PUBLIC_REPLAY_FETCH_FAILED_SOURCE = "PUBLIC_REST_READ_ONLY_FETCH_FAILED"
 PUBLIC_REPLAY_MIN_WINDOW_SIZE = 5
 PUBLIC_REPLAY_DEFAULT_WINDOW_SIZE = 6
 PUBLIC_REPLAY_DEFAULT_MAX_WINDOWS = 420
@@ -243,6 +244,89 @@ def build_public_replay_robustness_report(
     return report
 
 
+def build_public_replay_fetch_failure_report(
+    *,
+    candidate_scorecard: dict[str, Any],
+    replay_id: str,
+    error_type: str,
+    error_message: str,
+    target_count: int,
+    page_size: int,
+    timeout_seconds: float,
+    window_size: int = PUBLIC_REPLAY_DEFAULT_WINDOW_SIZE,
+    max_replay_windows: int = PUBLIC_REPLAY_DEFAULT_MAX_WINDOWS,
+    min_required_sample_count: int = 300,
+) -> dict[str, Any]:
+    symbol = str(candidate_scorecard.get("symbol") or "")
+    session_id = str(candidate_scorecard.get("session_id") or "mvp1_upbit_paper_launcher")
+    safe_window_size = max(PUBLIC_REPLAY_MIN_WINDOW_SIZE, int(window_size))
+    safe_max_windows = max(1, min(int(max_replay_windows), 1000))
+    failure_source = {
+        "source": PUBLIC_REPLAY_FETCH_FAILED_SOURCE,
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "REPLAY",
+        "session_id": session_id,
+        "symbol": symbol,
+        "target_count": max(0, int(target_count)),
+        "page_size": max(0, int(page_size)),
+        "timeout_seconds": max(0.0, float(timeout_seconds)),
+        "error_type": str(error_type or "Exception")[:96],
+        "error_message": str(error_message or "")[:240],
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+    }
+    report = {
+        "schema_id": PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "project_id": "TRADER_1",
+        "replay_id": replay_id,
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "REPLAY",
+        "session_id": session_id,
+        "symbol": symbol,
+        "candidate_id": candidate_scorecard.get("candidate_id"),
+        "strategy_id": candidate_scorecard.get("strategy_id"),
+        "strategy_build_id": candidate_scorecard.get("strategy_build_id"),
+        "parameter_hash": candidate_scorecard.get("parameter_hash"),
+        "value_source": PUBLIC_REPLAY_VALUE_SOURCE,
+        "public_market_data_source": PUBLIC_REPLAY_FETCH_FAILED_SOURCE,
+        "public_market_data_hash": sha256_json(failure_source),
+        "public_market_data_fetch_status": "FAILED",
+        "public_market_data_error_type": failure_source["error_type"],
+        "public_market_data_error_message": failure_source["error_message"],
+        "window_size": safe_window_size,
+        "sample_count": 0,
+        "min_required_sample_count": int(min_required_sample_count),
+        "max_replay_windows": safe_max_windows,
+        "sample_rows": [],
+        "replay_status": "BLOCKED",
+        "primary_blocker_code": "DATA_QUALITY_INSUFFICIENT",
+        "blockers": [
+            _blocker(
+                "DATA_QUALITY_INSUFFICIENT",
+                "public replay could not collect read-only public candles; candidate review remains blocked",
+            )
+        ],
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "report_hash": "",
+    }
+    report["report_hash"] = public_replay_robustness_report_hash(report)
+    return report
+
+
 def validate_public_replay_robustness_report(
     report: dict[str, Any],
     *,
@@ -308,6 +392,14 @@ def validate_public_replay_robustness_report(
         return ReplayConsistencyValidationResult("BLOCKED", "public replay attempted private, order, live, or scale-up behavior", "LIVE_FINAL_GUARD_FAILED")
     if report.get("value_source") not in {PUBLIC_REPLAY_VALUE_SOURCE, PUBLIC_REPLAY_LEGACY_VALUE_SOURCE}:
         return ReplayConsistencyValidationResult("FAIL", "public replay value source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    allowed_market_sources = {"STATIC_FIXTURE", "PUBLIC_REST_READ_ONLY", PUBLIC_REPLAY_FETCH_FAILED_SOURCE}
+    if report.get("public_market_data_source") not in allowed_market_sources:
+        return ReplayConsistencyValidationResult("FAIL", "public replay public market data source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("public_market_data_source") == PUBLIC_REPLAY_FETCH_FAILED_SOURCE:
+        if report.get("replay_status") != "BLOCKED" or report.get("primary_blocker_code") != "DATA_QUALITY_INSUFFICIENT":
+            return ReplayConsistencyValidationResult("FAIL", "failed public replay fetch must stay DATA_QUALITY_INSUFFICIENT/BLOCKED", "SCHEMA_IDENTITY_MISMATCH")
+        if int(report.get("sample_count") or 0) != 0 or report.get("sample_rows"):
+            return ReplayConsistencyValidationResult("FAIL", "failed public replay fetch cannot carry sample rows", "SCHEMA_IDENTITY_MISMATCH")
     strict_decision_adjusted_rows = report.get("value_source") == PUBLIC_REPLAY_VALUE_SOURCE
     sample_rows = report.get("sample_rows")
     if not isinstance(sample_rows, list) or int(report.get("sample_count") or 0) != len(sample_rows):

@@ -831,6 +831,98 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertFalse(result["live_key_loaded"])
         self.assertFalse(result["live_order_allowed"])
 
+    def test_alternative_public_replay_fetch_failure_is_written_and_bound_to_generation_report(self):
+        def fake_market_symbols_fetcher(*, session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            return build_upbit_public_krw_symbol_discovery_report_from_payload(
+                payload=[{"market": "KRW-ETH"}],
+                session_id=session_id,
+            )
+
+        def fake_ticker_fetcher(*, symbols: list[str], session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            requested = build_upbit_krw_market_symbols_from_rest_payload([{"market": symbol} for symbol in symbols])
+            return build_upbit_public_ticker_snapshot_from_rest_payload(
+                requested_symbols=requested,
+                session_id=session_id,
+                payload=[
+                    {
+                        "market": "KRW-ETH",
+                        "trade_price": "1000000",
+                        "acc_trade_price_24h": "9000000000",
+                        "signed_change_rate": "0.035",
+                        "acc_trade_volume_24h": "9000",
+                    }
+                ],
+            )
+
+        def fake_candle_fetcher(*, symbol: str, session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            return build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id=session_id,
+                profile="UPTREND_PULLBACK",
+            )
+
+        def failing_replay_history_fetcher(
+            *,
+            symbol: str,
+            session_id: str,
+            target_count: int,
+            page_size: int,
+            timeout_seconds: float,
+        ):
+            del symbol, session_id, target_count, page_size, timeout_seconds
+            raise TimeoutError("public candle read timed out")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _run_short_paper(root)
+
+            result = build_current_upbit_paper_candidate_scorecard(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                attempt_public_discovery=True,
+                candidate_discovery_symbol_limit=1,
+                market_symbols_fetcher=fake_market_symbols_fetcher,
+                public_ticker_fetcher=fake_ticker_fetcher,
+                public_candle_fetcher=fake_candle_fetcher,
+                public_replay_history_fetcher=failing_replay_history_fetcher,
+                alternative_replay_max_windows=10,
+                alternative_replay_min_required_sample_count=1,
+            )
+            generation_report = _load_written(root, result, "candidate_generation_report_path")
+            replay_report = _load_written(root, result, "alternative_public_replay_report_path")
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["alternative_public_replay_status"], "BLOCKED")
+        self.assertEqual(result["alternative_public_replay_blocker_code"], "DATA_QUALITY_INSUFFICIENT")
+        self.assertEqual(result["alternative_public_replay_contract_status"], "PASS")
+        self.assertEqual(result["alternative_public_replay_replay_status"], "BLOCKED")
+        self.assertEqual(result["alternative_public_replay_sample_count"], 0)
+        self.assertEqual(result["candidate_generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED")
+        self.assertEqual(result["candidate_generation_best_alternative_public_replay_status"], "BLOCKED")
+        self.assertEqual(generation_report["best_alternative_public_replay_status"], "BLOCKED")
+        self.assertEqual(generation_report["best_alternative_public_replay_primary_blocker_code"], "DATA_QUALITY_INSUFFICIENT")
+        self.assertTrue(
+            any(source_id.startswith("public_replay_robustness:") for source_id in generation_report["source_evidence_ids"])
+        )
+        self.assertTrue(
+            any(source_id.startswith("public_market_data:") for source_id in generation_report["source_evidence_ids"])
+        )
+        self.assertEqual(replay_report["public_market_data_source"], "PUBLIC_REST_READ_ONLY_FETCH_FAILED")
+        self.assertEqual(replay_report["public_market_data_fetch_status"], "FAILED")
+        self.assertEqual(replay_report["public_market_data_error_type"], "TimeoutError")
+        self.assertEqual(replay_report["primary_blocker_code"], "DATA_QUALITY_INSUFFICIENT")
+        self.assertEqual(replay_report["sample_rows"], [])
+        self.assertFalse(generation_report["live_order_allowed"])
+        self.assertFalse(result["credential_load_attempted"])
+        self.assertFalse(result["private_endpoint_called"])
+        self.assertFalse(result["order_endpoint_called"])
+        self.assertFalse(result["order_adapter_called"])
+        self.assertFalse(result["live_key_loaded"])
+        self.assertFalse(result["live_order_allowed"])
+
     def test_bounded_public_discovery_expands_once_when_initial_public_set_has_no_entry_candidate(self):
         def fake_market_symbols_fetcher(*, session_id: str, timeout_seconds: float):
             del timeout_seconds

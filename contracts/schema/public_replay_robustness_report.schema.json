@@ -55,8 +55,22 @@
     "strategy_build_id": {"type": "string", "minLength": 1},
     "parameter_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
     "value_source": {"const": "PUBLIC_REST_REPLAY_DECISION_ADJUSTED_NET_EV_AFTER_COST_BPS"},
-    "public_market_data_source": {"const": "PUBLIC_REST_READ_ONLY"},
+    "public_market_data_source": {
+      "enum": [
+        "STATIC_FIXTURE",
+        "PUBLIC_REST_READ_ONLY",
+        "PUBLIC_REST_READ_ONLY_FETCH_FAILED"
+      ]
+    },
     "public_market_data_hash": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+    "public_market_data_fetch_status": {
+      "enum": [
+        "PASS",
+        "FAILED"
+      ]
+    },
+    "public_market_data_error_type": {"type": ["string", "null"]},
+    "public_market_data_error_message": {"type": ["string", "null"]},
     "window_size": {"type": "integer", "minimum": 5},
     "sample_count": {"type": "integer", "minimum": 0},
     "min_required_sample_count": {"type": "integer", "minimum": 1},
