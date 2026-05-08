@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+import time
 from decimal import Decimal, InvalidOperation
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -529,31 +530,51 @@ def fetch_upbit_public_candle_history_read_only(
     target_count: int = 400,
     page_size: int = 200,
     timeout_seconds: float = 3.0,
+    retry_attempts: int = 3,
+    retry_backoff_seconds: float = 0.15,
+    urlopen_fn: Callable[..., Any] = urlopen,
 ) -> dict[str, Any]:
     safe_target_count = max(5, min(int(target_count), 1000))
     safe_page_size = max(5, min(int(page_size), 200))
+    safe_retry_attempts = max(1, min(int(retry_attempts), 5))
+    safe_backoff_seconds = max(0.0, min(float(retry_backoff_seconds), 2.0))
     payload: list[dict[str, Any]] = []
     seen_timestamps: set[str] = set()
     to_utc: str | None = None
     while len(payload) < safe_target_count:
-        query_params = {
-            "market": symbol,
-            "count": min(safe_page_size, safe_target_count - len(payload)),
-        }
-        if to_utc:
-            query_params["to"] = to_utc.replace("T", " ").replace("Z", "")
-        query = urlencode(query_params)
-        url = f"https://{UPBIT_PUBLIC_CANDLE_HOST}{UPBIT_PUBLIC_CANDLE_PATH}?{query}"
-        request = Request(
-            url,
-            headers={
-                "Accept": "application/json",
-                "User-Agent": "TRADER_1-public-read-only-paper-history-collector",
-            },
-            method="GET",
-        )
-        with urlopen(request, timeout=timeout_seconds) as response:
-            page_payload = json.loads(response.read().decode("utf-8"))
+        current_page_size = min(safe_page_size, safe_target_count - len(payload))
+        page_payload: Any = None
+        last_error: Exception | None = None
+        for attempt_index in range(safe_retry_attempts):
+            query_count = max(5, min(current_page_size, safe_target_count - len(payload)))
+            query_params = {
+                "market": symbol,
+                "count": query_count,
+            }
+            if to_utc:
+                query_params["to"] = to_utc.replace("T", " ").replace("Z", "")
+            query = urlencode(query_params)
+            url = f"https://{UPBIT_PUBLIC_CANDLE_HOST}{UPBIT_PUBLIC_CANDLE_PATH}?{query}"
+            request = Request(
+                url,
+                headers={
+                    "Accept": "application/json",
+                    "User-Agent": "TRADER_1-public-read-only-paper-history-collector",
+                },
+                method="GET",
+            )
+            try:
+                with urlopen_fn(request, timeout=timeout_seconds) as response:
+                    page_payload = json.loads(response.read().decode("utf-8"))
+                break
+            except Exception as exc:
+                last_error = exc
+                if current_page_size > 5:
+                    current_page_size = max(5, current_page_size // 2)
+                if attempt_index + 1 < safe_retry_attempts and safe_backoff_seconds > 0:
+                    time.sleep(safe_backoff_seconds * (2**attempt_index))
+        if page_payload is None and last_error is not None:
+            raise last_error
         if not isinstance(page_payload, list) or not page_payload:
             break
         added = 0
