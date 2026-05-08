@@ -8,6 +8,7 @@ from unittest.mock import patch
 from tools.run_upbit_paper_candidate_scorecard import build_current_upbit_paper_candidate_scorecard
 from trader1.research.profitability.candidate_scorecard import (
     PERFORMANCE_PASS,
+    performance_source_evidence_id,
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
 )
@@ -283,9 +284,24 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                     "min_fill_quality_score": 0.80,
                 },
                 [
-                    f"closed_trades:{history_id}:{history_hash}",
-                    f"execution_quality:{history_id}:{history_hash}",
-                    f"performance_summary:{history_id}:{history_hash}",
+                    performance_source_evidence_id(
+                        "closed_trades",
+                        history_id,
+                        history_hash,
+                        candidate_scorecard["candidate_id"],
+                    ),
+                    performance_source_evidence_id(
+                        "execution_quality",
+                        history_id,
+                        history_hash,
+                        candidate_scorecard["candidate_id"],
+                    ),
+                    performance_source_evidence_id(
+                        "performance_summary",
+                        history_id,
+                        history_hash,
+                        candidate_scorecard["candidate_id"],
+                    ),
                 ],
             )
 

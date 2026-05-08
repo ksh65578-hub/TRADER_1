@@ -81,6 +81,26 @@ class CandidateScorecardNetEvValidatorTest(unittest.TestCase):
             errors,
         )
 
+    def test_performance_sources_must_be_candidate_scoped_before_ranking(self):
+        scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
+        tampered = copy.deepcopy(scorecard)
+        tampered["source_evidence_ids"] = [
+            source_id
+            for source_id in scorecard["source_evidence_ids"]
+            if not source_id.startswith(("closed_trades:", "execution_quality:", "performance_summary:"))
+        ] + [
+            "closed_trades:paper_scorecard_fixture_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "execution_quality:paper_scorecard_fixture_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "performance_summary:paper_scorecard_fixture_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        ]
+
+        errors = _candidate_scorecard_net_ev_errors(tampered)
+
+        self.assertIn(
+            "ranking_eligible scorecard requires candidate-scoped closed trade, execution quality, and performance summary evidence ids",
+            errors,
+        )
+
     def test_non_ranking_scorecard_must_explain_blocker(self):
         scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
         tampered = copy.deepcopy(scorecard)

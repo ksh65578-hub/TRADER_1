@@ -21346,8 +21346,13 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             errors.append("ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids linked to the same runtime cycle hash")
         if len(source_ids) < len(ROBUSTNESS_SOURCE_PREFIXES) + len(PERFORMANCE_SOURCE_PREFIXES) + 1:
             errors.append("ranking_eligible scorecard requires runtime, robustness, closed trade, execution quality, and performance summary evidence ids")
-        if not has_required_performance_source_ids(source_ids):
-            errors.append("ranking_eligible scorecard requires closed trade, execution quality, and performance summary evidence ids")
+        if not has_required_performance_source_ids(
+            source_ids,
+            candidate_id=str(scorecard.get("candidate_id") or ""),
+        ):
+            errors.append(
+                "ranking_eligible scorecard requires candidate-scoped closed trade, execution quality, and performance summary evidence ids"
+            )
         required_statuses = {
             "cost_model_status": "VALIDATED",
             "oos_status": "PASS",

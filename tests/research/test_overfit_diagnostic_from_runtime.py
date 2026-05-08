@@ -24,7 +24,10 @@ from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     upbit_paper_runtime_sample_hash,
     upbit_paper_runtime_sample_history_hash,
 )
-from trader1.research.profitability.candidate_scorecard import robustness_source_evidence_id
+from trader1.research.profitability.candidate_scorecard import (
+    performance_source_evidence_id,
+    robustness_source_evidence_id,
+)
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors, _overfit_diagnostic_errors
 
 
@@ -486,9 +489,24 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
             robustness_source_evidence_ids=source_ids,
         )
         performance_source_ids = [
-            f"closed_trades:{runtime['cycle_id']}:{runtime['cycle_hash']}",
-            f"execution_quality:{runtime['cycle_id']}:{runtime['cycle_hash']}",
-            f"performance_summary:{runtime['cycle_id']}:{runtime['cycle_hash']}",
+            performance_source_evidence_id(
+                "closed_trades",
+                runtime["cycle_id"],
+                runtime["cycle_hash"],
+                scorecard["candidate_id"],
+            ),
+            performance_source_evidence_id(
+                "execution_quality",
+                runtime["cycle_id"],
+                runtime["cycle_hash"],
+                scorecard["candidate_id"],
+            ),
+            performance_source_evidence_id(
+                "performance_summary",
+                runtime["cycle_id"],
+                runtime["cycle_hash"],
+                scorecard["candidate_id"],
+            ),
         ]
         performance_ready = candidate_scorecard_from_upbit_paper_runtime_cycle(
             runtime,

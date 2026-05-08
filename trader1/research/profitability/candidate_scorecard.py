@@ -131,17 +131,56 @@ def has_required_robustness_source_ids(
     return all(any(source_id.startswith(prefix) for source_id in ids) for prefix in ROBUSTNESS_SOURCE_PREFIXES)
 
 
-def has_required_performance_source_ids(source_evidence_ids: list[str] | None) -> bool:
+def performance_source_evidence_id(prefix: str, history_id: str, history_hash: str, candidate_id: str) -> str:
+    normalized = prefix[:-1] if prefix.endswith(":") else prefix
+    candidate_key = safe_candidate_scorecard_filename(candidate_id or "unknown-candidate")
+    return f"{normalized}:{candidate_key}:{history_id}:{history_hash}"
+
+
+def has_required_performance_source_ids(
+    source_evidence_ids: list[str] | None,
+    *,
+    candidate_id: str | None = None,
+    history_id: str | None = None,
+    history_hash: str | None = None,
+) -> bool:
     ids = source_evidence_ids or []
-    return all(any(source_id.startswith(prefix) for source_id in ids) for prefix in PERFORMANCE_SOURCE_PREFIXES)
+    if candidate_id is None:
+        return all(any(source_id.startswith(prefix) for source_id in ids) for prefix in PERFORMANCE_SOURCE_PREFIXES)
+
+    candidate_key = safe_candidate_scorecard_filename(candidate_id)
+    matched_binding: tuple[str, str] | None = None
+    for prefix in PERFORMANCE_SOURCE_PREFIXES:
+        normalized = prefix[:-1] if prefix.endswith(":") else prefix
+        matched_parts: list[list[str]] = []
+        for source_id in ids:
+            if not isinstance(source_id, str) or not source_id.startswith(prefix):
+                continue
+            parts = source_id.split(":")
+            if len(parts) != 4 or parts[0] != normalized:
+                continue
+            if parts[1] != candidate_key or len(parts[3]) != 64:
+                continue
+            if history_id is not None and parts[2] != history_id:
+                continue
+            if history_hash is not None and parts[3] != history_hash:
+                continue
+            matched_parts.append(parts)
+        if not matched_parts:
+            return False
+        current_binding = (matched_parts[0][2], matched_parts[0][3])
+        if matched_binding is None:
+            matched_binding = current_binding
+        elif matched_binding != current_binding:
+            return False
+    return True
 
 
 def _performance_source_evidence_ids(history_id: str, history_hash: str, candidate_id: str) -> list[str]:
-    candidate_key = safe_candidate_scorecard_filename(candidate_id or "unknown-candidate")
     return [
-        f"closed_trades:{candidate_key}:{history_id}:{history_hash}",
-        f"execution_quality:{candidate_key}:{history_id}:{history_hash}",
-        f"performance_summary:{candidate_key}:{history_id}:{history_hash}",
+        performance_source_evidence_id("closed_trades", history_id, history_hash, candidate_id),
+        performance_source_evidence_id("execution_quality", history_id, history_hash, candidate_id),
+        performance_source_evidence_id("performance_summary", history_id, history_hash, candidate_id),
     ]
 
 
@@ -621,7 +660,10 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         cycle_id=source_runtime_cycle_id,
         cycle_hash=source_runtime_cycle_hash,
     )
-    enough_performance_sources = has_required_performance_source_ids(source_ids)
+    enough_performance_sources = has_required_performance_source_ids(
+        source_ids,
+        candidate_id=str(selected.get("candidate_id") or ""),
+    )
     ranking_eligible = (
         selected.get("decision") == "PAPER_ENTRY_REVIEW"
         and net_ev >= min_required_edge_bps
