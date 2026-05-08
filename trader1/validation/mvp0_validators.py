@@ -882,6 +882,8 @@ PROFITABILITY_ROBUSTNESS_SOURCE_TYPE_COUNT_FIELDS = {
     "BOOTSTRAP": "bootstrap_count",
     "CONCENTRATION": "concentration_count",
 }
+PROFITABILITY_OVERFIT_FULL_SAMPLE_BASIS = "REALIZED_CLOSED_PAPER_TRADES"
+PROFITABILITY_OVERFIT_PRELIMINARY_SAMPLE_BASIS = "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE"
 PROFITABILITY_EVIDENCE_FORBIDDEN_PHRASES = {
     "profit guaranteed",
     "guaranteed profit",
@@ -20289,11 +20291,48 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
                 errors.append(f"rollup robustness source type evidence missing blocker for {source_type}")
             if source_count >= min_required_per_source_type and source_type in missing_source_types:
                 errors.append(f"rollup robustness source type evidence marks {source_type} missing despite sufficient count")
+        if robustness_sources.get("sample_basis") != PROFITABILITY_OVERFIT_FULL_SAMPLE_BASIS:
+            errors.append("rollup robustness source type evidence must use realized closed PAPER trades as full sample basis")
+        if robustness_sources.get("preliminary_sample_basis") != PROFITABILITY_OVERFIT_PRELIMINARY_SAMPLE_BASIS:
+            errors.append("rollup robustness source type evidence must label preliminary expected-edge samples separately")
+        try:
+            robustness_sample_count = int(robustness_sources.get("sample_count", 0) or 0)
+        except (TypeError, ValueError):
+            robustness_sample_count = 0
+            errors.append("rollup robustness source type sample_count must be an integer")
+        try:
+            robustness_min_sample_count = int(robustness_sources.get("min_required_sample_count", 0) or 0)
+        except (TypeError, ValueError):
+            robustness_min_sample_count = 0
+            errors.append("rollup robustness source type minimum sample count must be an integer")
+        try:
+            closed_trade_sample_deficit = int(robustness_sources.get("closed_trade_sample_deficit", 0) or 0)
+        except (TypeError, ValueError):
+            closed_trade_sample_deficit = 0
+            errors.append("rollup robustness source type closed trade sample deficit must be an integer")
+        try:
+            preliminary_sample_count = int(robustness_sources.get("preliminary_sample_count", 0) or 0)
+        except (TypeError, ValueError):
+            preliminary_sample_count = 0
+            errors.append("rollup robustness source type preliminary sample count must be an integer")
+        try:
+            preliminary_exact_candidate_sample_count = int(
+                robustness_sources.get("preliminary_exact_candidate_sample_count", 0) or 0
+            )
+        except (TypeError, ValueError):
+            preliminary_exact_candidate_sample_count = 0
+            errors.append("rollup robustness source type preliminary exact candidate sample count must be an integer")
+        if closed_trade_sample_deficit != max(robustness_min_sample_count - robustness_sample_count, 0):
+            errors.append("rollup robustness source type closed trade sample deficit is inconsistent")
+        if preliminary_exact_candidate_sample_count > preliminary_sample_count:
+            errors.append("rollup robustness source type exact preliminary sample count exceeds preliminary sample count")
         if robustness_status == "PASS":
             if missing_source_types:
                 errors.append("rollup robustness source type evidence claims PASS while source types are missing")
             if present_source_types != required_source_types:
                 errors.append("rollup robustness source type evidence claims PASS without all required source types present")
+            if robustness_sample_count < robustness_min_sample_count:
+                errors.append("rollup robustness source type evidence claims PASS below realized closed PAPER trade minimum")
             if robustness_sources.get("primary_blocker_code") is not None:
                 errors.append("rollup robustness source type evidence PASS must not carry a blocker code")
             if robustness_sources.get("explicit_source_type_blocker") is not False:
@@ -20502,6 +20541,45 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
         paper_scorecard_input = component.get("paper_scorecard_input_eligible") is True
         long_run_eligible = component.get("long_run_evidence_eligible") is True
         long_run_blocker = component.get("long_run_blocker_code")
+        if component_id == "overfit_oos_walk_forward":
+            require_component_fields(
+                component,
+                (
+                    "sample_basis",
+                    "closed_trade_sample_count",
+                    "closed_trade_sample_deficit",
+                    "preliminary_sample_basis",
+                    "preliminary_sample_count",
+                    "preliminary_exact_candidate_sample_count",
+                ),
+            )
+            if component.get("sample_basis") != PROFITABILITY_OVERFIT_FULL_SAMPLE_BASIS:
+                errors.append("rollup overfit component must use realized closed PAPER trades as full sample basis")
+            if component.get("preliminary_sample_basis") != PROFITABILITY_OVERFIT_PRELIMINARY_SAMPLE_BASIS:
+                errors.append("rollup overfit component must label expected-edge preliminary samples separately")
+            overfit_sample_count = component_int(component, "sample_count")
+            overfit_min_sample_count = component_int(component, "min_required_sample_count")
+            closed_trade_sample_count = component_int(component, "closed_trade_sample_count")
+            closed_trade_sample_deficit = component_int(component, "closed_trade_sample_deficit")
+            preliminary_sample_count = component_int(component, "preliminary_sample_count")
+            preliminary_exact_candidate_sample_count = component_int(
+                component,
+                "preliminary_exact_candidate_sample_count",
+            )
+            if overfit_sample_count != closed_trade_sample_count:
+                errors.append("rollup overfit component sample_count must match realized closed trade sample count")
+            if closed_trade_sample_deficit != max(overfit_min_sample_count - closed_trade_sample_count, 0):
+                errors.append("rollup overfit component closed trade sample deficit is inconsistent")
+            if preliminary_exact_candidate_sample_count > preliminary_sample_count:
+                errors.append("rollup overfit component exact preliminary sample count exceeds preliminary sample count")
+            if component.get("evidence_status") == "PASS" and overfit_sample_count < overfit_min_sample_count:
+                errors.append("rollup overfit component claims PASS below realized closed PAPER trade minimum")
+            if paper_scorecard_input and overfit_sample_count < overfit_min_sample_count:
+                errors.append("rollup overfit component is scorecard eligible below realized closed PAPER trade minimum")
+            if paper_scorecard_input and "realized closed paper trades" not in str(
+                component.get("next_required_evidence", "")
+            ).lower():
+                errors.append("rollup overfit component must tell operators robustness is based on closed PAPER trades")
         if component_id == "paper_shadow_evidence_accumulation":
             paper_sample_count = int(component.get("paper_sample_count", 0) or 0)
             shadow_sample_count = int(component.get("shadow_sample_count", 0) or 0)

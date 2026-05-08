@@ -54,6 +54,8 @@ CONTRACT_GAP_PATH = (
 )
 
 ROBUSTNESS_SOURCE_TYPES = ("OOS", "WALK_FORWARD", "BOOTSTRAP", "CONCENTRATION")
+OVERFIT_FULL_SAMPLE_BASIS = "REALIZED_CLOSED_PAPER_TRADES"
+OVERFIT_PRELIMINARY_SAMPLE_BASIS = "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE"
 STRATEGY_COMPONENT_IDS = (
     "strategy_entry_exit_no_trade",
     "symbol_selection_regime",
@@ -295,6 +297,10 @@ def source_type_counts(overfit: dict[str, Any]) -> dict[str, int]:
 def robustness_source_type_evidence(scorecard: dict[str, Any], overfit: dict[str, Any]) -> dict[str, Any]:
     counts = source_type_counts(overfit)
     min_required = 1
+    sample_count = safe_int(overfit.get("sample_count"))
+    min_required_sample_count = safe_int(overfit.get("min_required_sample_count"), 300)
+    preliminary_sample_count = safe_int(overfit.get("preliminary_sample_count"))
+    preliminary_exact_candidate_sample_count = safe_int(overfit.get("preliminary_exact_candidate_sample_count"))
     present = [
         source_type
         for source_type, field in (
@@ -318,6 +324,13 @@ def robustness_source_type_evidence(scorecard: dict[str, Any], overfit: dict[str
         "missing_source_types": missing,
         "source_type_counts": counts,
         "min_required_per_source_type": min_required,
+        "sample_basis": OVERFIT_FULL_SAMPLE_BASIS,
+        "sample_count": sample_count,
+        "min_required_sample_count": min_required_sample_count,
+        "closed_trade_sample_deficit": max(min_required_sample_count - sample_count, 0),
+        "preliminary_sample_basis": OVERFIT_PRELIMINARY_SAMPLE_BASIS,
+        "preliminary_sample_count": preliminary_sample_count,
+        "preliminary_exact_candidate_sample_count": preliminary_exact_candidate_sample_count,
         "source_artifact_paths": [rel(OVERFIT_PATH), rel(SCORECARD_PATH), rel(SAMPLE_HISTORY_PATH)],
         "source_evidence_ids": sorted(set(str(item) for item in source_ids if item)),
         "primary_blocker_code": None if not missing else "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
@@ -719,6 +732,8 @@ def update_strategy_scorecard_components(
 def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], overfit: dict[str, Any]) -> None:
     sample_count = int(overfit.get("sample_count") or 0)
     min_required = int(overfit.get("min_required_sample_count") or 300)
+    preliminary_sample_count = safe_int(overfit.get("preliminary_sample_count"))
+    preliminary_exact_candidate_sample_count = safe_int(overfit.get("preliminary_exact_candidate_sample_count"))
     robust = overfit.get("robustness_eligible") is True and sample_count >= min_required
     for component in rollup.get("components", []):
         if component.get("component_id") != "overfit_oos_walk_forward":
@@ -733,6 +748,12 @@ def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], 
                 evidence_ids.append(evidence_id)
         component["sample_count"] = sample_count
         component["min_required_sample_count"] = min_required
+        component["sample_basis"] = OVERFIT_FULL_SAMPLE_BASIS
+        component["closed_trade_sample_count"] = sample_count
+        component["closed_trade_sample_deficit"] = max(min_required - sample_count, 0)
+        component["preliminary_sample_basis"] = OVERFIT_PRELIMINARY_SAMPLE_BASIS
+        component["preliminary_sample_count"] = preliminary_sample_count
+        component["preliminary_exact_candidate_sample_count"] = preliminary_exact_candidate_sample_count
         component["validator_status"] = "PASS"
         component["freshness_status"] = "PASS"
         component["dependency_status"] = "PASS"
@@ -746,7 +767,8 @@ def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], 
             component["paper_scorecard_input_eligible"] = True
             component["primary_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
             component["next_required_evidence"] = (
-                "OOS, walk-forward, bootstrap, and concentration checks pass for PAPER scorecard input; "
+                "OOS, walk-forward, bootstrap, and concentration checks pass from realized closed PAPER trades "
+                "for PAPER scorecard input; "
                 "collect distinct PAPER/SHADOW long-run windows, replay coverage, read-only burn-in, and operator approval."
             )
         else:
