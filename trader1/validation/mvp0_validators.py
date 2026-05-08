@@ -19106,6 +19106,7 @@ def _profit_convergence_cycle_errors(report: dict[str, Any]) -> list[str]:
     improvement_claim = report.get("convergence_claim") in {"LOCALLY_IMPROVING", "ROBUSTLY_IMPROVING"}
     local_review = report.get("cycle_status") == "LOCAL_IMPROVEMENT_REVIEW"
     ranking_allowed = report.get("candidate_ranking_allowed_for_paper") is True
+    source_evidence_ids = [str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)]
 
     if non_pass_dependency:
         if local_review:
@@ -19160,6 +19161,10 @@ def _profit_convergence_cycle_errors(report: dict[str, Any]) -> list[str]:
             errors.append("LOCAL_IMPROVEMENT_REVIEW requires all dependencies PASS, fresh input, and positive net EV after cost")
         if blockers:
             errors.append("LOCAL_IMPROVEMENT_REVIEW must not carry blockers")
+    if (local_review or improvement_claim or ranking_allowed) and _candidate_scoped_performance_source_binding_count(source_evidence_ids) <= 0:
+        errors.append(
+            "profit convergence improvement or paper ranking requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+        )
     if ranking_allowed and report.get("cycle_status") not in {"LOCAL_IMPROVEMENT_REVIEW"}:
         errors.append("paper candidate ranking requires LOCAL_IMPROVEMENT_REVIEW cycle status")
     return errors
@@ -24138,6 +24143,7 @@ def _convergence_assessment_errors(report: dict[str, Any]) -> list[str]:
     data_age = float(report.get("data_age_seconds", 0))
     max_data_age = float(report.get("max_data_age_seconds", 0))
     drift_status = report.get("model_drift_status")
+    source_evidence_ids = [str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)]
 
     if any(item != "PASS" for item in dependency_statuses):
         if status in {"LOCALLY_IMPROVING", "ROBUSTLY_IMPROVING"}:
@@ -24178,6 +24184,14 @@ def _convergence_assessment_errors(report: dict[str, Any]) -> list[str]:
         errors.append("ROBUSTLY_IMPROVING convergence claim requires all dependencies PASS, fresh data, and NO_DRIFT")
     if claim in {"LOCALLY_IMPROVING", "ROBUSTLY_IMPROVING"} and blockers:
         errors.append("improving convergence assessment must not carry blockers")
+    if (
+        status in {"LOCALLY_IMPROVING", "ROBUSTLY_IMPROVING"}
+        or claim in {"LOCALLY_IMPROVING", "ROBUSTLY_IMPROVING"}
+        or score_band in {"LOCAL_IMPROVING", "ROBUST_IMPROVING"}
+    ) and _candidate_scoped_performance_source_binding_count(source_evidence_ids) <= 0:
+        errors.append(
+            "improving convergence assessment requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+        )
     return errors
 
 
