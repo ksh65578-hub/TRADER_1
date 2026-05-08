@@ -21557,14 +21557,15 @@ def _overfit_diagnostic_errors(report: dict[str, Any]) -> list[str]:
         blocker.get("code") == "OVERFIT_RISK_HIGH" for blocker in blockers
     ):
         errors.append("HIGH overfit_status must carry OVERFIT_RISK_HIGH blocker")
-    if report.get("bootstrap_status") in {"FAIL", "BLOCKED", "UNTESTED", "STALE"} and not any(
-        blocker.get("code") == "BOOTSTRAP_UNSTABLE" for blocker in blockers
-    ):
-        errors.append("non-PASS bootstrap_status must carry BOOTSTRAP_UNSTABLE blocker")
-    if report.get("oos_status") in {"FAIL", "BLOCKED", "UNTESTED", "STALE"} and not any(
-        blocker.get("code") == "OOS_MISSING" for blocker in blockers
-    ):
-        errors.append("non-PASS oos_status must carry OOS_MISSING blocker")
+    blocker_codes = {blocker.get("code") for blocker in blockers if isinstance(blocker, dict)}
+    if report.get("bootstrap_status") in {"FAIL", "BLOCKED", "UNTESTED", "STALE"}:
+        allowed_bootstrap_codes = {"BOOTSTRAP_UNSTABLE", "BOOTSTRAP_FAILED"}
+        if not allowed_bootstrap_codes.intersection(blocker_codes):
+            errors.append("non-PASS bootstrap_status must carry BOOTSTRAP_UNSTABLE or BOOTSTRAP_FAILED blocker")
+    if report.get("oos_status") in {"FAIL", "BLOCKED", "UNTESTED", "STALE"}:
+        allowed_oos_codes = {"OOS_MISSING", "OOS_FAILED"}
+        if not allowed_oos_codes.intersection(blocker_codes):
+            errors.append("non-PASS oos_status must carry OOS_MISSING or OOS_FAILED blocker")
 
     return errors
 
@@ -21971,7 +21972,12 @@ def candidate_scorecard_validator() -> ValidatorResult:
             "SCORECARD_MISSING",
         )
     runtime_blocker_codes = {blocker.get("code") for blocker in runtime_scorecard.get("blockers", []) if isinstance(blocker, dict)}
-    if not {"OOS_MISSING", "WALK_FORWARD_MISSING", "BOOTSTRAP_UNSTABLE", "OVERFIT_RISK_HIGH"}.issubset(runtime_blocker_codes):
+    if (
+        "OVERFIT_RISK_HIGH" not in runtime_blocker_codes
+        or not {"OOS_MISSING", "OOS_FAILED"}.intersection(runtime_blocker_codes)
+        or not {"WALK_FORWARD_MISSING", "WALK_FORWARD_FAILED"}.intersection(runtime_blocker_codes)
+        or not {"BOOTSTRAP_UNSTABLE", "BOOTSTRAP_FAILED"}.intersection(runtime_blocker_codes)
+    ):
         return fail_result(
             "candidate_scorecard_validator",
             "runtime-generated scorecard did not preserve robustness blockers",

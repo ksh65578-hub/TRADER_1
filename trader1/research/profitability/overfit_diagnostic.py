@@ -59,6 +59,23 @@ def _blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
 
 
+def _has_public_replay_robustness_source(source_ids: list[str]) -> bool:
+    return any(str(source_id).startswith("public_replay_robustness:") for source_id in source_ids)
+
+
+def _robustness_blocker_for_status(
+    *,
+    status: str,
+    missing_code: str,
+    failed_code: str,
+    missing_message: str,
+    failed_message: str,
+) -> dict[str, str]:
+    if status == "FAIL":
+        return _blocker(failed_code, failed_message)
+    return _blocker(missing_code, missing_message)
+
+
 def _relative_id(prefix: str, primary: str, secondary: str | None = None) -> str:
     return f"{prefix}:{primary}" if secondary is None else f"{prefix}:{primary}:{secondary}"
 
@@ -680,12 +697,47 @@ def overfit_diagnostic_from_upbit_paper_runtime(
                 f"{sample_count} matched robustness samples collected; {min_required_sample_count} required",
             )
         )
+    public_replay_robustness_bound = _has_public_replay_robustness_source(source_ids)
+    if public_replay_robustness_bound and any(
+        status == "FAIL"
+        for status in (oos_status, walk_forward_status, bootstrap_status)
+    ):
+        blockers.append(
+            _blocker(
+                "PUBLIC_REPLAY_ROBUSTNESS_FAILED",
+                "public read-only replay robustness evidence failed and cannot support PAPER ranking",
+            )
+        )
     if oos_status != "PASS":
-        blockers.append(_blocker("OOS_MISSING", "OOS net EV after cost has not passed the required threshold"))
+        blockers.append(
+            _robustness_blocker_for_status(
+                status=oos_status,
+                missing_code="OOS_MISSING",
+                failed_code="OOS_FAILED",
+                missing_message="OOS net EV after cost has not passed the required threshold",
+                failed_message="OOS net EV after cost failed the required threshold",
+            )
+        )
     if walk_forward_status != "PASS":
-        blockers.append(_blocker("WALK_FORWARD_MISSING", "walk-forward windows have not passed the required threshold"))
+        blockers.append(
+            _robustness_blocker_for_status(
+                status=walk_forward_status,
+                missing_code="WALK_FORWARD_MISSING",
+                failed_code="WALK_FORWARD_FAILED",
+                missing_message="walk-forward windows have not passed the required threshold",
+                failed_message="walk-forward windows failed the required threshold",
+            )
+        )
     if bootstrap_status != "PASS":
-        blockers.append(_blocker("BOOTSTRAP_UNSTABLE", "bootstrap confidence lower bound has not passed the required threshold"))
+        blockers.append(
+            _robustness_blocker_for_status(
+                status=bootstrap_status,
+                missing_code="BOOTSTRAP_UNSTABLE",
+                failed_code="BOOTSTRAP_FAILED",
+                missing_message="bootstrap confidence lower bound has not passed the required threshold",
+                failed_message="bootstrap confidence lower bound failed the required threshold",
+            )
+        )
     if overfit_status == "HIGH":
         blockers.append(_blocker("OVERFIT_RISK_HIGH", "overfit risk remains HIGH until OOS, walk-forward, and bootstrap evidence pass"))
     if survivorship_bias_check != "PASS":
@@ -787,7 +839,13 @@ def robustness_inputs_from_overfit_diagnostic(report: dict[str, Any]) -> tuple[d
         "overfit_status": str(report.get("overfit_status") or "UNTESTED"),
     }
     if statuses != ROBUSTNESS_PASS or not report.get("robustness_eligible"):
-        return statuses, []
+        public_replay_source_ids = [
+            str(source_id)
+            for source_id in report.get("source_evidence_ids") or []
+            if isinstance(source_id, str)
+            and source_id.startswith(("public_replay_robustness:", "public_market_data:"))
+        ]
+        return statuses, sorted(set(public_replay_source_ids))
     source_ids = set(report.get("source_evidence_ids") or [])
     oos_sources = [source_id.split(":") for source_id in source_ids if isinstance(source_id, str) and source_id.startswith("oos:")]
     for parts in oos_sources:

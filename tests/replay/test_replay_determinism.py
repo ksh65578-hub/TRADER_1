@@ -199,6 +199,43 @@ class ReplayDeterminismTest(unittest.TestCase):
         self.assertFalse(diagnostic["can_live_trade"])
         self.assertFalse(diagnostic["scale_up_allowed"])
 
+    def test_overfit_diagnostic_marks_public_replay_failures_as_failures(self):
+        runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="public-replay-scorecard-overfit-fail-base",
+            symbol="KRW-AXL",
+            market_data=_public_replay_fixture(symbol="KRW-AXL", count=12),
+        )
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        report = build_public_replay_robustness_report(
+            candidate_scorecard=scorecard,
+            market_data=_public_replay_fixture(symbol="KRW-AXL", count=70),
+            min_required_sample_count=50,
+        )
+        diagnostic = overfit_diagnostic_from_upbit_paper_runtime(
+            candidate_scorecard=scorecard,
+            runtime_sample_history={
+                "history_id": "invalid-history",
+                "history_hash": "A" * 64,
+            },
+            replay_robustness_report=report,
+            min_required_sample_count=50,
+            min_required_bootstrap_iterations=50,
+            min_required_oos_net_ev_bps=1000.0,
+            min_required_walk_forward_pass_rate=1.0,
+            min_required_bootstrap_confidence_lower_bps=1000.0,
+            min_required_ranking_stability_score=0.99,
+        )
+        blocker_codes = {blocker["code"] for blocker in diagnostic["blockers"]}
+
+        self.assertEqual(diagnostic["oos_status"], "FAIL")
+        self.assertEqual(diagnostic["walk_forward_status"], "FAIL")
+        self.assertEqual(diagnostic["bootstrap_status"], "FAIL")
+        self.assertIn("PUBLIC_REPLAY_ROBUSTNESS_FAILED", blocker_codes)
+        self.assertIn("OOS_FAILED", blocker_codes)
+        self.assertIn("WALK_FORWARD_FAILED", blocker_codes)
+        self.assertIn("BOOTSTRAP_FAILED", blocker_codes)
+        self.assertFalse(diagnostic["live_order_allowed"])
+
 
 if __name__ == "__main__":
     unittest.main()
