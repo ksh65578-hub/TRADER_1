@@ -9,6 +9,7 @@ from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import (
     PERFORMANCE_PASS,
     ROBUSTNESS_PASS,
+    candidate_generation_report_from_upbit_paper_runtime_cycle,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     has_required_performance_source_ids,
     has_required_robustness_source_ids,
@@ -18,6 +19,7 @@ from trader1.research.profitability.candidate_scorecard import (
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
     stable_hash,
+    validate_candidate_generation_report,
     write_upbit_paper_candidate_scorecard,
 )
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report, upbit_paper_runtime_cycle_hash
@@ -478,6 +480,85 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
             any(source_id.startswith("public_replay_robustness:") for source_id in scorecard["source_evidence_ids"])
         )
         self.assertFalse(scorecard["live_order_allowed"])
+
+    def test_candidate_generation_report_retreats_failed_candidate_without_live_permission(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-candidate-generation-no-alt")
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses={
+                "oos_status": "FAIL",
+                "walk_forward_status": "FAIL",
+                "bootstrap_status": "FAIL",
+                "overfit_status": "HIGH",
+            },
+            robustness_source_evidence_ids=[
+                "public_replay_robustness:replay-scorecard-runtime-candidate-generation-no-alt:" + "A" * 64,
+                "public_market_data:KRW-BTC:" + "B" * 64,
+            ],
+        )
+
+        report = candidate_generation_report_from_upbit_paper_runtime_cycle(runtime, candidate_scorecard=scorecard)
+        validation_status, validation_message, blocker_code = validate_candidate_generation_report(
+            report,
+            candidate_scorecard=scorecard,
+        )
+        item_by_id = {item["candidate_id"]: item for item in report["candidate_items"]}
+
+        self.assertEqual(validation_status, "PASS", validation_message)
+        self.assertEqual(blocker_code, None)
+        self.assertEqual(report["generation_status"], "NO_ALTERNATIVE_READY")
+        self.assertEqual(report["status"], "BLOCKED")
+        self.assertTrue(report["selected_candidate_retired_for_ranking"])
+        self.assertEqual(item_by_id[scorecard["candidate_id"]]["candidate_status"], "RETIRED_FAILED_SOURCE")
+        self.assertEqual(report["alternative_candidate_count"], 0)
+        self.assertIsNone(report["best_alternative_candidate_id"])
+        self.assertIn("bounded public discovery", report["next_action"])
+        self.assertFalse(report["live_order_ready"])
+        self.assertFalse(report["live_order_allowed"])
+        self.assertFalse(report["can_live_trade"])
+        self.assertFalse(report["scale_up_allowed"])
+        self.assertFalse(report["private_endpoint_called"])
+        self.assertFalse(report["order_adapter_called"])
+
+    def test_candidate_generation_report_selects_different_entry_review_alternative(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-candidate-generation-alt")
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses={
+                "oos_status": "FAIL",
+                "walk_forward_status": "FAIL",
+                "bootstrap_status": "FAIL",
+                "overfit_status": "HIGH",
+            },
+            robustness_source_evidence_ids=[
+                "public_replay_robustness:replay-scorecard-runtime-candidate-generation-alt:" + "A" * 64,
+                "public_market_data:KRW-BTC:" + "B" * 64,
+            ],
+        )
+        selected = runtime["selected_candidate"]
+        alternative = copy.deepcopy(selected)
+        alternative["candidate_id"] = "KRW-ETH-pullback-trend-long"
+        alternative["symbol"] = "KRW-ETH"
+        alternative["candidate_selection_score"] = max(0.01, float(selected["candidate_selection_score"]) - 0.01)
+        alternative["net_ev_after_cost_bps"] = float(selected["net_ev_after_cost_bps"]) + 5.0
+        runtime["strategy_candidates"].append(alternative)
+
+        report = candidate_generation_report_from_upbit_paper_runtime_cycle(runtime, candidate_scorecard=scorecard)
+        validation_status, validation_message, blocker_code = validate_candidate_generation_report(
+            report,
+            candidate_scorecard=scorecard,
+        )
+
+        self.assertEqual(validation_status, "PASS", validation_message)
+        self.assertEqual(blocker_code, None)
+        self.assertEqual(report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+        self.assertEqual(report["status"], "PASS")
+        self.assertEqual(report["best_alternative_candidate_id"], "KRW-ETH-pullback-trend-long")
+        self.assertEqual(report["best_alternative_symbol"], "KRW-ETH")
+        self.assertEqual(report["alternative_candidate_count"], 1)
+        self.assertTrue(report["selected_candidate_retired_for_ranking"])
+        self.assertIn("bounded public replay robustness", report["next_action"])
+        self.assertFalse(report["live_order_allowed"])
 
     def test_robustness_source_evidence_must_cover_required_kinds(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-partial-source")

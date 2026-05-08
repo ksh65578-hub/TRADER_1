@@ -20,6 +20,7 @@ from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_js
 
 ROOT = Path(__file__).resolve().parents[3]
 SCORECARD_SCHEMA_ID = "trader1.candidate_scorecard.v1"
+CANDIDATE_GENERATION_SCHEMA_ID = "trader1.candidate_generation_report.v1"
 COST_FIELD_MAP = {
     "expected_fee_bps": "fee_bps",
     "expected_spread_bps": "spread_bps",
@@ -86,6 +87,15 @@ TOP_SYMBOL_SCORECARD_LIMIT = 5
 REGIME_OUTCOME_REGIMES = ("UPTREND", "RANGE", "DOWNTREND", "RISK_OFF")
 SPOT_LONG_NEW_ENTRY_BLOCKED_REGIMES = {"DOWNTREND", "RISK_OFF"}
 STRATEGY_FAMILY_EVIDENCE_ORDER = ("PULLBACK_TREND_LONG", "VWAP_MEAN_REVERSION", "BREAKOUT_RETEST_LONG")
+CANDIDATE_GENERATION_ITEM_LIMIT = 20
+CANDIDATE_FAILURE_TRIGGER_BLOCKERS = {
+    "PUBLIC_REPLAY_ROBUSTNESS_FAILED",
+    "OOS_FAILED",
+    "WALK_FORWARD_FAILED",
+    "BOOTSTRAP_FAILED",
+    "OVERFIT_RISK_HIGH",
+    "EXECUTION_FEEDBACK_DIVERGENT",
+}
 
 
 def utc_now() -> str:
@@ -98,6 +108,12 @@ def sha256_file(path: Path) -> str:
 
 def stable_hash(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest().upper()
+
+
+def stable_json_hash(value: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest().upper()
 
 
 def safe_candidate_scorecard_filename(candidate_id: Any) -> str:
@@ -1067,6 +1083,300 @@ def _robustness_failure_blocker(
     return blocker(missing_code, missing_message)
 
 
+def candidate_generation_report_hash(report: dict[str, Any]) -> str:
+    return stable_json_hash({key: value for key, value in report.items() if key != "generation_hash"})
+
+
+def _scorecard_source_id_for_candidate_generation(scorecard: dict[str, Any]) -> str:
+    return f"candidate_scorecard:{scorecard.get('scorecard_id')}:{stable_json_hash(scorecard)}"
+
+
+def _candidate_generation_item(
+    candidate: dict[str, Any],
+    *,
+    status: str,
+    reason_code: str,
+    priority: int,
+) -> dict[str, Any]:
+    family = str(candidate.get("strategy_family") or "")
+    symbol = str(candidate.get("symbol") or "")
+    candidate_id = str(candidate.get("candidate_id") or "")
+    return {
+        "candidate_id": candidate_id,
+        "symbol": symbol,
+        "strategy_id": strategy_id_for_family(family),
+        "strategy_family": family,
+        "decision": str(candidate.get("decision") or "NO_TRADE"),
+        "candidate_status": status,
+        "reason_code": reason_code,
+        "priority": max(1, priority),
+        "net_ev_after_cost_bps": number_value(candidate.get("net_ev_after_cost_bps")),
+        "candidate_selection_score": number_value(candidate.get("candidate_selection_score")),
+        "strategy_policy_reason": str(candidate.get("strategy_policy_reason") or ""),
+        "no_trade_reason": (
+            str(candidate.get("no_trade_reason"))
+            if candidate.get("no_trade_reason") is not None
+            else None
+        ),
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
+def _candidate_generation_rank_key(item: dict[str, Any]) -> tuple[int, Decimal, Decimal, int, str]:
+    status_rank = 2 if item.get("candidate_status") == "REVIEW_READY" else 1
+    return (
+        status_rank,
+        decimal_value(item.get("net_ev_after_cost_bps")),
+        decimal_value(item.get("candidate_selection_score")),
+        -int(item.get("priority", 999) or 999),
+        str(item.get("candidate_id") or ""),
+    )
+
+
+def candidate_generation_report_from_upbit_paper_runtime_cycle(
+    runtime_cycle_report: dict[str, Any],
+    *,
+    candidate_scorecard: dict[str, Any],
+    candidate_budget: int = CANDIDATE_GENERATION_ITEM_LIMIT,
+    authority: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    if any(candidate_scorecard.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+        raise ValueError("candidate generation refuses scorecard live or scale-up permission")
+    if (
+        runtime_cycle_report.get("exchange") != "UPBIT"
+        or runtime_cycle_report.get("market_type") != "KRW_SPOT"
+        or runtime_cycle_report.get("mode") != "PAPER"
+        or candidate_scorecard.get("exchange") != "UPBIT"
+        or candidate_scorecard.get("market_type") != "KRW_SPOT"
+        or candidate_scorecard.get("mode") != "PAPER"
+    ):
+        raise ValueError("candidate generation is scoped to UPBIT/KRW_SPOT/PAPER")
+
+    selected_candidate_id = str(candidate_scorecard.get("candidate_id") or "")
+    min_required_edge = decimal_value(candidate_scorecard.get("min_required_edge_bps"))
+    blocker_codes = [
+        str(item.get("code"))
+        for item in candidate_scorecard.get("blockers", [])
+        if isinstance(item, dict) and item.get("code")
+    ]
+    failed_current_candidate = bool(set(blocker_codes) & CANDIDATE_FAILURE_TRIGGER_BLOCKERS)
+    safe_budget = max(1, min(int(candidate_budget), CANDIDATE_GENERATION_ITEM_LIMIT))
+
+    items: list[dict[str, Any]] = []
+    live_flag_drift_count = 0
+    selected_candidate_seen = False
+    for candidate in runtime_cycle_report.get("strategy_candidates") or []:
+        if not isinstance(candidate, dict) or not isinstance(candidate.get("candidate_id"), str):
+            continue
+        candidate_id = str(candidate.get("candidate_id") or "")
+        if any(candidate.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+            live_flag_drift_count += 1
+            items.append(
+                _candidate_generation_item(
+                    candidate,
+                    status="REJECTED_LIVE_FLAG",
+                    reason_code="LIVE_FINAL_GUARD_FAILED",
+                    priority=len(items) + 1,
+                )
+            )
+            continue
+        if candidate_id == selected_candidate_id:
+            selected_candidate_seen = True
+            items.append(
+                _candidate_generation_item(
+                    candidate,
+                    status="RETIRED_FAILED_SOURCE" if failed_current_candidate else "SELECTED_CURRENT",
+                    reason_code=blocker_codes[0] if failed_current_candidate and blocker_codes else "CURRENT_SCORECARD_CANDIDATE",
+                    priority=len(items) + 1,
+                )
+            )
+            continue
+        if candidate.get("decision") == "PAPER_ENTRY_REVIEW" and decimal_value(candidate.get("net_ev_after_cost_bps")) >= min_required_edge:
+            items.append(
+                _candidate_generation_item(
+                    candidate,
+                    status="REVIEW_READY",
+                    reason_code="ALTERNATIVE_ENTRY_REVIEW_READY",
+                    priority=len(items) + 1,
+                )
+            )
+            continue
+        items.append(
+            _candidate_generation_item(
+                candidate,
+                status="BLOCKED_NO_TRADE",
+                reason_code=str(candidate.get("no_trade_reason") or candidate.get("strategy_policy_reason") or "STRATEGY_NOT_ELIGIBLE"),
+                priority=len(items) + 1,
+            )
+        )
+
+    sorted_items = sorted(items, key=_candidate_generation_rank_key, reverse=True)[:safe_budget]
+    review_ready_items = [item for item in sorted_items if item["candidate_status"] == "REVIEW_READY"]
+    best = review_ready_items[0] if review_ready_items else None
+    blocked_count = sum(1 for item in sorted_items if item["candidate_status"] in {"BLOCKED_NO_TRADE", "REJECTED_LIVE_FLAG"})
+    blockers = []
+    if failed_current_candidate:
+        blockers.append(
+            blocker(
+                "PUBLIC_REPLAY_ROBUSTNESS_FAILED" if "PUBLIC_REPLAY_ROBUSTNESS_FAILED" in blocker_codes else blocker_codes[0],
+                "Current candidate is retired from ranking review until fresh robustness and performance evidence pass.",
+            )
+        )
+    if live_flag_drift_count:
+        blockers.append(blocker("LIVE_FINAL_GUARD_FAILED", "Candidate generation rejected a candidate with live or scale-up permission drift."))
+    if best is None:
+        blockers.append(
+            blocker(
+                "STRATEGY_NOT_ELIGIBLE",
+                "Bounded candidate generation found no different non-live PAPER_ENTRY_REVIEW candidate above the minimum net EV threshold.",
+            )
+        )
+    if not selected_candidate_seen:
+        blockers.append(blocker("SCORECARD_MISSING", "Current scorecard candidate was not present in the source runtime cycle candidate set."))
+
+    generation_status = (
+        "BLOCKED_LIVE_FLAG"
+        if live_flag_drift_count
+        else "ALTERNATIVE_REVIEW_READY"
+        if best is not None
+        else "NO_ALTERNATIVE_READY"
+    )
+    source_ids = [
+        _scorecard_source_id_for_candidate_generation(candidate_scorecard),
+        runtime_cycle_source_evidence_id(
+            str(runtime_cycle_report.get("cycle_id") or candidate_scorecard.get("source_runtime_cycle_id") or ""),
+            str(runtime_cycle_report.get("cycle_hash") or candidate_scorecard.get("source_runtime_cycle_hash") or ""),
+        ),
+    ]
+    source_ids.extend(str(item) for item in candidate_scorecard.get("source_evidence_ids", []) if item)
+    report = {
+        "schema_id": CANDIDATE_GENERATION_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "project_id": "TRADER_1",
+        "authority": authority or current_authority_hashes(),
+        "generation_report_id": f"candidate_generation:{candidate_scorecard.get('scorecard_id')}",
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": candidate_scorecard["session_id"],
+        "source_runtime_cycle_id": str(runtime_cycle_report.get("cycle_id") or candidate_scorecard["source_runtime_cycle_id"]),
+        "source_runtime_cycle_hash": str(runtime_cycle_report.get("cycle_hash") or candidate_scorecard["source_runtime_cycle_hash"]),
+        "source_scorecard_id": candidate_scorecard["scorecard_id"],
+        "selected_candidate_id": selected_candidate_id,
+        "selected_symbol": candidate_scorecard["symbol"],
+        "selected_strategy_id": candidate_scorecard["strategy_id"],
+        "selected_parameter_hash": candidate_scorecard["parameter_hash"],
+        "selected_candidate_retired_for_ranking": failed_current_candidate,
+        "trigger_blocker_codes": sorted(set(blocker_codes)),
+        "candidate_budget": safe_budget,
+        "evaluated_candidate_count": len([item for item in items if item["candidate_status"] != "REJECTED_LIVE_FLAG"]),
+        "review_ready_candidate_count": len(review_ready_items),
+        "blocked_candidate_count": blocked_count,
+        "alternative_candidate_count": len(review_ready_items),
+        "best_alternative_candidate_id": best.get("candidate_id") if best else None,
+        "best_alternative_symbol": best.get("symbol") if best else None,
+        "best_alternative_strategy_id": best.get("strategy_id") if best else None,
+        "best_alternative_net_ev_after_cost_bps": best.get("net_ev_after_cost_bps") if best else None,
+        "generation_status": generation_status,
+        "status": "PASS" if generation_status == "ALTERNATIVE_REVIEW_READY" else "BLOCKED",
+        "primary_blocker_code": blockers[0]["code"] if blockers else None,
+        "blockers": blockers,
+        "candidate_items": sorted_items,
+        "source_evidence_ids": sorted(set(source_ids)),
+        "next_action": (
+            "Run bounded public replay robustness for the best alternative candidate before any PAPER ranking review."
+            if best is not None
+            else "Widen bounded public discovery across the fresh KRW universe and strategy families; do not run long PAPER until an alternative candidate is review-ready."
+        ),
+        "operator_warning": "Candidate generation is non-live PAPER research evidence only; it cannot create LIVE_READY or place orders.",
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "generation_hash": "",
+    }
+    report["generation_hash"] = candidate_generation_report_hash(report)
+    return report
+
+
+def validate_candidate_generation_report(
+    report: dict[str, Any],
+    *,
+    candidate_scorecard: dict[str, Any] | None = None,
+) -> tuple[str, str, str | None]:
+    required = {
+        "schema_id",
+        "generation_report_id",
+        "exchange",
+        "market_type",
+        "mode",
+        "session_id",
+        "source_runtime_cycle_id",
+        "source_runtime_cycle_hash",
+        "source_scorecard_id",
+        "selected_candidate_id",
+        "candidate_budget",
+        "evaluated_candidate_count",
+        "review_ready_candidate_count",
+        "blocked_candidate_count",
+        "alternative_candidate_count",
+        "generation_status",
+        "status",
+        "blockers",
+        "candidate_items",
+        "source_evidence_ids",
+        "credential_load_attempted",
+        "private_endpoint_called",
+        "order_endpoint_called",
+        "order_adapter_called",
+        "live_key_loaded",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "generation_hash",
+    }
+    missing = sorted(required - set(report))
+    if missing:
+        return "FAIL", f"candidate generation report missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH"
+    if report.get("schema_id") != CANDIDATE_GENERATION_SCHEMA_ID:
+        return "FAIL", "candidate generation schema_id mismatch", "SCHEMA_IDENTITY_MISMATCH"
+    if report.get("generation_hash") != candidate_generation_report_hash(report):
+        return "FAIL", "candidate generation hash mismatch", "SCHEMA_IDENTITY_MISMATCH"
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "PAPER":
+        return "BLOCKED", "candidate generation scope must remain UPBIT/KRW_SPOT/PAPER", "SNAPSHOT_SCOPE_MISMATCH"
+    if any(report.get(flag) is True for flag in ("credential_load_attempted", "private_endpoint_called", "order_endpoint_called", "order_adapter_called", "live_key_loaded", "live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+        return "BLOCKED", "candidate generation attempted private, order, live, or scale-up behavior", "LIVE_FINAL_GUARD_FAILED"
+    items = report.get("candidate_items")
+    if not isinstance(items, list):
+        return "FAIL", "candidate generation items must be a list", "SCHEMA_IDENTITY_MISMATCH"
+    review_ready_count = sum(1 for item in items if isinstance(item, dict) and item.get("candidate_status") == "REVIEW_READY")
+    if review_ready_count != report.get("review_ready_candidate_count"):
+        return "FAIL", "candidate generation review-ready count mismatch", "SCHEMA_IDENTITY_MISMATCH"
+    if report.get("generation_status") == "ALTERNATIVE_REVIEW_READY" and not report.get("best_alternative_candidate_id"):
+        return "FAIL", "alternative-ready report requires best alternative candidate", "SCHEMA_IDENTITY_MISMATCH"
+    if report.get("generation_status") != "ALTERNATIVE_REVIEW_READY" and report.get("status") != "BLOCKED":
+        return "FAIL", "non-ready candidate generation report must stay BLOCKED", "SCHEMA_IDENTITY_MISMATCH"
+    if candidate_scorecard is not None:
+        for report_field, scorecard_field in (
+            ("session_id", "session_id"),
+            ("source_scorecard_id", "scorecard_id"),
+            ("selected_candidate_id", "candidate_id"),
+            ("selected_parameter_hash", "parameter_hash"),
+        ):
+            if str(report.get(report_field) or "") != str(candidate_scorecard.get(scorecard_field) or ""):
+                return "BLOCKED", f"candidate generation scope mismatch: {report_field}", "SNAPSHOT_SCOPE_MISMATCH"
+    return "PASS", "candidate generation report is scoped, deterministic, and live-blocked", None
+
+
 def candidate_scorecard_from_upbit_paper_runtime_cycle(
     runtime_cycle_report: dict[str, Any],
     *,
@@ -1465,4 +1775,50 @@ def write_upbit_paper_candidate_scorecard(*, root: Path, scorecard: dict[str, An
     )
     durable_atomic_write_json(path, scorecard)
     durable_atomic_write_json(snapshot_path, scorecard)
+    return path
+
+
+def write_upbit_paper_candidate_generation_report(*, root: Path, report: dict[str, Any]) -> Path:
+    if (
+        report.get("exchange") != "UPBIT"
+        or report.get("market_type") != "KRW_SPOT"
+        or report.get("mode") != "PAPER"
+    ):
+        raise ValueError("candidate generation writer is scoped to UPBIT/KRW_SPOT/PAPER")
+    if any(
+        report.get(flag) is True
+        for flag in (
+            "credential_load_attempted",
+            "private_endpoint_called",
+            "order_endpoint_called",
+            "order_adapter_called",
+            "live_key_loaded",
+            "live_order_ready",
+            "live_order_allowed",
+            "can_live_trade",
+            "scale_up_allowed",
+        )
+    ):
+        raise ValueError("candidate generation writer refuses private, order, live, or scale-up permission")
+    status, message, blocker_code = validate_candidate_generation_report(report)
+    if status != "PASS":
+        raise ValueError(f"candidate generation report failed validation: {blocker_code or status}: {message}")
+    path = (
+        Path(root)
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / str(report["session_id"])
+        / "profitability"
+        / "candidate_generation_report.json"
+    )
+    snapshot_path = (
+        path.parent
+        / "candidate_generation_reports"
+        / f"{safe_candidate_scorecard_filename(report.get('selected_candidate_id'))}.candidate_generation_report.json"
+    )
+    durable_atomic_write_json(path, report)
+    durable_atomic_write_json(snapshot_path, report)
     return path

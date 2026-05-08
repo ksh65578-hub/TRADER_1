@@ -7,7 +7,48 @@
     "schema_id",
     "generated_at_utc",
     "project_id",
-    "authority"
+    "authority",
+    "generation_report_id",
+    "exchange",
+    "market_type",
+    "mode",
+    "session_id",
+    "source_runtime_cycle_id",
+    "source_runtime_cycle_hash",
+    "source_scorecard_id",
+    "selected_candidate_id",
+    "selected_symbol",
+    "selected_strategy_id",
+    "selected_parameter_hash",
+    "selected_candidate_retired_for_ranking",
+    "trigger_blocker_codes",
+    "candidate_budget",
+    "evaluated_candidate_count",
+    "review_ready_candidate_count",
+    "blocked_candidate_count",
+    "alternative_candidate_count",
+    "best_alternative_candidate_id",
+    "best_alternative_symbol",
+    "best_alternative_strategy_id",
+    "best_alternative_net_ev_after_cost_bps",
+    "generation_status",
+    "status",
+    "primary_blocker_code",
+    "blockers",
+    "candidate_items",
+    "source_evidence_ids",
+    "next_action",
+    "operator_warning",
+    "credential_load_attempted",
+    "private_endpoint_called",
+    "order_endpoint_called",
+    "order_adapter_called",
+    "live_key_loaded",
+    "live_order_ready",
+    "live_order_allowed",
+    "can_live_trade",
+    "scale_up_allowed",
+    "generation_hash"
   ],
   "additionalProperties": false,
   "properties": {
@@ -15,7 +56,8 @@
       "const": "trader1.candidate_generation_report.v1"
     },
     "generated_at_utc": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
     },
     "project_id": {
       "const": "TRADER_1"
@@ -38,6 +80,10 @@
         }
       }
     },
+    "generation_report_id": {
+      "type": "string",
+      "minLength": 1
+    },
     "exchange": {
       "$ref": "common.defs.schema.json#/$defs/exchange"
     },
@@ -45,16 +91,265 @@
       "$ref": "common.defs.schema.json#/$defs/market_type"
     },
     "mode": {
-      "$ref": "common.defs.schema.json#/$defs/mode"
+      "const": "PAPER"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_runtime_cycle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_runtime_cycle_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "source_scorecard_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selected_candidate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selected_symbol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selected_strategy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selected_parameter_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    },
+    "selected_candidate_retired_for_ranking": {
+      "type": "boolean"
+    },
+    "trigger_blocker_codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "candidate_budget": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20
+    },
+    "evaluated_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "review_ready_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "blocked_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "alternative_candidate_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "best_alternative_candidate_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "best_alternative_symbol": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "best_alternative_strategy_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
+    },
+    "best_alternative_net_ev_after_cost_bps": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "generation_status": {
+      "enum": [
+        "ALTERNATIVE_REVIEW_READY",
+        "NO_ALTERNATIVE_READY",
+        "BLOCKED_LIVE_FLAG"
+      ]
     },
     "status": {
-      "type": "string"
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
+    },
+    "primary_blocker_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1
     },
     "blockers": {
       "type": "array",
       "items": {
         "$ref": "common.defs.schema.json#/$defs/blocker_object"
       }
+    },
+    "candidate_items": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "symbol",
+          "strategy_id",
+          "strategy_family",
+          "decision",
+          "candidate_status",
+          "reason_code",
+          "priority",
+          "net_ev_after_cost_bps",
+          "candidate_selection_score",
+          "strategy_policy_reason",
+          "no_trade_reason",
+          "live_order_ready",
+          "live_order_allowed",
+          "can_live_trade",
+          "scale_up_allowed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "strategy_family": {
+            "enum": [
+              "PULLBACK_TREND_LONG",
+              "VWAP_MEAN_REVERSION",
+              "BREAKOUT_RETEST_LONG"
+            ]
+          },
+          "decision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidate_status": {
+            "enum": [
+              "REVIEW_READY",
+              "BLOCKED_NO_TRADE",
+              "RETIRED_FAILED_SOURCE",
+              "SELECTED_CURRENT",
+              "REJECTED_LIVE_FLAG"
+            ]
+          },
+          "reason_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "net_ev_after_cost_bps": {
+            "type": "number"
+          },
+          "candidate_selection_score": {
+            "type": "number"
+          },
+          "strategy_policy_reason": {
+            "type": "string"
+          },
+          "no_trade_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "live_order_ready": {
+            "const": false
+          },
+          "live_order_allowed": {
+            "const": false
+          },
+          "can_live_trade": {
+            "const": false
+          },
+          "scale_up_allowed": {
+            "const": false
+          }
+        }
+      }
+    },
+    "source_evidence_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "next_action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "operator_warning": {
+      "type": "string",
+      "minLength": 1
+    },
+    "credential_load_attempted": {
+      "const": false
+    },
+    "private_endpoint_called": {
+      "const": false
+    },
+    "order_endpoint_called": {
+      "const": false
+    },
+    "order_adapter_called": {
+      "const": false
+    },
+    "live_key_loaded": {
+      "const": false
+    },
+    "live_order_ready": {
+      "const": false
+    },
+    "live_order_allowed": {
+      "const": false
+    },
+    "can_live_trade": {
+      "const": false
+    },
+    "scale_up_allowed": {
+      "const": false
+    },
+    "generation_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
     },
     "notes": {
       "type": [
