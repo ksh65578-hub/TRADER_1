@@ -18,7 +18,10 @@ from trader1.research.profitability.overfit_diagnostic import (
     write_overfit_diagnostic_report,
 )
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
-from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper.upbit_paper_runtime import (
+    build_upbit_paper_runtime_cycle_report,
+    upbit_paper_runtime_cycle_hash,
+)
 from trader1.runtime.paper import upbit_paper_runtime_sample_history as sample_history_module
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
@@ -397,6 +400,132 @@ def _single_closed_trade_history_inputs(root: Path):
     return runtime, scorecard, history
 
 
+def _closed_trade_history_for_runtime_order(root: Path, runtimes: list[dict], *, history_id: str) -> dict:
+    session_id = "mvp1_upbit_paper_launcher"
+    runtime_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id / "paper_runtime"
+    runtime_dir.mkdir(parents=True, exist_ok=True)
+    samples = []
+    source_hashes = []
+    previous_sample_hash = None
+    for runtime in runtimes:
+        runtime_path = runtime_dir / f"{runtime['cycle_id']}.runtime_cycle.json"
+        runtime_path.write_text(json.dumps(runtime, sort_keys=True), encoding="utf-8")
+        runtime_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
+        lifecycle = runtime["position_management_decision"]
+        runtime_scorecard["candidate_id"] = lifecycle["entry_candidate_id"]
+        sample = {
+            "schema_id": "trader1.upbit_paper_runtime_sample.v1",
+            "generated_at_utc": runtime["generated_at_utc"],
+            "project_id": "TRADER_1",
+            "exchange": "UPBIT",
+            "market_type": "KRW_SPOT",
+            "mode": "PAPER",
+            "session_id": session_id,
+            "loop_id": history_id,
+            "cycle_id": runtime["cycle_id"],
+            "source_loop_report_path": (
+                f"system/runtime/upbit/krw_spot/paper/{session_id}/paper_runtime/{history_id}.persistent_loop_report.json"
+            ),
+            "source_loop_report_hash": "A" * 64,
+            "source_runtime_cycle_path": runtime_path.relative_to(root).as_posix(),
+            "source_runtime_cycle_hash": runtime["cycle_hash"],
+            "runtime_input_role": runtime["runtime_input_role"],
+            "final_decision": runtime["final_decision"],
+            "paper_ledger_head_hash": runtime.get("paper_ledger_head_hash"),
+            "paper_portfolio_snapshot_hash": runtime.get("paper_portfolio_snapshot", {}).get("snapshot_hash"),
+            "candidate_count": len(runtime.get("strategy_candidates") or []),
+            "entry_reason_count": max(1, len(runtime.get("entry_reasons") or [])),
+            "exit_reason_count": 1,
+            "no_trade_reason_count": len(runtime.get("no_trade_reasons") or []),
+            "scorecard_candidate_identity_binding_status": "BOUND",
+            "scorecard_candidate_identity_source": "POSITION_ENTRY_CONTEXT",
+            "scorecard_candidate_live_flags_clear": True,
+            "scorecard_symbol": runtime_scorecard["symbol"],
+            "scorecard_candidate_id": runtime_scorecard["candidate_id"],
+            "scorecard_strategy_family": lifecycle["entry_strategy_family"],
+            "scorecard_strategy_id": runtime_scorecard["strategy_id"],
+            "scorecard_parameter_hash": runtime_scorecard["parameter_hash"],
+            "scorecard_candidate_decision": runtime["final_decision"],
+            "scorecard_candidate_net_ev_after_cost_bps": runtime_scorecard["net_ev_after_cost_bps"],
+            "paper_entry_review_candidate_count": 0,
+            "paper_entry_review_candidate_ids": [],
+            "paper_entry_review_symbol_count": 0,
+            "paper_entry_review_symbols": [],
+            "previous_sample_hash": previous_sample_hash,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+            "sample_hash": "",
+        }
+        sample["sample_hash"] = upbit_paper_runtime_sample_hash(sample)
+        previous_sample_hash = sample["sample_hash"]
+        samples.append(sample)
+        source_hashes.append(runtime["cycle_hash"])
+
+    scope_summaries = sample_history_module._candidate_scope_sample_summaries(
+        samples,
+        min_required_sample_count=sample_history_module.DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+    )
+    scope_fields = sample_history_module._active_candidate_scope_fields(
+        scope_summaries,
+        min_required_sample_count=sample_history_module.DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+    )
+    history = {
+        "schema_id": "trader1.upbit_paper_runtime_sample_history.v1",
+        "generated_at_utc": runtimes[-1]["generated_at_utc"],
+        "project_id": "TRADER_1",
+        "history_id": history_id,
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "PAPER",
+        "session_id": session_id,
+        "truth_role": "paper_runtime_analysis_truth",
+        "runtime_analysis_only": True,
+        "execution_truth": False,
+        "dashboard_truth_only": False,
+        "history_evidence_role": "PAPER_RUNTIME_SAMPLE_HISTORY_NOT_LONG_RUN_EVIDENCE",
+        "runtime_sample_status": "COLLECTING",
+        "primary_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        "source_loop_report_count": 1,
+        "accepted_loop_report_count": 1,
+        "accepted_cycle_sample_count": len(samples),
+        "unique_runtime_cycle_hash_count": len(set(source_hashes)),
+        "duplicate_cycle_hash_count": 0,
+        "invalid_source_count": 0,
+        "invalid_sources": [],
+        "first_sample_at_utc": samples[0]["generated_at_utc"],
+        "latest_sample_at_utc": samples[-1]["generated_at_utc"],
+        "observed_span_seconds": 0,
+        "min_actual_long_run_span_seconds": 86400,
+        "min_actual_long_run_cycle_count": 2880,
+        "span_floor_met": False,
+        "cycle_floor_met": False,
+        "min_profitability_scope_sample_count": sample_history_module.DEFAULT_MIN_PROFITABILITY_SCOPE_SAMPLE_COUNT,
+        **scope_fields,
+        "actual_long_run_evidence_created": False,
+        "long_run_evidence_eligible": False,
+        "long_run_blocker_code": "LONG_RUN_PAPER_RUNTIME_EVIDENCE_INSUFFICIENT",
+        "long_run_next_action": "Collect validated PAPER history before live review.",
+        "promotion_eligible": False,
+        "source_loop_report_hashes": ["A" * 64],
+        "source_runtime_cycle_hashes": source_hashes,
+        "samples": samples,
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "history_hash": "",
+    }
+    history["history_hash"] = upbit_paper_runtime_sample_history_hash(history)
+    return history
+
+
 class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
     def test_bootstrap_lower_bound_uses_deterministic_resampling(self):
         values = [float(index) for index in range(1, 81)]
@@ -536,6 +665,91 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
         self.assertEqual(report["preliminary_exact_candidate_sample_count"], 1)
         self.assertLess(report["oos_net_ev_after_cost_bps"], 0)
         self.assertEqual(report["oos_status"], "FAIL")
+        self.assertFalse(report["robustness_eligible"])
+        self.assertFalse(report["live_order_allowed"])
+
+    def test_realized_closed_trade_robustness_is_order_invariant_for_candidate_scope(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target_runtime = _closed_trade_runtime_for_candidate(
+                symbol="KRW-BTC",
+                cycle_id="realized-order-target-exit",
+            )
+            unrelated_runtime = _closed_trade_runtime_for_candidate(
+                symbol="KRW-ETH",
+                cycle_id="realized-order-unrelated-exit",
+            )
+            scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(target_runtime)
+            scorecard["candidate_id"] = target_runtime["position_management_decision"]["entry_candidate_id"]
+
+            def report_for_order(runtimes: list[dict], history_id: str) -> dict:
+                history = _closed_trade_history_for_runtime_order(root, runtimes, history_id=history_id)
+                return overfit_diagnostic_from_upbit_paper_runtime(
+                    candidate_scorecard=scorecard,
+                    runtime_sample_history=history,
+                    root=root,
+                    min_required_sample_count=1,
+                    min_preliminary_sample_count=2,
+                )
+
+            target_only = report_for_order([target_runtime], "realized-order-target-only-history")
+            unrelated_first = report_for_order(
+                [unrelated_runtime, target_runtime],
+                "realized-order-unrelated-first-history",
+            )
+            target_first = report_for_order(
+                [target_runtime, unrelated_runtime],
+                "realized-order-target-first-history",
+            )
+
+        self.assertEqual(_overfit_diagnostic_errors(target_only), [])
+        self.assertEqual(_overfit_diagnostic_errors(unrelated_first), [])
+        self.assertEqual(_overfit_diagnostic_errors(target_first), [])
+        self.assertEqual(unrelated_first["sample_count"], 1)
+        self.assertEqual(target_first["sample_count"], 1)
+        self.assertAlmostEqual(unrelated_first["oos_net_ev_after_cost_bps"], target_only["oos_net_ev_after_cost_bps"])
+        self.assertAlmostEqual(target_first["oos_net_ev_after_cost_bps"], target_only["oos_net_ev_after_cost_bps"])
+        self.assertAlmostEqual(
+            unrelated_first["bootstrap_confidence_lower_bps"],
+            target_only["bootstrap_confidence_lower_bps"],
+        )
+        self.assertAlmostEqual(
+            target_first["bootstrap_confidence_lower_bps"],
+            target_only["bootstrap_confidence_lower_bps"],
+        )
+        self.assertFalse(unrelated_first["live_order_allowed"])
+        self.assertFalse(target_first["live_order_allowed"])
+
+    def test_realized_closed_trade_without_scoped_cost_basis_stays_out_of_full_robustness(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target_runtime = _closed_trade_runtime_for_candidate(
+                symbol="KRW-BTC",
+                cycle_id="realized-unscoped-legacy-exit",
+            )
+            target_runtime["position_management_decision"].pop("managed_position_quantity", None)
+            target_runtime["position_management_decision"].pop("managed_position_cost_basis", None)
+            target_runtime["cycle_hash"] = upbit_paper_runtime_cycle_hash(target_runtime)
+            scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(target_runtime)
+            scorecard["candidate_id"] = target_runtime["position_management_decision"]["entry_candidate_id"]
+            history = _closed_trade_history_for_runtime_order(
+                root,
+                [target_runtime],
+                history_id="realized-unscoped-legacy-history",
+            )
+
+            report = overfit_diagnostic_from_upbit_paper_runtime(
+                candidate_scorecard=scorecard,
+                runtime_sample_history=history,
+                root=root,
+                min_required_sample_count=1,
+                min_preliminary_sample_count=2,
+            )
+
+        self.assertEqual(_overfit_diagnostic_errors(report), [])
+        self.assertEqual(report["sample_count"], 0)
+        self.assertEqual(report["preliminary_exact_candidate_sample_count"], 1)
+        self.assertIn("value_source=EXPECTED_NET_EV_AFTER_COST_BPS", report["preliminary_match_scope"])
         self.assertFalse(report["robustness_eligible"])
         self.assertFalse(report["live_order_allowed"])
 

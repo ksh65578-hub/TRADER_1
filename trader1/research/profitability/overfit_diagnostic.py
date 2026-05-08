@@ -183,7 +183,7 @@ def _matched_realized_closed_trade_values(
     values: list[float] = []
     matched_samples: list[dict[str, Any]] = []
     source_ids: list[str] = []
-    previous_realized_pnl: Decimal | None = None
+    candidate_realized_pnl_baseline: Decimal | None = None
 
     history_id = str(runtime_sample_history.get("history_id") or "unknown_history")
     history_hash = str(runtime_sample_history.get("history_hash") or "missing_hash")
@@ -200,10 +200,18 @@ def _matched_realized_closed_trade_values(
         current_realized_pnl = (
             _decimal_value(portfolio.get("realized_pnl"))
             if isinstance(portfolio, dict)
-            else previous_realized_pnl if previous_realized_pnl is not None else Decimal("0")
+            else candidate_realized_pnl_baseline if candidate_realized_pnl_baseline is not None else Decimal("0")
         )
         fill = runtime.get("paper_fill")
         lifecycle = runtime.get("position_management_decision")
+        selected = runtime.get("selected_candidate")
+        candidate_entry = (
+            isinstance(fill, dict)
+            and isinstance(selected, dict)
+            and runtime.get("final_decision") == "ENTER_LONG"
+            and fill.get("side") == "BUY"
+            and str(selected.get("candidate_id") or "") == candidate_id
+        )
         candidate_exit = (
             isinstance(fill, dict)
             and isinstance(lifecycle, dict)
@@ -211,19 +219,37 @@ def _matched_realized_closed_trade_values(
             and fill.get("side") == "SELL"
             and str(lifecycle.get("entry_candidate_id") or "") == candidate_id
         )
+        if candidate_entry:
+            candidate_realized_pnl_baseline = current_realized_pnl
         if candidate_exit:
-            realized_delta = current_realized_pnl - (
-                previous_realized_pnl if previous_realized_pnl is not None else Decimal("0")
-            )
+            direct_realized_delta = _paper_sell_fill_realized_delta(fill, lifecycle)
+            if direct_realized_delta is not None:
+                realized_delta = direct_realized_delta
+            elif candidate_realized_pnl_baseline is not None:
+                realized_delta = current_realized_pnl - candidate_realized_pnl_baseline
+            else:
+                continue
             filled_notional = max(Decimal("1"), _decimal_value(fill.get("filled_notional")))
             values.append(float(realized_delta / filled_notional * Decimal("10000")))
             matched_samples.append(sample)
             source_ids.append(
                 _relative_id("upbit_paper_runtime_cycle", str(runtime["cycle_id"]), str(runtime["cycle_hash"]))
             )
-        previous_realized_pnl = current_realized_pnl
+            candidate_realized_pnl_baseline = current_realized_pnl
 
     return values, matched_samples, sorted(set(source_ids))
+
+
+def _paper_sell_fill_realized_delta(fill: dict[str, Any], lifecycle: dict[str, Any]) -> Decimal | None:
+    quantity = _decimal_value(fill.get("filled_quantity") or fill.get("quantity"))
+    fill_price = _decimal_value(fill.get("fill_price"))
+    fee_amount = _decimal_value(fill.get("fee_amount"))
+    managed_quantity = _decimal_value(lifecycle.get("managed_position_quantity"))
+    managed_cost_basis = _decimal_value(lifecycle.get("managed_position_cost_basis"))
+    if min(quantity, fill_price, managed_quantity, managed_cost_basis) <= 0 or quantity > managed_quantity:
+        return None
+    allocated_cost_basis = managed_cost_basis * (quantity / managed_quantity)
+    return (quantity * fill_price) - allocated_cost_basis - fee_amount
 
 
 def _compatible_preliminary_candidate(
