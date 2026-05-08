@@ -26,6 +26,9 @@
     "SHADOW"
   ],
   "source_artifact_ids": [
+    "closed_trades:candidate_active_after_cost:optimizer_memory_history_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "execution_quality:candidate_active_after_cost:optimizer_memory_history_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "performance_summary:candidate_active_after_cost:optimizer_memory_history_001:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
     "paper_scorecard_001",
     "shadow_cycle_001"
   ],
