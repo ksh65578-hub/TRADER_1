@@ -401,6 +401,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
             discovery_runtime = _load_written(root, result, "candidate_discovery_runtime_cycle_path")
             alternative_replay = _load_written(root, result, "alternative_public_replay_report_path")
             alternative_review_scorecard = _load_written(root, result, "alternative_review_scorecard_path")
+            alternative_review_overfit = _load_written(root, result, "alternative_review_overfit_diagnostic_path")
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["candidate_discovery_status"], "PASS")
@@ -447,6 +448,9 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["alternative_review_scorecard_status"], "PASS")
         self.assertEqual(result["alternative_review_scorecard_candidate_id"], generation_report["best_alternative_candidate_id"])
         self.assertEqual(alternative_review_scorecard["candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertEqual(alternative_review_overfit["candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertEqual(alternative_review_overfit["diagnostic_id"], f"overfit:{discovery_runtime['cycle_id']}:{generation_report['best_alternative_candidate_id']}")
+        self.assertTrue(result["alternative_review_overfit_diagnostic_path"].endswith(".overfit_diagnostic_report.json"))
         self.assertTrue(
             any(
                 source_id.startswith(f"public_replay_robustness:{alternative_replay['replay_id']}:")

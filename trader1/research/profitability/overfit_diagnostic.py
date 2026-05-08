@@ -925,3 +925,12 @@ def write_overfit_diagnostic_report(*, root: Path, report: dict[str, Any]) -> Pa
     durable_atomic_write_json(path, report)
     durable_atomic_write_json(_candidate_overfit_diagnostic_report_path(root=Path(root), report=report), report)
     return path
+
+
+def write_overfit_diagnostic_report_snapshot(*, root: Path, report: dict[str, Any]) -> Path:
+    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+        if report.get(field) is True:
+            raise ValueError("overfit diagnostic snapshot writer refuses live or scale-up permission")
+    path = _candidate_overfit_diagnostic_report_path(root=Path(root), report=report)
+    durable_atomic_write_json(path, report)
+    return path

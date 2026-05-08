@@ -21,6 +21,7 @@ SESSION_ROOT = ROOT / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "m
 SCORECARD_PATH = SESSION_ROOT / "profitability" / "candidate_scorecard.json"
 SCORECARD_SNAPSHOT_DIR = SCORECARD_PATH.parent / "candidate_scorecards"
 OVERFIT_PATH = SESSION_ROOT / "profitability" / "overfit_diagnostic_report.json"
+OVERFIT_SNAPSHOT_DIR = SCORECARD_PATH.parent / "overfit_diagnostics"
 SAMPLE_HISTORY_PATH = SESSION_ROOT / "paper_runtime" / "upbit_paper_runtime_sample_history.json"
 RUNTIME_CYCLE_DIR = SESSION_ROOT / "paper_runtime" / "cycles"
 PAPER_SHADOW_EVIDENCE_PATH = SESSION_ROOT / "paper_shadow_evidence_accumulation_report.json"
@@ -137,9 +138,21 @@ def rollup_hash(rollup: dict[str, Any]) -> str:
 
 def runtime_path_from_scorecard(scorecard: dict[str, Any]) -> Path:
     cycle_id = str(scorecard.get("source_runtime_cycle_id") or "")
-    candidate = RUNTIME_CYCLE_DIR / f"{cycle_id}.runtime_cycle.json"
-    if cycle_id and candidate.is_file():
-        return candidate
+    cycle_hash = str(scorecard.get("source_runtime_cycle_hash") or "")
+    candidate_paths = [
+        RUNTIME_CYCLE_DIR / f"{cycle_id}.runtime_cycle.json",
+        SESSION_ROOT / "upbit_paper_runtime_cycle_report.json",
+        SESSION_ROOT / "profitability" / "candidate_generation_discovery_runtime_cycle.json",
+    ]
+    for candidate in candidate_paths:
+        if not cycle_id or not candidate.is_file():
+            continue
+        try:
+            report = load_json(candidate)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if report.get("cycle_id") == cycle_id and (not cycle_hash or report.get("cycle_hash") == cycle_hash):
+            return candidate
     return SESSION_ROOT / "upbit_paper_runtime_cycle_report.json"
 
 
@@ -149,8 +162,8 @@ def scorecard_snapshot_path(scorecard: dict[str, Any]) -> Path:
     )
 
 
-def candidate_scorecard_snapshot_evidence(scorecard: dict[str, Any]) -> dict[str, Any]:
-    snapshot_path = scorecard_snapshot_path(scorecard)
+def candidate_scorecard_snapshot_evidence(scorecard: dict[str, Any], scorecard_path: Path = SCORECARD_PATH) -> dict[str, Any]:
+    snapshot_path = scorecard_path if scorecard_path.parent == SCORECARD_SNAPSHOT_DIR else scorecard_snapshot_path(scorecard)
     blocker_code: str | None = None
     if not snapshot_path.is_file():
         blocker_code = "SCORECARD_SNAPSHOT_MISSING"
@@ -175,7 +188,7 @@ def candidate_scorecard_snapshot_evidence(scorecard: dict[str, Any]) -> dict[str
             ):
                 blocker_code = "SCORECARD_SNAPSHOT_SOURCE_MISMATCH"
     return {
-        "candidate_scorecard_path": rel(SCORECARD_PATH),
+        "candidate_scorecard_path": rel(scorecard_path),
         "candidate_scorecard_candidate_id": str(scorecard.get("candidate_id") or ""),
         "candidate_scorecard_scorecard_id": str(scorecard.get("scorecard_id") or ""),
         "candidate_scorecard_source_runtime_cycle_id": str(scorecard.get("source_runtime_cycle_id") or ""),
@@ -208,27 +221,52 @@ def candidate_scorecard_runtime_membership_evidence(
                 blocker_code = "CANDIDATE_SCORECARD_RUNTIME_LIVE_FLAG_MUTATED"
                 break
     else:
-        matches = [
+        candidate_matches = [
             item
-            for item in report.get("symbol_evidence_scorecards", [])
-            if item.get("best_candidate_id") == candidate_id
+            for item in report.get("strategy_candidates", [])
+            if isinstance(item, dict) and item.get("candidate_id") == candidate_id
         ]
-        if not matches:
-            blocker_code = "CANDIDATE_SCORECARD_NOT_IN_RUNTIME_SYMBOL_SCORECARDS"
-        elif len(matches) > 1:
-            blocker_code = "CANDIDATE_SCORECARD_RUNTIME_DUPLICATE"
-        else:
-            match = matches[0]
-            source = "symbol_evidence_scorecards.best_candidate_id"
+        if len(candidate_matches) == 1:
+            match = candidate_matches[0]
+            source = "strategy_candidates.candidate_id"
             runtime_symbol = match.get("symbol")
-            runtime_decision = match.get("best_decision")
-            if match.get("cycle_id") != report.get("cycle_id"):
-                blocker_code = "CANDIDATE_SCORECARD_RUNTIME_CYCLE_MISMATCH"
+            runtime_decision = match.get("decision")
+            for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+                if match.get(field) is True:
+                    blocker_code = "CANDIDATE_SCORECARD_RUNTIME_LIVE_FLAG_MUTATED"
+                    break
+        elif len(candidate_matches) > 1:
+            blocker_code = "CANDIDATE_SCORECARD_RUNTIME_DUPLICATE"
+        if blocker_code is None and source is not None:
+            return {
+                "candidate_scorecard_runtime_membership_status": "PASS",
+                "candidate_scorecard_runtime_membership_blocker_code": None,
+                "candidate_scorecard_runtime_membership_source": source,
+                "candidate_scorecard_runtime_symbol": runtime_symbol,
+                "candidate_scorecard_runtime_decision": runtime_decision,
+            }
+        if blocker_code is None:
+            matches = [
+                item
+                for item in report.get("symbol_evidence_scorecards", [])
+                if item.get("best_candidate_id") == candidate_id
+            ]
+            if not matches:
+                blocker_code = "CANDIDATE_SCORECARD_NOT_IN_RUNTIME_SYMBOL_SCORECARDS"
+            elif len(matches) > 1:
+                blocker_code = "CANDIDATE_SCORECARD_RUNTIME_DUPLICATE"
             else:
-                for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
-                    if match.get(field) is True:
-                        blocker_code = "CANDIDATE_SCORECARD_RUNTIME_LIVE_FLAG_MUTATED"
-                        break
+                match = matches[0]
+                source = "symbol_evidence_scorecards.best_candidate_id"
+                runtime_symbol = match.get("symbol")
+                runtime_decision = match.get("best_decision")
+                if match.get("cycle_id") != report.get("cycle_id"):
+                    blocker_code = "CANDIDATE_SCORECARD_RUNTIME_CYCLE_MISMATCH"
+                else:
+                    for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
+                        if match.get(field) is True:
+                            blocker_code = "CANDIDATE_SCORECARD_RUNTIME_LIVE_FLAG_MUTATED"
+                            break
 
     return {
         "candidate_scorecard_runtime_membership_status": "PASS" if blocker_code is None else "BLOCKED",
@@ -239,11 +277,11 @@ def candidate_scorecard_runtime_membership_evidence(
     }
 
 
-def runtime_linkage_evidence(runtime_path: Path, scorecard: dict[str, Any]) -> dict[str, Any]:
+def runtime_linkage_evidence(runtime_path: Path, scorecard: dict[str, Any], scorecard_path: Path = SCORECARD_PATH) -> dict[str, Any]:
     report = load_json(runtime_path)
     result = validate_upbit_paper_runtime_cycle_report(report, require_quantitative_policy_summary=False)
     selected = report.get("selected_candidate", {})
-    snapshot_evidence = candidate_scorecard_snapshot_evidence(scorecard)
+    snapshot_evidence = candidate_scorecard_snapshot_evidence(scorecard, scorecard_path)
     membership_evidence = candidate_scorecard_runtime_membership_evidence(report, scorecard)
     runtime_validation_passed = result.status == "PASS"
     strategy_linkage_passed = runtime_validation_passed and bool(report.get("strategy_regime_cost_linkage"))
@@ -306,7 +344,124 @@ def source_type_counts(overfit: dict[str, Any]) -> dict[str, int]:
     }
 
 
-def robustness_source_type_evidence(scorecard: dict[str, Any], overfit: dict[str, Any]) -> dict[str, Any]:
+def matching_overfit_path_for_scorecard(scorecard: dict[str, Any], scorecard_path: Path = SCORECARD_PATH) -> Path | None:
+    candidate_id = str(scorecard.get("candidate_id") or "")
+    candidate_path = OVERFIT_SNAPSHOT_DIR / (
+        f"{safe_candidate_scorecard_filename(candidate_id)}.overfit_diagnostic_report.json"
+    )
+    candidates = [candidate_path]
+    if scorecard_path == SCORECARD_PATH:
+        candidates.insert(0, OVERFIT_PATH)
+    for path in candidates:
+        if not path.is_file():
+            continue
+        try:
+            report = load_json(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if report.get("candidate_id") != candidate_id:
+            continue
+        if any(report.get(field) is True for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+            continue
+        return path
+    return None
+
+
+def scorecard_review_priority(scorecard: dict[str, Any], *, active_source: bool, has_matching_overfit: bool) -> tuple[Any, ...]:
+    blocker_codes = {
+        str(blocker.get("code"))
+        for blocker in scorecard.get("blockers") or []
+        if isinstance(blocker, dict) and blocker.get("code")
+    }
+    public_replay_bound = any(
+        str(source_id).startswith("public_replay_robustness:")
+        for source_id in scorecard.get("source_evidence_ids") or []
+    )
+    return (
+        1 if scorecard.get("ranking_eligible") is True else 0,
+        1 if scorecard.get("performance_ready") is True else 0,
+        1 if scorecard.get("robustness_ready") is True else 0,
+        1 if public_replay_bound else 0,
+        1 if has_matching_overfit else 0,
+        safe_float(scorecard.get("net_ev_after_cost_bps"), -999.0),
+        -len(blocker_codes),
+        1 if active_source else 0,
+        str(scorecard.get("candidate_id") or ""),
+    )
+
+
+def load_scorecard_review_inputs(active_scorecard: dict[str, Any]) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    seen_scorecard_ids: set[str] = set()
+
+    def add_entry(path: Path, source: str, scorecard: dict[str, Any] | None = None) -> None:
+        try:
+            payload = scorecard if isinstance(scorecard, dict) else load_json(path)
+        except (OSError, json.JSONDecodeError):
+            return
+        if not isinstance(payload, dict) or payload.get("schema_id") != "trader1.candidate_scorecard.v1":
+            return
+        if (
+            payload.get("exchange") != "UPBIT"
+            or payload.get("market_type") != "KRW_SPOT"
+            or payload.get("mode") != "PAPER"
+        ):
+            return
+        if any(payload.get(field) is True for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+            return
+        scorecard_id = str(payload.get("scorecard_id") or "")
+        if not scorecard_id or scorecard_id in seen_scorecard_ids:
+            return
+        overfit_path = matching_overfit_path_for_scorecard(payload, path)
+        if overfit_path is None:
+            return
+        seen_scorecard_ids.add(scorecard_id)
+        entries.append(
+            {
+                "scorecard": payload,
+                "scorecard_path": path,
+                "overfit_path": overfit_path,
+                "source": source,
+                "priority": scorecard_review_priority(
+                    payload,
+                    active_source=source == "current_scorecard",
+                    has_matching_overfit=True,
+                ),
+            }
+        )
+
+    add_entry(SCORECARD_PATH, "current_scorecard", active_scorecard)
+    if SCORECARD_SNAPSHOT_DIR.is_dir():
+        for path in sorted(SCORECARD_SNAPSHOT_DIR.glob("*.candidate_scorecard.json")):
+            add_entry(path, "candidate_scorecard_snapshot")
+    return entries
+
+
+def select_scorecard_review_input(active_scorecard: dict[str, Any]) -> dict[str, Any]:
+    entries = load_scorecard_review_inputs(active_scorecard)
+    if not entries:
+        overfit_path = matching_overfit_path_for_scorecard(active_scorecard, SCORECARD_PATH) or OVERFIT_PATH
+        return {
+            "scorecard": active_scorecard,
+            "scorecard_path": SCORECARD_PATH,
+            "overfit_path": overfit_path,
+            "source": "current_scorecard",
+            "review_pool_size": 1,
+        }
+    selected = max(entries, key=lambda item: item["priority"])
+    return {
+        **selected,
+        "review_pool_size": len(entries),
+    }
+
+
+def robustness_source_type_evidence(
+    scorecard: dict[str, Any],
+    overfit: dict[str, Any],
+    *,
+    scorecard_path: Path = SCORECARD_PATH,
+    overfit_path: Path = OVERFIT_PATH,
+) -> dict[str, Any]:
     counts = source_type_counts(overfit)
     min_required = 1
     sample_count = safe_int(overfit.get("sample_count"))
@@ -351,7 +506,7 @@ def robustness_source_type_evidence(scorecard: dict[str, Any], overfit: dict[str
         "preliminary_sample_basis": OVERFIT_PRELIMINARY_SAMPLE_BASIS,
         "preliminary_sample_count": preliminary_sample_count,
         "preliminary_exact_candidate_sample_count": preliminary_exact_candidate_sample_count,
-        "source_artifact_paths": [rel(OVERFIT_PATH), rel(SCORECARD_PATH), rel(SAMPLE_HISTORY_PATH)],
+        "source_artifact_paths": [rel(overfit_path), rel(scorecard_path), rel(SAMPLE_HISTORY_PATH)],
         "source_evidence_ids": sorted(set(str(item) for item in source_ids if item)),
         "primary_blocker_code": None if not missing else "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
         "explicit_source_type_blocker": bool(missing),
@@ -581,6 +736,7 @@ def update_strategy_scorecard_components(
     rollup: dict[str, Any],
     scorecard: dict[str, Any],
     paper_shadow_evidence: dict[str, Any] | None,
+    scorecard_path: Path = SCORECARD_PATH,
 ) -> None:
     strategy_exit_status = str(scorecard.get("strategy_exit_policy_status") or "UNTESTED")
     strategy_exit_samples = safe_int(scorecard.get("strategy_exit_policy_sample_count"))
@@ -655,7 +811,7 @@ def update_strategy_scorecard_components(
         component["live_order_allowed"] = False
         component["can_live_trade"] = False
         component["scale_up_allowed"] = False
-        bind_scorecard_strategy_sources(component, SCORECARD_PATH, SAMPLE_HISTORY_PATH)
+        bind_scorecard_strategy_sources(component, scorecard_path, SAMPLE_HISTORY_PATH)
         append_unique(component.setdefault("source_evidence_ids", []), [str(item) for item in scorecard.get("source_evidence_ids") or []])
 
         if component_id == "strategy_entry_exit_no_trade":
@@ -778,7 +934,14 @@ def update_strategy_scorecard_components(
                 )
 
 
-def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], overfit: dict[str, Any]) -> None:
+def update_overfit_component(
+    rollup: dict[str, Any],
+    scorecard: dict[str, Any],
+    overfit: dict[str, Any],
+    *,
+    scorecard_path: Path = SCORECARD_PATH,
+    overfit_path: Path = OVERFIT_PATH,
+) -> None:
     sample_count = int(overfit.get("sample_count") or 0)
     min_required = int(overfit.get("min_required_sample_count") or 300)
     closed_trade_sample_count = safe_int(scorecard.get("closed_trade_sample_count"))
@@ -796,7 +959,7 @@ def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], 
         if component.get("component_id") != "overfit_oos_walk_forward":
             continue
         paths = component.setdefault("source_artifact_paths", [])
-        for path in (rel(OVERFIT_PATH), rel(SCORECARD_PATH), rel(SAMPLE_HISTORY_PATH)):
+        for path in (rel(overfit_path), rel(scorecard_path), rel(SAMPLE_HISTORY_PATH)):
             if path not in paths:
                 paths.append(path)
         evidence_ids = component.setdefault("source_evidence_ids", [])
@@ -1020,7 +1183,9 @@ def refresh_rollup(
     now: str,
     authority: dict[str, str],
     scorecard: dict[str, Any],
+    scorecard_path: Path,
     overfit: dict[str, Any],
+    overfit_path: Path,
     paper_shadow_evidence: dict[str, Any] | None,
     runtime_profile: dict[str, Any] | None,
 ) -> None:
@@ -1028,12 +1193,17 @@ def refresh_rollup(
     runtime_path = runtime_path_from_scorecard(scorecard)
     rollup["generated_at_utc"] = now
     rollup["authority"] = authority
-    rollup["runtime_linkage_evidence"] = runtime_linkage_evidence(runtime_path, scorecard)
-    rollup["robustness_source_type_evidence"] = robustness_source_type_evidence(scorecard, overfit)
+    rollup["runtime_linkage_evidence"] = runtime_linkage_evidence(runtime_path, scorecard, scorecard_path)
+    rollup["robustness_source_type_evidence"] = robustness_source_type_evidence(
+        scorecard,
+        overfit,
+        scorecard_path=scorecard_path,
+        overfit_path=overfit_path,
+    )
     rollup["runtime_collection_profile_evidence"] = runtime_collection_profile_evidence(runtime_profile)
     update_promotion_thresholds(rollup, scorecard, overfit)
-    update_strategy_scorecard_components(rollup, scorecard, paper_shadow_evidence)
-    update_overfit_component(rollup, scorecard, overfit)
+    update_strategy_scorecard_components(rollup, scorecard, paper_shadow_evidence, scorecard_path)
+    update_overfit_component(rollup, scorecard, overfit, scorecard_path=scorecard_path, overfit_path=overfit_path)
     update_paper_shadow_component(rollup, paper_shadow_evidence, rollup["runtime_collection_profile_evidence"])
     rollup["status"] = "BLOCKED_FOR_PROFITABILITY_EVIDENCE_MATURITY"
     rollup["all_validators_passed"] = all(
@@ -1096,6 +1266,7 @@ def refresh_contract_gap(
     scorecard: dict[str, Any],
     overfit: dict[str, Any],
     rollup: dict[str, Any],
+    scorecard_review_source: str = "current_scorecard",
 ) -> None:
     gap = load_json(path)
     paper_closed_trades = safe_int(scorecard.get("closed_trade_sample_count"))
@@ -1109,7 +1280,8 @@ def refresh_contract_gap(
     threshold_codes = rollup.get("promotion_threshold_evidence", {}).get("missing_threshold_codes") or []
     robustness_status = rollup.get("robustness_source_type_evidence", {}).get("status") or "BLOCKED"
     current_evidence_message = (
-        f"Current Upbit PAPER candidate has closed trades {paper_closed_trades}/{min_paper_closed_trades}, "
+        f"Selected Upbit PAPER review candidate ({scorecard_review_source}) has closed trades "
+        f"{paper_closed_trades}/{min_paper_closed_trades}, "
         f"strategy-exit samples {strategy_exit_samples}/{min_strategy_exit_samples}, "
         f"regime-outcome samples {regime_samples}/{min_regime_samples}, and robustness samples "
         f"{overfit_samples}/{min_overfit_samples}; OOS={overfit.get('oos_status')}, "
@@ -1166,8 +1338,12 @@ def main() -> int:
         }
         print(json.dumps(result, indent=2))
         return 1
-    scorecard = load_json(SCORECARD_PATH)
-    overfit = load_json(OVERFIT_PATH)
+    active_scorecard = load_json(SCORECARD_PATH)
+    scorecard_review_input = select_scorecard_review_input(active_scorecard)
+    scorecard = scorecard_review_input["scorecard"]
+    scorecard_path = scorecard_review_input["scorecard_path"]
+    overfit_path = scorecard_review_input["overfit_path"]
+    overfit = load_json(overfit_path)
     paper_shadow_evidence = load_json(PAPER_SHADOW_EVIDENCE_PATH) if PAPER_SHADOW_EVIDENCE_PATH.is_file() else None
     runtime_profile = load_json(RUNTIME_COLLECTION_PROFILE_PATH) if RUNTIME_COLLECTION_PROFILE_PATH.is_file() else None
     refresh_rollup(
@@ -1175,7 +1351,9 @@ def main() -> int:
         now=now,
         authority=authority,
         scorecard=scorecard,
+        scorecard_path=scorecard_path,
         overfit=overfit,
+        overfit_path=overfit_path,
         paper_shadow_evidence=paper_shadow_evidence,
         runtime_profile=runtime_profile,
     )
@@ -1184,7 +1362,9 @@ def main() -> int:
         now=now,
         authority=authority,
         scorecard=scorecard,
+        scorecard_path=scorecard_path,
         overfit=overfit,
+        overfit_path=overfit_path,
         paper_shadow_evidence=paper_shadow_evidence,
         runtime_profile=runtime_profile,
     )
@@ -1196,6 +1376,7 @@ def main() -> int:
         scorecard=scorecard,
         overfit=overfit,
         rollup=refreshed_rollup,
+        scorecard_review_source=str(scorecard_review_input.get("source") or "current_scorecard"),
     )
     runtime_profile_evidence = refreshed_rollup["runtime_collection_profile_evidence"]
     result = {
@@ -1206,7 +1387,12 @@ def main() -> int:
         "scorecard_refresh_status": scorecard_refresh.get("status"),
         "scorecard_refresh_source_runtime_cycle_path": scorecard_refresh.get("source_runtime_cycle_path"),
         "scorecard_refresh_source_runtime_cycle_hash": scorecard_refresh.get("source_runtime_cycle_hash"),
+        "scorecard_review_source": scorecard_review_input.get("source"),
+        "scorecard_review_pool_size": scorecard_review_input.get("review_pool_size"),
+        "scorecard_review_path": rel(scorecard_path),
+        "scorecard_review_overfit_path": rel(overfit_path),
         "scorecard_id": scorecard.get("scorecard_id"),
+        "candidate_id": scorecard.get("candidate_id"),
         "sample_count": overfit.get("sample_count"),
         "robustness_source_type_status": refreshed_rollup["robustness_source_type_evidence"]["status"],
         "runtime_collection_profile_status": runtime_profile_evidence["status"],
