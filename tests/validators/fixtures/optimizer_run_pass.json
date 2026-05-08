@@ -24,11 +24,22 @@
   "source_evidence_ids": [
     "replay_fixture_001",
     "paper_fixture_001",
-    "shadow_fixture_001"
+    "shadow_fixture_001",
+    "closed_trades:candidate_trend_pullback_krw_btc_001:optimizer-run-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111",
+    "execution_quality:candidate_trend_pullback_krw_btc_001:optimizer-run-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111",
+    "performance_summary:candidate_trend_pullback_krw_btc_001:optimizer-run-performance-history-001:1111111111111111111111111111111111111111111111111111111111111111",
+    "closed_trades:candidate_vwap_reversion_krw_eth_001:optimizer-run-performance-history-002:2222222222222222222222222222222222222222222222222222222222222222",
+    "execution_quality:candidate_vwap_reversion_krw_eth_001:optimizer-run-performance-history-002:2222222222222222222222222222222222222222222222222222222222222222",
+    "performance_summary:candidate_vwap_reversion_krw_eth_001:optimizer-run-performance-history-002:2222222222222222222222222222222222222222222222222222222222222222",
+    "closed_trades:candidate_breakout_retest_krw_xrp_001:optimizer-run-performance-history-003:3333333333333333333333333333333333333333333333333333333333333333",
+    "execution_quality:candidate_breakout_retest_krw_xrp_001:optimizer-run-performance-history-003:3333333333333333333333333333333333333333333333333333333333333333",
+    "performance_summary:candidate_breakout_retest_krw_xrp_001:optimizer-run-performance-history-003:3333333333333333333333333333333333333333333333333333333333333333"
   ],
   "candidate_count": 3,
   "output_artifact_ids": [
-    "candidate_scorecard_pass",
+    "candidate_scorecard_trend_pullback_pass",
+    "candidate_scorecard_vwap_reversion_pass",
+    "candidate_scorecard_breakout_retest_pass",
     "optimizer_recommendation_pass"
   ],
   "candidate_scorecard_validator_status": "PASS",

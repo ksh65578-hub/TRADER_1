@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from trader1.validation.mvp0_validators import (
+    _candidate_scoped_performance_source_binding_count,
     _optimizer_run_errors,
     load_json,
     optimizer_run_report_validator,
@@ -25,6 +26,10 @@ class OptimizerRunReportValidatorTest(unittest.TestCase):
         self.assertGreaterEqual(
             report["ranking_input_mature_scorecard_count"],
             report["ranking_input_min_mature_scorecard_count"],
+        )
+        self.assertEqual(
+            _candidate_scoped_performance_source_binding_count(report["source_evidence_ids"]),
+            report["ranking_input_mature_scorecard_count"],
         )
 
     def test_optimizer_run_cannot_carry_live_permission(self):
@@ -85,6 +90,22 @@ class OptimizerRunReportValidatorTest(unittest.TestCase):
 
         self.assertIn("CANDIDATE_RANKING_INPUT requires mature ranking scorecards above minimum", errors)
         self.assertIn("CANDIDATE_RANKING_INPUT requires ranking_input_maturity_status=PASS", errors)
+
+    def test_candidate_ranking_mature_count_requires_bound_performance_sources(self):
+        report = load_json(FIXTURE_DIR / "optimizer_run_pass.json")
+        tampered = copy.deepcopy(report)
+        tampered["source_evidence_ids"] = [
+            source_id
+            for source_id in tampered["source_evidence_ids"]
+            if not source_id.startswith("performance_summary:candidate_breakout_retest_krw_xrp_001:")
+        ]
+
+        errors = _optimizer_run_errors(tampered)
+
+        self.assertIn(
+            "CANDIDATE_RANKING_INPUT mature scorecard count requires candidate-scoped closed trade, execution quality, and performance summary source ids",
+            errors,
+        )
 
     def test_current_validator_fixtures_pass(self):
         result = optimizer_run_report_validator().as_dict()
