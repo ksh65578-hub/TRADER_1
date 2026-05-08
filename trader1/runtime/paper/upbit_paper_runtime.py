@@ -65,12 +65,21 @@ TREND_PULLBACK_ALIGNMENT_MIN_SCORE = Decimal("0.70")
 TREND_PULLBACK_ALIGNMENT_MIN_VWAP_DISTANCE_PCT = Decimal("-0.25")
 TREND_PULLBACK_ALIGNMENT_EDGE_PENALTY_BPS = Decimal("35")
 TREND_PULLBACK_ALIGNMENT_SIGNAL_PENALTY = Decimal("0.38")
+TREND_PULLBACK_HTF_MIN_PRIOR_RETURN_PCT = Decimal("0.75")
+TREND_PULLBACK_CONTINUATION_MIN_PROBABILITY = Decimal("0.62")
+TREND_PULLBACK_OVERHEAT_MAX_VWAP_EXTENSION_PCT = Decimal("2.20")
+TREND_PULLBACK_OVERHEAT_MAX_MOMENTUM_PCT = Decimal("3.00")
 TREND_PULLBACK_ALIGNMENT_FEATURE_PROJECTION_FIELDS = frozenset(
     {
         "trend_pullback_alignment_status",
         "trend_pullback_alignment_score",
         "trend_pullback_alignment_reason",
         "trend_pullback_alignment_formula",
+        "trend_pullback_htf_filter_status",
+        "trend_pullback_htf_return_pct",
+        "trend_pullback_continuation_probability",
+        "trend_pullback_overheat_guard_status",
+        "trend_pullback_entry_guard_formula",
     }
 )
 TREND_EXHAUSTION_MIN_VOLATILITY_PCT = Decimal("3.00")
@@ -372,6 +381,9 @@ def _strategy_entry_policy_evaluation(
     vwap_reversion_dislocation = max(Decimal("0"), -_decimal(features.get("vwap_distance_pct")))
     vwap_mean_reversion_guard_status = str(features.get("vwap_mean_reversion_guard_status") or "BLOCKED")
     vwap_liquidity_sweep_filter_status = str(features.get("vwap_liquidity_sweep_filter_status") or "BLOCKED")
+    trend_pullback_htf_filter_status = str(features.get("trend_pullback_htf_filter_status") or "BLOCKED")
+    trend_pullback_continuation_probability = _decimal(features.get("trend_pullback_continuation_probability"))
+    trend_pullback_overheat_guard_status = str(features.get("trend_pullback_overheat_guard_status") or "BLOCKED")
     if market_state == "QUIET_RANGE":
         if strategy_family != "VWAP_MEAN_REVERSION":
             return False, "QUIET_RANGE_NO_TREND_OR_BREAKOUT_ENTRY"
@@ -391,13 +403,19 @@ def _strategy_entry_policy_evaluation(
     if market_state == "VOLATILITY_EXPANSION" and strategy_family != "BREAKOUT_RETEST_LONG":
         return False, "VOLATILITY_EXPANSION_BREAKOUT_ONLY"
     if strategy_family == "PULLBACK_TREND_LONG":
-        if (
-            regime == "UPTREND"
-            and features.get("trend_pullback_alignment_status") == "PASS"
-            and features.get("trend_exhaustion_status") != "WARN"
-        ):
-            return True, "PASS"
-        return False, "PULLBACK_REQUIRES_VALID_UPTREND_ALIGNMENT"
+        if regime != "UPTREND":
+            return False, "PULLBACK_REQUIRES_UPTREND"
+        if trend_pullback_htf_filter_status != "PASS":
+            return False, "PULLBACK_HTF_FILTER_BLOCKED"
+        if trend_pullback_continuation_probability < TREND_PULLBACK_CONTINUATION_MIN_PROBABILITY:
+            return False, "PULLBACK_CONTINUATION_PROBABILITY_LOW"
+        if trend_pullback_overheat_guard_status != "PASS":
+            return False, "PULLBACK_OVERHEAT_GUARD"
+        if features.get("trend_pullback_alignment_status") != "PASS":
+            return False, "PULLBACK_REQUIRES_VALID_UPTREND_ALIGNMENT"
+        if features.get("trend_exhaustion_status") == "WARN":
+            return False, "PULLBACK_TREND_EXHAUSTION"
+        return True, "PASS"
     if strategy_family == "BREAKOUT_RETEST_LONG":
         if breakout_volatility_invalidation_status == "BLOCKED":
             return False, "BREAKOUT_VOLATILITY_INVALIDATED"
@@ -1493,6 +1511,36 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         (vwap_distance_pct - TREND_PULLBACK_ALIGNMENT_MIN_VWAP_DISTANCE_PCT) / Decimal("1.25")
     )
     trend_ema_alignment = Decimal("1") if ema_fast > ema_slow and last >= ema_slow else Decimal("0")
+    prior_trend_reference = closes[-2] if len(closes) >= 2 else last
+    trend_pullback_htf_return_pct = (
+        Decimal("0") if first <= 0 else ((prior_trend_reference - first) / first * Decimal("100"))
+    )
+    trend_pullback_htf_filter_status = (
+        "PASS"
+        if (
+            regime == "UPTREND"
+            and trend_pullback_htf_return_pct >= TREND_PULLBACK_HTF_MIN_PRIOR_RETURN_PCT
+            and trend_ema_alignment == Decimal("1")
+        )
+        else "BLOCKED"
+    )
+    trend_htf_confirmation = _clamp_decimal(
+        (trend_pullback_htf_return_pct - Decimal("0.35")) / Decimal("2.00")
+    )
+    positive_vwap_extension_pct = max(Decimal("0"), vwap_distance_pct)
+    trend_pullback_continuation_probability = _clamp_decimal(
+        Decimal("0.30") * trend_structure_score
+        + Decimal("0.25") * trend_htf_confirmation
+        + Decimal("0.20") * trend_ema_alignment
+        + Decimal("0.15") * trend_volume_confirmation
+        + Decimal("0.10") * trend_vwap_pullback_quality
+    )
+    trend_pullback_overheat_active = (
+        regime == "UPTREND"
+        and positive_vwap_extension_pct >= TREND_PULLBACK_OVERHEAT_MAX_VWAP_EXTENSION_PCT
+        and momentum_pct >= TREND_PULLBACK_OVERHEAT_MAX_MOMENTUM_PCT
+    )
+    trend_pullback_overheat_guard_status = "BLOCKED" if trend_pullback_overheat_active else "PASS"
     trend_pullback_alignment_score = (
         Decimal("0.30") * trend_structure_score
         + Decimal("0.25") * trend_momentum_confirmation
@@ -1515,7 +1563,6 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
         trend_pullback_alignment_reason = "ALIGNMENT_SCORE_LOW"
     else:
         trend_pullback_alignment_reason = "PASS"
-    positive_vwap_extension_pct = max(Decimal("0"), vwap_distance_pct)
     trend_exhaustion_score = (
         Decimal("0.35") * _clamp_decimal((volatility_pct - TREND_EXHAUSTION_MIN_VOLATILITY_PCT) / Decimal("3.00"))
         + Decimal("0.30") * _clamp_decimal((momentum_pct - TREND_EXHAUSTION_MIN_MOMENTUM_PCT) / Decimal("3.00"))
@@ -1647,6 +1694,19 @@ def _feature_snapshot(market_data: dict[str, Any]) -> dict[str, Any]:
             "PASS when UPTREND, confirmation(volume>=1.05 or momentum>=1.50 or breakout>=0.03), "
             "vwap_distance>=-0.25pct, and score>=0.70; "
             "score=0.30*trend_structure+0.25*momentum+0.20*volume+0.15*vwap_pullback+0.10*ema_alignment"
+        ),
+        "trend_pullback_htf_filter_status": trend_pullback_htf_filter_status,
+        "trend_pullback_htf_return_pct": _decimal_text(
+            trend_pullback_htf_return_pct.quantize(Decimal("0.0001"))
+        ),
+        "trend_pullback_continuation_probability": _decimal_text(
+            trend_pullback_continuation_probability.quantize(Decimal("0.0001"))
+        ),
+        "trend_pullback_overheat_guard_status": trend_pullback_overheat_guard_status,
+        "trend_pullback_entry_guard_formula": (
+            "PULLBACK_TREND_LONG PASS when UPTREND, HTF prior return>=0.75pct, "
+            "continuation_probability>=0.62, overheat_guard PASS, alignment PASS, and exhaustion not WARN; "
+            "continuation=0.30*trend_structure+0.25*htf_return+0.20*ema_alignment+0.15*volume+0.10*vwap_pullback"
         ),
         "trend_exhaustion_status": "WARN" if trend_exhaustion_active else "PASS",
         "trend_exhaustion_score": _decimal_text(trend_exhaustion_score.quantize(Decimal("0.0001"))),
@@ -2178,6 +2238,10 @@ def _candidate(
         "quiet_range_entry_policy": (
             "VWAP_ONLY_DEEP_DISLOCATION" if market_state == "QUIET_RANGE" else "NOT_APPLICABLE"
         ),
+        "trend_pullback_alignment_status": features.get("trend_pullback_alignment_status", "FAIL"),
+        "trend_pullback_htf_filter_status": features.get("trend_pullback_htf_filter_status", "BLOCKED"),
+        "trend_pullback_continuation_probability": features.get("trend_pullback_continuation_probability", "0"),
+        "trend_pullback_overheat_guard_status": features.get("trend_pullback_overheat_guard_status", "BLOCKED"),
         "breakout_false_breakout_guard_status": features.get("breakout_false_breakout_guard_status", "BLOCKED"),
         "breakout_retest_quality_score": features.get("breakout_retest_quality_score", "0"),
         "breakout_volatility_invalidation_status": features.get("breakout_volatility_invalidation_status", "BLOCKED"),
@@ -2235,6 +2299,9 @@ def _build_candidates(
     vwap_reversion_dislocation = max(Decimal("0"), -_decimal(features.get("vwap_distance_pct")))
     setup_scores = _setup_confirmation_scores(features)
     trend_persistence = setup_scores["trend_persistence"]
+    trend_pullback_continuation_probability = _decimal(
+        features.get("trend_pullback_continuation_probability")
+    )
     volume_confirmation = setup_scores["volume_confirmation"]
     breakout_confirmation = setup_scores["breakout_confirmation"]
     breakout_retest_quality = setup_scores["breakout_retest_quality"]
@@ -2256,6 +2323,15 @@ def _build_candidates(
     if features.get("trend_pullback_alignment_status") != "PASS":
         pullback_edge -= TREND_PULLBACK_ALIGNMENT_EDGE_PENALTY_BPS
         pullback_signal = _clamp_decimal(pullback_signal - TREND_PULLBACK_ALIGNMENT_SIGNAL_PENALTY)
+    if features.get("trend_pullback_htf_filter_status") != "PASS":
+        pullback_edge -= Decimal("28")
+        pullback_signal = _clamp_decimal(pullback_signal - Decimal("0.22"))
+    if trend_pullback_continuation_probability < TREND_PULLBACK_CONTINUATION_MIN_PROBABILITY:
+        pullback_edge -= Decimal("24")
+        pullback_signal = _clamp_decimal(pullback_signal - Decimal("0.18"))
+    if features.get("trend_pullback_overheat_guard_status") != "PASS":
+        pullback_edge -= TREND_EXHAUSTION_EDGE_PENALTY_BPS
+        pullback_signal = _clamp_decimal(pullback_signal - TREND_EXHAUSTION_SIGNAL_PENALTY)
     if not trend_confirmation_passed:
         pullback_edge -= WEAK_TREND_EDGE_PENALTY_BPS
         pullback_signal = _clamp_decimal(pullback_signal - Decimal("0.20"))
@@ -2426,7 +2502,7 @@ def _symbol_selection_policy(*, runtime_input_role: str, symbol_count: int) -> d
         ),
         "candidate_formula": (
             "edge=strategy_base+symbol_score+trend_or_breakout_or_mean_reversion_confirmation"
-            "-pullback_alignment_weak_trend_false_breakout_failed_mean_reversion_trend_exhaustion_recent_failure_penalties; "
+            "-pullback_alignment_htf_continuation_overheat_weak_trend_false_breakout_failed_mean_reversion_trend_exhaustion_recent_failure_penalties; "
             "selection=0.45*symbol_score+0.35*net_ev_score+0.20*signal_strength"
         ),
         "minimum_symbol_selection_score": _decimal_text(MIN_SYMBOL_SELECTION_SCORE),
@@ -2434,8 +2510,9 @@ def _symbol_selection_policy(*, runtime_input_role: str, symbol_count: int) -> d
         "minimum_entry_signal_strength": _decimal_text(MIN_ENTRY_SIGNAL_STRENGTH),
         "deterministic_priority": (
             "candidate_selection_score DESC, net_ev_after_cost_bps DESC, selection_priority ASC; "
-            "pullback requires UPTREND alignment score>=0.70 and vwap_distance>=-0.25pct, "
-            "setup confirmation thresholds volume>=1.05 or momentum>=1.50 for pullback, "
+            "pullback requires UPTREND, HTF prior return>=0.75pct, continuation_probability>=0.62, "
+            "overheat_guard PASS, alignment score>=0.70, vwap_distance>=-0.25pct, "
+            "and setup confirmation thresholds volume>=1.05 or momentum>=1.50, "
             "volume>=1.20 and range_breakout>=0.03 for breakout, RANGE and below-VWAP dislocation>=0.35pct "
             "with volume<=1.35 and liquidity sweep clear for mean reversion; "
             "trend exhaustion guard volatility>=3.00pct and momentum>=3.00pct and volume>=1.50 applies -42bps edge; "
@@ -2498,6 +2575,10 @@ def _build_symbol_evidence_scorecard(
         "trend_pullback_alignment_status": features.get("trend_pullback_alignment_status"),
         "trend_pullback_alignment_score": features.get("trend_pullback_alignment_score"),
         "trend_pullback_alignment_reason": features.get("trend_pullback_alignment_reason"),
+        "trend_pullback_htf_filter_status": features.get("trend_pullback_htf_filter_status"),
+        "trend_pullback_htf_return_pct": features.get("trend_pullback_htf_return_pct"),
+        "trend_pullback_continuation_probability": features.get("trend_pullback_continuation_probability"),
+        "trend_pullback_overheat_guard_status": features.get("trend_pullback_overheat_guard_status"),
         "trend_exhaustion_status": features.get("trend_exhaustion_status"),
         "trend_exhaustion_score": features.get("trend_exhaustion_score"),
         "vwap_reversion_dislocation_pct": features.get("vwap_reversion_dislocation_pct"),
@@ -2739,6 +2820,16 @@ def _validate_candidate_costs(
         expected_quiet_policy = "VWAP_ONLY_DEEP_DISLOCATION" if candidate_market_state == "QUIET_RANGE" else "NOT_APPLICABLE"
         if candidate.get("quiet_range_entry_policy") != expected_quiet_policy:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "candidate quiet range policy marker mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        for pullback_field in (
+            "trend_pullback_alignment_status",
+            "trend_pullback_htf_filter_status",
+            "trend_pullback_continuation_probability",
+            "trend_pullback_overheat_guard_status",
+        ):
+            if pullback_field not in candidate:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", f"candidate {pullback_field} missing", "SCHEMA_IDENTITY_MISMATCH")
+            if isinstance(features, dict) and str(candidate.get(pullback_field)) != str(features.get(pullback_field)):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", f"candidate {pullback_field} mismatch", "SCHEMA_IDENTITY_MISMATCH")
         for breakout_field in (
             "breakout_false_breakout_guard_status",
             "breakout_retest_quality_score",
@@ -3300,6 +3391,23 @@ def build_upbit_paper_runtime_cycle_report(
             "market_state": "RISK_OFF",
             "quiet_range_status": "CLEAR",
             "volatility_expansion_status": "CLEAR",
+            "trend_pullback_alignment_status": "FAIL",
+            "trend_pullback_alignment_score": "0",
+            "trend_pullback_alignment_reason": "REGIME_NOT_UPTREND",
+            "trend_pullback_alignment_formula": (
+                "PASS when UPTREND, confirmation(volume>=1.05 or momentum>=1.50 or breakout>=0.03), "
+                "vwap_distance>=-0.25pct, and score>=0.70; "
+                "score=0.30*trend_structure+0.25*momentum+0.20*volume+0.15*vwap_pullback+0.10*ema_alignment"
+            ),
+            "trend_pullback_htf_filter_status": "BLOCKED",
+            "trend_pullback_htf_return_pct": "0",
+            "trend_pullback_continuation_probability": "0",
+            "trend_pullback_overheat_guard_status": "PASS",
+            "trend_pullback_entry_guard_formula": (
+                "PULLBACK_TREND_LONG PASS when UPTREND, HTF prior return>=0.75pct, "
+                "continuation_probability>=0.62, overheat_guard PASS, alignment PASS, and exhaustion not WARN; "
+                "continuation=0.30*trend_structure+0.25*htf_return+0.20*ema_alignment+0.15*volume+0.10*vwap_pullback"
+            ),
             "breakout_volume_confirmation_score": "0",
             "breakout_confirmation_score": "0",
             "breakout_retest_quality_score": "0",

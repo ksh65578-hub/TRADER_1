@@ -873,6 +873,86 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         )
         self.assertFalse(report["live_order_allowed"])
 
+    def test_pullback_entry_requires_htf_continuation_and_overheat_guard(self):
+        base_features = {
+            "volume_expansion_ratio": "1.10",
+            "range_breakout_pct": "0.02",
+            "trend_pullback_alignment_status": "PASS",
+            "trend_exhaustion_status": "PASS",
+            "trend_pullback_htf_filter_status": "PASS",
+            "trend_pullback_continuation_probability": "0.80",
+            "trend_pullback_overheat_guard_status": "PASS",
+        }
+        allowed, reason = _strategy_entry_policy_evaluation(
+            strategy_family="PULLBACK_TREND_LONG",
+            regime="UPTREND",
+            market_state="UPTREND",
+            features={**base_features, "trend_pullback_htf_filter_status": "BLOCKED"},
+            symbol_score=Decimal("0.75"),
+        )
+        self.assertFalse(allowed)
+        self.assertEqual(reason, "PULLBACK_HTF_FILTER_BLOCKED")
+
+        allowed, reason = _strategy_entry_policy_evaluation(
+            strategy_family="PULLBACK_TREND_LONG",
+            regime="UPTREND",
+            market_state="UPTREND",
+            features={**base_features, "trend_pullback_continuation_probability": "0.40"},
+            symbol_score=Decimal("0.75"),
+        )
+        self.assertFalse(allowed)
+        self.assertEqual(reason, "PULLBACK_CONTINUATION_PROBABILITY_LOW")
+
+        allowed, reason = _strategy_entry_policy_evaluation(
+            strategy_family="PULLBACK_TREND_LONG",
+            regime="UPTREND",
+            market_state="UPTREND",
+            features={**base_features, "trend_pullback_overheat_guard_status": "BLOCKED"},
+            symbol_score=Decimal("0.75"),
+        )
+        self.assertFalse(allowed)
+        self.assertEqual(reason, "PULLBACK_OVERHEAT_GUARD")
+
+    def test_pullback_overheat_guard_blocks_blowoff_entry_review(self):
+        market_data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        closes = ["1000000", "1005000", "1010000", "1015000", "1020000", "1060000"]
+        for candle, close in zip(market_data["candles"], closes):
+            price = int(close)
+            candle["open"] = str(price - 1800)
+            candle["high"] = str(price + 2200)
+            candle["low"] = str(price - 2200)
+            candle["close"] = close
+            candle["volume"] = "5"
+
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-pullback-overheat-guard",
+            market_data=market_data,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["feature_snapshot"]["regime"], "UPTREND")
+        self.assertEqual(report["feature_snapshot"]["market_state"], "UPTREND")
+        self.assertEqual(report["feature_snapshot"]["trend_pullback_htf_filter_status"], "PASS")
+        self.assertGreaterEqual(
+            float(report["feature_snapshot"]["trend_pullback_continuation_probability"]),
+            0.62,
+        )
+        self.assertEqual(report["feature_snapshot"]["trend_pullback_overheat_guard_status"], "BLOCKED")
+        pullback_candidate = next(
+            candidate
+            for candidate in report["strategy_candidates"]
+            if candidate["strategy_family"] == "PULLBACK_TREND_LONG"
+        )
+        self.assertFalse(pullback_candidate["strategy_regime_allowed"])
+        self.assertEqual(pullback_candidate["strategy_policy_reason"], "PULLBACK_OVERHEAT_GUARD")
+        self.assertEqual(pullback_candidate["trend_pullback_overheat_guard_status"], "BLOCKED")
+        self.assertFalse(report["live_order_allowed"])
+
     def test_overextended_uptrend_exhaustion_blocks_new_entry_and_tightens_exit_plan(self):
         market_data = build_upbit_public_candle_fixture(
             symbol="KRW-BTC",
