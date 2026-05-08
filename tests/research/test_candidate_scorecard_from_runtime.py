@@ -593,6 +593,52 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertIn("bounded public replay robustness", report["next_action"])
         self.assertFalse(report["live_order_allowed"])
 
+    def test_candidate_generation_report_can_prefer_replay_reviewed_alternative(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-candidate-generation-preferred-alt")
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses={
+                "oos_status": "FAIL",
+                "walk_forward_status": "FAIL",
+                "bootstrap_status": "FAIL",
+                "overfit_status": "HIGH",
+            },
+            robustness_source_evidence_ids=[
+                "public_replay_robustness:replay-scorecard-runtime-candidate-generation-preferred-alt:" + "A" * 64,
+                "public_market_data:KRW-BTC:" + "B" * 64,
+            ],
+        )
+        selected = runtime["selected_candidate"]
+        high_raw_ev = copy.deepcopy(selected)
+        high_raw_ev["candidate_id"] = "KRW-ETH-pullback-trend-long"
+        high_raw_ev["symbol"] = "KRW-ETH"
+        high_raw_ev["candidate_selection_score"] = max(0.01, float(selected["candidate_selection_score"]) - 0.01)
+        high_raw_ev["net_ev_after_cost_bps"] = float(selected["net_ev_after_cost_bps"]) + 9.0
+        preferred = copy.deepcopy(selected)
+        preferred["candidate_id"] = "KRW-XRP-pullback-trend-long"
+        preferred["symbol"] = "KRW-XRP"
+        preferred["candidate_selection_score"] = max(0.01, float(selected["candidate_selection_score"]) - 0.02)
+        preferred["net_ev_after_cost_bps"] = float(selected["net_ev_after_cost_bps"]) + 2.0
+        runtime["strategy_candidates"].extend([high_raw_ev, preferred])
+
+        report = candidate_generation_report_from_upbit_paper_runtime_cycle(
+            runtime,
+            candidate_scorecard=scorecard,
+            preferred_alternative_candidate_id="KRW-XRP-pullback-trend-long",
+        )
+        validation_status, validation_message, blocker_code = validate_candidate_generation_report(
+            report,
+            candidate_scorecard=scorecard,
+        )
+
+        self.assertEqual(validation_status, "PASS", validation_message)
+        self.assertEqual(blocker_code, None)
+        self.assertEqual(report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+        self.assertEqual(report["best_alternative_candidate_id"], "KRW-XRP-pullback-trend-long")
+        self.assertEqual(report["best_alternative_symbol"], "KRW-XRP")
+        self.assertEqual(report["alternative_candidate_count"], 2)
+        self.assertFalse(report["live_order_allowed"])
+
     def test_scorecard_can_target_same_runtime_alternative_candidate(self):
         weak_btc = build_upbit_public_candle_fixture(
             symbol="KRW-BTC",

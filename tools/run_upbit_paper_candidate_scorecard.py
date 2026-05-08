@@ -250,6 +250,14 @@ def _safe_int(value: Any) -> int:
         return 0
 
 
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    return result if result == result and result not in {float("inf"), float("-inf")} else default
+
+
 def _ordered_count_items(counter: Counter[str], *, limit: int = 12) -> list[dict[str, Any]]:
     return [
         {"code": code, "count": count}
@@ -441,6 +449,10 @@ def _alternative_replay_context(
     report: dict[str, Any] | None = None,
     scorecard: dict[str, Any] | None = None,
     source_runtime_cycle_report: dict[str, Any] | None = None,
+    candidate_review_evaluations: list[dict[str, Any]] | None = None,
+    candidate_review_evaluated_count: int = 0,
+    candidate_review_robust_candidate_count: int = 0,
+    candidate_review_selection_reason: str | None = None,
 ) -> dict[str, Any]:
     return {
         "status": status,
@@ -457,6 +469,10 @@ def _alternative_replay_context(
         "report": report,
         "scorecard": scorecard,
         "source_runtime_cycle_report": source_runtime_cycle_report,
+        "candidate_review_evaluations": candidate_review_evaluations or [],
+        "candidate_review_evaluated_count": candidate_review_evaluated_count,
+        "candidate_review_robust_candidate_count": candidate_review_robust_candidate_count,
+        "candidate_review_selection_reason": candidate_review_selection_reason,
         "credential_load_attempted": False,
         "private_endpoint_called": False,
         "order_endpoint_called": False,
@@ -645,11 +661,84 @@ def _build_bounded_public_discovery_runtime_cycle(
     )
 
 
-def _build_and_write_alternative_public_replay(
+def _review_ready_candidate_items(candidate_generation_report: dict[str, Any], *, limit: int) -> list[dict[str, Any]]:
+    safe_limit = max(1, min(int(limit), 12))
+    return [
+        item
+        for item in candidate_generation_report.get("candidate_items") or []
+        if isinstance(item, dict) and item.get("candidate_status") == "REVIEW_READY"
+    ][:safe_limit]
+
+
+def _source_runtime_for_candidate_item(
+    item: dict[str, Any],
+    *,
+    runtime_cycle_report: dict[str, Any] | None,
+    candidate_discovery_runtime: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    source_cycle_id = str(item.get("source_runtime_cycle_id") or "")
+    source_cycle_hash = str(item.get("source_runtime_cycle_hash") or "").upper()
+    for runtime_candidate in (runtime_cycle_report, candidate_discovery_runtime):
+        if not isinstance(runtime_candidate, dict):
+            continue
+        if source_cycle_id and str(runtime_candidate.get("cycle_id") or "") != source_cycle_id:
+            continue
+        if source_cycle_hash and str(runtime_candidate.get("cycle_hash") or "").upper() != source_cycle_hash:
+            continue
+        return runtime_candidate
+    return None
+
+
+def _alternative_replay_selection_priority(evaluation: dict[str, Any]) -> tuple[Any, ...]:
+    diagnostic = evaluation.get("diagnostic") if isinstance(evaluation.get("diagnostic"), dict) else {}
+    scorecard = evaluation.get("scorecard") if isinstance(evaluation.get("scorecard"), dict) else {}
+    status = str(evaluation.get("status") or "")
+    return (
+        1 if diagnostic.get("robustness_eligible") is True else 0,
+        1 if status == "PASS" else 0,
+        1 if diagnostic.get("oos_status") == "PASS" else 0,
+        1 if diagnostic.get("walk_forward_status") == "PASS" else 0,
+        1 if diagnostic.get("bootstrap_status") == "PASS" else 0,
+        1 if diagnostic.get("concentration_risk_status") == "LOW" else 0,
+        _safe_float(diagnostic.get("oos_net_ev_after_cost_bps"), -999.0),
+        _safe_float(diagnostic.get("bootstrap_confidence_lower_bps"), -999.0),
+        _safe_float(diagnostic.get("walk_forward_pass_rate"), -999.0),
+        _safe_float(diagnostic.get("ranking_stability_score"), -999.0),
+        _safe_float(scorecard.get("net_ev_after_cost_bps"), -999.0),
+        -_safe_int(evaluation.get("candidate_index")),
+        str(evaluation.get("candidate_id") or ""),
+    )
+
+
+def _public_candidate_review_evaluations(evaluations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    compact: list[dict[str, Any]] = []
+    for item in evaluations:
+        compact.append(
+            {
+                "candidate_id": item.get("candidate_id"),
+                "symbol": item.get("symbol"),
+                "status": item.get("status"),
+                "blocker_code": item.get("blocker_code"),
+                "replay_status": item.get("replay_status"),
+                "sample_count": int(item.get("sample_count") or 0),
+                "robustness_eligible": bool(item.get("robustness_eligible")),
+                "oos_status": item.get("oos_status"),
+                "walk_forward_status": item.get("walk_forward_status"),
+                "bootstrap_status": item.get("bootstrap_status"),
+                "overfit_status": item.get("overfit_status"),
+                "diagnostic_blocker_codes": list(item.get("diagnostic_blocker_codes") or []),
+            }
+        )
+    return compact
+
+
+def _build_alternative_public_replay_evaluation(
     *,
     root: Path,
     session_id: str,
-    candidate_generation_report: dict[str, Any],
+    item: dict[str, Any],
+    candidate_index: int,
+    history: dict[str, Any],
     runtime_cycle_report: dict[str, Any] | None,
     candidate_discovery_runtime: dict[str, Any] | None,
     target_count: int,
@@ -657,89 +746,83 @@ def _build_and_write_alternative_public_replay(
     timeout_seconds: float,
     max_replay_windows: int,
     min_required_sample_count: int,
+    market_data_cache: dict[str, dict[str, Any]],
     public_replay_history_fetcher: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    if candidate_generation_report.get("generation_status") != "ALTERNATIVE_REVIEW_READY":
-        return _alternative_replay_context(
-            status="NOT_REQUIRED",
-            blocker_code=None,
-            message="alternative public replay is not required until a bounded candidate is review-ready",
-        )
-    expected_candidate_id = str(candidate_generation_report.get("best_alternative_candidate_id") or "")
-    best_item = next(
-        (
-            item
-            for item in candidate_generation_report.get("candidate_items") or []
-            if isinstance(item, dict) and str(item.get("candidate_id") or "") == expected_candidate_id
-        ),
-        None,
+    candidate_id = str(item.get("candidate_id") or "")
+    source_runtime = _source_runtime_for_candidate_item(
+        item,
+        runtime_cycle_report=runtime_cycle_report,
+        candidate_discovery_runtime=candidate_discovery_runtime,
     )
-    source_runtime = None
-    for runtime_candidate in (runtime_cycle_report, candidate_discovery_runtime):
-        if not isinstance(runtime_candidate, dict):
-            continue
-        if best_item is not None:
-            source_cycle_id = str(best_item.get("source_runtime_cycle_id") or "")
-            source_cycle_hash = str(best_item.get("source_runtime_cycle_hash") or "").upper()
-            if source_cycle_id and str(runtime_candidate.get("cycle_id") or "") != source_cycle_id:
-                continue
-            if source_cycle_hash and str(runtime_candidate.get("cycle_hash") or "").upper() != source_cycle_hash:
-                continue
-        source_runtime = runtime_candidate
-        break
     if not isinstance(source_runtime, dict):
-        return _alternative_replay_context(
-            status="BLOCKED",
-            blocker_code="MEASUREMENT_MISSING",
-            message="alternative public replay requires the runtime cycle that produced the best alternative candidate",
-            candidate_id=expected_candidate_id or None,
-        )
+        return {
+            "status": "BLOCKED",
+            "blocker_code": "MEASUREMENT_MISSING",
+            "message": "candidate public replay requires the runtime cycle that produced the candidate",
+            "candidate_id": candidate_id,
+            "candidate_index": candidate_index,
+            "symbol": str(item.get("symbol") or ""),
+            "robustness_eligible": False,
+        }
 
     try:
         alternative_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
             source_runtime,
-            candidate_id=expected_candidate_id,
+            candidate_id=candidate_id,
         )
     except Exception as exc:
-        return _alternative_replay_context(
-            status="BLOCKED",
-            blocker_code="SNAPSHOT_SCOPE_MISMATCH",
-            message=f"alternative public replay candidate could not be bound to its source runtime: {type(exc).__name__}",
-            candidate_id=expected_candidate_id or None,
-        )
-    if str(alternative_scorecard.get("candidate_id") or "") != expected_candidate_id:
-        return _alternative_replay_context(
-            status="BLOCKED",
-            blocker_code="SNAPSHOT_SCOPE_MISMATCH",
-            message="alternative public replay candidate scope did not match the candidate generation best alternative",
-            candidate_id=str(alternative_scorecard.get("candidate_id") or ""),
-            symbol=str(alternative_scorecard.get("symbol") or ""),
-    )
+        return {
+            "status": "BLOCKED",
+            "blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+            "message": f"candidate could not be bound to its source runtime: {type(exc).__name__}",
+            "candidate_id": candidate_id,
+            "candidate_index": candidate_index,
+            "symbol": str(item.get("symbol") or ""),
+            "robustness_eligible": False,
+        }
+    if str(alternative_scorecard.get("candidate_id") or "") != candidate_id:
+        return {
+            "status": "BLOCKED",
+            "blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+            "message": "candidate scope did not match candidate generation item",
+            "candidate_id": str(alternative_scorecard.get("candidate_id") or ""),
+            "candidate_index": candidate_index,
+            "symbol": str(alternative_scorecard.get("symbol") or ""),
+            "robustness_eligible": False,
+        }
 
     history_fetcher = public_replay_history_fetcher or fetch_upbit_public_candle_history_read_only
+    symbol = str(alternative_scorecard["symbol"])
     try:
-        market_data = history_fetcher(
-            symbol=str(alternative_scorecard["symbol"]),
-            session_id=session_id,
-            target_count=target_count,
-            page_size=page_size,
-            timeout_seconds=timeout_seconds,
-        )
+        if symbol not in market_data_cache:
+            market_data_cache[symbol] = history_fetcher(
+                symbol=symbol,
+                session_id=session_id,
+                target_count=target_count,
+                page_size=page_size,
+                timeout_seconds=timeout_seconds,
+            )
         replay_report = build_public_replay_robustness_report(
             candidate_scorecard=alternative_scorecard,
-            market_data=market_data,
+            market_data=market_data_cache[symbol],
             replay_id=f"public-replay-alternative:{alternative_scorecard['source_runtime_cycle_id']}:{alternative_scorecard['candidate_id']}",
             max_replay_windows=max_replay_windows,
             min_required_sample_count=min_required_sample_count,
         )
     except Exception as exc:
-        return _alternative_replay_context(
-            status="BLOCKED",
-            blocker_code="DATA_QUALITY_INSUFFICIENT",
-            message=f"alternative public replay could not collect read-only public candles: {type(exc).__name__}",
-            candidate_id=str(alternative_scorecard.get("candidate_id") or ""),
-            symbol=str(alternative_scorecard.get("symbol") or ""),
-        )
+        return {
+            "status": "BLOCKED",
+            "blocker_code": "DATA_QUALITY_INSUFFICIENT",
+            "message": f"candidate public replay could not collect read-only public candles: {type(exc).__name__}",
+            "candidate_id": candidate_id,
+            "candidate_index": candidate_index,
+            "symbol": symbol,
+            "robustness_eligible": False,
+            "scorecard": alternative_scorecard,
+            "source_runtime_cycle_report": source_runtime,
+        }
+
     replay_validation = validate_public_replay_robustness_report(
         replay_report,
         candidate_scorecard=alternative_scorecard,
@@ -753,24 +836,165 @@ def _build_and_write_alternative_public_replay(
         gate_status = "BLOCKED"
         gate_blocker_code = str(replay_report.get("primary_blocker_code") or "MEASUREMENT_MISSING")
         gate_message = (
-            "alternative public replay report is contract-valid but replay robustness "
+            "candidate public replay report is contract-valid but replay robustness "
             f"gate is {replay_status}: {gate_blocker_code}"
         )
+
+    diagnostic: dict[str, Any] | None = None
+    diagnostic_blocker_codes: list[str] = []
+    if gate_status == "PASS":
+        diagnostic = overfit_diagnostic_from_upbit_paper_runtime(
+            candidate_scorecard=alternative_scorecard,
+            runtime_sample_history=history,
+            root=root,
+            replay_robustness_report=replay_report,
+        )
+        _, _, performance_source_ids = performance_inputs_from_runtime_sample_history(
+            candidate_scorecard=alternative_scorecard,
+            runtime_sample_history=history,
+            root=root,
+        )
+        diagnostic = _bind_performance_sources_to_overfit_diagnostic(
+            diagnostic,
+            performance_source_ids=performance_source_ids,
+        )
+        diagnostic_errors = _overfit_diagnostic_errors(diagnostic)
+        if diagnostic_errors:
+            gate_status = "BLOCKED"
+            gate_blocker_code = "SCHEMA_IDENTITY_MISMATCH"
+            gate_message = "candidate overfit diagnostic failed contract validation"
+        diagnostic_blocker_codes = [
+            str(blocker.get("code"))
+            for blocker in diagnostic.get("blockers") or []
+            if isinstance(blocker, dict) and blocker.get("code")
+        ]
+
+    return {
+        "status": gate_status,
+        "blocker_code": gate_blocker_code,
+        "message": gate_message,
+        "candidate_id": candidate_id,
+        "candidate_index": candidate_index,
+        "symbol": symbol,
+        "contract_status": replay_validation.status,
+        "contract_blocker_code": replay_validation.blocker_code,
+        "report_path": _relative_path(report_path, root),
+        "replay_status": replay_status,
+        "sample_count": int(replay_report.get("sample_count") or 0),
+        "primary_blocker_code": replay_report.get("primary_blocker_code"),
+        "robustness_eligible": bool(diagnostic.get("robustness_eligible")) if diagnostic else False,
+        "oos_status": str(diagnostic.get("oos_status") or "UNTESTED") if diagnostic else "UNTESTED",
+        "walk_forward_status": str(diagnostic.get("walk_forward_status") or "UNTESTED") if diagnostic else "UNTESTED",
+        "bootstrap_status": str(diagnostic.get("bootstrap_status") or "UNTESTED") if diagnostic else "UNTESTED",
+        "overfit_status": str(diagnostic.get("overfit_status") or "UNTESTED") if diagnostic else "UNTESTED",
+        "diagnostic_blocker_codes": diagnostic_blocker_codes,
+        "report": replay_report,
+        "scorecard": alternative_scorecard,
+        "diagnostic": diagnostic,
+        "source_runtime_cycle_report": source_runtime,
+    }
+
+
+def _build_and_write_alternative_public_replay(
+    *,
+    root: Path,
+    session_id: str,
+    candidate_generation_report: dict[str, Any],
+    history: dict[str, Any],
+    runtime_cycle_report: dict[str, Any] | None,
+    candidate_discovery_runtime: dict[str, Any] | None,
+    target_count: int,
+    page_size: int,
+    timeout_seconds: float,
+    max_replay_windows: int,
+    min_required_sample_count: int,
+    candidate_limit: int,
+    public_replay_history_fetcher: Callable[..., dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if candidate_generation_report.get("generation_status") != "ALTERNATIVE_REVIEW_READY":
+        return _alternative_replay_context(
+            status="NOT_REQUIRED",
+            blocker_code=None,
+            message="alternative public replay is not required until a bounded candidate is review-ready",
+        )
+    review_ready_items = _review_ready_candidate_items(candidate_generation_report, limit=candidate_limit)
+    if not review_ready_items:
+        return _alternative_replay_context(
+            status="BLOCKED",
+            blocker_code="STRATEGY_NOT_ELIGIBLE",
+            message="alternative public replay found no bounded review-ready candidate",
+        )
+
+    market_data_cache: dict[str, dict[str, Any]] = {}
+    evaluations = [
+        _build_alternative_public_replay_evaluation(
+            root=root,
+            session_id=session_id,
+            item=item,
+            candidate_index=index,
+            history=history,
+            runtime_cycle_report=runtime_cycle_report,
+            candidate_discovery_runtime=candidate_discovery_runtime,
+            target_count=target_count,
+            page_size=page_size,
+            timeout_seconds=timeout_seconds,
+            max_replay_windows=max_replay_windows,
+            min_required_sample_count=min_required_sample_count,
+            market_data_cache=market_data_cache,
+            public_replay_history_fetcher=public_replay_history_fetcher,
+        )
+        for index, item in enumerate(review_ready_items, start=1)
+    ]
+    replay_passed = [item for item in evaluations if item.get("status") == "PASS" and isinstance(item.get("report"), dict)]
+    if not replay_passed:
+        first = max(evaluations, key=_alternative_replay_selection_priority)
+        return _alternative_replay_context(
+            status="BLOCKED",
+            blocker_code=str(first.get("blocker_code") or "DATA_QUALITY_INSUFFICIENT"),
+            message="no bounded alternative candidate passed public replay contract and replay gates",
+            candidate_id=str(first.get("candidate_id") or ""),
+            symbol=str(first.get("symbol") or ""),
+            contract_status=str(first.get("contract_status") or first.get("status") or "BLOCKED"),
+            contract_blocker_code=first.get("contract_blocker_code"),
+            report_path=first.get("report_path"),
+            replay_status=str(first.get("replay_status") or "BLOCKED"),
+            sample_count=int(first.get("sample_count") or 0),
+            primary_blocker_code=first.get("primary_blocker_code"),
+            report=first.get("report") if isinstance(first.get("report"), dict) else None,
+            scorecard=first.get("scorecard") if isinstance(first.get("scorecard"), dict) else None,
+            source_runtime_cycle_report=first.get("source_runtime_cycle_report")
+            if isinstance(first.get("source_runtime_cycle_report"), dict)
+            else None,
+            candidate_review_evaluations=_public_candidate_review_evaluations(evaluations),
+            candidate_review_evaluated_count=len(evaluations),
+            candidate_review_robust_candidate_count=0,
+            candidate_review_selection_reason="NO_PUBLIC_REPLAY_PASS",
+        )
+
+    selected = max(replay_passed, key=_alternative_replay_selection_priority)
+    robust_count = sum(1 for item in replay_passed if item.get("robustness_eligible") is True)
+    selection_reason = "ROBUSTNESS_ELIGIBLE_SELECTED" if selected.get("robustness_eligible") is True else "BEST_AVAILABLE_REPLAY_SELECTED"
     return _alternative_replay_context(
-        status=gate_status,
-        blocker_code=gate_blocker_code,
-        message=gate_message,
-        contract_status=replay_validation.status,
-        contract_blocker_code=replay_validation.blocker_code,
-        report_path=_relative_path(report_path, root),
-        candidate_id=str(replay_report.get("candidate_id") or ""),
-        symbol=str(replay_report.get("symbol") or ""),
-        replay_status=replay_status,
-        sample_count=int(replay_report.get("sample_count") or 0),
-        primary_blocker_code=replay_report.get("primary_blocker_code"),
-        report=replay_report,
-        scorecard=alternative_scorecard,
-        source_runtime_cycle_report=source_runtime,
+        status=str(selected.get("status") or "BLOCKED"),
+        blocker_code=selected.get("blocker_code"),
+        message=f"bounded multi-candidate public replay selected {selected.get('candidate_id')} by robustness-aware priority",
+        contract_status=str(selected.get("contract_status") or selected.get("status") or "BLOCKED"),
+        contract_blocker_code=selected.get("contract_blocker_code"),
+        report_path=selected.get("report_path"),
+        candidate_id=str(selected.get("candidate_id") or ""),
+        symbol=str(selected.get("symbol") or ""),
+        replay_status=str(selected.get("replay_status") or "BLOCKED"),
+        sample_count=int(selected.get("sample_count") or 0),
+        primary_blocker_code=selected.get("primary_blocker_code"),
+        report=selected.get("report") if isinstance(selected.get("report"), dict) else None,
+        scorecard=selected.get("scorecard") if isinstance(selected.get("scorecard"), dict) else None,
+        source_runtime_cycle_report=selected.get("source_runtime_cycle_report")
+        if isinstance(selected.get("source_runtime_cycle_report"), dict)
+        else None,
+        candidate_review_evaluations=_public_candidate_review_evaluations(evaluations),
+        candidate_review_evaluated_count=len(evaluations),
+        candidate_review_robust_candidate_count=robust_count,
+        candidate_review_selection_reason=selection_reason,
     )
 
 
@@ -912,6 +1136,7 @@ def build_current_upbit_paper_candidate_scorecard(
     alternative_replay_timeout_seconds: float = 3.0,
     alternative_replay_max_windows: int = 420,
     alternative_replay_min_required_sample_count: int = 300,
+    alternative_replay_candidate_limit: int = 5,
     market_symbols_fetcher: Callable[..., dict[str, Any]] | None = None,
     public_ticker_fetcher: Callable[..., dict[str, Any]] | None = None,
     public_candle_fetcher: Callable[..., dict[str, Any]] | None = None,
@@ -1041,11 +1266,16 @@ def build_current_upbit_paper_candidate_scorecard(
         runtime,
         candidate_scorecard=scorecard,
     )
-    if (
-        attempt_public_discovery
-        and candidate_generation_report.get("generation_status") == "NO_ALTERNATIVE_READY"
-        and candidate_generation_report.get("selected_candidate_retired_for_ranking") is True
-    ):
+    current_alternative_count = _safe_int(candidate_generation_report.get("alternative_candidate_count"))
+    min_candidate_review_pool = max(2, min(_safe_int(alternative_replay_candidate_limit), 12))
+    discovery_needed_for_review_pool = (
+        candidate_generation_report.get("selected_candidate_retired_for_ranking") is True
+        and (
+            candidate_generation_report.get("generation_status") == "NO_ALTERNATIVE_READY"
+            or current_alternative_count < min_candidate_review_pool
+        )
+    )
+    if attempt_public_discovery and discovery_needed_for_review_pool:
         candidate_discovery_runtime, candidate_discovery_context = _build_bounded_public_discovery_runtime_cycle(
             session_id=session_id,
             symbol_limit=candidate_discovery_symbol_limit,
@@ -1074,6 +1304,7 @@ def build_current_upbit_paper_candidate_scorecard(
         root=root,
         session_id=session_id,
         candidate_generation_report=candidate_generation_report,
+        history=history,
         runtime_cycle_report=runtime,
         candidate_discovery_runtime=candidate_discovery_runtime,
         target_count=alternative_replay_target_count,
@@ -1081,6 +1312,7 @@ def build_current_upbit_paper_candidate_scorecard(
         timeout_seconds=alternative_replay_timeout_seconds,
         max_replay_windows=alternative_replay_max_windows,
         min_required_sample_count=alternative_replay_min_required_sample_count,
+        candidate_limit=alternative_replay_candidate_limit,
         public_replay_history_fetcher=public_replay_history_fetcher,
     )
     if isinstance(alternative_replay_context.get("report"), dict):
@@ -1093,6 +1325,7 @@ def build_current_upbit_paper_candidate_scorecard(
                 else None
             ),
             best_alternative_public_replay_report=alternative_replay_context["report"],
+            preferred_alternative_candidate_id=str(alternative_replay_context.get("candidate_id") or ""),
         )
         generation_status, generation_message, generation_blocker = validate_candidate_generation_report(
             candidate_generation_report,
@@ -1187,6 +1420,18 @@ def build_current_upbit_paper_candidate_scorecard(
         "alternative_public_replay_replay_status": alternative_replay_context["replay_status"],
         "alternative_public_replay_sample_count": alternative_replay_context["sample_count"],
         "alternative_public_replay_primary_blocker_code": alternative_replay_context["primary_blocker_code"],
+        "alternative_public_replay_candidate_review_evaluated_count": alternative_replay_context[
+            "candidate_review_evaluated_count"
+        ],
+        "alternative_public_replay_candidate_review_robust_candidate_count": alternative_replay_context[
+            "candidate_review_robust_candidate_count"
+        ],
+        "alternative_public_replay_candidate_review_selection_reason": alternative_replay_context[
+            "candidate_review_selection_reason"
+        ],
+        "alternative_public_replay_candidate_review_evaluations": alternative_replay_context[
+            "candidate_review_evaluations"
+        ],
         "alternative_review_scorecard_status": alternative_review_scorecard_context["status"],
         "alternative_review_scorecard_blocker_code": alternative_review_scorecard_context["blocker_code"],
         "alternative_review_scorecard_message": alternative_review_scorecard_context["message"],
@@ -1318,6 +1563,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--alternative-replay-timeout-seconds", type=float, default=3.0)
     parser.add_argument("--alternative-replay-max-windows", type=int, default=420)
     parser.add_argument("--alternative-replay-min-required-sample-count", type=int, default=300)
+    parser.add_argument("--alternative-replay-candidate-limit", type=int, default=5)
     return parser.parse_args()
 
 
@@ -1334,6 +1580,7 @@ def main() -> int:
         alternative_replay_timeout_seconds=args.alternative_replay_timeout_seconds,
         alternative_replay_max_windows=args.alternative_replay_max_windows,
         alternative_replay_min_required_sample_count=args.alternative_replay_min_required_sample_count,
+        alternative_replay_candidate_limit=args.alternative_replay_candidate_limit,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result.get("status") == "PASS" else 1
