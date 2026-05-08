@@ -31,6 +31,7 @@ from trader1.adapters.upbit.market_data import (
 from trader1.research.profitability.convergence_memory import write_upbit_paper_convergence_memory_artifacts
 from trader1.research.profitability.overfit_diagnostic import (
     overfit_diagnostic_from_upbit_paper_runtime,
+    overfit_diagnostic_report_hash,
     robustness_inputs_from_overfit_diagnostic,
     write_overfit_diagnostic_report,
 )
@@ -153,6 +154,29 @@ def _paper_shadow_identity_matches(scorecard: dict[str, Any], evidence: dict[str
         if str(scorecard.get(field) or "") != str(evidence.get(field) or ""):
             return False
     return True
+
+
+def _bind_performance_sources_to_overfit_diagnostic(
+    diagnostic: dict[str, Any],
+    *,
+    performance_source_ids: list[str],
+) -> dict[str, Any]:
+    if not performance_source_ids:
+        return diagnostic
+    bound = dict(diagnostic)
+    source_ids = [
+        source_id
+        for source_id in bound.get("source_evidence_ids") or []
+        if isinstance(source_id, str) and source_id
+    ]
+    source_ids.extend(
+        source_id
+        for source_id in performance_source_ids
+        if isinstance(source_id, str) and source_id
+    )
+    bound["source_evidence_ids"] = sorted(set(source_ids))
+    bound["diagnostic_hash"] = overfit_diagnostic_report_hash(bound)
+    return bound
 
 
 def _paper_shadow_scorecard_binding(
@@ -826,6 +850,15 @@ def build_current_upbit_paper_candidate_scorecard(
     if replay_robustness_report is not None:
         diagnostic_kwargs["replay_robustness_report"] = replay_robustness_report
     diagnostic = overfit_diagnostic_from_upbit_paper_runtime(**diagnostic_kwargs)
+    performance_statuses, performance_metrics, performance_source_ids = performance_inputs_from_runtime_sample_history(
+        candidate_scorecard=base_scorecard,
+        runtime_sample_history=history,
+        root=root,
+    )
+    diagnostic = _bind_performance_sources_to_overfit_diagnostic(
+        diagnostic,
+        performance_source_ids=performance_source_ids,
+    )
     diagnostic_errors = _overfit_diagnostic_errors(diagnostic)
     if diagnostic_errors:
         return _blocked_result(
@@ -841,11 +874,6 @@ def build_current_upbit_paper_candidate_scorecard(
     )
 
     robustness_statuses, robustness_source_ids = robustness_inputs_from_overfit_diagnostic(diagnostic)
-    performance_statuses, performance_metrics, performance_source_ids = performance_inputs_from_runtime_sample_history(
-        candidate_scorecard=base_scorecard,
-        runtime_sample_history=history,
-        root=root,
-    )
     scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
         runtime,
         robustness_statuses=robustness_statuses,

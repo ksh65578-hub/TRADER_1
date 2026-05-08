@@ -931,6 +931,28 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
             robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
             robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
         ]
+        history_id = str(history.get("history_id") or runtime["cycle_id"])
+        history_hash = str(history.get("history_hash") or runtime["cycle_hash"])
+        performance_source_ids = [
+            performance_source_evidence_id(
+                "closed_trades",
+                history_id,
+                history_hash,
+                scorecard["candidate_id"],
+            ),
+            performance_source_evidence_id(
+                "execution_quality",
+                history_id,
+                history_hash,
+                scorecard["candidate_id"],
+            ),
+            performance_source_evidence_id(
+                "performance_summary",
+                history_id,
+                history_hash,
+                scorecard["candidate_id"],
+            ),
+        ]
         robust.update(
             {
                 "diagnostic_status": "ROBUST_FOR_PAPER_REVIEW",
@@ -955,7 +977,7 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
                 "data_snooping_check": "PASS",
                 "robustness_eligible": True,
                 "blockers": [],
-                "source_evidence_ids": sorted(set(robust["source_evidence_ids"] + robust_ids)),
+                "source_evidence_ids": sorted(set(robust["source_evidence_ids"] + robust_ids + performance_source_ids)),
             }
         )
         robust["diagnostic_hash"] = overfit_diagnostic_report_hash(robust)
@@ -966,26 +988,6 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
             robustness_statuses=statuses,
             robustness_source_evidence_ids=source_ids,
         )
-        performance_source_ids = [
-            performance_source_evidence_id(
-                "closed_trades",
-                runtime["cycle_id"],
-                runtime["cycle_hash"],
-                scorecard["candidate_id"],
-            ),
-            performance_source_evidence_id(
-                "execution_quality",
-                runtime["cycle_id"],
-                runtime["cycle_hash"],
-                scorecard["candidate_id"],
-            ),
-            performance_source_evidence_id(
-                "performance_summary",
-                runtime["cycle_id"],
-                runtime["cycle_hash"],
-                scorecard["candidate_id"],
-            ),
-        ]
         performance_ready = candidate_scorecard_from_upbit_paper_runtime_cycle(
             runtime,
             robustness_statuses=statuses,
