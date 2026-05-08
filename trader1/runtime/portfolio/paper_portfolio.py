@@ -18,6 +18,28 @@ PAPER_PORTFOLIO_SOURCES = {
     "PAPER_LEDGER_ROLLUP",
     "PAPER_LEDGER_ROLLUP_PUBLIC_MARK",
 }
+PAPER_POSITION_STRATEGY_CONTEXT_FIELDS = {
+    "entry_strategy_context_status",
+    "entry_strategy_context_source",
+    "entry_candidate_id",
+    "entry_strategy_family",
+    "entry_strategy_exit_policy_id",
+    "entry_strategy_exit_variation",
+    "entry_strategy_source_runtime_cycle_id",
+    "entry_strategy_source_candidate_hash",
+    "entry_strategy_source_exit_plan_hash",
+    "entry_strategy_context_formula",
+}
+PAPER_POSITION_STRATEGY_FAMILIES = {
+    "PULLBACK_TREND_LONG",
+    "VWAP_MEAN_REVERSION",
+    "BREAKOUT_RETEST_LONG",
+}
+PAPER_POSITION_STRATEGY_EXIT_VARIATIONS = {
+    "trailing_tp",
+    "fixed_tp",
+    "invalidation_exit",
+}
 PUBLIC_MARK_PRICE_SOURCE = "PUBLIC_REST_READ_ONLY_1M_CLOSE"
 MARK_TO_MARKET_PASS_STATUS = "PASS_PUBLIC_MARK_TO_MARKET"
 MARK_TO_MARKET_NOT_REQUIRED_STATUS = "NOT_REQUIRED_NO_POSITION"
@@ -543,6 +565,7 @@ def build_paper_portfolio_snapshot_from_fill(
     starting_cash: str | int | float | Decimal | None = None,
     source_runtime_cycle_id: str | None = None,
     source_paper_ledger_head_hash: str | None = None,
+    entry_strategy_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     currency, default_cash = PAPER_STARTING_CASH_BY_SCOPE.get((exchange, market_type), ("UNKNOWN", Decimal("0")))
     starting = _decimal(starting_cash if starting_cash is not None else default_cash)
@@ -569,20 +592,31 @@ def build_paper_portfolio_snapshot_from_fill(
     if cash_available < 0:
         blockers.append({"code": "RISK_VETO", "severity": "HIGH", "message": "paper fill would make simulated cash negative"})
     return_pct = Decimal("0") if starting <= 0 else ((equity - starting) / starting * Decimal("100"))
-    positions = [
-        {
-            "symbol": symbol,
-            "side": "LONG",
-            "quantity": _decimal_text(qty),
-            "average_entry_price": _decimal_text(fill),
-            "mark_price": _decimal_text(mark),
-            "cost_basis": _decimal_text(gross_cost + fee),
-            "market_value": _decimal_text(position_market_value),
-            "unrealized_pnl": _decimal_text(unrealized_pnl),
-            "source": "PAPER_LEDGER_SCAFFOLD",
-            "paper_only": True,
-        }
-    ]
+    position = {
+        "symbol": symbol,
+        "side": "LONG",
+        "quantity": _decimal_text(qty),
+        "average_entry_price": _decimal_text(fill),
+        "mark_price": _decimal_text(mark),
+        "cost_basis": _decimal_text(gross_cost + fee),
+        "market_value": _decimal_text(position_market_value),
+        "unrealized_pnl": _decimal_text(unrealized_pnl),
+        "source": "PAPER_LEDGER_SCAFFOLD",
+        "paper_only": True,
+    }
+    if entry_strategy_context is not None:
+        missing_context = sorted(PAPER_POSITION_STRATEGY_CONTEXT_FIELDS - set(entry_strategy_context))
+        if missing_context:
+            blockers.append(
+                {
+                    "code": "SCHEMA_IDENTITY_MISMATCH",
+                    "severity": "HIGH",
+                    "message": f"paper entry strategy context missing fields: {missing_context}",
+                }
+            )
+        else:
+            position.update({field: entry_strategy_context[field] for field in sorted(PAPER_POSITION_STRATEGY_CONTEXT_FIELDS)})
+    positions = [position]
     snapshot = {
         "schema_id": PAPER_PORTFOLIO_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -868,6 +902,35 @@ def validate_paper_portfolio_snapshot(snapshot: dict[str, Any]) -> PaperPortfoli
             return PaperPortfolioValidationResult("FAIL", "paper position cost basis is below gross entry cost", "SCHEMA_IDENTITY_MISMATCH")
         if position_unrealized != market_value - cost_basis:
             return PaperPortfolioValidationResult("FAIL", "paper position unrealized PnL arithmetic mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        context_fields_present = PAPER_POSITION_STRATEGY_CONTEXT_FIELDS.intersection(position)
+        if context_fields_present:
+            missing_context = sorted(PAPER_POSITION_STRATEGY_CONTEXT_FIELDS - set(position))
+            if missing_context:
+                return PaperPortfolioValidationResult(
+                    "FAIL",
+                    f"paper position entry strategy context missing fields: {missing_context}",
+                    "SCHEMA_IDENTITY_MISMATCH",
+                )
+            if position.get("entry_strategy_context_status") != "BOUND_TO_ENTRY_CANDIDATE":
+                return PaperPortfolioValidationResult("FAIL", "paper position entry strategy context status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+            if position.get("entry_strategy_context_source") != "PAPER_RUNTIME_ENTRY_FILL":
+                return PaperPortfolioValidationResult("FAIL", "paper position entry strategy context source is invalid", "SCHEMA_IDENTITY_MISMATCH")
+            if position.get("entry_strategy_family") not in PAPER_POSITION_STRATEGY_FAMILIES:
+                return PaperPortfolioValidationResult("FAIL", "paper position entry strategy family is unsupported", "SCHEMA_IDENTITY_MISMATCH")
+            if position.get("entry_strategy_exit_policy_id") != "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1":
+                return PaperPortfolioValidationResult("FAIL", "paper position entry exit policy id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+            if position.get("entry_strategy_exit_variation") not in PAPER_POSITION_STRATEGY_EXIT_VARIATIONS:
+                return PaperPortfolioValidationResult("FAIL", "paper position entry exit variation is unsupported", "SCHEMA_IDENTITY_MISMATCH")
+            for hash_field in ("entry_strategy_source_candidate_hash", "entry_strategy_source_exit_plan_hash"):
+                if not isinstance(position.get(hash_field), str) or len(str(position.get(hash_field))) != 64:
+                    return PaperPortfolioValidationResult("FAIL", f"paper position {hash_field} is invalid", "SCHEMA_IDENTITY_MISMATCH")
+            for text_field in (
+                "entry_candidate_id",
+                "entry_strategy_source_runtime_cycle_id",
+                "entry_strategy_context_formula",
+            ):
+                if not isinstance(position.get(text_field), str) or not position.get(text_field):
+                    return PaperPortfolioValidationResult("FAIL", f"paper position {text_field} is invalid", "SCHEMA_IDENTITY_MISMATCH")
         position_value_sum += market_value
         position_unrealized_sum += position_unrealized
     if position_market_value != position_value_sum:

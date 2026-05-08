@@ -119,6 +119,74 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(evaluation["reason_code"], "BREAKOUT_LEVEL_LOST")
         self.assertTrue(evaluation["strategy_exit_condition_passed"])
 
+    def test_existing_position_uses_entry_strategy_context_for_exit_router(self):
+        market_data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        mark_price = market_data["candles"][-1]["close"]
+        average_entry = Decimal("990000")
+        quantity = Decimal("7000") / average_entry
+        current_portfolio = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="mvp4_upbit_paper_runtime",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity=str(quantity),
+            fill_price=str(average_entry),
+            mark_price=mark_price,
+            fee_amount="3.5",
+            starting_cash="1000000",
+            source_runtime_cycle_id="previous-paper-cycle-vwap-entry",
+            source_paper_ledger_head_hash="C" * 64,
+            entry_strategy_context={
+                "entry_strategy_context_status": "BOUND_TO_ENTRY_CANDIDATE",
+                "entry_strategy_context_source": "PAPER_RUNTIME_ENTRY_FILL",
+                "entry_candidate_id": "KRW-BTC-vwap-mean-reversion",
+                "entry_strategy_family": "VWAP_MEAN_REVERSION",
+                "entry_strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+                "entry_strategy_exit_variation": "fixed_tp",
+                "entry_strategy_source_runtime_cycle_id": "previous-paper-cycle-vwap-entry",
+                "entry_strategy_source_candidate_hash": "C" * 64,
+                "entry_strategy_source_exit_plan_hash": "D" * 64,
+                "entry_strategy_context_formula": "bind exit policy to entry strategy at fill time",
+            },
+        )
+        report = build_upbit_paper_runtime_cycle_report(
+            cycle_id="runtime-cycle-vwap-context-exit",
+            symbol="KRW-BTC",
+            market_data=market_data,
+            paper_cash_available=current_portfolio["cash_available"],
+            paper_equity=current_portfolio["equity"],
+            paper_position_market_value=current_portfolio["position_market_value"],
+            current_paper_portfolio_snapshot=current_portfolio,
+        )
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["final_decision"], "EXIT_POSITION")
+        lifecycle = report["position_management_decision"]
+        self.assertEqual(lifecycle["entry_strategy_context_status"], "BOUND_TO_POSITION_ENTRY")
+        self.assertEqual(lifecycle["entry_candidate_id"], "KRW-BTC-vwap-mean-reversion")
+        self.assertEqual(lifecycle["entry_strategy_family"], "VWAP_MEAN_REVERSION")
+        self.assertEqual(lifecycle["entry_strategy_exit_variation"], "fixed_tp")
+        self.assertFalse(lifecycle["entry_strategy_fallback_used"])
+        self.assertNotEqual(lifecycle["selected_candidate_id"], lifecycle["entry_candidate_id"])
+        self.assertEqual(report["exit_plan"]["source_candidate_id"], "KRW-BTC-vwap-mean-reversion")
+        self.assertEqual(report["exit_plan"]["strategy_family"], "VWAP_MEAN_REVERSION")
+        evaluation = lifecycle["position_exit_evaluation"]
+        self.assertEqual(evaluation["strategy_family"], "VWAP_MEAN_REVERSION")
+        self.assertEqual(evaluation["exit_variation"], "fixed_tp")
+        self.assertEqual(evaluation["strategy_exit_reason_code"], "VWAP_REVERSION_COMPLETE")
+        self.assertEqual(evaluation["reason_code"], "VWAP_REVERSION_COMPLETE")
+        self.assertTrue(evaluation["strategy_exit_condition_passed"])
+        self.assertEqual(report["paper_fill"]["side"], "SELL")
+        self.assertFalse(report["paper_fill"]["order_adapter_called"])
+        self.assertFalse(report["paper_fill"]["private_endpoint_called"])
+        self.assertFalse(report["live_order_allowed"])
+
     def test_positive_net_ev_cycle_connects_fill_ledger_portfolio_and_summary_without_live_permission(self):
         report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-positive")
         result = validate_upbit_paper_runtime_cycle_report(report)
@@ -145,6 +213,11 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["paper_portfolio_snapshot"]["source_runtime_cycle_id"], report["cycle_id"])
         self.assertEqual(report["paper_portfolio_snapshot"]["source_paper_ledger_head_hash"], report["paper_ledger_head_hash"])
         self.assertEqual(report["paper_portfolio_snapshot"]["positions"][0]["symbol"], "KRW-BTC")
+        self.assertEqual(report["paper_portfolio_snapshot"]["positions"][0]["entry_candidate_id"], report["selected_candidate"]["candidate_id"])
+        self.assertEqual(
+            report["paper_portfolio_snapshot"]["positions"][0]["entry_strategy_exit_policy_id"],
+            "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+        )
         self.assertEqual(report["risk_state"]["risk_state"], "normal")
         self.assertTrue(report["risk_state"]["new_entry_allowed"])
         self.assertEqual(report["position_management_decision"]["decision"], "ENTER_LONG_WITH_ATTACHED_EXIT_PLAN")

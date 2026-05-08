@@ -127,6 +127,54 @@ class PaperPortfolioTest(unittest.TestCase):
         self.assertEqual(snapshot["equity"], "999990")
         self.assertFalse(snapshot["live_order_allowed"])
 
+    def test_paper_portfolio_persists_entry_strategy_context_through_partial_sell(self):
+        entry_context = {
+            "entry_strategy_context_status": "BOUND_TO_ENTRY_CANDIDATE",
+            "entry_strategy_context_source": "PAPER_RUNTIME_ENTRY_FILL",
+            "entry_candidate_id": "KRW-BTC-vwap-mean-reversion",
+            "entry_strategy_family": "VWAP_MEAN_REVERSION",
+            "entry_strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+            "entry_strategy_exit_variation": "fixed_tp",
+            "entry_strategy_source_runtime_cycle_id": "portfolio-strategy-entry-cycle",
+            "entry_strategy_source_candidate_hash": "A" * 64,
+            "entry_strategy_source_exit_plan_hash": "B" * 64,
+            "entry_strategy_context_formula": "bind exit policy to entry strategy at fill time",
+        }
+        entry = build_paper_portfolio_snapshot_from_fill(
+            exchange="UPBIT",
+            market_type="KRW_SPOT",
+            session_id="test-paper-portfolio-strategy-context",
+            symbol="KRW-BTC",
+            side="BUY",
+            quantity="0.01",
+            fill_price="1000000",
+            mark_price="1000000",
+            fee_amount="5",
+            source_runtime_cycle_id="portfolio-strategy-entry-cycle",
+            source_paper_ledger_head_hash="A" * 64,
+            entry_strategy_context=entry_context,
+        )
+        entry_result = validate_paper_portfolio_snapshot(entry)
+        self.assertEqual(entry_result.status, "PASS")
+        self.assertEqual(entry["positions"][0]["entry_candidate_id"], "KRW-BTC-vwap-mean-reversion")
+        self.assertEqual(entry["positions"][0]["entry_strategy_family"], "VWAP_MEAN_REVERSION")
+
+        reduced = build_paper_portfolio_snapshot_after_sell_fill(
+            current_snapshot=entry,
+            session_id="test-paper-portfolio-strategy-context",
+            symbol="KRW-BTC",
+            quantity="0.004",
+            fill_price="1100000",
+            fee_amount="2",
+            source_runtime_cycle_id="portfolio-strategy-reduce-cycle",
+            source_paper_ledger_head_hash="B" * 64,
+        )
+        reduced_result = validate_paper_portfolio_snapshot(reduced)
+        self.assertEqual(reduced_result.status, "PASS")
+        self.assertEqual(reduced["positions"][0]["entry_candidate_id"], "KRW-BTC-vwap-mean-reversion")
+        self.assertEqual(reduced["positions"][0]["entry_strategy_exit_variation"], "fixed_tp")
+        self.assertFalse(reduced["live_order_allowed"])
+
     def test_upbit_paper_portfolio_reduces_long_position_with_realized_pnl_from_sell_fill(self):
         entry = build_paper_portfolio_snapshot_from_fill(
             exchange="UPBIT",

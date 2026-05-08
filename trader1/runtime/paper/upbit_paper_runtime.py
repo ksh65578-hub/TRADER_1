@@ -796,6 +796,97 @@ def _build_runtime_exit_plan(
     return plan
 
 
+def _build_entry_strategy_context(
+    *,
+    cycle_id: str,
+    selected_candidate: dict[str, Any],
+    exit_plan: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "entry_strategy_context_status": "BOUND_TO_ENTRY_CANDIDATE",
+        "entry_strategy_context_source": "PAPER_RUNTIME_ENTRY_FILL",
+        "entry_candidate_id": str(selected_candidate.get("candidate_id") or ""),
+        "entry_strategy_family": str(selected_candidate.get("strategy_family") or ""),
+        "entry_strategy_exit_policy_id": STRATEGY_EXIT_POLICY_ID,
+        "entry_strategy_exit_variation": str(exit_plan.get("exit_variation") or ""),
+        "entry_strategy_source_runtime_cycle_id": cycle_id,
+        "entry_strategy_source_candidate_hash": _hash_payload(selected_candidate),
+        "entry_strategy_source_exit_plan_hash": _hash_payload(exit_plan),
+        "entry_strategy_context_formula": (
+            "Bind PAPER position exits to the candidate strategy active at entry fill; "
+            "existing-position management uses this persisted context before current candidate fallback."
+        ),
+    }
+
+
+def _position_entry_strategy_candidate(
+    *,
+    position: dict[str, Any] | None,
+    candidates: list[dict[str, Any]],
+    fallback_candidate: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    if not isinstance(position, dict):
+        return fallback_candidate, {
+            "entry_strategy_context_status": "SELECTED_CANDIDATE_CONTEXT",
+            "entry_strategy_context_source": "NO_MANAGED_POSITION",
+            "entry_candidate_id": fallback_candidate.get("candidate_id"),
+            "entry_strategy_family": fallback_candidate.get("strategy_family"),
+            "entry_strategy_exit_variation": None,
+            "entry_strategy_current_candidate_match": True,
+            "entry_strategy_fallback_used": False,
+        }
+    entry_candidate_id = position.get("entry_candidate_id")
+    entry_strategy_family = position.get("entry_strategy_family")
+    if (
+        position.get("entry_strategy_context_status") == "BOUND_TO_ENTRY_CANDIDATE"
+        and isinstance(entry_candidate_id, str)
+        and entry_candidate_id
+        and entry_strategy_family in {"PULLBACK_TREND_LONG", "VWAP_MEAN_REVERSION", "BREAKOUT_RETEST_LONG"}
+    ):
+        matched_candidate = next(
+            (
+                candidate
+                for candidate in candidates
+                if candidate.get("candidate_id") == entry_candidate_id
+                and candidate.get("symbol") == position.get("symbol")
+                and candidate.get("strategy_family") == entry_strategy_family
+            ),
+            None,
+        )
+        candidate = matched_candidate or {
+            "candidate_id": entry_candidate_id,
+            "symbol": position.get("symbol"),
+            "strategy_family": entry_strategy_family,
+            "decision": "NO_TRADE",
+            "no_trade_reason": "ENTRY_STRATEGY_CONTEXT_ONLY",
+            "recent_failure_feedback_kind": "NONE",
+            "recent_failure_cooldown_status": "CLEAR",
+            "recent_failure_cooldown_cycles_remaining": 0,
+            "recent_failure_penalty_bps": "0",
+            "recent_failure_reason_code": None,
+            "symbol_selection_score": "0",
+            "net_ev_after_cost_bps": "0",
+        }
+        return candidate, {
+            "entry_strategy_context_status": "BOUND_TO_POSITION_ENTRY",
+            "entry_strategy_context_source": position.get("entry_strategy_context_source"),
+            "entry_candidate_id": entry_candidate_id,
+            "entry_strategy_family": entry_strategy_family,
+            "entry_strategy_exit_variation": position.get("entry_strategy_exit_variation"),
+            "entry_strategy_current_candidate_match": entry_candidate_id == fallback_candidate.get("candidate_id"),
+            "entry_strategy_fallback_used": matched_candidate is None,
+        }
+    return fallback_candidate, {
+        "entry_strategy_context_status": "FALLBACK_TO_CURRENT_SELECTED_CANDIDATE",
+        "entry_strategy_context_source": "POSITION_ENTRY_CONTEXT_MISSING",
+        "entry_candidate_id": fallback_candidate.get("candidate_id"),
+        "entry_strategy_family": fallback_candidate.get("strategy_family"),
+        "entry_strategy_exit_variation": None,
+        "entry_strategy_current_candidate_match": True,
+        "entry_strategy_fallback_used": True,
+    }
+
+
 def _evaluate_existing_position_exit(
     *,
     position: dict[str, Any] | None,
@@ -2590,8 +2681,13 @@ def build_upbit_paper_runtime_cycle_report(
         no_trade_reasons = order_blocker_codes(blockers)
         entry_reasons = []
 
+    exit_strategy_candidate, exit_strategy_context = _position_entry_strategy_candidate(
+        position=managed_position,
+        candidates=candidates,
+        fallback_candidate=selected,
+    )
     exit_plan = _build_runtime_exit_plan(
-        selected_candidate=selected,
+        selected_candidate=exit_strategy_candidate,
         features=features,
         entry_price_override=managed_position.get("average_entry_price") if isinstance(managed_position, dict) else None,
     )
@@ -2599,7 +2695,7 @@ def build_upbit_paper_runtime_cycle_report(
         position=managed_position,
         features=features,
         exit_plan=exit_plan,
-        managed_candidate=selected if isinstance(managed_position, dict) else None,
+        managed_candidate=exit_strategy_candidate if isinstance(managed_position, dict) else None,
         rotation_candidate=rotation_candidate,
     )
 
@@ -2758,6 +2854,13 @@ def build_upbit_paper_runtime_cycle_report(
         "source": "PAPER_RUNTIME_POSITION_LIFECYCLE_DECISION",
         "selected_symbol": selected_symbol,
         "selected_candidate_id": selected.get("candidate_id"),
+        "entry_strategy_context_status": exit_strategy_context.get("entry_strategy_context_status"),
+        "entry_strategy_context_source": exit_strategy_context.get("entry_strategy_context_source"),
+        "entry_candidate_id": exit_strategy_context.get("entry_candidate_id"),
+        "entry_strategy_family": exit_strategy_context.get("entry_strategy_family"),
+        "entry_strategy_exit_variation": exit_strategy_context.get("entry_strategy_exit_variation"),
+        "entry_strategy_current_candidate_match": exit_strategy_context.get("entry_strategy_current_candidate_match"),
+        "entry_strategy_fallback_used": exit_strategy_context.get("entry_strategy_fallback_used"),
         "risk_state": risk_state.get("risk_state"),
         "decision": (
             "ENTER_LONG_WITH_ATTACHED_EXIT_PLAN"
@@ -2846,6 +2949,11 @@ def build_upbit_paper_runtime_cycle_report(
             starting_cash=starting_cash,
             source_runtime_cycle_id=cycle_id,
             source_paper_ledger_head_hash=ledger_head_hash,
+            entry_strategy_context=_build_entry_strategy_context(
+                cycle_id=cycle_id,
+                selected_candidate=selected,
+                exit_plan=exit_plan,
+            ),
         )
     elif final_decision in {"EXIT_POSITION", "REDUCE_POSITION"} and isinstance(managed_position, dict) and isinstance(broker_execution, dict):
         sell_quantity = _decimal(broker_execution["filled_quantity"])
@@ -3460,10 +3568,26 @@ def validate_upbit_paper_runtime_cycle_report(
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle decision does not match final decision", "SCHEMA_IDENTITY_MISMATCH")
     if lifecycle.get("live_order_ready") or lifecycle.get("live_order_allowed") or lifecycle.get("can_live_trade") or lifecycle.get("scale_up_allowed") or lifecycle.get("can_submit_order"):
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "position lifecycle attempted live/order permission", "LIVE_FINAL_GUARD_FAILED")
+    entry_context_status = lifecycle.get("entry_strategy_context_status")
+    if entry_context_status not in {
+        "SELECTED_CANDIDATE_CONTEXT",
+        "BOUND_TO_POSITION_ENTRY",
+        "FALLBACK_TO_CURRENT_SELECTED_CANDIDATE",
+    }:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry strategy context status is invalid", "SCHEMA_IDENTITY_MISMATCH")
+    if lifecycle.get("entry_candidate_id") != exit_plan.get("source_candidate_id"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry candidate is not the exit plan source", "SCHEMA_IDENTITY_MISMATCH")
+    if lifecycle.get("entry_strategy_family") != exit_plan.get("strategy_family"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry strategy family is not the exit plan family", "SCHEMA_IDENTITY_MISMATCH")
+    if lifecycle.get("entry_strategy_exit_variation") is not None and lifecycle.get("entry_strategy_exit_variation") != exit_plan.get("exit_variation"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle entry exit variation drifted", "SCHEMA_IDENTITY_MISMATCH")
+    if entry_context_status == "BOUND_TO_POSITION_ENTRY" and final_decision == "ENTER_LONG":
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "new PAPER entry cannot claim existing position entry context", "SCHEMA_IDENTITY_MISMATCH")
     if require_position_rotation_fields:
+        rotation_selected = candidates_by_id.get(lifecycle.get("entry_candidate_id"), selected)
         rotation_result = _validate_position_rotation_context(
             lifecycle,
-            selected=selected,
+            selected=rotation_selected,
             candidates_by_id=candidates_by_id,
             final_decision=str(final_decision),
         )

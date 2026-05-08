@@ -157,6 +157,51 @@
         "price_basis_normalized_average_entry_price": {
           "$ref": "#/$defs/decimal_string"
         },
+        "entry_strategy_context_status": {
+          "const": "BOUND_TO_ENTRY_CANDIDATE"
+        },
+        "entry_strategy_context_source": {
+          "const": "PAPER_RUNTIME_ENTRY_FILL"
+        },
+        "entry_candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entry_strategy_family": {
+          "enum": [
+            "PULLBACK_TREND_LONG",
+            "VWAP_MEAN_REVERSION",
+            "BREAKOUT_RETEST_LONG"
+          ]
+        },
+        "entry_strategy_exit_policy_id": {
+          "const": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1"
+        },
+        "entry_strategy_exit_variation": {
+          "enum": [
+            "trailing_tp",
+            "fixed_tp",
+            "invalidation_exit"
+          ]
+        },
+        "entry_strategy_source_runtime_cycle_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entry_strategy_source_candidate_hash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "entry_strategy_source_exit_plan_hash": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "entry_strategy_context_formula": {
+          "type": "string",
+          "minLength": 1
+        },
         "paper_only": {
           "const": true
         }
