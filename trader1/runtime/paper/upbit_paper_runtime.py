@@ -1883,18 +1883,25 @@ def _simulate_paper_broker_execution(
     risk_reducing_partial_exit_allowed = (
         side == "SELL"
         and fill_ratio > 0
-        and estimated_filled_notional >= UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL
     )
-    if (
+    min_fill_notional_reject = (
+        side == "BUY"
+        and estimated_filled_notional < UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL
+    )
+    depth_or_impact_reject = (
         mark_price <= 0
         or requested_notional <= 0
         or requested_quantity <= 0
         or proxy.get("liquidity_status") == "BLOCKED"
         or (impact_bps > PAPER_BROKER_MAX_IMPACT_BPS and not risk_reducing_partial_exit_allowed)
         or (fill_ratio < PAPER_BROKER_MIN_FILL_RATIO and not risk_reducing_partial_exit_allowed)
+    )
+    if (
+        depth_or_impact_reject
+        or min_fill_notional_reject
     ):
         lifecycle_state = "REJECTED"
-        reject_reason = "PAPER_DEPTH_OR_IMPACT_REJECT"
+        reject_reason = "PAPER_MIN_FILL_NOTIONAL_REJECT" if min_fill_notional_reject else "PAPER_DEPTH_OR_IMPACT_REJECT"
         fill_ratio = Decimal("0")
     elif latency_bps > PAPER_BROKER_MAX_LATENCY_BPS:
         lifecycle_state = "CANCELLED"
