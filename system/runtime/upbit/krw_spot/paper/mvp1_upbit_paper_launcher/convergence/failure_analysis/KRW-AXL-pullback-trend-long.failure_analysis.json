@@ -1,5 +1,5 @@
 {
-  "audit_hash": "C71C255CD57070D487CBC98443AC58F8946AB1D473560549EEE7523025A96B7C",
+  "audit_hash": "655574B940CB785D16046A8C2131FD9BD9063FCA5F084824484ECE895C08AAD4",
   "audit_prev_hash": null,
   "authority": {
     "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
@@ -21,7 +21,7 @@
   "failure_analysis_id": "failure_analysis:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long:1",
   "failure_event_id": "scorecard_failure:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long",
   "failure_status": "ANALYZED",
-  "generated_at_utc": "2026-05-08T08:50:48Z",
+  "generated_at_utc": "2026-05-08T09:05:29Z",
   "live_affecting": true,
   "live_order_allowed": false,
   "live_order_ready": false,
@@ -49,10 +49,10 @@
   ],
   "session_id": "mvp1_upbit_paper_launcher",
   "source_evidence_ids": [
-    "candidate_scorecard:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long:53CB68F82298CDA0CA12649D6A3E1C5AAC14218FE87C3B95AE67C48F4E077D0F",
-    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
-    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
-    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
+    "candidate_scorecard:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long:0D0F981A1399ECC919863C1DC91C60094CF39893CAB0F8D6D2C97E12A81F1E86",
+    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
+    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
+    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
     "upbit_paper_runtime_cycle:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00"
   ],
   "strategy_build_id": "upbit_paper_runtime_cycle_v1",

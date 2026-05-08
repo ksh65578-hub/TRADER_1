@@ -399,6 +399,15 @@ def runtime_collection_profile_evidence(profile: dict[str, Any] | None) -> dict[
 def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any], overfit: dict[str, Any]) -> None:
     thresholds = rollup["promotion_threshold_evidence"]
     missing_codes = set(thresholds.get("missing_threshold_codes") or [])
+
+    def bind_status(field: str, blocker_code: str, status: Any, passed: bool) -> None:
+        normalized = str(status or "UNTESTED")
+        thresholds[field] = normalized
+        if passed:
+            missing_codes.discard(blocker_code)
+        else:
+            missing_codes.add(blocker_code)
+
     if overfit.get("oos_status") == "PASS" and overfit.get("walk_forward_status") == "PASS":
         thresholds["walk_forward_or_oos_coverage_pct"] = 100
         missing_codes.discard("WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN")
@@ -416,6 +425,8 @@ def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any
     thresholds["paper_closed_trades"] = max(safe_int(thresholds.get("paper_closed_trades")), paper_closed_trades)
     if scorecard.get("closed_trade_status") == "PASS" and paper_closed_trades >= min_paper_closed_trades:
         missing_codes.discard("PAPER_CLOSED_TRADES_BELOW_MIN")
+    else:
+        missing_codes.add("PAPER_CLOSED_TRADES_BELOW_MIN")
 
     strategy_exit_policy_samples = safe_int(scorecard.get("strategy_exit_policy_sample_count"))
     min_strategy_exit_policy_samples = safe_int(
@@ -423,54 +434,72 @@ def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any
         default=min_paper_closed_trades,
     )
     strategy_exit_policy_mismatches = safe_int(scorecard.get("strategy_exit_policy_mismatch_count"))
-    if (
+    strategy_exit_passed = (
         scorecard.get("strategy_exit_policy_status") == "PASS"
         and strategy_exit_policy_samples >= min_strategy_exit_policy_samples
         and strategy_exit_policy_mismatches == 0
-    ):
-        thresholds["strategy_exit_policy_status"] = "PASS"
-        missing_codes.discard("STRATEGY_EXIT_POLICY_NOT_PASS")
+    )
+    bind_status(
+        "strategy_exit_policy_status",
+        "STRATEGY_EXIT_POLICY_NOT_PASS",
+        scorecard.get("strategy_exit_policy_status"),
+        strategy_exit_passed,
+    )
 
     regime_outcome_samples = safe_int(scorecard.get("regime_outcome_sample_count"))
     min_regime_outcome_samples = safe_int(scorecard.get("min_regime_outcome_sample_count"), default=4)
     regime_outcome_coverage = safe_int(scorecard.get("regime_outcome_covered_count"))
     min_regime_outcome_coverage = safe_int(scorecard.get("min_regime_outcome_covered_count"), default=4)
     regime_outcome_mismatches = safe_int(scorecard.get("regime_outcome_mismatch_count"))
-    if (
+    regime_outcome_passed = (
         scorecard.get("regime_outcome_status") == "PASS"
         and regime_outcome_samples >= min_regime_outcome_samples
         and regime_outcome_coverage >= min_regime_outcome_coverage
         and regime_outcome_mismatches == 0
-    ):
-        thresholds["regime_outcome_status"] = "PASS"
-        missing_codes.discard("REGIME_OUTCOME_NOT_PASS")
+    )
+    bind_status(
+        "regime_outcome_status",
+        "REGIME_OUTCOME_NOT_PASS",
+        scorecard.get("regime_outcome_status"),
+        regime_outcome_passed,
+    )
 
     profit_factor = safe_float(scorecard.get("profit_factor"))
     min_profit_factor = safe_float(scorecard.get("min_profit_factor"), 1.0)
-    if scorecard.get("profit_factor_status") == "PASS" and profit_factor >= min_profit_factor:
-        thresholds["profit_factor_status"] = "PASS"
-        missing_codes.discard("PROFIT_FACTOR_NOT_PASS")
+    bind_status(
+        "profit_factor_status",
+        "PROFIT_FACTOR_NOT_PASS",
+        scorecard.get("profit_factor_status"),
+        scorecard.get("profit_factor_status") == "PASS" and profit_factor >= min_profit_factor,
+    )
 
     max_drawdown = safe_float(scorecard.get("max_drawdown_pct"), 100.0)
     max_allowed_drawdown = safe_float(scorecard.get("max_allowed_drawdown_pct"))
-    if scorecard.get("max_drawdown_status") == "PASS" and max_drawdown <= max_allowed_drawdown:
-        thresholds["max_drawdown_status"] = "PASS"
-        missing_codes.discard("MAX_DRAWDOWN_NOT_PASS")
+    bind_status(
+        "max_drawdown_status",
+        "MAX_DRAWDOWN_NOT_PASS",
+        scorecard.get("max_drawdown_status"),
+        scorecard.get("max_drawdown_status") == "PASS" and max_drawdown <= max_allowed_drawdown,
+    )
 
     fill_quality = safe_float(scorecard.get("fill_quality_score"))
     min_fill_quality = safe_float(scorecard.get("min_fill_quality_score"), 1.0)
-    if scorecard.get("fill_quality_status") == "PASS" and fill_quality >= min_fill_quality:
-        thresholds["fill_quality_status"] = "PASS"
-        missing_codes.discard("FILL_QUALITY_NOT_PASS")
+    bind_status(
+        "fill_quality_status",
+        "FILL_QUALITY_NOT_PASS",
+        scorecard.get("fill_quality_status"),
+        scorecard.get("fill_quality_status") == "PASS" and fill_quality >= min_fill_quality,
+    )
 
     execution_cost_delta = safe_float(scorecard.get("execution_cost_delta_bps"), 999.0)
     max_execution_cost_delta = safe_float(scorecard.get("max_allowed_execution_cost_delta_bps"))
-    if (
+    bind_status(
+        "execution_cost_comparison_status",
+        "EXECUTION_COST_COMPARISON_NOT_PASS",
+        scorecard.get("execution_cost_comparison_status"),
         scorecard.get("execution_cost_comparison_status") == "PASS"
-        and execution_cost_delta <= max_execution_cost_delta
-    ):
-        thresholds["execution_cost_comparison_status"] = "PASS"
-        missing_codes.discard("EXECUTION_COST_COMPARISON_NOT_PASS")
+        and execution_cost_delta <= max_execution_cost_delta,
+    )
 
     thresholds["missing_threshold_codes"] = sorted(missing_codes)
     thresholds["status"] = "BLOCKED_FOR_THRESHOLD_EVIDENCE"
