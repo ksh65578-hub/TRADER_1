@@ -930,39 +930,41 @@ def _build_runtime_exit_plan(
     previous_high = max(_decimal(features.get("previous_high")), Decimal("0"))
     vwap_reversion_target: str | None = None
     breakout_invalidation_level: str | None = None
-    if strategy_family == "VWAP_MEAN_REVERSION" and not trend_exhaustion_active:
+    if strategy_family == "VWAP_MEAN_REVERSION":
         exit_variation = VWAP_REVERSION_EXIT_VARIATION
-        hard_stop_atr = Decimal("0.9")
-        tp1_atr = VWAP_REVERSION_FIXED_TP_ATR_MULTIPLIER
-        tp2_atr = Decimal("1.4")
-        trailing_start_atr = Decimal("2.2")
-        trailing_distance_atr = Decimal("1.2")
+        hard_stop_atr = Decimal("0.75") if trend_exhaustion_active else Decimal("0.9")
+        tp1_atr = Decimal("0.65") if trend_exhaustion_active else VWAP_REVERSION_FIXED_TP_ATR_MULTIPLIER
+        tp2_atr = Decimal("1.0") if trend_exhaustion_active else Decimal("1.4")
+        trailing_start_atr = Decimal("1.0") if trend_exhaustion_active else Decimal("2.2")
+        trailing_distance_atr = Decimal("0.50") if trend_exhaustion_active else Decimal("1.2")
         partial_take_profit_ratio = Decimal("0.50")
-        time_stop_candles = 6
+        time_stop_candles = 4 if trend_exhaustion_active else 6
         vwap_target = vwap if vwap > entry_price else entry_price + VWAP_REVERSION_FIXED_TP_ATR_MULTIPLIER * atr_proxy
         vwap_reversion_target = _decimal_text(vwap_target)
         strategy_exit_formula = (
             "VWAP_REVERSION: hard_stop first, then RISK_OFF/range-break invalidation, "
-            "full exit on VWAP target or fixed TP; no partial hold-through after mean reversion completes"
+            "full exit on VWAP target or fixed TP; trend exhaustion tightens stop, trailing, and time stop "
+            "without changing the VWAP exit policy"
         )
         strategy_exit_acceptance_condition = (
             "mark_price>=vwap_reversion_target or range breaks against position; otherwise hold only inside RANGE"
         )
-    elif strategy_family == "BREAKOUT_RETEST_LONG" and not trend_exhaustion_active:
+    elif strategy_family == "BREAKOUT_RETEST_LONG":
         exit_variation = BREAKOUT_RETEST_EXIT_VARIATION
-        hard_stop_atr = Decimal("1.0")
-        tp1_atr = Decimal("1.4")
-        tp2_atr = Decimal("3.0")
-        trailing_start_atr = Decimal("1.2")
-        trailing_distance_atr = Decimal("0.8")
+        hard_stop_atr = Decimal("0.8") if trend_exhaustion_active else Decimal("1.0")
+        tp1_atr = Decimal("1.0") if trend_exhaustion_active else Decimal("1.4")
+        tp2_atr = Decimal("1.8") if trend_exhaustion_active else Decimal("3.0")
+        trailing_start_atr = Decimal("0.9") if trend_exhaustion_active else Decimal("1.2")
+        trailing_distance_atr = Decimal("0.55") if trend_exhaustion_active else Decimal("0.8")
         partial_take_profit_ratio = Decimal("0.35")
-        time_stop_candles = 6
+        time_stop_candles = 4 if trend_exhaustion_active else 6
         breakout_reference = previous_high if previous_high > 0 else entry_price
         breakout_reference = min(entry_price, breakout_reference)
         breakout_invalidation_level = _decimal_text(breakout_reference - BREAKOUT_INVALIDATION_BUFFER_ATR * atr_proxy)
         strategy_exit_formula = (
             "BREAKOUT_RETEST: hard_stop first, then RISK_OFF, breakout level lost, false breakout invalidation, "
-            "volatility exhaustion invalidation, trailing, and staged TP"
+            "volatility exhaustion invalidation, trailing, and staged TP; trend exhaustion tightens stop, "
+            "trailing, and time stop without changing the breakout exit policy"
         )
         strategy_exit_acceptance_condition = (
             "hold only while breakout reference holds and range_breakout remains non-negative after retest"
