@@ -6,7 +6,10 @@ from trader1.core.sizing.position_sizing import sizing_decision_hash
 from trader1.runtime.paper.upbit_paper_runtime import (
     _build_runtime_exit_plan,
     _evaluate_existing_position_exit,
+    _feature_snapshot,
+    _simulate_paper_broker_execution,
     _strategy_entry_policy_evaluation,
+    _validate_paper_broker_fill,
     build_upbit_paper_runtime_cycle_report,
     upbit_paper_runtime_cycle_hash,
     validate_upbit_paper_runtime_cycle_report,
@@ -305,6 +308,44 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(report["paper_portfolio_snapshot"]["positions"][0]["quantity"], report["paper_fill"]["filled_quantity"])
         self.assertFalse(report["paper_fill"]["live_order_allowed"])
         self.assertFalse(report["live_order_allowed"])
+
+    def test_paper_broker_uses_passive_maker_when_queue_and_spread_allow(self):
+        data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        features = _feature_snapshot(data)
+        features = {
+            **features,
+            "volatility_pct": "0.40",
+            "spread_bps": "1.00",
+            "liquidity_status": "PASS",
+        }
+        mark_price = Decimal(features["last_price"])
+        fill = _simulate_paper_broker_execution(
+            cycle_id="runtime-cycle-maker-paper-fill",
+            symbol="KRW-BTC",
+            side="BUY",
+            requested_notional=Decimal("5000"),
+            requested_quantity=Decimal("5000") / mark_price,
+            mark_price=mark_price,
+            features=features,
+            fee_rate=Decimal("0.0005"),
+        )
+        result = _validate_paper_broker_fill(fill, features=features, expected_side="BUY")
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(fill["maker_taker"], "MAKER")
+        self.assertEqual(fill["order_type"], "POST_ONLY_LIMIT_PAPER")
+        self.assertEqual(fill["time_in_force"], "GTT_PAPER")
+        self.assertLessEqual(float(fill["effective_spread_bps"]), 0)
+        self.assertGreater(float(fill["queue_fill_probability"]), 0.70)
+        self.assertGreater(float(fill["queue_wait_ms"]), 0)
+        self.assertTrue(fill["reservation_released"])
+        self.assertFalse(fill["live_order_allowed"])
+        self.assertFalse(fill["order_adapter_called"])
+        self.assertFalse(fill["private_endpoint_called"])
 
     def test_adaptive_paper_broker_allows_risk_reducing_partial_exit_without_live_permission(self):
         weak_btc = build_upbit_public_candle_fixture(

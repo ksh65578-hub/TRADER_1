@@ -47,6 +47,10 @@ PAPER_RUNTIME_COST_MODEL_SOURCE = "PAPER_RUNTIME_ADAPTIVE_PUBLIC_L2_PROXY_COST_M
 PAPER_BROKER_MIN_FILL_RATIO = Decimal("0.35")
 PAPER_BROKER_MAX_IMPACT_BPS = Decimal("120")
 PAPER_BROKER_MAX_LATENCY_BPS = Decimal("45")
+PAPER_BROKER_MAKER_MAX_VOLATILITY_PCT = Decimal("1.50")
+PAPER_BROKER_MAKER_MAX_SPREAD_BPS = Decimal("2.00")
+PAPER_BROKER_MAKER_MAX_TOP_DEPTH_FRACTION = Decimal("0.35")
+PAPER_BROKER_MAKER_MIN_QUEUE_FILL_PROBABILITY = Decimal("0.70")
 UPBIT_KRW_PAPER_MIN_ENTRY_NOTIONAL = Decimal("5000")
 MIN_SYMBOL_SELECTION_SCORE = Decimal("0.60")
 MIN_ENTRY_NET_EV_BPS = Decimal("5")
@@ -1827,8 +1831,28 @@ def _simulate_paper_broker_execution(
     adaptive_slippage_bps = max(Decimal("1.50"), volatility_pct * Decimal("0.80"))
     latency_bps = min(Decimal("60"), Decimal("0.75") + (volatility_pct * Decimal("0.45")) + (impact_bps * Decimal("0.10")))
     latency_ms = Decimal("250") + (volatility_pct * Decimal("80")) + (impact_bps * Decimal("5"))
-    adverse_price_bps = (spread_bps / Decimal("2")) + adaptive_slippage_bps + impact_bps + latency_bps
-    if requested_notional <= top_depth * Decimal("0.85"):
+    maker_candidate = (
+        side == "BUY"
+        and proxy.get("liquidity_status") != "BLOCKED"
+        and volatility_pct <= PAPER_BROKER_MAKER_MAX_VOLATILITY_PCT
+        and spread_bps <= PAPER_BROKER_MAKER_MAX_SPREAD_BPS
+        and requested_notional <= top_depth * PAPER_BROKER_MAKER_MAX_TOP_DEPTH_FRACTION
+        and queue_fill_probability >= PAPER_BROKER_MAKER_MIN_QUEUE_FILL_PROBABILITY
+    )
+    maker_taker = "MAKER" if maker_candidate else "TAKER"
+    order_type = "POST_ONLY_LIMIT_PAPER" if maker_candidate else "MARKETABLE_LIMIT_PAPER"
+    time_in_force = "GTT_PAPER" if maker_candidate else "IOC_PAPER"
+    queue_wait_ms = (
+        Decimal("750") + (queue_ahead / max(top_depth, Decimal("1")) * Decimal("1500")) + (volatility_pct * Decimal("80"))
+        if maker_candidate
+        else Decimal("0")
+    )
+    effective_spread_bps = -(spread_bps / Decimal("2")) if maker_candidate else spread_bps / Decimal("2")
+    adverse_price_bps = effective_spread_bps + adaptive_slippage_bps + impact_bps + latency_bps
+    if maker_candidate:
+        maker_queue_decay = _clamp_decimal(Decimal("1") - (volatility_pct / Decimal("6")), low=Decimal("0.55"), high=Decimal("1"))
+        fill_ratio = _clamp_decimal(queue_fill_probability * maker_queue_decay, low=Decimal("0"), high=Decimal("1"))
+    elif requested_notional <= top_depth * Decimal("0.85"):
         fill_ratio = Decimal("1")
     else:
         available = top_depth * (Decimal("0.70") + (queue_fill_probability * Decimal("0.20")))
@@ -1881,9 +1905,14 @@ def _simulate_paper_broker_execution(
         "client_order_id": hashlib.sha256(f"{cycle_id}:{symbol}:{side}:adaptive-paper-fill".encode("utf-8")).hexdigest()[:24].upper(),
         "symbol": symbol,
         "side": side,
-        "order_type": "MARKETABLE_LIMIT_PAPER",
-        "time_in_force": "IOC_PAPER",
-        "maker_taker": "TAKER",
+        "order_type": order_type,
+        "time_in_force": time_in_force,
+        "maker_taker": maker_taker,
+        "maker_taker_decision_formula": (
+            "MAKER only for BUY when volatility<=1.50pct, spread<=2.00bps, "
+            "requested_notional<=0.35*top_depth, queue_fill_probability>=0.70, and liquidity PASS; "
+            "SELL exits and urgent/risk-reducing orders remain TAKER"
+        ),
         "requested_notional": _decimal_text(requested_notional),
         "requested_quantity": _decimal_text(requested_quantity),
         "filled_notional": _decimal_text(filled_notional),
@@ -1900,12 +1929,15 @@ def _simulate_paper_broker_execution(
         "slippage_bps": _decimal_text(adverse_price_bps),
         "adaptive_slippage_bps": _decimal_text(adaptive_slippage_bps),
         "spread_bps": _decimal_text(spread_bps),
+        "effective_spread_bps": _decimal_text(effective_spread_bps),
         "market_impact_bps": _decimal_text(impact_bps),
         "latency_penalty_bps": _decimal_text(latency_bps),
         "latency_ms": _decimal_text(latency_ms),
+        "queue_wait_ms": _decimal_text(queue_wait_ms),
         "queue_ahead_notional_krw": _decimal_text(queue_ahead),
         "queue_fill_probability": _decimal_text(queue_fill_probability),
         "orderbook_proxy": proxy,
+        "fee_model_reason": "CONSERVATIVE_SAME_FEE_FOR_MAKER_AND_TAKER_UNTIL_EXCHANGE_FEE_TIER_EVIDENCE",
         "reservation_required": True,
         "reserved_cash": _decimal_text(reserved_cash),
         "reserved_quantity": _decimal_text(reserved_quantity),
@@ -2946,6 +2978,7 @@ def _validate_paper_broker_fill(fill: dict[str, Any], *, features: dict[str, Any
         "order_type",
         "time_in_force",
         "maker_taker",
+        "maker_taker_decision_formula",
         "requested_notional",
         "requested_quantity",
         "filled_notional",
@@ -2962,12 +2995,15 @@ def _validate_paper_broker_fill(fill: dict[str, Any], *, features: dict[str, Any
         "slippage_bps",
         "adaptive_slippage_bps",
         "spread_bps",
+        "effective_spread_bps",
         "market_impact_bps",
         "latency_penalty_bps",
         "latency_ms",
+        "queue_wait_ms",
         "queue_ahead_notional_krw",
         "queue_fill_probability",
         "orderbook_proxy",
+        "fee_model_reason",
         "reservation_required",
         "reserved_cash",
         "reserved_quantity",
@@ -2994,8 +3030,18 @@ def _validate_paper_broker_fill(fill: dict[str, Any], *, features: dict[str, Any
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper fill lifecycle state is not accepted", "RECONCILIATION_REQUIRED")
     if fill.get("partial_fill") is not (fill.get("order_lifecycle_state") == "PARTIALLY_FILLED"):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper partial fill flag does not match lifecycle", "SCHEMA_IDENTITY_MISMATCH")
-    if fill.get("order_type") != "MARKETABLE_LIMIT_PAPER" or fill.get("time_in_force") != "IOC_PAPER" or fill.get("maker_taker") != "TAKER":
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill order type, TIF, or maker/taker marker mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if fill.get("maker_taker") == "TAKER":
+        if fill.get("order_type") != "MARKETABLE_LIMIT_PAPER" or fill.get("time_in_force") != "IOC_PAPER":
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper taker fill order type or TIF marker mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if _decimal(fill.get("effective_spread_bps")) < 0:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper taker fill cannot use maker spread capture", "SCHEMA_IDENTITY_MISMATCH")
+    elif fill.get("maker_taker") == "MAKER":
+        if fill.get("order_type") != "POST_ONLY_LIMIT_PAPER" or fill.get("time_in_force") != "GTT_PAPER":
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper maker fill order type or TIF marker mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if _decimal(fill.get("effective_spread_bps")) > 0:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper maker fill must not pay taker spread", "SCHEMA_IDENTITY_MISMATCH")
+    else:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill maker/taker marker unsupported", "SCHEMA_IDENTITY_MISMATCH")
     if (
         fill.get("live_order_ready")
         or fill.get("live_order_allowed")
@@ -3025,7 +3071,7 @@ def _validate_paper_broker_fill(fill: dict[str, Any], *, features: dict[str, Any
     if not _decimal_close(fee_amount, filled_notional * fee_rate):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill fee accounting mismatch", "SCHEMA_IDENTITY_MISMATCH")
     adverse_bps = (
-        (_decimal(fill.get("spread_bps")) / Decimal("2"))
+        _decimal(fill.get("effective_spread_bps"))
         + _decimal(fill.get("adaptive_slippage_bps"))
         + _decimal(fill.get("market_impact_bps"))
         + _decimal(fill.get("latency_penalty_bps"))
