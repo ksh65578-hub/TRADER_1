@@ -304,8 +304,11 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["candidate_discovery_symbol_count"], 1)
         self.assertGreaterEqual(result["candidate_discovery_ranked_symbol_count"], 1)
         self.assertGreaterEqual(result["candidate_discovery_eligible_symbol_count"], 1)
-        self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_REVIEW_READY")
+        self.assertEqual(generation_report["generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
         self.assertEqual(generation_report["best_alternative_symbol"], "KRW-ETH")
+        self.assertEqual(generation_report["best_alternative_public_replay_status"], "PASS")
+        self.assertIsNone(generation_report["primary_blocker_code"])
+        self.assertIn("Alternative public replay passed", generation_report["next_action"])
         self.assertEqual(generation_report["alternative_candidate_count"], 1)
         best_item = next(
             item
@@ -320,6 +323,9 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertGreaterEqual(result["alternative_public_replay_sample_count"], 1)
         self.assertEqual(alternative_replay["candidate_id"], generation_report["best_alternative_candidate_id"])
         self.assertFalse(alternative_replay["live_order_allowed"])
+        self.assertEqual(result["candidate_generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
+        self.assertIsNone(result["candidate_generation_primary_blocker_code"])
+        self.assertEqual(result["candidate_generation_best_alternative_public_replay_status"], "PASS")
         self.assertFalse(generation_report["live_order_allowed"])
         self.assertFalse(result["credential_load_attempted"])
         self.assertFalse(result["private_endpoint_called"])
