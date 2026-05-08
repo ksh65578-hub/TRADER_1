@@ -22,6 +22,12 @@
     "source_evidence_ids",
     "candidate_count",
     "output_artifact_ids",
+    "candidate_scorecard_validator_status",
+    "ranking_input_scorecard_count",
+    "ranking_input_mature_scorecard_count",
+    "ranking_input_immature_scorecard_count",
+    "ranking_input_min_mature_scorecard_count",
+    "ranking_input_maturity_status",
     "resource_budget_status",
     "partial_write_recovery_status",
     "live_readiness_status",
@@ -150,6 +156,31 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "candidate_scorecard_validator_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "ranking_input_scorecard_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ranking_input_mature_scorecard_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ranking_input_immature_scorecard_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ranking_input_min_mature_scorecard_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "ranking_input_maturity_status": {
+      "enum": [
+        "PASS",
+        "BLOCKED"
+      ]
     },
     "resource_budget_status": {
       "enum": [

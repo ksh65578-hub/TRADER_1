@@ -884,6 +884,7 @@ PROFITABILITY_ROBUSTNESS_SOURCE_TYPES = {
 }
 CANDIDATE_SCORECARD_SOURCE_FILENAMES = {"NOT_LOADED", "candidate_scorecard.json"}
 CANDIDATE_SCORECARD_STATUSES = {"NOT_LOADED", "PAPER_RANKING_BLOCKED", "PAPER_RANKING_REVIEW_ONLY", "BLOCKED", "STALE"}
+CANDIDATE_SCORECARD_PERFORMANCE_SOURCE_BINDING_STATUSES = {"PASS", "MISSING_OR_MISMATCHED"}
 OVERFIT_DIAGNOSTIC_SOURCE_FILENAMES = {"NOT_LOADED", "overfit_diagnostic_report.json"}
 OVERFIT_DIAGNOSTIC_STATUSES = {
     "NOT_LOADED",
@@ -9281,6 +9282,18 @@ def _candidate_scorecard_projection(
         "candidate_scorecard_best_alternative_net_ev_after_cost_bps": None,
         "candidate_scorecard_rotation_review_required": False,
         "candidate_scorecard_rotation_review_reason_code": "NONE",
+        "candidate_scorecard_performance_ready": False,
+        "candidate_scorecard_performance_summary": "Performance evidence is not loaded.",
+        "candidate_scorecard_realized_vs_expected_sample_count": 0,
+        "candidate_scorecard_fill_quality_sample_count": 0,
+        "candidate_scorecard_performance_source_binding_status": "MISSING_OR_MISMATCHED",
+        "candidate_scorecard_performance_source_history_id": None,
+        "candidate_scorecard_performance_source_history_hash": None,
+        "candidate_scorecard_closed_trade_status": "UNTESTED",
+        "candidate_scorecard_profit_factor_status": "UNTESTED",
+        "candidate_scorecard_max_drawdown_status": "UNTESTED",
+        "candidate_scorecard_realized_vs_expected_edge_status": "UNTESTED",
+        "candidate_scorecard_fill_quality_status": "UNTESTED",
     }
     if summary_freshness != "PASS":
         return {
@@ -9340,6 +9353,46 @@ def _candidate_scorecard_projection(
         alternative_net_ev_value = None
     rotation_review_required = candidate_scorecard.get("rotation_review_required") is True
     rotation_reason = str(candidate_scorecard.get("rotation_review_reason_code") or "NONE")
+    def safe_float(value: Any, default: float = 0.0) -> float:
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    def safe_int(value: Any, default: int = 0) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return default
+        return parsed if parsed >= 0 else default
+
+    closed_trade_count = safe_int(candidate_scorecard.get("closed_trade_sample_count"))
+    min_closed_trade_count = safe_int(candidate_scorecard.get("min_closed_trade_sample_count"))
+    realized_vs_expected_sample_count = safe_int(candidate_scorecard.get("realized_vs_expected_sample_count"))
+    fill_quality_sample_count = safe_int(candidate_scorecard.get("fill_quality_sample_count"))
+    profit_factor = safe_float(candidate_scorecard.get("profit_factor"))
+    min_profit_factor = safe_float(candidate_scorecard.get("min_profit_factor"))
+    max_drawdown = safe_float(candidate_scorecard.get("max_drawdown_pct"))
+    max_allowed_drawdown = safe_float(candidate_scorecard.get("max_allowed_drawdown_pct"))
+    realized_vs_expected = safe_float(candidate_scorecard.get("realized_vs_expected_edge_bps"))
+    min_realized_vs_expected = safe_float(candidate_scorecard.get("min_realized_vs_expected_edge_bps"))
+    fill_quality = safe_float(candidate_scorecard.get("fill_quality_score"))
+    min_fill_quality = safe_float(candidate_scorecard.get("min_fill_quality_score"))
+    performance_source_binding_status = str(
+        candidate_scorecard.get("performance_source_binding_status") or "MISSING_OR_MISMATCHED"
+    )
+    if performance_source_binding_status not in CANDIDATE_SCORECARD_PERFORMANCE_SOURCE_BINDING_STATUSES:
+        performance_source_binding_status = "MISSING_OR_MISMATCHED"
+    performance_summary = (
+        f"closed trades {closed_trade_count}/{min_closed_trade_count}; "
+        f"edge samples {realized_vs_expected_sample_count}/{min_closed_trade_count}; "
+        f"fill samples {fill_quality_sample_count}/{min_closed_trade_count}; "
+        f"source binding {performance_source_binding_status}; "
+        f"PF {profit_factor:.2f}/{min_profit_factor:.2f}; "
+        f"max DD {max_drawdown:.2f}%/{max_allowed_drawdown:.2f}%; "
+        f"realized-vs-expected {realized_vs_expected:.2f}/{min_realized_vs_expected:.2f} bps; "
+        f"fill quality {fill_quality:.2f}/{min_fill_quality:.2f}"
+    )
     projection = {
         **base,
         "candidate_scorecard_source": "candidate_scorecard.json",
@@ -9361,6 +9414,20 @@ def _candidate_scorecard_projection(
         "candidate_scorecard_best_alternative_net_ev_after_cost_bps": alternative_net_ev_value,
         "candidate_scorecard_rotation_review_required": rotation_review_required,
         "candidate_scorecard_rotation_review_reason_code": rotation_reason,
+        "candidate_scorecard_performance_ready": candidate_scorecard.get("performance_ready") is True,
+        "candidate_scorecard_performance_summary": performance_summary,
+        "candidate_scorecard_realized_vs_expected_sample_count": realized_vs_expected_sample_count,
+        "candidate_scorecard_fill_quality_sample_count": fill_quality_sample_count,
+        "candidate_scorecard_performance_source_binding_status": performance_source_binding_status,
+        "candidate_scorecard_performance_source_history_id": candidate_scorecard.get("performance_source_history_id"),
+        "candidate_scorecard_performance_source_history_hash": candidate_scorecard.get("performance_source_history_hash"),
+        "candidate_scorecard_closed_trade_status": str(candidate_scorecard.get("closed_trade_status") or "UNTESTED"),
+        "candidate_scorecard_profit_factor_status": str(candidate_scorecard.get("profit_factor_status") or "UNTESTED"),
+        "candidate_scorecard_max_drawdown_status": str(candidate_scorecard.get("max_drawdown_status") or "UNTESTED"),
+        "candidate_scorecard_realized_vs_expected_edge_status": str(
+            candidate_scorecard.get("realized_vs_expected_edge_status") or "UNTESTED"
+        ),
+        "candidate_scorecard_fill_quality_status": str(candidate_scorecard.get("fill_quality_status") or "UNTESTED"),
     }
     if live_flag_drift:
         return {
@@ -24338,6 +24405,37 @@ def validate_read_only_dashboard_shell(
     for text_field in ("candidate_scorecard_primary_blocker_code", "candidate_scorecard_blocker_summary", "candidate_scorecard_next_action"):
         if not isinstance(maturity.get(text_field), str) or not maturity.get(text_field, "").strip():
             return DashboardValidationResult("FAIL", f"candidate scorecard missing {text_field}", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(maturity.get("candidate_scorecard_performance_ready"), bool):
+        return DashboardValidationResult("FAIL", "candidate scorecard performance flag must be boolean", "SCHEMA_IDENTITY_MISMATCH")
+    if not isinstance(maturity.get("candidate_scorecard_performance_summary"), str) or not maturity.get("candidate_scorecard_performance_summary", "").strip():
+        return DashboardValidationResult("FAIL", "candidate scorecard performance summary is missing", "SCHEMA_IDENTITY_MISMATCH")
+    for count_field in (
+        "candidate_scorecard_realized_vs_expected_sample_count",
+        "candidate_scorecard_fill_quality_sample_count",
+    ):
+        if not isinstance(maturity.get(count_field), int) or maturity.get(count_field) < 0:
+            return DashboardValidationResult("FAIL", f"{count_field} must be non-negative", "SCHEMA_IDENTITY_MISMATCH")
+    if maturity.get("candidate_scorecard_performance_source_binding_status") not in CANDIDATE_SCORECARD_PERFORMANCE_SOURCE_BINDING_STATUSES:
+        return DashboardValidationResult("FAIL", "candidate scorecard performance source binding status is unknown", "SCHEMA_IDENTITY_MISMATCH")
+    source_history_id = maturity.get("candidate_scorecard_performance_source_history_id")
+    if source_history_id is not None and not isinstance(source_history_id, str):
+        return DashboardValidationResult("FAIL", "candidate scorecard performance source history id must be string or null", "SCHEMA_IDENTITY_MISMATCH")
+    source_history_hash = maturity.get("candidate_scorecard_performance_source_history_hash")
+    if source_history_hash is not None and (
+        not isinstance(source_history_hash, str)
+        or len(source_history_hash) != 64
+        or any(char not in "0123456789abcdefABCDEF" for char in source_history_hash)
+    ):
+        return DashboardValidationResult("FAIL", "candidate scorecard performance source history hash must be 64 hex characters or null", "SCHEMA_IDENTITY_MISMATCH")
+    for status_field in (
+        "candidate_scorecard_closed_trade_status",
+        "candidate_scorecard_profit_factor_status",
+        "candidate_scorecard_max_drawdown_status",
+        "candidate_scorecard_realized_vs_expected_edge_status",
+        "candidate_scorecard_fill_quality_status",
+    ):
+        if maturity.get(status_field) not in PROFITABILITY_PROMOTION_THRESHOLD_METRIC_STATUSES:
+            return DashboardValidationResult("FAIL", f"{status_field} is unknown", "SCHEMA_IDENTITY_MISMATCH")
     evaluated_symbols = maturity.get("candidate_scorecard_evaluated_symbol_count")
     entry_symbols = maturity.get("candidate_scorecard_paper_entry_review_symbol_count")
     if not isinstance(evaluated_symbols, int) or evaluated_symbols < 0:
@@ -26747,6 +26845,15 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
         f"<small>{safe_text(maturity.get('candidate_scorecard_blocker_summary', 'No PAPER candidate scorecard is loaded.'))}<br>"
         f"evaluated symbols={safe_text(maturity.get('candidate_scorecard_evaluated_symbol_count', 0))}, "
         f"entry-review symbols={safe_text(maturity.get('candidate_scorecard_paper_entry_review_symbol_count', 0))}<br>"
+        f"performance={safe_text(maturity.get('candidate_scorecard_performance_summary', 'Performance evidence is not loaded.'))}<br>"
+        f"performance gates: trades={safe_text(maturity.get('candidate_scorecard_closed_trade_status', 'UNTESTED'))}, "
+        f"PF={safe_text(maturity.get('candidate_scorecard_profit_factor_status', 'UNTESTED'))}, "
+        f"DD={safe_text(maturity.get('candidate_scorecard_max_drawdown_status', 'UNTESTED'))}, "
+        f"edge={safe_text(maturity.get('candidate_scorecard_realized_vs_expected_edge_status', 'UNTESTED'))}, "
+        f"fill={safe_text(maturity.get('candidate_scorecard_fill_quality_status', 'UNTESTED'))}<br>"
+        f"source binding={safe_text(maturity.get('candidate_scorecard_performance_source_binding_status', 'MISSING_OR_MISMATCHED'))}, "
+        f"edge samples={safe_text(maturity.get('candidate_scorecard_realized_vs_expected_sample_count', 0))}, "
+        f"fill samples={safe_text(maturity.get('candidate_scorecard_fill_quality_sample_count', 0))}<br>"
         f"rotation review={safe_text(str(maturity.get('candidate_scorecard_rotation_review_required', False)).lower())}, "
         f"reason={safe_text(maturity.get('candidate_scorecard_rotation_review_reason_code', 'NONE'))}<br>"
         f"best alternative={safe_text(maturity.get('candidate_scorecard_best_alternative_symbol') or 'none')} / "
@@ -27302,6 +27409,7 @@ def render_dashboard_html(shell: dict[str, Any]) -> str:
     scorecard_quicklook_items = [
         f"Status: {scorecard_status_display}",
         f"Net EV after cost: {maturity.get('candidate_scorecard_net_ev_after_cost_display', 'UNVERIFIED')}",
+        f"Performance: {maturity.get('candidate_scorecard_performance_summary', 'not loaded')}",
         f"Blocker: {maturity.get('candidate_scorecard_primary_blocker_code', 'SCORECARD_NOT_LOADED')}",
     ]
     scorecard_quicklook_html = "\n".join(f"<li>{safe_text(item)}</li>" for item in scorecard_quicklook_items)

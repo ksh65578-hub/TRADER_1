@@ -2,13 +2,19 @@ import copy
 import json
 import tempfile
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.research.profitability.candidate_scorecard import (
+    PERFORMANCE_PASS,
     ROBUSTNESS_PASS,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
+    has_required_performance_source_ids,
     has_required_robustness_source_ids,
+    performance_inputs_from_runtime_sample_history,
+    performance_source_binding_from_source_ids,
+    performance_source_evidence_id,
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
     stable_hash,
@@ -17,6 +23,92 @@ from trader1.research.profitability.candidate_scorecard import (
 from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report, upbit_paper_runtime_cycle_hash
 from trader1.runtime.portfolio.paper_portfolio import build_paper_portfolio_snapshot_from_fill
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors
+
+
+def performance_source_evidence_ids(runtime: dict[str, str], candidate_id: str | None = None) -> list[str]:
+    candidate_key = candidate_id or str(runtime["selected_candidate"]["candidate_id"])
+    return [
+        performance_source_evidence_id("closed_trades", runtime["cycle_id"], runtime["cycle_hash"], candidate_key),
+        performance_source_evidence_id("execution_quality", runtime["cycle_id"], runtime["cycle_hash"], candidate_key),
+        performance_source_evidence_id("performance_summary", runtime["cycle_id"], runtime["cycle_hash"], candidate_key),
+    ]
+
+
+PASS_PERFORMANCE_METRICS = {
+    "closed_trade_sample_count": 42,
+    "min_closed_trade_sample_count": 30,
+    "realized_vs_expected_sample_count": 42,
+    "fill_quality_sample_count": 42,
+    "profit_factor": 1.42,
+    "min_profit_factor": 1.25,
+    "max_drawdown_pct": 4.8,
+    "max_allowed_drawdown_pct": 8.0,
+    "realized_vs_expected_edge_bps": 2.5,
+    "min_realized_vs_expected_edge_bps": 0.0,
+    "fill_quality_score": 0.91,
+    "min_fill_quality_score": 0.80,
+}
+
+
+def _entry_strategy_context(candidate: dict[str, str], cycle_id: str) -> dict[str, str]:
+    variation_by_family = {
+        "PULLBACK_TREND_LONG": "trailing_tp",
+        "VWAP_MEAN_REVERSION": "fixed_tp",
+        "BREAKOUT_RETEST_LONG": "invalidation_exit",
+    }
+    strategy_family = str(candidate["strategy_family"])
+    return {
+        "entry_strategy_context_status": "BOUND_TO_ENTRY_CANDIDATE",
+        "entry_strategy_context_source": "PAPER_RUNTIME_ENTRY_FILL",
+        "entry_candidate_id": str(candidate["candidate_id"]),
+        "entry_strategy_family": strategy_family,
+        "entry_strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+        "entry_strategy_exit_variation": variation_by_family[strategy_family],
+        "entry_strategy_source_runtime_cycle_id": cycle_id,
+        "entry_strategy_source_candidate_hash": "A" * 64,
+        "entry_strategy_source_exit_plan_hash": "B" * 64,
+        "entry_strategy_context_formula": "bind exit policy to entry strategy at fill time",
+    }
+
+
+def _closed_trade_runtime_for_candidate(*, symbol: str, cycle_id: str) -> dict:
+    market_data = build_upbit_public_candle_fixture(
+        symbol=symbol,
+        session_id="mvp4_upbit_paper_runtime",
+        profile="UPTREND_PULLBACK",
+    )
+    entry_runtime = build_upbit_paper_runtime_cycle_report(
+        cycle_id=f"{cycle_id}-entry-context",
+        symbol=symbol,
+        market_data=market_data,
+    )
+    candidate = entry_runtime["selected_candidate"]
+    mark_price = Decimal(str(market_data["candles"][-1]["close"]))
+    entry_price = mark_price * Decimal("1.08")
+    current_portfolio = build_paper_portfolio_snapshot_from_fill(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        session_id="mvp4_upbit_paper_runtime",
+        symbol=symbol,
+        side="BUY",
+        quantity="0.01",
+        fill_price=str(entry_price),
+        mark_price=str(mark_price),
+        fee_amount="5",
+        starting_cash="1000000",
+        source_runtime_cycle_id=f"{cycle_id}-entry-context",
+        source_paper_ledger_head_hash="C" * 64,
+        entry_strategy_context=_entry_strategy_context(candidate, f"{cycle_id}-entry-context"),
+    )
+    return build_upbit_paper_runtime_cycle_report(
+        cycle_id=cycle_id,
+        symbol=symbol,
+        market_data=market_data,
+        paper_cash_available=current_portfolio["cash_available"],
+        paper_equity=current_portfolio["equity"],
+        paper_position_market_value=current_portfolio["position_market_value"],
+        current_paper_portfolio_snapshot=current_portfolio,
+    )
 
 
 class CandidateScorecardFromRuntimeTest(unittest.TestCase):
@@ -138,7 +230,13 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
             session_id="mvp4_upbit_paper_runtime",
             profile="UPTREND_PULLBACK",
         )
+        orca_closes = ["980000", "988000", "1004000", "997000", "1009000", "1002050"]
         for index, candle in enumerate(focus_orca["candles"], start=1):
+            price = int(orca_closes[index - 1])
+            candle["open"] = str(price - 1200)
+            candle["high"] = str(price + 2500)
+            candle["low"] = str(price - 2500)
+            candle["close"] = orca_closes[index - 1]
             candle["volume"] = str(1 + index * 0.1)
         mark_price = weak_btc["candles"][-1]["close"]
         current_portfolio = build_paper_portfolio_snapshot_from_fill(
@@ -224,17 +322,18 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
 
         self.assertEqual(errors, [])
         self.assertEqual(scorecard["evaluated_symbol_count"], 2)
-        self.assertEqual(scorecard["paper_entry_review_symbol_count"], 2)
+        self.assertEqual(scorecard["paper_entry_review_symbol_count"], 1)
         self.assertEqual(len(scorecard["top_symbol_evidence_scorecards"]), 2)
-        self.assertGreaterEqual(scorecard["alternative_candidate_count"], 1)
-        self.assertNotEqual(scorecard["best_alternative_candidate_id"], scorecard["candidate_id"])
-        self.assertIn(scorecard["best_alternative_symbol"], {"KRW-BTC", "KRW-ETH"})
-        self.assertIsInstance(scorecard["best_alternative_net_ev_after_cost_bps"], float)
-        self.assertTrue(scorecard["rotation_review_required"])
-        self.assertEqual(
-            scorecard["rotation_review_reason_code"],
-            "SELECTED_CANDIDATE_ROBUSTNESS_BLOCKED_WITH_ALTERNATIVE",
-        )
+        self.assertEqual(scorecard["alternative_candidate_count"], 0)
+        self.assertIsNone(scorecard["best_alternative_candidate_id"])
+        self.assertIsNone(scorecard["best_alternative_symbol"])
+        self.assertIsNone(scorecard["best_alternative_net_ev_after_cost_bps"])
+        self.assertFalse(scorecard["rotation_review_required"])
+        self.assertEqual(scorecard["rotation_review_reason_code"], "NONE")
+        top_by_symbol = {item["symbol"]: item for item in scorecard["top_symbol_evidence_scorecards"]}
+        self.assertEqual(top_by_symbol["KRW-BTC"]["correlation_cluster_status"], "LEADER")
+        self.assertEqual(top_by_symbol["KRW-ETH"]["correlation_cluster_status"], "DIVERSIFICATION_FILTERED")
+        self.assertIn("CLUSTER_RISK", top_by_symbol["KRW-ETH"]["no_trade_reasons"])
         for symbol_scorecard in scorecard["top_symbol_evidence_scorecards"]:
             self.assertFalse(symbol_scorecard["live_order_ready"])
             self.assertFalse(symbol_scorecard["live_order_allowed"])
@@ -293,8 +392,8 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(scorecard["ranking_eligible"])
         self.assertIn("SCORECARD_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
 
-    def test_robust_paper_scorecard_can_be_paper_ranking_input_only(self):
-        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust")
+    def test_robustness_pass_still_blocks_without_closed_trade_performance(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust-no-performance")
 
         scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
             runtime,
@@ -308,11 +407,173 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         errors = _candidate_scorecard_net_ev_errors(scorecard)
 
         self.assertEqual(errors, [])
+        self.assertFalse(scorecard["performance_ready"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        blocker_codes = {blocker["code"] for blocker in scorecard["blockers"]}
+        self.assertIn("SAMPLE_INSUFFICIENT", blocker_codes)
+        self.assertIn("EXECUTION_QUALITY_UNTESTED", blocker_codes)
+
+    def test_raw_expected_edge_cannot_rank_when_realized_edge_after_cost_fails(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-raw-pnl-trap")
+        weak_performance = dict(PASS_PERFORMANCE_METRICS)
+        weak_performance["realized_vs_expected_edge_bps"] = -6.0
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses={**PERFORMANCE_PASS, "realized_vs_expected_edge_status": "FAIL"},
+            performance_metrics=weak_performance,
+            performance_source_evidence_ids=performance_source_evidence_ids(runtime),
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in scorecard["blockers"]})
+
+    def test_generic_performance_sources_cannot_make_scorecard_rank(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-generic-performance-source")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses=PERFORMANCE_PASS,
+            performance_metrics=PASS_PERFORMANCE_METRICS,
+            performance_source_evidence_ids=[
+                f"closed_trades:{runtime['cycle_id']}:{runtime['cycle_hash']}",
+                f"execution_quality:{runtime['cycle_id']}:{runtime['cycle_hash']}",
+                f"performance_summary:{runtime['cycle_id']}:{runtime['cycle_hash']}",
+            ],
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertIn("EXECUTION_FEEDBACK_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
+
+    def test_performance_sources_must_share_one_history_binding_before_paper_ranking(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-performance-binding-mismatch")
+        candidate_id = str(runtime["selected_candidate"]["candidate_id"])
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses=PERFORMANCE_PASS,
+            performance_metrics=PASS_PERFORMANCE_METRICS,
+            performance_source_evidence_ids=[
+                performance_source_evidence_id("closed_trades", "history-a", "A" * 64, candidate_id),
+                performance_source_evidence_id("execution_quality", "history-a", "A" * 64, candidate_id),
+                performance_source_evidence_id("performance_summary", "history-b", "B" * 64, candidate_id),
+            ],
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertIsNone(
+            performance_source_binding_from_source_ids(scorecard["source_evidence_ids"], candidate_id=candidate_id)
+        )
+        self.assertFalse(has_required_performance_source_ids(scorecard["source_evidence_ids"], candidate_id=candidate_id))
+        self.assertEqual(scorecard["performance_source_binding_status"], "MISSING_OR_MISMATCHED")
+        self.assertIsNone(scorecard["performance_source_history_id"])
+        self.assertIsNone(scorecard["performance_source_history_hash"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertIn("EXECUTION_FEEDBACK_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
+
+    def test_robust_paper_scorecard_can_be_paper_ranking_input_only(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust")
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses=PERFORMANCE_PASS,
+            performance_metrics=PASS_PERFORMANCE_METRICS,
+            performance_source_evidence_ids=performance_source_evidence_ids(runtime),
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertTrue(has_required_performance_source_ids(scorecard["source_evidence_ids"]))
+        self.assertEqual(scorecard["performance_source_binding_status"], "PASS")
+        self.assertEqual(scorecard["performance_source_history_id"], runtime["cycle_id"])
+        self.assertEqual(scorecard["performance_source_history_hash"], runtime["cycle_hash"])
         self.assertTrue(scorecard["ranking_eligible"])
         self.assertEqual(scorecard["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
         self.assertEqual(scorecard["blockers"], [])
         self.assertEqual(scorecard["live_readiness_status"], "NOT_LIVE_READY")
         self.assertFalse(scorecard["live_order_allowed"])
+
+    def test_runtime_performance_inputs_are_candidate_scoped(self):
+        target_entry_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-performance-target-entry",
+            symbol="KRW-BTC",
+        )
+        target_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(target_entry_runtime)
+        target_runtime = _closed_trade_runtime_for_candidate(
+            symbol="KRW-BTC",
+            cycle_id="scorecard-performance-target-exit",
+        )
+        unrelated_runtime = _closed_trade_runtime_for_candidate(
+            symbol="KRW-ETH",
+            cycle_id="scorecard-performance-unrelated-exit",
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp4_upbit_paper_runtime"
+            runtime_dir.mkdir(parents=True)
+            samples = []
+            for runtime in (target_runtime, unrelated_runtime):
+                runtime_path = runtime_dir / f"{runtime['cycle_id']}.runtime_cycle.json"
+                runtime_path.write_text(json.dumps(runtime, sort_keys=True), encoding="utf-8")
+                samples.append(
+                    {
+                        "source_runtime_cycle_path": runtime_path.relative_to(root).as_posix(),
+                        "source_runtime_cycle_hash": runtime["cycle_hash"],
+                    }
+                )
+            history = {
+                "history_id": "candidate-scoped-performance-history",
+                "history_hash": "D" * 64,
+                "samples": samples,
+            }
+
+            statuses, metrics, source_ids = performance_inputs_from_runtime_sample_history(
+                candidate_scorecard=target_scorecard,
+                runtime_sample_history=history,
+                root=root,
+            )
+
+        target_key = safe_candidate_scorecard_filename(target_scorecard["candidate_id"])
+        self.assertEqual(target_runtime["final_decision"], "EXIT_POSITION")
+        self.assertEqual(unrelated_runtime["final_decision"], "EXIT_POSITION")
+        self.assertEqual(metrics["closed_trade_sample_count"], 1)
+        self.assertEqual(metrics["realized_vs_expected_sample_count"], 1)
+        self.assertEqual(statuses["closed_trade_status"], "FAIL")
+        self.assertEqual(statuses["profit_factor_status"], "FAIL")
+        self.assertEqual(statuses["realized_vs_expected_edge_status"], "FAIL")
+        self.assertGreater(metrics["fill_quality_score"], 0)
+        self.assertEqual(metrics["fill_quality_sample_count"], 1)
+        self.assertTrue(all(f":{target_key}:" in source_id for source_id in source_ids))
 
     def test_scorecard_writer_preserves_candidate_scoped_snapshots_without_live_permission(self):
         btc_runtime = build_upbit_paper_runtime_cycle_report(

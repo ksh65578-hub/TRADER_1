@@ -129,6 +129,29 @@ class PaperLedgerRollupTest(unittest.TestCase):
             self.assertFalse(rollup["can_live_trade"])
             self.assertFalse(rollup["scale_up_allowed"])
 
+    def test_rollup_passes_empty_no_trade_state_without_live_permission(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            rollup = build_paper_ledger_rollup_report(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                rollup_id="test-paper-ledger-empty-no-trade-rollup",
+            )
+            result = validate_paper_ledger_rollup_report(rollup)
+
+            self.assertEqual(result.status, "PASS", result.message)
+            self.assertEqual(rollup["ledger_jsonl_count"], 0)
+            self.assertEqual(rollup["ledger_event_count"], 0)
+            self.assertEqual(rollup["filled_order_count"], 0)
+            self.assertEqual(rollup["ledger_head_match_status"], "NOT_APPLICABLE")
+            self.assertEqual(rollup["portfolio_snapshot"]["source"], "PAPER_LEDGER_ROLLUP")
+            self.assertEqual(rollup["portfolio_snapshot"]["cash_available"], "1000000")
+            self.assertEqual(rollup["portfolio_snapshot"]["open_position_count"], 0)
+            self.assertFalse(rollup["live_order_ready"])
+            self.assertFalse(rollup["live_order_allowed"])
+            self.assertFalse(rollup["can_live_trade"])
+            self.assertFalse(rollup["scale_up_allowed"])
+
     def test_persistent_loop_cash_guard_prevents_negative_rollup_during_repeated_runs(self):
         with TemporaryDirectory() as tmp:
             root = Path(tmp)

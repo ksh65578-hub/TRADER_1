@@ -5,7 +5,10 @@ import unittest
 from pathlib import Path
 
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
-from trader1.research.profitability.candidate_scorecard import candidate_scorecard_from_upbit_paper_runtime_cycle
+from trader1.research.profitability.candidate_scorecard import (
+    PERFORMANCE_PASS,
+    candidate_scorecard_from_upbit_paper_runtime_cycle,
+)
 from trader1.research.profitability.overfit_diagnostic import (
     _bootstrap_confidence_lower_bound,
     overfit_diagnostic_from_upbit_paper_runtime,
@@ -21,7 +24,10 @@ from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     upbit_paper_runtime_sample_hash,
     upbit_paper_runtime_sample_history_hash,
 )
-from trader1.research.profitability.candidate_scorecard import robustness_source_evidence_id
+from trader1.research.profitability.candidate_scorecard import (
+    performance_source_evidence_id,
+    robustness_source_evidence_id,
+)
 from trader1.validation.mvp0_validators import _candidate_scorecard_net_ev_errors, _overfit_diagnostic_errors
 
 
@@ -482,12 +488,55 @@ class OverfitDiagnosticFromRuntimeTest(unittest.TestCase):
             robustness_statuses=statuses,
             robustness_source_evidence_ids=source_ids,
         )
+        performance_source_ids = [
+            performance_source_evidence_id(
+                "closed_trades",
+                runtime["cycle_id"],
+                runtime["cycle_hash"],
+                scorecard["candidate_id"],
+            ),
+            performance_source_evidence_id(
+                "execution_quality",
+                runtime["cycle_id"],
+                runtime["cycle_hash"],
+                scorecard["candidate_id"],
+            ),
+            performance_source_evidence_id(
+                "performance_summary",
+                runtime["cycle_id"],
+                runtime["cycle_hash"],
+                scorecard["candidate_id"],
+            ),
+        ]
+        performance_ready = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=statuses,
+            robustness_source_evidence_ids=source_ids,
+            performance_statuses=dict(PERFORMANCE_PASS),
+            performance_metrics={
+                "closed_trade_sample_count": 42,
+                "min_closed_trade_sample_count": 30,
+                "profit_factor": 1.42,
+                "min_profit_factor": 1.25,
+                "max_drawdown_pct": 4.8,
+                "max_allowed_drawdown_pct": 8.0,
+                "realized_vs_expected_edge_bps": 2.5,
+                "min_realized_vs_expected_edge_bps": 0.0,
+                "fill_quality_score": 0.91,
+                "min_fill_quality_score": 0.80,
+            },
+            performance_source_evidence_ids=performance_source_ids,
+        )
 
         self.assertEqual(_overfit_diagnostic_errors(robust), [])
         self.assertEqual(_candidate_scorecard_net_ev_errors(rescored), [])
+        self.assertEqual(_candidate_scorecard_net_ev_errors(performance_ready), [])
         self.assertEqual(set(source_ids), set(robust_ids))
-        self.assertTrue(rescored["ranking_eligible"])
-        self.assertEqual(rescored["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
+        self.assertFalse(rescored["ranking_eligible"])
+        self.assertEqual(rescored["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
+        self.assertIn("SAMPLE_INSUFFICIENT", {blocker["code"] for blocker in rescored["blockers"]})
+        self.assertTrue(performance_ready["ranking_eligible"])
+        self.assertEqual(performance_ready["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
         self.assertFalse(rescored["live_order_ready"])
         self.assertFalse(rescored["live_order_allowed"])
         self.assertFalse(rescored["can_live_trade"])

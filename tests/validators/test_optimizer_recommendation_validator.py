@@ -20,6 +20,11 @@ class OptimizerRecommendationValidatorTest(unittest.TestCase):
         errors = _optimizer_recommendation_errors(report)
 
         self.assertEqual(errors, [])
+        self.assertTrue(report["source_scorecard_ranking_eligible"])
+        self.assertEqual(report["source_scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
+        self.assertTrue(report["source_scorecard_robustness_ready"])
+        self.assertTrue(report["source_scorecard_performance_ready"])
+        self.assertEqual(report["source_scorecard_performance_source_binding_status"], "PASS")
 
     def test_recommendation_cannot_carry_live_permission(self):
         report = load_json(FIXTURE_DIR / "optimizer_recommendation_live_flag_fail.json")
@@ -59,6 +64,14 @@ class OptimizerRecommendationValidatorTest(unittest.TestCase):
         errors = _optimizer_recommendation_errors(tampered)
 
         self.assertIn("non-ranking optimizer recommendation must carry explicit blocker evidence", errors)
+
+    def test_paper_ranking_requires_mature_source_scorecard(self):
+        report = load_json(FIXTURE_DIR / "optimizer_recommendation_scorecard_immature_fail.json")
+
+        errors = _optimizer_recommendation_errors(report)
+
+        self.assertIn("ALLOW_PAPER_RANKING requires source_scorecard_performance_ready=true", errors)
+        self.assertIn("ALLOW_PAPER_RANKING requires source scorecard performance source binding PASS", errors)
 
     def test_current_validator_fixtures_pass(self):
         result = optimizer_recommendation_validator().as_dict()

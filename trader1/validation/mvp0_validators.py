@@ -530,9 +530,12 @@ from trader1.research.replay.replay_runner import (
     validate_replay_consistency_report,
 )
 from trader1.research.profitability.candidate_scorecard import (
+    PERFORMANCE_SOURCE_PREFIXES,
     ROBUSTNESS_SOURCE_PREFIXES,
     candidate_scorecard_from_upbit_paper_runtime_cycle,
+    has_required_performance_source_ids,
     has_required_robustness_source_ids,
+    performance_source_binding_from_source_ids,
     runtime_cycle_binding_from_source_ids,
     runtime_cycle_source_evidence_id,
 )
@@ -3805,8 +3808,21 @@ def paper_ledger_rollup_validator() -> ValidatorResult:
             rollup_id="validator-paper-ledger-rollup-empty",
         )
         empty_result = validate_paper_ledger_rollup_report(empty_rollup)
-        if empty_result.status != "BLOCKED" or empty_result.blocker_code != "LEDGER_UNAVAILABLE":
-            return fail_result("paper_ledger_rollup_validator", "empty paper ledger rollup was not blocked", paths, "LEDGER_UNAVAILABLE")
+        if (
+            empty_result.status != "PASS"
+            or empty_rollup.get("ledger_jsonl_count") != 0
+            or empty_rollup.get("filled_order_count") != 0
+            or empty_rollup.get("ledger_head_match_status") != "NOT_APPLICABLE"
+            or empty_rollup.get("portfolio_snapshot", {}).get("source_runtime_cycle_id") is not None
+            or empty_rollup.get("portfolio_snapshot", {}).get("source_paper_ledger_head_hash") is not None
+        ):
+            return fail_result("paper_ledger_rollup_validator", "empty no-trade paper ledger rollup did not pass as flat PAPER truth", paths, "SCHEMA_IDENTITY_MISMATCH")
+        empty_head_mutation = json.loads(json.dumps(empty_rollup))
+        empty_head_mutation["latest_ledger_head_hash"] = "A" * 64
+        empty_head_mutation["rollup_hash"] = paper_ledger_rollup_hash(empty_head_mutation)
+        empty_head_result = validate_paper_ledger_rollup_report(empty_head_mutation)
+        if empty_head_result.status != "FAIL" or empty_head_result.blocker_code != "LEDGER_INTEGRITY_FAIL":
+            return fail_result("paper_ledger_rollup_validator", "empty paper ledger rollup head mutation was not failed closed", paths, "LEDGER_INTEGRITY_FAIL")
 
     live_mutation = dict(rollup)
     live_mutation["live_order_allowed"] = True
@@ -15442,9 +15458,33 @@ def upbit_operational_paper_gate_validator() -> ValidatorResult:
     if sizing_result.status != "PASS":
         return fail_result("upbit_operational_paper_gate_validator", f"sizing failed: {sizing_result.message}", paths, sizing_result.blocker_code or "UNKNOWN_BLOCKED")
     selected = float(sizing["selected_notional"])
-    for cap_name in ("equity_cap", "cash_cap", "risk_cap", "liquidity_cap", "exposure_cap"):
+    for cap_name in (
+        "equity_cap",
+        "cash_cap",
+        "risk_cap",
+        "liquidity_cap",
+        "exposure_cap",
+        "atr_risk_cap",
+        "volatility_cap",
+    ):
         if selected > float(sizing["caps"][cap_name]):
             return fail_result("upbit_operational_paper_gate_validator", f"sizing exceeded {cap_name}", paths, "RISK_VETO")
+    for multiplier_name in (
+        "volatility_multiplier",
+        "drawdown_multiplier",
+        "regime_multiplier",
+        "correlation_multiplier",
+        "realized_performance_multiplier",
+        "combined_sizing_multiplier",
+    ):
+        multiplier = float(sizing["caps"][multiplier_name])
+        if multiplier < 0 or multiplier > 1:
+            return fail_result(
+                "upbit_operational_paper_gate_validator",
+                f"sizing multiplier out of range: {multiplier_name}",
+                paths,
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
 
     sizing_live = build_position_sizing_decision(sizing_decision_id="validator-operational-sizing-live", strategy_unit_id=strategy["strategy_unit_id"])
     sizing_live["can_submit_order"] = True
@@ -16137,6 +16177,15 @@ def _strategy_performance_memory_errors(report: dict[str, Any]) -> list[str]:
         source_modes = set(report.get("source_modes", []))
         if not {"PAPER", "SHADOW"}.issubset(source_modes):
             errors.append("PAPER_SHADOW_RESEARCH_ONLY requires PAPER and SHADOW source modes")
+        if report.get("paper_shadow_separated") is not True:
+            errors.append("PAPER_SHADOW_RESEARCH_ONLY requires paper_shadow_separated=true")
+    if report.get("performance_scope") == "PAPER_RUNTIME_SCORECARD_ONLY":
+        if set(report.get("source_modes", [])) != {"PAPER"}:
+            errors.append("PAPER_RUNTIME_SCORECARD_ONLY requires exactly PAPER source mode")
+        if report.get("paper_shadow_separated") is not False:
+            errors.append("PAPER_RUNTIME_SCORECARD_ONLY requires paper_shadow_separated=false")
+        if not blockers:
+            errors.append("PAPER_RUNTIME_SCORECARD_ONLY must carry blocker evidence until SHADOW evidence is bound")
 
     return errors
 
@@ -16192,7 +16241,7 @@ def strategy_performance_memory_validator() -> ValidatorResult:
         reason_path: "minItems",
         downtrend_path: "DOWNTREND regime must not allow trading",
         mixed_source_path: "LIVE",
-        unscoped_path: "expected const True",
+        unscoped_path: "PAPER_SHADOW_RESEARCH_ONLY requires paper_shadow_separated=true",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _strategy_performance_memory_errors(load_json(path))
@@ -19329,6 +19378,44 @@ def _parameter_narrowing_errors(report: dict[str, Any]) -> list[str]:
             errors.append("paper parameter narrowing requires optimizer run source id")
         if not has_source_evidence("optimizer", "recommendation"):
             errors.append("paper parameter narrowing requires optimizer recommendation source id")
+        if report.get("candidate_scorecard_validator_status") != "PASS":
+            errors.append("paper parameter narrowing requires candidate_scorecard_validator_status=PASS")
+        if report.get("candidate_scorecard_ranking_eligible") is not True:
+            errors.append("paper parameter narrowing requires candidate_scorecard_ranking_eligible=true")
+        if report.get("candidate_scorecard_scorecard_scope") != "PAPER_SCORECARD_INPUT_ONLY":
+            errors.append("paper parameter narrowing requires candidate scorecard scope PAPER_SCORECARD_INPUT_ONLY")
+        if float(report.get("candidate_scorecard_net_ev_after_cost_bps", 0)) < float(
+            report.get("candidate_scorecard_min_required_edge_bps", 0)
+        ):
+            errors.append("paper parameter narrowing requires candidate scorecard net EV after cost above minimum edge")
+        if report.get("candidate_scorecard_robustness_ready") is not True:
+            errors.append("paper parameter narrowing requires candidate_scorecard_robustness_ready=true")
+        if report.get("candidate_scorecard_performance_ready") is not True:
+            errors.append("paper parameter narrowing requires candidate_scorecard_performance_ready=true")
+        scorecard_status_fields = (
+            "candidate_scorecard_closed_trade_status",
+            "candidate_scorecard_profit_factor_status",
+            "candidate_scorecard_max_drawdown_status",
+            "candidate_scorecard_realized_vs_expected_edge_status",
+            "candidate_scorecard_fill_quality_status",
+        )
+        for field in scorecard_status_fields:
+            if report.get(field) != "PASS":
+                errors.append(f"paper parameter narrowing requires {field}=PASS")
+        closed_trade_count = int(report.get("candidate_scorecard_closed_trade_sample_count", 0))
+        min_closed_trade_count = int(report.get("candidate_scorecard_min_closed_trade_sample_count", 0))
+        if closed_trade_count < min_closed_trade_count:
+            errors.append("paper parameter narrowing requires candidate scorecard closed trade samples above minimum")
+        if int(report.get("candidate_scorecard_realized_vs_expected_sample_count", 0)) < min_closed_trade_count:
+            errors.append("paper parameter narrowing requires realized-vs-expected samples above closed-trade minimum")
+        if int(report.get("candidate_scorecard_fill_quality_sample_count", 0)) < min_closed_trade_count:
+            errors.append("paper parameter narrowing requires fill-quality samples above closed-trade minimum")
+        if report.get("candidate_scorecard_performance_source_binding_status") != "PASS":
+            errors.append("paper parameter narrowing requires candidate scorecard performance source binding PASS")
+        if not str(report.get("candidate_scorecard_performance_source_history_id", "")):
+            errors.append("paper parameter narrowing requires candidate scorecard performance source history id")
+        if not str(report.get("candidate_scorecard_performance_source_history_hash", "")):
+            errors.append("paper parameter narrowing requires candidate scorecard performance source history hash")
         if narrowing_status != "PAPER_PARAMETER_REVIEW_ELIGIBLE":
             errors.append("paper parameter narrowing requires PAPER_PARAMETER_REVIEW_ELIGIBLE status")
         if recommendation_scope != "PAPER_PARAMETER_REVIEW_ONLY":
@@ -19359,6 +19446,7 @@ def parameter_narrowing_validator() -> ValidatorResult:
     missing_binding_path = fixture_dir / "parameter_narrowing_missing_binding_fail.json"
     identity_mismatch_path = fixture_dir / "parameter_narrowing_identity_mismatch_fail.json"
     identity_stale_path = fixture_dir / "parameter_narrowing_identity_stale_fail.json"
+    immature_scorecard_path = fixture_dir / "parameter_narrowing_scorecard_immature_fail.json"
     paths = [
         schema_path,
         pass_path,
@@ -19370,6 +19458,7 @@ def parameter_narrowing_validator() -> ValidatorResult:
         missing_binding_path,
         identity_mismatch_path,
         identity_stale_path,
+        immature_scorecard_path,
         state_path,
     ]
 
@@ -19401,6 +19490,7 @@ def parameter_narrowing_validator() -> ValidatorResult:
         missing_binding_path: "source_evidence_id missing identity binding",
         identity_mismatch_path: "source evidence identity binding mismatch for proposed_parameter_hash",
         identity_stale_path: "source evidence identity binding cannot be STALE",
+        immature_scorecard_path: "candidate_scorecard_performance_ready=true",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _parameter_narrowing_errors(load_json(path))
@@ -21342,16 +21432,65 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             cycle_hash=str(scorecard.get("source_runtime_cycle_hash", "")),
         ):
             errors.append("ranking_eligible scorecard requires OOS, walk-forward, and bootstrap source evidence ids linked to the same runtime cycle hash")
+        if len(source_ids) < len(ROBUSTNESS_SOURCE_PREFIXES) + len(PERFORMANCE_SOURCE_PREFIXES) + 1:
+            errors.append("ranking_eligible scorecard requires runtime, robustness, closed trade, execution quality, and performance summary evidence ids")
+        if not has_required_performance_source_ids(
+            source_ids,
+            candidate_id=str(scorecard.get("candidate_id") or ""),
+        ):
+            errors.append(
+                "ranking_eligible scorecard requires candidate-scoped closed trade, execution quality, and performance summary evidence ids"
+            )
+        performance_binding = performance_source_binding_from_source_ids(
+            source_ids,
+            candidate_id=str(scorecard.get("candidate_id") or ""),
+        )
+        if scorecard.get("performance_source_binding_status") != "PASS":
+            errors.append("ranking_eligible scorecard requires PASS performance source binding status")
+        if performance_binding is None:
+            errors.append("ranking_eligible scorecard performance evidence ids must share one history id and hash")
+        else:
+            if scorecard.get("performance_source_history_id") != performance_binding[0]:
+                errors.append("performance_source_history_id must match candidate-scoped performance evidence binding")
+            if scorecard.get("performance_source_history_hash") != performance_binding[1]:
+                errors.append("performance_source_history_hash must match candidate-scoped performance evidence binding")
         required_statuses = {
             "cost_model_status": "VALIDATED",
             "oos_status": "PASS",
             "walk_forward_status": "PASS",
             "bootstrap_status": "PASS",
             "overfit_status": "LOW",
+            "closed_trade_status": "PASS",
+            "profit_factor_status": "PASS",
+            "max_drawdown_status": "PASS",
+            "realized_vs_expected_edge_status": "PASS",
+            "fill_quality_status": "PASS",
         }
         for field, expected in required_statuses.items():
             if scorecard.get(field) != expected:
                 errors.append(f"{field} must be {expected} before ranking eligibility")
+        if int(scorecard.get("closed_trade_sample_count", 0) or 0) < int(scorecard.get("min_closed_trade_sample_count", 1) or 1):
+            errors.append("closed trade sample count must meet minimum before ranking eligibility")
+        if int(scorecard.get("realized_vs_expected_sample_count", 0) or 0) < int(
+            scorecard.get("min_closed_trade_sample_count", 1) or 1
+        ):
+            errors.append("realized-vs-expected sample count must meet closed trade minimum before ranking eligibility")
+        if int(scorecard.get("fill_quality_sample_count", 0) or 0) < int(scorecard.get("min_closed_trade_sample_count", 1) or 1):
+            errors.append("fill quality sample count must meet closed trade minimum before ranking eligibility")
+        if float(scorecard.get("profit_factor", 0) or 0) < float(scorecard.get("min_profit_factor", 1) or 1):
+            errors.append("profit_factor must meet minimum before ranking eligibility")
+        if float(scorecard.get("max_drawdown_pct", 100) or 100) > float(scorecard.get("max_allowed_drawdown_pct", 0) or 0):
+            errors.append("max_drawdown_pct must be within allowed drawdown before ranking eligibility")
+        if float(scorecard.get("realized_vs_expected_edge_bps", -999) or -999) < float(
+            scorecard.get("min_realized_vs_expected_edge_bps", 0) or 0
+        ):
+            errors.append("realized_vs_expected_edge_bps must meet minimum before ranking eligibility")
+        if float(scorecard.get("fill_quality_score", 0) or 0) < float(scorecard.get("min_fill_quality_score", 1) or 1):
+            errors.append("fill_quality_score must meet minimum before ranking eligibility")
+        if scorecard.get("performance_ready") is not True:
+            errors.append("performance_ready must be true before ranking eligibility")
+        if scorecard.get("robustness_ready") is not True:
+            errors.append("robustness_ready must be true before ranking eligibility")
 
     return errors
 
@@ -21418,7 +21557,7 @@ def candidate_scorecard_net_ev_validator() -> ValidatorResult:
 
     return pass_result(
         "candidate_scorecard_net_ev_validator",
-        "candidate scorecards require cost-adjusted net EV, robustness status, explicit blockers, and false live flags",
+        "candidate scorecards require cost-adjusted net EV, robustness, closed-trade performance gates, explicit blockers, and false live flags",
         paths,
     )
 
@@ -21533,7 +21672,7 @@ def candidate_scorecard_validator() -> ValidatorResult:
 
     return pass_result(
         "candidate_scorecard_validator",
-        "candidate scorecards are evidence-bound, paper-scorecard-input-only, cost-adjusted, robustness-gated, and non-live",
+        "candidate scorecards are evidence-bound, paper-scorecard-input-only, cost-adjusted, robustness and closed-trade performance gated, and non-live",
         paths,
     )
 
@@ -22931,6 +23070,10 @@ def _optimizer_run_errors(report: dict[str, Any]) -> list[str]:
     objective_basis = report.get("objective_basis")
     candidate_count = int(report.get("candidate_count", 0))
     output_artifact_ids = report.get("output_artifact_ids", [])
+    ranking_input_scorecard_count = int(report.get("ranking_input_scorecard_count", 0))
+    ranking_input_mature_scorecard_count = int(report.get("ranking_input_mature_scorecard_count", 0))
+    ranking_input_immature_scorecard_count = int(report.get("ranking_input_immature_scorecard_count", 0))
+    ranking_input_min_mature_scorecard_count = int(report.get("ranking_input_min_mature_scorecard_count", 0))
     if status == "COMPLETED_ANALYSIS_ONLY":
         if scope != "REPLAY_PAPER_SHADOW_READ_ONLY_ONLY":
             errors.append("COMPLETED_ANALYSIS_ONLY requires REPLAY_PAPER_SHADOW_READ_ONLY_ONLY scope")
@@ -22949,6 +23092,18 @@ def _optimizer_run_errors(report: dict[str, Any]) -> list[str]:
             errors.append("CANDIDATE_RANKING_INPUT requires candidate_count > 0")
         if not output_artifact_ids:
             errors.append("CANDIDATE_RANKING_INPUT requires output_artifact_ids")
+        if report.get("candidate_scorecard_validator_status") != "PASS":
+            errors.append("CANDIDATE_RANKING_INPUT requires candidate_scorecard_validator_status=PASS")
+        if ranking_input_scorecard_count <= 0:
+            errors.append("CANDIDATE_RANKING_INPUT requires ranking_input_scorecard_count > 0")
+        if ranking_input_mature_scorecard_count < ranking_input_min_mature_scorecard_count:
+            errors.append("CANDIDATE_RANKING_INPUT requires mature ranking scorecards above minimum")
+        if ranking_input_mature_scorecard_count + ranking_input_immature_scorecard_count != ranking_input_scorecard_count:
+            errors.append("CANDIDATE_RANKING_INPUT scorecard maturity counts must reconcile")
+        if report.get("ranking_input_maturity_status") != "PASS":
+            errors.append("CANDIDATE_RANKING_INPUT requires ranking_input_maturity_status=PASS")
+        if not any("scorecard" in str(artifact_id).lower() for artifact_id in output_artifact_ids):
+            errors.append("CANDIDATE_RANKING_INPUT requires candidate scorecard output artifact id")
     if scope in {"RESEARCH_ONLY_BLOCKED", "STALE_ANALYSIS_ONLY"} and not blockers:
         errors.append("blocked or stale optimizer run scope must carry blocker evidence")
     if report.get("resource_budget_status") == "BLOCKED" and not blockers:
@@ -22970,6 +23125,7 @@ def optimizer_run_report_validator() -> ValidatorResult:
     missing_blocker_path = fixture_dir / "optimizer_run_missing_blocker_fail.json"
     writer_path = fixture_dir / "optimizer_run_live_writer_fail.json"
     raw_pnl_path = fixture_dir / "optimizer_run_raw_pnl_objective_fail.json"
+    immature_scorecard_path = fixture_dir / "optimizer_run_scorecard_immature_fail.json"
     paths = [
         schema_path,
         pass_path,
@@ -22979,6 +23135,7 @@ def optimizer_run_report_validator() -> ValidatorResult:
         missing_blocker_path,
         writer_path,
         raw_pnl_path,
+        immature_scorecard_path,
         state_path,
     ]
 
@@ -23008,6 +23165,7 @@ def optimizer_run_report_validator() -> ValidatorResult:
         missing_blocker_path: "non-completed optimizer run must carry explicit blocker evidence",
         writer_path: "expected const False",
         raw_pnl_path: "RAW_PNL",
+        immature_scorecard_path: "mature ranking scorecards above minimum",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _optimizer_run_errors(load_json(path))
@@ -23066,6 +23224,20 @@ def _optimizer_recommendation_errors(report: dict[str, Any]) -> list[str]:
             errors.append("ALLOW_PAPER_RANKING requires optimizer_output_type=RANKING_INPUT")
         if blockers:
             errors.append("ALLOW_PAPER_RANKING recommendation must not carry blockers")
+        if report.get("source_scorecard_ranking_eligible") is not True:
+            errors.append("ALLOW_PAPER_RANKING requires source_scorecard_ranking_eligible=true")
+        if report.get("source_scorecard_scope") != "PAPER_SCORECARD_INPUT_ONLY":
+            errors.append("ALLOW_PAPER_RANKING requires source scorecard scope PAPER_SCORECARD_INPUT_ONLY")
+        if float(report.get("source_scorecard_net_ev_after_cost_bps", 0)) < float(
+            report.get("source_scorecard_min_required_edge_bps", 0)
+        ):
+            errors.append("ALLOW_PAPER_RANKING requires source scorecard net EV after cost above minimum edge")
+        if report.get("source_scorecard_robustness_ready") is not True:
+            errors.append("ALLOW_PAPER_RANKING requires source_scorecard_robustness_ready=true")
+        if report.get("source_scorecard_performance_ready") is not True:
+            errors.append("ALLOW_PAPER_RANKING requires source_scorecard_performance_ready=true")
+        if report.get("source_scorecard_performance_source_binding_status") != "PASS":
+            errors.append("ALLOW_PAPER_RANKING requires source scorecard performance source binding PASS")
     elif not blockers:
         errors.append("non-ranking optimizer recommendation must carry explicit blocker evidence")
     if action == "RECOMMEND_SCALE_DOWN_ONLY" and output_type != "RISK_REDUCTION_ONLY":
@@ -23083,7 +23255,8 @@ def optimizer_recommendation_validator() -> ValidatorResult:
     wording_path = fixture_dir / "optimizer_recommendation_live_ready_wording_fail.json"
     scope_path = fixture_dir / "optimizer_recommendation_scope_mismatch_fail.json"
     writer_path = fixture_dir / "optimizer_recommendation_live_writer_fail.json"
-    paths = [schema_path, pass_path, live_flag_path, wording_path, scope_path, writer_path, state_path]
+    immature_scorecard_path = fixture_dir / "optimizer_recommendation_scorecard_immature_fail.json"
+    paths = [schema_path, pass_path, live_flag_path, wording_path, scope_path, writer_path, immature_scorecard_path, state_path]
 
     state = load_json(state_path)
     for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"):
@@ -23109,6 +23282,7 @@ def optimizer_recommendation_validator() -> ValidatorResult:
         wording_path: "optimizer recommendation warning must state not LIVE_READY",
         scope_path: "ALLOW_PAPER_RANKING requires PAPER_RANKING_RECOMMENDATION_ONLY scope",
         writer_path: "expected const False",
+        immature_scorecard_path: "source_scorecard_performance_ready=true",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _optimizer_recommendation_errors(load_json(path))

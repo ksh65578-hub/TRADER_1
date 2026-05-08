@@ -1,0 +1,203 @@
+{
+  "schema_id": "trader1.patch_result.v1",
+  "patch_id": "MVP4_UPBIT_PAPER_ADAPTIVE_RISK_SIZING_HARDENING_20260508_001",
+  "created_at_utc": "2026-05-08T03:37:00Z",
+  "target_mvp_level": "MVP-4",
+  "patch_class": "RUNTIME_SAFETY_PATCH",
+  "input_authority_files": [
+    "TRADER_1.md",
+    "AGENTS.md",
+    "TRADER_1_FULL_REVIEW_CONSOLIDATED.md",
+    "TRADER_1_IMPROVEMENT_ACTION_LIST.md"
+  ],
+  "input_authority_hash_status": "TRADER_1=FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B; AGENTS=21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+  "authority_hash_checked": true,
+  "affected_contract_ids": [
+    "REQ-MVP4-QUANTITATIVE-POLICY-CLOSURE",
+    "REQ-MVP4-STRATEGY-REGIME-COST-RUNTIME-LINKAGE",
+    "REQ-MVP4-RISK-EXPOSURE-QUALITY-GAP-RECHECK",
+    "REQ-MVP4-PAPER-RISK-EXPOSURE-TRUTH-BINDING",
+    "REQ-MVP4-LIVE-SAFETY-INVARIANTS"
+  ],
+  "affected_exchange": "UPBIT",
+  "affected_market_type": "KRW_SPOT",
+  "affected_mode": "PAPER",
+  "removed_requirements": [],
+  "merged_requirements": [],
+  "file_split": false,
+  "detail_reduction_allowed": false,
+  "semantic_reduction_allowed": false,
+  "retained_archive_preserved": true,
+  "new_registry_items": [],
+  "new_or_changed_schema_ids": [],
+  "validators_required": [
+    "schema_validator",
+    "upbit_operational_paper_gate_validator",
+    "upbit_paper_runtime_cycle_validator",
+    "patch_result_schema_validator",
+    "patch_result_runtime_schema_instance_validator",
+    "live_final_guard_validator"
+  ],
+  "validators_run": [
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_runtime_cycle_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "patch_result_runtime_schema_instance_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "command": "python -m py_compile trader1\\core\\sizing\\position_sizing.py trader1\\runtime\\paper\\upbit_paper_runtime.py trader1\\validation\\mvp0_validators.py tests\\integration\\test_upbit_operational_paper_cycle.py tests\\integration\\test_upbit_paper_runtime_cycle.py",
+      "status": "PASS"
+    },
+    {
+      "command": "python -m pytest -q tests\\integration\\test_upbit_operational_paper_cycle.py tests\\integration\\test_upbit_paper_runtime_cycle.py",
+      "status": "PASS",
+      "tests": 75
+    },
+    {
+      "command": "python -c \"from trader1.validation.mvp0_validators import run_validators; import sys; validators=['upbit_operational_paper_gate_validator','upbit_paper_runtime_cycle_validator','schema_validator']; r=run_validators(validators); sys.exit(0 if all(x.get('status')=='PASS' for x in r) else 1)\"",
+      "status": "PASS"
+    }
+  ],
+  "coverage_unmapped_count": 0,
+  "coverage_index_result": "UNCHANGED_PASS",
+  "registry_yaml_parse_status": "PASS_JSON_COMPATIBLE_YAML",
+  "registry_placeholders_remaining": [],
+  "retained_archive_semantic_mapping_status": "NOT_READ_NOT_REQUIRED",
+  "read_cache_update_required": false,
+  "context_pack_update_required": false,
+  "current_implementation_state_updated": false,
+  "next_task_class": "MVP4_STRATEGY_PROFITABILITY_LOOP_CONTINUE",
+  "next_required_section_ids": [
+    "SECTION_STRATEGY_PROFITABILITY",
+    "SECTION_RUNTIME_RISK_CONTROL",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "next_optional_section_ids": [
+    "SECTION_DASHBOARD_OPERATOR_UX",
+    "SECTION_UPBIT_PAPER_RUNTIME"
+  ],
+  "next_forbidden_default_sections": [
+    "LIVE_ENABLING_PATCH",
+    "EXCHANGE_PRIVATE_API_CREDENTIAL_USE",
+    "ORDER_ENDPOINT_CALL",
+    "LIVE_ADAPTER_CONNECTION"
+  ],
+  "live_order_ready_before": false,
+  "live_order_ready_after": false,
+  "live_order_allowed_before": false,
+  "live_order_allowed_after": false,
+  "can_live_trade_before": false,
+  "can_live_trade_after": false,
+  "scale_up_allowed_before": false,
+  "scale_up_allowed_after": false,
+  "remaining_blockers": [
+    "LIVE_READY_MISSING",
+    "ACTUAL_LONG_RUN_RUNTIME_EVIDENCE_BOUNDARY",
+    "PAPER_SHADOW_RUNTIME_SHADOW_OBSERVATION_GAP",
+    "PROFITABILITY_OPTIMIZER_EVIDENCE_MATURITY",
+    "LIVE_ENABLING_EVIDENCE_MISSING",
+    "SCALE_UP_NOT_ELIGIBLE"
+  ],
+  "evidence_manifest_path": "system/evidence/MVP4_UPBIT_PAPER_ADAPTIVE_RISK_SIZING_HARDENING.evidence_manifest.json",
+  "validator_run_log_path": "system/evidence/validator_runs/MVP4_UPBIT_PAPER_ADAPTIVE_RISK_SIZING_HARDENING.validator_run_log.json",
+  "stage_gate_result_path": "system/evidence/stage_gates/MVP4_UPBIT_PAPER_ADAPTIVE_RISK_SIZING_HARDENING.stage_gate_result.json",
+  "token_navigation_patch": true,
+  "active_read_surface_used": [
+    "contracts/generated/current_implementation_state.json",
+    "AGENTS.md overlay and active implementation guide",
+    "TRADER_1 active authority set",
+    "trader1.core.sizing.position_sizing",
+    "trader1.runtime.paper.upbit_paper_runtime",
+    "tests.integration.test_upbit_operational_paper_cycle",
+    "tests.integration.test_upbit_paper_runtime_cycle"
+  ],
+  "task_class": "MVP4_UPBIT_PAPER_ADAPTIVE_RISK_SIZING_HARDENING",
+  "required_section_ids": [
+    "AGENTS_0F",
+    "AGENTS_0G",
+    "TRADER1_0F",
+    "SECTION_STRATEGY_PROFITABILITY",
+    "SECTION_RUNTIME_RISK_CONTROL",
+    "SECTION_LIVE_FINAL_GUARD"
+  ],
+  "expanded_section_ids": [
+    "trader1.core.sizing.position_sizing.build_position_sizing_decision",
+    "trader1.core.sizing.position_sizing.validate_position_sizing_decision",
+    "trader1.runtime.paper.upbit_paper_runtime._candidate_sizing_inputs",
+    "trader1.validation.mvp0_validators.upbit_operational_paper_gate_validator",
+    "tests.integration.test_upbit_operational_paper_cycle",
+    "tests.integration.test_upbit_paper_runtime_cycle"
+  ],
+  "forbidden_default_sections_respected": true,
+  "authority_section_map_status": "UNCHANGED",
+  "requirement_index_status": "UNCHANGED",
+  "requirement_artifact_matrix_status": "UNCHANGED",
+  "read_cache_manifest_status": "UNCHANGED",
+  "context_pack_status": "UNCHANGED",
+  "current_implementation_state_status": "UNCHANGED",
+  "retained_archive_read": false,
+  "full_document_read": false,
+  "read_cache_invalidated": false,
+  "profit_convergence_patch": "UPBIT_PAPER_ADAPTIVE_RISK_SIZING_HARDENING",
+  "convergence_layer_changed": true,
+  "convergence_state_before": "UPBIT_PAPER_RUNTIME_SIZING_USED_BASIC_MIN_OF_CAPS_WITHOUT_ATR_VOLATILITY_DRAWDOWN_REGIME_CORRELATION_OR_REALIZED_PERFORMANCE_FEEDBACK_MULTIPLIERS",
+  "convergence_state_after": "UPBIT_PAPER_RUNTIME_SIZING_REQUIRES_ATR_RISK_CAP_VOLATILITY_CAP_DRAWDOWN_REGIME_CORRELATION_AND_REALIZED_PERFORMANCE_MULTIPLIERS_WITH_FAIL_CLOSED_BLOCKERS",
+  "objective_profile_changed": false,
+  "memory_schema_changed": false,
+  "failure_analysis_required": false,
+  "failure_analysis_status": "NOT_REQUIRED_FOR_RUNTIME_SIZING_FORMULA_PATCH",
+  "exploration_exploitation_policy_changed": false,
+  "regime_adaptation_changed": true,
+  "risk_scaling_policy_changed": true,
+  "survival_layer_changed": false,
+  "convergence_validators_required": [
+    "upbit_operational_paper_gate_validator",
+    "upbit_paper_runtime_cycle_validator",
+    "schema_validator",
+    "live_final_guard_validator"
+  ],
+  "convergence_validators_run": [
+    {
+      "validator_id": "upbit_operational_paper_gate_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "upbit_paper_runtime_cycle_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "schema_validator",
+      "status": "PASS"
+    },
+    {
+      "validator_id": "live_final_guard_validator",
+      "status": "PASS"
+    }
+  ],
+  "convergence_guardrail_result": "PASS_FAIL_CLOSED_NON_LIVE",
+  "convergence_live_mutation_detected": false,
+  "convergence_live_order_allowed_after": false,
+  "scale_up_eligibility_changed": false,
+  "result_hash": "89F415D6176BC938E9127C8D5C09FFEA1A0E6B6F9EE736A93F3D156C44A892D1"
+}

@@ -26,6 +26,12 @@
   "output_artifact_ids": [
     "candidate_scorecard_pass"
   ],
+  "candidate_scorecard_validator_status": "PASS",
+  "ranking_input_scorecard_count": 3,
+  "ranking_input_mature_scorecard_count": 3,
+  "ranking_input_immature_scorecard_count": 0,
+  "ranking_input_min_mature_scorecard_count": 1,
+  "ranking_input_maturity_status": "PASS",
   "resource_budget_status": "PASS",
   "partial_write_recovery_status": "PASS",
   "live_readiness_status": "NOT_LIVE_READY",

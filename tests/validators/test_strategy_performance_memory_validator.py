@@ -68,7 +68,10 @@ class StrategyPerformanceMemoryValidatorTest(unittest.TestCase):
 
         errors = _strategy_performance_memory_errors(report)
 
-        self.assertTrue(any("expected const True" in error for error in errors), errors)
+        self.assertTrue(
+            any("PAPER_SHADOW_RESEARCH_ONLY requires paper_shadow_separated=true" in error for error in errors),
+            errors,
+        )
 
     def test_net_ev_cannot_exceed_gross_after_costs(self):
         report = load_json(FIXTURE_DIR / "strategy_performance_memory_pass.json")

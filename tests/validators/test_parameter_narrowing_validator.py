@@ -22,6 +22,23 @@ class ParameterNarrowingValidatorTest(unittest.TestCase):
         self.assertIn("scorecard", source_ids)
         self.assertIn("optimizer_run", source_ids)
         self.assertIn("optimizer_recommendation", source_ids)
+        self.assertTrue(report["candidate_scorecard_ranking_eligible"])
+        self.assertEqual(report["candidate_scorecard_scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
+        self.assertTrue(report["candidate_scorecard_robustness_ready"])
+        self.assertTrue(report["candidate_scorecard_performance_ready"])
+        self.assertEqual(report["candidate_scorecard_performance_source_binding_status"], "PASS")
+        self.assertGreaterEqual(
+            report["candidate_scorecard_closed_trade_sample_count"],
+            report["candidate_scorecard_min_closed_trade_sample_count"],
+        )
+        self.assertGreaterEqual(
+            report["candidate_scorecard_realized_vs_expected_sample_count"],
+            report["candidate_scorecard_min_closed_trade_sample_count"],
+        )
+        self.assertGreaterEqual(
+            report["candidate_scorecard_fill_quality_sample_count"],
+            report["candidate_scorecard_min_closed_trade_sample_count"],
+        )
         bindings_by_id = {
             binding["source_evidence_id"]: binding
             for binding in report["source_evidence_identity_bindings"]
@@ -53,6 +70,18 @@ class ParameterNarrowingValidatorTest(unittest.TestCase):
         self.assertIn(
             "source evidence identity binding cannot be STALE: optimizer_run_pass",
             stale_errors,
+        )
+
+    def test_immature_scorecard_blocks_parameter_narrowing(self):
+        report = load_json(FIXTURE_DIR / "parameter_narrowing_scorecard_immature_fail.json")
+        errors = _parameter_narrowing_errors(report)
+        self.assertIn(
+            "paper parameter narrowing requires candidate_scorecard_performance_ready=true",
+            errors,
+        )
+        self.assertIn(
+            "paper parameter narrowing requires candidate scorecard performance source binding PASS",
+            errors,
         )
 
 
