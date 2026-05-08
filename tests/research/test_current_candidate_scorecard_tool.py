@@ -274,6 +274,8 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 {
                     "closed_trade_sample_count": 42,
                     "min_closed_trade_sample_count": 30,
+                    "realized_vs_expected_sample_count": 42,
+                    "fill_quality_sample_count": 42,
                     "profit_factor": 1.42,
                     "min_profit_factor": 1.25,
                     "max_drawdown_pct": 4.8,
@@ -327,6 +329,8 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertTrue(scorecard["ranking_eligible"])
         self.assertEqual(scorecard["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
         self.assertEqual(scorecard["closed_trade_status"], "PASS")
+        self.assertEqual(scorecard["realized_vs_expected_sample_count"], 42)
+        self.assertEqual(scorecard["fill_quality_sample_count"], 42)
         self.assertEqual(scorecard["profit_factor_status"], "PASS")
         self.assertFalse(scorecard["live_order_allowed"])
 

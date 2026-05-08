@@ -101,6 +101,27 @@ class CandidateScorecardNetEvValidatorTest(unittest.TestCase):
             errors,
         )
 
+    def test_scorecard_schema_requires_performance_maturity_fields(self):
+        scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
+        tampered = copy.deepcopy(scorecard)
+        del tampered["performance_source_binding_status"]
+
+        errors = _candidate_scorecard_net_ev_errors(tampered)
+
+        self.assertTrue(
+            any("performance_source_binding_status" in error for error in errors),
+            errors,
+        )
+
+    def test_scorecard_schema_requires_robustness_maturity_fields(self):
+        scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
+        tampered = copy.deepcopy(scorecard)
+        del tampered["robustness_ready"]
+
+        errors = _candidate_scorecard_net_ev_errors(tampered)
+
+        self.assertTrue(any("robustness_ready" in error for error in errors), errors)
+
     def test_non_ranking_scorecard_must_explain_blocker(self):
         scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
         tampered = copy.deepcopy(scorecard)
