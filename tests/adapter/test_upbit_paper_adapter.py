@@ -15,13 +15,33 @@ class UpbitPaperAdapterTest(unittest.TestCase):
         self.assertFalse(data["private_account_fields_present"])
 
     def test_symbol_rule_accepts_krw_symbol_only(self):
-        status, blocker, _ = validate_upbit_krw_symbol("KRW-BTC")
+        status, blocker, message = validate_upbit_krw_symbol("KRW-BTC")
         self.assertEqual(status, "PASS")
         self.assertIsNone(blocker)
+        self.assertIn("UPBIT_KRW_SPOT_SYMBOL_RULE_V1", message)
 
         bad_status, bad_blocker, _ = validate_upbit_krw_symbol("BTC-USDT")
         self.assertEqual(bad_status, "BLOCKED")
         self.assertEqual(bad_blocker, "SYMBOL_RULE_UNVERIFIED")
+
+    def test_symbol_rule_rejects_ambiguous_or_non_upbit_krw_symbols(self):
+        blocked_symbols = [
+            "KRW-btc",
+            "KRW-",
+            "KRW-KRW",
+            "KRW-BTC-USDT",
+            " KRW-BTC",
+            "KRW-BTC ",
+            "KRW-BTC/USD",
+            "KRW-TOO-LONG-BASE",
+        ]
+
+        for symbol in blocked_symbols:
+            with self.subTest(symbol=symbol):
+                status, blocker, message = validate_upbit_krw_symbol(symbol)
+                self.assertEqual(status, "BLOCKED")
+                self.assertEqual(blocker, "SYMBOL_RULE_UNVERIFIED")
+                self.assertNotIn("scaffold", message.lower())
 
     def test_paper_adapter_blocks_non_upbit_scope(self):
         report = build_upbit_paper_dry_run_report(
