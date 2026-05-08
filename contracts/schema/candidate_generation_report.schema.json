@@ -214,6 +214,31 @@
       "type": "integer",
       "minimum": 0
     },
+    "best_alternative_public_replay_closed_trade_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "best_alternative_public_replay_strategy_exit_policy_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "best_alternative_public_replay_profit_factor": {
+      "type": "number",
+      "minimum": 0
+    },
+    "best_alternative_public_replay_max_drawdown_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "best_alternative_public_replay_realized_vs_expected_edge_bps": {
+      "type": "number"
+    },
+    "best_alternative_public_replay_performance_scope": {
+      "enum": [
+        "NOT_RUN",
+        "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING"
+      ]
+    },
     "best_alternative_public_replay_primary_blocker_code": {
       "type": [
         "string",

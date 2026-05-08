@@ -9,7 +9,14 @@ from pathlib import Path
 from typing import Any
 
 from trader1.adapters.upbit.market_data import validate_upbit_public_candle_data
-from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper.upbit_paper_runtime import (
+    BREAKOUT_RETEST_EXIT_VARIATION,
+    STRATEGY_EXIT_ACTION_FULL_EXIT,
+    STRATEGY_EXIT_POLICY_ID,
+    TREND_PULLBACK_EXIT_VARIATION,
+    VWAP_REVERSION_EXIT_VARIATION,
+    build_upbit_paper_runtime_cycle_report,
+)
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
 
 
@@ -77,6 +84,212 @@ def _candidate_by_id(runtime_cycle: dict[str, Any], candidate_id: str) -> dict[s
     return None
 
 
+def _fill_cost_comparison(fill: dict[str, Any]) -> dict[str, float]:
+    filled_notional = _number(fill.get("filled_notional"))
+    fee_amount = _number(fill.get("fee_amount"))
+    realized_fee = fee_amount / filled_notional * 10000.0 if filled_notional > 0 and fee_amount >= 0 else _number(fill.get("fee_bps"))
+    realized_slippage = _number(fill.get("slippage_bps"))
+    realized_impact = _number(fill.get("market_impact_bps"))
+    expected_fee = _number(fill.get("fee_bps")) or _number(fill.get("fee_rate")) * 10000.0
+    expected_spread = _number(fill.get("effective_spread_bps")) or _number(fill.get("spread_bps"))
+    expected_slippage = _number(fill.get("adaptive_slippage_bps"))
+    expected_impact = _number(fill.get("market_impact_bps"))
+    expected_latency = _number(fill.get("latency_penalty_bps"))
+    expected_total = expected_fee + expected_spread + expected_slippage + expected_impact + expected_latency
+    realized_total = realized_fee + realized_slippage
+    return {
+        "realized_fee_bps": realized_fee,
+        "realized_slippage_bps": realized_slippage,
+        "realized_impact_bps": realized_impact,
+        "expected_total_execution_cost_bps": expected_total,
+        "realized_total_execution_cost_bps": realized_total,
+        "execution_cost_delta_bps": realized_total - expected_total,
+    }
+
+
+def _expected_exit_variation(strategy_family: Any) -> str:
+    return {
+        "PULLBACK_TREND_LONG": TREND_PULLBACK_EXIT_VARIATION,
+        "VWAP_MEAN_REVERSION": VWAP_REVERSION_EXIT_VARIATION,
+        "BREAKOUT_RETEST_LONG": BREAKOUT_RETEST_EXIT_VARIATION,
+    }.get(str(strategy_family or ""), "")
+
+
+def _strategy_exit_policy_sample(
+    *,
+    lifecycle: dict[str, Any],
+    expected_exit_variation: str,
+) -> tuple[bool, str | None]:
+    policy_id = str(lifecycle.get("strategy_exit_policy_id") or "")
+    exit_variation = str(lifecycle.get("strategy_exit_variation") or "")
+    entry_exit_variation = str(lifecycle.get("entry_strategy_exit_variation") or "")
+    reason_code = str(lifecycle.get("strategy_exit_reason_code") or lifecycle.get("position_exit_reason_code") or "")
+    nested = lifecycle.get("position_exit_evaluation")
+    nested = nested if isinstance(nested, dict) else {}
+    action = str(lifecycle.get("strategy_exit_action") or nested.get("strategy_exit_action") or "")
+    strategy_reason = str(lifecycle.get("strategy_exit_reason_code") or "")
+    if strategy_reason == "NONE":
+        strategy_reason = ""
+    policy_matched = (
+        policy_id == STRATEGY_EXIT_POLICY_ID
+        and bool(expected_exit_variation)
+        and exit_variation == expected_exit_variation
+        and (not entry_exit_variation or entry_exit_variation == expected_exit_variation)
+        and bool(reason_code)
+    )
+    if strategy_reason and action != STRATEGY_EXIT_ACTION_FULL_EXIT:
+        policy_matched = False
+    return policy_matched, reason_code or None
+
+
+def _sell_fill_realized_delta(fill: dict[str, Any], lifecycle: dict[str, Any]) -> float | None:
+    quantity = _number(fill.get("filled_quantity") or fill.get("quantity"))
+    fill_price = _number(fill.get("fill_price"))
+    fee_amount = _number(fill.get("fee_amount"))
+    managed_quantity = _number(lifecycle.get("managed_position_quantity"))
+    managed_cost_basis = _number(lifecycle.get("managed_position_cost_basis"))
+    if min(quantity, fill_price, managed_quantity, managed_cost_basis) <= 0 or quantity > managed_quantity:
+        return None
+    allocated_cost_basis = managed_cost_basis * (quantity / managed_quantity)
+    return (quantity * fill_price) - allocated_cost_basis - fee_amount
+
+
+def _replay_trade_lifecycle_fields(
+    *,
+    runtime: dict[str, Any],
+    candidate: dict[str, Any],
+) -> dict[str, Any]:
+    fill = runtime.get("paper_fill")
+    lifecycle = runtime.get("position_management_decision")
+    fill = fill if isinstance(fill, dict) else {}
+    lifecycle = lifecycle if isinstance(lifecycle, dict) else {}
+    target_candidate_id = str(candidate.get("candidate_id") or "")
+    final_decision = str(runtime.get("final_decision") or "")
+    side = str(fill.get("side") or "")
+    selected = runtime.get("selected_candidate")
+    candidate_fill = (
+        (
+            side == "BUY"
+            and final_decision == "ENTER_LONG"
+            and isinstance(selected, dict)
+            and str(selected.get("candidate_id") or "") == target_candidate_id
+        )
+        or (side == "SELL" and str(lifecycle.get("entry_candidate_id") or "") == target_candidate_id)
+    )
+    expected_exit_variation = _expected_exit_variation(candidate.get("strategy_family"))
+    strategy_exit_observed = side == "SELL" and final_decision in {"EXIT_POSITION", "REDUCE_POSITION"} and candidate_fill
+    strategy_exit_matched = False
+    strategy_exit_reason_code = None
+    if strategy_exit_observed:
+        strategy_exit_matched, strategy_exit_reason_code = _strategy_exit_policy_sample(
+            lifecycle=lifecycle,
+            expected_exit_variation=expected_exit_variation,
+        )
+    closed_trade = strategy_exit_observed and final_decision == "EXIT_POSITION"
+    realized_trade_pnl_bps = None
+    realized_vs_expected_edge_bps = None
+    if closed_trade:
+        realized_delta = _sell_fill_realized_delta(fill, lifecycle)
+        filled_notional = max(1.0, _number(fill.get("filled_notional")))
+        if realized_delta is not None:
+            realized_trade_pnl_bps = realized_delta / filled_notional * 10000.0
+            realized_vs_expected_edge_bps = realized_trade_pnl_bps - _number(candidate.get("net_ev_after_cost_bps"))
+    cost = _fill_cost_comparison(fill) if candidate_fill and side in {"BUY", "SELL"} else {}
+    return {
+        "runtime_final_decision": final_decision,
+        "runtime_no_trade_reasons": [str(reason) for reason in runtime.get("no_trade_reasons", []) if reason],
+        "runtime_paper_fill_side": side or None,
+        "runtime_paper_broker_state": fill.get("order_lifecycle_state"),
+        "paper_fill_belongs_to_candidate": bool(candidate_fill),
+        "paper_fill_side": side if candidate_fill else None,
+        "paper_broker_state": fill.get("order_lifecycle_state") if candidate_fill else None,
+        "closed_trade": bool(closed_trade and realized_trade_pnl_bps is not None),
+        "realized_trade_pnl_bps": realized_trade_pnl_bps,
+        "realized_vs_expected_edge_bps": realized_vs_expected_edge_bps,
+        "strategy_exit_policy_observed": strategy_exit_observed,
+        "strategy_exit_policy_matched": strategy_exit_matched,
+        "strategy_exit_policy_id": lifecycle.get("strategy_exit_policy_id"),
+        "strategy_exit_variation": lifecycle.get("strategy_exit_variation"),
+        "expected_strategy_exit_variation": expected_exit_variation,
+        "strategy_exit_reason_code": strategy_exit_reason_code,
+        "strategy_exit_action": lifecycle.get("strategy_exit_action"),
+        **cost,
+    }
+
+
+def _portfolio_contains_candidate_position(snapshot: dict[str, Any] | None, candidate_id: str) -> bool:
+    if not isinstance(snapshot, dict) or not candidate_id:
+        return False
+    for position in snapshot.get("positions") or []:
+        if isinstance(position, dict) and str(position.get("entry_candidate_id") or "") == candidate_id:
+            return True
+    return False
+
+
+def _public_replay_closed_trade_summary(sample_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    closed_rows = [row for row in sample_rows if row.get("closed_trade") is True and row.get("realized_trade_pnl_bps") is not None]
+    policy_rows = [row for row in sample_rows if row.get("strategy_exit_policy_observed") is True]
+    cost_rows = [row for row in sample_rows if row.get("execution_cost_delta_bps") is not None]
+    gross_profit = sum(max(0.0, _number(row.get("realized_trade_pnl_bps"))) for row in closed_rows)
+    gross_loss = sum(abs(min(0.0, _number(row.get("realized_trade_pnl_bps")))) for row in closed_rows)
+    if gross_loss > 0:
+        profit_factor = gross_profit / gross_loss
+    elif gross_profit > 0 and closed_rows:
+        profit_factor = 999.0
+    else:
+        profit_factor = 0.0
+    cumulative = 0.0
+    peak = 0.0
+    max_drawdown_bps = 0.0
+    for row in closed_rows:
+        cumulative += _number(row.get("realized_trade_pnl_bps"))
+        peak = max(peak, cumulative)
+        max_drawdown_bps = max(max_drawdown_bps, peak - cumulative)
+    reason_counts: dict[str, int] = {}
+    for row in policy_rows:
+        reason = str(row.get("strategy_exit_reason_code") or "")
+        if reason:
+            reason_counts[reason] = reason_counts.get(reason, 0) + 1
+    realized_vs_expected_values = [_number(row.get("realized_vs_expected_edge_bps")) for row in closed_rows]
+    cost_delta_values = [_number(row.get("execution_cost_delta_bps")) for row in cost_rows]
+    fill_quality_values = [
+        max(
+            0.0,
+            min(
+                1.0,
+                1.0 - max(0.0, _number(row.get("execution_cost_delta_bps"))) / max(1.0, _number(row.get("expected_total_execution_cost_bps"))),
+            ),
+        )
+        for row in cost_rows
+    ]
+    closed_count = len(closed_rows)
+    policy_count = len(policy_rows)
+    policy_mismatch_count = sum(1 for row in policy_rows if row.get("strategy_exit_policy_matched") is not True)
+    mean_realized_vs_expected = sum(realized_vs_expected_values) / len(realized_vs_expected_values) if realized_vs_expected_values else -999.0
+    mean_cost_delta = sum(cost_delta_values) / len(cost_delta_values) if cost_delta_values else 999.0
+    return {
+        "replay_closed_trade_sample_count": closed_count,
+        "replay_closed_trade_status": "PASS" if closed_count > 0 else "UNTESTED",
+        "replay_strategy_exit_policy_sample_count": policy_count,
+        "replay_strategy_exit_policy_match_count": policy_count - policy_mismatch_count,
+        "replay_strategy_exit_policy_mismatch_count": policy_mismatch_count,
+        "replay_strategy_exit_policy_status": "PASS" if policy_count > 0 and policy_mismatch_count == 0 else "UNTESTED" if policy_count == 0 else "FAIL",
+        "replay_strategy_exit_reason_counts": [
+            {"reason_code": reason, "count": count}
+            for reason, count in sorted(reason_counts.items())
+        ],
+        "replay_profit_factor": profit_factor,
+        "replay_profit_factor_status": "PASS" if closed_count > 0 and profit_factor >= 1.25 else "UNTESTED" if closed_count == 0 else "FAIL",
+        "replay_max_drawdown_bps": max_drawdown_bps,
+        "replay_realized_vs_expected_edge_bps": mean_realized_vs_expected,
+        "replay_realized_vs_expected_edge_status": "PASS" if realized_vs_expected_values and mean_realized_vs_expected >= 0 else "UNTESTED" if not realized_vs_expected_values else "FAIL",
+        "replay_fill_quality_score": sum(fill_quality_values) / len(fill_quality_values) if fill_quality_values else 0.0,
+        "replay_execution_cost_delta_bps": mean_cost_delta,
+        "replay_execution_cost_status": "PASS" if cost_delta_values and mean_cost_delta <= 2.0 else "UNTESTED" if not cost_delta_values else "FAIL",
+        "replay_performance_scope": "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING",
+    }
+
+
 def _public_replay_sample_row(
     *,
     replay_id: str,
@@ -89,7 +302,12 @@ def _public_replay_sample_row(
     opportunity_net_ev = _number(candidate.get("net_ev_after_cost_bps"))
     opportunity_gross_edge = _number(candidate.get("gross_expected_edge_bps"))
     opportunity_cost = _number(candidate.get("total_execution_cost_bps"))
-    executed_trade = candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+    lifecycle_fields = _replay_trade_lifecycle_fields(runtime=runtime, candidate=candidate)
+    executed_trade = (
+        candidate.get("decision") == "PAPER_ENTRY_REVIEW"
+        and lifecycle_fields.get("paper_fill_belongs_to_candidate") is True
+        and lifecycle_fields.get("paper_fill_side") == "BUY"
+    )
     if executed_trade:
         net_ev_after_cost = opportunity_net_ev
         gross_expected_edge = opportunity_gross_edge
@@ -110,7 +328,7 @@ def _public_replay_sample_row(
         "strategy_family": candidate.get("strategy_family"),
         "strategy_id": strategy_id,
         "candidate_id": candidate.get("candidate_id"),
-        "decision": candidate.get("decision"),
+        "decision": "PAPER_ENTRY_REVIEW" if executed_trade else "NO_TRADE",
         "executed_trade": executed_trade,
         "replay_return_basis": replay_return_basis,
         "regime": candidate.get("regime") or runtime.get("regime"),
@@ -122,6 +340,7 @@ def _public_replay_sample_row(
         "opportunity_net_ev_after_cost_bps": opportunity_net_ev,
         "opportunity_gross_expected_edge_bps": opportunity_gross_edge,
         "opportunity_total_execution_cost_bps": opportunity_cost,
+        **lifecycle_fields,
     }
 
 
@@ -166,34 +385,66 @@ def build_public_replay_robustness_report(
             blockers.append(_blocker("MEASUREMENT_MISSING", "public replay requires enough candle history for windowed evaluation"))
         window_count = max(0, len(candles) - safe_window_size + 1)
         start_index = max(0, window_count - safe_max_windows)
+        current_replay_portfolio: dict[str, Any] | None = None
+        target_candidate_id = str(candidate_scorecard.get("candidate_id") or "")
+        target_strategy_id = str(candidate_scorecard.get("strategy_id") or "")
+        target_parameter_hash = str(candidate_scorecard.get("parameter_hash") or "").upper()
         for replay_index, candle_index in enumerate(range(start_index, window_count), start=1):
             window_candles = candles[candle_index : candle_index + safe_window_size]
             window_market_data = dict(market_data)
             window_market_data["candles"] = window_candles
             window_market_data["profile"] = "PUBLIC_REST_REPLAY_WINDOW"
             cycle_id = f"public-replay-{_safe_artifact_stem(symbol)}-{candle_index + 1:04d}"
+            portfolio_kwargs: dict[str, Any] = {}
+            if isinstance(current_replay_portfolio, dict):
+                portfolio_kwargs = {
+                    "current_paper_portfolio_snapshot": current_replay_portfolio,
+                    "paper_cash_available": current_replay_portfolio.get("cash_available"),
+                    "paper_equity": current_replay_portfolio.get("equity"),
+                    "paper_position_market_value": current_replay_portfolio.get("position_market_value"),
+                }
             runtime = build_upbit_paper_runtime_cycle_report(
                 cycle_id=cycle_id,
                 session_id=session_id,
                 symbol=symbol,
                 market_data=window_market_data,
+                paper_scope_focus={
+                    "source": "PUBLIC_REPLAY_CANDIDATE_SCOPE",
+                    "candidate_id": target_candidate_id,
+                    "symbol": symbol,
+                    "strategy_id": target_strategy_id,
+                    "parameter_hash": target_parameter_hash,
+                    "sample_count": replay_index - 1,
+                    "sample_deficit": max(1, safe_max_windows - replay_index + 1),
+                    "live_order_ready": False,
+                    "live_order_allowed": False,
+                    "can_live_trade": False,
+                    "scale_up_allowed": False,
+                },
+                **portfolio_kwargs,
             )
-            candidate = _candidate_by_id(runtime, str(candidate_scorecard.get("candidate_id") or ""))
+            candidate = _candidate_by_id(runtime, target_candidate_id)
             if not isinstance(candidate, dict):
                 continue
             if any(candidate.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
                 blockers.append(_blocker("LIVE_FINAL_GUARD_FAILED", "public replay candidate attempted live or scale-up permission"))
                 continue
-            sample_rows.append(
-                _public_replay_sample_row(
-                    replay_id=replay_id,
-                    replay_index=replay_index,
-                    window_candles=window_candles,
-                    runtime=runtime,
-                    candidate=candidate,
-                    strategy_id=candidate_scorecard.get("strategy_id"),
-                )
+            sample_row = _public_replay_sample_row(
+                replay_id=replay_id,
+                replay_index=replay_index,
+                window_candles=window_candles,
+                runtime=runtime,
+                candidate=candidate,
+                strategy_id=candidate_scorecard.get("strategy_id"),
             )
+            sample_rows.append(sample_row)
+            runtime_portfolio = runtime.get("paper_portfolio_snapshot")
+            if isinstance(runtime_portfolio, dict) and (
+                sample_row.get("paper_fill_belongs_to_candidate") is True
+                or _portfolio_contains_candidate_position(runtime_portfolio, target_candidate_id)
+                or _portfolio_contains_candidate_position(current_replay_portfolio, target_candidate_id)
+            ):
+                current_replay_portfolio = runtime_portfolio
 
     sample_count = len(sample_rows)
     if sample_count < int(min_required_sample_count):
@@ -204,6 +455,7 @@ def build_public_replay_robustness_report(
             )
         )
     status = "PASS" if not blockers else "BLOCKED"
+    replay_closed_trade_summary = _public_replay_closed_trade_summary(sample_rows)
     report = {
         "schema_id": PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -226,6 +478,7 @@ def build_public_replay_robustness_report(
         "min_required_sample_count": int(min_required_sample_count),
         "max_replay_windows": safe_max_windows,
         "sample_rows": sample_rows,
+        **replay_closed_trade_summary,
         "replay_status": status,
         "primary_blocker_code": blockers[0]["code"] if blockers else None,
         "blockers": blockers,

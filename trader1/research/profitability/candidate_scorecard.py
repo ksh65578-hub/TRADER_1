@@ -1215,6 +1215,12 @@ def _best_alternative_replay_binding(
         "best_alternative_public_replay_replay_id": None,
         "best_alternative_public_replay_report_hash": None,
         "best_alternative_public_replay_sample_count": 0,
+        "best_alternative_public_replay_closed_trade_sample_count": 0,
+        "best_alternative_public_replay_strategy_exit_policy_sample_count": 0,
+        "best_alternative_public_replay_profit_factor": 0.0,
+        "best_alternative_public_replay_max_drawdown_bps": 0.0,
+        "best_alternative_public_replay_realized_vs_expected_edge_bps": -999.0,
+        "best_alternative_public_replay_performance_scope": "NOT_RUN",
         "best_alternative_public_replay_primary_blocker_code": None,
         "best_alternative_public_replay_source_evidence_ids": [],
     }
@@ -1226,6 +1232,20 @@ def _best_alternative_replay_binding(
             "best_alternative_public_replay_replay_id": replay_report.get("replay_id"),
             "best_alternative_public_replay_report_hash": replay_report.get("report_hash"),
             "best_alternative_public_replay_sample_count": int(replay_report.get("sample_count") or 0),
+            "best_alternative_public_replay_closed_trade_sample_count": int(
+                replay_report.get("replay_closed_trade_sample_count") or 0
+            ),
+            "best_alternative_public_replay_strategy_exit_policy_sample_count": int(
+                replay_report.get("replay_strategy_exit_policy_sample_count") or 0
+            ),
+            "best_alternative_public_replay_profit_factor": number_value(replay_report.get("replay_profit_factor")),
+            "best_alternative_public_replay_max_drawdown_bps": number_value(replay_report.get("replay_max_drawdown_bps")),
+            "best_alternative_public_replay_realized_vs_expected_edge_bps": number_value(
+                replay_report.get("replay_realized_vs_expected_edge_bps")
+            ),
+            "best_alternative_public_replay_performance_scope": str(
+                replay_report.get("replay_performance_scope") or "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING"
+            ),
             "best_alternative_public_replay_primary_blocker_code": replay_report.get("primary_blocker_code"),
             "best_alternative_public_replay_source_evidence_ids": _public_replay_source_evidence_ids(replay_report),
         }

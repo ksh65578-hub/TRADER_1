@@ -449,6 +449,18 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["alternative_review_scorecard_status"], "PASS")
         self.assertEqual(result["alternative_review_scorecard_candidate_id"], generation_report["best_alternative_candidate_id"])
         self.assertEqual(alternative_review_scorecard["candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertEqual(
+            generation_report["best_alternative_public_replay_closed_trade_sample_count"],
+            alternative_replay["replay_closed_trade_sample_count"],
+        )
+        self.assertEqual(
+            result["alternative_review_replay_closed_trade_sample_count"],
+            alternative_review_scorecard["replay_closed_trade_sample_count"],
+        )
+        self.assertEqual(
+            alternative_review_scorecard["replay_performance_scope"],
+            "PUBLIC_REPLAY_ONLY_NOT_PAPER_RANKING",
+        )
         self.assertEqual(alternative_review_overfit["candidate_id"], generation_report["best_alternative_candidate_id"])
         self.assertEqual(alternative_review_overfit["diagnostic_id"], f"overfit:{discovery_runtime['cycle_id']}:{generation_report['best_alternative_candidate_id']}")
         self.assertTrue(result["alternative_review_overfit_diagnostic_path"].endswith(".overfit_diagnostic_report.json"))
