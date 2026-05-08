@@ -1097,6 +1097,9 @@ def _candidate_generation_item(
     status: str,
     reason_code: str,
     priority: int,
+    candidate_source_role: str,
+    source_runtime_cycle_id: str,
+    source_runtime_cycle_hash: str,
 ) -> dict[str, Any]:
     family = str(candidate.get("strategy_family") or "")
     symbol = str(candidate.get("symbol") or "")
@@ -1109,6 +1112,9 @@ def _candidate_generation_item(
         "decision": str(candidate.get("decision") or "NO_TRADE"),
         "candidate_status": status,
         "reason_code": reason_code,
+        "candidate_source_role": candidate_source_role,
+        "source_runtime_cycle_id": source_runtime_cycle_id,
+        "source_runtime_cycle_hash": source_runtime_cycle_hash,
         "priority": max(1, priority),
         "net_ev_after_cost_bps": number_value(candidate.get("net_ev_after_cost_bps")),
         "candidate_selection_score": number_value(candidate.get("candidate_selection_score")),
@@ -1136,12 +1142,25 @@ def _candidate_generation_rank_key(item: dict[str, Any]) -> tuple[int, Decimal, 
     )
 
 
+def _dedupe_candidate_generation_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in sorted(items, key=_candidate_generation_rank_key, reverse=True):
+        candidate_id = str(item.get("candidate_id") or "")
+        if not candidate_id or candidate_id in seen:
+            continue
+        seen.add(candidate_id)
+        deduped.append(item)
+    return deduped
+
+
 def candidate_generation_report_from_upbit_paper_runtime_cycle(
     runtime_cycle_report: dict[str, Any],
     *,
     candidate_scorecard: dict[str, Any],
     candidate_budget: int = CANDIDATE_GENERATION_ITEM_LIMIT,
     authority: dict[str, str] | None = None,
+    additional_runtime_cycle_reports: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     if any(candidate_scorecard.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
         raise ValueError("candidate generation refuses scorecard live or scale-up permission")
@@ -1168,9 +1187,24 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
     items: list[dict[str, Any]] = []
     live_flag_drift_count = 0
     selected_candidate_seen = False
-    for candidate in runtime_cycle_report.get("strategy_candidates") or []:
+    source_runtime_bindings = {
+        (
+            str(runtime_cycle_report.get("cycle_id") or candidate_scorecard.get("source_runtime_cycle_id") or ""),
+            str(runtime_cycle_report.get("cycle_hash") or candidate_scorecard.get("source_runtime_cycle_hash") or ""),
+        )
+    }
+    discovery_blockers: list[dict[str, str]] = []
+
+    def add_candidate_item(
+        candidate: dict[str, Any],
+        *,
+        candidate_source_role: str,
+        source_runtime_cycle_id: str,
+        source_runtime_cycle_hash: str,
+    ) -> None:
+        nonlocal live_flag_drift_count, selected_candidate_seen
         if not isinstance(candidate, dict) or not isinstance(candidate.get("candidate_id"), str):
-            continue
+            return
         candidate_id = str(candidate.get("candidate_id") or "")
         if any(candidate.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
             live_flag_drift_count += 1
@@ -1180,9 +1214,12 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
                     status="REJECTED_LIVE_FLAG",
                     reason_code="LIVE_FINAL_GUARD_FAILED",
                     priority=len(items) + 1,
+                    candidate_source_role=candidate_source_role,
+                    source_runtime_cycle_id=source_runtime_cycle_id,
+                    source_runtime_cycle_hash=source_runtime_cycle_hash,
                 )
             )
-            continue
+            return
         if candidate_id == selected_candidate_id:
             selected_candidate_seen = True
             items.append(
@@ -1191,9 +1228,12 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
                     status="RETIRED_FAILED_SOURCE" if failed_current_candidate else "SELECTED_CURRENT",
                     reason_code=blocker_codes[0] if failed_current_candidate and blocker_codes else "CURRENT_SCORECARD_CANDIDATE",
                     priority=len(items) + 1,
+                    candidate_source_role=candidate_source_role,
+                    source_runtime_cycle_id=source_runtime_cycle_id,
+                    source_runtime_cycle_hash=source_runtime_cycle_hash,
                 )
             )
-            continue
+            return
         if candidate.get("decision") == "PAPER_ENTRY_REVIEW" and decimal_value(candidate.get("net_ev_after_cost_bps")) >= min_required_edge:
             items.append(
                 _candidate_generation_item(
@@ -1201,19 +1241,68 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
                     status="REVIEW_READY",
                     reason_code="ALTERNATIVE_ENTRY_REVIEW_READY",
                     priority=len(items) + 1,
+                    candidate_source_role=candidate_source_role,
+                    source_runtime_cycle_id=source_runtime_cycle_id,
+                    source_runtime_cycle_hash=source_runtime_cycle_hash,
                 )
             )
-            continue
+            return
         items.append(
             _candidate_generation_item(
                 candidate,
                 status="BLOCKED_NO_TRADE",
                 reason_code=str(candidate.get("no_trade_reason") or candidate.get("strategy_policy_reason") or "STRATEGY_NOT_ELIGIBLE"),
                 priority=len(items) + 1,
+                candidate_source_role=candidate_source_role,
+                source_runtime_cycle_id=source_runtime_cycle_id,
+                source_runtime_cycle_hash=source_runtime_cycle_hash,
             )
         )
 
-    sorted_items = sorted(items, key=_candidate_generation_rank_key, reverse=True)[:safe_budget]
+    current_cycle_id = str(runtime_cycle_report.get("cycle_id") or candidate_scorecard.get("source_runtime_cycle_id") or "")
+    current_cycle_hash = str(runtime_cycle_report.get("cycle_hash") or candidate_scorecard.get("source_runtime_cycle_hash") or "")
+    for candidate in runtime_cycle_report.get("strategy_candidates") or []:
+        add_candidate_item(
+            candidate,
+            candidate_source_role="CURRENT_RUNTIME_CYCLE",
+            source_runtime_cycle_id=current_cycle_id,
+            source_runtime_cycle_hash=current_cycle_hash,
+        )
+
+    for discovery_runtime in additional_runtime_cycle_reports or []:
+        if not isinstance(discovery_runtime, dict):
+            continue
+        discovery_cycle_id = str(discovery_runtime.get("cycle_id") or "")
+        discovery_cycle_hash = str(discovery_runtime.get("cycle_hash") or "")
+        source_runtime_bindings.add((discovery_cycle_id, discovery_cycle_hash))
+        if (
+            discovery_runtime.get("exchange") != "UPBIT"
+            or discovery_runtime.get("market_type") != "KRW_SPOT"
+            or discovery_runtime.get("mode") != "PAPER"
+            or any(discovery_runtime.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed"))
+        ):
+            discovery_blockers.append(
+                blocker("SNAPSHOT_SCOPE_MISMATCH", "Additional candidate discovery runtime was not scoped to live-blocked UPBIT/KRW_SPOT/PAPER.")
+            )
+            continue
+        runtime_result = validate_upbit_paper_runtime_cycle_report(discovery_runtime)
+        if runtime_result.status != "PASS":
+            discovery_blockers.append(
+                blocker(
+                    runtime_result.blocker_code or "SCHEMA_IDENTITY_MISMATCH",
+                    f"Additional candidate discovery runtime failed validation: {runtime_result.message}",
+                )
+            )
+            continue
+        for candidate in discovery_runtime.get("strategy_candidates") or []:
+            add_candidate_item(
+                candidate,
+                candidate_source_role="BOUNDED_PUBLIC_DISCOVERY_RUNTIME",
+                source_runtime_cycle_id=discovery_cycle_id,
+                source_runtime_cycle_hash=discovery_cycle_hash,
+            )
+
+    sorted_items = _dedupe_candidate_generation_items(items)[:safe_budget]
     review_ready_items = [item for item in sorted_items if item["candidate_status"] == "REVIEW_READY"]
     best = review_ready_items[0] if review_ready_items else None
     blocked_count = sum(1 for item in sorted_items if item["candidate_status"] in {"BLOCKED_NO_TRADE", "REJECTED_LIVE_FLAG"})
@@ -1227,6 +1316,7 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
         )
     if live_flag_drift_count:
         blockers.append(blocker("LIVE_FINAL_GUARD_FAILED", "Candidate generation rejected a candidate with live or scale-up permission drift."))
+    blockers.extend(discovery_blockers)
     if best is None:
         blockers.append(
             blocker(
@@ -1247,10 +1337,13 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
     source_ids = [
         _scorecard_source_id_for_candidate_generation(candidate_scorecard),
         runtime_cycle_source_evidence_id(
-            str(runtime_cycle_report.get("cycle_id") or candidate_scorecard.get("source_runtime_cycle_id") or ""),
-            str(runtime_cycle_report.get("cycle_hash") or candidate_scorecard.get("source_runtime_cycle_hash") or ""),
+            current_cycle_id,
+            current_cycle_hash,
         ),
     ]
+    for cycle_id, cycle_hash in sorted(source_runtime_bindings):
+        if cycle_id and len(cycle_hash) == 64:
+            source_ids.append(runtime_cycle_source_evidence_id(cycle_id, cycle_hash))
     source_ids.extend(str(item) for item in candidate_scorecard.get("source_evidence_ids", []) if item)
     report = {
         "schema_id": CANDIDATE_GENERATION_SCHEMA_ID,
@@ -1358,6 +1451,39 @@ def validate_candidate_generation_report(
     items = report.get("candidate_items")
     if not isinstance(items, list):
         return "FAIL", "candidate generation items must be a list", "SCHEMA_IDENTITY_MISMATCH"
+    source_evidence_ids = {str(source_id) for source_id in report.get("source_evidence_ids") or []}
+    required_item_fields = {
+        "candidate_id",
+        "candidate_status",
+        "candidate_source_role",
+        "source_runtime_cycle_id",
+        "source_runtime_cycle_hash",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    }
+    allowed_item_source_roles = {"CURRENT_RUNTIME_CYCLE", "BOUNDED_PUBLIC_DISCOVERY_RUNTIME"}
+    for item in items:
+        if not isinstance(item, dict):
+            return "FAIL", "candidate generation item must be an object", "SCHEMA_IDENTITY_MISMATCH"
+        missing_item_fields = sorted(required_item_fields - set(item))
+        if missing_item_fields:
+            return (
+                "FAIL",
+                f"candidate generation item missing source or live-guard fields: {missing_item_fields}",
+                "SCHEMA_IDENTITY_MISMATCH",
+            )
+        if item.get("candidate_source_role") not in allowed_item_source_roles:
+            return "FAIL", "candidate generation item has unknown source role", "SCHEMA_IDENTITY_MISMATCH"
+        if any(item.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+            return "BLOCKED", "candidate generation item attempted live or scale-up behavior", "LIVE_FINAL_GUARD_FAILED"
+        item_cycle_id = str(item.get("source_runtime_cycle_id") or "")
+        item_cycle_hash = str(item.get("source_runtime_cycle_hash") or "")
+        if not item_cycle_id or len(item_cycle_hash) != 64:
+            return "FAIL", "candidate generation item is missing runtime source binding", "SCHEMA_IDENTITY_MISMATCH"
+        if runtime_cycle_source_evidence_id(item_cycle_id, item_cycle_hash) not in source_evidence_ids:
+            return "FAIL", "candidate generation item source binding is not listed in source evidence", "SCHEMA_IDENTITY_MISMATCH"
     review_ready_count = sum(1 for item in items if isinstance(item, dict) and item.get("candidate_status") == "REVIEW_READY")
     if review_ready_count != report.get("review_ready_candidate_count"):
         return "FAIL", "candidate generation review-ready count mismatch", "SCHEMA_IDENTITY_MISMATCH"

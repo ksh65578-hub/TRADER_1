@@ -222,6 +222,9 @@
           "decision",
           "candidate_status",
           "reason_code",
+          "candidate_source_role",
+          "source_runtime_cycle_id",
+          "source_runtime_cycle_hash",
           "priority",
           "net_ev_after_cost_bps",
           "candidate_selection_score",
@@ -269,6 +272,20 @@
           "reason_code": {
             "type": "string",
             "minLength": 1
+          },
+          "candidate_source_role": {
+            "enum": [
+              "CURRENT_RUNTIME_CYCLE",
+              "BOUNDED_PUBLIC_DISCOVERY_RUNTIME"
+            ]
+          },
+          "source_runtime_cycle_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_runtime_cycle_hash": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]{64}$"
           },
           "priority": {
             "type": "integer",
