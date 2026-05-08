@@ -16357,7 +16357,7 @@ def overfit_diagnostic_validator() -> ValidatorResult:
 
     return pass_result(
         "overfit_diagnostic_validator",
-        "overfit diagnostics require OOS, walk-forward, bootstrap, bias, concentration, and false live flags",
+        "overfit diagnostics require evidence-bound OOS, walk-forward, bootstrap, closed-trade performance, bias, concentration, and false live flags",
         paths,
     )
 
@@ -21569,6 +21569,7 @@ def _overfit_diagnostic_errors(report: dict[str, Any]) -> list[str]:
         errors.append("overfit diagnostic report must be marked dashboard_display_truth_only=true")
 
     blockers = report.get("blockers", [])
+    source_evidence_ids = [str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)]
     robustness_eligible = report.get("robustness_eligible") is True
     if robustness_eligible:
         if report.get("diagnostic_status") != "ROBUST_FOR_PAPER_REVIEW":
@@ -21604,6 +21605,15 @@ def _overfit_diagnostic_errors(report: dict[str, Any]) -> list[str]:
             )
         if float(report["ranking_stability_score"]) < float(report["min_required_ranking_stability_score"]):
             errors.append("ranking_stability_score below min_required_ranking_stability_score while robustness_eligible=true")
+        if not has_required_robustness_source_ids(source_evidence_ids):
+            errors.append("robustness_eligible requires OOS, walk-forward, and bootstrap source evidence ids")
+        if not has_required_performance_source_ids(
+            source_evidence_ids,
+            candidate_id=str(report.get("candidate_id", "")),
+        ):
+            errors.append(
+                "robustness_eligible requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
     else:
         if report.get("diagnostic_status") == "ROBUST_FOR_PAPER_REVIEW":
             errors.append("diagnostic_status cannot be ROBUST_FOR_PAPER_REVIEW when robustness_eligible=false")
@@ -22155,7 +22165,7 @@ def ranking_stability_validator() -> ValidatorResult:
 
     return pass_result(
         "ranking_stability_validator",
-        "ranking stability requires optimizer policy enforcement plus PASS status, sufficient samples, and score above threshold before paper ranking review",
+        "ranking stability requires optimizer policy enforcement plus PASS status, sufficient samples, evidence-bound robustness/performance sources, and score above threshold before paper ranking review",
         paths,
     )
 
