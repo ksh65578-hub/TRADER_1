@@ -3927,6 +3927,10 @@ def build_upbit_paper_runtime_cycle_report(
         ),
         "managed_position_symbol": managed_position.get("symbol") if isinstance(managed_position, dict) else None,
         "managed_position_quantity": managed_position.get("quantity") if isinstance(managed_position, dict) else None,
+        "managed_position_average_entry_price": (
+            managed_position.get("average_entry_price") if isinstance(managed_position, dict) else None
+        ),
+        "managed_position_cost_basis": managed_position.get("cost_basis") if isinstance(managed_position, dict) else None,
         "position_exit_reason_code": position_exit_evaluation.get("reason_code"),
         "position_exit_evaluation": position_exit_evaluation,
         "strategy_exit_policy_id": exit_plan.get("strategy_exit_policy_id"),

@@ -479,6 +479,18 @@ def _paper_fill_execution_cost_comparison(fill: dict[str, Any]) -> dict[str, Dec
     }
 
 
+def _paper_sell_fill_realized_delta(fill: dict[str, Any], lifecycle: dict[str, Any]) -> Decimal | None:
+    quantity = decimal_value(fill.get("filled_quantity") or fill.get("quantity"))
+    fill_price = decimal_value(fill.get("fill_price"))
+    fee_amount = decimal_value(fill.get("fee_amount"))
+    managed_quantity = decimal_value(lifecycle.get("managed_position_quantity"))
+    managed_cost_basis = decimal_value(lifecycle.get("managed_position_cost_basis"))
+    if min(quantity, fill_price, managed_quantity, managed_cost_basis) <= 0 or quantity > managed_quantity:
+        return None
+    allocated_cost_basis = managed_cost_basis * (quantity / managed_quantity)
+    return (quantity * fill_price) - allocated_cost_basis - fee_amount
+
+
 def performance_inputs_from_runtime_sample_history(
     *,
     candidate_scorecard: dict[str, Any],
@@ -494,7 +506,7 @@ def performance_inputs_from_runtime_sample_history(
         str(candidate_scorecard.get("candidate_id") or ""),
     )
 
-    previous_realized_pnl: Decimal | None = None
+    candidate_realized_pnl_baseline: Decimal | None = None
     starting_cash: Decimal | None = None
     candidate_cumulative_realized_pnl = Decimal("0")
     candidate_realized_pnl_peak = Decimal("0")
@@ -532,7 +544,7 @@ def performance_inputs_from_runtime_sample_history(
                 starting_cash = candidate_starting_cash if starting_cash is None else starting_cash
             current_realized = decimal_value(portfolio.get("realized_pnl"))
         else:
-            current_realized = previous_realized_pnl if previous_realized_pnl is not None else Decimal("0")
+            current_realized = candidate_realized_pnl_baseline if candidate_realized_pnl_baseline is not None else Decimal("0")
 
         fill = runtime.get("paper_fill")
         lifecycle = runtime.get("position_management_decision")
@@ -597,8 +609,16 @@ def performance_inputs_from_runtime_sample_history(
             if exit_reason:
                 strategy_exit_reason_counts[exit_reason] = strategy_exit_reason_counts.get(exit_reason, 0) + 1
 
+        if candidate_fill and isinstance(fill, dict) and fill.get("side") == "BUY":
+            candidate_realized_pnl_baseline = current_realized
+
         if sell_policy_observed and runtime.get("final_decision") == "EXIT_POSITION":
-            realized_delta = current_realized - (previous_realized_pnl if previous_realized_pnl is not None else Decimal("0"))
+            direct_realized_delta = _paper_sell_fill_realized_delta(fill, lifecycle)
+            realized_delta = (
+                direct_realized_delta
+                if direct_realized_delta is not None
+                else current_realized - (candidate_realized_pnl_baseline if candidate_realized_pnl_baseline is not None else Decimal("0"))
+            )
             closed_trade_count += 1
             if realized_delta >= 0:
                 gross_profit += realized_delta
@@ -616,7 +636,7 @@ def performance_inputs_from_runtime_sample_history(
                 (candidate_realized_pnl_peak - candidate_cumulative_realized_pnl) / drawdown_denominator * Decimal("100"),
             )
             max_drawdown_pct = max(max_drawdown_pct, drawdown)
-        previous_realized_pnl = current_realized
+            candidate_realized_pnl_baseline = current_realized
 
     if gross_loss > 0:
         profit_factor = gross_profit / gross_loss

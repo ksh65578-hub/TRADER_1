@@ -943,6 +943,7 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         target_key = safe_candidate_scorecard_filename(target_scorecard["candidate_id"])
         self.assertEqual(target_runtime["final_decision"], "EXIT_POSITION")
         self.assertEqual(unrelated_runtime["final_decision"], "EXIT_POSITION")
+        self.assertIsNotNone(target_runtime["position_management_decision"]["managed_position_cost_basis"])
         self.assertEqual(metrics["closed_trade_sample_count"], 1)
         self.assertEqual(metrics["strategy_exit_policy_sample_count"], 1)
         self.assertEqual(metrics["strategy_exit_policy_match_count"], 1)
@@ -963,6 +964,64 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertGreaterEqual(metrics["expected_total_execution_cost_bps"], metrics["realized_fee_bps"])
         self.assertLessEqual(metrics["execution_cost_delta_bps"], metrics["max_allowed_execution_cost_delta_bps"])
         self.assertTrue(all(f":{target_key}:" in source_id for source_id in source_ids))
+
+    def test_runtime_performance_closed_trade_pnl_is_order_invariant_for_candidate_scope(self):
+        target_entry_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-performance-order-target-entry",
+            symbol="KRW-BTC",
+        )
+        target_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(target_entry_runtime)
+        target_runtime = _closed_trade_runtime_for_candidate(
+            symbol="KRW-BTC",
+            cycle_id="scorecard-performance-order-target-exit",
+        )
+        unrelated_runtime = _closed_trade_runtime_for_candidate(
+            symbol="KRW-ETH",
+            cycle_id="scorecard-performance-order-unrelated-exit",
+        )
+
+        def metrics_for_order(runtimes: list[dict]) -> dict[str, float]:
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                runtime_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp4_upbit_paper_runtime"
+                runtime_dir.mkdir(parents=True)
+                samples = []
+                for runtime in runtimes:
+                    runtime_path = runtime_dir / f"{runtime['cycle_id']}.runtime_cycle.json"
+                    runtime_path.write_text(json.dumps(runtime, sort_keys=True), encoding="utf-8")
+                    samples.append(
+                        {
+                            "source_runtime_cycle_path": runtime_path.relative_to(root).as_posix(),
+                            "source_runtime_cycle_hash": runtime["cycle_hash"],
+                        }
+                    )
+                _statuses, metrics, _source_ids = performance_inputs_from_runtime_sample_history(
+                    candidate_scorecard=target_scorecard,
+                    runtime_sample_history={
+                        "history_id": "candidate-order-invariance-history",
+                        "history_hash": "F" * 64,
+                        "samples": samples,
+                    },
+                    root=root,
+                )
+                return metrics
+
+        target_only_metrics = metrics_for_order([target_runtime])
+        unrelated_first_metrics = metrics_for_order([unrelated_runtime, target_runtime])
+        target_first_metrics = metrics_for_order([target_runtime, unrelated_runtime])
+
+        self.assertEqual(unrelated_first_metrics["closed_trade_sample_count"], 1)
+        self.assertEqual(target_first_metrics["closed_trade_sample_count"], 1)
+        self.assertAlmostEqual(
+            unrelated_first_metrics["realized_vs_expected_edge_bps"],
+            target_only_metrics["realized_vs_expected_edge_bps"],
+        )
+        self.assertAlmostEqual(
+            target_first_metrics["realized_vs_expected_edge_bps"],
+            target_only_metrics["realized_vs_expected_edge_bps"],
+        )
+        self.assertAlmostEqual(unrelated_first_metrics["max_drawdown_pct"], target_only_metrics["max_drawdown_pct"])
+        self.assertAlmostEqual(target_first_metrics["max_drawdown_pct"], target_only_metrics["max_drawdown_pct"])
 
     def test_partial_sell_counts_strategy_exit_policy_without_closed_trade_claim(self):
         weak_btc = build_upbit_public_candle_fixture(
