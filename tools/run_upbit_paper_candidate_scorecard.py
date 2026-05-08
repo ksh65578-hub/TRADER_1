@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any, Callable
 
@@ -169,6 +170,93 @@ def _safe_int(value: Any) -> int:
         return 0
 
 
+def _ordered_count_items(counter: Counter[str], *, limit: int = 12) -> list[dict[str, Any]]:
+    return [
+        {"code": code, "count": count}
+        for code, count in sorted(counter.items(), key=lambda item: (-item[1], item[0]))[:limit]
+    ]
+
+
+def _candidate_discovery_empty_diagnostics() -> dict[str, Any]:
+    return {
+        "evaluated_candidate_count": 0,
+        "paper_entry_review_candidate_count": 0,
+        "blocked_candidate_count": 0,
+        "strategy_family_candidate_counts": [],
+        "strategy_family_review_ready_counts": [],
+        "strategy_family_blocked_counts": [],
+        "no_trade_reason_counts": [],
+        "strategy_policy_reason_counts": [],
+        "entry_block_reason_counts": [],
+        "top_blocked_symbols": [],
+    }
+
+
+def _candidate_discovery_diagnostics(runtime: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(runtime, dict):
+        return _candidate_discovery_empty_diagnostics()
+
+    candidates = [candidate for candidate in runtime.get("strategy_candidates") or [] if isinstance(candidate, dict)]
+    scorecards = [scorecard for scorecard in runtime.get("symbol_evidence_scorecards") or [] if isinstance(scorecard, dict)]
+    universe = [item for item in runtime.get("symbol_selection_universe") or [] if isinstance(item, dict)]
+
+    strategy_family_counter: Counter[str] = Counter()
+    strategy_family_review_ready_counter: Counter[str] = Counter()
+    strategy_family_blocked_counter: Counter[str] = Counter()
+    no_trade_counter: Counter[str] = Counter()
+    strategy_policy_counter: Counter[str] = Counter()
+    entry_block_counter: Counter[str] = Counter()
+    review_ready_count = 0
+
+    for candidate in candidates:
+        family = str(candidate.get("strategy_family") or "UNKNOWN")
+        strategy_family_counter[family] += 1
+        policy_reason = str(candidate.get("strategy_policy_reason") or "")
+        if policy_reason:
+            strategy_policy_counter[policy_reason] += 1
+        if candidate.get("decision") == "PAPER_ENTRY_REVIEW":
+            review_ready_count += 1
+            strategy_family_review_ready_counter[family] += 1
+            continue
+        strategy_family_blocked_counter[family] += 1
+        reason = str(candidate.get("no_trade_reason") or policy_reason or "UNKNOWN_NO_TRADE_REASON")
+        no_trade_counter[reason] += 1
+
+    for item in universe:
+        reason = str(item.get("entry_block_reason") or "")
+        if reason:
+            entry_block_counter[reason] += 1
+
+    blocked_symbols: list[dict[str, Any]] = []
+    for scorecard in sorted(scorecards, key=lambda item: _safe_int(item.get("rank_input_order"))):
+        if _safe_int(scorecard.get("paper_entry_review_candidate_count")) > 0:
+            continue
+        blocked_symbols.append(
+            {
+                "symbol": str(scorecard.get("symbol") or ""),
+                "regime": scorecard.get("regime"),
+                "market_state": scorecard.get("market_state"),
+                "best_strategy_family": scorecard.get("best_strategy_family"),
+                "best_no_trade_reason": scorecard.get("best_no_trade_reason"),
+                "best_strategy_policy_reason": scorecard.get("best_strategy_policy_reason"),
+                "no_trade_reasons": list(scorecard.get("no_trade_reasons") or [])[:5],
+            }
+        )
+
+    return {
+        "evaluated_candidate_count": len(candidates),
+        "paper_entry_review_candidate_count": review_ready_count,
+        "blocked_candidate_count": len(candidates) - review_ready_count,
+        "strategy_family_candidate_counts": _ordered_count_items(strategy_family_counter),
+        "strategy_family_review_ready_counts": _ordered_count_items(strategy_family_review_ready_counter),
+        "strategy_family_blocked_counts": _ordered_count_items(strategy_family_blocked_counter),
+        "no_trade_reason_counts": _ordered_count_items(no_trade_counter),
+        "strategy_policy_reason_counts": _ordered_count_items(strategy_policy_counter),
+        "entry_block_reason_counts": _ordered_count_items(entry_block_counter),
+        "top_blocked_symbols": blocked_symbols[:5],
+    }
+
+
 def _candidate_discovery_context(
     *,
     status: str,
@@ -177,7 +265,11 @@ def _candidate_discovery_context(
     symbol_count: int,
     ranked_symbol_count: int = 0,
     eligible_symbol_count: int = 0,
+    diagnostics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    discovery_diagnostics = _candidate_discovery_empty_diagnostics()
+    if diagnostics:
+        discovery_diagnostics.update(diagnostics)
     return {
         "status": status,
         "blocker_code": blocker_code,
@@ -185,6 +277,7 @@ def _candidate_discovery_context(
         "symbol_count": symbol_count,
         "ranked_symbol_count": ranked_symbol_count,
         "eligible_symbol_count": eligible_symbol_count,
+        **discovery_diagnostics,
         "credential_load_attempted": False,
         "private_endpoint_called": False,
         "order_endpoint_called": False,
@@ -322,6 +415,7 @@ def _build_bounded_public_discovery_runtime_cycle(
         symbol_count=len(collection_reports),
         ranked_symbol_count=int(ranking.get("ranked_symbol_count") or 0),
         eligible_symbol_count=int(ranking.get("eligible_symbol_count") or 0),
+        diagnostics=_candidate_discovery_diagnostics(runtime),
     )
 
 
@@ -672,6 +766,24 @@ def build_current_upbit_paper_candidate_scorecard(
         "candidate_discovery_symbol_count": candidate_discovery_context["symbol_count"],
         "candidate_discovery_ranked_symbol_count": candidate_discovery_context["ranked_symbol_count"],
         "candidate_discovery_eligible_symbol_count": candidate_discovery_context["eligible_symbol_count"],
+        "candidate_discovery_evaluated_candidate_count": candidate_discovery_context["evaluated_candidate_count"],
+        "candidate_discovery_paper_entry_review_candidate_count": candidate_discovery_context[
+            "paper_entry_review_candidate_count"
+        ],
+        "candidate_discovery_blocked_candidate_count": candidate_discovery_context["blocked_candidate_count"],
+        "candidate_discovery_strategy_family_candidate_counts": candidate_discovery_context[
+            "strategy_family_candidate_counts"
+        ],
+        "candidate_discovery_strategy_family_review_ready_counts": candidate_discovery_context[
+            "strategy_family_review_ready_counts"
+        ],
+        "candidate_discovery_strategy_family_blocked_counts": candidate_discovery_context[
+            "strategy_family_blocked_counts"
+        ],
+        "candidate_discovery_no_trade_reason_counts": candidate_discovery_context["no_trade_reason_counts"],
+        "candidate_discovery_strategy_policy_reason_counts": candidate_discovery_context["strategy_policy_reason_counts"],
+        "candidate_discovery_entry_block_reason_counts": candidate_discovery_context["entry_block_reason_counts"],
+        "candidate_discovery_top_blocked_symbols": candidate_discovery_context["top_blocked_symbols"],
         "alternative_public_replay_status": alternative_replay_context["status"],
         "alternative_public_replay_blocker_code": alternative_replay_context["blocker_code"],
         "alternative_public_replay_message": alternative_replay_context["message"],
