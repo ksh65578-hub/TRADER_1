@@ -36,6 +36,8 @@ PERFORMANCE_PASS = {
 DEFAULT_PERFORMANCE_METRICS = {
     "closed_trade_sample_count": 0,
     "min_closed_trade_sample_count": 30,
+    "realized_vs_expected_sample_count": 0,
+    "fill_quality_sample_count": 0,
     "profit_factor": 0.0,
     "min_profit_factor": 1.25,
     "max_drawdown_pct": 100.0,
@@ -148,11 +150,27 @@ def has_required_performance_source_ids(
     if candidate_id is None:
         return all(any(source_id.startswith(prefix) for source_id in ids) for prefix in PERFORMANCE_SOURCE_PREFIXES)
 
+    return performance_source_binding_from_source_ids(
+        ids,
+        candidate_id=candidate_id,
+        history_id=history_id,
+        history_hash=history_hash,
+    ) is not None
+
+
+def performance_source_binding_from_source_ids(
+    source_evidence_ids: list[str] | None,
+    *,
+    candidate_id: str,
+    history_id: str | None = None,
+    history_hash: str | None = None,
+) -> tuple[str, str] | None:
+    ids = source_evidence_ids or []
     candidate_key = safe_candidate_scorecard_filename(candidate_id)
     matched_binding: tuple[str, str] | None = None
     for prefix in PERFORMANCE_SOURCE_PREFIXES:
         normalized = prefix[:-1] if prefix.endswith(":") else prefix
-        matched_parts: list[list[str]] = []
+        prefix_binding: tuple[str, str] | None = None
         for source_id in ids:
             if not isinstance(source_id, str) or not source_id.startswith(prefix):
                 continue
@@ -165,15 +183,34 @@ def has_required_performance_source_ids(
                 continue
             if history_hash is not None and parts[3] != history_hash:
                 continue
-            matched_parts.append(parts)
-        if not matched_parts:
-            return False
-        current_binding = (matched_parts[0][2], matched_parts[0][3])
+            current_binding = (parts[2], parts[3])
+            if prefix_binding is not None and prefix_binding != current_binding:
+                return None
+            prefix_binding = current_binding
+        if prefix_binding is None:
+            return None
+        current_binding = prefix_binding
         if matched_binding is None:
             matched_binding = current_binding
         elif matched_binding != current_binding:
-            return False
-    return True
+            return None
+    return matched_binding
+
+
+def _threshold_status(
+    *,
+    observed_count: int,
+    value: float,
+    threshold: float,
+    comparison: str,
+) -> str:
+    if observed_count <= 0:
+        return "UNTESTED"
+    if comparison == "gte":
+        return "PASS" if value >= threshold else "FAIL"
+    if comparison == "lte":
+        return "PASS" if value <= threshold else "FAIL"
+    raise ValueError(f"unsupported threshold comparison: {comparison}")
 
 
 def _performance_source_evidence_ids(history_id: str, history_hash: str, candidate_id: str) -> list[str]:
@@ -367,22 +404,48 @@ def performance_inputs_from_runtime_sample_history(
     metrics.update(
         {
             "closed_trade_sample_count": closed_trade_count,
+            "realized_vs_expected_sample_count": len(realized_vs_expected_values),
+            "fill_quality_sample_count": len(fill_quality_values),
             "profit_factor": float(profit_factor),
             "max_drawdown_pct": float(max_drawdown_pct),
             "realized_vs_expected_edge_bps": float(realized_vs_expected),
             "fill_quality_score": float(fill_quality),
         }
     )
+    closed_trade_observed = int(metrics["closed_trade_sample_count"])
+    realized_vs_expected_observed = int(metrics["realized_vs_expected_sample_count"])
+    fill_quality_observed = int(metrics["fill_quality_sample_count"])
     statuses = {
-        "closed_trade_status": "PASS"
-        if closed_trade_count >= int(metrics["min_closed_trade_sample_count"])
-        else "UNTESTED",
-        "profit_factor_status": "PASS" if float(metrics["profit_factor"]) >= float(metrics["min_profit_factor"]) else "UNTESTED",
-        "max_drawdown_status": "PASS" if float(metrics["max_drawdown_pct"]) <= float(metrics["max_allowed_drawdown_pct"]) else "FAIL",
-        "realized_vs_expected_edge_status": "PASS"
-        if float(metrics["realized_vs_expected_edge_bps"]) >= float(metrics["min_realized_vs_expected_edge_bps"])
-        else "UNTESTED",
-        "fill_quality_status": "PASS" if float(metrics["fill_quality_score"]) >= float(metrics["min_fill_quality_score"]) else "UNTESTED",
+        "closed_trade_status": _threshold_status(
+            observed_count=closed_trade_observed,
+            value=float(metrics["closed_trade_sample_count"]),
+            threshold=float(metrics["min_closed_trade_sample_count"]),
+            comparison="gte",
+        ),
+        "profit_factor_status": _threshold_status(
+            observed_count=closed_trade_observed,
+            value=float(metrics["profit_factor"]),
+            threshold=float(metrics["min_profit_factor"]),
+            comparison="gte",
+        ),
+        "max_drawdown_status": _threshold_status(
+            observed_count=closed_trade_observed,
+            value=float(metrics["max_drawdown_pct"]),
+            threshold=float(metrics["max_allowed_drawdown_pct"]),
+            comparison="lte",
+        ),
+        "realized_vs_expected_edge_status": _threshold_status(
+            observed_count=realized_vs_expected_observed,
+            value=float(metrics["realized_vs_expected_edge_bps"]),
+            threshold=float(metrics["min_realized_vs_expected_edge_bps"]),
+            comparison="gte",
+        ),
+        "fill_quality_status": _threshold_status(
+            observed_count=fill_quality_observed,
+            value=float(metrics["fill_quality_score"]),
+            threshold=float(metrics["min_fill_quality_score"]),
+            comparison="gte",
+        ),
     }
     return statuses, metrics, source_ids
 
@@ -640,6 +703,8 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     robustness_ready = all(robustness[field] == expected for field, expected in ROBUSTNESS_PASS.items())
     performance_thresholds_ready = (
         int(performance_values["closed_trade_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
+        and int(performance_values["realized_vs_expected_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
+        and int(performance_values["fill_quality_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
         and float(performance_values["profit_factor"]) >= float(performance_values["min_profit_factor"])
         and float(performance_values["max_drawdown_pct"]) <= float(performance_values["max_allowed_drawdown_pct"])
         and float(performance_values["realized_vs_expected_edge_bps"])
@@ -660,10 +725,13 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         cycle_id=source_runtime_cycle_id,
         cycle_hash=source_runtime_cycle_hash,
     )
-    enough_performance_sources = has_required_performance_source_ids(
+    performance_source_binding = performance_source_binding_from_source_ids(
         source_ids,
         candidate_id=str(selected.get("candidate_id") or ""),
     )
+    enough_performance_sources = performance_source_binding is not None
+    performance_source_history_id = performance_source_binding[0] if performance_source_binding else None
+    performance_source_history_hash = performance_source_binding[1] if performance_source_binding else None
     ranking_eligible = (
         selected.get("decision") == "PAPER_ENTRY_REVIEW"
         and net_ev >= min_required_edge_bps
@@ -788,6 +856,8 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "closed_trade_status": performance["closed_trade_status"],
         "closed_trade_sample_count": int(performance_values["closed_trade_sample_count"]),
         "min_closed_trade_sample_count": int(performance_values["min_closed_trade_sample_count"]),
+        "realized_vs_expected_sample_count": int(performance_values["realized_vs_expected_sample_count"]),
+        "fill_quality_sample_count": int(performance_values["fill_quality_sample_count"]),
         "profit_factor_status": performance["profit_factor_status"],
         "profit_factor": float(performance_values["profit_factor"]),
         "min_profit_factor": float(performance_values["min_profit_factor"]),
@@ -802,6 +872,9 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "min_fill_quality_score": float(performance_values["min_fill_quality_score"]),
         "performance_ready": performance_ready,
         "performance_source_evidence_required": list(PERFORMANCE_SOURCE_PREFIXES),
+        "performance_source_binding_status": "PASS" if enough_performance_sources else "MISSING_OR_MISMATCHED",
+        "performance_source_history_id": performance_source_history_id,
+        "performance_source_history_hash": performance_source_history_hash,
         "robustness_ready": robustness_ready,
         "robustness_source_evidence_required": list(ROBUSTNESS_SOURCE_PREFIXES),
         "ranking_eligible": ranking_eligible,

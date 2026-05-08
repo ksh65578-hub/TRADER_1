@@ -37,6 +37,8 @@
   "closed_trade_status": "PASS",
   "closed_trade_sample_count": 42,
   "min_closed_trade_sample_count": 30,
+  "realized_vs_expected_sample_count": 42,
+  "fill_quality_sample_count": 42,
   "profit_factor_status": "PASS",
   "profit_factor": 1.42,
   "min_profit_factor": 1.25,
@@ -55,6 +57,9 @@
     "execution_quality:",
     "performance_summary:"
   ],
+  "performance_source_binding_status": "PASS",
+  "performance_source_history_id": "paper_scorecard_fixture_001",
+  "performance_source_history_hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
   "robustness_ready": true,
   "robustness_source_evidence_required": [
     "oos:",

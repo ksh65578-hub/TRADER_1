@@ -13,6 +13,7 @@ from trader1.research.profitability.candidate_scorecard import (
     has_required_performance_source_ids,
     has_required_robustness_source_ids,
     performance_inputs_from_runtime_sample_history,
+    performance_source_binding_from_source_ids,
     performance_source_evidence_id,
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
@@ -36,6 +37,8 @@ def performance_source_evidence_ids(runtime: dict[str, str], candidate_id: str |
 PASS_PERFORMANCE_METRICS = {
     "closed_trade_sample_count": 42,
     "min_closed_trade_sample_count": 30,
+    "realized_vs_expected_sample_count": 42,
+    "fill_quality_sample_count": 42,
     "profit_factor": 1.42,
     "min_profit_factor": 1.25,
     "max_drawdown_pct": 4.8,
@@ -458,6 +461,39 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(scorecard["ranking_eligible"])
         self.assertIn("EXECUTION_FEEDBACK_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
 
+    def test_performance_sources_must_share_one_history_binding_before_paper_ranking(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-performance-binding-mismatch")
+        candidate_id = str(runtime["selected_candidate"]["candidate_id"])
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses=PERFORMANCE_PASS,
+            performance_metrics=PASS_PERFORMANCE_METRICS,
+            performance_source_evidence_ids=[
+                performance_source_evidence_id("closed_trades", "history-a", "A" * 64, candidate_id),
+                performance_source_evidence_id("execution_quality", "history-a", "A" * 64, candidate_id),
+                performance_source_evidence_id("performance_summary", "history-b", "B" * 64, candidate_id),
+            ],
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertIsNone(
+            performance_source_binding_from_source_ids(scorecard["source_evidence_ids"], candidate_id=candidate_id)
+        )
+        self.assertFalse(has_required_performance_source_ids(scorecard["source_evidence_ids"], candidate_id=candidate_id))
+        self.assertEqual(scorecard["performance_source_binding_status"], "MISSING_OR_MISMATCHED")
+        self.assertIsNone(scorecard["performance_source_history_id"])
+        self.assertIsNone(scorecard["performance_source_history_hash"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertIn("EXECUTION_FEEDBACK_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
+
     def test_robust_paper_scorecard_can_be_paper_ranking_input_only(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-robust")
 
@@ -477,6 +513,9 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
 
         self.assertEqual(errors, [])
         self.assertTrue(has_required_performance_source_ids(scorecard["source_evidence_ids"]))
+        self.assertEqual(scorecard["performance_source_binding_status"], "PASS")
+        self.assertEqual(scorecard["performance_source_history_id"], runtime["cycle_id"])
+        self.assertEqual(scorecard["performance_source_history_hash"], runtime["cycle_hash"])
         self.assertTrue(scorecard["ranking_eligible"])
         self.assertEqual(scorecard["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
         self.assertEqual(scorecard["blockers"], [])
@@ -528,8 +567,12 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(target_runtime["final_decision"], "EXIT_POSITION")
         self.assertEqual(unrelated_runtime["final_decision"], "EXIT_POSITION")
         self.assertEqual(metrics["closed_trade_sample_count"], 1)
-        self.assertEqual(statuses["closed_trade_status"], "UNTESTED")
+        self.assertEqual(metrics["realized_vs_expected_sample_count"], 1)
+        self.assertEqual(statuses["closed_trade_status"], "FAIL")
+        self.assertEqual(statuses["profit_factor_status"], "FAIL")
+        self.assertEqual(statuses["realized_vs_expected_edge_status"], "FAIL")
         self.assertGreater(metrics["fill_quality_score"], 0)
+        self.assertEqual(metrics["fill_quality_sample_count"], 1)
         self.assertTrue(all(f":{target_key}:" in source_id for source_id in source_ids))
 
     def test_scorecard_writer_preserves_candidate_scoped_snapshots_without_live_permission(self):

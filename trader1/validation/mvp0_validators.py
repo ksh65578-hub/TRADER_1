@@ -535,6 +535,7 @@ from trader1.research.profitability.candidate_scorecard import (
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     has_required_performance_source_ids,
     has_required_robustness_source_ids,
+    performance_source_binding_from_source_ids,
     runtime_cycle_binding_from_source_ids,
     runtime_cycle_source_evidence_id,
 )
@@ -21353,6 +21354,19 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             errors.append(
                 "ranking_eligible scorecard requires candidate-scoped closed trade, execution quality, and performance summary evidence ids"
             )
+        performance_binding = performance_source_binding_from_source_ids(
+            source_ids,
+            candidate_id=str(scorecard.get("candidate_id") or ""),
+        )
+        if scorecard.get("performance_source_binding_status") != "PASS":
+            errors.append("ranking_eligible scorecard requires PASS performance source binding status")
+        if performance_binding is None:
+            errors.append("ranking_eligible scorecard performance evidence ids must share one history id and hash")
+        else:
+            if scorecard.get("performance_source_history_id") != performance_binding[0]:
+                errors.append("performance_source_history_id must match candidate-scoped performance evidence binding")
+            if scorecard.get("performance_source_history_hash") != performance_binding[1]:
+                errors.append("performance_source_history_hash must match candidate-scoped performance evidence binding")
         required_statuses = {
             "cost_model_status": "VALIDATED",
             "oos_status": "PASS",
@@ -21370,6 +21384,12 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
                 errors.append(f"{field} must be {expected} before ranking eligibility")
         if int(scorecard.get("closed_trade_sample_count", 0) or 0) < int(scorecard.get("min_closed_trade_sample_count", 1) or 1):
             errors.append("closed trade sample count must meet minimum before ranking eligibility")
+        if int(scorecard.get("realized_vs_expected_sample_count", 0) or 0) < int(
+            scorecard.get("min_closed_trade_sample_count", 1) or 1
+        ):
+            errors.append("realized-vs-expected sample count must meet closed trade minimum before ranking eligibility")
+        if int(scorecard.get("fill_quality_sample_count", 0) or 0) < int(scorecard.get("min_closed_trade_sample_count", 1) or 1):
+            errors.append("fill quality sample count must meet closed trade minimum before ranking eligibility")
         if float(scorecard.get("profit_factor", 0) or 0) < float(scorecard.get("min_profit_factor", 1) or 1):
             errors.append("profit_factor must meet minimum before ranking eligibility")
         if float(scorecard.get("max_drawdown_pct", 100) or 100) > float(scorecard.get("max_allowed_drawdown_pct", 0) or 0):

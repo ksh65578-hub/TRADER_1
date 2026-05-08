@@ -225,6 +225,14 @@
       "type": "integer",
       "minimum": 1
     },
+    "realized_vs_expected_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fill_quality_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "profit_factor_status": {
       "enum": [
         "PASS",
@@ -302,6 +310,25 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "performance_source_binding_status": {
+      "enum": [
+        "PASS",
+        "MISSING_OR_MISMATCHED"
+      ]
+    },
+    "performance_source_history_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "performance_source_history_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Fa-f0-9]{64}$"
     },
     "robustness_ready": {
       "type": "boolean"
