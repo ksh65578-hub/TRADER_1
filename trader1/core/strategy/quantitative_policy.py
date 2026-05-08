@@ -37,6 +37,14 @@ EXIT_PRIORITY = [
     "trailing_stop",
 ]
 
+EXIT_ATR_PARAMETER_RANGES = {
+    "hard_stop_atr": (0.50, 1.80),
+    "tp1_atr": (0.50, 1.50),
+    "tp2_atr": (1.00, 4.00),
+    "trailing_start_atr": (0.50, 2.50),
+    "trailing_distance_atr": (0.40, 1.80),
+}
+
 REQUIRED_MARKET_INPUTS = {
     "price",
     "ema20",
@@ -464,11 +472,17 @@ def build_exit_plan(inputs: dict[str, Any] | None = None) -> dict[str, Any]:
     entry_price = _num(inputs.get("entry_price"), 100.0)
     side = str(inputs.get("side", "LONG")).upper()
     direction = 1.0 if side == "LONG" else -1.0
-    hard_stop_atr = _clamp(_num(inputs.get("hard_stop_atr"), 1.2), 1.0, 1.8)
-    tp1_atr = _clamp(_num(inputs.get("tp1_atr"), 1.2), 1.0, 1.5)
-    tp2_atr = _clamp(_num(inputs.get("tp2_atr"), 2.5), 2.0, 4.0)
-    trailing_start_atr = _clamp(_num(inputs.get("trailing_start_atr"), 1.5), 1.0, 2.5)
-    trailing_distance_atr = _clamp(_num(inputs.get("trailing_distance_atr"), 1.0), 0.8, 1.8)
+    hard_stop_atr = _clamp(_num(inputs.get("hard_stop_atr"), 1.2), *EXIT_ATR_PARAMETER_RANGES["hard_stop_atr"])
+    tp1_atr = _clamp(_num(inputs.get("tp1_atr"), 1.2), *EXIT_ATR_PARAMETER_RANGES["tp1_atr"])
+    tp2_atr = _clamp(_num(inputs.get("tp2_atr"), 2.5), *EXIT_ATR_PARAMETER_RANGES["tp2_atr"])
+    trailing_start_atr = _clamp(
+        _num(inputs.get("trailing_start_atr"), 1.5),
+        *EXIT_ATR_PARAMETER_RANGES["trailing_start_atr"],
+    )
+    trailing_distance_atr = _clamp(
+        _num(inputs.get("trailing_distance_atr"), 1.0),
+        *EXIT_ATR_PARAMETER_RANGES["trailing_distance_atr"],
+    )
     partial_ratio = _clamp(_num(inputs.get("partial_take_profit_ratio"), 0.40), 0.30, 0.50)
     time_stop_candles = int(max(3, min(12, _num(inputs.get("time_stop_candles"), 8))))
     return {
