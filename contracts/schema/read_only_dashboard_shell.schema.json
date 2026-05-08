@@ -6696,6 +6696,11 @@
         "candidate_scorecard_rotation_review_reason_code",
         "candidate_scorecard_performance_ready",
         "candidate_scorecard_performance_summary",
+        "candidate_scorecard_realized_vs_expected_sample_count",
+        "candidate_scorecard_fill_quality_sample_count",
+        "candidate_scorecard_performance_source_binding_status",
+        "candidate_scorecard_performance_source_history_id",
+        "candidate_scorecard_performance_source_history_hash",
         "candidate_scorecard_closed_trade_status",
         "candidate_scorecard_profit_factor_status",
         "candidate_scorecard_max_drawdown_status",
@@ -7171,6 +7176,33 @@
         "candidate_scorecard_performance_summary": {
           "type": "string",
           "minLength": 1
+        },
+        "candidate_scorecard_realized_vs_expected_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_scorecard_fill_quality_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_scorecard_performance_source_binding_status": {
+          "enum": [
+            "PASS",
+            "MISSING_OR_MISMATCHED"
+          ]
+        },
+        "candidate_scorecard_performance_source_history_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate_scorecard_performance_source_history_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Fa-f0-9]{64}$"
         },
         "candidate_scorecard_closed_trade_status": {
           "enum": [
