@@ -682,8 +682,10 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 "report_hash": ("B" if "BETA" in candidate_scorecard["candidate_id"] else "C") * 64,
             }
 
+        diagnostic_thresholds = []
+
         def fake_overfit(*, candidate_scorecard: dict, **kwargs):
-            del kwargs
+            diagnostic_thresholds.append(kwargs.get("min_required_sample_count"))
             robust = "BETA" in candidate_scorecard["candidate_id"]
             return {
                 "candidate_id": candidate_scorecard["candidate_id"],
@@ -742,6 +744,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(context["candidate_review_evaluated_count"], 2)
         self.assertEqual(context["candidate_review_robust_candidate_count"], 1)
         self.assertEqual(context["candidate_review_selection_reason"], "ROBUSTNESS_ELIGIBLE_SELECTED")
+        self.assertEqual(diagnostic_thresholds, [1, 1])
         self.assertEqual(
             [item["candidate_id"] for item in context["candidate_review_evaluations"]],
             ["KRW-ALPHA-pullback-trend-long", "KRW-BETA-pullback-trend-long"],

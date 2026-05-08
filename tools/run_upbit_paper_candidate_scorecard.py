@@ -31,6 +31,7 @@ from trader1.adapters.upbit.market_data import (
 )
 from trader1.research.profitability.convergence_memory import write_upbit_paper_convergence_memory_artifacts
 from trader1.research.profitability.overfit_diagnostic import (
+    DEFAULT_MIN_REQUIRED_SAMPLE_COUNT,
     overfit_diagnostic_from_upbit_paper_runtime,
     overfit_diagnostic_report_hash,
     robustness_inputs_from_overfit_diagnostic,
@@ -71,6 +72,18 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _relative_path(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
+
+
+def _diagnostic_sample_threshold_from_replay_report(replay_report: dict[str, Any] | None) -> int:
+    if not isinstance(replay_report, dict):
+        return DEFAULT_MIN_REQUIRED_SAMPLE_COUNT
+    try:
+        threshold = int(replay_report.get("min_required_sample_count") or 0)
+    except (TypeError, ValueError):
+        return DEFAULT_MIN_REQUIRED_SAMPLE_COUNT
+    if threshold <= 0:
+        return DEFAULT_MIN_REQUIRED_SAMPLE_COUNT
+    return threshold
 
 
 def _public_replay_robustness_context(
@@ -850,6 +863,7 @@ def _build_alternative_public_replay_evaluation(
             runtime_sample_history=history,
             root=root,
             replay_robustness_report=replay_report,
+            min_required_sample_count=_diagnostic_sample_threshold_from_replay_report(replay_report),
         )
         _, _, performance_source_ids = performance_inputs_from_runtime_sample_history(
             candidate_scorecard=alternative_scorecard,
@@ -1036,6 +1050,7 @@ def _build_and_write_alternative_review_scorecard(
         runtime_sample_history=history,
         root=root,
         replay_robustness_report=replay_report,
+        min_required_sample_count=_diagnostic_sample_threshold_from_replay_report(replay_report),
     )
     performance_statuses, performance_metrics, performance_source_ids = performance_inputs_from_runtime_sample_history(
         candidate_scorecard=base_scorecard,
@@ -1212,6 +1227,9 @@ def build_current_upbit_paper_candidate_scorecard(
     }
     if replay_robustness_report is not None:
         diagnostic_kwargs["replay_robustness_report"] = replay_robustness_report
+        diagnostic_kwargs["min_required_sample_count"] = _diagnostic_sample_threshold_from_replay_report(
+            replay_robustness_report
+        )
     diagnostic = overfit_diagnostic_from_upbit_paper_runtime(**diagnostic_kwargs)
     performance_statuses, performance_metrics, performance_source_ids = performance_inputs_from_runtime_sample_history(
         candidate_scorecard=base_scorecard,
