@@ -76,7 +76,7 @@
   "fill_quality_sample_count": 1,
   "fill_quality_score": 1.0,
   "fill_quality_status": "PASS",
-  "generated_at_utc": "2026-05-08T09:14:25Z",
+  "generated_at_utc": "2026-05-08T09:22:04Z",
   "gross_expected_edge_bps": 37.09164421997755,
   "live_order_allowed": false,
   "live_order_ready": false,
@@ -110,7 +110,7 @@
     "execution_quality:",
     "performance_summary:"
   ],
-  "performance_source_history_hash": "6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+  "performance_source_history_hash": "7F5C5226D69556C2E791E04627073B763BA133ABAE10B151080CA2ADE58A4E50",
   "performance_source_history_id": "upbit-paper-runtime-sample-history",
   "profit_factor": 0.0,
   "profit_factor_status": "FAIL",
@@ -184,9 +184,9 @@
   "session_id": "mvp1_upbit_paper_launcher",
   "source_evidence_ids": [
     "upbit_paper_runtime_cycle:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
-    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
-    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
-    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B"
+    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7F5C5226D69556C2E791E04627073B763BA133ABAE10B151080CA2ADE58A4E50",
+    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7F5C5226D69556C2E791E04627073B763BA133ABAE10B151080CA2ADE58A4E50",
+    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7F5C5226D69556C2E791E04627073B763BA133ABAE10B151080CA2ADE58A4E50"
   ],
   "source_runtime_cycle_hash": "03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
   "source_runtime_cycle_id": "upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1",
