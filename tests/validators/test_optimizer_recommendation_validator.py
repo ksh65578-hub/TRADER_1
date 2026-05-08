@@ -2,6 +2,7 @@ import copy
 import unittest
 from pathlib import Path
 
+from trader1.research.profitability.candidate_scorecard import has_required_performance_source_ids
 from trader1.validation.mvp0_validators import (
     _optimizer_recommendation_errors,
     load_json,
@@ -25,6 +26,12 @@ class OptimizerRecommendationValidatorTest(unittest.TestCase):
         self.assertTrue(report["source_scorecard_robustness_ready"])
         self.assertTrue(report["source_scorecard_performance_ready"])
         self.assertEqual(report["source_scorecard_performance_source_binding_status"], "PASS")
+        self.assertTrue(
+            has_required_performance_source_ids(
+                report["source_evidence_ids"],
+                candidate_id=report["candidate_id"],
+            )
+        )
 
     def test_recommendation_cannot_carry_live_permission(self):
         report = load_json(FIXTURE_DIR / "optimizer_recommendation_live_flag_fail.json")
@@ -72,6 +79,22 @@ class OptimizerRecommendationValidatorTest(unittest.TestCase):
 
         self.assertIn("ALLOW_PAPER_RANKING requires source_scorecard_performance_ready=true", errors)
         self.assertIn("ALLOW_PAPER_RANKING requires source scorecard performance source binding PASS", errors)
+
+    def test_paper_ranking_requires_candidate_scoped_performance_source_ids(self):
+        report = load_json(FIXTURE_DIR / "optimizer_recommendation_pass.json")
+        tampered = copy.deepcopy(report)
+        tampered["source_evidence_ids"] = [
+            source_id
+            for source_id in tampered["source_evidence_ids"]
+            if not source_id.startswith("performance_summary:")
+        ]
+
+        errors = _optimizer_recommendation_errors(tampered)
+
+        self.assertIn(
+            "ALLOW_PAPER_RANKING requires candidate-scoped closed trade, execution quality, and performance summary source ids",
+            errors,
+        )
 
     def test_current_validator_fixtures_pass(self):
         result = optimizer_recommendation_validator().as_dict()

@@ -19413,7 +19413,10 @@ def _parameter_narrowing_errors(report: dict[str, Any]) -> list[str]:
             errors.append("blocked objective requires blockers")
 
     if narrowing_allowed:
-        source_evidence_ids = [str(item).lower() for item in report.get("source_evidence_ids", [])]
+        source_evidence_ids_for_binding = [
+            str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)
+        ]
+        source_evidence_ids = [source_id.lower() for source_id in source_evidence_ids_for_binding]
 
         def has_source_evidence(*tokens: str) -> bool:
             return any(all(token in evidence_id for token in tokens) for evidence_id in source_evidence_ids)
@@ -19463,10 +19466,21 @@ def _parameter_narrowing_errors(report: dict[str, Any]) -> list[str]:
             errors.append("paper parameter narrowing requires fill-quality samples above closed-trade minimum")
         if report.get("candidate_scorecard_performance_source_binding_status") != "PASS":
             errors.append("paper parameter narrowing requires candidate scorecard performance source binding PASS")
-        if not str(report.get("candidate_scorecard_performance_source_history_id", "")):
+        performance_history_id = str(report.get("candidate_scorecard_performance_source_history_id", ""))
+        performance_history_hash = str(report.get("candidate_scorecard_performance_source_history_hash", ""))
+        if not performance_history_id:
             errors.append("paper parameter narrowing requires candidate scorecard performance source history id")
-        if not str(report.get("candidate_scorecard_performance_source_history_hash", "")):
+        if not performance_history_hash:
             errors.append("paper parameter narrowing requires candidate scorecard performance source history hash")
+        if performance_history_id and performance_history_hash and not has_required_performance_source_ids(
+            source_evidence_ids_for_binding,
+            candidate_id=str(report.get("candidate_id", "")),
+            history_id=performance_history_id,
+            history_hash=performance_history_hash,
+        ):
+            errors.append(
+                "paper parameter narrowing requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
         if narrowing_status != "PAPER_PARAMETER_REVIEW_ELIGIBLE":
             errors.append("paper parameter narrowing requires PAPER_PARAMETER_REVIEW_ELIGIBLE status")
         if recommendation_scope != "PAPER_PARAMETER_REVIEW_ONLY":
@@ -23583,6 +23597,7 @@ def _optimizer_recommendation_errors(report: dict[str, Any]) -> list[str]:
     if report.get("mode") == "LIVE":
         errors.append("optimizer recommendation mode LIVE is forbidden before independent live-enabling evidence")
 
+    source_evidence_ids = [str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)]
     warning_lower = str(report.get("operator_warning", "")).lower()
     if "not live_ready" not in warning_lower or "live orders" not in warning_lower:
         errors.append("optimizer recommendation warning must state not LIVE_READY and live orders blocked")
@@ -23612,6 +23627,13 @@ def _optimizer_recommendation_errors(report: dict[str, Any]) -> list[str]:
             errors.append("ALLOW_PAPER_RANKING requires source_scorecard_performance_ready=true")
         if report.get("source_scorecard_performance_source_binding_status") != "PASS":
             errors.append("ALLOW_PAPER_RANKING requires source scorecard performance source binding PASS")
+        if not has_required_performance_source_ids(
+            source_evidence_ids,
+            candidate_id=str(report.get("candidate_id", "")),
+        ):
+            errors.append(
+                "ALLOW_PAPER_RANKING requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
     elif not blockers:
         errors.append("non-ranking optimizer recommendation must carry explicit blocker evidence")
     if action == "RECOMMEND_SCALE_DOWN_ONLY" and output_type != "RISK_REDUCTION_ONLY":

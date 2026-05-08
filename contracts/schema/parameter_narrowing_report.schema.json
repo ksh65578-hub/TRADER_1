@@ -163,6 +163,9 @@
           "enum": [
             "PAPER_SHADOW_EVIDENCE",
             "CANDIDATE_SCORECARD",
+            "CLOSED_TRADES",
+            "EXECUTION_QUALITY",
+            "PERFORMANCE_SUMMARY",
             "OPTIMIZER_RUN",
             "OPTIMIZER_RECOMMENDATION",
             "EXPLORATION_POLICY"

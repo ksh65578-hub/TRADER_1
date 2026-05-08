@@ -29,6 +29,9 @@
   "operator_warning": "Optimizer recommendation is paper ranking input only, not LIVE_READY and cannot place or allow live orders.",
   "source_evidence_ids": [
     "scorecard_net_ev_pass",
+    "closed_trades:candidate_trend_pullback_krw_btc_001:optimizer-recommendation-performance-history:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+    "execution_quality:candidate_trend_pullback_krw_btc_001:optimizer-recommendation-performance-history:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+    "performance_summary:candidate_trend_pullback_krw_btc_001:optimizer-recommendation-performance-history:FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
     "paper_scorecard_fixture_001",
     "shadow_scorecard_fixture_001"
   ],
