@@ -761,6 +761,109 @@
         }
       }
     },
+    "strategy_family_evidence_scorecards": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "strategy_family",
+          "strategy_id",
+          "evaluated_candidate_count",
+          "paper_entry_review_candidate_count",
+          "best_candidate_id",
+          "best_symbol",
+          "best_decision",
+          "best_no_trade_reason",
+          "best_strategy_policy_reason",
+          "best_net_ev_after_cost_bps",
+          "best_candidate_selection_score",
+          "no_trade_reasons",
+          "live_order_ready",
+          "live_order_allowed",
+          "can_live_trade",
+          "scale_up_allowed"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "strategy_family": {
+            "enum": [
+              "PULLBACK_TREND_LONG",
+              "VWAP_MEAN_REVERSION",
+              "BREAKOUT_RETEST_LONG"
+            ]
+          },
+          "strategy_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evaluated_candidate_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "paper_entry_review_candidate_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "best_candidate_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "best_symbol": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "best_decision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "best_no_trade_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "best_strategy_policy_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "best_net_ev_after_cost_bps": {
+            "type": "number"
+          },
+          "best_candidate_selection_score": {
+            "type": "number",
+            "minimum": 0
+          },
+          "no_trade_reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "live_order_ready": {
+            "const": false
+          },
+          "live_order_allowed": {
+            "const": false
+          },
+          "can_live_trade": {
+            "const": false
+          },
+          "scale_up_allowed": {
+            "const": false
+          }
+        }
+      }
+    },
     "alternative_candidate_count": {
       "type": "integer",
       "minimum": 0
