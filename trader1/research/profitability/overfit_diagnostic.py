@@ -20,6 +20,7 @@ from trader1.research.profitability.candidate_scorecard import (
     robustness_source_evidence_id,
     strategy_id_for_family,
 )
+from trader1.research.replay.replay_runner import public_replay_robustness_values_from_report
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import validate_upbit_paper_runtime_sample_history
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
@@ -407,6 +408,7 @@ def overfit_diagnostic_from_upbit_paper_runtime(
     candidate_scorecard: dict[str, Any],
     runtime_sample_history: dict[str, Any],
     root: Path = ROOT,
+    replay_robustness_report: dict[str, Any] | None = None,
     diagnostic_id: str | None = None,
     min_required_sample_count: int = DEFAULT_MIN_REQUIRED_SAMPLE_COUNT,
     min_required_bootstrap_iterations: int = DEFAULT_MIN_REQUIRED_BOOTSTRAP_ITERATIONS,
@@ -467,6 +469,19 @@ def overfit_diagnostic_from_upbit_paper_runtime(
             "preliminary_distinct_candidate_count": 0,
         }
         preliminary_exact_candidate_sample_count = 0
+
+    replay_values, replay_samples, replay_source_ids = (
+        public_replay_robustness_values_from_report(
+            replay_robustness_report,
+            candidate_scorecard=candidate_scorecard,
+        )
+        if isinstance(replay_robustness_report, dict)
+        else ([], [], [])
+    )
+    if len(values) < int(min_required_sample_count) and replay_values:
+        values = replay_values
+        samples = replay_samples
+        source_ids = sorted(set(source_ids + replay_source_ids))
 
     sample_count = len(values)
     min_preliminary_sample_count = max(2, min(int(min_preliminary_sample_count), int(min_required_sample_count)))
@@ -659,7 +674,12 @@ def overfit_diagnostic_from_upbit_paper_runtime(
 
     blockers: list[dict[str, str]] = []
     if sample_count < min_required_sample_count:
-        blockers.append(_blocker("SAMPLE_INSUFFICIENT", f"{sample_count} matched PAPER samples collected; {min_required_sample_count} required"))
+        blockers.append(
+            _blocker(
+                "SAMPLE_INSUFFICIENT",
+                f"{sample_count} matched robustness samples collected; {min_required_sample_count} required",
+            )
+        )
     if oos_status != "PASS":
         blockers.append(_blocker("OOS_MISSING", "OOS net EV after cost has not passed the required threshold"))
     if walk_forward_status != "PASS":

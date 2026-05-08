@@ -11396,6 +11396,82 @@
           "type": "string",
           "minLength": 1
         },
+        "runtime_sample_history_source_consistency_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_sample_history_source_consistency_issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "runtime_sample_history_source_consistency_blocker_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtime_sample_history_companion_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtime_sample_history_companion_generated_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtime_sample_history_companion_accepted_cycle_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runtime_sample_history_companion_active_candidate_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "runtime_sample_history_companion_active_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "runner_lock_loaded": {
+          "type": "boolean"
+        },
+        "runner_lock_session_match": {
+          "type": "boolean"
+        },
+        "runner_lock_fresh": {
+          "type": "boolean"
+        },
+        "runner_lock_pid_alive": {
+          "type": "boolean"
+        },
+        "runner_liveness_proven": {
+          "type": "boolean"
+        },
+        "runner_lock_pid": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "runner_lock_heartbeat_at_utc": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "paper_shadow_evidence_paper_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "paper_shadow_evidence_shadow_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
         "runtime_sample_count": {
           "type": "integer",
           "minimum": 0

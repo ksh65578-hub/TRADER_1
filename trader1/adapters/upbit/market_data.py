@@ -469,8 +469,12 @@ def fetch_upbit_public_candle_data_read_only(
     session_id: str = "mvp4_upbit_paper_runtime",
     count: int = 6,
     timeout_seconds: float = 3.0,
+    to_utc: str | None = None,
 ) -> dict[str, Any]:
-    query = urlencode({"market": symbol, "count": max(1, min(count, 200))})
+    query_params = {"market": symbol, "count": max(1, min(count, 200))}
+    if to_utc:
+        query_params["to"] = to_utc.replace("T", " ").replace("Z", "")
+    query = urlencode(query_params)
     url = f"https://{UPBIT_PUBLIC_CANDLE_HOST}{UPBIT_PUBLIC_CANDLE_PATH}?{query}"
     request = Request(
         url,
@@ -486,6 +490,64 @@ def fetch_upbit_public_candle_data_read_only(
         payload = []
     return build_upbit_public_candle_data_from_rest_payload(
         payload=payload,
+        symbol=symbol,
+        session_id=session_id,
+    )
+
+
+def fetch_upbit_public_candle_history_read_only(
+    *,
+    symbol: str = "KRW-BTC",
+    session_id: str = "mvp4_upbit_paper_runtime",
+    target_count: int = 400,
+    page_size: int = 200,
+    timeout_seconds: float = 3.0,
+) -> dict[str, Any]:
+    safe_target_count = max(5, min(int(target_count), 1000))
+    safe_page_size = max(5, min(int(page_size), 200))
+    payload: list[dict[str, Any]] = []
+    seen_timestamps: set[str] = set()
+    to_utc: str | None = None
+    while len(payload) < safe_target_count:
+        query_params = {
+            "market": symbol,
+            "count": min(safe_page_size, safe_target_count - len(payload)),
+        }
+        if to_utc:
+            query_params["to"] = to_utc.replace("T", " ").replace("Z", "")
+        query = urlencode(query_params)
+        url = f"https://{UPBIT_PUBLIC_CANDLE_HOST}{UPBIT_PUBLIC_CANDLE_PATH}?{query}"
+        request = Request(
+            url,
+            headers={
+                "Accept": "application/json",
+                "User-Agent": "TRADER_1-public-read-only-paper-history-collector",
+            },
+            method="GET",
+        )
+        with urlopen(request, timeout=timeout_seconds) as response:
+            page_payload = json.loads(response.read().decode("utf-8"))
+        if not isinstance(page_payload, list) or not page_payload:
+            break
+        added = 0
+        oldest_timestamp: str | None = None
+        for item in page_payload:
+            if not isinstance(item, dict):
+                continue
+            timestamp = str(item.get("candle_date_time_utc") or "")
+            if not timestamp or timestamp in seen_timestamps:
+                continue
+            payload.append(item)
+            seen_timestamps.add(timestamp)
+            oldest_timestamp = timestamp if oldest_timestamp is None or timestamp < oldest_timestamp else oldest_timestamp
+            added += 1
+            if len(payload) >= safe_target_count:
+                break
+        if added == 0 or oldest_timestamp is None:
+            break
+        to_utc = oldest_timestamp
+    return build_upbit_public_candle_data_from_rest_payload(
+        payload=payload[:safe_target_count],
         symbol=symbol,
         session_id=session_id,
     )

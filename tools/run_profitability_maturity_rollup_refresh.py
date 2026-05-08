@@ -55,6 +55,7 @@ CONTRACT_GAP_PATH = (
 
 ROBUSTNESS_SOURCE_TYPES = ("OOS", "WALK_FORWARD", "BOOTSTRAP", "CONCENTRATION")
 OVERFIT_FULL_SAMPLE_BASIS = "REALIZED_CLOSED_PAPER_TRADES"
+OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS = "PUBLIC_REPLAY_EXPECTED_NET_EV_AFTER_COST"
 OVERFIT_PRELIMINARY_SAMPLE_BASIS = "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE"
 STRATEGY_COMPONENT_IDS = (
     "strategy_entry_exit_no_trade",
@@ -310,6 +311,8 @@ def robustness_source_type_evidence(scorecard: dict[str, Any], overfit: dict[str
     min_required = 1
     sample_count = safe_int(overfit.get("sample_count"))
     min_required_sample_count = safe_int(overfit.get("min_required_sample_count"), 300)
+    closed_trade_sample_count = safe_int(scorecard.get("closed_trade_sample_count"))
+    min_closed_trade_sample_count = safe_int(scorecard.get("min_closed_trade_sample_count"), 30)
     preliminary_sample_count = safe_int(overfit.get("preliminary_sample_count"))
     preliminary_exact_candidate_sample_count = safe_int(overfit.get("preliminary_exact_candidate_sample_count"))
     present = [
@@ -326,6 +329,12 @@ def robustness_source_type_evidence(scorecard: dict[str, Any], overfit: dict[str
     cycle_id = str(scorecard.get("source_runtime_cycle_id") or "")
     cycle_hash = str(scorecard.get("source_runtime_cycle_hash") or "")
     source_ids = list(scorecard.get("source_evidence_ids") or [])
+    source_ids.extend(str(item) for item in overfit.get("source_evidence_ids") or [] if item)
+    sample_basis = (
+        OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS
+        if any(str(item).startswith("public_replay_robustness:") for item in source_ids)
+        else OVERFIT_FULL_SAMPLE_BASIS
+    )
     if counts["concentration_count"] >= min_required and cycle_id and cycle_hash:
         source_ids.append(f"concentration:{cycle_id}:{cycle_hash}")
     return {
@@ -335,10 +344,10 @@ def robustness_source_type_evidence(scorecard: dict[str, Any], overfit: dict[str
         "missing_source_types": missing,
         "source_type_counts": counts,
         "min_required_per_source_type": min_required,
-        "sample_basis": OVERFIT_FULL_SAMPLE_BASIS,
+        "sample_basis": sample_basis,
         "sample_count": sample_count,
         "min_required_sample_count": min_required_sample_count,
-        "closed_trade_sample_deficit": max(min_required_sample_count - sample_count, 0),
+        "closed_trade_sample_deficit": max(min_closed_trade_sample_count - closed_trade_sample_count, 0),
         "preliminary_sample_basis": OVERFIT_PRELIMINARY_SAMPLE_BASIS,
         "preliminary_sample_count": preliminary_sample_count,
         "preliminary_exact_candidate_sample_count": preliminary_exact_candidate_sample_count,
@@ -772,9 +781,17 @@ def update_strategy_scorecard_components(
 def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], overfit: dict[str, Any]) -> None:
     sample_count = int(overfit.get("sample_count") or 0)
     min_required = int(overfit.get("min_required_sample_count") or 300)
+    closed_trade_sample_count = safe_int(scorecard.get("closed_trade_sample_count"))
+    min_closed_trade_sample_count = safe_int(scorecard.get("min_closed_trade_sample_count"), default=30)
     preliminary_sample_count = safe_int(overfit.get("preliminary_sample_count"))
     preliminary_exact_candidate_sample_count = safe_int(overfit.get("preliminary_exact_candidate_sample_count"))
     robust = overfit.get("robustness_eligible") is True and sample_count >= min_required
+    source_ids = [str(item) for item in overfit.get("source_evidence_ids") or [] if item]
+    sample_basis = (
+        OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS
+        if any(item.startswith("public_replay_robustness:") for item in source_ids)
+        else OVERFIT_FULL_SAMPLE_BASIS
+    )
     for component in rollup.get("components", []):
         if component.get("component_id") != "overfit_oos_walk_forward":
             continue
@@ -786,11 +803,14 @@ def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], 
         for evidence_id in scorecard.get("source_evidence_ids") or []:
             if evidence_id not in evidence_ids:
                 evidence_ids.append(evidence_id)
+        for evidence_id in source_ids:
+            if evidence_id not in evidence_ids:
+                evidence_ids.append(evidence_id)
         component["sample_count"] = sample_count
         component["min_required_sample_count"] = min_required
-        component["sample_basis"] = OVERFIT_FULL_SAMPLE_BASIS
-        component["closed_trade_sample_count"] = sample_count
-        component["closed_trade_sample_deficit"] = max(min_required - sample_count, 0)
+        component["sample_basis"] = sample_basis
+        component["closed_trade_sample_count"] = closed_trade_sample_count
+        component["closed_trade_sample_deficit"] = max(min_closed_trade_sample_count - closed_trade_sample_count, 0)
         component["preliminary_sample_basis"] = OVERFIT_PRELIMINARY_SAMPLE_BASIS
         component["preliminary_sample_count"] = preliminary_sample_count
         component["preliminary_exact_candidate_sample_count"] = preliminary_exact_candidate_sample_count
@@ -806,9 +826,13 @@ def update_overfit_component(rollup: dict[str, Any], scorecard: dict[str, Any], 
             component["evidence_status"] = "PASS"
             component["paper_scorecard_input_eligible"] = True
             component["primary_blocker_code"] = "LONG_RUN_PAPER_SHADOW_PROFITABILITY_EVIDENCE_MISSING"
+            basis_message = (
+                "OOS, walk-forward, bootstrap, and concentration checks pass from public read-only replay samples "
+                if sample_basis == OVERFIT_PUBLIC_REPLAY_SAMPLE_BASIS
+                else "OOS, walk-forward, bootstrap, and concentration checks pass from realized closed PAPER trades "
+            )
             component["next_required_evidence"] = (
-                "OOS, walk-forward, bootstrap, and concentration checks pass from realized closed PAPER trades "
-                "for PAPER scorecard input; "
+                f"{basis_message}for PAPER scorecard input; "
                 "collect distinct PAPER/SHADOW long-run windows, replay coverage, read-only burn-in, and operator approval."
             )
         else:

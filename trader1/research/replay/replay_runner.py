@@ -2,12 +2,24 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
+
+from trader1.adapters.upbit.market_data import validate_upbit_public_candle_data
+from trader1.runtime.paper.upbit_paper_runtime import build_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
 
 
 REPLAY_CONSISTENCY_SCHEMA_ID = "trader1.replay_consistency_report.v1"
+PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID = "trader1.public_replay_robustness_report.v1"
+PUBLIC_REPLAY_VALUE_SOURCE = "PUBLIC_REST_REPLAY_EXPECTED_NET_EV_AFTER_COST_BPS"
+PUBLIC_REPLAY_MIN_WINDOW_SIZE = 5
+PUBLIC_REPLAY_DEFAULT_WINDOW_SIZE = 6
+PUBLIC_REPLAY_DEFAULT_MAX_WINDOWS = 420
+ROOT = Path(__file__).resolve().parents[3]
 
 
 @dataclass(frozen=True)
@@ -31,12 +43,317 @@ def replay_consistency_hash(report: dict[str, Any]) -> str:
     return sha256_json(payload)
 
 
+def public_replay_robustness_report_hash(report: dict[str, Any]) -> str:
+    payload = dict(report)
+    payload.pop("report_hash", None)
+    return sha256_json(payload)
+
+
 def run_replay_once(*, input_events: list[dict[str, Any]], parameter_hash: str) -> str:
     return sha256_json({"input_events": input_events, "parameter_hash": parameter_hash})
 
 
 def _blocker(code: str, message: str, severity: str = "HIGH") -> dict[str, str]:
     return {"code": code, "severity": severity, "message": message}
+
+
+def _number(value: Any) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return result if math.isfinite(result) else 0.0
+
+
+def _candidate_by_id(runtime_cycle: dict[str, Any], candidate_id: str) -> dict[str, Any] | None:
+    selected = runtime_cycle.get("selected_candidate")
+    if isinstance(selected, dict) and selected.get("candidate_id") == candidate_id:
+        return selected
+    for candidate in runtime_cycle.get("strategy_candidates") or []:
+        if isinstance(candidate, dict) and candidate.get("candidate_id") == candidate_id:
+            return candidate
+    return None
+
+
+def _safe_artifact_stem(value: Any) -> str:
+    text = str(value or "unknown")
+    safe = "".join(character if character.isalnum() or character in "-_." else "_" for character in text).strip("._")
+    if not safe:
+        safe = "unknown"
+    if len(safe) > 96:
+        safe = f"{safe[:80]}-{hashlib.sha256(text.encode('utf-8')).hexdigest().upper()[:16]}"
+    return safe
+
+
+def build_public_replay_robustness_report(
+    *,
+    candidate_scorecard: dict[str, Any],
+    market_data: dict[str, Any],
+    replay_id: str | None = None,
+    window_size: int = PUBLIC_REPLAY_DEFAULT_WINDOW_SIZE,
+    max_replay_windows: int = PUBLIC_REPLAY_DEFAULT_MAX_WINDOWS,
+    min_required_sample_count: int = 300,
+) -> dict[str, Any]:
+    symbol = str(candidate_scorecard.get("symbol") or "")
+    session_id = str(candidate_scorecard.get("session_id") or "mvp1_upbit_paper_launcher")
+    safe_window_size = max(PUBLIC_REPLAY_MIN_WINDOW_SIZE, int(window_size))
+    safe_max_windows = max(1, min(int(max_replay_windows), 1000))
+    replay_id = replay_id or f"public-replay:{candidate_scorecard.get('source_runtime_cycle_id')}:{candidate_scorecard.get('candidate_id')}"
+    data_status, data_blocker, data_message = validate_upbit_public_candle_data(
+        market_data,
+        symbol=symbol,
+        session_id=session_id,
+    )
+    blockers: list[dict[str, str]] = []
+    sample_rows: list[dict[str, Any]] = []
+    source_hash = sha256_json(market_data)
+
+    if data_status != "PASS":
+        blockers.append(_blocker(data_blocker or "DATA_UNAVAILABLE", data_message))
+    else:
+        candles = [candle for candle in market_data.get("candles") or [] if isinstance(candle, dict)]
+        if len(candles) < safe_window_size:
+            blockers.append(_blocker("MEASUREMENT_MISSING", "public replay requires enough candle history for windowed evaluation"))
+        window_count = max(0, len(candles) - safe_window_size + 1)
+        start_index = max(0, window_count - safe_max_windows)
+        for replay_index, candle_index in enumerate(range(start_index, window_count), start=1):
+            window_candles = candles[candle_index : candle_index + safe_window_size]
+            window_market_data = dict(market_data)
+            window_market_data["candles"] = window_candles
+            window_market_data["profile"] = "PUBLIC_REST_REPLAY_WINDOW"
+            cycle_id = f"public-replay-{_safe_artifact_stem(symbol)}-{candle_index + 1:04d}"
+            runtime = build_upbit_paper_runtime_cycle_report(
+                cycle_id=cycle_id,
+                session_id=session_id,
+                symbol=symbol,
+                market_data=window_market_data,
+            )
+            candidate = _candidate_by_id(runtime, str(candidate_scorecard.get("candidate_id") or ""))
+            if not isinstance(candidate, dict):
+                continue
+            if any(candidate.get(flag) is True for flag in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
+                blockers.append(_blocker("LIVE_FINAL_GUARD_FAILED", "public replay candidate attempted live or scale-up permission"))
+                continue
+            sample_rows.append(
+                {
+                    "sample_id": f"{replay_id}:sample:{replay_index:04d}",
+                    "sample_index": replay_index,
+                    "event_time_utc": window_candles[-1].get("timestamp"),
+                    "runtime_cycle_id": runtime["cycle_id"],
+                    "runtime_cycle_hash": runtime["cycle_hash"],
+                    "symbol": candidate.get("symbol"),
+                    "strategy_family": candidate.get("strategy_family"),
+                    "strategy_id": candidate_scorecard.get("strategy_id"),
+                    "candidate_id": candidate.get("candidate_id"),
+                    "decision": candidate.get("decision"),
+                    "regime": candidate.get("regime") or runtime.get("regime"),
+                    "strategy_policy_reason": candidate.get("strategy_policy_reason"),
+                    "no_trade_reason": candidate.get("no_trade_reason"),
+                    "net_ev_after_cost_bps": _number(candidate.get("net_ev_after_cost_bps")),
+                    "gross_expected_edge_bps": _number(candidate.get("gross_expected_edge_bps")),
+                    "total_execution_cost_bps": _number(candidate.get("total_execution_cost_bps")),
+                }
+            )
+
+    sample_count = len(sample_rows)
+    if sample_count < int(min_required_sample_count):
+        blockers.append(
+            _blocker(
+                "SAMPLE_INSUFFICIENT",
+                f"{sample_count} public replay robustness samples collected; {int(min_required_sample_count)} required",
+            )
+        )
+    status = "PASS" if not blockers else "BLOCKED"
+    report = {
+        "schema_id": PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID,
+        "generated_at_utc": utc_now(),
+        "project_id": "TRADER_1",
+        "replay_id": replay_id,
+        "exchange": "UPBIT",
+        "market_type": "KRW_SPOT",
+        "mode": "REPLAY",
+        "session_id": session_id,
+        "symbol": symbol,
+        "candidate_id": candidate_scorecard.get("candidate_id"),
+        "strategy_id": candidate_scorecard.get("strategy_id"),
+        "strategy_build_id": candidate_scorecard.get("strategy_build_id"),
+        "parameter_hash": candidate_scorecard.get("parameter_hash"),
+        "value_source": PUBLIC_REPLAY_VALUE_SOURCE,
+        "public_market_data_source": market_data.get("source"),
+        "public_market_data_hash": source_hash,
+        "window_size": safe_window_size,
+        "sample_count": sample_count,
+        "min_required_sample_count": int(min_required_sample_count),
+        "max_replay_windows": safe_max_windows,
+        "sample_rows": sample_rows,
+        "replay_status": status,
+        "primary_blocker_code": blockers[0]["code"] if blockers else None,
+        "blockers": blockers,
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+        "report_hash": "",
+    }
+    report["report_hash"] = public_replay_robustness_report_hash(report)
+    return report
+
+
+def validate_public_replay_robustness_report(
+    report: dict[str, Any],
+    *,
+    candidate_scorecard: dict[str, Any] | None = None,
+) -> ReplayConsistencyValidationResult:
+    required = {
+        "schema_id",
+        "generated_at_utc",
+        "project_id",
+        "replay_id",
+        "exchange",
+        "market_type",
+        "mode",
+        "session_id",
+        "symbol",
+        "candidate_id",
+        "strategy_id",
+        "strategy_build_id",
+        "parameter_hash",
+        "value_source",
+        "public_market_data_source",
+        "public_market_data_hash",
+        "window_size",
+        "sample_count",
+        "min_required_sample_count",
+        "max_replay_windows",
+        "sample_rows",
+        "replay_status",
+        "primary_blocker_code",
+        "blockers",
+        "credential_load_attempted",
+        "private_endpoint_called",
+        "order_endpoint_called",
+        "order_adapter_called",
+        "live_key_loaded",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+        "report_hash",
+    }
+    missing = sorted(required - set(report))
+    if missing:
+        return ReplayConsistencyValidationResult("FAIL", f"public replay report missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("schema_id") != PUBLIC_REPLAY_ROBUSTNESS_SCHEMA_ID:
+        return ReplayConsistencyValidationResult("FAIL", "public replay schema_id mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("report_hash") != public_replay_robustness_report_hash(report):
+        return ReplayConsistencyValidationResult("FAIL", "public replay report hash mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("exchange") != "UPBIT" or report.get("market_type") != "KRW_SPOT" or report.get("mode") != "REPLAY":
+        return ReplayConsistencyValidationResult("BLOCKED", "public replay scope must remain UPBIT/KRW_SPOT/REPLAY", "SNAPSHOT_SCOPE_MISMATCH")
+    forbidden = (
+        "credential_load_attempted",
+        "private_endpoint_called",
+        "order_endpoint_called",
+        "order_adapter_called",
+        "live_key_loaded",
+        "live_order_ready",
+        "live_order_allowed",
+        "can_live_trade",
+        "scale_up_allowed",
+    )
+    if any(report.get(field) for field in forbidden):
+        return ReplayConsistencyValidationResult("BLOCKED", "public replay attempted private, order, live, or scale-up behavior", "LIVE_FINAL_GUARD_FAILED")
+    if report.get("value_source") != PUBLIC_REPLAY_VALUE_SOURCE:
+        return ReplayConsistencyValidationResult("FAIL", "public replay value source mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    sample_rows = report.get("sample_rows")
+    if not isinstance(sample_rows, list) or int(report.get("sample_count") or 0) != len(sample_rows):
+        return ReplayConsistencyValidationResult("FAIL", "public replay sample count mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    if report.get("replay_status") == "PASS" and report.get("blockers"):
+        return ReplayConsistencyValidationResult("BLOCKED", "public replay PASS cannot carry blockers", report["blockers"][0].get("code", "UNKNOWN_BLOCKED"))
+    if candidate_scorecard is not None:
+        for field in ("candidate_id", "strategy_id", "strategy_build_id", "parameter_hash", "session_id", "symbol"):
+            if str(report.get(field) or "") != str(candidate_scorecard.get(field) or ""):
+                return ReplayConsistencyValidationResult("BLOCKED", f"public replay candidate scope mismatch: {field}", "SNAPSHOT_SCOPE_MISMATCH")
+    return ReplayConsistencyValidationResult("PASS", "public replay robustness report is scoped, hash-bound, and live-blocked", None)
+
+
+def public_replay_robustness_values_from_report(
+    report: dict[str, Any],
+    *,
+    candidate_scorecard: dict[str, Any],
+) -> tuple[list[float], list[dict[str, Any]], list[str]]:
+    result = validate_public_replay_robustness_report(report, candidate_scorecard=candidate_scorecard)
+    if result.status != "PASS":
+        return [], [], []
+    values: list[float] = []
+    samples: list[dict[str, Any]] = []
+    for row in report.get("sample_rows") or []:
+        if not isinstance(row, dict) or row.get("candidate_id") != report.get("candidate_id"):
+            continue
+        values.append(_number(row.get("net_ev_after_cost_bps")))
+        samples.append(
+            {
+                "loop_id": report["replay_id"],
+                "source_loop_report_hash": report["report_hash"],
+                "source_runtime_cycle_hash": row.get("runtime_cycle_hash"),
+                "source_runtime_cycle_id": row.get("runtime_cycle_id"),
+            }
+        )
+    source_ids = [
+        f"public_replay_robustness:{report['replay_id']}:{report['report_hash']}",
+        f"public_market_data:{report['symbol']}:{report['public_market_data_hash']}",
+    ]
+    return values, samples, source_ids
+
+
+def public_replay_robustness_report_path(*, root: Path = ROOT, report: dict[str, Any]) -> Path:
+    return (
+        Path(root)
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / str(report["session_id"])
+        / "profitability"
+        / "replay_robustness"
+        / f"{_safe_artifact_stem(report.get('candidate_id'))}.public_replay_robustness_report.json"
+    )
+
+
+def write_public_replay_robustness_report(*, root: Path = ROOT, report: dict[str, Any]) -> Path:
+    path = public_replay_robustness_report_path(root=root, report=report)
+    durable_atomic_write_json(path, report)
+    return path
+
+
+def load_public_replay_robustness_report(
+    *,
+    root: Path = ROOT,
+    session_id: str,
+    candidate_id: str,
+) -> dict[str, Any] | None:
+    path = (
+        Path(root)
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / str(session_id)
+        / "profitability"
+        / "replay_robustness"
+        / f"{_safe_artifact_stem(candidate_id)}.public_replay_robustness_report.json"
+    )
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return value if isinstance(value, dict) else None
 
 
 def build_replay_consistency_report(
