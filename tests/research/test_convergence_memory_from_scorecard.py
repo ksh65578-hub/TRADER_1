@@ -120,6 +120,40 @@ class ConvergenceMemoryFromScorecardTest(unittest.TestCase):
         self.assertFalse(memory["live_order_allowed"])
         self.assertFalse(memory["scale_up_allowed"])
 
+    def test_validated_shadow_source_switches_memory_to_paper_shadow_scope_without_live_permission(self):
+        scorecard = _ranking_ready_scorecard()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            written = write_upbit_paper_convergence_memory_artifacts(
+                root=Path(tmp),
+                scorecard=scorecard,
+                extra_source_modes=["SHADOW"],
+                extra_source_artifact_ids=["paper_shadow_evidence_accumulation:matched:ABC"],
+                profit_cycle_dependency_statuses={
+                    "paper_shadow_evidence_accumulation_validator_status": "PASS",
+                },
+            )
+            strategy_memory = json.loads(written["strategy_performance_memory_path"].read_text(encoding="utf-8"))
+            optimizer_memory = json.loads(written["optimizer_memory_state_path"].read_text(encoding="utf-8"))
+            exploration_policy = json.loads(written["exploration_exploitation_policy_path"].read_text(encoding="utf-8"))
+            cycle = json.loads(written["profit_convergence_cycle_report_path"].read_text(encoding="utf-8"))
+
+        self.assertEqual(_strategy_performance_memory_errors(strategy_memory), [])
+        self.assertEqual(_optimizer_memory_state_errors(optimizer_memory), [])
+        self.assertEqual(_exploration_exploitation_policy_errors(exploration_policy), [])
+        self.assertEqual(_profit_convergence_cycle_errors(cycle), [])
+        self.assertEqual(strategy_memory["source_modes"], ["PAPER", "SHADOW"])
+        self.assertEqual(strategy_memory["performance_scope"], "PAPER_SHADOW_RESEARCH_ONLY")
+        self.assertEqual(strategy_memory["performance_status"], "IMPROVING_AFTER_COST")
+        self.assertTrue(strategy_memory["paper_shadow_separated"])
+        self.assertIn("paper_shadow_evidence_accumulation:matched:ABC", strategy_memory["source_artifact_ids"])
+        self.assertEqual(optimizer_memory["source_modes"], ["PAPER", "SHADOW"])
+        self.assertEqual(cycle["paper_shadow_evidence_accumulation_validator_status"], "PASS")
+        self.assertNotIn("MEASUREMENT_MISSING", {blocker["code"] for blocker in strategy_memory["blockers"]})
+        self.assertFalse(cycle["candidate_ranking_allowed_for_paper"])
+        self.assertFalse(cycle["live_order_allowed"])
+        self.assertFalse(cycle["scale_up_allowed"])
+
     def test_blocked_scorecard_creates_failure_analysis_and_optimizer_memory(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="convergence-memory-blocked")
         scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)

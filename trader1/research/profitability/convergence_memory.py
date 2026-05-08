@@ -992,6 +992,8 @@ def optimizer_memory_state_from_scorecard(
     authority: dict[str, str] | None = None,
     previous_memory_state: dict[str, Any] | None = None,
     failure_analysis: dict[str, Any] | None = None,
+    extra_source_modes: list[str] | None = None,
+    extra_source_artifact_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     previous_records = list((previous_memory_state or {}).get("candidate_memory_records") or [])
     previous_count = sum(1 for item in previous_records if item.get("candidate_id") == scorecard.get("candidate_id"))
@@ -1023,6 +1025,12 @@ def optimizer_memory_state_from_scorecard(
     }
     records = previous_records + [record]
     sequence = _int_value((previous_memory_state or {}).get("memory_sequence_number"), 0) + 1
+    source_modes = _source_modes(scorecard, extra_source_modes)
+    source_artifact_ids = [
+        scorecard_artifact_id(scorecard),
+        *[str(item) for item in scorecard.get("source_evidence_ids", [])],
+        *[str(item) for item in extra_source_artifact_ids or []],
+    ]
     state = {
         "schema_id": OPTIMIZER_MEMORY_STATE_SCHEMA_ID,
         "generated_at_utc": utc_now(),
@@ -1043,8 +1051,8 @@ def optimizer_memory_state_from_scorecard(
         "memory_sequence_number": sequence,
         "previous_memory_state_hash": (previous_memory_state or {}).get("memory_state_hash"),
         "memory_state_hash": "0" * 64,
-        "source_modes": [scorecard["mode"]],
-        "source_artifact_ids": sorted(set([scorecard_artifact_id(scorecard), *[str(item) for item in scorecard.get("source_evidence_ids", [])]])),
+        "source_modes": source_modes,
+        "source_artifact_ids": sorted(set(source_artifact_ids)),
         "last_write_kind": "INIT" if sequence == 1 else "APPEND",
         "state_write_policy": "APPEND_AUDIT_ONLY",
         "candidate_memory_records": records,
@@ -1089,19 +1097,29 @@ def write_upbit_paper_convergence_memory_artifacts(
     scorecard: dict[str, Any],
     previous_memory_state: dict[str, Any] | None = None,
     previous_failure_reports: list[dict[str, Any]] | None = None,
+    extra_source_modes: list[str] | None = None,
+    extra_source_artifact_ids: list[str] | None = None,
+    exploration_policy_dependency_statuses: dict[str, str] | None = None,
+    profit_cycle_dependency_statuses: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     if scorecard.get("exchange") != "UPBIT" or scorecard.get("market_type") != "KRW_SPOT" or scorecard.get("mode") != "PAPER":
         raise ValueError("convergence memory writer is scoped to UPBIT/KRW_SPOT/PAPER")
     if any(scorecard.get(field) is True for field in ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")):
         raise ValueError("convergence memory writer refuses live or scale-up permission")
 
-    memory = strategy_performance_memory_from_scorecard(scorecard)
+    memory = strategy_performance_memory_from_scorecard(
+        scorecard,
+        extra_source_modes=extra_source_modes,
+        extra_source_artifact_ids=extra_source_artifact_ids,
+    )
     objective_profile = convergence_objective_profile_from_scorecard(scorecard, strategy_memory=memory)
     failure = failure_analysis_from_scorecard(scorecard, previous_failure_reports=previous_failure_reports)
     optimizer_memory = optimizer_memory_state_from_scorecard(
         scorecard,
         previous_memory_state=previous_memory_state,
         failure_analysis=failure,
+        extra_source_modes=extra_source_modes,
+        extra_source_artifact_ids=extra_source_artifact_ids,
     )
     exploration_policy = exploration_exploitation_policy_from_scorecard(
         scorecard,
@@ -1109,6 +1127,7 @@ def write_upbit_paper_convergence_memory_artifacts(
         strategy_memory=memory,
         optimizer_memory=optimizer_memory,
         failure_analysis=failure,
+        dependency_statuses=exploration_policy_dependency_statuses,
     )
     profit_cycle = profit_convergence_cycle_from_scorecard(
         scorecard,
@@ -1117,6 +1136,7 @@ def write_upbit_paper_convergence_memory_artifacts(
         optimizer_memory=optimizer_memory,
         exploration_policy=exploration_policy,
         failure_analysis=failure,
+        dependency_statuses=profit_cycle_dependency_statuses,
     )
     base = (
         Path(root)

@@ -23,6 +23,7 @@ from trader1.research.profitability.overfit_diagnostic import (
     robustness_inputs_from_overfit_diagnostic,
     write_overfit_diagnostic_report,
 )
+from trader1.research.shadow.shadow_runner import validate_paper_shadow_evidence_accumulation_report
 from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
 from trader1.runtime.paper.upbit_paper_runtime_sample_history import (
     build_upbit_paper_runtime_sample_history,
@@ -43,6 +44,14 @@ def _relative_path(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
 
 
+def _paper_runtime_base(root: Path, session_id: str) -> Path:
+    return root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
+
+
+def _paper_shadow_evidence_accumulation_path(root: Path, session_id: str) -> Path:
+    return _paper_runtime_base(root, session_id) / "paper_shadow_evidence_accumulation_report.json"
+
+
 def _blocked_result(message: str, blocker_code: str, **extra: Any) -> dict[str, Any]:
     return {
         "status": "BLOCKED",
@@ -53,6 +62,75 @@ def _blocked_result(message: str, blocker_code: str, **extra: Any) -> dict[str, 
         "live_order_allowed": False,
         "can_live_trade": False,
         "scale_up_allowed": False,
+    }
+
+
+def _paper_shadow_identity_matches(scorecard: dict[str, Any], evidence: dict[str, Any]) -> bool:
+    for field in ("candidate_id", "strategy_id", "strategy_build_id", "parameter_hash", "exchange", "market_type"):
+        if str(scorecard.get(field) or "") != str(evidence.get(field) or ""):
+            return False
+    return True
+
+
+def _paper_shadow_scorecard_binding(
+    *,
+    root: Path,
+    session_id: str,
+    scorecard: dict[str, Any],
+) -> dict[str, Any]:
+    path = _paper_shadow_evidence_accumulation_path(root, session_id)
+    if not path.exists():
+        return {
+            "status": "MISSING",
+            "blocker_code": "MEASUREMENT_MISSING",
+            "path": None,
+            "extra_source_modes": [],
+            "extra_source_artifact_ids": [],
+            "profit_cycle_dependency_statuses": {},
+            "message": "PAPER/SHADOW scorecard-input evidence is not present yet.",
+        }
+
+    evidence = _load_json(path)
+    result = validate_paper_shadow_evidence_accumulation_report(evidence)
+    if result.status != "PASS":
+        return {
+            "status": result.status,
+            "blocker_code": result.blocker_code or "MEASUREMENT_MISSING",
+            "path": _relative_path(path, root),
+            "extra_source_modes": [],
+            "extra_source_artifact_ids": [],
+            "profit_cycle_dependency_statuses": {},
+            "message": result.message,
+        }
+    if not _paper_shadow_identity_matches(scorecard, evidence):
+        return {
+            "status": "BLOCKED",
+            "blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+            "path": _relative_path(path, root),
+            "extra_source_modes": [],
+            "extra_source_artifact_ids": [],
+            "profit_cycle_dependency_statuses": {},
+            "message": "PAPER/SHADOW evidence identity does not match the current candidate scorecard.",
+        }
+
+    evidence_hash = str(evidence.get("evidence_hash") or "")
+    source_ids = [str(item) for item in evidence.get("source_evidence_ids") or []]
+    source_ids.extend(str(item) for item in evidence.get("supporting_source_evidence_ids") or [])
+    source_ids.append(f"paper_shadow_evidence_accumulation:{evidence.get('evidence_report_id')}:{evidence_hash}")
+    return {
+        "status": "PASS",
+        "blocker_code": None,
+        "path": _relative_path(path, root),
+        "extra_source_modes": ["SHADOW"],
+        "extra_source_artifact_ids": sorted(set(source_ids)),
+        "profit_cycle_dependency_statuses": {
+            "paper_shadow_evidence_accumulation_validator_status": "PASS",
+        },
+        "paper_sample_count": evidence.get("paper_sample_count"),
+        "shadow_sample_count": evidence.get("shadow_sample_count"),
+        "evidence_window_count": evidence.get("evidence_window_count"),
+        "long_run_evidence_eligible": evidence.get("long_run_evidence_eligible"),
+        "message": "PAPER/SHADOW scorecard-input evidence is validated and bound to convergence memory.",
     }
 
 
@@ -130,10 +208,21 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
             scorecard_errors=scorecard_errors,
         )
 
+    paper_shadow_binding = _paper_shadow_scorecard_binding(
+        root=root,
+        session_id=session_id,
+        scorecard=scorecard,
+    )
     history_path = write_upbit_paper_runtime_sample_history(root=root, history=history)
     diagnostic_path = write_overfit_diagnostic_report(root=root, report=diagnostic)
     scorecard_path = write_upbit_paper_candidate_scorecard(root=root, scorecard=scorecard)
-    convergence_memory = write_upbit_paper_convergence_memory_artifacts(root=root, scorecard=scorecard)
+    convergence_memory = write_upbit_paper_convergence_memory_artifacts(
+        root=root,
+        scorecard=scorecard,
+        extra_source_modes=paper_shadow_binding["extra_source_modes"],
+        extra_source_artifact_ids=paper_shadow_binding["extra_source_artifact_ids"],
+        profit_cycle_dependency_statuses=paper_shadow_binding["profit_cycle_dependency_statuses"],
+    )
     return {
         "status": "PASS",
         "message": "Upbit PAPER candidate scorecard, non-live convergence memory, and profit convergence cycle report were written from ledger-bound runtime samples and overfit diagnostics",
@@ -180,6 +269,14 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         "performance_execution_cost_comparison_status": scorecard["execution_cost_comparison_status"],
         "performance_execution_cost_delta_bps": scorecard["execution_cost_delta_bps"],
         "performance_max_allowed_execution_cost_delta_bps": scorecard["max_allowed_execution_cost_delta_bps"],
+        "paper_shadow_scorecard_binding_status": paper_shadow_binding["status"],
+        "paper_shadow_scorecard_binding_blocker_code": paper_shadow_binding["blocker_code"],
+        "paper_shadow_scorecard_binding_path": paper_shadow_binding["path"],
+        "paper_shadow_scorecard_binding_message": paper_shadow_binding["message"],
+        "paper_shadow_scorecard_binding_paper_sample_count": paper_shadow_binding.get("paper_sample_count"),
+        "paper_shadow_scorecard_binding_shadow_sample_count": paper_shadow_binding.get("shadow_sample_count"),
+        "paper_shadow_scorecard_binding_evidence_window_count": paper_shadow_binding.get("evidence_window_count"),
+        "paper_shadow_scorecard_binding_long_run_evidence_eligible": paper_shadow_binding.get("long_run_evidence_eligible"),
         "strategy_performance_memory_status": convergence_memory["strategy_performance_memory"]["performance_status"],
         "strategy_performance_memory_scope": convergence_memory["strategy_performance_memory"]["performance_scope"],
         "convergence_objective_profile_status": convergence_memory["convergence_objective_profile"]["objective_status"],
