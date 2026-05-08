@@ -227,6 +227,7 @@
         "profit_factor_status",
         "max_drawdown_status",
         "fill_quality_status",
+        "execution_cost_comparison_status",
         "paper_live_gap_status",
         "high_or_critical_contract_gap_count",
         "blocking_validator_fail_count",
@@ -260,6 +261,7 @@
         "profit_factor_status": {"enum": ["PASS", "PARTIAL", "MISSING", "UNTESTED", "BLOCKED"]},
         "max_drawdown_status": {"enum": ["PASS", "PARTIAL", "MISSING", "UNTESTED", "BLOCKED"]},
         "fill_quality_status": {"enum": ["PASS", "PARTIAL", "MISSING", "UNTESTED", "BLOCKED"]},
+        "execution_cost_comparison_status": {"enum": ["PASS", "PARTIAL", "MISSING", "UNTESTED", "BLOCKED"]},
         "paper_live_gap_status": {"enum": ["PASS", "NOT_AVAILABLE", "MISSING", "UNTESTED", "BLOCKED"]},
         "high_or_critical_contract_gap_count": {"type": "integer", "minimum": 0},
         "blocking_validator_fail_count": {"type": "integer", "minimum": 0},
@@ -276,6 +278,7 @@
               "PROFIT_FACTOR_NOT_PASS",
               "MAX_DRAWDOWN_NOT_PASS",
               "FILL_QUALITY_NOT_PASS",
+              "EXECUTION_COST_COMPARISON_NOT_PASS",
               "PAPER_LIVE_GAP_NOT_AVAILABLE",
               "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
               "BLOCKING_VALIDATOR_FAIL_PRESENT"

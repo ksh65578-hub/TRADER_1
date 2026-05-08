@@ -534,10 +534,12 @@
     "profit_factor_status": "UNTESTED",
     "max_drawdown_status": "UNTESTED",
     "fill_quality_status": "UNTESTED",
+    "execution_cost_comparison_status": "UNTESTED",
     "paper_live_gap_status": "NOT_AVAILABLE",
     "high_or_critical_contract_gap_count": 1,
     "blocking_validator_fail_count": 0,
     "missing_threshold_codes": [
+      "EXECUTION_COST_COMPARISON_NOT_PASS",
       "FILL_QUALITY_NOT_PASS",
       "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
       "MAX_DRAWDOWN_NOT_PASS",

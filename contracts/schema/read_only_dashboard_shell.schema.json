@@ -6855,6 +6855,7 @@
               "PROFIT_FACTOR_NOT_PASS",
               "MAX_DRAWDOWN_NOT_PASS",
               "FILL_QUALITY_NOT_PASS",
+              "EXECUTION_COST_COMPARISON_NOT_PASS",
               "PAPER_LIVE_GAP_NOT_AVAILABLE",
               "HIGH_OR_CRITICAL_CONTRACT_GAP_OPEN",
               "BLOCKING_VALIDATOR_FAIL_PRESENT"
@@ -6938,6 +6939,17 @@
           ]
         },
         "promotion_threshold_fill_quality_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "promotion_threshold_execution_cost_comparison_status": {
           "enum": [
             "PASS",
             "PARTIAL",
