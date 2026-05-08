@@ -1,0 +1,152 @@
+{
+  "authority": {
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B"
+  },
+  "blockers": [
+    {
+      "code": "STRATEGY_NOT_ELIGIBLE",
+      "message": "selected PAPER candidate is not entry-review eligible",
+      "severity": "HIGH"
+    },
+    {
+      "code": "MIN_EDGE_FAIL",
+      "message": "net EV after cost is below PAPER scorecard minimum",
+      "severity": "HIGH"
+    },
+    {
+      "code": "OOS_MISSING",
+      "message": "OOS evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "WALK_FORWARD_MISSING",
+      "message": "walk-forward evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "BOOTSTRAP_UNSTABLE",
+      "message": "bootstrap robustness evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "OVERFIT_RISK_HIGH",
+      "message": "overfit risk must be LOW before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "SAMPLE_INSUFFICIENT",
+      "message": "closed PAPER trade sample is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "EXECUTION_FEEDBACK_MISSING",
+      "message": "closed PAPER trades must be bound to the entry strategy exit router before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "REGIME_MISMATCH",
+      "message": "PAPER scorecard ranking requires regime-labeled outcomes across uptrend, range, downtrend, and risk-off with zero spot-long blocked-regime entries",
+      "severity": "HIGH"
+    },
+    {
+      "code": "MEASUREMENT_MISSING",
+      "message": "profit factor must pass before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "DRAWDOWN_FREEZE_ACTIVE",
+      "message": "max drawdown must remain inside policy before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "EXECUTION_FEEDBACK_DIVERGENT",
+      "message": "realized edge after fee/slippage/impact must match or exceed expected edge before ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "EXECUTION_QUALITY_UNTESTED",
+      "message": "fill quality evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "EXECUTION_FEEDBACK_DIVERGENT",
+      "message": "realized fee/slippage/impact cost must stay within expected execution cost before ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "MEASUREMENT_MISSING",
+      "message": "Strategy performance memory is bound to PAPER scorecard evidence only; SHADOW evidence is still required.",
+      "severity": "MEDIUM"
+    }
+  ],
+  "can_live_trade": false,
+  "exchange": "UPBIT",
+  "generated_at_utc": "2026-05-08T08:40:40Z",
+  "live_config_mutation_allowed": false,
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "live_permission_created": false,
+  "market_type": "KRW_SPOT",
+  "mode": "PAPER",
+  "net_ev_after_cost_required": true,
+  "notes": "Generated from non-live scorecard evidence; objective remains research-only and cannot promote or write live config.",
+  "objective_components": [
+    {
+      "component_id": "net_ev_after_cost",
+      "component_kind": "NET_EV_AFTER_COST",
+      "required": true,
+      "weight": 1.0
+    },
+    {
+      "component_id": "drawdown_penalty",
+      "component_kind": "DRAWDOWN_PENALTY",
+      "required": true,
+      "weight": 0.35
+    },
+    {
+      "component_id": "slippage_penalty",
+      "component_kind": "SLIPPAGE_PENALTY",
+      "required": true,
+      "weight": 0.25
+    },
+    {
+      "component_id": "fee_penalty",
+      "component_kind": "FEE_PENALTY",
+      "required": true,
+      "weight": 0.25
+    },
+    {
+      "component_id": "impact_penalty",
+      "component_kind": "IMPACT_PENALTY",
+      "required": true,
+      "weight": 0.2
+    },
+    {
+      "component_id": "oos_robustness",
+      "component_kind": "OOS_ROBUSTNESS",
+      "required": true,
+      "weight": 0.4
+    },
+    {
+      "component_id": "regime_fit",
+      "component_kind": "REGIME_FIT",
+      "required": true,
+      "weight": 0.25
+    }
+  ],
+  "objective_profile_id": "convergence_objective_profile:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion",
+  "objective_profile_version": "scorecard_runtime_v1",
+  "objective_status": "BLOCKED",
+  "operator_warning": "Objective profile is evaluation-only, not LIVE_READY, and live orders blocked.",
+  "profile_hash": "128DA9005AAAFC0822BA7AD364BFDB8238220FEF11BB826549B9545DCE54E4AA",
+  "project_id": "TRADER_1",
+  "raw_pnl_only_allowed": false,
+  "scale_up_allowed": false,
+  "schema_id": "trader1.convergence_objective_profile.v1",
+  "source_modes": [
+    "PAPER"
+  ],
+  "status": "BLOCKED",
+  "writes_live_ready_snapshot": false
+}

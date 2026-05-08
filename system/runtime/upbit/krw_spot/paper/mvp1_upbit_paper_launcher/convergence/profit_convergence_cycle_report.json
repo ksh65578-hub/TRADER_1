@@ -1,0 +1,220 @@
+{
+  "active_snapshot_mutation_allowed": false,
+  "authority": {
+    "agents_sha256": "21F059ED68723E632704422C2E4DE94EA4093E49D4C3C5963A821B0C0953941D",
+    "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B"
+  },
+  "blockers": [
+    {
+      "code": "STRATEGY_NOT_ELIGIBLE",
+      "message": "selected PAPER candidate is not entry-review eligible",
+      "severity": "HIGH"
+    },
+    {
+      "code": "MIN_EDGE_FAIL",
+      "message": "net EV after cost is below PAPER scorecard minimum",
+      "severity": "HIGH"
+    },
+    {
+      "code": "OOS_MISSING",
+      "message": "OOS evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "WALK_FORWARD_MISSING",
+      "message": "walk-forward evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "BOOTSTRAP_UNSTABLE",
+      "message": "bootstrap robustness evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "OVERFIT_RISK_HIGH",
+      "message": "overfit risk must be LOW before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "SAMPLE_INSUFFICIENT",
+      "message": "closed PAPER trade sample is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "EXECUTION_FEEDBACK_MISSING",
+      "message": "closed PAPER trades must be bound to the entry strategy exit router before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "REGIME_MISMATCH",
+      "message": "PAPER scorecard ranking requires regime-labeled outcomes across uptrend, range, downtrend, and risk-off with zero spot-long blocked-regime entries",
+      "severity": "HIGH"
+    },
+    {
+      "code": "MEASUREMENT_MISSING",
+      "message": "profit factor must pass before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "DRAWDOWN_FREEZE_ACTIVE",
+      "message": "max drawdown must remain inside policy before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "EXECUTION_FEEDBACK_DIVERGENT",
+      "message": "realized edge after fee/slippage/impact must match or exceed expected edge before ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "EXECUTION_QUALITY_UNTESTED",
+      "message": "fill quality evidence is required before PAPER scorecard ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "EXECUTION_FEEDBACK_DIVERGENT",
+      "message": "realized fee/slippage/impact cost must stay within expected execution cost before ranking",
+      "severity": "HIGH"
+    },
+    {
+      "code": "MEASUREMENT_MISSING",
+      "message": "Strategy performance memory is bound to PAPER scorecard evidence only; SHADOW evidence is still required.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "STRATEGY_NOT_ELIGIBLE",
+      "message": "Candidate scorecard cannot promote; failure analysis keeps ranking, live orders, and scale-up blocked.",
+      "severity": "HIGH"
+    },
+    {
+      "code": "RANKING_UNSTABLE",
+      "message": "ranking_stability_validator_status is BLOCKED; exploration-to-exploitation transition remains analysis-only.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "OVERFIT_RISK_HIGH",
+      "message": "overfit_diagnostic_validator_status is BLOCKED; exploration-to-exploitation transition remains analysis-only.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "CONVERGENCE_STATE_UNTESTED",
+      "message": "convergence_assessment_validator_status is UNTESTED; exploration-to-exploitation transition remains analysis-only.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "CONVERGENCE_CLAIM_UNVERIFIED",
+      "message": "model_drift_validator_status is UNTESTED; exploration-to-exploitation transition remains analysis-only.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "COOLDOWN",
+      "message": "Candidate remains in cooldown for 1 convergence cycle(s) after blocked scorecard evidence.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "REGIME_ADAPTATION_UNTESTED",
+      "message": "market_regime_adaptation_validator_status is UNTESTED; convergence cycle remains non-promotional and live orders stay blocked.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "CONVERGENCE_CLAIM_UNVERIFIED",
+      "message": "model_drift_validator_status is UNTESTED; convergence cycle remains non-promotional and live orders stay blocked.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "EXECUTION_QUALITY_UNTESTED",
+      "message": "execution_feedback_loop_validator_status is UNTESTED; convergence cycle remains non-promotional and live orders stay blocked.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "MEASUREMENT_MISSING",
+      "message": "paper_shadow_evidence_accumulation_validator_status is UNTESTED; convergence cycle remains non-promotional and live orders stay blocked.",
+      "severity": "MEDIUM"
+    },
+    {
+      "code": "CONVERGENCE_STATE_UNTESTED",
+      "message": "coverage_index_validator_status is UNTESTED; convergence cycle remains non-promotional and live orders stay blocked.",
+      "severity": "MEDIUM"
+    }
+  ],
+  "blocks_live_order": true,
+  "blocks_promotion": true,
+  "can_live_trade": false,
+  "candidate_ranking_allowed_for_paper": false,
+  "convergence_claim": "BLOCKED",
+  "convergence_objective_profile_validator_status": "PASS",
+  "coverage_index_validator_status": "UNTESTED",
+  "cycle_hash": "57E06557EE4C01C19CDD0DFCB40E2938164489B9DFE1BE3DD55661BB1CBE99F5",
+  "cycle_id": "profit_convergence_cycle:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:1",
+  "cycle_index": 1,
+  "cycle_status": "BLOCKED",
+  "dashboard_display_truth_only": true,
+  "data_age_seconds": 0.0,
+  "data_freshness_status": "FRESH",
+  "dependency_pass_count": 5,
+  "exchange": "UPBIT",
+  "exchange_account_call_allowed": false,
+  "execution_feedback_loop_validator_status": "UNTESTED",
+  "exploration_exploitation_policy_validator_status": "PASS",
+  "failure_analysis_validator_status": "PASS",
+  "generated_at_utc": "2026-05-08T08:40:40Z",
+  "live_config_mutation_allowed": false,
+  "live_order_allowed": false,
+  "live_order_ready": false,
+  "live_permission_created": false,
+  "market_regime_adaptation_validator_status": "UNTESTED",
+  "market_type": "KRW_SPOT",
+  "max_data_age_seconds": 180.0,
+  "mode": "PAPER",
+  "model_drift_status": "NOT_EVALUATED",
+  "model_drift_validator_status": "UNTESTED",
+  "model_promotion_allowed": false,
+  "net_ev_after_cost_delta_bps": -12.360799027797318,
+  "net_ev_after_cost_positive": false,
+  "next_operator_action": "continue implementation and bounded non-live validation; do not start long PAPER until convergence gates pass",
+  "notes": "Generated from non-live scorecard, strategy performance memory, optimizer memory, and failure analysis artifacts.",
+  "objective_basis": "BLOCKED_NO_VALID_OBJECTIVE",
+  "objective_score_delta_bps": -12.360799027797318,
+  "operator_warning": "profit convergence cycle is not LIVE_READY; live orders blocked; no profit guarantee",
+  "optimizer_memory_state_validator_status": "PASS",
+  "optimizer_winner_live_config_allowed": false,
+  "order_submission_allowed": false,
+  "paper_shadow_evidence_accumulation_validator_status": "UNTESTED",
+  "paper_winner_live_config_allowed": false,
+  "parameter_hash": "7CDCBE5F17A72D285683359BC58D7BED5581ED228B8C9BDEE6D84C61681E2FEA",
+  "previous_cycle_hash": null,
+  "profitability_guarantee_created": false,
+  "project_id": "TRADER_1",
+  "raw_pnl_improved": false,
+  "raw_pnl_positive_net_ev_negative": false,
+  "regime_scope": "TRENDING",
+  "required_dependency_count": 10,
+  "scale_up_allowed": false,
+  "scale_up_recommendation_allowed": false,
+  "schema_id": "trader1.profit_convergence_cycle_report.v1",
+  "session_id": "mvp1_upbit_paper_launcher",
+  "source_evidence_ids": [
+    "0B73E4F16DEF3728601E40F5E9E0EF158225F250A2D0F93A496827BBC3709DFF",
+    "10A561454090E8DC787C5EAD96E9D8DBEB80329CFDB65138DD36FC1D735E47D2",
+    "3CC143A106BC38A3B977F488EF024B7F0802F0F7493F55AF11CEC5D189174236",
+    "9C0322F3C9AFAEEFDEA657F9E31A1113C9ADBB73E12323AA408995D5DF10105C",
+    "candidate_scorecard:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:2642516E6FFD666029041A70E9114E0696641BA9A04A4C84EE78799933E42BEC",
+    "closed_trades:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+    "convergence_objective_profile:convergence_objective_profile:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:128DA9005AAAFC0822BA7AD364BFDB8238220FEF11BB826549B9545DCE54E4AA",
+    "execution_quality:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+    "exploration_exploitation_policy:exploration_exploitation_policy:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:7DE33E6480AEE34A12CF23F7CB6510C7EF6DB60A3284A4C7C2F75305634C2A2E",
+    "failure_analysis:failure_analysis:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:1:C022240D35BD1E80D38606604E66438BFADE8E004F214E57CF0EFE92C83EF6FA",
+    "optimizer_memory_state:optimizer_memory_state:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:1:10A561454090E8DC787C5EAD96E9D8DBEB80329CFDB65138DD36FC1D735E47D2",
+    "performance_summary:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+    "strategy_performance_memory:strategy_performance_memory:scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion:9C0322F3C9AFAEEFDEA657F9E31A1113C9ADBB73E12323AA408995D5DF10105C",
+    "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A"
+  ],
+  "source_modes": [
+    "PAPER"
+  ],
+  "status": "BLOCKED",
+  "strategy_build_id": "upbit_paper_runtime_cycle_v1",
+  "strategy_id": "vwap_mean_reversion",
+  "strategy_performance_memory_validator_status": "PASS",
+  "timeframe_scope": "runtime_cycle_fixture_or_public_collection",
+  "writes_live_ready_snapshot": false
+}

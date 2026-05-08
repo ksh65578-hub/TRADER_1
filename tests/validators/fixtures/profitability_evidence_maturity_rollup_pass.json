@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-08T08:21:58Z",
+  "generated_at_utc": "2026-05-08T08:40:39Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -38,7 +38,11 @@
       ],
       "source_evidence_ids": [
         "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE",
-        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5"
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5",
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A",
+        "closed_trades:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+        "execution_quality:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+        "performance_summary:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587"
       ],
       "sample_count": 0,
       "min_required_sample_count": 30,
@@ -60,8 +64,8 @@
       "strategy_exit_policy_match_count": 0,
       "strategy_exit_policy_mismatch_count": 0,
       "strategy_exit_reason_count": 0,
-      "expected_strategy_exit_policy_id": "",
-      "expected_strategy_exit_variation": null,
+      "expected_strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+      "expected_strategy_exit_variation": "fixed_tp",
       "entry_reason_count": 2,
       "no_trade_reason_count": 2
     },
@@ -78,13 +82,17 @@
       ],
       "source_evidence_ids": [
         "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE",
-        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5"
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5",
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A",
+        "closed_trades:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+        "execution_quality:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+        "performance_summary:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587"
       ],
-      "sample_count": 0,
+      "sample_count": 1,
       "min_required_sample_count": 4,
       "freshness_status": "PASS",
       "dependency_status": "PASS",
-      "next_required_evidence": "Collect regime-labeled symbol outcome samples 0/4, coverage 0/4, mismatches=0; evaluated symbols=20, entry-review symbols=1.",
+      "next_required_evidence": "Collect regime-labeled symbol outcome samples 1/4, coverage 1/4, mismatches=0; evaluated symbols=20, entry-review symbols=0.",
       "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
       "live_review_eligible": false,
       "scale_up_allowed": false,
@@ -94,23 +102,23 @@
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
-      "regime_outcome_status": "UNTESTED",
-      "regime_outcome_sample_count": 0,
+      "regime_outcome_status": "FAIL",
+      "regime_outcome_sample_count": 1,
       "min_regime_outcome_sample_count": 4,
-      "regime_outcome_covered_count": 0,
+      "regime_outcome_covered_count": 1,
       "min_regime_outcome_covered_count": 4,
       "regime_outcome_trade_count": 0,
-      "regime_outcome_no_trade_count": 0,
+      "regime_outcome_no_trade_count": 1,
       "regime_outcome_mismatch_count": 0,
       "regime_outcome_counts": [
         {
           "regime": "UPTREND",
-          "sample_count": 0,
+          "sample_count": 1,
           "trade_count": 0,
-          "no_trade_count": 0,
+          "no_trade_count": 1,
           "mismatch_count": 0,
           "trade_allowed": true,
-          "primary_blocker_code": null
+          "primary_blocker_code": "STRATEGY_NOT_ELIGIBLE"
         },
         {
           "regime": "RANGE",
@@ -141,7 +149,7 @@
         }
       ],
       "evaluated_symbol_count": 20,
-      "paper_entry_review_symbol_count": 1
+      "paper_entry_review_symbol_count": 0
     },
     {
       "component_id": "vwap_trend_breakout",
@@ -156,13 +164,17 @@
       ],
       "source_evidence_ids": [
         "REQ-MVP4-PROFITABILITY-EVIDENCE-MATURITY-RUNTIME-LINKAGE",
-        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5"
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5",
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A",
+        "closed_trades:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+        "execution_quality:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+        "performance_summary:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587"
       ],
-      "sample_count": 0,
+      "sample_count": 1,
       "min_required_sample_count": 4,
       "freshness_status": "PASS",
       "dependency_status": "PASS",
-      "next_required_evidence": "Collect regime-labeled outcomes for VWAP, trend pullback, and breakout/retest; family coverage 2/3, regime coverage 0/4, status=UNTESTED.",
+      "next_required_evidence": "Collect regime-labeled outcomes for VWAP, trend pullback, and breakout/retest; family coverage 3/3, regime coverage 1/4, status=FAIL.",
       "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
       "live_review_eligible": false,
       "scale_up_allowed": false,
@@ -172,29 +184,29 @@
       "live_order_ready": false,
       "live_order_allowed": false,
       "can_live_trade": false,
-      "regime_outcome_status": "UNTESTED",
-      "regime_outcome_sample_count": 0,
+      "regime_outcome_status": "FAIL",
+      "regime_outcome_sample_count": 1,
       "min_regime_outcome_sample_count": 4,
-      "regime_outcome_covered_count": 0,
+      "regime_outcome_covered_count": 1,
       "min_regime_outcome_covered_count": 4,
       "regime_outcome_mismatch_count": 0,
-      "strategy_family_covered_count": 2,
+      "strategy_family_covered_count": 3,
       "min_strategy_family_covered_count": 3,
       "strategy_family_counts": [
         {
           "strategy_family": "VWAP_REVERSION",
-          "sample_count": 2,
+          "sample_count": 1,
           "paper_entry_review_count": 0
         },
         {
           "strategy_family": "TREND_PULLBACK",
-          "sample_count": 0,
+          "sample_count": 1,
           "paper_entry_review_count": 0
         },
         {
           "strategy_family": "BREAKOUT_RETEST",
-          "sample_count": 3,
-          "paper_entry_review_count": 1
+          "sample_count": 1,
+          "paper_entry_review_count": 0
         }
       ]
     },
@@ -289,16 +301,20 @@
         "walk_forward:paper-shadow-short-window-refresh-20260507T020000Z-loop-1-cycle-20:0C1FF4CA8DFFB765A6F5E46B81D906AD0880ACAC6A3004824B3D72E9DBD47BCF",
         "upbit_paper_runtime_cycle:upbit-paper-runner-1778146958-7116-cycle-000021-cycle-1:C69873EFB8605E21E54ABAF47E07ED6E1D20957690FD9BA9BDAD58DBB09791C6",
         "upbit_paper_runtime_cycle:upbit-paper-runner-1778170197-16824-cycle-000001-cycle-1:A5DE46DC0AEBD9B89187AF5756247ABB19A16C8B3F0A340DAA37F86703634EC2",
-        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5"
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5",
+        "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A",
+        "closed_trades:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+        "execution_quality:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+        "performance_summary:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587"
       ],
-      "sample_count": 2,
+      "sample_count": 0,
       "min_required_sample_count": 300,
       "sample_basis": "REALIZED_CLOSED_PAPER_TRADES",
-      "closed_trade_sample_count": 2,
-      "closed_trade_sample_deficit": 298,
+      "closed_trade_sample_count": 0,
+      "closed_trade_sample_deficit": 300,
       "preliminary_sample_basis": "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
       "preliminary_sample_count": 2,
-      "preliminary_exact_candidate_sample_count": 2,
+      "preliminary_exact_candidate_sample_count": 1,
       "freshness_status": "PASS",
       "dependency_status": "PASS",
       "next_required_evidence": "OOS, walk-forward, bootstrap, and concentration checks pass for PAPER scorecard input; collect distinct PAPER/SHADOW long-run windows, replay coverage, read-only burn-in, and operator approval.",
@@ -559,23 +575,23 @@
   "live_review_eligible": false,
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
-  "next_operator_action": "Resolve the blocked PAPER scorecard runtime linkage reason, then continue PAPER/SHADOW evidence collection; live remains blocked until long-run PAPER/SHADOW evidence, replay coverage, read-only burn-in, manual order evidence, live safety proof, and operator approval are complete.",
-  "rollup_hash": "C6C94681BC9BC8FB1D7A2D866C116833A79ECFC5AD99A488558B7967E0EB0AD1",
+  "next_operator_action": "Collect OOS, walk-forward, bootstrap, and concentration robustness evidence for the PAPER scorecard, then continue PAPER/SHADOW long-run collection; live remains blocked until replay coverage, read-only burn-in, manual order evidence, live safety proof, and operator approval are complete.",
+  "rollup_hash": "DADD0E6189610BE1465AB163EDFCD173809CA97126A9213573AE8128E3890164",
   "runtime_linkage_evidence": {
-    "status": "BLOCKED",
-    "runtime_linkage_blocker_code": "RUNTIME_CYCLE_VALIDATION_FAILED",
-    "runtime_linkage_validator_message": "paper runtime cycle missing fields: ['paper_scope_continuity_decision']",
-    "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1.runtime_cycle.json",
-    "source_runtime_cycle_id": "upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1",
-    "source_runtime_cycle_hash": "932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5",
+    "status": "PASS",
+    "runtime_linkage_blocker_code": null,
+    "runtime_linkage_validator_message": "Upbit PAPER runtime cycle is simulated, scoped, ledger-backed, and live-blocked",
+    "source_runtime_cycle_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/cycles/upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1.runtime_cycle.json",
+    "source_runtime_cycle_id": "upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1",
+    "source_runtime_cycle_hash": "8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A",
     "runtime_input_role": "MULTI_SYMBOL_PUBLIC_MARKET_DATA_COLLECTION",
-    "runtime_public_market_data_hash": "A8BFD2D268BFC2AC0593B9C7604FAD08D8DFFFF8CA61C21C63712584514037EF",
-    "feature_snapshot_hash": "E8C39A00F6465929F866507A7DAD9AF04CBEDDBAA367F4CE556A429E01F1105A",
-    "strategy_regime_cost_linkage_status": "BLOCKED",
-    "selected_candidate_id": "KRW-BTC-vwap-mean-reversion",
-    "selected_candidate_net_ev_after_cost_bps": "-14.0297567633100593213970348",
+    "runtime_public_market_data_hash": "3AB767E7948305EBEAB662AACE8A939A6EFF1270CAB58BD09C2E898974426B4B",
+    "feature_snapshot_hash": "E8E8A2D5A6D5BC0390C2D22C6A5C9E4022E9521C990D2D242FAD0764757EDCE4",
+    "strategy_regime_cost_linkage_status": "PASS",
+    "selected_candidate_id": "KRW-WIF-vwap-mean-reversion",
+    "selected_candidate_net_ev_after_cost_bps": "-12.36079902779731812359117906",
     "cost_model_source": "PAPER_RUNTIME_ADAPTIVE_PUBLIC_L2_PROXY_COST_MODEL",
-    "sample_count": 0,
+    "sample_count": 1,
     "min_required_sample_count": 1,
     "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
     "live_order_ready": false,
@@ -583,18 +599,18 @@
     "can_live_trade": false,
     "scale_up_allowed": false,
     "candidate_scorecard_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
-    "candidate_scorecard_candidate_id": "KRW-B3-breakout-retest-long",
-    "candidate_scorecard_scorecard_id": "scorecard:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:KRW-B3-breakout-retest-long",
-    "candidate_scorecard_source_runtime_cycle_id": "upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1",
-    "candidate_scorecard_source_runtime_cycle_hash": "932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5",
-    "candidate_scorecard_snapshot_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecards/KRW-B3-breakout-retest-long.candidate_scorecard.json",
+    "candidate_scorecard_candidate_id": "KRW-WIF-vwap-mean-reversion",
+    "candidate_scorecard_scorecard_id": "scorecard:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:KRW-WIF-vwap-mean-reversion",
+    "candidate_scorecard_source_runtime_cycle_id": "upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1",
+    "candidate_scorecard_source_runtime_cycle_hash": "8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A",
+    "candidate_scorecard_snapshot_path": "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecards/KRW-WIF-vwap-mean-reversion.candidate_scorecard.json",
     "candidate_scorecard_snapshot_status": "PASS",
     "candidate_scorecard_snapshot_blocker_code": null,
     "candidate_scorecard_runtime_membership_status": "PASS",
     "candidate_scorecard_runtime_membership_blocker_code": null,
-    "candidate_scorecard_runtime_membership_source": "symbol_evidence_scorecards.best_candidate_id",
-    "candidate_scorecard_runtime_symbol": "KRW-B3",
-    "candidate_scorecard_runtime_decision": "PAPER_ENTRY_REVIEW"
+    "candidate_scorecard_runtime_membership_source": "selected_candidate",
+    "candidate_scorecard_runtime_symbol": "KRW-WIF",
+    "candidate_scorecard_runtime_decision": "NO_TRADE"
   },
   "promotion_threshold_evidence": {
     "status": "BLOCKED_FOR_THRESHOLD_EVIDENCE",
@@ -661,19 +677,22 @@
     },
     "min_required_per_source_type": 1,
     "sample_basis": "REALIZED_CLOSED_PAPER_TRADES",
-    "sample_count": 2,
+    "sample_count": 0,
     "min_required_sample_count": 300,
-    "closed_trade_sample_deficit": 298,
+    "closed_trade_sample_deficit": 300,
     "preliminary_sample_basis": "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
     "preliminary_sample_count": 2,
-    "preliminary_exact_candidate_sample_count": 2,
+    "preliminary_exact_candidate_sample_count": 1,
     "source_artifact_paths": [
       "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/overfit_diagnostic_report.json",
       "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",
       "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_sample_history.json"
     ],
     "source_evidence_ids": [
-      "upbit_paper_runtime_cycle:upbit-paper-runner-1778170876-27864-cycle-000001-cycle-1:932EE03E397835C5942E0764BE15B2B8E0DD2D4DF08075771BD4EBBEB9BC35C5"
+      "closed_trades:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+      "execution_quality:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+      "performance_summary:KRW-WIF-vwap-mean-reversion:upbit-paper-runtime-sample-history:2CEF94F5673B073FF1DA7E8E2F5D65116F2FF5F98214B363A61B0A94B1DA5587",
+      "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A"
     ],
     "primary_blocker_code": "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",
     "explicit_source_type_blocker": true,

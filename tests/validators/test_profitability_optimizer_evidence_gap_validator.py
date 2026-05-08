@@ -5,6 +5,7 @@ from pathlib import Path
 
 from tools.run_profitability_maturity_rollup_refresh import (
     paper_shadow_next_required_evidence,
+    refresh_current_scorecard_inputs,
     update_promotion_thresholds,
     update_strategy_scorecard_components,
 )
@@ -596,6 +597,22 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         self.assertNotIn("120 hours", text)
         self.assertNotIn("paper_runtime_hours_below_min", text)
         self.assertIn("observed_context_only_no_fixed_runtime_floor", text)
+
+    def test_maturity_rollup_scorecard_input_refresh_fails_closed_without_runtime(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            result = refresh_current_scorecard_inputs(
+                root=Path(tmp),
+                session_id="mvp1_upbit_paper_launcher",
+            )
+
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertEqual(result["blocker_code"], "ACTUAL_PERSISTENT_RUNTIME_EXECUTION_MISSING")
+        self.assertFalse(result["live_order_ready"])
+        self.assertFalse(result["live_order_allowed"])
+        self.assertFalse(result["can_live_trade"])
+        self.assertFalse(result["scale_up_allowed"])
 
     def test_maturity_rollup_helper_requires_robustness_source_type_evidence(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
