@@ -32,12 +32,14 @@ PERFORMANCE_PASS = {
     "max_drawdown_status": "PASS",
     "realized_vs_expected_edge_status": "PASS",
     "fill_quality_status": "PASS",
+    "execution_cost_comparison_status": "PASS",
 }
 DEFAULT_PERFORMANCE_METRICS = {
     "closed_trade_sample_count": 0,
     "min_closed_trade_sample_count": 30,
     "realized_vs_expected_sample_count": 0,
     "fill_quality_sample_count": 0,
+    "execution_cost_sample_count": 0,
     "profit_factor": 0.0,
     "min_profit_factor": 1.25,
     "max_drawdown_pct": 100.0,
@@ -46,6 +48,13 @@ DEFAULT_PERFORMANCE_METRICS = {
     "min_realized_vs_expected_edge_bps": 0.0,
     "fill_quality_score": 0.0,
     "min_fill_quality_score": 0.80,
+    "realized_fee_bps": 0.0,
+    "realized_slippage_bps": 0.0,
+    "realized_impact_bps": 0.0,
+    "expected_total_execution_cost_bps": 0.0,
+    "realized_total_execution_cost_bps": 0.0,
+    "execution_cost_delta_bps": 999.0,
+    "max_allowed_execution_cost_delta_bps": 2.0,
 }
 ROBUSTNESS_SOURCE_PREFIXES = ("oos:", "walk_forward:", "bootstrap:")
 PERFORMANCE_SOURCE_PREFIXES = ("closed_trades:", "execution_quality:", "performance_summary:")
@@ -291,6 +300,37 @@ def _runtime_fill_matches_scorecard_candidate(
     return False
 
 
+def _paper_fill_execution_cost_comparison(fill: dict[str, Any]) -> dict[str, Decimal]:
+    filled_notional = decimal_value(fill.get("filled_notional"))
+    fee_amount = decimal_value(fill.get("fee_amount"))
+    realized_fee = (
+        fee_amount / filled_notional * Decimal("10000")
+        if filled_notional > 0 and fee_amount >= 0
+        else decimal_value(fill.get("fee_bps"))
+    )
+    realized_slippage = decimal_value(fill.get("slippage_bps"))
+    realized_impact = decimal_value(fill.get("market_impact_bps"))
+    expected_fee = decimal_value(fill.get("fee_bps"))
+    if expected_fee <= 0:
+        expected_fee = decimal_value(fill.get("fee_rate")) * Decimal("10000")
+    expected_spread = decimal_value(fill.get("effective_spread_bps"))
+    if expected_spread <= 0:
+        expected_spread = decimal_value(fill.get("spread_bps"))
+    expected_slippage = decimal_value(fill.get("adaptive_slippage_bps"))
+    expected_impact = decimal_value(fill.get("market_impact_bps"))
+    expected_latency = decimal_value(fill.get("latency_penalty_bps"))
+    expected_total = expected_fee + expected_spread + expected_slippage + expected_impact + expected_latency
+    realized_total = realized_fee + realized_slippage
+    return {
+        "realized_fee_bps": realized_fee,
+        "realized_slippage_bps": realized_slippage,
+        "realized_impact_bps": realized_impact,
+        "expected_total_execution_cost_bps": expected_total,
+        "realized_total_execution_cost_bps": realized_total,
+        "execution_cost_delta_bps": realized_total - expected_total,
+    }
+
+
 def performance_inputs_from_runtime_sample_history(
     *,
     candidate_scorecard: dict[str, Any],
@@ -316,6 +356,12 @@ def performance_inputs_from_runtime_sample_history(
     gross_loss = Decimal("0")
     realized_vs_expected_values: list[Decimal] = []
     fill_quality_values: list[Decimal] = []
+    realized_fee_values: list[Decimal] = []
+    realized_slippage_values: list[Decimal] = []
+    realized_impact_values: list[Decimal] = []
+    expected_total_cost_values: list[Decimal] = []
+    realized_total_cost_values: list[Decimal] = []
+    execution_cost_delta_values: list[Decimal] = []
 
     for sample in runtime_sample_history.get("samples") or []:
         if not isinstance(sample, dict):
@@ -345,16 +391,18 @@ def performance_inputs_from_runtime_sample_history(
             else False
         )
         if isinstance(fill, dict) and fill.get("side") in {"BUY", "SELL"} and candidate_fill:
-            expected_slippage = (
-                decimal_value(fill.get("spread_bps")) / Decimal("2")
-                + decimal_value(fill.get("adaptive_slippage_bps"))
-                + decimal_value(fill.get("market_impact_bps"))
-                + decimal_value(fill.get("latency_penalty_bps"))
-            )
-            actual_slippage = decimal_value(fill.get("slippage_bps"))
-            denominator = max(Decimal("1"), expected_slippage)
-            quality = Decimal(str(_clamp_float(float(Decimal("1") - max(Decimal("0"), actual_slippage - expected_slippage) / denominator))))
+            execution_cost = _paper_fill_execution_cost_comparison(fill)
+            expected_total = execution_cost["expected_total_execution_cost_bps"]
+            cost_delta = execution_cost["execution_cost_delta_bps"]
+            denominator = max(Decimal("1"), expected_total)
+            quality = Decimal(str(_clamp_float(float(Decimal("1") - max(Decimal("0"), cost_delta) / denominator))))
             fill_quality_values.append(quality)
+            realized_fee_values.append(execution_cost["realized_fee_bps"])
+            realized_slippage_values.append(execution_cost["realized_slippage_bps"])
+            realized_impact_values.append(execution_cost["realized_impact_bps"])
+            expected_total_cost_values.append(expected_total)
+            realized_total_cost_values.append(execution_cost["realized_total_execution_cost_bps"])
+            execution_cost_delta_values.append(cost_delta)
 
         if (
             isinstance(fill, dict)
@@ -400,21 +448,59 @@ def performance_inputs_from_runtime_sample_history(
         if fill_quality_values
         else Decimal("0")
     )
+    realized_fee = (
+        sum(realized_fee_values, Decimal("0")) / Decimal(len(realized_fee_values))
+        if realized_fee_values
+        else Decimal("0")
+    )
+    realized_slippage = (
+        sum(realized_slippage_values, Decimal("0")) / Decimal(len(realized_slippage_values))
+        if realized_slippage_values
+        else Decimal("0")
+    )
+    realized_impact = (
+        sum(realized_impact_values, Decimal("0")) / Decimal(len(realized_impact_values))
+        if realized_impact_values
+        else Decimal("0")
+    )
+    expected_total_cost = (
+        sum(expected_total_cost_values, Decimal("0")) / Decimal(len(expected_total_cost_values))
+        if expected_total_cost_values
+        else Decimal("0")
+    )
+    realized_total_cost = (
+        sum(realized_total_cost_values, Decimal("0")) / Decimal(len(realized_total_cost_values))
+        if realized_total_cost_values
+        else Decimal("0")
+    )
+    execution_cost_delta = (
+        sum(execution_cost_delta_values, Decimal("0")) / Decimal(len(execution_cost_delta_values))
+        if execution_cost_delta_values
+        else Decimal("999")
+    )
     metrics = dict(DEFAULT_PERFORMANCE_METRICS)
     metrics.update(
         {
             "closed_trade_sample_count": closed_trade_count,
             "realized_vs_expected_sample_count": len(realized_vs_expected_values),
             "fill_quality_sample_count": len(fill_quality_values),
+            "execution_cost_sample_count": len(execution_cost_delta_values),
             "profit_factor": float(profit_factor),
             "max_drawdown_pct": float(max_drawdown_pct),
             "realized_vs_expected_edge_bps": float(realized_vs_expected),
             "fill_quality_score": float(fill_quality),
+            "realized_fee_bps": float(realized_fee),
+            "realized_slippage_bps": float(realized_slippage),
+            "realized_impact_bps": float(realized_impact),
+            "expected_total_execution_cost_bps": float(expected_total_cost),
+            "realized_total_execution_cost_bps": float(realized_total_cost),
+            "execution_cost_delta_bps": float(execution_cost_delta),
         }
     )
     closed_trade_observed = int(metrics["closed_trade_sample_count"])
     realized_vs_expected_observed = int(metrics["realized_vs_expected_sample_count"])
     fill_quality_observed = int(metrics["fill_quality_sample_count"])
+    execution_cost_observed = int(metrics["execution_cost_sample_count"])
     statuses = {
         "closed_trade_status": _threshold_status(
             observed_count=closed_trade_observed,
@@ -445,6 +531,12 @@ def performance_inputs_from_runtime_sample_history(
             value=float(metrics["fill_quality_score"]),
             threshold=float(metrics["min_fill_quality_score"]),
             comparison="gte",
+        ),
+        "execution_cost_comparison_status": _threshold_status(
+            observed_count=execution_cost_observed,
+            value=float(metrics["execution_cost_delta_bps"]),
+            threshold=float(metrics["max_allowed_execution_cost_delta_bps"]),
+            comparison="lte",
         ),
     }
     return statuses, metrics, source_ids
@@ -705,11 +797,14 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         int(performance_values["closed_trade_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
         and int(performance_values["realized_vs_expected_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
         and int(performance_values["fill_quality_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
+        and int(performance_values["execution_cost_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
         and float(performance_values["profit_factor"]) >= float(performance_values["min_profit_factor"])
         and float(performance_values["max_drawdown_pct"]) <= float(performance_values["max_allowed_drawdown_pct"])
         and float(performance_values["realized_vs_expected_edge_bps"])
         >= float(performance_values["min_realized_vs_expected_edge_bps"])
         and float(performance_values["fill_quality_score"]) >= float(performance_values["min_fill_quality_score"])
+        and float(performance_values["execution_cost_delta_bps"])
+        <= float(performance_values["max_allowed_execution_cost_delta_bps"])
     )
     performance_ready = (
         all(performance[field] == expected for field, expected in PERFORMANCE_PASS.items())
@@ -809,6 +904,15 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
             performance_values["min_fill_quality_score"]
         ):
             blockers.append(blocker("EXECUTION_QUALITY_UNTESTED", "fill quality evidence is required before PAPER scorecard ranking"))
+        if performance["execution_cost_comparison_status"] != "PASS" or float(
+            performance_values["execution_cost_delta_bps"]
+        ) > float(performance_values["max_allowed_execution_cost_delta_bps"]):
+            blockers.append(
+                blocker(
+                    "EXECUTION_FEEDBACK_DIVERGENT",
+                    "realized fee/slippage/impact cost must stay within expected execution cost before ranking",
+                )
+            )
     if performance_ready and not enough_performance_sources:
         blockers.append(
             blocker(
@@ -858,6 +962,7 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "min_closed_trade_sample_count": int(performance_values["min_closed_trade_sample_count"]),
         "realized_vs_expected_sample_count": int(performance_values["realized_vs_expected_sample_count"]),
         "fill_quality_sample_count": int(performance_values["fill_quality_sample_count"]),
+        "execution_cost_sample_count": int(performance_values["execution_cost_sample_count"]),
         "profit_factor_status": performance["profit_factor_status"],
         "profit_factor": float(performance_values["profit_factor"]),
         "min_profit_factor": float(performance_values["min_profit_factor"]),
@@ -870,6 +975,14 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "fill_quality_status": performance["fill_quality_status"],
         "fill_quality_score": float(performance_values["fill_quality_score"]),
         "min_fill_quality_score": float(performance_values["min_fill_quality_score"]),
+        "execution_cost_comparison_status": performance["execution_cost_comparison_status"],
+        "realized_fee_bps": float(performance_values["realized_fee_bps"]),
+        "realized_slippage_bps": float(performance_values["realized_slippage_bps"]),
+        "realized_impact_bps": float(performance_values["realized_impact_bps"]),
+        "expected_total_execution_cost_bps": float(performance_values["expected_total_execution_cost_bps"]),
+        "realized_total_execution_cost_bps": float(performance_values["realized_total_execution_cost_bps"]),
+        "execution_cost_delta_bps": float(performance_values["execution_cost_delta_bps"]),
+        "max_allowed_execution_cost_delta_bps": float(performance_values["max_allowed_execution_cost_delta_bps"]),
         "performance_ready": performance_ready,
         "performance_source_evidence_required": list(PERFORMANCE_SOURCE_PREFIXES),
         "performance_source_binding_status": "PASS" if enough_performance_sources else "MISSING_OR_MISMATCHED",

@@ -39,6 +39,7 @@ PASS_PERFORMANCE_METRICS = {
     "min_closed_trade_sample_count": 30,
     "realized_vs_expected_sample_count": 42,
     "fill_quality_sample_count": 42,
+    "execution_cost_sample_count": 42,
     "profit_factor": 1.42,
     "min_profit_factor": 1.25,
     "max_drawdown_pct": 4.8,
@@ -47,6 +48,13 @@ PASS_PERFORMANCE_METRICS = {
     "min_realized_vs_expected_edge_bps": 0.0,
     "fill_quality_score": 0.91,
     "min_fill_quality_score": 0.80,
+    "realized_fee_bps": 5.0,
+    "realized_slippage_bps": 16.0,
+    "realized_impact_bps": 3.0,
+    "expected_total_execution_cost_bps": 20.0,
+    "realized_total_execution_cost_bps": 21.0,
+    "execution_cost_delta_bps": 1.0,
+    "max_allowed_execution_cost_delta_bps": 2.0,
 }
 
 
@@ -436,6 +444,32 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertFalse(scorecard["ranking_eligible"])
         self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in scorecard["blockers"]})
 
+    def test_execution_cost_divergence_blocks_paper_ranking(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-cost-divergence")
+        weak_performance = dict(PASS_PERFORMANCE_METRICS)
+        weak_performance["execution_cost_delta_bps"] = 5.0
+        weak_performance["max_allowed_execution_cost_delta_bps"] = 2.0
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses={**PERFORMANCE_PASS, "execution_cost_comparison_status": "FAIL"},
+            performance_metrics=weak_performance,
+            performance_source_evidence_ids=performance_source_evidence_ids(runtime),
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertFalse(scorecard["performance_ready"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertEqual(scorecard["execution_cost_comparison_status"], "FAIL")
+        self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in scorecard["blockers"]})
+
     def test_generic_performance_sources_cannot_make_scorecard_rank(self):
         runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-generic-performance-source")
 
@@ -573,6 +607,12 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(statuses["realized_vs_expected_edge_status"], "FAIL")
         self.assertGreater(metrics["fill_quality_score"], 0)
         self.assertEqual(metrics["fill_quality_sample_count"], 1)
+        self.assertEqual(metrics["execution_cost_sample_count"], 1)
+        self.assertIn(statuses["execution_cost_comparison_status"], {"PASS", "FAIL"})
+        self.assertGreaterEqual(metrics["realized_fee_bps"], 0)
+        self.assertGreater(metrics["realized_slippage_bps"], 0)
+        self.assertGreaterEqual(metrics["expected_total_execution_cost_bps"], metrics["realized_fee_bps"])
+        self.assertLessEqual(metrics["execution_cost_delta_bps"], metrics["max_allowed_execution_cost_delta_bps"])
         self.assertTrue(all(f":{target_key}:" in source_id for source_id in source_ids))
 
     def test_scorecard_writer_preserves_candidate_scoped_snapshots_without_live_permission(self):

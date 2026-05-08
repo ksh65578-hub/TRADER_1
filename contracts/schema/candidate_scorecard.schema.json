@@ -41,6 +41,7 @@
     "min_closed_trade_sample_count",
     "realized_vs_expected_sample_count",
     "fill_quality_sample_count",
+    "execution_cost_sample_count",
     "profit_factor_status",
     "profit_factor",
     "min_profit_factor",
@@ -53,6 +54,14 @@
     "fill_quality_status",
     "fill_quality_score",
     "min_fill_quality_score",
+    "execution_cost_comparison_status",
+    "realized_fee_bps",
+    "realized_slippage_bps",
+    "realized_impact_bps",
+    "expected_total_execution_cost_bps",
+    "realized_total_execution_cost_bps",
+    "execution_cost_delta_bps",
+    "max_allowed_execution_cost_delta_bps",
     "performance_ready",
     "performance_source_evidence_required",
     "performance_source_binding_status",
@@ -257,6 +266,10 @@
       "type": "integer",
       "minimum": 0
     },
+    "execution_cost_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
     "profit_factor_status": {
       "enum": [
         "PASS",
@@ -324,6 +337,42 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1
+    },
+    "execution_cost_comparison_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "realized_fee_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "realized_slippage_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "realized_impact_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "expected_total_execution_cost_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "realized_total_execution_cost_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "execution_cost_delta_bps": {
+      "type": "number"
+    },
+    "max_allowed_execution_cost_delta_bps": {
+      "type": "number",
+      "minimum": 0
     },
     "performance_ready": {
       "type": "boolean"

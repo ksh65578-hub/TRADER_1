@@ -113,6 +113,18 @@ class CandidateScorecardNetEvValidatorTest(unittest.TestCase):
             errors,
         )
 
+    def test_execution_cost_delta_must_pass_before_ranking(self):
+        scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
+        tampered = copy.deepcopy(scorecard)
+        tampered["execution_cost_delta_bps"] = 5.0
+
+        errors = _candidate_scorecard_net_ev_errors(tampered)
+
+        self.assertIn(
+            "execution_cost_delta_bps must stay within allowed execution cost delta before ranking eligibility",
+            errors,
+        )
+
     def test_scorecard_schema_requires_robustness_maturity_fields(self):
         scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
         tampered = copy.deepcopy(scorecard)
