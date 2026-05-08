@@ -48,11 +48,11 @@
   "concentration_risk_status": "UNTESTED",
   "dashboard_display_truth_only": true,
   "data_snooping_check": "UNTESTED",
-  "diagnostic_hash": "06AB4E150756F48B92B1D8AB64D430EDAE9EF55B1766DF97E4FE01C9ABA53814",
+  "diagnostic_hash": "27A2461A2FDFDD7914B33AE4FB6455D393288C869EDD7F61358E6EAE9DD4B80C",
   "diagnostic_id": "overfit:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long",
   "diagnostic_status": "BLOCKED_FOR_ROBUSTNESS",
   "exchange": "UPBIT",
-  "generated_at_utc": "2026-05-08T08:50:48Z",
+  "generated_at_utc": "2026-05-08T09:05:29Z",
   "in_sample_net_ev_after_cost_bps": -535.88173491,
   "live_order_allowed": false,
   "live_order_ready": false,
@@ -109,7 +109,7 @@
   "schema_id": "trader1.overfit_diagnostic_report.v1",
   "session_id": "mvp1_upbit_paper_launcher",
   "source_evidence_ids": [
-    "runtime_sample_history:upbit-paper-runtime-sample-history:372F841654C03857A1538E4A7868311A902CA50563584995927CA9CD762D31C6",
+    "runtime_sample_history:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
     "upbit_paper_runtime_cycle:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00",
     "upbit_paper_runtime_cycle:upbit-paper-runner-1778216154-23376-cycle-000001-cycle-1:8EE101172113BAC51FD2CCCC039E2F595C4DD164D63C7A5B51B1728C9CA4295A"
   ],
