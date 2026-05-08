@@ -2,10 +2,12 @@ import unittest
 from pathlib import Path
 
 from trader1.validation.mvp0_validators import (
+    _candidate_scoped_performance_source_binding_count,
     _market_regime_adaptation_errors,
     load_json,
     market_regime_adaptation_validator,
 )
+from trader1.research.profitability.candidate_scorecard import has_required_robustness_source_ids
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,6 +21,38 @@ class MarketRegimeAdaptationValidatorTest(unittest.TestCase):
         errors = _market_regime_adaptation_errors(report)
 
         self.assertEqual(errors, [])
+        self.assertTrue(has_required_robustness_source_ids(report["source_evidence_ids"]))
+        self.assertGreater(_candidate_scoped_performance_source_binding_count(report["source_evidence_ids"]), 0)
+
+    def test_entry_allowed_requires_robustness_source_evidence_ids(self):
+        report = load_json(FIXTURE_DIR / "market_regime_adaptation_pass.json")
+        report["source_evidence_ids"] = [
+            source_id
+            for source_id in report["source_evidence_ids"]
+            if not source_id.startswith("bootstrap:")
+        ]
+
+        errors = _market_regime_adaptation_errors(report)
+
+        self.assertIn(
+            "entry_allowed market regime adaptation requires OOS, walk-forward, and bootstrap source evidence ids",
+            errors,
+        )
+
+    def test_entry_allowed_requires_candidate_scoped_performance_sources(self):
+        report = load_json(FIXTURE_DIR / "market_regime_adaptation_pass.json")
+        report["source_evidence_ids"] = [
+            source_id
+            for source_id in report["source_evidence_ids"]
+            if not source_id.startswith("execution_quality:")
+        ]
+
+        errors = _market_regime_adaptation_errors(report)
+
+        self.assertIn(
+            "entry_allowed market regime adaptation requires candidate-scoped closed trade, execution quality, and performance summary source ids",
+            errors,
+        )
 
     def test_live_permission_is_rejected(self):
         report = load_json(FIXTURE_DIR / "market_regime_adaptation_live_flag_fail.json")
