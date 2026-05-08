@@ -411,6 +411,7 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         thresholds = rollup["promotion_threshold_evidence"]
         expected_missing = {
             "PAPER_CLOSED_TRADES_BELOW_MIN",
+            "STRATEGY_EXIT_POLICY_NOT_PASS",
             "PROFIT_FACTOR_NOT_PASS",
             "MAX_DRAWDOWN_NOT_PASS",
             "FILL_QUALITY_NOT_PASS",
@@ -427,6 +428,10 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
                 "closed_trade_status": "PASS",
                 "closed_trade_sample_count": 42,
                 "min_closed_trade_sample_count": 30,
+                "strategy_exit_policy_status": "PASS",
+                "strategy_exit_policy_sample_count": 42,
+                "min_strategy_exit_policy_sample_count": 30,
+                "strategy_exit_policy_mismatch_count": 0,
                 "profit_factor_status": "PASS",
                 "profit_factor": 1.42,
                 "min_profit_factor": 1.25,
@@ -444,6 +449,7 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         )
 
         self.assertEqual(thresholds["paper_closed_trades"], 42)
+        self.assertEqual(thresholds["strategy_exit_policy_status"], "PASS")
         self.assertEqual(thresholds["profit_factor_status"], "PASS")
         self.assertEqual(thresholds["max_drawdown_status"], "PASS")
         self.assertEqual(thresholds["fill_quality_status"], "PASS")

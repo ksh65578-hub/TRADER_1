@@ -329,6 +329,12 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 {
                     "closed_trade_sample_count": 42,
                     "min_closed_trade_sample_count": 30,
+                    "strategy_exit_policy_sample_count": 42,
+                    "min_strategy_exit_policy_sample_count": 30,
+                    "strategy_exit_policy_match_count": 42,
+                    "strategy_exit_policy_mismatch_count": 0,
+                    "strategy_exit_reason_count": 42,
+                    "strategy_exit_reason_counts": [{"reason_code": "TRAILING_STOP", "count": 42}],
                     "realized_vs_expected_sample_count": 42,
                     "fill_quality_sample_count": 42,
                     "execution_cost_sample_count": 42,

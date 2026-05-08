@@ -849,7 +849,14 @@ def strategy_performance_memory_from_scorecard(
         "trade_count": trade_count,
         "no_trade_count": no_trade_count,
         "entry_reason_counts": [{"reason_code": "SCORECARD_ENTRY_EVIDENCE", "count": trade_count}],
-        "exit_reason_counts": [{"reason_code": "SCORECARD_CLOSED_TRADE_EVIDENCE", "count": trade_count}],
+        "exit_reason_counts": (
+            [
+                {"reason_code": str(item.get("reason_code") or ""), "count": _int_value(item.get("count"))}
+                for item in scorecard.get("strategy_exit_reason_counts", [])
+                if isinstance(item, dict) and item.get("reason_code")
+            ]
+            or [{"reason_code": "SCORECARD_CLOSED_TRADE_EVIDENCE", "count": trade_count}]
+        ),
         "no_trade_reason_counts": _reason_counts_from_blockers(blockers),
         "gross_pnl": gross_pnl,
         "fee_cost": fee_cost,
