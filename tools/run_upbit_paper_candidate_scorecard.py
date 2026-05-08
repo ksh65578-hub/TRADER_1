@@ -23,6 +23,7 @@ from trader1.research.profitability.candidate_scorecard import (
 from trader1.adapters.upbit.market_data import (
     DEFAULT_DISCOVERY_EVALUATION_LIMIT,
     fetch_upbit_krw_market_symbols_read_only,
+    fetch_upbit_public_candle_history_read_only,
     fetch_upbit_public_ticker_snapshot_read_only,
     rank_upbit_krw_symbols_by_public_ticker,
 )
@@ -33,8 +34,10 @@ from trader1.research.profitability.overfit_diagnostic import (
     write_overfit_diagnostic_report,
 )
 from trader1.research.replay.replay_runner import (
+    build_public_replay_robustness_report,
     load_public_replay_robustness_report,
     validate_public_replay_robustness_report,
+    write_public_replay_robustness_report,
 )
 from trader1.research.shadow.shadow_runner import validate_paper_shadow_evidence_accumulation_report
 from trader1.runtime.paper.upbit_paper_runtime import (
@@ -194,6 +197,40 @@ def _candidate_discovery_context(
     }
 
 
+def _alternative_replay_context(
+    *,
+    status: str,
+    blocker_code: str | None,
+    message: str,
+    report_path: str | None = None,
+    candidate_id: str | None = None,
+    symbol: str | None = None,
+    replay_status: str | None = None,
+    sample_count: int = 0,
+    primary_blocker_code: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "blocker_code": blocker_code,
+        "message": message,
+        "report_path": report_path,
+        "candidate_id": candidate_id,
+        "symbol": symbol,
+        "replay_status": replay_status,
+        "sample_count": sample_count,
+        "primary_blocker_code": primary_blocker_code,
+        "credential_load_attempted": False,
+        "private_endpoint_called": False,
+        "order_endpoint_called": False,
+        "order_adapter_called": False,
+        "live_key_loaded": False,
+        "live_order_ready": False,
+        "live_order_allowed": False,
+        "can_live_trade": False,
+        "scale_up_allowed": False,
+    }
+
+
 def _build_bounded_public_discovery_runtime_cycle(
     *,
     session_id: str,
@@ -286,6 +323,76 @@ def _build_bounded_public_discovery_runtime_cycle(
     )
 
 
+def _build_and_write_alternative_public_replay(
+    *,
+    root: Path,
+    session_id: str,
+    candidate_generation_report: dict[str, Any],
+    candidate_discovery_runtime: dict[str, Any] | None,
+    target_count: int,
+    page_size: int,
+    timeout_seconds: float,
+    max_replay_windows: int,
+    min_required_sample_count: int,
+    public_replay_history_fetcher: Callable[..., dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if candidate_generation_report.get("generation_status") != "ALTERNATIVE_REVIEW_READY":
+        return _alternative_replay_context(
+            status="NOT_REQUIRED",
+            blocker_code=None,
+            message="alternative public replay is not required until a bounded candidate is review-ready",
+        )
+    if not isinstance(candidate_discovery_runtime, dict):
+        return _alternative_replay_context(
+            status="BLOCKED",
+            blocker_code="MEASUREMENT_MISSING",
+            message="alternative public replay requires the bounded discovery runtime that produced the candidate",
+        )
+
+    alternative_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(candidate_discovery_runtime)
+    expected_candidate_id = str(candidate_generation_report.get("best_alternative_candidate_id") or "")
+    if str(alternative_scorecard.get("candidate_id") or "") != expected_candidate_id:
+        return _alternative_replay_context(
+            status="BLOCKED",
+            blocker_code="SNAPSHOT_SCOPE_MISMATCH",
+            message="alternative public replay candidate scope did not match the candidate generation best alternative",
+            candidate_id=str(alternative_scorecard.get("candidate_id") or ""),
+            symbol=str(alternative_scorecard.get("symbol") or ""),
+        )
+
+    history_fetcher = public_replay_history_fetcher or fetch_upbit_public_candle_history_read_only
+    market_data = history_fetcher(
+        symbol=str(alternative_scorecard["symbol"]),
+        session_id=session_id,
+        target_count=target_count,
+        page_size=page_size,
+        timeout_seconds=timeout_seconds,
+    )
+    replay_report = build_public_replay_robustness_report(
+        candidate_scorecard=alternative_scorecard,
+        market_data=market_data,
+        replay_id=f"public-replay-alternative:{alternative_scorecard['source_runtime_cycle_id']}:{alternative_scorecard['candidate_id']}",
+        max_replay_windows=max_replay_windows,
+        min_required_sample_count=min_required_sample_count,
+    )
+    replay_validation = validate_public_replay_robustness_report(
+        replay_report,
+        candidate_scorecard=alternative_scorecard,
+    )
+    report_path = write_public_replay_robustness_report(root=root, report=replay_report)
+    return _alternative_replay_context(
+        status=replay_validation.status,
+        blocker_code=replay_validation.blocker_code,
+        message=replay_validation.message,
+        report_path=_relative_path(report_path, root),
+        candidate_id=str(replay_report.get("candidate_id") or ""),
+        symbol=str(replay_report.get("symbol") or ""),
+        replay_status=str(replay_report.get("replay_status") or ""),
+        sample_count=int(replay_report.get("sample_count") or 0),
+        primary_blocker_code=replay_report.get("primary_blocker_code"),
+    )
+
+
 def _select_scorecard_runtime_sample(history: dict[str, Any]) -> tuple[dict[str, Any], str]:
     samples = [sample for sample in history.get("samples") or [] if isinstance(sample, dict)]
     if not samples:
@@ -325,9 +432,15 @@ def build_current_upbit_paper_candidate_scorecard(
     attempt_public_discovery: bool = False,
     candidate_discovery_symbol_limit: int = 12,
     candidate_discovery_timeout_seconds: float = 3.0,
+    alternative_replay_target_count: int = 420,
+    alternative_replay_page_size: int = 200,
+    alternative_replay_timeout_seconds: float = 3.0,
+    alternative_replay_max_windows: int = 420,
+    alternative_replay_min_required_sample_count: int = 300,
     market_symbols_fetcher: Callable[..., dict[str, Any]] | None = None,
     public_ticker_fetcher: Callable[..., dict[str, Any]] | None = None,
     public_candle_fetcher: Callable[..., dict[str, Any]] | None = None,
+    public_replay_history_fetcher: Callable[..., dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     root = Path(root).resolve()
     history = build_upbit_paper_runtime_sample_history(root=root, session_id=session_id)
@@ -433,6 +546,11 @@ def build_current_upbit_paper_candidate_scorecard(
         message="bounded public candidate discovery was not requested",
         symbol_count=0,
     )
+    alternative_replay_context = _alternative_replay_context(
+        status="NOT_REQUIRED",
+        blocker_code=None,
+        message="alternative public replay is not required until a bounded candidate is review-ready",
+    )
     candidate_generation_report = candidate_generation_report_from_upbit_paper_runtime_cycle(
         runtime,
         candidate_scorecard=scorecard,
@@ -466,6 +584,18 @@ def build_current_upbit_paper_candidate_scorecard(
             generation_blocker or "SCHEMA_IDENTITY_MISMATCH",
             candidate_generation_errors=[generation_message],
         )
+    alternative_replay_context = _build_and_write_alternative_public_replay(
+        root=root,
+        session_id=session_id,
+        candidate_generation_report=candidate_generation_report,
+        candidate_discovery_runtime=candidate_discovery_runtime,
+        target_count=alternative_replay_target_count,
+        page_size=alternative_replay_page_size,
+        timeout_seconds=alternative_replay_timeout_seconds,
+        max_replay_windows=alternative_replay_max_windows,
+        min_required_sample_count=alternative_replay_min_required_sample_count,
+        public_replay_history_fetcher=public_replay_history_fetcher,
+    )
 
     paper_shadow_binding = _paper_shadow_scorecard_binding(
         root=root,
@@ -509,6 +639,15 @@ def build_current_upbit_paper_candidate_scorecard(
         "candidate_discovery_symbol_count": candidate_discovery_context["symbol_count"],
         "candidate_discovery_ranked_symbol_count": candidate_discovery_context["ranked_symbol_count"],
         "candidate_discovery_eligible_symbol_count": candidate_discovery_context["eligible_symbol_count"],
+        "alternative_public_replay_status": alternative_replay_context["status"],
+        "alternative_public_replay_blocker_code": alternative_replay_context["blocker_code"],
+        "alternative_public_replay_message": alternative_replay_context["message"],
+        "alternative_public_replay_report_path": alternative_replay_context["report_path"],
+        "alternative_public_replay_candidate_id": alternative_replay_context["candidate_id"],
+        "alternative_public_replay_symbol": alternative_replay_context["symbol"],
+        "alternative_public_replay_replay_status": alternative_replay_context["replay_status"],
+        "alternative_public_replay_sample_count": alternative_replay_context["sample_count"],
+        "alternative_public_replay_primary_blocker_code": alternative_replay_context["primary_blocker_code"],
         "strategy_performance_memory_path": _relative_path(convergence_memory["strategy_performance_memory_path"], root),
         "convergence_objective_profile_path": _relative_path(
             convergence_memory["convergence_objective_profile_path"],
@@ -617,6 +756,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--attempt-public-discovery", action="store_true")
     parser.add_argument("--candidate-discovery-symbol-limit", type=int, default=12)
     parser.add_argument("--candidate-discovery-timeout-seconds", type=float, default=3.0)
+    parser.add_argument("--alternative-replay-target-count", type=int, default=420)
+    parser.add_argument("--alternative-replay-page-size", type=int, default=200)
+    parser.add_argument("--alternative-replay-timeout-seconds", type=float, default=3.0)
+    parser.add_argument("--alternative-replay-max-windows", type=int, default=420)
+    parser.add_argument("--alternative-replay-min-required-sample-count", type=int, default=300)
     return parser.parse_args()
 
 
@@ -628,6 +772,11 @@ def main() -> int:
         attempt_public_discovery=args.attempt_public_discovery,
         candidate_discovery_symbol_limit=args.candidate_discovery_symbol_limit,
         candidate_discovery_timeout_seconds=args.candidate_discovery_timeout_seconds,
+        alternative_replay_target_count=args.alternative_replay_target_count,
+        alternative_replay_page_size=args.alternative_replay_page_size,
+        alternative_replay_timeout_seconds=args.alternative_replay_timeout_seconds,
+        alternative_replay_max_windows=args.alternative_replay_max_windows,
+        alternative_replay_min_required_sample_count=args.alternative_replay_min_required_sample_count,
     )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result.get("status") == "PASS" else 1

@@ -264,6 +264,20 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 profile="UPTREND_PULLBACK",
             )
 
+        def fake_replay_history_fetcher(
+            *,
+            symbol: str,
+            session_id: str,
+            target_count: int,
+            page_size: int,
+            timeout_seconds: float,
+        ):
+            return build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id=session_id,
+                profile="UPTREND_PULLBACK",
+            )
+
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             _run_short_paper(root)
@@ -276,9 +290,13 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
                 market_symbols_fetcher=fake_market_symbols_fetcher,
                 public_ticker_fetcher=fake_ticker_fetcher,
                 public_candle_fetcher=fake_candle_fetcher,
+                public_replay_history_fetcher=fake_replay_history_fetcher,
+                alternative_replay_max_windows=10,
+                alternative_replay_min_required_sample_count=1,
             )
             generation_report = _load_written(root, result, "candidate_generation_report_path")
             discovery_runtime = _load_written(root, result, "candidate_discovery_runtime_cycle_path")
+            alternative_replay = _load_written(root, result, "alternative_public_replay_report_path")
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["candidate_discovery_status"], "PASS")
@@ -296,6 +314,12 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         )
         self.assertEqual(best_item["candidate_source_role"], "BOUNDED_PUBLIC_DISCOVERY_RUNTIME")
         self.assertEqual(best_item["source_runtime_cycle_id"], discovery_runtime["cycle_id"])
+        self.assertEqual(result["alternative_public_replay_status"], "PASS")
+        self.assertEqual(result["alternative_public_replay_candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertEqual(result["alternative_public_replay_symbol"], "KRW-ETH")
+        self.assertGreaterEqual(result["alternative_public_replay_sample_count"], 1)
+        self.assertEqual(alternative_replay["candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertFalse(alternative_replay["live_order_allowed"])
         self.assertFalse(generation_report["live_order_allowed"])
         self.assertFalse(result["credential_load_attempted"])
         self.assertFalse(result["private_endpoint_called"])
