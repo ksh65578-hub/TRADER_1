@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-08T09:05:28Z",
+  "generated_at_utc": "2026-05-08T09:14:24Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -52,7 +52,13 @@
         "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:CF4FE8CBDA997987E239B902DEB6D0897F7546005204B9782A2EABF61103694A",
         "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
         "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE"
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
+        "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+        "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B"
       ],
       "sample_count": 1,
       "min_required_sample_count": 30,
@@ -106,7 +112,13 @@
         "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:CF4FE8CBDA997987E239B902DEB6D0897F7546005204B9782A2EABF61103694A",
         "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
         "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE"
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
+        "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+        "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B"
       ],
       "sample_count": 2,
       "min_required_sample_count": 4,
@@ -198,7 +210,13 @@
         "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:CF4FE8CBDA997987E239B902DEB6D0897F7546005204B9782A2EABF61103694A",
         "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
         "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE"
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
+        "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+        "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B"
       ],
       "sample_count": 2,
       "min_required_sample_count": 4,
@@ -345,7 +363,13 @@
         "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:CF4FE8CBDA997987E239B902DEB6D0897F7546005204B9782A2EABF61103694A",
         "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
         "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE"
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
+        "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:7AC38A4B87D654F05D1A3D77236766B65FEC8358E9D2224AED19F18E37FC474C",
+        "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+        "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+        "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B"
       ],
       "sample_count": 1,
       "min_required_sample_count": 300,
@@ -616,7 +640,7 @@
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
   "next_operator_action": "Collect OOS, walk-forward, bootstrap, and concentration robustness evidence for the PAPER scorecard, then continue PAPER/SHADOW long-run collection; live remains blocked until replay coverage, read-only burn-in, manual order evidence, live safety proof, and operator approval are complete.",
-  "rollup_hash": "241F1315183C0F75031E4B2C5891CCC46CF848ADF470E4FDCB5E29100A942AE5",
+  "rollup_hash": "9ACC9E5B930A7D4EC8A3028E8FF1C39F9F8050D515326EEECF13F6D6798A9F82",
   "runtime_linkage_evidence": {
     "status": "PASS",
     "runtime_linkage_blocker_code": null,
@@ -726,9 +750,9 @@
       "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/paper_runtime/upbit_paper_runtime_sample_history.json"
     ],
     "source_evidence_ids": [
-      "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-      "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-      "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
+      "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+      "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+      "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
       "upbit_paper_runtime_cycle:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00"
     ],
     "primary_blocker_code": "ROBUSTNESS_SOURCE_TYPE_EVIDENCE_REQUIRED",

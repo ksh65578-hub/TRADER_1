@@ -30,7 +30,7 @@
   "failed_candidate_count": 0,
   "failed_candidates_retained": true,
   "forget_failed_candidate_allowed": false,
-  "generated_at_utc": "2026-05-08T09:05:29Z",
+  "generated_at_utc": "2026-05-08T09:14:25Z",
   "last_write_kind": "INIT",
   "live_config_mutation_allowed": false,
   "live_order_allowed": false,
@@ -40,7 +40,7 @@
   "memory_reset_without_audit_allowed": false,
   "memory_scope": "CONVERGENCE_MEMORY_ONLY",
   "memory_sequence_number": 1,
-  "memory_state_hash": "1EB4ED05ABD45E2243ED401A556A86033A8E7F62A1E06CE54C119E7396F46380",
+  "memory_state_hash": "FEE5FFBB8E1972A3E7821DFCAFEC428CDF59AF55EC3D1279EDCBAE6F2485C4FB",
   "memory_status": "ACTIVE_APPEND_ONLY",
   "mode": "PAPER",
   "model_drift_history_retained": true,
@@ -64,10 +64,10 @@
   "schema_id": "trader1.optimizer_memory_state.v1",
   "session_id": "mvp1_upbit_paper_launcher",
   "source_artifact_ids": [
-    "candidate_scorecard:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long:0D0F981A1399ECC919863C1DC91C60094CF39893CAB0F8D6D2C97E12A81F1E86",
-    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
-    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:A6F21430F7B46BD2288FBF05C367D6DF3993EAFE4F466B1893F3070C13C74CDE",
+    "candidate_scorecard:scorecard:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:KRW-AXL-pullback-trend-long:E29C55EF49B36353EB30B1F72349265F703C101CC1B26021D2027CC4F8663E51",
+    "closed_trades:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+    "execution_quality:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
+    "performance_summary:KRW-AXL-pullback-trend-long:upbit-paper-runtime-sample-history:6F992663C06212E4C790FB03BA9C5EE31FDD5ABE59E2488A9D756A0F15FF5D4B",
     "upbit_paper_runtime_cycle:upbit-paper-runner-1778215027-39712-cycle-000001-cycle-1:03C49200365098990E75084EA0EDC3CD2F6A9846140F509551EF0D863EF13A00"
   ],
   "source_modes": [
