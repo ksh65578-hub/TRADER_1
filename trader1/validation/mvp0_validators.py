@@ -849,6 +849,7 @@ PROFITABILITY_PROMOTION_THRESHOLD_BLOCKER_CODES = {
     "PAPER_CLOSED_TRADES_BELOW_MIN",
     "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
     "NET_EV_AFTER_COST_NOT_PASS",
+    "STRATEGY_EXIT_POLICY_NOT_PASS",
     "PROFIT_FACTOR_NOT_PASS",
     "MAX_DRAWDOWN_NOT_PASS",
     "FILL_QUALITY_NOT_PASS",
@@ -20208,6 +20209,7 @@ def _profitability_evidence_maturity_rollup_errors(rollup: dict[str, Any]) -> li
 
         status_checks = [
             ("net_ev_after_cost_status", "NET_EV_AFTER_COST_NOT_PASS"),
+            ("strategy_exit_policy_status", "STRATEGY_EXIT_POLICY_NOT_PASS"),
             ("profit_factor_status", "PROFIT_FACTOR_NOT_PASS"),
             ("max_drawdown_status", "MAX_DRAWDOWN_NOT_PASS"),
             ("fill_quality_status", "FILL_QUALITY_NOT_PASS"),
@@ -21463,6 +21465,7 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             "bootstrap_status": "PASS",
             "overfit_status": "LOW",
             "closed_trade_status": "PASS",
+            "strategy_exit_policy_status": "PASS",
             "profit_factor_status": "PASS",
             "max_drawdown_status": "PASS",
             "realized_vs_expected_edge_status": "PASS",
@@ -21474,6 +21477,22 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
                 errors.append(f"{field} must be {expected} before ranking eligibility")
         if int(scorecard.get("closed_trade_sample_count", 0) or 0) < int(scorecard.get("min_closed_trade_sample_count", 1) or 1):
             errors.append("closed trade sample count must meet minimum before ranking eligibility")
+        if int(scorecard.get("strategy_exit_policy_sample_count", 0) or 0) < int(
+            scorecard.get("min_strategy_exit_policy_sample_count", 1) or 1
+        ):
+            errors.append("strategy exit policy sample count must meet minimum before ranking eligibility")
+        if int(scorecard.get("strategy_exit_policy_match_count", 0) or 0) < int(
+            scorecard.get("min_strategy_exit_policy_sample_count", 1) or 1
+        ):
+            errors.append("strategy exit policy match count must meet minimum before ranking eligibility")
+        if int(scorecard.get("strategy_exit_policy_mismatch_count", 0) or 0) > 0:
+            errors.append("strategy exit policy mismatch count must be zero before ranking eligibility")
+        if scorecard.get("expected_strategy_exit_policy_id") != "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1":
+            errors.append("expected_strategy_exit_policy_id must match the Upbit strategy exit router before ranking eligibility")
+        if scorecard.get("expected_strategy_exit_variation") not in {"trailing_tp", "fixed_tp", "invalidation_exit"}:
+            errors.append("expected_strategy_exit_variation must be a registered strategy exit variation before ranking eligibility")
+        if int(scorecard.get("strategy_exit_reason_count", 0) or 0) < int(scorecard.get("closed_trade_sample_count", 0) or 0):
+            errors.append("strategy exit reason count must cover every closed trade before ranking eligibility")
         if int(scorecard.get("realized_vs_expected_sample_count", 0) or 0) < int(
             scorecard.get("min_closed_trade_sample_count", 1) or 1
         ):

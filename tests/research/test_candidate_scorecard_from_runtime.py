@@ -37,6 +37,12 @@ def performance_source_evidence_ids(runtime: dict[str, str], candidate_id: str |
 PASS_PERFORMANCE_METRICS = {
     "closed_trade_sample_count": 42,
     "min_closed_trade_sample_count": 30,
+    "strategy_exit_policy_sample_count": 42,
+    "min_strategy_exit_policy_sample_count": 30,
+    "strategy_exit_policy_match_count": 42,
+    "strategy_exit_policy_mismatch_count": 0,
+    "strategy_exit_reason_count": 42,
+    "strategy_exit_reason_counts": [{"reason_code": "TRAILING_STOP", "count": 42}],
     "realized_vs_expected_sample_count": 42,
     "fill_quality_sample_count": 42,
     "execution_cost_sample_count": 42,
@@ -601,7 +607,13 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(target_runtime["final_decision"], "EXIT_POSITION")
         self.assertEqual(unrelated_runtime["final_decision"], "EXIT_POSITION")
         self.assertEqual(metrics["closed_trade_sample_count"], 1)
+        self.assertEqual(metrics["strategy_exit_policy_sample_count"], 1)
+        self.assertEqual(metrics["strategy_exit_policy_match_count"], 1)
+        self.assertEqual(metrics["strategy_exit_policy_mismatch_count"], 0)
+        self.assertEqual(metrics["strategy_exit_reason_count"], 1)
+        self.assertGreaterEqual(len(metrics["strategy_exit_reason_counts"]), 1)
         self.assertEqual(metrics["realized_vs_expected_sample_count"], 1)
+        self.assertEqual(statuses["strategy_exit_policy_status"], "FAIL")
         self.assertEqual(statuses["closed_trade_status"], "FAIL")
         self.assertEqual(statuses["profit_factor_status"], "FAIL")
         self.assertEqual(statuses["realized_vs_expected_edge_status"], "FAIL")
@@ -614,6 +626,32 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertGreaterEqual(metrics["expected_total_execution_cost_bps"], metrics["realized_fee_bps"])
         self.assertLessEqual(metrics["execution_cost_delta_bps"], metrics["max_allowed_execution_cost_delta_bps"])
         self.assertTrue(all(f":{target_key}:" in source_id for source_id in source_ids))
+
+    def test_strategy_exit_policy_mismatch_blocks_paper_ranking(self):
+        runtime = build_upbit_paper_runtime_cycle_report(cycle_id="scorecard-runtime-exit-policy-mismatch")
+        weak_performance = dict(PASS_PERFORMANCE_METRICS)
+        weak_performance["strategy_exit_policy_match_count"] = 41
+        weak_performance["strategy_exit_policy_mismatch_count"] = 1
+
+        scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+            runtime,
+            robustness_statuses=ROBUSTNESS_PASS,
+            robustness_source_evidence_ids=[
+                robustness_source_evidence_id("oos", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("walk_forward", runtime["cycle_id"], runtime["cycle_hash"]),
+                robustness_source_evidence_id("bootstrap", runtime["cycle_id"], runtime["cycle_hash"]),
+            ],
+            performance_statuses={**PERFORMANCE_PASS, "strategy_exit_policy_status": "FAIL"},
+            performance_metrics=weak_performance,
+            performance_source_evidence_ids=performance_source_evidence_ids(runtime),
+        )
+        errors = _candidate_scorecard_net_ev_errors(scorecard)
+
+        self.assertEqual(errors, [])
+        self.assertFalse(scorecard["performance_ready"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertEqual(scorecard["strategy_exit_policy_status"], "FAIL")
+        self.assertIn("EXECUTION_FEEDBACK_MISSING", {blocker["code"] for blocker in scorecard["blockers"]})
 
     def test_scorecard_writer_preserves_candidate_scoped_snapshots_without_live_permission(self):
         btc_runtime = build_upbit_paper_runtime_cycle_report(

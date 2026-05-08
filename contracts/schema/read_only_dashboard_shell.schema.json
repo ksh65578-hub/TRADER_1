@@ -6698,10 +6698,14 @@
         "candidate_scorecard_performance_summary",
         "candidate_scorecard_realized_vs_expected_sample_count",
         "candidate_scorecard_fill_quality_sample_count",
+        "candidate_scorecard_strategy_exit_policy_sample_count",
+        "candidate_scorecard_strategy_exit_policy_mismatch_count",
+        "candidate_scorecard_expected_strategy_exit_variation",
         "candidate_scorecard_performance_source_binding_status",
         "candidate_scorecard_performance_source_history_id",
         "candidate_scorecard_performance_source_history_hash",
         "candidate_scorecard_closed_trade_status",
+        "candidate_scorecard_strategy_exit_policy_status",
         "candidate_scorecard_profit_factor_status",
         "candidate_scorecard_max_drawdown_status",
         "candidate_scorecard_realized_vs_expected_edge_status",
@@ -6852,6 +6856,7 @@
               "PAPER_RUNTIME_HOURS_BELOW_MIN",
               "SHADOW_SIGNAL_OPPORTUNITIES_BELOW_MIN",
               "NET_EV_AFTER_COST_NOT_PASS",
+              "STRATEGY_EXIT_POLICY_NOT_PASS",
               "PROFIT_FACTOR_NOT_PASS",
               "MAX_DRAWDOWN_NOT_PASS",
               "FILL_QUALITY_NOT_PASS",
@@ -6906,6 +6911,17 @@
           "minimum": 0
         },
         "promotion_threshold_net_ev_after_cost_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "promotion_threshold_strategy_exit_policy_status": {
           "enum": [
             "PASS",
             "PARTIAL",
@@ -7197,6 +7213,26 @@
           "type": "integer",
           "minimum": 0
         },
+        "candidate_scorecard_strategy_exit_policy_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_scorecard_strategy_exit_policy_mismatch_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_scorecard_expected_strategy_exit_variation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "trailing_tp",
+            "fixed_tp",
+            "invalidation_exit",
+            null
+          ]
+        },
         "candidate_scorecard_performance_source_binding_status": {
           "enum": [
             "PASS",
@@ -7217,6 +7253,17 @@
           "pattern": "^[A-Fa-f0-9]{64}$"
         },
         "candidate_scorecard_closed_trade_status": {
+          "enum": [
+            "PASS",
+            "PARTIAL",
+            "FAIL",
+            "UNTESTED",
+            "BLOCKED",
+            "MISSING",
+            "NOT_AVAILABLE"
+          ]
+        },
+        "candidate_scorecard_strategy_exit_policy_status": {
           "enum": [
             "PASS",
             "PARTIAL",

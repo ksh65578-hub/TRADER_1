@@ -3907,6 +3907,10 @@ class ReadOnlyDashboardTest(unittest.TestCase):
         self.assertFalse(maturity["candidate_scorecard_ranking_eligible"])
         self.assertFalse(maturity["candidate_scorecard_performance_ready"])
         self.assertEqual(maturity["candidate_scorecard_closed_trade_status"], scorecard["closed_trade_status"])
+        self.assertEqual(
+            maturity["candidate_scorecard_strategy_exit_policy_status"],
+            scorecard["strategy_exit_policy_status"],
+        )
         self.assertEqual(maturity["candidate_scorecard_profit_factor_status"], scorecard["profit_factor_status"])
         self.assertEqual(maturity["candidate_scorecard_max_drawdown_status"], scorecard["max_drawdown_status"])
         self.assertEqual(
@@ -3923,6 +3927,18 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             scorecard["fill_quality_sample_count"],
         )
         self.assertEqual(
+            maturity["candidate_scorecard_strategy_exit_policy_sample_count"],
+            scorecard["strategy_exit_policy_sample_count"],
+        )
+        self.assertEqual(
+            maturity["candidate_scorecard_strategy_exit_policy_mismatch_count"],
+            scorecard["strategy_exit_policy_mismatch_count"],
+        )
+        self.assertEqual(
+            maturity["candidate_scorecard_expected_strategy_exit_variation"],
+            scorecard["expected_strategy_exit_variation"],
+        )
+        self.assertEqual(
             maturity["candidate_scorecard_performance_source_binding_status"],
             scorecard["performance_source_binding_status"],
         )
@@ -3935,6 +3951,7 @@ class ReadOnlyDashboardTest(unittest.TestCase):
             scorecard["performance_source_history_hash"],
         )
         self.assertIn("closed trades", maturity["candidate_scorecard_performance_summary"])
+        self.assertIn("strategy exit policy", maturity["candidate_scorecard_performance_summary"])
         self.assertIn("source binding", maturity["candidate_scorecard_performance_summary"])
         self.assertEqual(maturity["candidate_scorecard_evaluated_symbol_count"], scorecard["evaluated_symbol_count"])
         self.assertEqual(

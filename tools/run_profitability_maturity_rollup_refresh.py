@@ -385,6 +385,20 @@ def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any
     if scorecard.get("closed_trade_status") == "PASS" and paper_closed_trades >= min_paper_closed_trades:
         missing_codes.discard("PAPER_CLOSED_TRADES_BELOW_MIN")
 
+    strategy_exit_policy_samples = safe_int(scorecard.get("strategy_exit_policy_sample_count"))
+    min_strategy_exit_policy_samples = safe_int(
+        scorecard.get("min_strategy_exit_policy_sample_count"),
+        default=min_paper_closed_trades,
+    )
+    strategy_exit_policy_mismatches = safe_int(scorecard.get("strategy_exit_policy_mismatch_count"))
+    if (
+        scorecard.get("strategy_exit_policy_status") == "PASS"
+        and strategy_exit_policy_samples >= min_strategy_exit_policy_samples
+        and strategy_exit_policy_mismatches == 0
+    ):
+        thresholds["strategy_exit_policy_status"] = "PASS"
+        missing_codes.discard("STRATEGY_EXIT_POLICY_NOT_PASS")
+
     profit_factor = safe_float(scorecard.get("profit_factor"))
     min_profit_factor = safe_float(scorecard.get("min_profit_factor"), 1.0)
     if scorecard.get("profit_factor_status") == "PASS" and profit_factor >= min_profit_factor:

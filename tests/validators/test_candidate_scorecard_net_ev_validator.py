@@ -125,6 +125,19 @@ class CandidateScorecardNetEvValidatorTest(unittest.TestCase):
             errors,
         )
 
+    def test_strategy_exit_policy_must_match_before_ranking(self):
+        scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
+        tampered = copy.deepcopy(scorecard)
+        tampered["strategy_exit_policy_status"] = "FAIL"
+        tampered["strategy_exit_policy_match_count"] = 29
+        tampered["strategy_exit_policy_mismatch_count"] = 1
+
+        errors = _candidate_scorecard_net_ev_errors(tampered)
+
+        self.assertIn("strategy_exit_policy_status must be PASS before ranking eligibility", errors)
+        self.assertIn("strategy exit policy match count must meet minimum before ranking eligibility", errors)
+        self.assertIn("strategy exit policy mismatch count must be zero before ranking eligibility", errors)
+
     def test_scorecard_schema_requires_robustness_maturity_fields(self):
         scorecard = load_json(FIXTURE_DIR / "candidate_scorecard_net_ev_pass.json")
         tampered = copy.deepcopy(scorecard)

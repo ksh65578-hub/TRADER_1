@@ -7,7 +7,14 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
-from trader1.runtime.paper.upbit_paper_runtime import validate_upbit_paper_runtime_cycle_report
+from trader1.runtime.paper.upbit_paper_runtime import (
+    BREAKOUT_RETEST_EXIT_VARIATION,
+    STRATEGY_EXIT_ACTION_FULL_EXIT,
+    STRATEGY_EXIT_POLICY_ID,
+    TREND_PULLBACK_EXIT_VARIATION,
+    VWAP_REVERSION_EXIT_VARIATION,
+    validate_upbit_paper_runtime_cycle_report,
+)
 from trader1.runtime.paper.upbit_public_collector import durable_atomic_write_json
 
 
@@ -28,6 +35,7 @@ ROBUSTNESS_PASS = {
 }
 PERFORMANCE_PASS = {
     "closed_trade_status": "PASS",
+    "strategy_exit_policy_status": "PASS",
     "profit_factor_status": "PASS",
     "max_drawdown_status": "PASS",
     "realized_vs_expected_edge_status": "PASS",
@@ -37,6 +45,12 @@ PERFORMANCE_PASS = {
 DEFAULT_PERFORMANCE_METRICS = {
     "closed_trade_sample_count": 0,
     "min_closed_trade_sample_count": 30,
+    "strategy_exit_policy_sample_count": 0,
+    "min_strategy_exit_policy_sample_count": 30,
+    "strategy_exit_policy_match_count": 0,
+    "strategy_exit_policy_mismatch_count": 0,
+    "strategy_exit_reason_count": 0,
+    "strategy_exit_reason_counts": [],
     "realized_vs_expected_sample_count": 0,
     "fill_quality_sample_count": 0,
     "execution_cost_sample_count": 0,
@@ -273,6 +287,40 @@ def _candidate_for_closed_trade(runtime: dict[str, Any], position_lifecycle: dic
     return selected if isinstance(selected, dict) else None
 
 
+def _expected_strategy_exit_variation(strategy_family: Any) -> str:
+    mapping = {
+        "PULLBACK_TREND_LONG": TREND_PULLBACK_EXIT_VARIATION,
+        "VWAP_MEAN_REVERSION": VWAP_REVERSION_EXIT_VARIATION,
+        "BREAKOUT_RETEST_LONG": BREAKOUT_RETEST_EXIT_VARIATION,
+    }
+    return mapping.get(str(strategy_family or ""), "")
+
+
+def _strategy_exit_policy_sample(
+    *,
+    lifecycle: dict[str, Any],
+    expected_exit_variation: str,
+) -> tuple[bool, str | None]:
+    policy_id = str(lifecycle.get("strategy_exit_policy_id") or "")
+    exit_variation = str(lifecycle.get("strategy_exit_variation") or "")
+    entry_exit_variation = str(lifecycle.get("entry_strategy_exit_variation") or "")
+    reason_code = str(lifecycle.get("strategy_exit_reason_code") or lifecycle.get("position_exit_reason_code") or "")
+    action = str(lifecycle.get("strategy_exit_action") or "")
+    strategy_reason = str(lifecycle.get("strategy_exit_reason_code") or "")
+    if strategy_reason == "NONE":
+        strategy_reason = ""
+    policy_matched = (
+        policy_id == STRATEGY_EXIT_POLICY_ID
+        and bool(expected_exit_variation)
+        and exit_variation == expected_exit_variation
+        and (not entry_exit_variation or entry_exit_variation == expected_exit_variation)
+        and bool(reason_code)
+    )
+    if strategy_reason and action != STRATEGY_EXIT_ACTION_FULL_EXIT:
+        policy_matched = False
+    return policy_matched, reason_code or None
+
+
 def _runtime_fill_matches_scorecard_candidate(
     *,
     runtime: dict[str, Any],
@@ -362,6 +410,10 @@ def performance_inputs_from_runtime_sample_history(
     expected_total_cost_values: list[Decimal] = []
     realized_total_cost_values: list[Decimal] = []
     execution_cost_delta_values: list[Decimal] = []
+    strategy_exit_policy_sample_count = 0
+    strategy_exit_policy_match_count = 0
+    strategy_exit_policy_mismatch_count = 0
+    strategy_exit_reason_counts: dict[str, int] = {}
 
     for sample in runtime_sample_history.get("samples") or []:
         if not isinstance(sample, dict):
@@ -421,6 +473,20 @@ def performance_inputs_from_runtime_sample_history(
             realized_bps = realized_delta / filled_notional * Decimal("10000")
             closed_candidate = _candidate_for_closed_trade(runtime, lifecycle)
             expected_bps = decimal_value(closed_candidate.get("net_ev_after_cost_bps")) if isinstance(closed_candidate, dict) else Decimal("0")
+            expected_exit_variation = _expected_strategy_exit_variation(
+                closed_candidate.get("strategy_family") if isinstance(closed_candidate, dict) else None
+            )
+            policy_matched, exit_reason = _strategy_exit_policy_sample(
+                lifecycle=lifecycle,
+                expected_exit_variation=expected_exit_variation,
+            )
+            strategy_exit_policy_sample_count += 1
+            if policy_matched:
+                strategy_exit_policy_match_count += 1
+            else:
+                strategy_exit_policy_mismatch_count += 1
+            if exit_reason:
+                strategy_exit_reason_counts[exit_reason] = strategy_exit_reason_counts.get(exit_reason, 0) + 1
             realized_vs_expected_values.append(realized_bps - expected_bps)
             candidate_cumulative_realized_pnl += realized_delta
             candidate_realized_pnl_peak = max(candidate_realized_pnl_peak, candidate_cumulative_realized_pnl)
@@ -482,6 +548,14 @@ def performance_inputs_from_runtime_sample_history(
     metrics.update(
         {
             "closed_trade_sample_count": closed_trade_count,
+            "strategy_exit_policy_sample_count": strategy_exit_policy_sample_count,
+            "strategy_exit_policy_match_count": strategy_exit_policy_match_count,
+            "strategy_exit_policy_mismatch_count": strategy_exit_policy_mismatch_count,
+            "strategy_exit_reason_count": sum(strategy_exit_reason_counts.values()),
+            "strategy_exit_reason_counts": [
+                {"reason_code": reason_code, "count": count}
+                for reason_code, count in sorted(strategy_exit_reason_counts.items())
+            ],
             "realized_vs_expected_sample_count": len(realized_vs_expected_values),
             "fill_quality_sample_count": len(fill_quality_values),
             "execution_cost_sample_count": len(execution_cost_delta_values),
@@ -498,6 +572,7 @@ def performance_inputs_from_runtime_sample_history(
         }
     )
     closed_trade_observed = int(metrics["closed_trade_sample_count"])
+    strategy_exit_policy_observed = int(metrics["strategy_exit_policy_sample_count"])
     realized_vs_expected_observed = int(metrics["realized_vs_expected_sample_count"])
     fill_quality_observed = int(metrics["fill_quality_sample_count"])
     execution_cost_observed = int(metrics["execution_cost_sample_count"])
@@ -507,6 +582,17 @@ def performance_inputs_from_runtime_sample_history(
             value=float(metrics["closed_trade_sample_count"]),
             threshold=float(metrics["min_closed_trade_sample_count"]),
             comparison="gte",
+        ),
+        "strategy_exit_policy_status": (
+            "UNTESTED"
+            if strategy_exit_policy_observed <= 0
+            else "PASS"
+            if (
+                strategy_exit_policy_observed >= int(metrics["min_strategy_exit_policy_sample_count"])
+                and int(metrics["strategy_exit_policy_mismatch_count"]) == 0
+                and int(metrics["strategy_exit_policy_match_count"]) >= int(metrics["min_strategy_exit_policy_sample_count"])
+            )
+            else "FAIL"
         ),
         "profit_factor_status": _threshold_status(
             observed_count=closed_trade_observed,
@@ -549,6 +635,10 @@ def strategy_id_for_family(strategy_family: str) -> str:
         "VWAP_MEAN_REVERSION": "vwap_mean_reversion",
     }
     return mapping.get(strategy_family, strategy_family.lower())
+
+
+def expected_strategy_exit_variation_for_family(strategy_family: str) -> str:
+    return _expected_strategy_exit_variation(strategy_family)
 
 
 def regime_scope_for_runtime_regime(regime: str) -> str:
@@ -795,6 +885,11 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
     robustness_ready = all(robustness[field] == expected for field, expected in ROBUSTNESS_PASS.items())
     performance_thresholds_ready = (
         int(performance_values["closed_trade_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
+        and int(performance_values["strategy_exit_policy_sample_count"])
+        >= int(performance_values["min_strategy_exit_policy_sample_count"])
+        and int(performance_values["strategy_exit_policy_match_count"])
+        >= int(performance_values["min_strategy_exit_policy_sample_count"])
+        and int(performance_values["strategy_exit_policy_mismatch_count"]) == 0
         and int(performance_values["realized_vs_expected_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
         and int(performance_values["fill_quality_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
         and int(performance_values["execution_cost_sample_count"]) >= int(performance_values["min_closed_trade_sample_count"])
@@ -883,6 +978,17 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
             performance_values["min_closed_trade_sample_count"]
         ):
             blockers.append(blocker("SAMPLE_INSUFFICIENT", "closed PAPER trade sample is required before PAPER scorecard ranking"))
+        if performance["strategy_exit_policy_status"] != "PASS" or int(
+            performance_values["strategy_exit_policy_sample_count"]
+        ) < int(performance_values["min_strategy_exit_policy_sample_count"]) or int(
+            performance_values["strategy_exit_policy_mismatch_count"]
+        ) > 0:
+            blockers.append(
+                blocker(
+                    "EXECUTION_FEEDBACK_MISSING",
+                    "closed PAPER trades must be bound to the entry strategy exit router before PAPER scorecard ranking",
+                )
+            )
         if performance["profit_factor_status"] != "PASS" or float(performance_values["profit_factor"]) < float(
             performance_values["min_profit_factor"]
         ):
@@ -960,6 +1066,19 @@ def candidate_scorecard_from_upbit_paper_runtime_cycle(
         "closed_trade_status": performance["closed_trade_status"],
         "closed_trade_sample_count": int(performance_values["closed_trade_sample_count"]),
         "min_closed_trade_sample_count": int(performance_values["min_closed_trade_sample_count"]),
+        "strategy_exit_policy_status": performance["strategy_exit_policy_status"],
+        "strategy_exit_policy_sample_count": int(performance_values["strategy_exit_policy_sample_count"]),
+        "min_strategy_exit_policy_sample_count": int(performance_values["min_strategy_exit_policy_sample_count"]),
+        "strategy_exit_policy_match_count": int(performance_values["strategy_exit_policy_match_count"]),
+        "strategy_exit_policy_mismatch_count": int(performance_values["strategy_exit_policy_mismatch_count"]),
+        "strategy_exit_reason_count": int(performance_values["strategy_exit_reason_count"]),
+        "strategy_exit_reason_counts": [
+            {"reason_code": str(item.get("reason_code") or ""), "count": int(item.get("count", 0) or 0)}
+            for item in performance_values.get("strategy_exit_reason_counts", [])
+            if isinstance(item, dict) and item.get("reason_code")
+        ],
+        "expected_strategy_exit_policy_id": STRATEGY_EXIT_POLICY_ID,
+        "expected_strategy_exit_variation": expected_strategy_exit_variation_for_family(str(selected["strategy_family"])),
         "realized_vs_expected_sample_count": int(performance_values["realized_vs_expected_sample_count"]),
         "fill_quality_sample_count": int(performance_values["fill_quality_sample_count"]),
         "execution_cost_sample_count": int(performance_values["execution_cost_sample_count"]),

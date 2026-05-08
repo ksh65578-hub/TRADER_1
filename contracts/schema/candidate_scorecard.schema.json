@@ -39,6 +39,15 @@
     "closed_trade_status",
     "closed_trade_sample_count",
     "min_closed_trade_sample_count",
+    "strategy_exit_policy_status",
+    "strategy_exit_policy_sample_count",
+    "min_strategy_exit_policy_sample_count",
+    "strategy_exit_policy_match_count",
+    "strategy_exit_policy_mismatch_count",
+    "strategy_exit_reason_count",
+    "strategy_exit_reason_counts",
+    "expected_strategy_exit_policy_id",
+    "expected_strategy_exit_variation",
     "realized_vs_expected_sample_count",
     "fill_quality_sample_count",
     "execution_cost_sample_count",
@@ -257,6 +266,66 @@
     "min_closed_trade_sample_count": {
       "type": "integer",
       "minimum": 1
+    },
+    "strategy_exit_policy_status": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNTESTED",
+        "STALE",
+        "BLOCKED"
+      ]
+    },
+    "strategy_exit_policy_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "min_strategy_exit_policy_sample_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "strategy_exit_policy_match_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "strategy_exit_policy_mismatch_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "strategy_exit_reason_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "strategy_exit_reason_counts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "reason_code",
+          "count"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {
+            "type": "string",
+            "minLength": 1
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "expected_strategy_exit_policy_id": {
+      "const": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1"
+    },
+    "expected_strategy_exit_variation": {
+      "enum": [
+        "trailing_tp",
+        "fixed_tp",
+        "invalidation_exit"
+      ]
     },
     "realized_vs_expected_sample_count": {
       "type": "integer",

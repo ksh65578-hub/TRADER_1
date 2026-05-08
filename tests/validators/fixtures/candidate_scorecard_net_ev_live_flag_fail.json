@@ -93,5 +93,19 @@
   "live_order_allowed": true,
   "can_live_trade": false,
   "scale_up_allowed": false,
-  "notes": "Negative fixture: scorecard artifact cannot carry live order permission."
+  "notes": "Negative fixture: scorecard artifact cannot carry live order permission.",
+  "strategy_exit_policy_status": "PASS",
+  "strategy_exit_policy_sample_count": 42,
+  "min_strategy_exit_policy_sample_count": 30,
+  "strategy_exit_policy_match_count": 42,
+  "strategy_exit_policy_mismatch_count": 0,
+  "strategy_exit_reason_count": 42,
+  "strategy_exit_reason_counts": [
+    {
+      "reason_code": "TRAILING_STOP",
+      "count": 42
+    }
+  ],
+  "expected_strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+  "expected_strategy_exit_variation": "trailing_tp"
 }
