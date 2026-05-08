@@ -6,7 +6,14 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from trader1.adapters.upbit.fee_model import build_upbit_fee_slippage_baseline
+from decimal import Decimal, InvalidOperation
+
+from trader1.adapters.upbit.fee_model import (
+    UPBIT_KRW_PAPER_FEE_RATE_MAX,
+    UPBIT_KRW_PAPER_FEE_RATE_MIN,
+    UPBIT_KRW_PAPER_SLIPPAGE_MODEL_MAX_BPS,
+    build_upbit_fee_slippage_model,
+)
 from trader1.adapters.upbit.market_data import build_upbit_public_market_data_fixture, validate_upbit_public_market_data
 from trader1.adapters.upbit.symbol_rules import validate_upbit_krw_symbol
 from trader1.core.decision.decision_arbiter import choose_paper_final_decision, order_blocker_codes, select_primary_blocker
@@ -44,6 +51,16 @@ def _paper_order_id(paper_run_id: str, symbol: str) -> str:
     return hashlib.sha256(f"{paper_run_id}:{symbol}:paper".encode("utf-8")).hexdigest()[:24].upper()
 
 
+def _decimal(value: Any) -> Decimal | None:
+    try:
+        decimal = Decimal(str(value))
+    except (InvalidOperation, ValueError):
+        return None
+    if decimal.is_nan() or decimal.is_infinite():
+        return None
+    return decimal
+
+
 def build_upbit_paper_dry_run_report(
     *,
     paper_run_id: str,
@@ -78,11 +95,15 @@ def build_upbit_paper_dry_run_report(
     if symbol_status != "PASS" and symbol_blocker:
         blockers.append(_blocker(symbol_blocker, symbol_message))
 
-    fee_model = build_upbit_fee_slippage_baseline(fee_rate=fee_rate, slippage_bps=slippage_bps)
+    fee_model = build_upbit_fee_slippage_model(
+        public_market_data=public_market_data,
+        fee_rate=fee_rate,
+        slippage_floor_bps=slippage_bps,
+    )
     if fee_model["fee_model_status"] != "PASS":
-        blockers.append(_blocker("FEE_MODEL_UNVERIFIED", "Upbit paper fee model baseline missing"))
+        blockers.append(_blocker("FEE_MODEL_UNVERIFIED", "Upbit paper fee rate is outside conservative PAPER bounds"))
     if fee_model["slippage_model_status"] != "PASS":
-        blockers.append(_blocker("MEASUREMENT_MISSING", "Upbit paper slippage baseline missing"))
+        blockers.append(_blocker("MEASUREMENT_MISSING", "Upbit paper slippage model requires positive public bid/ask/last/volume inputs"))
 
     risk_veto, risk_blocker = evaluate_paper_risk_veto(requested_entry=requested_entry, risk_block=risk_block)
     if risk_veto and risk_blocker:
@@ -112,7 +133,7 @@ def build_upbit_paper_dry_run_report(
             build_entry_reason("PAPER_DRY_RUN_ENTRY", "paper-only entry intent created"),
             build_entry_reason("PUBLIC_DATA_AVAILABLE", "public Upbit fixture data loaded"),
             build_entry_reason("SYMBOL_RULE_PASS", symbol_message),
-            build_entry_reason("FEE_SLIPPAGE_BASELINE_PASS", "fee and slippage baseline present"),
+            build_entry_reason("FEE_SLIPPAGE_MODEL_PASS", fee_model["slippage_model_message"]),
         ]
     elif blockers:
         no_trade_reasons = order_blocker_codes(blockers)
@@ -253,6 +274,27 @@ def validate_upbit_paper_dry_run_report(
     if report.get("symbol_rule_status") != "PASS" or report.get("fee_model_status") != "PASS" or report.get("slippage_model_status") != "PASS":
         if not blockers:
             return UpbitPaperDryRunValidationResult("BLOCKED", "blocked paper dry-run component lacks blocker", "UNKNOWN_BLOCKED")
+
+    fee_rate = _decimal(report.get("fee_rate"))
+    slippage_bps = _decimal(report.get("slippage_bps"))
+    expected_fee_slippage = build_upbit_fee_slippage_model(
+        public_market_data=market_data,
+        fee_rate=str(report.get("fee_rate")),
+        slippage_floor_bps="0.25",
+    )
+    minimum_slippage_bps = _decimal(expected_fee_slippage.get("slippage_bps"))
+    if fee_rate is None or not (UPBIT_KRW_PAPER_FEE_RATE_MIN <= fee_rate <= UPBIT_KRW_PAPER_FEE_RATE_MAX):
+        return UpbitPaperDryRunValidationResult("BLOCKED", "paper fee rate is outside conservative Upbit PAPER bounds", "FEE_MODEL_UNVERIFIED")
+    if slippage_bps is None or slippage_bps <= 0 or slippage_bps > UPBIT_KRW_PAPER_SLIPPAGE_MODEL_MAX_BPS:
+        return UpbitPaperDryRunValidationResult("BLOCKED", "paper slippage is outside conservative Upbit PAPER bounds", "MEASUREMENT_MISSING")
+    if minimum_slippage_bps is None or expected_fee_slippage["slippage_model_status"] != "PASS":
+        return UpbitPaperDryRunValidationResult("BLOCKED", "paper slippage cannot be checked against public market data", "MEASUREMENT_MISSING")
+    if slippage_bps < minimum_slippage_bps:
+        return UpbitPaperDryRunValidationResult(
+            "FAIL",
+            "paper slippage is below the public spread/depth/deviation minimum",
+            "SCHEMA_IDENTITY_MISMATCH",
+        )
 
     ledger_events = report.get("paper_ledger_events")
     if report.get("paper_order_submitted"):
