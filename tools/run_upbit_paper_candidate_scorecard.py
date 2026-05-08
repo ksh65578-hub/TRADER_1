@@ -69,6 +69,60 @@ def _relative_path(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
 
 
+def _public_replay_robustness_context(
+    *,
+    loaded_report: dict[str, Any] | None,
+    contract_status: str,
+    contract_blocker_code: str | None,
+    diagnostic: dict[str, Any],
+) -> dict[str, Any]:
+    report_present = isinstance(loaded_report, dict)
+    replay_status = str(loaded_report.get("replay_status") or "MISSING") if report_present else "MISSING"
+    sample_count = loaded_report.get("sample_count") if report_present else None
+    source_bound = any(
+        isinstance(source_id, str) and source_id.startswith("public_replay_robustness:")
+        for source_id in diagnostic.get("source_evidence_ids") or []
+    )
+    diagnostic_blocker_codes = [
+        str(blocker.get("code"))
+        for blocker in diagnostic.get("blockers") or []
+        if isinstance(blocker, dict) and blocker.get("code")
+    ]
+
+    if not report_present:
+        status = "MISSING"
+        blocker_code = contract_blocker_code or "MEASUREMENT_MISSING"
+    elif contract_status != "PASS":
+        status = "CONTRACT_BLOCKED" if contract_status == "BLOCKED" else "CONTRACT_FAIL"
+        blocker_code = contract_blocker_code or "SCHEMA_IDENTITY_MISMATCH"
+    elif "PUBLIC_REPLAY_ROBUSTNESS_FAILED" in diagnostic_blocker_codes:
+        status = "FAILED_ROBUSTNESS_GATE"
+        blocker_code = "PUBLIC_REPLAY_ROBUSTNESS_FAILED"
+    elif source_bound and diagnostic.get("robustness_eligible") is True:
+        status = "PASS"
+        blocker_code = None
+    elif source_bound:
+        status = "BLOCKED_ROBUSTNESS_GATE"
+        blocker_code = diagnostic_blocker_codes[0] if diagnostic_blocker_codes else "ROBUSTNESS_MATURITY_BLOCKED"
+    else:
+        status = "CONTRACT_PASS_NOT_BOUND"
+        blocker_code = "MEASUREMENT_MISSING"
+
+    return {
+        "status": status,
+        "blocker_code": blocker_code,
+        "contract_status": contract_status,
+        "contract_blocker_code": contract_blocker_code,
+        "replay_status": replay_status,
+        "sample_count": sample_count,
+        "source_bound": source_bound,
+        "oos_status": str(diagnostic.get("oos_status") or "UNTESTED"),
+        "walk_forward_status": str(diagnostic.get("walk_forward_status") or "UNTESTED"),
+        "bootstrap_status": str(diagnostic.get("bootstrap_status") or "UNTESTED"),
+        "overfit_status": str(diagnostic.get("overfit_status") or "UNTESTED"),
+    }
+
+
 def _paper_runtime_base(root: Path, session_id: str) -> Path:
     return root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / session_id
 
@@ -350,6 +404,8 @@ def _alternative_replay_context(
     status: str,
     blocker_code: str | None,
     message: str,
+    contract_status: str | None = None,
+    contract_blocker_code: str | None = None,
     report_path: str | None = None,
     candidate_id: str | None = None,
     symbol: str | None = None,
@@ -362,6 +418,8 @@ def _alternative_replay_context(
         "status": status,
         "blocker_code": blocker_code,
         "message": message,
+        "contract_status": contract_status or status,
+        "contract_blocker_code": contract_blocker_code,
         "report_path": report_path,
         "candidate_id": candidate_id,
         "symbol": symbol,
@@ -623,14 +681,27 @@ def _build_and_write_alternative_public_replay(
         candidate_scorecard=alternative_scorecard,
     )
     report_path = write_public_replay_robustness_report(root=root, report=replay_report)
+    replay_status = str(replay_report.get("replay_status") or "BLOCKED")
+    gate_status = replay_validation.status
+    gate_blocker_code = replay_validation.blocker_code
+    gate_message = replay_validation.message
+    if replay_validation.status == "PASS" and replay_status != "PASS":
+        gate_status = "BLOCKED"
+        gate_blocker_code = str(replay_report.get("primary_blocker_code") or "MEASUREMENT_MISSING")
+        gate_message = (
+            "alternative public replay report is contract-valid but replay robustness "
+            f"gate is {replay_status}: {gate_blocker_code}"
+        )
     return _alternative_replay_context(
-        status=replay_validation.status,
-        blocker_code=replay_validation.blocker_code,
-        message=replay_validation.message,
+        status=gate_status,
+        blocker_code=gate_blocker_code,
+        message=gate_message,
+        contract_status=replay_validation.status,
+        contract_blocker_code=replay_validation.blocker_code,
         report_path=_relative_path(report_path, root),
         candidate_id=str(replay_report.get("candidate_id") or ""),
         symbol=str(replay_report.get("symbol") or ""),
-        replay_status=str(replay_report.get("replay_status") or ""),
+        replay_status=replay_status,
         sample_count=int(replay_report.get("sample_count") or 0),
         primary_blocker_code=replay_report.get("primary_blocker_code"),
         report=replay_report,
@@ -730,22 +801,23 @@ def build_current_upbit_paper_candidate_scorecard(
         )
 
     base_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(runtime)
-    replay_robustness_report = load_public_replay_robustness_report(
+    loaded_replay_robustness_report = load_public_replay_robustness_report(
         root=root,
         session_id=session_id,
         candidate_id=str(base_scorecard.get("candidate_id") or ""),
     )
-    replay_robustness_status = "MISSING"
-    replay_robustness_blocker_code = "MEASUREMENT_MISSING"
-    if isinstance(replay_robustness_report, dict):
+    replay_robustness_report = None
+    replay_robustness_contract_status = "MISSING"
+    replay_robustness_contract_blocker_code = "MEASUREMENT_MISSING"
+    if isinstance(loaded_replay_robustness_report, dict):
         replay_validation = validate_public_replay_robustness_report(
-            replay_robustness_report,
+            loaded_replay_robustness_report,
             candidate_scorecard=base_scorecard,
         )
-        replay_robustness_status = replay_validation.status
-        replay_robustness_blocker_code = replay_validation.blocker_code
-        if replay_validation.status != "PASS":
-            replay_robustness_report = None
+        replay_robustness_contract_status = replay_validation.status
+        replay_robustness_contract_blocker_code = replay_validation.blocker_code
+        if replay_validation.status == "PASS":
+            replay_robustness_report = loaded_replay_robustness_report
     diagnostic_kwargs = {
         "candidate_scorecard": base_scorecard,
         "runtime_sample_history": history,
@@ -761,6 +833,12 @@ def build_current_upbit_paper_candidate_scorecard(
             "SCHEMA_IDENTITY_MISMATCH",
             diagnostic_errors=diagnostic_errors,
         )
+    public_replay_robustness_context = _public_replay_robustness_context(
+        loaded_report=loaded_replay_robustness_report,
+        contract_status=replay_robustness_contract_status,
+        contract_blocker_code=replay_robustness_contract_blocker_code,
+        diagnostic=diagnostic,
+    )
 
     robustness_statuses, robustness_source_ids = robustness_inputs_from_overfit_diagnostic(diagnostic)
     performance_statuses, performance_metrics, performance_source_ids = performance_inputs_from_runtime_sample_history(
@@ -931,6 +1009,8 @@ def build_current_upbit_paper_candidate_scorecard(
         "alternative_public_replay_status": alternative_replay_context["status"],
         "alternative_public_replay_blocker_code": alternative_replay_context["blocker_code"],
         "alternative_public_replay_message": alternative_replay_context["message"],
+        "alternative_public_replay_contract_status": alternative_replay_context["contract_status"],
+        "alternative_public_replay_contract_blocker_code": alternative_replay_context["contract_blocker_code"],
         "alternative_public_replay_report_path": alternative_replay_context["report_path"],
         "alternative_public_replay_candidate_id": alternative_replay_context["candidate_id"],
         "alternative_public_replay_symbol": alternative_replay_context["symbol"],
@@ -986,13 +1066,17 @@ def build_current_upbit_paper_candidate_scorecard(
         "robustness_eligible": diagnostic["robustness_eligible"],
         "sample_count": diagnostic["sample_count"],
         "min_required_sample_count": diagnostic["min_required_sample_count"],
-        "public_replay_robustness_status": replay_robustness_status,
-        "public_replay_robustness_blocker_code": replay_robustness_blocker_code,
-        "public_replay_robustness_sample_count": (
-            replay_robustness_report.get("sample_count")
-            if isinstance(replay_robustness_report, dict)
-            else None
-        ),
+        "public_replay_robustness_status": public_replay_robustness_context["status"],
+        "public_replay_robustness_blocker_code": public_replay_robustness_context["blocker_code"],
+        "public_replay_robustness_contract_status": public_replay_robustness_context["contract_status"],
+        "public_replay_robustness_contract_blocker_code": public_replay_robustness_context["contract_blocker_code"],
+        "public_replay_robustness_replay_status": public_replay_robustness_context["replay_status"],
+        "public_replay_robustness_sample_count": public_replay_robustness_context["sample_count"],
+        "public_replay_robustness_source_bound": public_replay_robustness_context["source_bound"],
+        "public_replay_robustness_oos_status": public_replay_robustness_context["oos_status"],
+        "public_replay_robustness_walk_forward_status": public_replay_robustness_context["walk_forward_status"],
+        "public_replay_robustness_bootstrap_status": public_replay_robustness_context["bootstrap_status"],
+        "public_replay_robustness_overfit_status": public_replay_robustness_context["overfit_status"],
         "overfit_blocker_codes": [blocker["code"] for blocker in diagnostic["blockers"]],
         "performance_closed_trade_sample_count": scorecard["closed_trade_sample_count"],
         "performance_profit_factor": scorecard["profit_factor"],

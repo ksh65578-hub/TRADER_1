@@ -2,6 +2,7 @@ import copy
 import json
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -24,6 +25,11 @@ from trader1.research.profitability.candidate_scorecard import (
 from trader1.research.profitability.overfit_diagnostic import (
     overfit_diagnostic_from_upbit_paper_runtime,
     overfit_diagnostic_report_hash,
+)
+from trader1.research.replay.replay_runner import (
+    build_public_replay_robustness_report,
+    public_replay_robustness_report_hash,
+    write_public_replay_robustness_report,
 )
 from trader1.research.shadow.shadow_runner import build_paper_shadow_evidence_accumulation_report
 from trader1.runtime.paper.upbit_paper_persistent_loop import run_upbit_paper_persistent_loop
@@ -57,6 +63,35 @@ def _run_short_paper(root: Path) -> None:
         loop_id="current-scorecard-short-runtime",
         requested_cycle_count=2,
     )
+
+
+def _public_replay_fixture(*, symbol: str, session_id: str, count: int) -> dict:
+    market_data = build_upbit_public_candle_fixture(symbol=symbol, session_id=session_id)
+    start = datetime(2026, 5, 1, 0, 0, tzinfo=timezone.utc)
+    candles = []
+    for index in range(count):
+        price = 980000 + index * 900 + (index % 5) * 250
+        candles.append(
+            {
+                "timestamp": (start + timedelta(minutes=index)).isoformat().replace("+00:00", "Z"),
+                "open": str(price - 700),
+                "high": str(price + 1800),
+                "low": str(price - 1400),
+                "close": str(price),
+                "volume": str(5 + (index % 7)),
+            }
+        )
+    market_data["source"] = "PUBLIC_REST_READ_ONLY"
+    market_data["profile"] = "TEST_PUBLIC_REPLAY_HISTORY"
+    market_data["candles"] = candles
+    market_data["raw_payload_private_fields_present"] = False
+    market_data["public_endpoint_host"] = "api.upbit.com"
+    market_data["public_endpoint_path"] = "/v1/candles/minutes/1"
+    market_data["credential_load_attempted"] = False
+    market_data["authorization_header_present"] = False
+    market_data["private_endpoint_called"] = False
+    market_data["order_endpoint_called"] = False
+    return market_data
 
 
 def _paper_shadow_evidence_path(root: Path) -> Path:
@@ -233,6 +268,62 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         blocker_codes = {blocker["code"] for blocker in scorecard["blockers"]}
         self.assertTrue({"OOS_MISSING", "WALK_FORWARD_MISSING", "BOOTSTRAP_UNSTABLE", "OVERFIT_RISK_HIGH"}.issubset(blocker_codes))
 
+    def test_public_replay_status_distinguishes_contract_pass_from_profitability_gate_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _run_short_paper(root)
+            initial_result = build_current_upbit_paper_candidate_scorecard(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            initial_scorecard = _load_written(root, initial_result, "candidate_scorecard_path")
+            replay_report = build_public_replay_robustness_report(
+                candidate_scorecard=initial_scorecard,
+                market_data=_public_replay_fixture(
+                    symbol=initial_scorecard["symbol"],
+                    session_id=initial_scorecard["session_id"],
+                    count=360,
+                ),
+                replay_id="current-scorecard-public-replay-profitability-fail",
+                max_replay_windows=360,
+                min_required_sample_count=300,
+            )
+            for row in replay_report["sample_rows"]:
+                row["net_ev_after_cost_bps"] = -25.0
+            replay_report["report_hash"] = public_replay_robustness_report_hash(replay_report)
+            write_public_replay_robustness_report(root=root, report=replay_report)
+
+            result = build_current_upbit_paper_candidate_scorecard(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+            )
+            scorecard = _load_written(root, result, "candidate_scorecard_path")
+            diagnostic = _load_written(root, result, "overfit_diagnostic_path")
+
+        blocker_codes = set(result["scorecard_blocker_codes"])
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["public_replay_robustness_contract_status"], "PASS")
+        self.assertEqual(result["public_replay_robustness_replay_status"], "PASS")
+        self.assertEqual(result["public_replay_robustness_status"], "FAILED_ROBUSTNESS_GATE")
+        self.assertEqual(result["public_replay_robustness_blocker_code"], "PUBLIC_REPLAY_ROBUSTNESS_FAILED")
+        self.assertEqual(result["public_replay_robustness_oos_status"], "FAIL")
+        self.assertEqual(result["public_replay_robustness_walk_forward_status"], "FAIL")
+        self.assertEqual(result["public_replay_robustness_bootstrap_status"], "FAIL")
+        self.assertEqual(result["public_replay_robustness_overfit_status"], "HIGH")
+        self.assertEqual(result["public_replay_robustness_sample_count"], replay_report["sample_count"])
+        self.assertTrue(result["public_replay_robustness_source_bound"])
+        self.assertFalse(result["ranking_eligible"])
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertFalse(diagnostic["robustness_eligible"])
+        self.assertIn("PUBLIC_REPLAY_ROBUSTNESS_FAILED", blocker_codes)
+        self.assertIn("OOS_FAILED", blocker_codes)
+        self.assertFalse(result["credential_load_attempted"])
+        self.assertFalse(result["private_endpoint_called"])
+        self.assertFalse(result["order_endpoint_called"])
+        self.assertFalse(result["order_adapter_called"])
+        self.assertFalse(result["live_key_loaded"])
+        self.assertFalse(result["live_order_allowed"])
+
     def test_bounded_public_discovery_can_supply_non_live_alternative_candidate(self):
         def fake_market_symbols_fetcher(*, session_id: str, timeout_seconds: float):
             payload = [{"market": "KRW-ETH"}, {"market": "KRW-XRP"}]
@@ -334,6 +425,8 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(best_item["candidate_source_role"], "BOUNDED_PUBLIC_DISCOVERY_RUNTIME")
         self.assertEqual(best_item["source_runtime_cycle_id"], discovery_runtime["cycle_id"])
         self.assertEqual(result["alternative_public_replay_status"], "PASS")
+        self.assertEqual(result["alternative_public_replay_contract_status"], "PASS")
+        self.assertIsNone(result["alternative_public_replay_contract_blocker_code"])
         self.assertEqual(result["alternative_public_replay_candidate_id"], generation_report["best_alternative_candidate_id"])
         self.assertEqual(result["alternative_public_replay_symbol"], "KRW-ETH")
         self.assertGreaterEqual(result["alternative_public_replay_sample_count"], 1)
@@ -342,6 +435,89 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["candidate_generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
         self.assertIsNone(result["candidate_generation_primary_blocker_code"])
         self.assertEqual(result["candidate_generation_best_alternative_public_replay_status"], "PASS")
+        self.assertFalse(generation_report["live_order_allowed"])
+        self.assertFalse(result["credential_load_attempted"])
+        self.assertFalse(result["private_endpoint_called"])
+        self.assertFalse(result["order_endpoint_called"])
+        self.assertFalse(result["order_adapter_called"])
+        self.assertFalse(result["live_key_loaded"])
+        self.assertFalse(result["live_order_allowed"])
+
+    def test_alternative_public_replay_status_distinguishes_contract_pass_from_replay_blocked(self):
+        def fake_market_symbols_fetcher(*, session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            return build_upbit_public_krw_symbol_discovery_report_from_payload(
+                payload=[{"market": "KRW-ETH"}],
+                session_id=session_id,
+            )
+
+        def fake_ticker_fetcher(*, symbols: list[str], session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            requested = build_upbit_krw_market_symbols_from_rest_payload([{"market": symbol} for symbol in symbols])
+            return build_upbit_public_ticker_snapshot_from_rest_payload(
+                requested_symbols=requested,
+                session_id=session_id,
+                payload=[
+                    {
+                        "market": "KRW-ETH",
+                        "trade_price": "1000000",
+                        "acc_trade_price_24h": "9000000000",
+                        "signed_change_rate": "0.035",
+                        "acc_trade_volume_24h": "9000",
+                    }
+                ],
+            )
+
+        def fake_candle_fetcher(*, symbol: str, session_id: str, timeout_seconds: float):
+            del timeout_seconds
+            return build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id=session_id,
+                profile="UPTREND_PULLBACK",
+            )
+
+        def fake_replay_history_fetcher(
+            *,
+            symbol: str,
+            session_id: str,
+            target_count: int,
+            page_size: int,
+            timeout_seconds: float,
+        ):
+            del target_count, page_size, timeout_seconds
+            return build_upbit_public_candle_fixture(
+                symbol=symbol,
+                session_id=session_id,
+                profile="UPTREND_PULLBACK",
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _run_short_paper(root)
+
+            result = build_current_upbit_paper_candidate_scorecard(
+                root=root,
+                session_id="mvp1_upbit_paper_launcher",
+                attempt_public_discovery=True,
+                candidate_discovery_symbol_limit=1,
+                market_symbols_fetcher=fake_market_symbols_fetcher,
+                public_ticker_fetcher=fake_ticker_fetcher,
+                public_candle_fetcher=fake_candle_fetcher,
+                public_replay_history_fetcher=fake_replay_history_fetcher,
+                alternative_replay_max_windows=10,
+                alternative_replay_min_required_sample_count=20,
+            )
+            generation_report = _load_written(root, result, "candidate_generation_report_path")
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["alternative_public_replay_contract_status"], "PASS")
+        self.assertIsNone(result["alternative_public_replay_contract_blocker_code"])
+        self.assertEqual(result["alternative_public_replay_status"], "BLOCKED")
+        self.assertEqual(result["alternative_public_replay_replay_status"], "BLOCKED")
+        self.assertEqual(result["alternative_public_replay_blocker_code"], "SAMPLE_INSUFFICIENT")
+        self.assertEqual(result["candidate_generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_BLOCKED")
+        self.assertEqual(result["candidate_generation_best_alternative_public_replay_status"], "BLOCKED")
+        self.assertEqual(generation_report["best_alternative_public_replay_status"], "BLOCKED")
         self.assertFalse(generation_report["live_order_allowed"])
         self.assertFalse(result["credential_load_attempted"])
         self.assertFalse(result["private_endpoint_called"])
