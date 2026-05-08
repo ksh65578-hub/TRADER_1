@@ -1,6 +1,6 @@
 {
   "schema_id": "trader1.profitability_evidence_maturity_rollup.v1",
-  "generated_at_utc": "2026-05-08T06:28:04Z",
+  "generated_at_utc": "2026-05-08T08:21:58Z",
   "project_id": "TRADER_1",
   "authority": {
     "trader1_sha256": "FF6C3046FD64C3B16E874F3770CCB57E04B1E1E75775125382F285F33BD0052B",
@@ -293,6 +293,12 @@
       ],
       "sample_count": 2,
       "min_required_sample_count": 300,
+      "sample_basis": "REALIZED_CLOSED_PAPER_TRADES",
+      "closed_trade_sample_count": 2,
+      "closed_trade_sample_deficit": 298,
+      "preliminary_sample_basis": "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
+      "preliminary_sample_count": 2,
+      "preliminary_exact_candidate_sample_count": 2,
       "freshness_status": "PASS",
       "dependency_status": "PASS",
       "next_required_evidence": "OOS, walk-forward, bootstrap, and concentration checks pass for PAPER scorecard input; collect distinct PAPER/SHADOW long-run windows, replay coverage, read-only burn-in, and operator approval.",
@@ -554,7 +560,7 @@
   "scale_up_eligible": false,
   "primary_blocker_code": "PROFITABILITY_EVIDENCE_MATURITY",
   "next_operator_action": "Resolve the blocked PAPER scorecard runtime linkage reason, then continue PAPER/SHADOW evidence collection; live remains blocked until long-run PAPER/SHADOW evidence, replay coverage, read-only burn-in, manual order evidence, live safety proof, and operator approval are complete.",
-  "rollup_hash": "EF49DE956F93FE177DF2F33E5D9E1BB8153561F358BC8300377D68D960A0810B",
+  "rollup_hash": "C6C94681BC9BC8FB1D7A2D866C116833A79ECFC5AD99A488558B7967E0EB0AD1",
   "runtime_linkage_evidence": {
     "status": "BLOCKED",
     "runtime_linkage_blocker_code": "RUNTIME_CYCLE_VALIDATION_FAILED",
@@ -654,6 +660,13 @@
       "concentration_count": 0
     },
     "min_required_per_source_type": 1,
+    "sample_basis": "REALIZED_CLOSED_PAPER_TRADES",
+    "sample_count": 2,
+    "min_required_sample_count": 300,
+    "closed_trade_sample_deficit": 298,
+    "preliminary_sample_basis": "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
+    "preliminary_sample_count": 2,
+    "preliminary_exact_candidate_sample_count": 2,
     "source_artifact_paths": [
       "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/overfit_diagnostic_report.json",
       "system/runtime/upbit/krw_spot/paper/mvp1_upbit_paper_launcher/profitability/candidate_scorecard.json",

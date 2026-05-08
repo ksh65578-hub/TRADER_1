@@ -650,6 +650,15 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
         source_evidence = rollup["robustness_source_type_evidence"]
 
+        self.assertEqual(source_evidence["sample_basis"], "REALIZED_CLOSED_PAPER_TRADES")
+        self.assertEqual(
+            source_evidence["preliminary_sample_basis"],
+            "EXPECTED_NET_EV_AFTER_COST_WITH_REALIZED_CLOSED_TRADE_OVERRIDE",
+        )
+        self.assertEqual(
+            source_evidence["closed_trade_sample_deficit"],
+            max(source_evidence["min_required_sample_count"] - source_evidence["sample_count"], 0),
+        )
         if source_evidence["status"] == "PASS":
             self.assertEqual(source_evidence["missing_source_types"], [])
             self.assertIsNone(source_evidence["primary_blocker_code"])
@@ -661,6 +670,61 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
             self.assertTrue(source_evidence["explicit_source_type_blocker"])
         self.assertFalse(rollup["live_order_allowed"])
         self.assertEqual(_profitability_evidence_maturity_rollup_errors(rollup), [])
+
+    def test_maturity_rollup_helper_rejects_robustness_source_type_preliminary_false_pass(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        source_evidence = tampered["robustness_source_type_evidence"]
+        source_evidence["status"] = "PASS"
+        source_evidence["source_type_counts"] = {
+            "oos_count": 1,
+            "walk_forward_count": 1,
+            "bootstrap_count": 1,
+            "concentration_count": 1,
+        }
+        source_evidence["present_source_types"] = ["OOS", "WALK_FORWARD", "BOOTSTRAP", "CONCENTRATION"]
+        source_evidence["missing_source_types"] = []
+        source_evidence["primary_blocker_code"] = None
+        source_evidence["explicit_source_type_blocker"] = False
+        source_evidence["sample_count"] = 0
+        source_evidence["min_required_sample_count"] = 300
+        source_evidence["closed_trade_sample_deficit"] = 300
+        source_evidence["preliminary_sample_count"] = 300
+        source_evidence["preliminary_exact_candidate_sample_count"] = 300
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("closed PAPER trade minimum" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_overfit_component_expected_edge_basis(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        component = next(item for item in tampered["components"] if item["component_id"] == "overfit_oos_walk_forward")
+        component["sample_basis"] = "EXPECTED_ENTRY_NET_EV"
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("REALIZED_CLOSED_PAPER_TRADES" in error for error in errors), errors)
+
+    def test_maturity_rollup_helper_rejects_overfit_component_preliminary_false_eligibility(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        tampered = copy.deepcopy(rollup)
+        component = next(item for item in tampered["components"] if item["component_id"] == "overfit_oos_walk_forward")
+        component["sample_count"] = 0
+        component["closed_trade_sample_count"] = 0
+        component["min_required_sample_count"] = 300
+        component["closed_trade_sample_deficit"] = 300
+        component["preliminary_sample_count"] = 300
+        component["preliminary_exact_candidate_sample_count"] = 300
+        component["evidence_status"] = "PASS"
+        component["paper_scorecard_input_eligible"] = True
+        component["next_required_evidence"] = (
+            "Robustness uses realized closed PAPER trades; preliminary expected-edge samples are review only."
+        )
+
+        errors = _profitability_evidence_maturity_rollup_errors(tampered)
+
+        self.assertTrue(any("closed PAPER trade minimum" in error for error in errors), errors)
 
     def test_maturity_rollup_helper_counts_open_high_contract_gap(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)
