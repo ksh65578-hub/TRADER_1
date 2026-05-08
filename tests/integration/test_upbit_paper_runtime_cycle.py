@@ -383,6 +383,12 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertEqual(lifecycle["paper_broker_attempt"], report["paper_broker_execution"])
         self.assertEqual(lifecycle["paper_broker_attempt_state"], "REJECTED")
         self.assertEqual(lifecycle["paper_broker_attempt_reject_reason"], "PAPER_DEPTH_OR_IMPACT_REJECT")
+        no_trade_context = report["summary"]["recent_no_trade_context"]
+        self.assertTrue(any(item.get("paper_broker_attempt_state") == "REJECTED" for item in no_trade_context))
+        broker_context = next(item for item in no_trade_context if item.get("paper_broker_attempt_state") == "REJECTED")
+        self.assertEqual(broker_context["reason_code"], "MEASUREMENT_MISSING")
+        self.assertIn("no fill or ledger event was written", broker_context["message"])
+        self.assertFalse(broker_context["live_order_allowed"])
         self.assertFalse(report["paper_broker_execution"]["live_order_allowed"])
         self.assertFalse(report["paper_broker_execution"]["order_adapter_called"])
         self.assertFalse(report["paper_broker_execution"]["private_endpoint_called"])

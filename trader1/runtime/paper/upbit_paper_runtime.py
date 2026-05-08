@@ -3130,6 +3130,43 @@ def _validate_paper_broker_fill(fill: dict[str, Any], *, features: dict[str, Any
     return UpbitPaperRuntimeCycleValidationResult("PASS", "adaptive PAPER broker fill is depth, fee, and live-guard consistent", None)
 
 
+def _runtime_no_trade_context(no_trade_reasons: list[str], *, broker_execution: dict[str, Any] | None) -> list[dict[str, Any]]:
+    context: list[dict[str, Any]] = []
+    terminal_attempt = (
+        isinstance(broker_execution, dict)
+        and broker_execution.get("order_lifecycle_state") in PAPER_BROKER_TERMINAL_NO_FILL_STATES
+    )
+    for reason in no_trade_reasons:
+        item: dict[str, Any] = {
+            "reason_code": reason,
+            "message": "PAPER runtime did not enter",
+            "source": "UPBIT_PAPER_RUNTIME_CYCLE",
+            "dashboard_reason_visible": True,
+            "live_order_ready": False,
+            "live_order_allowed": False,
+            "can_live_trade": False,
+            "scale_up_allowed": False,
+        }
+        if terminal_attempt and reason == "MEASUREMENT_MISSING":
+            state = str(broker_execution.get("order_lifecycle_state"))
+            broker_reason = broker_execution.get("reject_reason") or broker_execution.get("cancel_reason") or "PAPER_BROKER_TERMINAL_ATTEMPT"
+            item.update(
+                {
+                    "message": (
+                        f"Adaptive PAPER broker {state.lower()} the simulated {broker_execution.get('side')} attempt: "
+                        f"{broker_reason}; no fill or ledger event was written."
+                    ),
+                    "paper_broker_attempt_state": state,
+                    "paper_broker_attempt_side": broker_execution.get("side"),
+                    "paper_broker_attempt_reject_reason": broker_execution.get("reject_reason"),
+                    "paper_broker_attempt_cancel_reason": broker_execution.get("cancel_reason"),
+                    "paper_broker_attempt_fill_ratio": broker_execution.get("fill_ratio"),
+                }
+            )
+        context.append(item)
+    return context
+
+
 def _validate_position_rotation_context(
     lifecycle: dict[str, Any],
     *,
@@ -4004,7 +4041,7 @@ def build_upbit_paper_runtime_cycle_report(
         paper_portfolio_snapshot=portfolio,
         entry_candidates=candidates,
         recent_entry_context=entry_reasons,
-        recent_no_trade_context=[{"reason_code": reason, "message": "PAPER runtime did not enter"} for reason in no_trade_reasons],
+        recent_no_trade_context=_runtime_no_trade_context(no_trade_reasons, broker_execution=broker_execution),
         market_context={
             "source": "MARKET_DATA",
             "freshness_status": "PASS" if not blockers else "FAIL",
