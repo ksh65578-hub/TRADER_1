@@ -22951,6 +22951,7 @@ def _market_regime_adaptation_errors(report: dict[str, Any]) -> list[str]:
         errors.append("live observation is disabled for MVP-4 market regime adaptation")
     if report.get("official_api_verification_status") == "PASS":
         errors.append("official API PASS cannot be consumed by this non-live regime adaptation report")
+    source_evidence_ids = [str(item) for item in report.get("source_evidence_ids", []) if isinstance(item, str)]
 
     warning = str(report.get("operator_warning", "")).lower()
     if "not live_ready" not in warning or "live orders blocked" not in warning:
@@ -22995,6 +22996,12 @@ def _market_regime_adaptation_errors(report: dict[str, Any]) -> list[str]:
             errors.append("entry_allowed market regime adaptation must not carry blockers")
         if not report.get("recommended_strategy_families"):
             errors.append("entry_allowed market regime adaptation requires recommended_strategy_families")
+        if not has_required_robustness_source_ids(source_evidence_ids):
+            errors.append("entry_allowed market regime adaptation requires OOS, walk-forward, and bootstrap source evidence ids")
+        if _candidate_scoped_performance_source_binding_count(source_evidence_ids) <= 0:
+            errors.append(
+                "entry_allowed market regime adaptation requires candidate-scoped closed trade, execution quality, and performance summary source ids"
+            )
 
     current_direction = report.get("current_trend_direction")
     if current_direction in {"DOWNTREND", "RISK_OFF"} or report.get("current_regime_family") == "RISK_OFF":
@@ -23091,7 +23098,7 @@ def market_regime_adaptation_validator() -> ValidatorResult:
 
     return pass_result(
         "market_regime_adaptation_validator",
-        "market regime adaptation requires fresh scoped evidence, strategy/regime dependencies, downtrend and risk-off blocking, and false live flags",
+        "market regime adaptation requires fresh scoped evidence, robustness and candidate-scoped performance sources for entry, strategy/regime dependencies, downtrend and risk-off blocking, and false live flags",
         paths,
     )
 

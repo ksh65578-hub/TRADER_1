@@ -30,7 +30,13 @@
     "paper_regime_fixture_market_data_fresh",
     "paper_regime_fixture_symbol_fit",
     "paper_regime_fixture_condition_matrix",
-    "paper_regime_fixture_strategy_memory"
+    "paper_regime_fixture_strategy_memory",
+    "oos:regime_adaptation_oos_window_001:1111111111111111111111111111111111111111111111111111111111111111",
+    "walk_forward:regime_adaptation_walk_forward_window_001:2222222222222222222222222222222222222222222222222222222222222222",
+    "bootstrap:regime_adaptation_bootstrap_window_001:3333333333333333333333333333333333333333333333333333333333333333",
+    "closed_trades:candidate_trend_pullback_krw_btc_001:regime_adaptation_performance_history_001:7777777777777777777777777777777777777777777777777777777777777777",
+    "execution_quality:candidate_trend_pullback_krw_btc_001:regime_adaptation_performance_history_001:7777777777777777777777777777777777777777777777777777777777777777",
+    "performance_summary:candidate_trend_pullback_krw_btc_001:regime_adaptation_performance_history_001:7777777777777777777777777777777777777777777777777777777777777777"
   ],
   "source_artifact_roles": [
     {"role": "MARKET_DATA_FRESHNESS", "artifact_id": "paper_regime_fixture_market_data_fresh"},
