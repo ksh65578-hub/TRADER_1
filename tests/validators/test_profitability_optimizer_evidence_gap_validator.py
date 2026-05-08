@@ -3,7 +3,7 @@ import json
 import unittest
 from pathlib import Path
 
-from tools.run_profitability_maturity_rollup_refresh import paper_shadow_next_required_evidence
+from tools.run_profitability_maturity_rollup_refresh import paper_shadow_next_required_evidence, update_promotion_thresholds
 from trader1.validation.mvp0_validators import (
     PROFITABILITY_EVIDENCE_REQUIRED_COMPONENTS,
     _profitability_evidence_audit_errors,
@@ -384,6 +384,27 @@ class ProfitabilityOptimizerEvidenceGapValidatorTest(unittest.TestCase):
         errors = _profitability_evidence_maturity_rollup_errors(tampered)
 
         self.assertTrue(any("fixed PAPER runtime-hour floor" in error for error in errors), errors)
+
+    def test_maturity_rollup_accepts_validated_scorecard_cost_model_for_net_ev_threshold(self):
+        rollup = load_json(ROLLUP_FIXTURE_PATH)
+        thresholds = rollup["promotion_threshold_evidence"]
+        self.assertIn("NET_EV_AFTER_COST_NOT_PASS", thresholds["missing_threshold_codes"])
+
+        update_promotion_thresholds(
+            rollup,
+            {
+                "net_ev_after_cost_bps": 12.5,
+                "min_required_edge_bps": 10.0,
+                "cost_model_status": "VALIDATED",
+            },
+            {"oos_status": "PASS", "walk_forward_status": "PASS"},
+        )
+
+        self.assertEqual(thresholds["net_ev_after_cost_status"], "PASS")
+        self.assertNotIn("NET_EV_AFTER_COST_NOT_PASS", thresholds["missing_threshold_codes"])
+        self.assertEqual(thresholds["status"], "BLOCKED_FOR_THRESHOLD_EVIDENCE")
+        self.assertFalse(thresholds["live_order_allowed"])
+        self.assertFalse(thresholds["scale_up_allowed"])
 
     def test_maturity_rollup_active_text_has_no_fixed_runtime_hour_floor(self):
         rollup = load_json(ROLLUP_FIXTURE_PATH)

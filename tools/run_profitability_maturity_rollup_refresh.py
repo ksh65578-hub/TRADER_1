@@ -365,7 +365,7 @@ def update_promotion_thresholds(rollup: dict[str, Any], scorecard: dict[str, Any
         missing_codes.discard("WALK_FORWARD_OR_OOS_COVERAGE_BELOW_MIN")
     net_ev = float(scorecard.get("net_ev_after_cost_bps") or 0.0)
     min_edge = float(scorecard.get("min_required_edge_bps") or 0.0)
-    if net_ev >= min_edge and scorecard.get("cost_model_status") == "PASS":
+    if net_ev >= min_edge and scorecard.get("cost_model_status") == "VALIDATED":
         thresholds["net_ev_after_cost_status"] = "PASS"
         missing_codes.discard("NET_EV_AFTER_COST_NOT_PASS")
     thresholds["missing_threshold_codes"] = sorted(missing_codes)
