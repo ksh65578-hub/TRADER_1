@@ -19332,6 +19332,44 @@ def _parameter_narrowing_errors(report: dict[str, Any]) -> list[str]:
             errors.append("paper parameter narrowing requires optimizer run source id")
         if not has_source_evidence("optimizer", "recommendation"):
             errors.append("paper parameter narrowing requires optimizer recommendation source id")
+        if report.get("candidate_scorecard_validator_status") != "PASS":
+            errors.append("paper parameter narrowing requires candidate_scorecard_validator_status=PASS")
+        if report.get("candidate_scorecard_ranking_eligible") is not True:
+            errors.append("paper parameter narrowing requires candidate_scorecard_ranking_eligible=true")
+        if report.get("candidate_scorecard_scorecard_scope") != "PAPER_SCORECARD_INPUT_ONLY":
+            errors.append("paper parameter narrowing requires candidate scorecard scope PAPER_SCORECARD_INPUT_ONLY")
+        if float(report.get("candidate_scorecard_net_ev_after_cost_bps", 0)) < float(
+            report.get("candidate_scorecard_min_required_edge_bps", 0)
+        ):
+            errors.append("paper parameter narrowing requires candidate scorecard net EV after cost above minimum edge")
+        if report.get("candidate_scorecard_robustness_ready") is not True:
+            errors.append("paper parameter narrowing requires candidate_scorecard_robustness_ready=true")
+        if report.get("candidate_scorecard_performance_ready") is not True:
+            errors.append("paper parameter narrowing requires candidate_scorecard_performance_ready=true")
+        scorecard_status_fields = (
+            "candidate_scorecard_closed_trade_status",
+            "candidate_scorecard_profit_factor_status",
+            "candidate_scorecard_max_drawdown_status",
+            "candidate_scorecard_realized_vs_expected_edge_status",
+            "candidate_scorecard_fill_quality_status",
+        )
+        for field in scorecard_status_fields:
+            if report.get(field) != "PASS":
+                errors.append(f"paper parameter narrowing requires {field}=PASS")
+        closed_trade_count = int(report.get("candidate_scorecard_closed_trade_sample_count", 0))
+        min_closed_trade_count = int(report.get("candidate_scorecard_min_closed_trade_sample_count", 0))
+        if closed_trade_count < min_closed_trade_count:
+            errors.append("paper parameter narrowing requires candidate scorecard closed trade samples above minimum")
+        if int(report.get("candidate_scorecard_realized_vs_expected_sample_count", 0)) < min_closed_trade_count:
+            errors.append("paper parameter narrowing requires realized-vs-expected samples above closed-trade minimum")
+        if int(report.get("candidate_scorecard_fill_quality_sample_count", 0)) < min_closed_trade_count:
+            errors.append("paper parameter narrowing requires fill-quality samples above closed-trade minimum")
+        if report.get("candidate_scorecard_performance_source_binding_status") != "PASS":
+            errors.append("paper parameter narrowing requires candidate scorecard performance source binding PASS")
+        if not str(report.get("candidate_scorecard_performance_source_history_id", "")):
+            errors.append("paper parameter narrowing requires candidate scorecard performance source history id")
+        if not str(report.get("candidate_scorecard_performance_source_history_hash", "")):
+            errors.append("paper parameter narrowing requires candidate scorecard performance source history hash")
         if narrowing_status != "PAPER_PARAMETER_REVIEW_ELIGIBLE":
             errors.append("paper parameter narrowing requires PAPER_PARAMETER_REVIEW_ELIGIBLE status")
         if recommendation_scope != "PAPER_PARAMETER_REVIEW_ONLY":
@@ -19362,6 +19400,7 @@ def parameter_narrowing_validator() -> ValidatorResult:
     missing_binding_path = fixture_dir / "parameter_narrowing_missing_binding_fail.json"
     identity_mismatch_path = fixture_dir / "parameter_narrowing_identity_mismatch_fail.json"
     identity_stale_path = fixture_dir / "parameter_narrowing_identity_stale_fail.json"
+    immature_scorecard_path = fixture_dir / "parameter_narrowing_scorecard_immature_fail.json"
     paths = [
         schema_path,
         pass_path,
@@ -19373,6 +19412,7 @@ def parameter_narrowing_validator() -> ValidatorResult:
         missing_binding_path,
         identity_mismatch_path,
         identity_stale_path,
+        immature_scorecard_path,
         state_path,
     ]
 
@@ -19404,6 +19444,7 @@ def parameter_narrowing_validator() -> ValidatorResult:
         missing_binding_path: "source_evidence_id missing identity binding",
         identity_mismatch_path: "source evidence identity binding mismatch for proposed_parameter_hash",
         identity_stale_path: "source evidence identity binding cannot be STALE",
+        immature_scorecard_path: "candidate_scorecard_performance_ready=true",
     }
     for path, expected_fragment in negative_expectations.items():
         errors = _parameter_narrowing_errors(load_json(path))

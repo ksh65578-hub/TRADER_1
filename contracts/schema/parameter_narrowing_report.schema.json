@@ -29,6 +29,24 @@
     "source_evidence_identity_bindings",
     "dependency_summary_status",
     "candidate_scorecard_validator_status",
+    "candidate_scorecard_ranking_eligible",
+    "candidate_scorecard_scorecard_scope",
+    "candidate_scorecard_net_ev_after_cost_bps",
+    "candidate_scorecard_min_required_edge_bps",
+    "candidate_scorecard_robustness_ready",
+    "candidate_scorecard_performance_ready",
+    "candidate_scorecard_closed_trade_status",
+    "candidate_scorecard_closed_trade_sample_count",
+    "candidate_scorecard_min_closed_trade_sample_count",
+    "candidate_scorecard_profit_factor_status",
+    "candidate_scorecard_max_drawdown_status",
+    "candidate_scorecard_realized_vs_expected_edge_status",
+    "candidate_scorecard_realized_vs_expected_sample_count",
+    "candidate_scorecard_fill_quality_status",
+    "candidate_scorecard_fill_quality_sample_count",
+    "candidate_scorecard_performance_source_binding_status",
+    "candidate_scorecard_performance_source_history_id",
+    "candidate_scorecard_performance_source_history_hash",
     "optimizer_run_report_validator_status",
     "optimizer_recommendation_validator_status",
     "exploration_exploitation_policy_validator_status",
@@ -356,6 +374,74 @@
     },
     "candidate_scorecard_validator_status": {
       "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "candidate_scorecard_ranking_eligible": {
+      "type": "boolean"
+    },
+    "candidate_scorecard_scorecard_scope": {
+      "enum": [
+        "PAPER_SCORECARD_INPUT_ONLY",
+        "PAPER_EVIDENCE_COLLECTION_ONLY",
+        "BLOCKED"
+      ]
+    },
+    "candidate_scorecard_net_ev_after_cost_bps": {
+      "type": "number"
+    },
+    "candidate_scorecard_min_required_edge_bps": {
+      "type": "number",
+      "minimum": 0
+    },
+    "candidate_scorecard_robustness_ready": {
+      "type": "boolean"
+    },
+    "candidate_scorecard_performance_ready": {
+      "type": "boolean"
+    },
+    "candidate_scorecard_closed_trade_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "candidate_scorecard_closed_trade_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_scorecard_min_closed_trade_sample_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "candidate_scorecard_profit_factor_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "candidate_scorecard_max_drawdown_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "candidate_scorecard_realized_vs_expected_edge_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "candidate_scorecard_realized_vs_expected_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_scorecard_fill_quality_status": {
+      "$ref": "common.defs.schema.json#/$defs/validator_status"
+    },
+    "candidate_scorecard_fill_quality_sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_scorecard_performance_source_binding_status": {
+      "enum": [
+        "PASS",
+        "MISSING_OR_MISMATCHED"
+      ]
+    },
+    "candidate_scorecard_performance_source_history_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_scorecard_performance_source_history_hash": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
     },
     "optimizer_run_report_validator_status": {
       "$ref": "common.defs.schema.json#/$defs/validator_status"
