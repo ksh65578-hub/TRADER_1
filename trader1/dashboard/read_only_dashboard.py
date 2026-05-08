@@ -9378,6 +9378,10 @@ def _candidate_scorecard_projection(
     min_realized_vs_expected = safe_float(candidate_scorecard.get("min_realized_vs_expected_edge_bps"))
     fill_quality = safe_float(candidate_scorecard.get("fill_quality_score"))
     min_fill_quality = safe_float(candidate_scorecard.get("min_fill_quality_score"))
+    execution_cost_delta = safe_float(candidate_scorecard.get("execution_cost_delta_bps"), 999.0)
+    max_execution_cost_delta = safe_float(candidate_scorecard.get("max_allowed_execution_cost_delta_bps"), 0.0)
+    execution_cost_sample_count = safe_int(candidate_scorecard.get("execution_cost_sample_count"))
+    execution_cost_status = str(candidate_scorecard.get("execution_cost_comparison_status") or "UNTESTED")
     performance_source_binding_status = str(
         candidate_scorecard.get("performance_source_binding_status") or "MISSING_OR_MISMATCHED"
     )
@@ -9391,7 +9395,9 @@ def _candidate_scorecard_projection(
         f"PF {profit_factor:.2f}/{min_profit_factor:.2f}; "
         f"max DD {max_drawdown:.2f}%/{max_allowed_drawdown:.2f}%; "
         f"realized-vs-expected {realized_vs_expected:.2f}/{min_realized_vs_expected:.2f} bps; "
-        f"fill quality {fill_quality:.2f}/{min_fill_quality:.2f}"
+        f"fill quality {fill_quality:.2f}/{min_fill_quality:.2f}; "
+        f"cost delta {execution_cost_delta:.2f}/{max_execution_cost_delta:.2f} bps "
+        f"({execution_cost_sample_count}/{min_closed_trade_count}, {execution_cost_status})"
     )
     projection = {
         **base,

@@ -21465,6 +21465,7 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             "max_drawdown_status": "PASS",
             "realized_vs_expected_edge_status": "PASS",
             "fill_quality_status": "PASS",
+            "execution_cost_comparison_status": "PASS",
         }
         for field, expected in required_statuses.items():
             if scorecard.get(field) != expected:
@@ -21477,6 +21478,8 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             errors.append("realized-vs-expected sample count must meet closed trade minimum before ranking eligibility")
         if int(scorecard.get("fill_quality_sample_count", 0) or 0) < int(scorecard.get("min_closed_trade_sample_count", 1) or 1):
             errors.append("fill quality sample count must meet closed trade minimum before ranking eligibility")
+        if int(scorecard.get("execution_cost_sample_count", 0) or 0) < int(scorecard.get("min_closed_trade_sample_count", 1) or 1):
+            errors.append("execution cost sample count must meet closed trade minimum before ranking eligibility")
         if float(scorecard.get("profit_factor", 0) or 0) < float(scorecard.get("min_profit_factor", 1) or 1):
             errors.append("profit_factor must meet minimum before ranking eligibility")
         if float(scorecard.get("max_drawdown_pct", 100) or 100) > float(scorecard.get("max_allowed_drawdown_pct", 0) or 0):
@@ -21487,6 +21490,10 @@ def _candidate_scorecard_net_ev_errors(scorecard: dict[str, Any]) -> list[str]:
             errors.append("realized_vs_expected_edge_bps must meet minimum before ranking eligibility")
         if float(scorecard.get("fill_quality_score", 0) or 0) < float(scorecard.get("min_fill_quality_score", 1) or 1):
             errors.append("fill_quality_score must meet minimum before ranking eligibility")
+        if float(scorecard.get("execution_cost_delta_bps", 999) or 999) > float(
+            scorecard.get("max_allowed_execution_cost_delta_bps", 0) or 0
+        ):
+            errors.append("execution_cost_delta_bps must stay within allowed execution cost delta before ranking eligibility")
         if scorecard.get("performance_ready") is not True:
             errors.append("performance_ready must be true before ranking eligibility")
         if scorecard.get("robustness_ready") is not True:

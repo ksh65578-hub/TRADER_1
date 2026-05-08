@@ -36,6 +36,7 @@ PASS_PERFORMANCE_METRICS = {
     "min_closed_trade_sample_count": 30,
     "realized_vs_expected_sample_count": 42,
     "fill_quality_sample_count": 42,
+    "execution_cost_sample_count": 42,
     "profit_factor": 1.42,
     "min_profit_factor": 1.25,
     "max_drawdown_pct": 4.8,
@@ -44,6 +45,13 @@ PASS_PERFORMANCE_METRICS = {
     "min_realized_vs_expected_edge_bps": 0.0,
     "fill_quality_score": 0.91,
     "min_fill_quality_score": 0.80,
+    "realized_fee_bps": 5.0,
+    "realized_slippage_bps": 16.0,
+    "realized_impact_bps": 3.0,
+    "expected_total_execution_cost_bps": 20.0,
+    "realized_total_execution_cost_bps": 21.0,
+    "execution_cost_delta_bps": 1.0,
+    "max_allowed_execution_cost_delta_bps": 2.0,
 }
 
 
