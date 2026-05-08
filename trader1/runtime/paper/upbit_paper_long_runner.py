@@ -22,6 +22,7 @@ from typing import Any, Callable
 
 from trader1.research.profitability.candidate_scorecard import (
     candidate_scorecard_from_upbit_paper_runtime_cycle,
+    performance_inputs_from_runtime_sample_history,
     safe_candidate_scorecard_filename,
     write_upbit_paper_candidate_scorecard,
 )
@@ -1002,10 +1003,18 @@ def refresh_non_live_profitability_evidence_from_runtime(root: Path, session_id:
         }
 
     robustness_statuses, robustness_source_ids = robustness_inputs_from_overfit_diagnostic(diagnostic)
+    performance_statuses, performance_metrics, performance_source_ids = performance_inputs_from_runtime_sample_history(
+        candidate_scorecard=base_scorecard,
+        runtime_sample_history=history,
+        root=root,
+    )
     scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
         runtime,
         robustness_statuses=robustness_statuses,
         robustness_source_evidence_ids=robustness_source_ids,
+        performance_statuses=performance_statuses,
+        performance_metrics=performance_metrics,
+        performance_source_evidence_ids=performance_source_ids,
     )
     scorecard_errors = _candidate_scorecard_contract_errors(scorecard)
     if scorecard_errors:

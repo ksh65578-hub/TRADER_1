@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -133,6 +134,218 @@ def has_required_robustness_source_ids(
 def has_required_performance_source_ids(source_evidence_ids: list[str] | None) -> bool:
     ids = source_evidence_ids or []
     return all(any(source_id.startswith(prefix) for source_id in ids) for prefix in PERFORMANCE_SOURCE_PREFIXES)
+
+
+def _performance_source_evidence_ids(history_id: str, history_hash: str, candidate_id: str) -> list[str]:
+    candidate_key = safe_candidate_scorecard_filename(candidate_id or "unknown-candidate")
+    return [
+        f"closed_trades:{candidate_key}:{history_id}:{history_hash}",
+        f"execution_quality:{candidate_key}:{history_id}:{history_hash}",
+        f"performance_summary:{candidate_key}:{history_id}:{history_hash}",
+    ]
+
+
+def _clamp_float(value: float, lower: float = 0.0, upper: float = 1.0) -> float:
+    return max(lower, min(upper, value))
+
+
+def _load_valid_runtime_sample(
+    *,
+    root: Path,
+    sample: dict[str, Any],
+    candidate_scorecard: dict[str, Any],
+) -> dict[str, Any] | None:
+    path = (root / str(sample.get("source_runtime_cycle_path") or "")).resolve()
+    try:
+        if root.resolve() not in path.parents and path != root.resolve():
+            return None
+        runtime = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(runtime, dict):
+        return None
+    validation = validate_upbit_paper_runtime_cycle_report(runtime, require_quantitative_policy_summary=False)
+    if validation.status != "PASS":
+        return None
+    if runtime.get("cycle_hash") != sample.get("source_runtime_cycle_hash"):
+        return None
+    if (
+        runtime.get("exchange") != candidate_scorecard.get("exchange")
+        or runtime.get("market_type") != candidate_scorecard.get("market_type")
+        or runtime.get("mode") != candidate_scorecard.get("mode")
+        or runtime.get("session_id") != candidate_scorecard.get("session_id")
+    ):
+        return None
+    return runtime
+
+
+def _candidate_for_closed_trade(runtime: dict[str, Any], position_lifecycle: dict[str, Any]) -> dict[str, Any] | None:
+    entry_candidate_id = position_lifecycle.get("entry_candidate_id")
+    for candidate in runtime.get("strategy_candidates") or []:
+        if isinstance(candidate, dict) and candidate.get("candidate_id") == entry_candidate_id:
+            return candidate
+    selected = runtime.get("selected_candidate")
+    return selected if isinstance(selected, dict) else None
+
+
+def _runtime_fill_matches_scorecard_candidate(
+    *,
+    runtime: dict[str, Any],
+    fill: dict[str, Any],
+    position_lifecycle: dict[str, Any] | None,
+    candidate_scorecard: dict[str, Any],
+) -> bool:
+    target_candidate_id = str(candidate_scorecard.get("candidate_id") or "")
+    if not target_candidate_id:
+        return False
+    side = fill.get("side")
+    if side == "BUY":
+        selected = runtime.get("selected_candidate")
+        return (
+            isinstance(selected, dict)
+            and selected.get("candidate_id") == target_candidate_id
+            and runtime.get("final_decision") == "ENTER_LONG"
+        )
+    if side == "SELL" and isinstance(position_lifecycle, dict):
+        entry_candidate_id = position_lifecycle.get("entry_candidate_id")
+        if isinstance(entry_candidate_id, str) and entry_candidate_id:
+            return entry_candidate_id == target_candidate_id
+        closed_candidate = _candidate_for_closed_trade(runtime, position_lifecycle)
+        return isinstance(closed_candidate, dict) and closed_candidate.get("candidate_id") == target_candidate_id
+    return False
+
+
+def performance_inputs_from_runtime_sample_history(
+    *,
+    candidate_scorecard: dict[str, Any],
+    runtime_sample_history: dict[str, Any],
+    root: Path,
+) -> tuple[dict[str, str], dict[str, Any], list[str]]:
+    root = Path(root).resolve()
+    history_id = str(runtime_sample_history.get("history_id") or "unknown_history")
+    history_hash = str(runtime_sample_history.get("history_hash") or "missing_hash")
+    source_ids = _performance_source_evidence_ids(
+        history_id,
+        history_hash,
+        str(candidate_scorecard.get("candidate_id") or ""),
+    )
+
+    previous_realized_pnl: Decimal | None = None
+    starting_cash: Decimal | None = None
+    candidate_cumulative_realized_pnl = Decimal("0")
+    candidate_realized_pnl_peak = Decimal("0")
+    max_drawdown_pct = Decimal("0")
+    closed_trade_count = 0
+    gross_profit = Decimal("0")
+    gross_loss = Decimal("0")
+    realized_vs_expected_values: list[Decimal] = []
+    fill_quality_values: list[Decimal] = []
+
+    for sample in runtime_sample_history.get("samples") or []:
+        if not isinstance(sample, dict):
+            continue
+        runtime = _load_valid_runtime_sample(root=root, sample=sample, candidate_scorecard=candidate_scorecard)
+        if runtime is None:
+            continue
+        portfolio = runtime.get("paper_portfolio_snapshot")
+        if isinstance(portfolio, dict):
+            candidate_starting_cash = decimal_value(portfolio.get("starting_cash"))
+            if candidate_starting_cash > 0:
+                starting_cash = candidate_starting_cash if starting_cash is None else starting_cash
+            current_realized = decimal_value(portfolio.get("realized_pnl"))
+        else:
+            current_realized = previous_realized_pnl if previous_realized_pnl is not None else Decimal("0")
+
+        fill = runtime.get("paper_fill")
+        lifecycle = runtime.get("position_management_decision")
+        candidate_fill = (
+            _runtime_fill_matches_scorecard_candidate(
+                runtime=runtime,
+                fill=fill,
+                position_lifecycle=lifecycle if isinstance(lifecycle, dict) else None,
+                candidate_scorecard=candidate_scorecard,
+            )
+            if isinstance(fill, dict)
+            else False
+        )
+        if isinstance(fill, dict) and fill.get("side") in {"BUY", "SELL"} and candidate_fill:
+            expected_slippage = (
+                decimal_value(fill.get("spread_bps")) / Decimal("2")
+                + decimal_value(fill.get("adaptive_slippage_bps"))
+                + decimal_value(fill.get("market_impact_bps"))
+                + decimal_value(fill.get("latency_penalty_bps"))
+            )
+            actual_slippage = decimal_value(fill.get("slippage_bps"))
+            denominator = max(Decimal("1"), expected_slippage)
+            quality = Decimal(str(_clamp_float(float(Decimal("1") - max(Decimal("0"), actual_slippage - expected_slippage) / denominator))))
+            fill_quality_values.append(quality)
+
+        if (
+            isinstance(fill, dict)
+            and isinstance(lifecycle, dict)
+            and fill.get("side") == "SELL"
+            and runtime.get("final_decision") == "EXIT_POSITION"
+            and candidate_fill
+        ):
+            realized_delta = current_realized - (previous_realized_pnl if previous_realized_pnl is not None else Decimal("0"))
+            closed_trade_count += 1
+            if realized_delta >= 0:
+                gross_profit += realized_delta
+            else:
+                gross_loss += abs(realized_delta)
+            filled_notional = max(Decimal("1"), decimal_value(fill.get("filled_notional")))
+            realized_bps = realized_delta / filled_notional * Decimal("10000")
+            closed_candidate = _candidate_for_closed_trade(runtime, lifecycle)
+            expected_bps = decimal_value(closed_candidate.get("net_ev_after_cost_bps")) if isinstance(closed_candidate, dict) else Decimal("0")
+            realized_vs_expected_values.append(realized_bps - expected_bps)
+            candidate_cumulative_realized_pnl += realized_delta
+            candidate_realized_pnl_peak = max(candidate_realized_pnl_peak, candidate_cumulative_realized_pnl)
+            drawdown_denominator = max(Decimal("1"), starting_cash or filled_notional)
+            drawdown = max(
+                Decimal("0"),
+                (candidate_realized_pnl_peak - candidate_cumulative_realized_pnl) / drawdown_denominator * Decimal("100"),
+            )
+            max_drawdown_pct = max(max_drawdown_pct, drawdown)
+        previous_realized_pnl = current_realized
+
+    if gross_loss > 0:
+        profit_factor = gross_profit / gross_loss
+    elif gross_profit > 0 and closed_trade_count > 0:
+        profit_factor = Decimal("999")
+    else:
+        profit_factor = Decimal("0")
+    realized_vs_expected = (
+        sum(realized_vs_expected_values, Decimal("0")) / Decimal(len(realized_vs_expected_values))
+        if realized_vs_expected_values
+        else Decimal("-999")
+    )
+    fill_quality = (
+        sum(fill_quality_values, Decimal("0")) / Decimal(len(fill_quality_values))
+        if fill_quality_values
+        else Decimal("0")
+    )
+    metrics = dict(DEFAULT_PERFORMANCE_METRICS)
+    metrics.update(
+        {
+            "closed_trade_sample_count": closed_trade_count,
+            "profit_factor": float(profit_factor),
+            "max_drawdown_pct": float(max_drawdown_pct),
+            "realized_vs_expected_edge_bps": float(realized_vs_expected),
+            "fill_quality_score": float(fill_quality),
+        }
+    )
+    statuses = {
+        "closed_trade_status": "PASS"
+        if closed_trade_count >= int(metrics["min_closed_trade_sample_count"])
+        else "UNTESTED",
+        "profit_factor_status": "PASS" if float(metrics["profit_factor"]) >= float(metrics["min_profit_factor"]) else "UNTESTED",
+        "max_drawdown_status": "PASS" if float(metrics["max_drawdown_pct"]) <= float(metrics["max_allowed_drawdown_pct"]) else "FAIL",
+        "realized_vs_expected_edge_status": "PASS"
+        if float(metrics["realized_vs_expected_edge_bps"]) >= float(metrics["min_realized_vs_expected_edge_bps"])
+        else "UNTESTED",
+        "fill_quality_status": "PASS" if float(metrics["fill_quality_score"]) >= float(metrics["min_fill_quality_score"]) else "UNTESTED",
+    }
+    return statuses, metrics, source_ids
 
 
 def strategy_id_for_family(strategy_family: str) -> str:

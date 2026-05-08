@@ -2,6 +2,7 @@ import copy
 import json
 import tempfile
 import unittest
+from decimal import Decimal
 from pathlib import Path
 
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
@@ -11,6 +12,7 @@ from trader1.research.profitability.candidate_scorecard import (
     candidate_scorecard_from_upbit_paper_runtime_cycle,
     has_required_performance_source_ids,
     has_required_robustness_source_ids,
+    performance_inputs_from_runtime_sample_history,
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
     stable_hash,
@@ -41,6 +43,67 @@ PASS_PERFORMANCE_METRICS = {
     "fill_quality_score": 0.91,
     "min_fill_quality_score": 0.80,
 }
+
+
+def _entry_strategy_context(candidate: dict[str, str], cycle_id: str) -> dict[str, str]:
+    variation_by_family = {
+        "PULLBACK_TREND_LONG": "trailing_tp",
+        "VWAP_MEAN_REVERSION": "fixed_tp",
+        "BREAKOUT_RETEST_LONG": "invalidation_exit",
+    }
+    strategy_family = str(candidate["strategy_family"])
+    return {
+        "entry_strategy_context_status": "BOUND_TO_ENTRY_CANDIDATE",
+        "entry_strategy_context_source": "PAPER_RUNTIME_ENTRY_FILL",
+        "entry_candidate_id": str(candidate["candidate_id"]),
+        "entry_strategy_family": strategy_family,
+        "entry_strategy_exit_policy_id": "UPBIT_KRW_SPOT_STRATEGY_EXIT_ROUTER_V1",
+        "entry_strategy_exit_variation": variation_by_family[strategy_family],
+        "entry_strategy_source_runtime_cycle_id": cycle_id,
+        "entry_strategy_source_candidate_hash": "A" * 64,
+        "entry_strategy_source_exit_plan_hash": "B" * 64,
+        "entry_strategy_context_formula": "bind exit policy to entry strategy at fill time",
+    }
+
+
+def _closed_trade_runtime_for_candidate(*, symbol: str, cycle_id: str) -> dict:
+    market_data = build_upbit_public_candle_fixture(
+        symbol=symbol,
+        session_id="mvp4_upbit_paper_runtime",
+        profile="UPTREND_PULLBACK",
+    )
+    entry_runtime = build_upbit_paper_runtime_cycle_report(
+        cycle_id=f"{cycle_id}-entry-context",
+        symbol=symbol,
+        market_data=market_data,
+    )
+    candidate = entry_runtime["selected_candidate"]
+    mark_price = Decimal(str(market_data["candles"][-1]["close"]))
+    entry_price = mark_price * Decimal("1.08")
+    current_portfolio = build_paper_portfolio_snapshot_from_fill(
+        exchange="UPBIT",
+        market_type="KRW_SPOT",
+        session_id="mvp4_upbit_paper_runtime",
+        symbol=symbol,
+        side="BUY",
+        quantity="0.01",
+        fill_price=str(entry_price),
+        mark_price=str(mark_price),
+        fee_amount="5",
+        starting_cash="1000000",
+        source_runtime_cycle_id=f"{cycle_id}-entry-context",
+        source_paper_ledger_head_hash="C" * 64,
+        entry_strategy_context=_entry_strategy_context(candidate, f"{cycle_id}-entry-context"),
+    )
+    return build_upbit_paper_runtime_cycle_report(
+        cycle_id=cycle_id,
+        symbol=symbol,
+        market_data=market_data,
+        paper_cash_available=current_portfolio["cash_available"],
+        paper_equity=current_portfolio["equity"],
+        paper_position_market_value=current_portfolio["position_market_value"],
+        current_paper_portfolio_snapshot=current_portfolio,
+    )
 
 
 class CandidateScorecardFromRuntimeTest(unittest.TestCase):
@@ -385,6 +448,55 @@ class CandidateScorecardFromRuntimeTest(unittest.TestCase):
         self.assertEqual(scorecard["blockers"], [])
         self.assertEqual(scorecard["live_readiness_status"], "NOT_LIVE_READY")
         self.assertFalse(scorecard["live_order_allowed"])
+
+    def test_runtime_performance_inputs_are_candidate_scoped(self):
+        target_entry_runtime = build_upbit_paper_runtime_cycle_report(
+            cycle_id="scorecard-performance-target-entry",
+            symbol="KRW-BTC",
+        )
+        target_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(target_entry_runtime)
+        target_runtime = _closed_trade_runtime_for_candidate(
+            symbol="KRW-BTC",
+            cycle_id="scorecard-performance-target-exit",
+        )
+        unrelated_runtime = _closed_trade_runtime_for_candidate(
+            symbol="KRW-ETH",
+            cycle_id="scorecard-performance-unrelated-exit",
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime_dir = root / "system" / "runtime" / "upbit" / "krw_spot" / "paper" / "mvp4_upbit_paper_runtime"
+            runtime_dir.mkdir(parents=True)
+            samples = []
+            for runtime in (target_runtime, unrelated_runtime):
+                runtime_path = runtime_dir / f"{runtime['cycle_id']}.runtime_cycle.json"
+                runtime_path.write_text(json.dumps(runtime, sort_keys=True), encoding="utf-8")
+                samples.append(
+                    {
+                        "source_runtime_cycle_path": runtime_path.relative_to(root).as_posix(),
+                        "source_runtime_cycle_hash": runtime["cycle_hash"],
+                    }
+                )
+            history = {
+                "history_id": "candidate-scoped-performance-history",
+                "history_hash": "D" * 64,
+                "samples": samples,
+            }
+
+            statuses, metrics, source_ids = performance_inputs_from_runtime_sample_history(
+                candidate_scorecard=target_scorecard,
+                runtime_sample_history=history,
+                root=root,
+            )
+
+        target_key = safe_candidate_scorecard_filename(target_scorecard["candidate_id"])
+        self.assertEqual(target_runtime["final_decision"], "EXIT_POSITION")
+        self.assertEqual(unrelated_runtime["final_decision"], "EXIT_POSITION")
+        self.assertEqual(metrics["closed_trade_sample_count"], 1)
+        self.assertEqual(statuses["closed_trade_status"], "UNTESTED")
+        self.assertGreater(metrics["fill_quality_score"], 0)
+        self.assertTrue(all(f":{target_key}:" in source_id for source_id in source_ids))
 
     def test_scorecard_writer_preserves_candidate_scoped_snapshots_without_live_permission(self):
         btc_runtime = build_upbit_paper_runtime_cycle_report(

@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 
 from trader1.research.profitability.candidate_scorecard import (
     candidate_scorecard_from_upbit_paper_runtime_cycle,
+    performance_inputs_from_runtime_sample_history,
     write_upbit_paper_candidate_scorecard,
 )
 from trader1.research.profitability.overfit_diagnostic import (
@@ -107,10 +108,18 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         )
 
     robustness_statuses, robustness_source_ids = robustness_inputs_from_overfit_diagnostic(diagnostic)
+    performance_statuses, performance_metrics, performance_source_ids = performance_inputs_from_runtime_sample_history(
+        candidate_scorecard=base_scorecard,
+        runtime_sample_history=history,
+        root=root,
+    )
     scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
         runtime,
         robustness_statuses=robustness_statuses,
         robustness_source_evidence_ids=robustness_source_ids,
+        performance_statuses=performance_statuses,
+        performance_metrics=performance_metrics,
+        performance_source_evidence_ids=performance_source_ids,
     )
     scorecard_errors = _candidate_scorecard_net_ev_errors(scorecard)
     if scorecard_errors:
@@ -142,6 +151,11 @@ def build_current_upbit_paper_candidate_scorecard(*, root: Path, session_id: str
         "sample_count": diagnostic["sample_count"],
         "min_required_sample_count": diagnostic["min_required_sample_count"],
         "overfit_blocker_codes": [blocker["code"] for blocker in diagnostic["blockers"]],
+        "performance_closed_trade_sample_count": scorecard["closed_trade_sample_count"],
+        "performance_profit_factor": scorecard["profit_factor"],
+        "performance_max_drawdown_pct": scorecard["max_drawdown_pct"],
+        "performance_realized_vs_expected_edge_bps": scorecard["realized_vs_expected_edge_bps"],
+        "performance_fill_quality_score": scorecard["fill_quality_score"],
         "invalid_runtime_source_count": history["invalid_source_count"],
         "live_order_ready": False,
         "live_order_allowed": False,

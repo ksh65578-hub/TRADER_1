@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from tools.run_upbit_paper_candidate_scorecard import build_current_upbit_paper_candidate_scorecard
 from trader1.research.profitability.candidate_scorecard import (
+    PERFORMANCE_PASS,
     robustness_source_evidence_id,
     safe_candidate_scorecard_filename,
 )
@@ -127,7 +128,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertFalse(blocked["live_order_allowed"])
         self.assertFalse(blocked["scale_up_allowed"])
 
-    def test_bridge_consumes_robust_diagnostic_as_paper_scorecard_input_only(self):
+    def test_bridge_keeps_robust_diagnostic_blocked_until_performance_evidence_passes(self):
         def robust_diagnostic(*, candidate_scorecard: dict, runtime_sample_history: dict, root: Path) -> dict:
             report = overfit_diagnostic_from_upbit_paper_runtime(
                 candidate_scorecard=candidate_scorecard,
@@ -202,14 +203,116 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(_candidate_scorecard_net_ev_errors(scoped_scorecard), [])
         self.assertEqual(scoped_scorecard["candidate_id"], scorecard["candidate_id"])
         self.assertTrue(diagnostic["robustness_eligible"])
-        self.assertTrue(scorecard["ranking_eligible"])
-        self.assertEqual(scorecard["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
+        self.assertFalse(scorecard["ranking_eligible"])
+        self.assertEqual(scorecard["scorecard_scope"], "PAPER_EVIDENCE_COLLECTION_ONLY")
+        self.assertIn("SAMPLE_INSUFFICIENT", {blocker["code"] for blocker in scorecard["blockers"]})
+        self.assertIn("EXECUTION_FEEDBACK_DIVERGENT", {blocker["code"] for blocker in scorecard["blockers"]})
         self.assertEqual(scorecard["live_readiness_status"], "NOT_LIVE_READY")
         self.assertFalse(scorecard["live_order_ready"])
         self.assertFalse(scorecard["live_order_allowed"])
         self.assertFalse(scorecard["can_live_trade"])
         self.assertFalse(scorecard["scale_up_allowed"])
         self.assertFalse(result["live_order_allowed"])
+
+    def test_bridge_requires_closed_trade_performance_before_ranking_eligible(self):
+        def robust_diagnostic(*, candidate_scorecard: dict, runtime_sample_history: dict, root: Path) -> dict:
+            report = overfit_diagnostic_from_upbit_paper_runtime(
+                candidate_scorecard=candidate_scorecard,
+                runtime_sample_history=runtime_sample_history,
+                root=root,
+            )
+            robust = copy.deepcopy(report)
+            source_ids = [
+                robustness_source_evidence_id("oos", candidate_scorecard["source_runtime_cycle_id"], candidate_scorecard["source_runtime_cycle_hash"]),
+                robustness_source_evidence_id(
+                    "walk_forward",
+                    candidate_scorecard["source_runtime_cycle_id"],
+                    candidate_scorecard["source_runtime_cycle_hash"],
+                ),
+                robustness_source_evidence_id(
+                    "bootstrap",
+                    candidate_scorecard["source_runtime_cycle_id"],
+                    candidate_scorecard["source_runtime_cycle_hash"],
+                ),
+            ]
+            robust.update(
+                {
+                    "diagnostic_status": "ROBUST_FOR_PAPER_REVIEW",
+                    "oos_status": "PASS",
+                    "walk_forward_status": "PASS",
+                    "bootstrap_status": "PASS",
+                    "ranking_stability_status": "PASS",
+                    "overfit_status": "LOW",
+                    "sample_count": 300,
+                    "train_window_count": 180,
+                    "oos_window_count": 120,
+                    "walk_forward_window_count": 6,
+                    "bootstrap_iteration_count": 500,
+                    "in_sample_net_ev_after_cost_bps": 14.0,
+                    "oos_net_ev_after_cost_bps": 12.0,
+                    "oos_degradation_bps": 2.0,
+                    "walk_forward_pass_rate": 0.83,
+                    "bootstrap_confidence_lower_bps": 4.0,
+                    "ranking_stability_score": 0.88,
+                    "concentration_risk_status": "LOW",
+                    "survivorship_bias_check": "PASS",
+                    "data_snooping_check": "PASS",
+                    "robustness_eligible": True,
+                    "blockers": [],
+                    "source_evidence_ids": sorted(set(robust["source_evidence_ids"] + source_ids)),
+                }
+            )
+            robust["diagnostic_hash"] = overfit_diagnostic_report_hash(robust)
+            return robust
+
+        def strong_performance(*, candidate_scorecard: dict, runtime_sample_history: dict, root: Path):
+            history_id = str(runtime_sample_history.get("history_id") or "history")
+            history_hash = str(runtime_sample_history.get("history_hash") or "H" * 64)
+            return (
+                dict(PERFORMANCE_PASS),
+                {
+                    "closed_trade_sample_count": 42,
+                    "min_closed_trade_sample_count": 30,
+                    "profit_factor": 1.42,
+                    "min_profit_factor": 1.25,
+                    "max_drawdown_pct": 4.8,
+                    "max_allowed_drawdown_pct": 8.0,
+                    "realized_vs_expected_edge_bps": 2.5,
+                    "min_realized_vs_expected_edge_bps": 0.0,
+                    "fill_quality_score": 0.91,
+                    "min_fill_quality_score": 0.80,
+                },
+                [
+                    f"closed_trades:{history_id}:{history_hash}",
+                    f"execution_quality:{history_id}:{history_hash}",
+                    f"performance_summary:{history_id}:{history_hash}",
+                ],
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _run_short_paper(root)
+
+            with patch(
+                "tools.run_upbit_paper_candidate_scorecard.overfit_diagnostic_from_upbit_paper_runtime",
+                side_effect=robust_diagnostic,
+            ), patch(
+                "tools.run_upbit_paper_candidate_scorecard.performance_inputs_from_runtime_sample_history",
+                side_effect=strong_performance,
+            ):
+                result = build_current_upbit_paper_candidate_scorecard(
+                    root=root,
+                    session_id="mvp1_upbit_paper_launcher",
+                )
+            scorecard = _load_written(root, result, "candidate_scorecard_path")
+
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(_candidate_scorecard_net_ev_errors(scorecard), [])
+        self.assertTrue(scorecard["ranking_eligible"])
+        self.assertEqual(scorecard["scorecard_scope"], "PAPER_SCORECARD_INPUT_ONLY")
+        self.assertEqual(scorecard["closed_trade_status"], "PASS")
+        self.assertEqual(scorecard["profit_factor_status"], "PASS")
+        self.assertFalse(scorecard["live_order_allowed"])
 
 
 if __name__ == "__main__":
