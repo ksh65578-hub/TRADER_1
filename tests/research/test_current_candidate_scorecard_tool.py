@@ -400,6 +400,7 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
             generation_report = _load_written(root, result, "candidate_generation_report_path")
             discovery_runtime = _load_written(root, result, "candidate_discovery_runtime_cycle_path")
             alternative_replay = _load_written(root, result, "alternative_public_replay_report_path")
+            alternative_review_scorecard = _load_written(root, result, "alternative_review_scorecard_path")
 
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["candidate_discovery_status"], "PASS")
@@ -443,6 +444,16 @@ class CurrentCandidateScorecardToolTest(unittest.TestCase):
         self.assertEqual(result["alternative_public_replay_symbol"], "KRW-ETH")
         self.assertGreaterEqual(result["alternative_public_replay_sample_count"], 1)
         self.assertEqual(alternative_replay["candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertEqual(result["alternative_review_scorecard_status"], "PASS")
+        self.assertEqual(result["alternative_review_scorecard_candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertEqual(alternative_review_scorecard["candidate_id"], generation_report["best_alternative_candidate_id"])
+        self.assertTrue(
+            any(
+                source_id.startswith(f"public_replay_robustness:{alternative_replay['replay_id']}:")
+                for source_id in alternative_review_scorecard["source_evidence_ids"]
+            )
+        )
+        self.assertFalse(alternative_review_scorecard["live_order_allowed"])
         self.assertFalse(alternative_replay["live_order_allowed"])
         self.assertEqual(result["candidate_generation_status"], "ALTERNATIVE_PUBLIC_REPLAY_VALIDATED")
         self.assertIsNone(result["candidate_generation_primary_blocker_code"])

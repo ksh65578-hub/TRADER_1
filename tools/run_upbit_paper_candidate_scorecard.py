@@ -20,6 +20,7 @@ from trader1.research.profitability.candidate_scorecard import (
     validate_candidate_generation_report,
     write_upbit_paper_candidate_generation_report,
     write_upbit_paper_candidate_scorecard,
+    write_upbit_paper_candidate_scorecard_snapshot,
 )
 from trader1.adapters.upbit.market_data import (
     DEFAULT_DISCOVERY_EVALUATION_LIMIT,
@@ -437,6 +438,8 @@ def _alternative_replay_context(
     sample_count: int = 0,
     primary_blocker_code: str | None = None,
     report: dict[str, Any] | None = None,
+    scorecard: dict[str, Any] | None = None,
+    source_runtime_cycle_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "status": status,
@@ -451,6 +454,8 @@ def _alternative_replay_context(
         "sample_count": sample_count,
         "primary_blocker_code": primary_blocker_code,
         "report": report,
+        "scorecard": scorecard,
+        "source_runtime_cycle_report": source_runtime_cycle_report,
         "credential_load_attempted": False,
         "private_endpoint_called": False,
         "order_endpoint_called": False,
@@ -763,7 +768,97 @@ def _build_and_write_alternative_public_replay(
         sample_count=int(replay_report.get("sample_count") or 0),
         primary_blocker_code=replay_report.get("primary_blocker_code"),
         report=replay_report,
+        scorecard=alternative_scorecard,
+        source_runtime_cycle_report=source_runtime,
     )
+
+
+def _build_and_write_alternative_review_scorecard(
+    *,
+    root: Path,
+    history: dict[str, Any],
+    alternative_replay_context: dict[str, Any],
+) -> dict[str, Any]:
+    replay_report = alternative_replay_context.get("report")
+    source_runtime = alternative_replay_context.get("source_runtime_cycle_report")
+    base_scorecard = alternative_replay_context.get("scorecard")
+    if alternative_replay_context.get("status") != "PASS" or not isinstance(replay_report, dict):
+        return {
+            "status": "NOT_REQUIRED",
+            "blocker_code": None,
+            "message": "alternative review scorecard is only written after alternative public replay passes",
+            "path": None,
+            "candidate_id": alternative_replay_context.get("candidate_id"),
+            "ranking_eligible": False,
+            "blocker_codes": [],
+        }
+    if not isinstance(source_runtime, dict) or not isinstance(base_scorecard, dict):
+        return {
+            "status": "BLOCKED",
+            "blocker_code": "SNAPSHOT_SCOPE_MISMATCH",
+            "message": "alternative review scorecard requires the source runtime and base scorecard",
+            "path": None,
+            "candidate_id": alternative_replay_context.get("candidate_id"),
+            "ranking_eligible": False,
+            "blocker_codes": ["SNAPSHOT_SCOPE_MISMATCH"],
+        }
+    diagnostic = overfit_diagnostic_from_upbit_paper_runtime(
+        candidate_scorecard=base_scorecard,
+        runtime_sample_history=history,
+        root=root,
+        replay_robustness_report=replay_report,
+    )
+    performance_statuses, performance_metrics, performance_source_ids = performance_inputs_from_runtime_sample_history(
+        candidate_scorecard=base_scorecard,
+        runtime_sample_history=history,
+        root=root,
+    )
+    diagnostic = _bind_performance_sources_to_overfit_diagnostic(
+        diagnostic,
+        performance_source_ids=performance_source_ids,
+    )
+    diagnostic_errors = _overfit_diagnostic_errors(diagnostic)
+    if diagnostic_errors:
+        return {
+            "status": "BLOCKED",
+            "blocker_code": "SCHEMA_IDENTITY_MISMATCH",
+            "message": "alternative review overfit diagnostic failed contract validation",
+            "path": None,
+            "candidate_id": base_scorecard.get("candidate_id"),
+            "ranking_eligible": False,
+            "blocker_codes": ["SCHEMA_IDENTITY_MISMATCH"],
+        }
+    robustness_statuses, robustness_source_ids = robustness_inputs_from_overfit_diagnostic(diagnostic)
+    review_scorecard = candidate_scorecard_from_upbit_paper_runtime_cycle(
+        source_runtime,
+        candidate_id=str(base_scorecard["candidate_id"]),
+        robustness_statuses=robustness_statuses,
+        robustness_source_evidence_ids=robustness_source_ids,
+        performance_statuses=performance_statuses,
+        performance_metrics=performance_metrics,
+        performance_source_evidence_ids=performance_source_ids,
+    )
+    scorecard_errors = _candidate_scorecard_net_ev_errors(review_scorecard)
+    if scorecard_errors:
+        return {
+            "status": "BLOCKED",
+            "blocker_code": "SCORECARD_SCHEMA_INVALID",
+            "message": "alternative review scorecard failed contract validation",
+            "path": None,
+            "candidate_id": base_scorecard.get("candidate_id"),
+            "ranking_eligible": False,
+            "blocker_codes": ["SCORECARD_SCHEMA_INVALID"],
+        }
+    snapshot_path = write_upbit_paper_candidate_scorecard_snapshot(root=root, scorecard=review_scorecard)
+    return {
+        "status": "PASS",
+        "blocker_code": None,
+        "message": "alternative review scorecard snapshot written from passed public replay and runtime-bound performance inputs",
+        "path": _relative_path(snapshot_path, root),
+        "candidate_id": review_scorecard["candidate_id"],
+        "ranking_eligible": bool(review_scorecard["ranking_eligible"]),
+        "blocker_codes": [blocker["code"] for blocker in review_scorecard["blockers"]],
+    }
 
 
 def _select_scorecard_runtime_sample(history: dict[str, Any]) -> tuple[dict[str, Any], str]:
@@ -1003,6 +1098,11 @@ def build_current_upbit_paper_candidate_scorecard(
                 candidate_generation_errors=[generation_message],
             )
 
+    alternative_review_scorecard_context = _build_and_write_alternative_review_scorecard(
+        root=root,
+        history=history,
+        alternative_replay_context=alternative_replay_context,
+    )
     paper_shadow_binding = _paper_shadow_scorecard_binding(
         root=root,
         session_id=session_id,
@@ -1080,6 +1180,13 @@ def build_current_upbit_paper_candidate_scorecard(
         "alternative_public_replay_replay_status": alternative_replay_context["replay_status"],
         "alternative_public_replay_sample_count": alternative_replay_context["sample_count"],
         "alternative_public_replay_primary_blocker_code": alternative_replay_context["primary_blocker_code"],
+        "alternative_review_scorecard_status": alternative_review_scorecard_context["status"],
+        "alternative_review_scorecard_blocker_code": alternative_review_scorecard_context["blocker_code"],
+        "alternative_review_scorecard_message": alternative_review_scorecard_context["message"],
+        "alternative_review_scorecard_path": alternative_review_scorecard_context["path"],
+        "alternative_review_scorecard_candidate_id": alternative_review_scorecard_context["candidate_id"],
+        "alternative_review_scorecard_ranking_eligible": alternative_review_scorecard_context["ranking_eligible"],
+        "alternative_review_scorecard_blocker_codes": alternative_review_scorecard_context["blocker_codes"],
         "strategy_performance_memory_path": _relative_path(convergence_memory["strategy_performance_memory_path"], root),
         "convergence_objective_profile_path": _relative_path(
             convergence_memory["convergence_objective_profile_path"],

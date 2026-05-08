@@ -2038,6 +2038,32 @@ def write_upbit_paper_candidate_scorecard(*, root: Path, scorecard: dict[str, An
     return path
 
 
+def write_upbit_paper_candidate_scorecard_snapshot(*, root: Path, scorecard: dict[str, Any]) -> Path:
+    if (
+        scorecard.get("exchange") != "UPBIT"
+        or scorecard.get("market_type") != "KRW_SPOT"
+        or scorecard.get("mode") != "PAPER"
+    ):
+        raise ValueError("candidate scorecard snapshot writer is scoped to UPBIT/KRW_SPOT/PAPER")
+    forbidden_flags = ("live_order_ready", "live_order_allowed", "can_live_trade", "scale_up_allowed")
+    if any(scorecard.get(flag) is True for flag in forbidden_flags):
+        raise ValueError("candidate scorecard snapshot writer refuses live or scale-up permission")
+    snapshot_path = (
+        Path(root)
+        / "system"
+        / "runtime"
+        / "upbit"
+        / "krw_spot"
+        / "paper"
+        / str(scorecard["session_id"])
+        / "profitability"
+        / "candidate_scorecards"
+        / f"{safe_candidate_scorecard_filename(scorecard.get('candidate_id'))}.candidate_scorecard.json"
+    )
+    durable_atomic_write_json(snapshot_path, scorecard)
+    return snapshot_path
+
+
 def write_upbit_paper_candidate_generation_report(*, root: Path, report: dict[str, Any]) -> Path:
     if (
         report.get("exchange") != "UPBIT"
