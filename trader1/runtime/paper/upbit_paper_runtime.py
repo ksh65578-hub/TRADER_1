@@ -44,6 +44,8 @@ PAPER_EXIT_SLIPPAGE_BPS = Decimal("5")
 PAPER_BROKER_MODEL_ID = "UPBIT_KRW_SPOT_ADAPTIVE_PUBLIC_L2_PROXY_V1"
 PAPER_BROKER_FILL_SOURCE = "PAPER_BROKER_SIMULATION_ADAPTIVE_PUBLIC_L2_PROXY"
 PAPER_RUNTIME_COST_MODEL_SOURCE = "PAPER_RUNTIME_ADAPTIVE_PUBLIC_L2_PROXY_COST_MODEL"
+PAPER_BROKER_ACCEPTED_LIFECYCLE_STATES = {"FILLED", "PARTIALLY_FILLED"}
+PAPER_BROKER_TERMINAL_NO_FILL_STATES = {"REJECTED", "CANCELLED"}
 PAPER_BROKER_MIN_FILL_RATIO = Decimal("0.35")
 PAPER_BROKER_MAX_IMPACT_BPS = Decimal("120")
 PAPER_BROKER_MAX_LATENCY_BPS = Decimal("45")
@@ -2967,7 +2969,12 @@ def _decimal_close(left: Decimal, right: Decimal, tolerance: Decimal = Decimal("
     return abs(left - right) <= tolerance
 
 
-def _validate_paper_broker_fill(fill: dict[str, Any], *, features: dict[str, Any], expected_side: str) -> UpbitPaperRuntimeCycleValidationResult:
+def _validate_paper_broker_execution_attempt(
+    attempt: dict[str, Any],
+    *,
+    features: dict[str, Any],
+    expected_side: str,
+) -> UpbitPaperRuntimeCycleValidationResult:
     required = {
         "fill_source",
         "broker_model_id",
@@ -3019,74 +3026,107 @@ def _validate_paper_broker_fill(fill: dict[str, Any], *, features: dict[str, Any
         "private_endpoint_called",
         "credential_load_attempted",
     }
-    missing = sorted(required - set(fill))
+    missing = sorted(required - set(attempt))
     if missing:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", f"paper broker fill missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH")
-    if fill.get("fill_source") != PAPER_BROKER_FILL_SOURCE or fill.get("broker_model_id") != PAPER_BROKER_MODEL_ID:
-        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper fill is not from adaptive PAPER broker model", "MEASUREMENT_MISSING")
-    if fill.get("side") != expected_side:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill side mismatch", "SCHEMA_IDENTITY_MISMATCH")
-    if fill.get("order_lifecycle_state") not in {"FILLED", "PARTIALLY_FILLED"}:
-        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper fill lifecycle state is not accepted", "RECONCILIATION_REQUIRED")
-    if fill.get("partial_fill") is not (fill.get("order_lifecycle_state") == "PARTIALLY_FILLED"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", f"paper broker attempt missing fields: {missing}", "SCHEMA_IDENTITY_MISMATCH")
+    if attempt.get("fill_source") != PAPER_BROKER_FILL_SOURCE or attempt.get("broker_model_id") != PAPER_BROKER_MODEL_ID:
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper broker attempt is not from adaptive PAPER broker model", "MEASUREMENT_MISSING")
+    if attempt.get("side") != expected_side:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker attempt side mismatch", "SCHEMA_IDENTITY_MISMATCH")
+    lifecycle_state = str(attempt.get("order_lifecycle_state") or "")
+    if lifecycle_state not in PAPER_BROKER_ACCEPTED_LIFECYCLE_STATES | PAPER_BROKER_TERMINAL_NO_FILL_STATES:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker lifecycle state is unsupported", "SCHEMA_IDENTITY_MISMATCH")
+    if attempt.get("partial_fill") is not (lifecycle_state == "PARTIALLY_FILLED"):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper partial fill flag does not match lifecycle", "SCHEMA_IDENTITY_MISMATCH")
-    if fill.get("maker_taker") == "TAKER":
-        if fill.get("order_type") != "MARKETABLE_LIMIT_PAPER" or fill.get("time_in_force") != "IOC_PAPER":
+    if attempt.get("maker_taker") == "TAKER":
+        if attempt.get("order_type") != "MARKETABLE_LIMIT_PAPER" or attempt.get("time_in_force") != "IOC_PAPER":
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper taker fill order type or TIF marker mismatch", "SCHEMA_IDENTITY_MISMATCH")
-        if _decimal(fill.get("effective_spread_bps")) < 0:
+        if _decimal(attempt.get("effective_spread_bps")) < 0:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper taker fill cannot use maker spread capture", "SCHEMA_IDENTITY_MISMATCH")
-    elif fill.get("maker_taker") == "MAKER":
-        if fill.get("order_type") != "POST_ONLY_LIMIT_PAPER" or fill.get("time_in_force") != "GTT_PAPER":
+    elif attempt.get("maker_taker") == "MAKER":
+        if attempt.get("order_type") != "POST_ONLY_LIMIT_PAPER" or attempt.get("time_in_force") != "GTT_PAPER":
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper maker fill order type or TIF marker mismatch", "SCHEMA_IDENTITY_MISMATCH")
-        if _decimal(fill.get("effective_spread_bps")) > 0:
+        if _decimal(attempt.get("effective_spread_bps")) > 0:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper maker fill must not pay taker spread", "SCHEMA_IDENTITY_MISMATCH")
     else:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill maker/taker marker unsupported", "SCHEMA_IDENTITY_MISMATCH")
     if (
-        fill.get("live_order_ready")
-        or fill.get("live_order_allowed")
-        or fill.get("can_live_trade")
-        or fill.get("scale_up_allowed")
-        or fill.get("order_adapter_called")
-        or fill.get("private_endpoint_called")
-        or fill.get("credential_load_attempted")
+        attempt.get("live_order_ready")
+        or attempt.get("live_order_allowed")
+        or attempt.get("can_live_trade")
+        or attempt.get("scale_up_allowed")
+        or attempt.get("order_adapter_called")
+        or attempt.get("private_endpoint_called")
+        or attempt.get("credential_load_attempted")
     ):
-        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper broker fill attempted live/order/private access", "LIVE_FINAL_GUARD_FAILED")
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper broker attempt used live/order/private access", "LIVE_FINAL_GUARD_FAILED")
     expected_proxy = _paper_orderbook_proxy(features)
-    if fill.get("orderbook_proxy") != expected_proxy:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker orderbook proxy does not match runtime features", "SCHEMA_IDENTITY_MISMATCH")
-    mark_price = _decimal(fill.get("mark_price"))
-    fill_price = _decimal(fill.get("fill_price"))
-    filled_notional = _decimal(fill.get("filled_notional"))
-    filled_quantity = _decimal(fill.get("filled_quantity"))
-    fee_rate = _decimal(fill.get("fee_rate"))
-    fee_amount = _decimal(fill.get("fee_amount"))
-    fill_ratio = _decimal(fill.get("fill_ratio"))
-    if min(mark_price, fill_price, filled_notional, filled_quantity, fee_rate, fee_amount, fill_ratio) < 0 or fill_ratio <= 0 or fill_ratio > 1:
+    if attempt.get("orderbook_proxy") != expected_proxy:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker attempt orderbook proxy does not match runtime features", "SCHEMA_IDENTITY_MISMATCH")
+    mark_price = _decimal(attempt.get("mark_price"))
+    fill_price = _decimal(attempt.get("fill_price"))
+    filled_notional = _decimal(attempt.get("filled_notional"))
+    filled_quantity = _decimal(attempt.get("filled_quantity"))
+    fee_rate = _decimal(attempt.get("fee_rate"))
+    fee_amount = _decimal(attempt.get("fee_amount"))
+    fill_ratio = _decimal(attempt.get("fill_ratio"))
+    if min(mark_price, fill_price, filled_notional, filled_quantity, fee_rate, fee_amount, fill_ratio) < 0 or fill_ratio > 1:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill numeric fields are outside closed ranges", "SCHEMA_IDENTITY_MISMATCH")
-    if not _decimal_close(_decimal(fill.get("notional")), filled_notional) or not _decimal_close(_decimal(fill.get("quantity")), filled_quantity):
+    if lifecycle_state in PAPER_BROKER_TERMINAL_NO_FILL_STATES and (
+        fill_ratio != 0 or filled_notional != 0 or filled_quantity != 0 or fee_amount != 0
+    ):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper rejected/cancelled attempt cannot carry filled notional, quantity, or fee", "SCHEMA_IDENTITY_MISMATCH")
+    if lifecycle_state == "REJECTED" and not attempt.get("reject_reason"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper rejected attempt requires reject_reason", "MEASUREMENT_MISSING")
+    if lifecycle_state == "REJECTED" and attempt.get("cancel_reason") is not None:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper rejected attempt cannot carry cancel_reason", "SCHEMA_IDENTITY_MISMATCH")
+    if lifecycle_state == "CANCELLED" and not attempt.get("cancel_reason"):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper cancelled attempt requires cancel_reason", "MEASUREMENT_MISSING")
+    if lifecycle_state == "CANCELLED" and attempt.get("reject_reason") is not None:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper cancelled attempt cannot carry reject_reason", "SCHEMA_IDENTITY_MISMATCH")
+    if lifecycle_state in PAPER_BROKER_ACCEPTED_LIFECYCLE_STATES and (attempt.get("reject_reason") is not None or attempt.get("cancel_reason") is not None):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "accepted paper fill cannot carry reject/cancel reasons", "SCHEMA_IDENTITY_MISMATCH")
+    if not _decimal_close(_decimal(attempt.get("notional")), filled_notional) or not _decimal_close(_decimal(attempt.get("quantity")), filled_quantity):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill notional/quantity aliases mismatch", "SCHEMA_IDENTITY_MISMATCH")
-    if not _decimal_close(filled_quantity * fill_price, filled_notional, tolerance=Decimal("0.01")):
+    if lifecycle_state in PAPER_BROKER_ACCEPTED_LIFECYCLE_STATES and not _decimal_close(filled_quantity * fill_price, filled_notional, tolerance=Decimal("0.01")):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill notional does not equal filled quantity times fill price", "SCHEMA_IDENTITY_MISMATCH")
     if not _decimal_close(fee_amount, filled_notional * fee_rate):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill fee accounting mismatch", "SCHEMA_IDENTITY_MISMATCH")
     adverse_bps = (
-        _decimal(fill.get("effective_spread_bps"))
-        + _decimal(fill.get("adaptive_slippage_bps"))
-        + _decimal(fill.get("market_impact_bps"))
-        + _decimal(fill.get("latency_penalty_bps"))
+        _decimal(attempt.get("effective_spread_bps"))
+        + _decimal(attempt.get("adaptive_slippage_bps"))
+        + _decimal(attempt.get("market_impact_bps"))
+        + _decimal(attempt.get("latency_penalty_bps"))
     )
-    if not _decimal_close(_decimal(fill.get("slippage_bps")), adverse_bps):
+    if not _decimal_close(_decimal(attempt.get("slippage_bps")), adverse_bps):
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill slippage components do not sum to execution slippage", "SCHEMA_IDENTITY_MISMATCH")
-    if expected_side == "BUY" and fill_price <= mark_price:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper BUY fill price must include adverse spread/slippage", "SCHEMA_IDENTITY_MISMATCH")
-    if expected_side == "SELL" and fill_price >= mark_price:
-        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper SELL fill price must include adverse spread/slippage", "SCHEMA_IDENTITY_MISMATCH")
-    if fill.get("reservation_required") is not True or fill.get("reservation_released") is not True:
+    if lifecycle_state in PAPER_BROKER_ACCEPTED_LIFECYCLE_STATES:
+        if expected_side == "BUY" and fill_price <= mark_price:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper BUY fill price must include adverse spread/slippage", "SCHEMA_IDENTITY_MISMATCH")
+        if expected_side == "SELL" and fill_price >= mark_price:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper SELL fill price must include adverse spread/slippage", "SCHEMA_IDENTITY_MISMATCH")
+    if attempt.get("reservation_required") is not True or attempt.get("reservation_released") is not True:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker reservation lifecycle did not release", "RECONCILIATION_REQUIRED")
-    queue_probability = _decimal(fill.get("queue_fill_probability"))
+    reservation_requested = _decimal(attempt.get("reserved_cash") if expected_side == "BUY" else attempt.get("reserved_quantity"))
+    reservation_release = _decimal(attempt.get("reservation_release_amount"))
+    reservation_used = filled_notional + fee_amount if expected_side == "BUY" else filled_quantity
+    if not _decimal_close(reservation_release, max(Decimal("0"), reservation_requested - reservation_used)):
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker reservation release amount mismatch", "RECONCILIATION_REQUIRED")
+    queue_probability = _decimal(attempt.get("queue_fill_probability"))
     if queue_probability < 0 or queue_probability > 1:
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker queue fill probability outside closed range", "SCHEMA_IDENTITY_MISMATCH")
+    return UpbitPaperRuntimeCycleValidationResult("PASS", "adaptive PAPER broker attempt is lifecycle, queue, fee, and live-guard consistent", None)
+
+
+def _validate_paper_broker_fill(fill: dict[str, Any], *, features: dict[str, Any], expected_side: str) -> UpbitPaperRuntimeCycleValidationResult:
+    attempt_result = _validate_paper_broker_execution_attempt(fill, features=features, expected_side=expected_side)
+    if attempt_result.status != "PASS":
+        return attempt_result
+    if fill.get("order_lifecycle_state") not in PAPER_BROKER_ACCEPTED_LIFECYCLE_STATES:
+        return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "paper fill lifecycle state is not accepted", "RECONCILIATION_REQUIRED")
+    fill_ratio = _decimal(fill.get("fill_ratio"))
+    if fill_ratio <= 0:
+        return UpbitPaperRuntimeCycleValidationResult("FAIL", "accepted paper fill requires positive fill ratio", "SCHEMA_IDENTITY_MISMATCH")
     return UpbitPaperRuntimeCycleValidationResult("PASS", "adaptive PAPER broker fill is depth, fee, and live-guard consistent", None)
 
 
@@ -3845,6 +3885,17 @@ def build_upbit_paper_runtime_cycle_report(
         "exit_slippage_bps": _paper_candidate_cost_breakdown(features)["slippage_bps"],
         "paper_broker_model_id": PAPER_BROKER_MODEL_ID,
         "paper_broker_cost_model_source": PAPER_RUNTIME_COST_MODEL_SOURCE,
+        "paper_broker_attempt_state": broker_execution.get("order_lifecycle_state") if isinstance(broker_execution, dict) else None,
+        "paper_broker_attempt_side": broker_execution.get("side") if isinstance(broker_execution, dict) else None,
+        "paper_broker_attempt_reject_reason": broker_execution.get("reject_reason") if isinstance(broker_execution, dict) else None,
+        "paper_broker_attempt_cancel_reason": broker_execution.get("cancel_reason") if isinstance(broker_execution, dict) else None,
+        "paper_broker_attempt_fill_ratio": broker_execution.get("fill_ratio") if isinstance(broker_execution, dict) else None,
+        "paper_broker_attempt": (
+            dict(broker_execution)
+            if isinstance(broker_execution, dict)
+            and broker_execution.get("order_lifecycle_state") in PAPER_BROKER_TERMINAL_NO_FILL_STATES
+            else None
+        ),
         "position_sizing_status": sizing.get("sizing_status"),
         "selected_notional": sizing.get("selected_notional"),
         "hard_stop": exit_plan.get("hard_stop"),
@@ -4077,6 +4128,7 @@ def validate_upbit_paper_runtime_cycle_report(
         "sizing_decision",
         "exit_plan",
         "position_management_decision",
+        "paper_broker_execution",
         "paper_fill",
         "paper_ledger_events",
         "paper_ledger_head_hash",
@@ -4540,6 +4592,30 @@ def validate_upbit_paper_runtime_cycle_report(
         return UpbitPaperRuntimeCycleValidationResult("FAIL", "position lifecycle decision does not match final decision", "SCHEMA_IDENTITY_MISMATCH")
     if lifecycle.get("live_order_ready") or lifecycle.get("live_order_allowed") or lifecycle.get("can_live_trade") or lifecycle.get("scale_up_allowed") or lifecycle.get("can_submit_order"):
         return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "position lifecycle attempted live/order permission", "LIVE_FINAL_GUARD_FAILED")
+    lifecycle_attempt = lifecycle.get("paper_broker_attempt")
+    if lifecycle_attempt is not None:
+        if not isinstance(lifecycle_attempt, dict):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker attempt must be an object when present", "SCHEMA_IDENTITY_MISMATCH")
+        attempt_side = str(lifecycle_attempt.get("side") or "")
+        if attempt_side not in {"BUY", "SELL"}:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker attempt side is unsupported", "SCHEMA_IDENTITY_MISMATCH")
+        attempt_result = _validate_paper_broker_execution_attempt(lifecycle_attempt, features=expected_features, expected_side=attempt_side)
+        if attempt_result.status != "PASS":
+            return attempt_result
+        if lifecycle_attempt.get("order_lifecycle_state") not in PAPER_BROKER_TERMINAL_NO_FILL_STATES:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "accepted broker execution attempt must be represented as paper_fill", "SCHEMA_IDENTITY_MISMATCH")
+        if final_decision != "BLOCKED":
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "terminal broker attempt can only appear on blocked paper cycles", "SCHEMA_IDENTITY_MISMATCH")
+        if lifecycle.get("paper_broker_attempt_state") != lifecycle_attempt.get("order_lifecycle_state"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker attempt state summary mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if lifecycle.get("paper_broker_attempt_side") != lifecycle_attempt.get("side"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker attempt side summary mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if lifecycle.get("paper_broker_attempt_reject_reason") != lifecycle_attempt.get("reject_reason"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker attempt reject reason summary mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if lifecycle.get("paper_broker_attempt_cancel_reason") != lifecycle_attempt.get("cancel_reason"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker attempt cancel reason summary mismatch", "SCHEMA_IDENTITY_MISMATCH")
+        if lifecycle.get("paper_broker_attempt_fill_ratio") != lifecycle_attempt.get("fill_ratio"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker attempt fill ratio summary mismatch", "SCHEMA_IDENTITY_MISMATCH")
     entry_context_status = lifecycle.get("entry_strategy_context_status")
     if require_current_strategy_exit_policy:
         if entry_context_status not in {
@@ -4584,6 +4660,8 @@ def validate_upbit_paper_runtime_cycle_report(
         fill_result = _validate_paper_broker_fill(report["paper_fill"], features=expected_features, expected_side="BUY")
         if fill_result.status != "PASS":
             return fill_result
+        if report.get("paper_broker_execution") != report.get("paper_fill"):
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker execution must match accepted entry fill", "SCHEMA_IDENTITY_MISMATCH")
         if report["paper_portfolio_snapshot"].get("open_position_count") < 1:
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper fill did not update open positions", "SCHEMA_IDENTITY_MISMATCH")
     elif final_decision in {"EXIT_POSITION", "REDUCE_POSITION"}:
@@ -4597,6 +4675,12 @@ def validate_upbit_paper_runtime_cycle_report(
         fill_result = _validate_paper_broker_fill(report["paper_fill"], features=expected_features, expected_side="SELL")
         if fill_result.status != "PASS":
             return fill_result
+        broker_execution = dict(report["paper_broker_execution"])
+        broker_execution.pop("position_exit_reason_code", None)
+        paper_fill_for_match = dict(report["paper_fill"])
+        paper_fill_for_match.pop("position_exit_reason_code", None)
+        if broker_execution != paper_fill_for_match:
+            return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker execution must match accepted exit fill", "SCHEMA_IDENTITY_MISMATCH")
         if lifecycle.get("managed_position_symbol") != report["paper_fill"].get("symbol"):
             return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper exit/reduce fill symbol does not match managed position", "SCHEMA_IDENTITY_MISMATCH")
         if final_decision == "EXIT_POSITION" and report["paper_portfolio_snapshot"].get("open_position_count") != 0:
@@ -4606,6 +4690,20 @@ def validate_upbit_paper_runtime_cycle_report(
     else:
         if report.get("paper_fill") is not None or report.get("paper_ledger_events"):
             return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "no-trade paper cycle cannot write fill ledger events", "LIVE_FINAL_GUARD_FAILED")
+        broker_execution = report.get("paper_broker_execution")
+        if broker_execution is not None:
+            if not isinstance(broker_execution, dict):
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker execution must be an object when present", "SCHEMA_IDENTITY_MISMATCH")
+            broker_side = str(broker_execution.get("side") or "")
+            if broker_side not in {"BUY", "SELL"}:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "paper broker execution side is unsupported", "SCHEMA_IDENTITY_MISMATCH")
+            attempt_result = _validate_paper_broker_execution_attempt(broker_execution, features=expected_features, expected_side=broker_side)
+            if attempt_result.status != "PASS":
+                return attempt_result
+            if broker_execution.get("order_lifecycle_state") not in PAPER_BROKER_TERMINAL_NO_FILL_STATES:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "blocked paper cycle cannot retain accepted broker execution without fill ledger", "SCHEMA_IDENTITY_MISMATCH")
+            if lifecycle.get("paper_broker_attempt") != broker_execution:
+                return UpbitPaperRuntimeCycleValidationResult("FAIL", "terminal broker execution must be mirrored in position lifecycle attempt evidence", "SCHEMA_IDENTITY_MISMATCH")
         if not report.get("no_trade_reasons"):
             return UpbitPaperRuntimeCycleValidationResult("BLOCKED", "no-trade paper cycle requires a no-trade reason", "MEASUREMENT_MISSING")
         selected_no_trade_reason = selected.get("no_trade_reason")

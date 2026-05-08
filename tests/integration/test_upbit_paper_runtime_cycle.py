@@ -1,5 +1,6 @@
 from decimal import Decimal
 import unittest
+from unittest.mock import patch
 
 from trader1.adapters.upbit.market_data import build_upbit_public_candle_fixture
 from trader1.core.sizing.position_sizing import sizing_decision_hash
@@ -9,6 +10,7 @@ from trader1.runtime.paper.upbit_paper_runtime import (
     _feature_snapshot,
     _simulate_paper_broker_execution,
     _strategy_entry_policy_evaluation,
+    _validate_paper_broker_execution_attempt,
     _validate_paper_broker_fill,
     build_upbit_paper_runtime_cycle_report,
     upbit_paper_runtime_cycle_hash,
@@ -346,6 +348,72 @@ class UpbitPaperRuntimeCycleTest(unittest.TestCase):
         self.assertFalse(fill["live_order_allowed"])
         self.assertFalse(fill["order_adapter_called"])
         self.assertFalse(fill["private_endpoint_called"])
+
+    def test_paper_broker_records_rejected_and_cancelled_attempts_without_live_or_ledger(self):
+        def reject_entry_attempt(**kwargs):
+            requested_notional = Decimal("1000000000000")
+            mark_price = Decimal(kwargs["mark_price"])
+            return _simulate_paper_broker_execution(
+                cycle_id=kwargs["cycle_id"],
+                symbol=kwargs["symbol"],
+                side=kwargs["side"],
+                requested_notional=requested_notional,
+                requested_quantity=requested_notional / mark_price,
+                mark_price=mark_price,
+                features=kwargs["features"],
+                fee_rate=kwargs["fee_rate"],
+            )
+
+        with patch("trader1.runtime.paper.upbit_paper_runtime._simulate_paper_broker_execution", side_effect=reject_entry_attempt):
+            report = build_upbit_paper_runtime_cycle_report(cycle_id="runtime-cycle-rejected-paper-broker-attempt")
+
+        result = validate_upbit_paper_runtime_cycle_report(report)
+
+        self.assertEqual(result.status, "PASS", result.message)
+        self.assertEqual(report["final_decision"], "BLOCKED")
+        self.assertIn("MEASUREMENT_MISSING", report["no_trade_reasons"])
+        self.assertIsNone(report["paper_fill"])
+        self.assertEqual(report["paper_ledger_events"], [])
+        self.assertEqual(report["paper_broker_execution"]["order_lifecycle_state"], "REJECTED")
+        self.assertEqual(report["paper_broker_execution"]["reject_reason"], "PAPER_DEPTH_OR_IMPACT_REJECT")
+        self.assertEqual(report["paper_broker_execution"]["fill_ratio"], "0")
+        self.assertEqual(report["paper_broker_execution"]["filled_notional"], "0")
+        lifecycle = report["position_management_decision"]
+        self.assertEqual(lifecycle["decision"], "ENTRY_BLOCKED_NO_POSITION")
+        self.assertEqual(lifecycle["paper_broker_attempt"], report["paper_broker_execution"])
+        self.assertEqual(lifecycle["paper_broker_attempt_state"], "REJECTED")
+        self.assertEqual(lifecycle["paper_broker_attempt_reject_reason"], "PAPER_DEPTH_OR_IMPACT_REJECT")
+        self.assertFalse(report["paper_broker_execution"]["live_order_allowed"])
+        self.assertFalse(report["paper_broker_execution"]["order_adapter_called"])
+        self.assertFalse(report["paper_broker_execution"]["private_endpoint_called"])
+        self.assertFalse(report["live_order_allowed"])
+
+        data = build_upbit_public_candle_fixture(
+            symbol="KRW-BTC",
+            session_id="mvp4_upbit_paper_runtime",
+            profile="UPTREND_PULLBACK",
+        )
+        features = {**_feature_snapshot(data), "volatility_pct": "100"}
+        mark_price = Decimal(features["last_price"])
+        cancelled = _simulate_paper_broker_execution(
+            cycle_id="runtime-cycle-cancelled-paper-broker-attempt",
+            symbol="KRW-BTC",
+            side="BUY",
+            requested_notional=Decimal("5000"),
+            requested_quantity=Decimal("5000") / mark_price,
+            mark_price=mark_price,
+            features=features,
+            fee_rate=Decimal("0.0005"),
+        )
+        cancelled_result = _validate_paper_broker_execution_attempt(cancelled, features=features, expected_side="BUY")
+
+        self.assertEqual(cancelled_result.status, "PASS", cancelled_result.message)
+        self.assertEqual(cancelled["order_lifecycle_state"], "CANCELLED")
+        self.assertEqual(cancelled["cancel_reason"], "PAPER_LATENCY_CANCEL")
+        self.assertEqual(cancelled["fill_ratio"], "0")
+        self.assertEqual(cancelled["filled_notional"], "0")
+        self.assertFalse(cancelled["live_order_allowed"])
+        self.assertFalse(cancelled["private_endpoint_called"])
 
     def test_adaptive_paper_broker_allows_risk_reducing_partial_exit_without_live_permission(self):
         weak_btc = build_upbit_public_candle_fixture(
