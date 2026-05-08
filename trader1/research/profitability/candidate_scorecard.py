@@ -1382,6 +1382,13 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
     )
     alternative_replay_passed = alternative_replay_binding["best_alternative_public_replay_status"] == "PASS"
     blockers = []
+    if best is None:
+        blockers.append(
+            blocker(
+                "STRATEGY_NOT_ELIGIBLE",
+                "Bounded candidate generation found no different non-live PAPER_ENTRY_REVIEW candidate above the minimum net EV threshold.",
+            )
+        )
     if failed_current_candidate and not alternative_replay_passed:
         blockers.append(
             blocker(
@@ -1394,13 +1401,6 @@ def candidate_generation_report_from_upbit_paper_runtime_cycle(
     if live_flag_drift_count:
         blockers.append(blocker("LIVE_FINAL_GUARD_FAILED", "Candidate generation rejected a candidate with live or scale-up permission drift."))
     blockers.extend(discovery_blockers)
-    if best is None:
-        blockers.append(
-            blocker(
-                "STRATEGY_NOT_ELIGIBLE",
-                "Bounded candidate generation found no different non-live PAPER_ENTRY_REVIEW candidate above the minimum net EV threshold.",
-            )
-        )
     if not selected_candidate_seen:
         blockers.append(blocker("SCORECARD_MISSING", "Current scorecard candidate was not present in the source runtime cycle candidate set."))
 
